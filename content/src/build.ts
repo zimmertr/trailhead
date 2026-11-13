@@ -81,8 +81,10 @@ export function buildContent(files: SourceFile[]): Content {
       const result = siteFields.safeParse(fields)
       if (!result.success) problems.push(...issues(path, result.error))
       else if (site) problems.push(`${path}: a second site file`)
-      else if (body !== '') problems.push(`${path}: the site file holds fields only`)
-      else site = { name: result.data.name, profiles: result.data.profiles }
+      else {
+        if (body !== '') problems.push(`${path}: the site file holds fields only`)
+        site = { name: result.data.name, profiles: result.data.profiles }
+      }
     } else if (kind === 'place') {
       const result = placeFields.safeParse(fields)
       if (!result.success) problems.push(...issues(path, result.error))

@@ -65,7 +65,7 @@ openapi:
 # Not a check: rewrites both lockfiles from the manifests. A pin change
 # ships with its lock in the same PR.
 lock:
-	$(NODE) "npm install --package-lock-only --ignore-scripts && npm install --prefix tools/eslint --package-lock-only --ignore-scripts"
+	$(NODE) "npm install --package-lock-only --ignore-scripts && npm install --package-lock-only --ignore-scripts --prefix tools/eslint"
 
 # Not in CI: unused files, exports and dependencies. Run it before a refactor
 # lands.

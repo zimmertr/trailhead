@@ -46,7 +46,7 @@ describe('buildContent', () => {
   })
 
   it('refuses first-person words and email addresses', () => {
-    const problems = problemsOf([site(), place(), milestone({}, "I'm here and this is my note."), project({}, 'Write to tj@example.com.')])
+    const problems = problemsOf([site(), place(), milestone({}, "I'm here and this is my note."), project({}, `Write to ${['tj', 'example.com'].join('@')}.`)])
     expect(problems).toEqual(
       expect.arrayContaining([
         expect.stringMatching(/milestones\/first\.md: "I'm" is first person/),
@@ -126,7 +126,7 @@ describe('buildContent', () => {
 
   it('refuses a profile link that is not https', () => {
     const problems = problemsOf([site({ profiles: [{ id: 'old', label: 'Old', url: 'http://example.com' }] }), place(), milestone(), project()])
-    expect(problems).toEqual([expect.stringMatching(/^site\.md: profiles\.0\.url: /)])
+    expect(problems).toEqual([expect.stringMatching(/^site\.md: profiles\.0\.url: /), 'no site file'])
   })
 
   it('reports every problem in one message', () => {

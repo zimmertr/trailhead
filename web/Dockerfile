@@ -9,7 +9,7 @@
 # Vite, along with the license text of every package in the bundle.
 FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS build
 WORKDIR /repo
-COPY package.json package-lock.json .npmrc ./
+COPY package.json package-lock.json .npmrc tsconfig.base.json ./
 # Every workspace's manifest, so npm can read the whole lock; only the ones
 # named below are installed.
 COPY content/package.json content/
@@ -46,7 +46,7 @@ COPY LICENSE /usr/share/doc/trailhead/LICENSE
 ARG APP_VERSION=dev
 ARG APP_COMMIT=dev
 ARG APP_BUILT_AT=dev
-USER root
+USER 0
 RUN apk upgrade --no-cache \
     && addgroup -S -g 10001 trailhead \
     && adduser -S -D -H -u 10001 -G trailhead trailhead \

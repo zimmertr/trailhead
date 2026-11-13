@@ -1,6 +1,6 @@
 // The home page: the still is already in the HTML; this adds error reporting
 // and then the 3D, which replaces nothing until it has drawn.
-import './styles/page.css'
+import './styles/index.ts'
 import { reportErrors } from './analytics.ts'
 
 reportErrors(window)

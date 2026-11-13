@@ -20,6 +20,7 @@ describe('readMigrations', () => {
   let dir: string | undefined
   afterEach(() => {
     if (dir) rmSync(dir, { recursive: true })
+    dir = undefined
   })
 
   it('reads the migrations in name order with a checksum each', () => {

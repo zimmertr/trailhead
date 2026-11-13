@@ -5,7 +5,7 @@ import { captureLogger } from './fixtures.ts'
 
 describe('runMain', () => {
   afterEach(() => {
-    process.exitCode = 0
+    process.exitCode = undefined
   })
 
   it('runs the entry point and leaves the exit code alone when it succeeds', async () => {
@@ -15,7 +15,7 @@ describe('runMain', () => {
       ran = true
     }, logger)
     expect(ran).toBe(true)
-    expect(process.exitCode).toBe(0)
+    expect(process.exitCode).toBeUndefined()
     expect(lines()).toEqual([])
   })
 

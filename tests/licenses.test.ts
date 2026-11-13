@@ -42,9 +42,21 @@ describe('readPackageLicense', () => {
     }
   })
 
-  it('stops the build for a package with no license file', () => {
-    const dir = fakePackage('bare', 'bare', { 'README.md': 'MIT, trust me' })
-    expect(() => readPackageLicense(dir)).toThrow('bare@1.2.3 ships no license file')
+  it('takes the text from the README when it holds the license in full', () => {
+    const dir = fakePackage('readme', 'readme', { 'README.md': '# readme\n\n## License\n\nCopyright 2014 Someone\n\nPermission is hereby granted, free of charge.\n\n## Other\n\nNot this.' })
+    expect(readPackageLicense(dir).text).toBe('Copyright 2014 Someone\n\nPermission is hereby granted, free of charge.')
+  })
+
+  it('takes the linked text for a package listed as linking its license', () => {
+    const dir = fakePackage('linked', 'abstract-logging', { 'Readme.md': '## License\n\n[MIT License](http://jsumners.mit-license.org/)' })
+    expect(readPackageLicense(dir).text).toMatch(/^The MIT License \(MIT\)\n\nCopyright \(c\) James Sumners\n\nPermission is hereby granted/)
+  })
+
+  it('stops the build for a package whose README only links or names its license', () => {
+    for (const readme of ['MIT, trust me', '## License\n\n[MIT](https://example.org/mit)']) {
+      const dir = fakePackage(`bare-${readme.length}`, 'bare', { 'README.md': readme })
+      expect(() => readPackageLicense(dir)).toThrow('bare@1.2.3 ships no license text')
+    }
   })
 })
 
