@@ -11,4 +11,15 @@ Every cap, timeout and size bound, and why. The numbers live in the code named i
 | GitHub read timeout | `REQUEST_TIMEOUT_MS` in [`fetcher/src/github.ts`](../fetcher/src/github.ts) | GitHub answers in well under a second; this covers a slow day without letting one stuck read hold the job |
 | Analytics message length | `MAX_MESSAGE` in [`web/src/analytics.ts`](../web/src/analytics.ts) | Long enough to tell errors apart, short enough that a message can't carry a page of someone's data |
 | The fetcher's run | `fetcher.activeDeadlineSeconds` and `backoffLimit` in the chart's `values.yaml` | A run is twelve reads; one still going after the deadline has hung |
-| First-screen weight and timings | [`.github/lighthouserc.json`](../.github/lighthouserc.json) | Measured on the image the PR builds, so a change that makes the pages heavier or slower fails its PR |
+| First-screen weight and timings | [`.github/lighthouserc.json`](../.github/lighthouserc.json) | Measured on the image the PR builds, so a change that makes the pages heavier or slower fails its PR. See below |
+
+## The Lighthouse budgets
+
+Measured 2026-11-13 on the image https://github.com/zimmertr/trailhead/pull/20 built, Lighthouse 12 through `@lhci/cli` 0.15.1, its mobile preset, three runs each, every run identical in bytes:
+
+| Page | Total | Script | Font | Stylesheet | Document | First paint | Largest paint | Layout shift |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| `/` | 199,441 B | 162,605 B | 32,632 B | 1,879 B | 1,451 B | 1,680 to 1,689 ms | 2,157 to 2,240 ms | 0 |
+| `/page/` | 40,784 B | 1,979 B | 32,632 B | 1,879 B | 3,420 B | 1,201 to 1,207 ms | 1,201 to 1,207 ms | 0.019 |
+
+The plain page scored 1.0 in every category. The home page scored 1.0 in all but performance (0.68), whose blocking time (6.3 s) is the placeholder's software-rendered WebGL drawing every frame on a throttled runner with no GPU. So the performance score is held on the plain page alone, and the 3D is measured by frame rate and load time instead (PRD section 8). Each byte budget is today's number plus room for a change that pays for itself; the timings are looser, since the runner's CPU is part of them. Re-measure and move a number when a change earns it; never widen one to turn a red run green.

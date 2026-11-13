@@ -110,7 +110,7 @@ jobs:
       - name: Report the image size
         run: |
           size=$(docker image inspect "$IMAGE" --format '{{.Size}}')
-          echo "${IMAGE} is $(numfmt --to=iec "$size") (${size} bytes) uncompressed" >> "$GITHUB_STEP_SUMMARY"
+          echo "${IMAGE} is $(numfmt --to=iec "$size") (${size} bytes) uncompressed" | tee -a "$GITHUB_STEP_SUMMARY"
       # Fixable only: distributions ship CVEs upstream hasn't patched, which
       # nobody can act on. Every severity, for the comment.
       - name: Scan image (Trivy)
