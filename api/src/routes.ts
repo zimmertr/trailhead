@@ -83,7 +83,7 @@ export const ROUTES: Route[] = [
     response: { type: 'json', schema: statusSchema },
     errors: ['unavailable'],
   },
-  { url: '/api/version', summary: 'The running version and commit', rateLimited: true, response: { type: 'json', schema: versionSchema }, errors: [] },
+  { url: '/api/version', summary: 'The running version and its commit', rateLimited: true, response: { type: 'json', schema: versionSchema }, errors: [] },
   {
     url: '/api/v1/projects',
     summary: 'The six projects with their GitHub numbers',
