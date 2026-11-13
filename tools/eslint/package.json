@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "license": "PolyForm-Noncommercial-1.0.0",
-  "description": "Lints the repo. A package of its own, as Bluebird's is: typescript-eslint reads the TypeScript compiler's JavaScript API at run time and accepts only TypeScript below 6.1, while the repo type-checks with TypeScript 7, whose package no longer ships that API. Record 0012.",
+  "description": "Lints the repo. A package of its own, as Bluebird's is: typescript-eslint reads the TypeScript compiler's JavaScript API at run time and accepts only TypeScript below 6.1, while the repo type-checks with TypeScript 7, whose package no longer ships that API. Record 0012. The minimatch override holds it at the release that fixes GHSA-g3hv-75wg-m249: eslint and typescript-eslint still ask for 10, which has no fixed release. Drop it once their ranges reach 11.",
   "devDependencies": {
     "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
     "@eslint/js": "10.0.1",
@@ -12,5 +12,8 @@
     "globals": "17.14.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.2"
+  },
+  "overrides": {
+    "minimatch": "11.0.1"
   }
 }
