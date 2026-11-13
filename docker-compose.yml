@@ -1,0 +1,81 @@
+# The whole site on one machine: `docker compose up --build`, then the site
+# on http://localhost:8080, the API on :8081, the admin panel on :8082 and the
+# API's metrics on :9464. docs/DEVELOPMENT.md has the rest.
+#
+# Every service connects as the database's owner here. In the cluster each has
+# a role of its own, created by the chart and granted by db/grants.sql.
+name: trailhead
+
+x-database: &database
+  # A local throwaway: this database never leaves the machine.
+  DATABASE_URL: postgresql://trailhead:trailhead@postgres:5432/trailhead
+
+services:
+  postgres:
+    image: postgres:18-alpine@sha256:1018733457011bf88d81db98cf43aac6d5150afc18787dbe204771fedf80ff95
+    environment:
+      POSTGRES_USER: trailhead
+      POSTGRES_PASSWORD: trailhead
+      POSTGRES_DB: trailhead
+    healthcheck:
+      # Over TCP: the first start serves its socket alone while it initialises.
+      test: ["CMD", "pg_isready", "-h", "localhost", "-U", "trailhead"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+    volumes:
+      - postgres:/var/lib/postgresql
+
+  # The fetcher image's second entry point, as the chart runs it before a
+  # rollout.
+  migrate:
+    build: { context: ., dockerfile: fetcher/Dockerfile }
+    image: trailhead-fetcher:local
+    command: ["node", "migrate.js"]
+    environment: *database
+    read_only: true
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    build: { context: ., dockerfile: api/Dockerfile }
+    image: trailhead-api:local
+    ports: ["8081:8080", "9464:9464"]
+    environment:
+      <<: *database
+      LOG_LEVEL: debug
+    read_only: true
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  admin:
+    build: { context: ., dockerfile: admin/Dockerfile }
+    image: trailhead-admin:local
+    ports: ["8082:8080"]
+    environment: *database
+    read_only: true
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build: { context: ., dockerfile: web/Dockerfile }
+    image: trailhead-web:local
+    ports: ["8080:8080"]
+    read_only: true
+    tmpfs: [/tmp]
+
+  # Runs once and exits, as the CronJob does. It calls GitHub, anonymously
+  # unless GITHUB_TOKEN is set in your shell.
+  fetcher:
+    build: { context: ., dockerfile: fetcher/Dockerfile }
+    image: trailhead-fetcher:local
+    environment:
+      <<: *database
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+    read_only: true
+    restart: "no"
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+
+volumes:
+  postgres:

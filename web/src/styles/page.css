@@ -1,0 +1,145 @@
+@import '@fontsource/national-park/latin-400.css';
+@import '@fontsource/national-park/latin-800.css';
+@import './tokens.css';
+
+/* Each place paints its band, sign rule and links in its own colour. */
+.place-trailhead { --place: var(--meadow); }
+.place-about-lake { --place: var(--lake); }
+.place-the-stack { --place: var(--granite); }
+.place-sideproject-spires { --place: var(--glacier); }
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-weight: var(--weight-text);
+}
+
+body {
+  margin: 0;
+  font-size: var(--text);
+  line-height: var(--leading);
+}
+
+a {
+  color: var(--place, var(--ink));
+  text-underline-offset: 0.2em;
+}
+
+a:focus-visible {
+  outline: var(--focus) solid var(--ink);
+  outline-offset: var(--focus);
+}
+
+h1,
+h2,
+h3 {
+  font-weight: var(--weight-heavy);
+  line-height: var(--leading-tight);
+}
+
+.band {
+  background: var(--band);
+  color: var(--band-ink);
+  padding: var(--space-3) var(--space-2);
+}
+
+.band h1 {
+  max-width: var(--measure);
+  margin: 0 auto;
+  font-size: var(--text-h1);
+}
+
+.band a {
+  color: var(--band-ink);
+}
+
+.band h1 a {
+  text-decoration: none;
+}
+
+.band a:focus-visible {
+  outline-color: var(--band-ink);
+}
+
+main {
+  padding: 0 var(--space-2) var(--space-4);
+}
+
+main > section,
+.world {
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+.place-band {
+  margin: var(--space-4) 0 var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  background: var(--place);
+  color: var(--band-ink);
+  font-size: var(--text-h2);
+}
+
+h3 {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--text-h3);
+}
+
+.signs {
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sign {
+  display: block;
+  margin-bottom: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-left: var(--rule) solid var(--place);
+  color: var(--ink);
+  font-size: var(--text-sign);
+  font-weight: var(--weight-heavy);
+  line-height: var(--leading-tight);
+  text-decoration: none;
+}
+
+.sign:hover {
+  text-decoration: underline;
+}
+
+.tools,
+.links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tools {
+  color: var(--ink-soft);
+  font-size: var(--text-small);
+}
+
+footer.band .links {
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+.world {
+  height: min(60vh, 32rem);
+  margin-top: var(--space-3);
+}
+
+.world canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

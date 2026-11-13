@@ -1,0 +1,18 @@
+# Each image builds from the repo root and copies only the folders it needs,
+# so this keeps local leftovers and anything secret out of the context.
+.git/
+.github/
+.claude/
+.env
+.env.*
+**/node_modules/
+**/dist/
+coverage/
+# The browser suite runs against the image from outside; only its manifest
+# is needed, for the lock.
+e2e/*
+!e2e/package.json
+docs/
+tools/eslint/
+**/.DS_Store
+**/*.tsbuildinfo
