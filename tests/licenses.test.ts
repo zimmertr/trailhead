@@ -52,6 +52,12 @@ describe('readPackageLicense', () => {
     expect(readPackageLicense(dir).text).toMatch(/^The MIT License \(MIT\)\n\nCopyright \(c\) James Sumners\n\nPermission is hereby granted/)
   })
 
+  it('says UNKNOWN for a package whose manifest names no license', () => {
+    const dir = fakePackage('unnamed', 'unnamed', { LICENSE: 'All rights reserved.' })
+    writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'unnamed', version: '1.2.3' }))
+    expect(readPackageLicense(dir).license).toBe('UNKNOWN')
+  })
+
   it('stops the build for a package whose README only links or names its license', () => {
     for (const readme of ['MIT, trust me', '## License\n\n[MIT](https://example.org/mit)']) {
       const dir = fakePackage(`bare-${readme.length}`, 'bare', { 'README.md': readme })

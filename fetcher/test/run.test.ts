@@ -6,11 +6,11 @@ import { START, captureLogger, stats } from './fixtures.ts'
 
 describe('runFetch', () => {
   it('saves each repo it fetched, stamped with the run time', async () => {
-    const { logger } = captureLogger('fetcher')
+    const { logger, lines } = captureLogger('fetcher')
     const saves: [string, number, Date][] = []
     const result = await runFetch({
       repos: ['zimmertr/a', 'zimmertr/b'],
-      fetchStats: async (repo) => stats({ stars: repo === 'zimmertr/a' ? 1 : 2 }),
+      fetchStats: async (repo) => (repo === 'zimmertr/a' ? stats({ stars: 1 }) : stats({ stars: 2, release: null })),
       save: async (repo, s, at) => {
         saves.push([repo, s.stars, at])
       },
@@ -22,6 +22,7 @@ describe('runFetch', () => {
       ['zimmertr/a', 1, START],
       ['zimmertr/b', 2, START],
     ])
+    expect(lines().filter((l) => l.msg === 'saved numbers').map((l) => l.release)).toEqual(['v0.140.0', null])
   })
 
   it('skips a repo that fails, saving nothing for it, and still saves the rest', async () => {

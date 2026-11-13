@@ -48,6 +48,12 @@ group('renderPage', () => {
     expect(html).toMatch(/<footer class="band"><ul class="links">/)
   })
 
+  it('still renders the band and footer with no places', () => {
+    const html = renderPage(content({ places: [] }))
+    expect(html).toContain('<section id="trailhead" class="place place-trailhead">')
+    expect(html).toContain('<footer class="band">')
+  })
+
   it('renders every place, milestone and project of the real content', () => {
     const html = renderPage(real)
     for (const place of real.places.slice(1)) expect(html).toContain(`id="${place.slug}"`)

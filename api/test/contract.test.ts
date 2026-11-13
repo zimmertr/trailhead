@@ -62,4 +62,19 @@ describe('metricsServer', () => {
       server.close()
     }
   })
+
+  it('answers 500 when the registry fails to collect', async () => {
+    const metrics = createMetrics()
+    metrics.registry.metrics = () => Promise.reject(new Error('a collector threw'))
+    const server = metricsServer(metrics).listen(0, '127.0.0.1')
+    await new Promise((resolve) => server.once('listening', resolve))
+    const { port } = server.address() as { port: number }
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/metrics`)
+      expect(response.status).toBe(500)
+      expect(await response.text()).toBe('metrics failed: Error: a collector threw\n')
+    } finally {
+      server.close()
+    }
+  })
 })
