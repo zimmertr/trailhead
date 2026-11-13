@@ -1,6 +1,6 @@
 # 0001. The world is one small planet
 
-- Status: Accepted
+- Status: Superseded by 0014
 - Date: 2026-11-12
 - Decider: TJ, 2026-11-12. Asked how the world should end at its edges, he chose "Small planet" over a sea of cloud, a ring of mountains and an island, and then: "We're building a small world here, I don't want to grow the scope."
 - Issues and PRs: none yet

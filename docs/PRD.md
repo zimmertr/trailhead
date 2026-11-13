@@ -22,10 +22,10 @@ The name "About Lake" is a placeholder. TJ wants a name that points at him witho
 
 These hold for every part of the site. Each came from TJ's review of the Round 3 prototypes or from the planning interview on 2026-11-12.
 
-1. **One world.** Every place sits on one small planet. It has no edges: go far enough in any direction and you come back round. The planet is unmistakably small. It holds the meadow, the forest, the lake, the wall and the spires, and nothing else. A mountain seen from the Trailhead is the same mountain up close, and an object keeps its place and its look everywhere.
+1. **One world.** Every place sits in one flat world: the Trailhead meadow on a rise, and in front of it from left to right the forest and About Lake, The Stack, and Sideproject Spires. It holds those and nothing else. The visitor is on rails. Every camera follows a route or stands at a fixed view, so the world is finished only where a camera looks. A mountain seen from the Trailhead is the same mountain up close, and an object keeps its place and its look everywhere.
 2. **Low-poly throughout.** No contour lines, no separate realistic style. Places differ by colour and environment.
 3. **Nothing plays by itself.** The site opens at the Trailhead and waits. Background motion and a slow camera drift are fine. The character and the route never move until the visitor acts. Audio can begin playing, animals can move about the scene. Plants can sway in the wind.
-4. **Movement is short.** About 4 seconds between milestones and about 6 seconds from the Trailhead to a section. Any trip can be skipped with a click or a key.
+4. **Movement is short.** About 4 seconds between milestones and about 6 seconds from the Trailhead to a section. The wall and the spires stand far enough off to be seen whole, so those two approaches are travelled at several times a run with the camera standing off to watch. Any trip can be skipped with a click or a key.
 5. **One set of controls, three ways of moving.** He runs to About Lake, rock climbs The Stack, and travels over snow, glacier and ice on the Spires. What stays the same is how the visitor drives him: one start and stop toggle, one timeline that scrubs both ways, one camera with one drag speed, one set of keys.
 6. **The camera never loses him.** Dragging looks around. Any character movement puts the camera back behind him at once.
 7. **He touches the ground.** Feet, hands and tools meet the surface under them. Steep ground is avoided except where the route is a climb. Interactions with the terrain must be realistic and human-like. Near-vertical terrain should be slow moving, involve front pointing crampons and progressing by swinging ice tools and climbing. Not "running" up 80 degree snow.
@@ -41,12 +41,12 @@ These hold for every part of the site. Each came from TJ's review of the Round 3
 
 ### The Trailhead
 
-A Rainier-style subalpine meadow thick with wildflowers, with the lake basin, the wall and the spires in view.
+A Rainier-style subalpine meadow thick with wildflowers, on a rise, with the three destinations in view from left to right: the forest and About Lake, The Stack, Sideproject Spires.
 
 - Heading "TJ Zimmerman" on one line, then: "is a principal platform engineer based out of Seattle, WA. When he's not playing in the mountains, he's usually hacking on computers. Choose a destination to learn more!"
 - Three signs: "Run to About Lake to learn more about TJ", "Climb The Stack to learn more about his skills", "Climb the Sideproject Spires to see some of his personal projects".
 - Picking a sign sends him off at once. The camera follows along the real trail for about 6 seconds and lands at the first milestone. No card in between.
-- Drag looks the full circle. Behind the visitor: TJ's two cats, a long-hair tortie and a long-hair Nebelung, playing with each other.
+- While he waits, the camera drifts slowly from one destination to the next. Drag looks the full circle. Behind the visitor: TJ's two cats, a long-hair tortie and a long-hair Nebelung, playing with each other.
 - A kiosk holds the trail conditions board: running version, deploy time, uptime, "all trails open".
 - A flag stands on each destination the visitor has finished, and his footprints stay on that trail.
 
@@ -99,7 +99,7 @@ Every project card shows the same facts: stars, latest release and its age, lang
 - **Plain page.** One scrolling page with every card's text and links, illustrated with stills from the world. Also what crawlers and browsers without WebGL get.
 - **Loading.** The page opens on a still of the Trailhead with the intro readable and the signs working as links. The 3D replaces the still in place.
 - **Keys.** Space starts and stops him. Left, right, A and D jump between milestones. Up or W starts, down or S stops. M or Esc opens the trail map. T switches Day and Dusk.
-- **More to find.** A cold plunge at the lake. A snack break if he is left standing for a minute. Sasquatch, once per visit. A Dusk-only sky. A message in the browser console. The 404 page as "off route" in a whiteout. The Konami code, which pulls the camera out until the whole planet is in view and lets the visitor spin it and fly over it freely until they press Esc.
+- **More to find.** A cold plunge at the lake. A snack break if he is left standing for a minute. Sasquatch, once per visit. A Dusk-only sky. A message in the browser console. The 404 page as "off route" in a whiteout.
 
 ## 4. Core components
 
@@ -107,7 +107,7 @@ The 3D site is built from six parts that every place shares. Round 3 built each 
 
 | Part | What it does | The rule it follows |
 | --- | --- | --- |
-| World | One small planet holding the meadow, the lake basin, the wall and the spires, with near and far levels of detail. Down is always toward its centre | A place is built once and seen from everywhere |
+| World | One flat world holding the meadow, the forest, the lake basin, the wall and the spires, in small faces where a route or a camera goes and big ones beyond | A place is built once and seen from everywhere |
 | Routes | The paths through the world, each a loop from the Trailhead with milestones along it. The Spires route is a hub at base camp with a spoke per spire | A route is data, not code |
 | Progress | One number per route: how far along it he is. The timeline, the scroll wheel, the keys and the run toggle all change only this number | His position, his pose and the camera are all computed from it, so scrubbing backwards is free and nothing can lag |
 | Character | A low-poly, faceless TJ: short brown hair, short beard, sunglasses. His pose comes from the progress number and the ground under him | Hands, feet and tools reach for real holds and steps |
@@ -122,7 +122,7 @@ His kit changes by place:
 | The Stack | Yellow pants, yellow sun hoody, yellow climbing pack, green helmet |
 | Sideproject Spires | Soft shell pants, green puffy, green helmet, ice axe, mountaineering pack |
 
-The character is driven by code first. Where running, the jump or the glissade still look wrong in the Round 4 prototype, those moves use clips from free animation libraries, after a license check.
+The character is driven by code first. Where running, the jump or the glissade still look wrong, those moves use clips from free animation libraries, after a license check.
 
 ## 5. App and user flow
 
@@ -209,13 +209,13 @@ Bluebird Forecast gets the same Umami: https://github.com/zimmertr/bluebird/issu
 
 ## 7. Implementation plan
 
-The work runs in six phases, and TJ signs off between them. Feature work is not planned in detail until the Round 4 prototype has proved the feel.
+The work runs in six phases, and TJ signs off between them.
 
 1. **Repo.** Done on 2026-11-12. https://github.com/zimmertr/yggdrasil/pull/105 created zimmertr/trailhead and archived zimmertr/Personal-Website, and https://github.com/zimmertr/yggdrasil/pull/109 created zimmertr/trailhead-helm.
 2. **Foundation.** License, README, docs set, this PRD as `docs/PRD.md`, the first decision records, the epic and its issues. Then the build in Docker, CI on yggdrasil's workflows, all four services deployed as skeletons with a health check and a version endpoint, the database, the Helm chart in its own repo (zimmertr/trailhead-helm, GPL-3.0), per-PR previews, a home-network copy of main, Umami on the cluster, and the Grafana dashboard and alert. It ends with the foundation checklist report.
-3. **Round 4 prototype**, as a draft PR on a preview hostname. One slice: the Trailhead meadow with the three real destinations in one world, the trip to About Lake, the timeline, the run toggle, scrubbing, the camera, the cards from the sign and the map, and the loop home. Two movement studies: a piece of The Stack with the fall and catch, and one spire with the ice pitch, the crevasse jump and the glissade. TJ reviews and it is reworked until the feel is right.
+3. **Round 4 prototype.** Done on 2026-11-13, as an artifact TJ reviewed. It built the world as a small planet three times, and TJ dropped the planet for a flat world on rails ([record 0014](architectural-decision-records/0014-the-world-is-flat-and-the-visitor-is-on-rails.md)). Its slice carries into phase 4: the Trailhead with the three destinations in view, the trip to About Lake, the timeline, the run toggle, scrubbing, the camera and the cards. Its two movement studies were not built and move into phase 5.
 4. **About Lake and the shared parts, finished.** The slice becomes the real thing: all three milestones, the trail map, addresses, the plain page, the loading still, the content files, analytics events.
-5. **The Stack and Sideproject Spires**, built on the same parts, in parallel where it helps. The api and fetcher, running since the foundation, get their first real job here: the project numbers.
+5. **The Stack and Sideproject Spires**, built on the same parts, in parallel where it helps. Each starts with its movement study: the fall and the catch on The Stack, and the ice pitch, the crevasse jump and the glissade on the Spires. The api and fetcher, running since the foundation, get their first real job here: the project numbers.
 6. **Cut-over.** When everything in the MVP works, tjzimmerman.com switches to trailhead straight away. Nobody depends on the old site.
 
 The MVP is phases 1 to 6. Each of these comes after it and gets its own issue when the repo exists:
@@ -258,13 +258,11 @@ One more needs a decision before the foundation is checked: the standards expect
 
 ## 9. Open items
 
-Eight things are not settled. The first four are TJ's to do or decide, and the rest are answered by the Round 4 prototype.
+Six things are not settled. The first four are TJ's to do or decide, and the last two are answered as the places are built.
 
 - [ ] A final name for About Lake. It keeps this one for now.
 - [ ] The personal note at the lake, in TJ's words.
 - [ ] A photo or two of TJ in each kit, to tune the low-poly figure.
 - [ ] The list of about ten joke names for the map, for TJ to strike from.
-- [ ] Can one small planet hold all four places, still feel like big mountains from the ground, and load in a time that feels instant? This is the least certain technical piece, and Round 4 tests it first.
 - [ ] Does the code-driven character look right running, jumping and glissading, or do those moves need animation clips?
-- [ ] The look of the rainforest, the Yosemite wall and the aiguilles, worked on in Round 4 until it is right.
-- [ ] How much finishing the Konami free camera needs on the sides of the world that no route looks at.
+- [ ] The look of the rainforest, the Yosemite wall and the aiguilles, worked on until it is right.
