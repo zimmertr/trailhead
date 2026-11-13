@@ -38,7 +38,11 @@ ENV NODE_ENV=production
 WORKDIR /app
 # The bundle needs Node alone. npm, npx and yarn ship in the base image with
 # dependencies of their own that scanners flag, and nothing here runs them.
-RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg /opt/yarn-*
+# uid and gid 10001 are what the chart runs every pod as (trailhead-helm's
+# values.yaml, podSecurityContext).
+RUN rm -rf /usr/local/lib/node_modules /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg /opt/yarn-* \
+    && addgroup -S -g 10001 trailhead \
+    && adduser -S -D -H -u 10001 -G trailhead trailhead
 COPY --from=build /repo/dist/fetcher/ ./
 # The migrations and grants, for `node migrate.js`.
 COPY db/ ./db/
@@ -52,7 +56,7 @@ ARG APP_BUILT_AT=dev
 ENV APP_VERSION=${APP_VERSION} \
     APP_COMMIT=${APP_COMMIT}
 RUN apk upgrade --no-cache
-# The base image's unprivileged user, by number, so Kubernetes' runAsNonRoot
-# can check it without reading /etc/passwd.
-USER 1000:1000
+# By number, so Kubernetes' runAsNonRoot can check it without reading
+# /etc/passwd.
+USER 10001:10001
 CMD ["node", "main.js"]

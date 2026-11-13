@@ -37,7 +37,7 @@ describe('every text file', () => {
   // TJ's writing rule: no em or en dash, anywhere.
   it('holds no em or en dash', () => {
     const text = files(/\.(md|ts|js|json|ya?ml|css|html|conf|sql|sh)$|(^|\/)(Dockerfile|Makefile|\.dockerignore|\.gitignore|\.npmrc)$/)
-    const dashed = text.filter((path) => /[–—]/.test(read(path)))
+    const dashed = text.filter((path) => /[\u2013\u2014]/.test(read(path)))
     expect(dashed).toEqual([])
   })
 

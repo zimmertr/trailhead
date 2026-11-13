@@ -2,6 +2,12 @@
 -- role the chart creates after the tables exist still gets its grants. Each
 -- block is skipped while its role doesn't exist (local compose, where every
 -- service uses the owner). docs/ARCHITECTURE.md, Database roles.
+--
+-- The chart also puts the api and admin roles in pg_read_all_data and the
+-- fetcher's in pg_write_all_data (trailhead-helm record 0003). These grants
+-- are the floor each service needs without those, and the place the summit
+-- register's grants land: INSERT for api and UPDATE for admin, on the
+-- register's table, once it exists.
 DO $$
 BEGIN
     -- api reads the numbers.

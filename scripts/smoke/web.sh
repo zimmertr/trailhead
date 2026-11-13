@@ -34,5 +34,5 @@ licenses=$(curl -fsS "$url/third-party-licenses.txt")
 check "it names three.js" "$(grep -cE '^three [0-9.]+$' <<<"$licenses")" "1"
 check "it names the typeface" "$(grep -cE '^@fontsource/national-park [0-9.]+$' <<<"$licenses")" "1"
 check "the image carries the repository's LICENSE" "$(docker exec "$name" head -1 /usr/share/doc/trailhead/LICENSE)" "# PolyForm Noncommercial License 1.0.0"
-check "it runs as nginx's unprivileged user" "$(docker exec "$name" id -u)" "101"
+check "it runs as the chart's user" "$(docker exec "$name" id -u)" "10001"
 finish

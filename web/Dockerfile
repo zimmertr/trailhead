@@ -27,8 +27,8 @@ COPY content/ content/
 COPY web/ web/
 RUN npm run build -w content && npm run build -w web
 
-# The unprivileged nginx build listens on 8080 as user 101. Alpine, by
-# measured findings (record 0008).
+# The unprivileged nginx build, which listens on 8080 and needs no root.
+# Alpine, by measured findings (record 0008).
 FROM nginxinc/nginx-unprivileged:1.30-alpine@sha256:f5116ed4606f3eb015dd4a8e28cb9b351476dc0ad4bc6e9f93b19cec130cdf03
 LABEL org.opencontainers.image.title="trailhead-web" \
       org.opencontainers.image.description="The 3D site and the plain page of tjzimmerman.com" \
@@ -48,8 +48,12 @@ ARG APP_COMMIT=dev
 ARG APP_BUILT_AT=dev
 USER root
 RUN apk upgrade --no-cache \
+    && addgroup -S -g 10001 trailhead \
+    && adduser -S -D -H -u 10001 -G trailhead trailhead \
     && printf '{"version":"%s","commit":"%s"}\n' "${APP_VERSION}" "${APP_COMMIT}" > /usr/share/nginx/html/version.json
-USER 101:101
+# uid and gid 10001, what the chart runs every pod as, by number so
+# runAsNonRoot can check it. nginx writes only under /tmp (nginx.conf).
+USER 10001:10001
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s \
   CMD ["wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
