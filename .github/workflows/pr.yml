@@ -108,7 +108,9 @@ jobs:
       - name: Smoke test the built image
         run: make smoke
       - name: Report the image size
-        run: echo "**${IMAGE}**: $(docker image inspect "$IMAGE" --format '{{.Size}}' | numfmt --to=iec) uncompressed" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          size=$(docker image inspect "$IMAGE" --format '{{.Size}}')
+          echo "${IMAGE} is $(numfmt --to=iec "$size") (${size} bytes) uncompressed" >> "$GITHUB_STEP_SUMMARY"
       # Fixable only: distributions ship CVEs upstream hasn't patched, which
       # nobody can act on. Every severity, for the comment.
       - name: Scan image (Trivy)
