@@ -92,33 +92,34 @@ scan:
 
 # The browser suite and axe against the built web image. browser-run expects
 # the image to exist, which is how CI calls it after loading the image job's
-# artifact.
+# artifact. The browser shares the site's network namespace and reaches it on
+# localhost, which browsers treat as a secure origin, as they will the HTTPS
+# site; a plain-HTTP hostname would make Chrome ignore and complain about the
+# Cross-Origin-Opener-Policy header.
 browser:
 	$(MAKE) image SERVICE=web
 	$(MAKE) browser-run
 
 browser-run:
 	@set -e; name=trailhead-e2e-$$(od -An -N4 -tu4 /dev/urandom | tr -d ' '); \
-	trap 'docker rm -f $$name >/dev/null 2>&1; docker network rm $$name-net >/dev/null 2>&1' EXIT; \
-	docker network create $$name-net >/dev/null; \
-	docker run -d --rm --name $$name --network $$name-net --read-only --tmpfs /tmp trailhead-web:pr-scan >/dev/null; \
-	docker run --rm --network $$name-net --ipc=host -v "$(CURDIR)":/repo -w /repo -e BASE_URL=http://$$name:8080 $(PLAYWRIGHT_IMAGE) \
+	trap 'docker stop $$name >/dev/null 2>&1' EXIT; \
+	docker run -d --rm --name $$name --read-only --tmpfs /tmp trailhead-web:pr-scan >/dev/null; \
+	docker run --rm --network container:$$name --ipc=host -v "$(CURDIR)":/repo -w /repo -e BASE_URL=http://localhost:8080 $(PLAYWRIGHT_IMAGE) \
 		sh -c "npm ci --ignore-scripts -w content -w e2e && npm run content && cd e2e && npx playwright test"
 
-# Lighthouse's budgets (.github/lighthouserc.json) against the built web image.
-# As root, so it can write its report into the mounted repo; Chrome runs with
-# --no-sandbox already.
+# Lighthouse's budgets (.github/lighthouserc.json) against the built web image,
+# on localhost for the reason above. As root, so it can write its report into
+# the mounted repo; Chrome runs with --no-sandbox already.
 lighthouse:
 	$(MAKE) image SERVICE=web
 	$(MAKE) lighthouse-run
 
 lighthouse-run:
 	@set -e; name=trailhead-lh-$$(od -An -N4 -tu4 /dev/urandom | tr -d ' '); \
-	trap 'docker rm -f $$name >/dev/null 2>&1; docker network rm $$name-net >/dev/null 2>&1' EXIT; \
-	docker network create $$name-net >/dev/null; \
-	docker run -d --rm --name $$name --network $$name-net --read-only --tmpfs /tmp trailhead-web:pr-scan >/dev/null; \
-	docker run --rm --user root --network $$name-net -v "$(CURDIR)":/repo -w /repo -e CHROME_PATH=/usr/bin/chromium-browser --entrypoint sh zenika/alpine-chrome:with-node \
-		-c "npx -y @lhci/cli@0.15.1 autorun --config=.github/lighthouserc.json --collect.url=http://$$name:8080/ --collect.url=http://$$name:8080/page/"
+	trap 'docker stop $$name >/dev/null 2>&1' EXIT; \
+	docker run -d --rm --name $$name --read-only --tmpfs /tmp trailhead-web:pr-scan >/dev/null; \
+	docker run --rm --user root --network container:$$name -v "$(CURDIR)":/repo -w /repo -e CHROME_PATH=/usr/bin/chromium-browser --entrypoint sh zenika/alpine-chrome:with-node \
+		-c "npx -y @lhci/cli@0.15.1 autorun --config=.github/lighthouserc.json --collect.url=http://localhost:8080/ --collect.url=http://localhost:8080/page/"
 
 # The whole thing, from docker-compose.yml, checked from outside. The
 # fetcher stays down: it would call GitHub.

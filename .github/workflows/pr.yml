@@ -201,6 +201,14 @@ jobs:
       # The budgets and their measurements live in .github/lighthouserc.json
       # and docs/LIMITS.md.
       - run: make lighthouse-run
+      # Every run's report, pass or fail, so a budget can be read and moved
+      # on a measurement rather than guessed at. Nothing leaves GitHub.
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: lighthouse-reports
+          path: coverage/lighthouse
+          retention-days: 7
 
   compose:
     name: Compose
