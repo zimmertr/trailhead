@@ -11,7 +11,12 @@ const content = JSON.parse(readFileSync(join(import.meta.dirname, '..', '..', 'c
 function watch(page: Page): string[] {
   const problems: string[] = []
   page.on('console', (message) => {
-    if (message.type() === 'error') problems.push(`console: ${message.text()}`)
+    // The suite reaches nginx over plain HTTP on a container hostname, where
+    // Chrome ignores the Cross-Origin-Opener-Policy header and says so. The
+    // site itself is served over HTTPS.
+    if (message.type() === 'error' && !message.text().startsWith('The Cross-Origin-Opener-Policy header has been ignored')) {
+      problems.push(`console: ${message.text()}`)
+    }
   })
   page.on('pageerror', (error) => problems.push(`page: ${error.message}`))
   page.on('requestfailed', (request) => problems.push(`request: ${request.url()}`))

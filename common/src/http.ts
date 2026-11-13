@@ -1,4 +1,4 @@
-import type { FastifyError, FastifyInstance } from 'fastify'
+import type { FastifyBaseLogger, FastifyError, FastifyInstance } from 'fastify'
 import type { Logger } from './logger.ts'
 
 // The one error shape every service answers (service.md, Errors). `code` is
@@ -84,10 +84,13 @@ export const MAX_BODY_BYTES = 1_024
 // logs one line per response itself. The child logger factory hands back the
 // root logger, so no request id is bound to a line either.
 export function serverOptions(logger: Logger) {
+  // Typed as Fastify's own logger interface, which pino's satisfies, so the
+  // apps keep Fastify's default instance, request and reply types.
+  const loggerInstance: FastifyBaseLogger = logger
   return {
-    loggerInstance: logger,
+    loggerInstance,
     disableRequestLogging: true,
-    childLoggerFactory: () => logger,
+    childLoggerFactory: (): FastifyBaseLogger => loggerInstance,
     bodyLimit: MAX_BODY_BYTES,
     // Unknown query parameters are refused, not quietly dropped (service.md,
     // A strict reader).

@@ -106,6 +106,8 @@ browser-run:
 		sh -c "npm ci --ignore-scripts -w content -w e2e && npm run content && cd e2e && npx playwright test"
 
 # Lighthouse's budgets (.github/lighthouserc.json) against the built web image.
+# As root, so it can write its report into the mounted repo; Chrome runs with
+# --no-sandbox already.
 lighthouse:
 	$(MAKE) image SERVICE=web
 	$(MAKE) lighthouse-run
@@ -115,7 +117,7 @@ lighthouse-run:
 	trap 'docker rm -f $$name >/dev/null 2>&1; docker network rm $$name-net >/dev/null 2>&1' EXIT; \
 	docker network create $$name-net >/dev/null; \
 	docker run -d --rm --name $$name --network $$name-net --read-only --tmpfs /tmp trailhead-web:pr-scan >/dev/null; \
-	docker run --rm --network $$name-net -v "$(CURDIR)":/repo -w /repo -e CHROME_PATH=/usr/bin/chromium-browser --entrypoint sh zenika/alpine-chrome:with-node \
+	docker run --rm --user root --network $$name-net -v "$(CURDIR)":/repo -w /repo -e CHROME_PATH=/usr/bin/chromium-browser --entrypoint sh zenika/alpine-chrome:with-node \
 		-c "npx -y @lhci/cli@0.15.1 autorun --config=.github/lighthouserc.json --collect.url=http://$$name:8080/ --collect.url=http://$$name:8080/page/"
 
 # The whole thing, from docker-compose.yml, checked from outside. The
