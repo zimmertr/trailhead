@@ -1,0 +1,32 @@
+name: Scheduled Image Scan
+
+# The release scan gates what ships, but CVEs are published after an image
+# ships. This re-scans the latest release's four images every week, sends the
+# findings to the Security tab, and fails (and GitHub emails) only on a
+# fixable Critical or High. yggdrasil's image-scan module. It fails until the
+# first release exists.
+on:
+  schedule:
+    - cron: '41 14 * * 1' # Mondays 14:41 UTC, off the top of the hour, when GitHub sheds cron load
+  workflow_dispatch:
+
+concurrency:
+  group: image-scan
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  scan:
+    name: Scheduled Image Scan
+    uses: zimmertr/yggdrasil/.github/workflows/image-scan.yml@f805e7b874e54e661d8dc8ad528883228bfc567b # v1.2.9
+    permissions:
+      contents: read # the module checks out the repo
+      security-events: write # the SARIF upload
+    with:
+      # Each category keeps its image's alert history in the Security tab.
+      images: >-
+        [{"image": "ghcr.io/zimmertr/trailhead-web", "category": "trivy-trailhead-web"},
+         {"image": "ghcr.io/zimmertr/trailhead-api", "category": "trivy-trailhead-api"},
+         {"image": "ghcr.io/zimmertr/trailhead-admin", "category": "trivy-trailhead-admin"},
+         {"image": "ghcr.io/zimmertr/trailhead-fetcher", "category": "trivy-trailhead-fetcher"}]

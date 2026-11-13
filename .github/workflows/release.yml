@@ -1,0 +1,37 @@
+name: Release
+
+# Every merge to main releases through yggdrasil's release module. GitVersion
+# reads the bump from the squash commit's title; the four images are built for
+# linux/amd64 (the cluster's only platform), pushed to ghcr.io/zimmertr under
+# that version and scanned; the commit is tagged and released only when every
+# scan passes.
+#
+# No `deploys` and no `charts` yet: deploying waits until TJ picks the
+# hostnames, and the chart releases from zimmertr/trailhead-helm. docs/CICD.md.
+on:
+  push:
+    branches: [main]
+
+# One release at a time, so two quick merges can't race for a version.
+# cancel-in-progress stays false so every merge still releases, in order.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  release:
+    name: Release
+    uses: zimmertr/yggdrasil/.github/workflows/release.yml@f805e7b874e54e661d8dc8ad528883228bfc567b # v1.2.9
+    permissions:
+      contents: write # the tag and release
+      packages: write # the four images, pushed to ghcr.io/zimmertr
+    with:
+      # Each builds from the repo root, which holds the lockfile and the
+      # content, with its Dockerfile in its own folder (record 0009).
+      images: >-
+        [{"image": "zimmertr/trailhead-web", "file": "web/Dockerfile"},
+         {"image": "zimmertr/trailhead-api", "file": "api/Dockerfile"},
+         {"image": "zimmertr/trailhead-admin", "file": "admin/Dockerfile"},
+         {"image": "zimmertr/trailhead-fetcher", "file": "fetcher/Dockerfile"}]
