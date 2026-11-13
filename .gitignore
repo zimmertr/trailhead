@@ -1,0 +1,21 @@
+# Claude: local settings stay out.
+.claude/*
+!.claude/skills/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Node
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
+# Coverage reports
+coverage/
+
+# Local environment
+.env
+.env.*
+!.env.example
