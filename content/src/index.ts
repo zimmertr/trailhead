@@ -5,4 +5,4 @@ export type { Content, Milestone, Place, Profile, Project } from './schema.ts'
 
 // Checked by the build step that wrote it (src/build.ts), so readers trust its
 // shape rather than parse it again at run time.
-export const content: Content = data as Content
+export const content: Content = data

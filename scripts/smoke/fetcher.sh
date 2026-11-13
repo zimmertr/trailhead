@@ -15,7 +15,7 @@ for _ in $(seq 60); do docker exec "$name-db" pg_isready -q -h localhost -U post
 db="postgresql://postgres:test@$name-db/postgres"
 
 check "it refuses to start without a database setting" "$(docker run --rm --read-only "$IMAGE" >/dev/null 2>&1; echo $?)" "1"
-check "the refusal is one structured line" "$(docker run --rm --read-only "$IMAGE" 2>/dev/null | jq -r '.level + \": \" + .err.message')" "fatal: DATABASE_URL is required"
+check "the refusal is one structured line" "$(docker run --rm --read-only "$IMAGE" 2>/dev/null | jq -r '.level + ": " + .err.message')" "fatal: DATABASE_URL is required"
 check "the migrations apply" "$(docker run --rm --read-only --network "$name-net" -e DATABASE_URL="$db" "$IMAGE" node migrate.js | jq -rs 'map(select(.msg == "the database is up to date"))[0].applied')" "1"
 check "a second run applies nothing" "$(docker run --rm --read-only --network "$name-net" -e DATABASE_URL="$db" "$IMAGE" node migrate.js | jq -rs 'map(select(.msg == "the database is up to date"))[0].applied')" "0"
 check "the table exists" "$(docker exec "$name-db" psql -U postgres -tAc "SELECT to_regclass('project_stats') IS NOT NULL")" "t"

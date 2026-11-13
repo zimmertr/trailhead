@@ -6,6 +6,6 @@
 export const RATE_LIMIT_MAX = 60
 export const RATE_LIMIT_WINDOW_MS = 60_000
 
-// The fetcher writes new numbers about once a day; five minutes of browser
+// The fetcher writes new numbers about once an hour; five minutes of browser
 // and edge caching costs nothing and spares the database.
 export const PROJECTS_MAX_AGE_S = 300

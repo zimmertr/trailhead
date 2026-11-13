@@ -8,7 +8,7 @@ function noticed(): Map<string, string> {
   const section = text.split(/^## /m).find((s) => s.startsWith('Bundled software'))
   if (!section) throw new Error('NOTICES.md has no "Bundled software" section')
   const rows = [...section.matchAll(/^\| \[?`?([@\w./-]+)`?\]?(?:\([^)]*\))? \| [^|]+ \| ([^|]+) \|$/gm)]
-  return new Map(rows.map(([, name, license]) => [name ?? '', (license ?? '').trim()]))
+  return new Map(rows.filter(([, name]) => name !== 'Package').map(([, name, license]) => [name ?? '', (license ?? '').trim()]))
 }
 
 describe('NOTICES.md', () => {

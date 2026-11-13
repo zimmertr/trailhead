@@ -21,6 +21,9 @@ export default tseslint.config(
       'trailhead/no-swallowed-catch': 'error',
       // A suppression says why, beside it.
       '@eslint-community/eslint-comments/require-description': ['error', { ignore: [] }],
+      // Fastify handlers and hooks are async by contract, as are the fakes
+      // that stand in for a database or GitHub, whether or not they await.
+      '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }],
     },
   },

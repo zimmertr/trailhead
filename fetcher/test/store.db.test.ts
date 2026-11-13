@@ -13,7 +13,7 @@ beforeEach(async () => {
 })
 afterEach(async () => drop())
 
-const read = async () => (await pool.query('SELECT * FROM project_stats')).rows
+const read = async () => (await pool.query<Record<string, unknown>>('SELECT * FROM project_stats')).rows
 
 describe('saveStats', () => {
   it('inserts a repo’s numbers, then replaces them on the next good fetch', async () => {

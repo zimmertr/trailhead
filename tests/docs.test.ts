@@ -9,7 +9,8 @@ describe('the docs', () => {
   it('link only to files that exist', () => {
     const broken: string[] = []
     for (const path of markdown) {
-      for (const [, target] of read(path).matchAll(/\]\(([^)\s]+)\)/g)) {
+      // Inline code shows a link's shape, as the ADR index does; it isn't one.
+      for (const [, target] of read(path).replace(/`[^`\n]*`/g, '').matchAll(/\]\(([^)\s]+)\)/g)) {
         if (!target || /^(https?:|mailto:|#)/.test(target)) continue
         const file = target.split('#')[0] ?? ''
         if (!existsSync(join(ROOT, dirname(path), file))) broken.push(`${path}: ${target}`)

@@ -3,6 +3,9 @@ import type { SourceFile } from '../src/build.ts'
 
 type Fields = Record<string, unknown>
 
+// The file name follows the slug a test gives, so its problems name it.
+const slugOf = (fields: Fields, fallback: string): string => (typeof fields.slug === 'string' ? fields.slug : fallback)
+
 export function file(path: string, fields: Fields | null, body = ''): SourceFile {
   const top = fields === null ? '' : `---\n${stringify(fields)}---\n`
   return { path, source: `${top}${body}\n` }
@@ -20,18 +23,18 @@ export const site = (fields: Fields = {}): SourceFile =>
   })
 
 export const place = (fields: Fields = {}, body = ''): SourceFile =>
-  file(`places/${String(fields.slug ?? 'meadow')}.md`, { kind: 'place', slug: 'meadow', title: 'Meadow', order: 0, ...fields }, body)
+  file(`places/${slugOf(fields, 'meadow')}.md`, { kind: 'place', slug: 'meadow', title: 'Meadow', order: 0, ...fields }, body)
 
 export const milestone = (fields: Fields = {}, body = 'He stops here.'): SourceFile =>
   file(
-    `milestones/${String(fields.slug ?? 'first')}.md`,
+    `milestones/${slugOf(fields, 'first')}.md`,
     { kind: 'milestone', place: 'meadow', slug: 'first', title: 'First', order: 1, ...fields },
     body,
   )
 
 export const project = (fields: Fields = {}, body = 'It does one thing.'): SourceFile =>
   file(
-    `projects/${String(fields.slug ?? 'thing')}.md`,
+    `projects/${slugOf(fields, 'thing')}.md`,
     { kind: 'project', slug: 'thing', name: 'Thing', repo: 'zimmertr/thing', order: 1, ...fields },
     body,
   )

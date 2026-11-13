@@ -23,7 +23,6 @@ const SECRETS: RegExp[] = [
 
 // JSON.stringify already escapes C0 controls. These survive it and can still
 // rewrite a terminal or split a log line in some viewers.
-// eslint-disable-next-line no-control-regex -- matching control characters is the point
 const UNESCAPED_CONTROLS = /[\u007f-\u009f\u2028\u2029]/g
 
 export function redact(line: string): string {
