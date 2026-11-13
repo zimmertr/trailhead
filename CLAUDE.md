@@ -1,6 +1,6 @@
 # trailhead
 
-TJ's site, tjzimmerman.com, as one small low-poly 3D planet that a visitor runs and climbs through. It is four services (`web`, `api`, `admin`, `fetcher`) and a Postgres database, on TJ's Kubernetes cluster. Start with [`docs/PRD.md`](docs/PRD.md).
+TJ's site, tjzimmerman.com, as one low-poly 3D mountain world that a visitor runs and climbs through. It is four services (`web`, `api`, `admin`, `fetcher`) and a Postgres database, on TJ's Kubernetes cluster. Start with [`docs/PRD.md`](docs/PRD.md).
 
 ## Documentation
 
@@ -25,7 +25,7 @@ The chart is in [zimmertr/trailhead-helm](https://github.com/zimmertr/trailhead-
 
 ## Rules
 
-- **One small planet.** Every place sits on the same sphere, and an object keeps its place and its look everywhere. Add nothing to fill the planet out. Record: [0001](docs/architectural-decision-records/0001-the-world-is-one-small-planet.md)
+- **One flat world, on rails.** Every place sits in the same world, and an object keeps its place and its look everywhere. Every camera follows a route or stands at a fixed view, so nothing is built for a view no rail gives. Add no places. Record: [0014](docs/architectural-decision-records/0014-the-world-is-flat-and-the-visitor-is-on-rails.md)
 - **One progress number.** A route has one number, and the character's position, his pose and the camera are computed from it. Nothing is simulated frame to frame. Record: [0007](docs/architectural-decision-records/0007-one-progress-number-drives-everything.md)
 - **Four services, split by trust.** `api` holds no tokens and makes no outbound calls, `admin` is never reachable from the internet, and only `fetcher` holds tokens. Record: [0002](docs/architectural-decision-records/0002-four-services-split-by-trust.md)
 - **A rollout is gated by scripted checks**, never by live traffic. Record: [0004](docs/architectural-decision-records/0004-rollouts-are-gated-by-scripted-checks.md)

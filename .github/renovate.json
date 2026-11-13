@@ -2,5 +2,13 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
     "github>zimmertr/yggdrasil//defaults/renovate"
+  ],
+  "packageRules": [
+    {
+      "description": "ESLint's package stays on TypeScript 6 until typescript-eslint supports 7 (record 0012).",
+      "matchFileNames": ["tools/eslint/package.json"],
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<6.1"
+    }
   ]
 }

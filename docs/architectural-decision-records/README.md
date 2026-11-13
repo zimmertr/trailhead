@@ -24,7 +24,7 @@ A new record that reverses an old one says `Supersedes NNNN` in its status line.
 
 | Record | Decision | Date | Status |
 |---|---|---|---|
-| [0001](0001-the-world-is-one-small-planet.md) | The world is one small planet | 2026-11-12 | Accepted |
+| [0001](0001-the-world-is-one-small-planet.md) | The world is one small planet | 2026-11-12 | Superseded by 0014 |
 | [0002](0002-four-services-split-by-trust.md) | The backend is four services split by trust, not by feature | 2026-11-12 | Accepted |
 | [0003](0003-the-chart-lives-in-its-own-repo.md) | The Helm chart lives in its own repo | 2026-11-12 | Accepted |
 | [0004](0004-rollouts-are-gated-by-scripted-checks.md) | A rollout is gated by scripted checks, never by live traffic | 2026-11-12 | Accepted |
@@ -37,3 +37,4 @@ A new record that reverses an old one says `Supersedes NNNN` in its status line.
 | [0011](0011-the-pages-are-written-from-the-content-at-build-time.md) | The content compiles to one JSON file, and the pages are written from it at build time | 2026-11-12 | Accepted |
 | [0012](0012-eslint-runs-on-typescript-6-in-its-own-package.md) | ESLint runs on TypeScript 6 in a package of its own, while the repo type-checks with TypeScript 7 | 2026-11-12 | Accepted |
 | [0013](0013-client-identity-comes-from-cf-connecting-ip-alone.md) | The API's rate limit counts clients by CF-Connecting-IP alone | 2026-11-12 | Accepted |
+| [0014](0014-the-world-is-flat-and-the-visitor-is-on-rails.md) | The world is flat, and the visitor is on rails | 2026-11-13 | Accepted, supersedes 0001 |
