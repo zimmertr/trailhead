@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": [
+    "content/src",
+    "content/test",
+    "common/src",
+    "common/test",
+    "api/src",
+    "api/test",
+    "api/scripts",
+    "admin/src",
+    "admin/test",
+    "fetcher/src",
+    "fetcher/test",
+    "tools/*.ts",
+    "tests",
+    "e2e",
+    "vitest.config.ts",
+    "vitest.db.config.ts"
+  ],
+  "exclude": ["**/node_modules", "**/dist"]
+}

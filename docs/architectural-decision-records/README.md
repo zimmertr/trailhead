@@ -31,3 +31,9 @@ A new record that reverses an old one says `Supersedes NNNN` in its status line.
 | [0005](0005-the-reduce-motion-setting-is-not-honoured.md) | The device's reduce-motion setting is not honoured | 2026-11-12 | Accepted |
 | [0006](0006-analytics-is-self-hosted-umami.md) | Analytics is self-hosted Umami, and errors and performance are its events | 2026-11-12 | Accepted |
 | [0007](0007-one-progress-number-drives-everything.md) | Position, pose and camera are computed from one progress number | 2026-11-12 | Accepted |
+| [0008](0008-services-ship-as-one-bundled-file-on-alpine.md) | Each Node service ships as one bundled file on Alpine, and web as static files on unprivileged nginx Alpine | 2026-11-12 | Accepted |
+| [0009](0009-the-pr-builds-the-images-in-its-own-job.md) | The PR checks build the four images in a job of the repo's own | 2026-11-12 | Accepted |
+| [0010](0010-migrations-are-plain-sql-run-from-the-fetcher-image.md) | Migrations are plain SQL, run by the fetcher image's `migrate.js`, with the grants reapplied every run | 2026-11-12 | Accepted |
+| [0011](0011-the-pages-are-written-from-the-content-at-build-time.md) | The content compiles to one JSON file, and the pages are written from it at build time | 2026-11-12 | Accepted |
+| [0012](0012-eslint-runs-on-typescript-6-in-its-own-package.md) | ESLint runs on TypeScript 6 in a package of its own, while the repo type-checks with TypeScript 7 | 2026-11-12 | Accepted |
+| [0013](0013-client-identity-comes-from-cf-connecting-ip-alone.md) | The API's rate limit counts clients by CF-Connecting-IP alone | 2026-11-12 | Accepted |

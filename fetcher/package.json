@@ -1,0 +1,11 @@
+{
+  "name": "@trailhead/fetcher",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "dependencies": {
+    "@trailhead/common": "0.0.0",
+    "@trailhead/content": "0.0.0"
+  }
+}

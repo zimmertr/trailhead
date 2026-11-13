@@ -1,0 +1,16 @@
+{
+  "name": "trailhead-eslint",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "description": "Lints the repo. A package of its own, as Bluebird's is: typescript-eslint reads the TypeScript compiler's JavaScript API at run time and accepts only TypeScript below 6.1, while the repo type-checks with TypeScript 7, whose package no longer ships that API. Record 0012.",
+  "devDependencies": {
+    "@eslint-community/eslint-plugin-eslint-comments": "4.8.1",
+    "@eslint/js": "10.0.1",
+    "eslint": "10.14.0",
+    "globals": "17.14.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.2"
+  }
+}

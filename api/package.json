@@ -1,0 +1,14 @@
+{
+  "name": "@trailhead/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "dependencies": {
+    "@fastify/rate-limit": "11.2.2",
+    "@trailhead/common": "0.0.0",
+    "@trailhead/content": "0.0.0",
+    "fastify": "5.12.8",
+    "prom-client": "15.1.3"
+  }
+}

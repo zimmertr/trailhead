@@ -1,0 +1,50 @@
+/*
+ * The one home of every colour, typeface, size and space the flat parts use
+ * (docs/STYLES.md). tests/styles.test.ts measures the contrast of each text
+ * pair below and fails a colour or font spelled in any other stylesheet.
+ *
+ * Day is the only theme so far. Dusk arrives with its toggle, and every
+ * colour here then gets a Dusk value and a measurement of its own.
+ */
+:root {
+  /* Paper and ink, as on a park brochure. */
+  --paper: #ffffff;
+  --ink: #000000;
+  --ink-soft: #4a4a4a;
+
+  /* The black title band across the top, as on the brochures. */
+  --band: #000000;
+  --band-ink: #ffffff;
+
+  /* One colour per place, from its environment. Each is a band's background
+     under --band-ink and a link's colour on --paper. */
+  --meadow: #3d6b35;
+  --lake: #1f5a7a;
+  --granite: #7a4a2a;
+  --glacier: #3f5866;
+
+  /* The typeface was drawn from the routed wooden signs of the US National
+     Park Service. */
+  --font: 'National Park', system-ui, sans-serif;
+  --weight-text: 400;
+  --weight-heavy: 800;
+
+  /* Text a reader reads never goes below --text-small; anything pressed is
+     at least --text-sign. */
+  --text-small: 1rem;
+  --text: 1.125rem;
+  --text-sign: 1.375rem;
+  --text-h3: 1.5rem;
+  --text-h2: 2rem;
+  --text-h1: clamp(2.5rem, 9vw, 4.5rem);
+  --leading: 1.6;
+  --leading-tight: 1.05;
+  --measure: 38rem;
+
+  --space-1: 0.5rem;
+  --space-2: 1rem;
+  --space-3: 2rem;
+  --space-4: 4rem;
+  --rule: 0.5rem;
+  --focus: 3px;
+}
