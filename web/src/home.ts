@@ -6,5 +6,3 @@ import { reportErrors } from './analytics.ts'
 reportErrors(window)
 const world = document.getElementById('world')
 if (world) void import('./world/placeholder.ts').then(({ mountPlaceholder }) => mountPlaceholder(world))
-
-export const accent = '#ff6600'
