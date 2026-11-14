@@ -1,6 +1,7 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, disc, thick, makePath, windAt } from './core.js';
-import { makeMaple, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat, makeSnag, makeBush, makeFlag } from './sprites.js';
+import { makeMaple, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeSnag, makeBush, makeFlag } from './sprites.js';
+import { makeCats } from './cats.js';
 import { makeRunner } from './tj.js';
 // ---------------------------------------------------------------------------------------------
 // The world. Pixel coordinates, x east, y south. North is up the screen, so the three
@@ -386,7 +387,7 @@ export function makeWorld() {
   const birds = [makeBird(0), makeBird(1)];
   const clouds = [0, 1, 2, 3].map(i => ({ bm: makeCloud(600 + i), x: i * 260 + 40, y: 150 + (i & 1) * 40 + i * 6, v: 3 + i }));
   const runner = makeRunner('trail');
-  const cats = { tortie: ['sitA', 'sitB', 'crouch', 'leap'].reduce((o, p) => (o[p] = makeCat('tortie', p, 3), o), {}), nebel: ['sitA', 'sitB', 'crouch', 'leap'].reduce((o, p) => (o[p] = makeCat('nebel', p, 5), o), {}) };
+  const kit = makeCats(); window.__cats = kit;
   const flags = [makeFlag(0), makeFlag(1)];
   // A flag for each finished destination: at the lake shore, on the wall's rim, on the highest summit.
   const FLAGS = { lake: { x: 438, y: 384, lift: 0 }, stack: { x: STACK.x - 14, y: STACK.y + 1, lift: STACK.h - 9 }, spires: { x: SPIRES.x - (SPIRES.w >> 1) + SUMMITS[2].cx, y: SPIRES.y + 1, lift: SPIRES.h - SUMMITS[2].top - 2 } };
@@ -406,7 +407,10 @@ export function makeWorld() {
   const cam = { x: T.x, y: 0 };
   let facing = 'down', flip = false, last = { ox: 0, oy: 0, VW: 1, VH: 1 }, focus = { x: 0, y: 0 };
   const list = [];
-  const vista = scr => ({ x: T.x, y: T.y + Math.min(46, scr.VH * 0.17) + 14 - scr.VH / 2 + Math.max(0, scr.VH - 300) * 0.25 });
+  // The view from the Trailhead. On an upright phone the junction sign covers the lower half, so
+  // the view sits lower to keep him above it, past the bottom edge of the map if it has to.
+  const vista = scr => scr.narrow ? { x: T.x, y: T.y + scr.VH * 0.06 } : { x: T.x, y: T.y + Math.min(46, scr.VH * 0.17) + 14 - scr.VH / 2 + Math.max(0, scr.VH - 300) * 0.25 };
+  let past = 0;
   const where = (leg, q) => { const P = paths[leg.path], a = P.at(lerp(leg.from, leg.to, q)), s = leg.to < leg.from ? -1 : 1; return { x: a.x, y: a.y, dx: a.dx * s, dy: a.dy * s, P }; };
   const target = (scr, here) => {
     const v = vista(scr), k = smooth(0, 60, Math.hypot(here.x - T.x, here.y - T.y));
@@ -432,9 +436,11 @@ export function makeWorld() {
     pick(sx, sy) {
       const wx = sx + last.ox, wy = sy + last.oy;
       for (const s of SIGNS) if (Math.abs(wx - s.x) < 8 && wy > s.y - 17 && wy < s.y + 3) return { label: s.label, x: s.x - last.ox, y: s.y - 18 - last.oy };
+      const c = kit.pick(wx, wy); if (c) return { label: c.label, x: c.wx - last.ox, y: c.wy - last.oy, act: c.act };
       if (Math.abs(wx - 612) < 14 && wy > 470 && wy < 500) return { label: 'Trail conditions', x: 612 - last.ox, y: 470 - last.oy, act: 'kiosk' };
       return null;
     },
+    act(id, env) { return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
     draw(scr, env, leg, q) {
       const { VW, VH, fb } = scr, { t, tq, dt } = env;
       const here = where(leg, q);
@@ -450,7 +456,8 @@ export function makeWorld() {
       cam.x += (tx - cam.x) * damp; cam.y += (ty - cam.y) * damp;
       let cx = cam.x + env.look.x, cy = cam.y + env.look.y;
       cx = VW >= WW ? WW / 2 : clamp(cx, VW / 2, WW - VW / 2);
-      cy = VH >= WH ? WH / 2 : clamp(cy, VH / 2, WH - VH / 2);
+      past += ((scr.narrow && env.home ? VH * 0.34 : 0) - past) * (env.fixed ? 0 : Math.min(1, dt * 4));
+      cy = VH >= WH ? WH / 2 : clamp(cy, VH / 2, WH - VH / 2 + past);
       const ox = env.fixed ? env.fixed.x : Math.round(cx - VW / 2), oy = env.fixed ? env.fixed.y : Math.round(cy - VH / 2);
       last = { ox, oy, VW, VH };
 
@@ -458,7 +465,7 @@ export function makeWorld() {
       for (let y = 0; y < VH; y++) {
         const wy = oy + y, row = y * VW;
         if (wy < 0) { fb.fill(R.skyband[0], row, row + VW); continue; }
-        if (wy >= WH) { fb.fill(R.grass[2], row, row + VW); continue; }
+        if (wy >= WH) { const my = 2 * WH - 1 - wy, a = Math.max(0, ox), b = Math.min(WW, ox + VW); fb.fill(R.grass[2], row, row + VW); if (my >= 300 && b > a) fb.set(ground.subarray(my * WW + a, my * WW + b), row + (a - ox)); continue; }
         const a = Math.max(0, ox), b = Math.min(WW, ox + VW);
         if (a > ox) fb.fill(wy < 300 ? R.sky[2] : R.grass[2], row, row + (a - ox));
         if (b < ox + VW) fb.fill(wy < 300 ? R.sky[2] : R.grass[2], row + (b - ox), row + VW);
@@ -476,9 +483,8 @@ export function makeWorld() {
         list.push(th);
       }
       if (!env.hideMe) list.push({ me: true, x: here.x, y: here.y });
-      const catT = t % 7;
-      list.push({ cat: 'tortie', x: 600, y: 478, pose: catT < 3 ? (Math.floor(t * 1.2) & 1 ? 'sitA' : 'sitB') : catT < 4.2 ? 'crouch' : catT < 4.7 ? 'leap' : 'sitA', dx: catT >= 4.2 && catT < 4.7 ? Math.round((catT - 4.2) * 16) : catT >= 4.7 ? 8 - Math.round(Math.min(1, (catT - 4.7) / 1.5) * 8) : 0 });
-      list.push({ cat: 'nebel', x: 614, y: 481, pose: Math.floor(t * 0.9) & 1 ? 'sitB' : 'sitA', dx: 0 });
+      kit.update(env, here, scr.narrow && !env.fixed);
+      for (const it of kit.items()) list.push(it);
       list.sort((a, b) => a.y - b.y);
       for (const th of list) {
         if (th.me) {
@@ -488,9 +494,7 @@ export function makeWorld() {
           scr.put(bm, th.x - ox, th.y - oy, flip && facing === 'side');
           focus = { x: Math.round(th.x - ox), y: Math.round(th.y - oy) - 14 };
         } else if (th.cat) {
-          const bm = cats[th.cat][th.pose];
-          scr.shadow(Math.round(th.x + th.dx - ox), Math.round(th.y - oy), 4, 1);
-          scr.blit(bm, th.x + th.dx - bm.ox - ox, th.y - bm.oy - oy - (th.pose === 'leap' ? 3 : 0));
+          kit.drawOne(scr, th.cat, ox, oy, t);
         } else if (th.kind === 'tree') {
           const { tree, x, y } = th.t;
           for (const part of tree.parts) {
@@ -510,6 +514,7 @@ export function makeWorld() {
         } else scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.bm.oy - oy);
       }
 
+      kit.drawOver(scr, ox, oy, t);
       // Smoke from the stove at base camp, drifting off with the wind.
       for (let k = 0; k < 6; k++) {
         const age = frac(t * 0.35 + k / 6), x = Math.round(673 + age * 10 + Math.sin(age * 6 + k) * 1.5) - ox, y = Math.round(404 - age * 26) - oy;

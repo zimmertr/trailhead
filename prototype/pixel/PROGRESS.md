@@ -51,10 +51,10 @@ The working list for the overnight build of the pixel-art trailhead. Tick items 
 - [x] Project cards with stars, release, language, licence.
 
 ### Across the site
-- [ ] Doot Doot and Peevers: varied play and click interactions.
+- [x] Doot Doot and Peevers: varied play and click interactions.
 - [x] Trail map menu, `#name` addresses, plain page, 404 off-route, console message, kiosk board, joke-name signs.
 - [x] Register mock, unlocked after all three routes.
-- [ ] Sound with mute.
+- [x] Sound with mute.
 - [ ] Dusk in every scene, with the Dusk-only sky. Phone layout in every scene.
 - [x] Copy drafts: personal note, skill cards.
 
@@ -117,3 +117,8 @@ Each of these slowed or spoiled the low-poly prototype. Check the list before ev
 - The register is a mock: four sample entries, and a new one is kept in this browser only and shown as waiting for approval. It unlocks when the lake, the Stack and one summit are done.
 - An address with no trail behind it (any unknown `#name`) opens a whiteout with one wand and a sign pointing back.
 - The trail map sheet holds the map with a dot per milestone, TJ's links, the plain page, the kiosk, the register and the settings. Esc or M opens it.
+- Cats: each has a dozen poses (sit, blink, look, meow, groom, bat, loaf, sleep, walk, run, crouch, pounce, roll, stretch) and picks what to do next at random with her own odds: wander, visit the other, stalk and pounce on a butterfly, chase, nap, and Doot Doot jumps onto the kiosk roof. One trots over and rubs his legs when he gets home.
+- Clicking a cat: Doot Doot meows back, and a second click gets a roll and a purr. Peevers chirps and darts off the first time, then comes round. A sleeping cat wakes and stretches. Hovering shows her name.
+- On an upright phone the junction sign covers the lower half, so the home view sits lower (past the map's bottom edge, which is filled with mirrored meadow) and the cats keep to the meadow above the junction.
+- Sound: a different music track each visit (never the one before), a tag in the top bar to step through the five tracks, and three instrument sets (Console, Handheld, Music box) that replay the same notes and effects through different voices.
+- The trail map sheet has a text key under the map, so every milestone is reachable as a plain link as well as a dot.

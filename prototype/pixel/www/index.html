@@ -59,11 +59,13 @@ button.plank:hover, a.plank:hover, .plank.on { background-color: var(--wood-4); 
 button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(--px) 0 var(--wood-4), inset 0 calc(var(--px) * -1) 0 var(--wood-2); }
 .plank small { font-family: var(--small); font-size: 15px; color: #ecd6a2; text-shadow: none; margin-left: auto; white-space: nowrap; }
 .plank .where { display: block; font-family: var(--read); font-size: 20px; line-height: 1; color: #ecd6a2; text-shadow: none; }
-/* A pixel arrow routed into the wood, five pixels square. */
-.arrow { flex: none; width: calc(var(--px) * 5); height: calc(var(--px) * 5); background: var(--routed); clip-path: polygon(40% 0, 60% 0, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 80%, 20% 80%, 20% 60%, 0 60%, 0 40%, 20% 40%, 20% 20%, 40% 20%); }
+/* A pixel arrow routed into the wood. */
+.arrow { flex: none; width: calc(var(--px) * 7); height: calc(var(--px) * 5); background: var(--routed); clip-path: polygon(28.57% 0, 42.86% 0, 42.86% 40%, 100% 40%, 100% 60%, 42.86% 60%, 42.86% 100%, 28.57% 100%, 28.57% 80%, 14.29% 80%, 14.29% 60%, 0 60%, 0 40%, 14.29% 40%, 14.29% 20%, 28.57% 20%); }
 .arrow.right { transform: scaleX(-1); }
 .arrow.up { transform: rotate(90deg); }
+.arrow.go { width: calc(var(--px) * 5); }
 .arrow.go { clip-path: polygon(0 0, 20% 0, 20% 20%, 60% 20%, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 80%, 20% 80%, 20% 100%, 0 100%); background: var(--sun); }
+.note { flex: none; width: calc(var(--px) * 5); height: calc(var(--px) * 5); background: var(--routed); clip-path: polygon(40% 0, 80% 0, 80% 20%, 100% 20%, 100% 40%, 80% 40%, 80% 20%, 60% 20%, 60% 100%, 0 100%, 0 60%, 40% 60%); }
 .choice:hover .arrow, .choice:focus-visible .arrow { background: var(--sun); }
 
 /* Paper: a placard pinned at its corners. */
@@ -158,6 +160,13 @@ button.name:hover, .name.done { background: var(--moss); }
 .dot span { position: absolute; left: 50%; bottom: calc(100% + var(--px) * 2); transform: translateX(-50%); padding: 0 calc(var(--px) * 2); font-family: var(--small); font-size: 15px; line-height: 1.25; white-space: nowrap; background: var(--paper); border: var(--px) solid var(--ink); display: none; }
 .dot:hover span, .dot:focus-visible span, .dot.big span { display: block; }
 .dot.big { width: calc(var(--px) * 7); height: calc(var(--px) * 7); margin: calc(var(--px) * -3.5); background: var(--sun); }
+.key { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(var(--px) * 5); margin-top: calc(var(--px) * 5); }
+.key h3 { font-size: 30px; line-height: 1; }
+.key small { display: block; font-family: var(--small); font-size: 15px; color: var(--dim); margin-bottom: calc(var(--px) * 2); }
+.key li { display: flex; align-items: baseline; gap: calc(var(--px) * 2); }
+.key li::before { content: ""; flex: none; width: calc(var(--px) * 2); height: calc(var(--px) * 2); background: var(--blaze); box-shadow: 0 0 0 var(--px) var(--ink); transform: translateY(calc(var(--px) * -1)); margin-left: var(--px); }
+.key button { border-bottom: var(--px) solid transparent; }
+.key button:hover, .key button:focus-visible { border-bottom-color: var(--blaze); }
 .side { display: flex; flex-direction: column; gap: calc(var(--px) * 2); }
 .side h3 { font-size: 30px; line-height: 1; margin-top: calc(var(--px) * 2); }
 .side .plank { width: 100%; }
@@ -191,8 +200,9 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   #card { max-height: 50%; }
   .mark { display: none; }
   .cols { grid-template-columns: 1fr; }
+  .key { grid-template-columns: 1fr; }
   #top .plank { padding: calc(var(--px) * 1) calc(var(--px) * 3); }
-  #b-help { display: none; }
+  #b-help, #b-track { display: none; }
   .name { font-size: 10px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
@@ -203,6 +213,7 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
 <header id="top" hidden>
   <button class="plank" id="b-map" aria-haspopup="dialog">Trail map</button>
   <span class="gap"></span>
+  <button class="plank" id="b-track" aria-label="Next music track"><i class="note"></i><span></span></button>
   <button class="plank" id="b-sound" aria-pressed="false">Sound off</button>
   <button class="plank" id="b-dusk">Dusk</button>
   <button class="plank" id="b-help" aria-label="Keys">Keys</button>

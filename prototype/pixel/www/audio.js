@@ -35,9 +35,18 @@ export const TRACKS = [
     drum: line('k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - s s s -') }
 ];
 
+// The same notes through three different instruments. A set names the wave each voice uses, how
+// loud the drums are, and how the effects are pitched.
+export const SETS = [
+  { name: 'Console', lead: 'square', arp: 'square', bass: 'triangle', fx: { square: 'square', triangle: 'triangle' }, drums: 1, pitch: 1 },
+  { name: 'Handheld', lead: 'pulse', arp: 'pulse', bass: 'square', fx: { square: 'pulse', triangle: 'triangle' }, drums: 0.7, pitch: 1.5, bassVol: 0.4 },
+  { name: 'Music box', lead: 'sine', arp: 'triangle', bass: 'sine', fx: { square: 'sine', triangle: 'sine' }, drums: 0, pitch: 2, pluck: true, octave: 2 }
+];
+
 export function makeAudio() {
-  let ctx = null, master, music, fx, amb, noiseBuf, muted = false, timer = null, step = 0, nextAt = 0, cur = Math.floor(Math.random() * TRACKS.length), ambName = '', ambNodes = [], ambTimer = null;
-  try { muted = localStorage.getItem('trailhead.muted') === '1'; const t = localStorage.getItem('trailhead.track'); if (t != null && TRACKS[+t]) cur = +t; } catch { /* private window */ }
+  let ctx = null, master, music, fx, amb, noiseBuf, muted = false, timer = null, step = 0, nextAt = 0, cur = Math.floor(Math.random() * TRACKS.length), set = 0, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
+  // A different track each visit: any but the one that played last time.
+  try { muted = localStorage.getItem('trailhead.muted') === '1'; const was = +localStorage.getItem('trailhead.lastTrack'); if (was === cur) cur = (cur + 1 + Math.floor(Math.random() * (TRACKS.length - 1))) % TRACKS.length; localStorage.setItem('trailhead.lastTrack', String(cur)); const v = +localStorage.getItem('trailhead.set'); if (SETS[v]) set = v; } catch { /* private window */ }
 
   function start() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
@@ -47,6 +56,8 @@ export function makeAudio() {
     music = ctx.createGain(); music.gain.value = 0.22; music.connect(master);
     fx = ctx.createGain(); fx.gain.value = 0.5; fx.connect(master);
     amb = ctx.createGain(); amb.gain.value = 0.25; amb.connect(master);
+    // A narrow pulse wave (a quarter on, three quarters off): the reedy voice of a handheld.
+    { const n = 32, re = new Float32Array(n), im = new Float32Array(n); for (let k = 1; k < n; k++) { re[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * 0.25); im[k] = 2 / (k * Math.PI) * (1 - Math.cos(k * Math.PI * 0.25)); } pulse = ctx.createPeriodicWave(re, im); }
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0); let s = 1; for (let i = 0; i < d.length; i++) { s = (s * 16807) % 2147483647; d[i] = (s / 2147483647) * 2 - 1; }
     nextAt = ctx.currentTime + 0.1;
@@ -56,9 +67,13 @@ export function makeAudio() {
   // One note: a square, pulse or triangle wave with a quick attack and a falling tail.
   function tone(out, type, f0, t, dur, vol, f1) {
     if (!f0) return;
-    const o = ctx.createOscillator(), g = ctx.createGain();
-    o.type = type; o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
-    g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.008); g.gain.setValueAtTime(vol, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    const o = ctx.createOscillator(), g = ctx.createGain(), V = SETS[set];
+    // Effects are written for the console; the other sets play them through their own voice.
+    if (out === fx) { type = V.fx[type] || type; f0 *= V.pitch; if (f1) f1 *= V.pitch; if (type === 'sine') vol *= 1.5; }
+    if (type === 'pulse') { o.setPeriodicWave(pulse); vol *= 0.8; } else o.type = type;
+    o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
+    if (V.pluck && out === music) { dur = Math.max(dur, 0.5); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 1.6, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
+    else { g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.008); g.gain.setValueAtTime(vol, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
     o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.02);
   }
   function noise(out, t, dur, vol, freq = 4000, q = 0.7, type = 'highpass') {
@@ -72,10 +87,11 @@ export function makeAudio() {
     const tr = TRACKS[cur], dt = 60 / tr.bpm / tr.div, len = tr.lead.length;
     while (nextAt < ctx.currentTime + 0.25) {
       const i = step % len, hold = (l, k) => { let n = 1; while (l[(k + n) % len] === '.' && n < 16) n++; return n; };
-      const a = tr.lead[i]; if (a !== '.' && a !== '-') tone(music, 'square', hz(a), nextAt, dt * hold(tr.lead, i) * 0.95, 0.16);
-      const b = tr.arp[i]; if (b !== '.' && b !== '-') tone(music, 'square', hz(b), nextAt, dt * 0.8, 0.045);
-      const c = tr.bass[i]; if (c !== '.' && c !== '-') tone(music, 'triangle', hz(c), nextAt, dt * hold(tr.bass, i) * 0.9, 0.3);
-      const dr = tr.drum[i]; if (dr === 'k') tone(music, 'triangle', 150, nextAt, 0.12, 0.4, 45); else if (dr === 's') noise(music, nextAt, 0.11, 0.16, 1800, 0.6, 'bandpass'); else if (dr === 'h') noise(music, nextAt, 0.035, 0.05, 7000);
+      const V = SETS[set], up = V.octave || 1, dv = V.drums;
+      const a = tr.lead[i]; if (a !== '.' && a !== '-') tone(music, V.lead, hz(a) * up, nextAt, dt * hold(tr.lead, i) * 0.95, 0.16);
+      const b = tr.arp[i]; if (b !== '.' && b !== '-') tone(music, V.arp, hz(b) * up, nextAt, dt * 0.8, V.arp === 'square' ? 0.045 : 0.07);
+      const c = tr.bass[i]; if (c !== '.' && c !== '-') tone(music, V.bass, hz(c) * up, nextAt, dt * hold(tr.bass, i) * 0.9, V.bass === 'square' ? 0.1 : 0.3);
+      const dr = tr.drum[i]; if (!dv) { /* no drums in a music box */ } else if (dr === 'k') tone(music, 'triangle', 150, nextAt, 0.12, 0.4 * dv, 45); else if (dr === 's') noise(music, nextAt, 0.11, 0.16 * dv, 1800, 0.6, 'bandpass'); else if (dr === 'h') noise(music, nextAt, 0.035, 0.05 * dv, 7000);
       step++; nextAt += dt;
     }
   }
@@ -133,7 +149,9 @@ export function makeAudio() {
     muted: () => muted,
     setMuted(m) { muted = !!m; if (master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.05); try { localStorage.setItem('trailhead.muted', muted ? '1' : '0'); } catch { /* private window */ } },
     track: () => ({ index: cur, name: TRACKS[cur].name, count: TRACKS.length }),
-    setTrack(i) { cur = ((i % TRACKS.length) + TRACKS.length) % TRACKS.length; step = 0; try { localStorage.setItem('trailhead.track', String(cur)); } catch { /* private window */ } return TRACKS[cur].name; },
+    setTrack(i) { cur = ((i % TRACKS.length) + TRACKS.length) % TRACKS.length; step = 0; try { localStorage.setItem('trailhead.lastTrack', String(cur)); } catch { /* private window */ } return TRACKS[cur].name; },
+    set: () => ({ index: set, name: SETS[set].name, count: SETS.length }),
+    setSet(i) { set = ((i % SETS.length) + SETS.length) % SETS.length; try { localStorage.setItem('trailhead.set', String(set)); } catch { /* private window */ } return SETS[set].name; },
     setMusic(v) { if (music) music.gain.setTargetAtTime(v, ctx.currentTime, 0.1); }
   };
 }
