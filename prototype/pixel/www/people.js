@@ -1,6 +1,6 @@
 // The other people in the world, drawn with TJ's own figure so they stand at his size and in his style.
 import { frac, R, INK, BM, outline } from './core.js';
-import { sideFig } from './tj.js';
+import { sideFig, backFig } from './tj.js';
 import { makeBoulder } from './sprites.js';
 
 // Kayti: long brown hair, a purple puffy, no hat or sunglasses.
@@ -44,6 +44,43 @@ export function makeKayti() {
       scr.put(pack, x + 17, y + 1, false);
       scr.put(rock, x + 3, y + 1, false);
       scr.blit(tin, x + 7, y - 9);
+      scr.put(f, x - 2, y, true);
+    }
+  };
+}
+
+// The two at the foot of The Stack: a man with short black hair and a woman with long red hair.
+const PAIR = [
+  { top: [R.jay[1], R.jay[2], R.jay[3]], upper: [R.rock[0], R.rock[1]], lower: [R.rock[0], R.rock[1]], hand: [R.skin[1], R.skin[2]], hat: R.kit, bare: true, hair: [R.basalt[0], R.basalt[1], R.basalt[2]], beard: false, shades: false, packW: -1, shoe: [R.bark[0], R.bark[1], R.bark[2]] },
+  { top: [R.mist[3], R.mist[4], R.mist[5]], upper: [R.navy[0], R.navy[1]], lower: [R.navy[0], R.navy[1]], hand: [R.skin[1], R.skin[2]], hat: R.kit, bare: true, hair: [R.blaze[0], R.blaze[1], R.blaze[2]], long: 6, beard: false, shades: false, packW: -1, shoe: [R.bark[0], R.red[1], R.red[2]] }
+];
+
+// Either of them can belay, seen from behind as the climber is, or sit side-on with something to eat.
+// Each belay frame says where its two hands are (grip: the hand up the rope, brake: the hand below
+// the device), measured from the hips, so the scene can run the rope through them.
+export function makeCragPair() {
+  const feet = [[-3, 13], [3, 13]];
+  const belay = PAIR.map(k => {
+    const f = (grip, brake, ft) => Object.assign(backFig(k, { hands: [brake, grip], feet: ft || feet, rack: false }), { grip, brake });
+    return { a: f([7, -12], [-6, 0]), b: f([7, -9], [-6, -3]), lock: f([6, -7], [-5, 3], [[-5, 12], [5, 12]]), rest: f([6, 2], [-6, 2]) };
+  });
+  const sit = { lean: 0, crouch: 3, feet: [[5, 8.5], [4, 8.5]] };
+  // A bar in a yellow wrapper, peeled back at one end.
+  const snack = PAIR.map(k => {
+    const f = (hands, look, at) => sideFig(k, { ...sit, hands, look, head: look === 'up' ? [0, -1] : [0, 0], held: (b, sh) => { const x = sh[0] + at[0], y = sh[1] + at[1]; b.set(x, y, R.skin[2]); b.set(x, y + 1, R.skin[1]); b.set(x - 1, y - 1, R.yellow[1]); b.set(x - 1, y, R.yellow[0]); b.set(x - 1, y - 2, R.wood[1]); } });
+    return { lap: f([[4, 3], [3, 4]], 'down', [5, 3]), bite: f([[5, -1], [3, 4]], null, [7, -1]), up: f([[4, 3], [3, 4]], 'up', [5, 3]) };
+  });
+  const rock = makeBoulder(533, 6);
+  // The slack rope, flaked out in a pile at the belayer's feet.
+  const pile = new BM(11, 6); pile.ox = 5; pile.oy = 5;
+  for (const [x, y] of [[2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [8, 4], [1, 3], [9, 3], [3, 3], [5, 3], [7, 3], [2, 2], [4, 2], [6, 2], [8, 2], [4, 1], [5, 1], [6, 1]]) pile.set(x, y, (x + y) % 3 ? R.teal[2] : R.white[1]);
+  outline(pile, INK);
+  return {
+    belay, pile,
+    // The one who is not belaying eats, chews, and looks up to see how it is going. x, y is where the feet rest.
+    snack(scr, who, x, y, t) {
+      const u = t % 6.2, f = snack[who][u > 4.6 ? 'up' : u > 2 && u < 2.7 ? 'bite' : 'lap'];
+      scr.put(rock, x + 3, y + 1, false);
       scr.put(f, x - 2, y, true);
     }
   };

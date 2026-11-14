@@ -7,6 +7,7 @@ import { makeFir, makeSpruce, makeBoulder, makeCloud, makeFlag, makeBush } from 
 import { pika, speck } from './fauna.js';
 import { makeRunner, frontFig, backFig } from './tj.js';
 import { NAMES } from './content.js';
+import { makeCragPair } from './people.js';
 
 const W = 1340, RX = 760, UP = 500, DOWN = 250;
 const H1 = 110, H2 = 220, ROOF = 292, H3 = 326, HS = 360, C = 12;
@@ -16,6 +17,8 @@ const KEYS = [[0, 0, 'walk'], [0.9, 0, 'climb'], [4.9, H1, 'climb'], [6.9, 170, 
 const STOPS = [['platform-engineering', 4.9], ['site-reliability-engineering', 10.3], ['software-engineering', 14.3], ['summit', 15.5]];
 const PRO = [16, 36, 56, 76, 96, H1, 128, 146, 164, 186, 206, H2, 238, 256, 274, 300, 314, H3];
 const FLAKE = 176, DECOY = { x: -30, s: 262 };
+// The two at the foot: where the belayer's hips are, and where the other one's feet rest.
+const BX = RX - 23, BS = -3, SX = RX + 40, SS = -15;
 
 const route = s => RX + (s < H1 ? 0 : 6 * Math.sin((s - H1) / 28) * smooth(H1, H1 + 20, s));
 const edge = s => RX + 124 + 9 * vnoise(s / 34, 1, 160) + 5 * Math.sin(s / 61) - 30 * smooth(HS - 60, HS + 4, s);
@@ -120,7 +123,8 @@ export function makeWall() {
   for (const id in prop) stand[id] = frontFig('wall', id === 'summit' ? { swing: -9 } : { swing: id === 'site-reliability-engineering' ? -3 : 0, held: prop[id] });
   stand.idle = frontFig('wall');
 
-  const st = {}, focus = { x: 0, y: 0 };
+  const pair = makeCragPair();
+  const st = { who: 0 }, focus = { x: 0, y: 0 };
   let camS = 0, last = { camX: 0, base: 0 };
   const list = [];
 
@@ -153,7 +157,8 @@ export function makeWall() {
       let k = 0; for (let tau = 0.9; tau < 15.5 && k < PRO.length; tau += 0.02) { const a = at(tau); if (a.mode !== 'fall' && a.s >= PRO[k]) { out.push({ at: tau / DUR, name: 'place' }); k++; } }
       return out;
     },
-    enter(scr, arg, q) { camS = at(q * DUR).s; st.y = null; },
+    // Which of the two belays is a coin toss on every visit.
+    enter(scr, arg, q) { camS = at(q * DUR).s; st.y = null; st.who = Math.random() < 0.5 ? 0 : 1; },
     focus: () => focus,
     pick(sx, sy) {
       const wx = sx + last.camX, s = last.base + camS - sy;
@@ -184,17 +189,29 @@ export function makeWall() {
       { const a = t * 0.5; scr.put(swift[Math.floor(t * 2) & 1], RX + 220 - camX + Math.cos(a) * 46, base + camS * 0.5 - 150 + Math.sin(a) * 14, Math.sin(a) > 0); }
       drawStrip(scr, main, camX, base + camS, false, R.grass[1]);
 
-      // Protection he has placed or clipped stays behind, and the rope runs up through it to him.
-      const high = tau >= 15.5 ? HS : tau >= 7.9 && tau < 10.3 ? Math.max(s, 170) : s, rope = [[RX - 2, 0]];
+      // The belayer pays rope out as he moves, locks off when he falls, and is lifted a little by the catch.
+      const cut = me.mode === 'rappel' || me.mode === 'out', walking = me.mode === 'walk';
+      const bel = pair.belay[st.who], bf = cut ? bel.rest : me.mode === 'fall' || me.mode === 'hang' ? bel.lock : env.moving && (Math.floor(tau * 3) & 1) ? bel.b : bel.a;
+      const bs = BS + (me.mode === 'hang' ? 2 : 0);
+      // The rope: from the pile through the belayer's hands, up through every piece he has placed or
+      // clipped, to him. On the way down it hangs from the top instead. Dark edges, bright core.
+      const pts = [], gear = [];
+      const seg = (x0, h0, x1, h1, bow, sag) => { const n = Math.max(1, Math.abs(h1 - h0), Math.abs(x1 - x0)); for (let k = 0; k <= n; k++) { const u = k / n, w = Math.sin(u * Math.PI); pts.push(Math.round(lerp(x0, x1, u) + w * bow) - camX, rowOf(lerp(h0, h1, u) - w * sag)); } };
+      const high = tau >= 15.5 ? HS : tau >= 7.9 && tau < 10.3 ? Math.max(s, 170) : s;
       for (const h of PRO) {
         if (h > high - 4 && !(tau >= 15.5)) break;
-        const x = Math.round(route(h)) + (h < H1 ? 0 : 4), y = rowOf(h);
-        if (h !== H1 && h !== H2 && h !== H3) { scr.set(x - camX, y, R.rock[4]); scr.set(x - camX, y + 1, h < H1 ? R.red[1] : R.rock[2]); scr.set(x - camX - 1, y, INK); scr.set(x - camX, y + 2, R.teal[2]); }
-        rope.push([x, h]);
+        gear.push([Math.round(route(h)) + (h < H1 ? 0 : 4), h]);
       }
-      const cut = me.mode === 'rappel' || me.mode === 'out';
-      if (!cut) rope.push([route(s), s - 1]); else { rope.length = 0; rope.push([route(HS) + 1, HS + 2], [route(HS) + 1, me.mode === 'rappel' ? -2 : -2]); }
-      for (let i = 1; i < rope.length; i++) { const [x0, h0] = rope[i - 1], [x1, h1] = rope[i], n = Math.max(1, Math.abs(h1 - h0)); for (let k = 0; k <= n; k++) { const u = k / n, x = Math.round(lerp(x0, x1, u) + Math.sin(u * Math.PI) * (cut ? 0 : 1.5)) - camX, y = rowOf(lerp(h0, h1, u)); scr.set(x, y, (k + i) % 3 ? R.teal[2] : R.teal[0]); } }
+      if (cut) seg(route(HS) + 1, HS + 2, route(HS) + 1, -2, 0, 0);
+      else {
+        seg(BX + bf.brake[0], bs - bf.brake[1] - 1, BX - 10, BS - 13, 0, 0);
+        let px = BX + bf.grip[0], ph = bs - bf.grip[1] + 1;
+        if (walking) seg(px, ph, route(0) - 62 * (1 - me.u), 6, 0, 4);
+        else { for (const [x, h] of gear) { seg(px, ph, x, h, 1.5, 0); px = x; ph = h; } seg(px, ph, route(s), s - 1, 1.5, 0); }
+      }
+      for (let i = 0; i < pts.length; i += 2) { const x = pts[i], y = pts[i + 1]; scr.set(x - 1, y, INK); scr.set(x + 1, y, INK); scr.set(x, y - 1, INK); scr.set(x, y + 1, INK); }
+      for (let i = 0; i < pts.length; i += 2) scr.set(pts[i], pts[i + 1], (i >> 1) % 5 ? R.teal[2] : R.white[1]);
+      for (const [x, h] of gear) if (h !== H1 && h !== H2 && h !== H3) { const y = rowOf(h); scr.set(x - camX, y, R.rock[4]); scr.set(x - camX, y + 1, h < H1 ? R.red[1] : R.rock[2]); scr.set(x - camX - 1, y, INK); scr.set(x - camX + 1, y + 1, INK); }
       // The hold that breaks on the second pitch: there before, a pale scar after, falling in between.
       { const fx = Math.round(route(FLAKE)) + 6 - camX, fy = rowOf(FLAKE); if (tau < 6.9) { scr.set(fx, fy, R.gold[6]); scr.set(fx + 1, fy, R.gold[6]); scr.set(fx, fy + 1, R.gold[1]); scr.set(fx + 1, fy + 1, R.gold[1]); } else { scr.set(fx, fy, R.gold[6]); scr.set(fx + 1, fy + 1, R.gold[5]); const u = tau - 6.9; if (u < 1.2) { const yy = fy + Math.round(240 * u * u), xx = fx + Math.round(u * 14); scr.set(xx, yy, R.gold[3]); scr.set(xx + ((Math.floor(u * 20) & 1) ? 1 : 0), yy + ((Math.floor(u * 20) & 1) ? 0 : 1), R.gold[1]); } } }
       // On the third pitch the next holds glow as suggestions; one off to the left goes nowhere.
@@ -217,6 +234,12 @@ export function makeWall() {
       // Swifts work the face.
       for (let k = 0; k < 4; k++) { const a = t * (0.7 + k * 0.13) + k * 2; scr.put(swift[(Math.floor(t * 7) + k) & 1], RX - 120 + k * 60 + Math.sin(a) * 90 - camX, rowOf(110 + k * 70 + Math.sin(a * 1.7) * 30), Math.cos(a) < 0); }
 
+      // The two at the foot. He walks in and out behind the belayer, and climbs in front.
+      pair.snack(scr, 1 - st.who, SX - camX, rowOf(SS), t);
+      if (!cut) scr.put(pair.pile, BX - 10 - camX, rowOf(BS - 14), false);
+      const belayer = () => { scr.shadow(BX - camX, rowOf(BS - 13), 6, 1); scr.put(bf, BX - camX, rowOf(bs), false); };
+      if (!walking && me.mode !== 'out') belayer();
+
       // Himself.
       const mx = route(s) - camX, my = rowOf(s);
       let bm, by = my, bx = mx, flip = false;
@@ -236,6 +259,7 @@ export function makeWall() {
       }
       if ((me.mode === 'climb' || me.mode === 'roof') && !stopId && s < HS - 8) { /* drawn above */ }
       scr.put(bm, bx, by + (bm === stand.idle || (stopId && stand[stopId]) ? 0 : 0), flip);
+      if (walking || me.mode === 'out') belayer();
       focus.x = Math.round(bx); focus.y = Math.round(by) - 10;
       // The flag goes in on the summit and stays.
       if (tau >= 15.5 || env.done.stack) scr.blit(flag[Math.floor(t * 5) & 1], Math.round(route(HS)) + 9 - camX, rowOf(HS + 4) - 15);

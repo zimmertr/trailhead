@@ -94,6 +94,9 @@ function head(b, k, cx, cy, view, look) {
     b.set(cx, cy + 2, R.skin[1]);
     if (k.long) for (let y = cy + 1; y <= cy + 4 + k.long; y++) for (const x of [-6, -5, 5, 6]) b.set(cx + x, y, Math.abs(x) === 6 ? hr[0] : hr[1]);
     if (k.brim) for (let x = -4; x <= 4; x++) b.set(cx + x, cy - 2, k.hat[0]);
+  } else if (k.long) {
+    // From behind, long hair covers the neck and the top of the back.
+    for (let y = cy + 4; y <= cy + 3 + k.long; y++) for (let x = -4; x <= 4; x++) { const end = y === cy + 3 + k.long; if (end && Math.abs(x) === 4) continue; b.set(cx + x, y, Math.abs(x) === 4 || end ? hr[0] : x === -1 && hr[2] ? hr[2] : hr[1]); }
   }
 }
 
@@ -128,7 +131,7 @@ function frontFig(kitName, o = {}) {
 // Seen from behind on a wall, each hand and foot on its own hold. Offsets are measured from the
 // middle of his hips; the scene works out where the holds are.
 function backFig(kitName, o) {
-  const k = KITS[kitName], b = new BM(44, 52); b.ox = 22; b.oy = 28;
+  const k = typeof kitName === 'string' ? KITS[kitName] : kitName, b = new BM(44, 52); b.ox = 22; b.oy = 28;
   const cx = 22, cy = 28, tilt = o.tilt || 0;
   const hipL = [cx - 2, cy], hipR = [cx + 2, cy], shL = [cx - 4 + tilt, cy - 9], shR = [cx + 4 + tilt, cy - 9];
   const limb = (a, t, l1, l2, out, c1, c2, w) => {

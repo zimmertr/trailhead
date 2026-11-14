@@ -239,7 +239,7 @@ Map
 Scenes
 - [x] Base camp: a camp on a huge glacier under enormous walls, filling the frame. Cold, craggy, Patagonian. No landmass floating in the sky. The six summits keep their name tags and clicks.
 - [x] Kayti at base camp: long brown hair, painting with a small backpacking paint kit, her name on hover like the cats, no other text.
-- [ ] The Stack: two people at the foot, a man with short black hair and a woman with long red hair. One belays, picked at random each visit, the other sits on a rock with a snack. The lead rope runs visibly from belayer through the gear to him, and both it and the rappel rope get a dark outline and a bright core.
+- [x] The Stack: two people at the foot, a man with short black hair and a woman with long red hair. One belays, picked at random each visit, the other sits on a rock with a snack. The lead rope runs visibly from belayer through the gear to him, and both it and the rappel rope get a dark outline and a bright core.
 - [ ] About Lake: the forest's last stretch thins and brightens and the lake scene opens with the forest edge on its left. Try a straight scroll between the two in place of the round window; keep it only if it is better.
 - [ ] Cold plunge: he drops vest, shirt and shoes in a pile, wades in wearing shorts, then dresses again.
 
@@ -299,3 +299,8 @@ Controls and the rest
 - Hovering her shows her name and nothing else. A click makes her look up and wave the brush for a second and a half. There is no card and no text.
 - She is drawn with his own figure painter, which now takes hair colour, hair length, no hat, no beard and no sunglasses, so the two climbers at The Stack can be drawn the same way. They will live in the same file, www/people.js.
 - The eastern rubble band on the glacier moved further east so it no longer runs through her seat.
+- The Stack's two people: a man with short black hair in a blue jacket and a woman with long red hair in a pale green one. Neither wears a hat or helmet, so the hair that tells them apart shows. They have no names and no hover text.
+- Which of them belays is a coin toss each time the scene is entered. The belayer stands left of the route, seen from behind like the climber, and pays rope out while he moves, locks off when he falls, and is lifted a little by the catch. The other sits on a rock to the right, eats a bar, and looks up now and then.
+- The lead rope now starts in a pile at the belayer's feet, runs through both hands, up through every piece and on to him, and he is on it from the moment he walks in. During the rappel the belayer just stands and watches.
+- Both ropes are three pixels wide: a dark edge either side and a bright teal core with white flecks. The gear is drawn over the rope so it still shows.
+- The belayer is drawn at the climbing figure's size and the seated one at the walking figure's size, as he is himself in this scene, so the belayer is the bigger of the two.
