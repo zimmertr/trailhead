@@ -13,7 +13,7 @@ const MAKERS = {
   camp: () => import('./camp.js').then(m => m.makeCamp()),
   climb: () => import('./climb.js').then(m => m.makeClimb())
 };
-const READY = ['forest', 'lakeside'];
+const READY = ['forest', 'lakeside', 'wall'];
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
@@ -29,7 +29,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   // they take, so the timeline runs at an even pace across scene changes.
   const ROUTES = {
     lake: () => [['world', { path: 'lake', from: 0, to: world.lakeIn }], ['forest', {}], ['lakeside', {}], ['world', { path: 'lake', from: world.lakeOut, to: 1 }]],
-    stack: () => [['world', { path: 'stack', from: 0, to: 1 }]],
+    stack: () => [['world', { path: 'stack', from: 0, to: 1 }], ['wall', {}], ['world', { path: 'stack', from: 1, to: 0 }]],
     spires: () => [['world', { path: 'spires', from: 0, to: 1 }]],
     'spires-home': () => [['world', { path: 'spires', from: 1, to: 0 }]]
   };

@@ -119,6 +119,35 @@ function frontFig(kitName, o = {}) {
   return b;
 }
 
+// Seen from behind on a wall, each hand and foot on its own hold. Offsets are measured from the
+// middle of his hips; the scene works out where the holds are.
+function backFig(kitName, o) {
+  const k = KITS[kitName], b = new BM(44, 52); b.ox = 22; b.oy = 28;
+  const cx = 22, cy = 28, tilt = o.tilt || 0;
+  const hipL = [cx - 2, cy], hipR = [cx + 2, cy], shL = [cx - 4 + tilt, cy - 9], shR = [cx + 4 + tilt, cy - 9];
+  const limb = (a, t, l1, l2, out, c1, c2, w) => {
+    const j = ik(a[0], a[1], cx + t[0], cy + t[1], l1, l2, out);
+    thick(b, a[0], a[1], j[0], j[1], w, c1); thick(b, j[0], j[1], cx + t[0], cy + t[1], w, c2);
+  };
+  // Legs, knees turned out, then the shoes.
+  limb(hipL, o.feet[0], 6.8, 6.8, false, k.upper[1], k.lower[1], 2.4); limb(hipR, o.feet[1], 6.8, 6.8, true, k.upper[0], k.lower[0], 2.4);
+  for (const f of o.feet) { b.set(cx + f[0], cy + f[1], k.shoe[1]); b.set(cx + f[0] + 1, cy + f[1], k.shoe[1]); b.set(cx + f[0], cy + f[1] + 1, k.shoe[0]); b.set(cx + f[0] + 1, cy + f[1] + 1, k.shoe[0]); }
+  // Body and pack.
+  for (let y = cy - 10; y <= cy + 1; y++) for (let x = -4; x <= 4; x++) {
+    const t = Math.round(tilt * (cy - y) / 10);
+    let c = y >= cy ? k.upper[1] : x < -2 ? k.top[2] : x > 2 ? k.top[0] : k.top[1];
+    if (y === cy - 1) c = INK;
+    else if (y < cy - 2 && y > cy - 9 && Math.abs(x) <= k.packW) c = k.pack[x > 0 ? 0 : 1];
+    b.set(cx + x + t, y, c);
+  }
+  if (o.rack !== false) { b.set(cx - 4, cy, R.rock[3]); b.set(cx + 4, cy, R.red[1]); b.set(cx - 3, cy + 1, R.rock[2]); b.set(cx + 3, cy + 1, R.rock[3]); }
+  limb(shL, o.hands[0], 6, 6, false, k.top[2], k.top[1], 2.2); limb(shR, o.hands[1], 6, 6, true, k.top[1], k.top[0], 2.2);
+  for (const h of o.hands) { b.set(cx + h[0], cy + h[1], k.hand[1]); b.set(cx + h[0], cy + h[1] - 1, k.hand[1]); if (o.tool) o.tool(b, cx + h[0], cy + h[1]); }
+  head(b, k, cx + tilt, cy - 15 + (o.headY || 0), 'back');
+  outline(b, INK);
+  return b;
+}
+
 const FEET = [[4, 8], [1, 8.5], [-2, 8], [-5, 5], [-2, 3], [3, 5.5]];
 const HANDS = [[-3, 5], [-2, 6], [1, 6], [3, 4], [2, 5], [-1, 6]];
 const cache = {};
@@ -134,4 +163,4 @@ function makeRunner(kit = 'trail') {
   };
 }
 
-export { KITS, ik, sideFig, frontFig, head, makeRunner, FEET, HANDS };
+export { KITS, ik, sideFig, frontFig, backFig, head, makeRunner, FEET, HANDS };
