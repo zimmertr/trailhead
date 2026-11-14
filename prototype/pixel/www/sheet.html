@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Sprite sheet</title>
+<body style="margin:0;background:#58993c">
+<canvas id="c" style="image-rendering:pixelated"></canvas>
+<script type="module">
+// A workbench page: draws a named set of sprites magnified, for checking them in screenshots.
+// sheet.html?set=runner&scale=8&bg=58993c
+import { DAY, DUSK } from './core.js';
+const q = new URLSearchParams(location.search), scale = +(q.get('scale') || 8), dusk = q.get('dusk');
+if (q.get('bg')) document.body.style.background = '#' + q.get('bg');
+const sets = {
+  async runner() { const m = await import('./tj.js'); const out = []; for (const k of ['trail', 'wall', 'alpine']) { const r = m.makeRunner(k); out.push(...r.side, r.sideIdle[0], ...r.down.slice(0, 2), r.downIdle[0], r.up[0], r.upIdle[0]); } return out; },
+  async poses() { const m = await import('./tj.js'); return m.POSES ? m.POSES() : []; },
+  async cats() { const m = await import('./cats.js'); return m.sheet(); },
+  async animals() { const m = await import('./sprites.js'); return m.sheet ? m.sheet() : []; },
+  async climb() { const m = await import('./tj.js'); return m.climbSheet ? m.climbSheet() : []; }
+};
+const bms = await sets[q.get('set') || 'runner']();
+const perRow = +(q.get('row') || 12), cw = Math.max(...bms.map(b => b.w)) + 2, ch = Math.max(...bms.map(b => b.h)) + 2;
+const c = document.getElementById('c'), rows = Math.ceil(bms.length / perRow);
+c.width = cw * perRow; c.height = ch * rows; c.style.width = c.width * scale + 'px'; c.style.height = c.height * scale + 'px';
+const ctx = c.getContext('2d'), img = ctx.createImageData(c.width, c.height), P = dusk ? DUSK : DAY;
+bms.forEach((b, n) => { const x0 = (n % perRow) * cw + 1, y0 = Math.floor(n / perRow) * ch + 1; for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) { const v = b.d[y * b.w + x]; if (!v) continue; const i = ((y0 + y) * c.width + x0 + x) * 4; img.data[i] = P[v][0]; img.data[i + 1] = P[v][1]; img.data[i + 2] = P[v][2]; img.data[i + 3] = 255; } });
+ctx.putImageData(img, 0, 0);
+window.__info = { n: bms.length }; window.__ready = true;
+</script>

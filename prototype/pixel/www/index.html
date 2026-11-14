@@ -137,7 +137,7 @@ function showCard(id) {
   card.hidden = false;
 }
 function hideCard() { shown = null; card.hidden = true; }
-function home() { hideCard(); api.setRoute('lake'); drawDots(); }
+async function home() { hideCard(); await api.setRoute('lake'); drawDots(); }
 
 function drawDots() {
   line.querySelectorAll('.dot').forEach(d => d.remove());
@@ -162,12 +162,12 @@ try {
   document.querySelectorAll('.choice').forEach(b => {
     const r = b.dataset.route;
     b.querySelector('span').textContent = r === 'lake' ? lengths[r] + ' km loop' : lengths[r] + ' km';
-    b.addEventListener('click', () => { api.setRoute(r); drawDots(); api.start(); b.blur(); });
+    b.addEventListener('click', async () => { await api.setRoute(r); drawDots(); api.start(); b.blur(); });
   });
   drawDots();
   // For screenshots: ?route=stack&p=0.5 or ?route=lake&stop=1 or ?dusk=1
   const q = new URLSearchParams(location.search);
-  if (q.get('route')) { api.setRoute(q.get('route')); drawDots(); }
+  if (q.get('route')) { await api.setRoute(q.get('route')); drawDots(); }
   if (q.get('p')) api.scrub(+q.get('p'));
   if (q.get('stop')) for (let i = 0; i < +q.get('stop'); i++) api.key('ArrowRight');
   if (q.get('dusk')) api.setTheme('dark');

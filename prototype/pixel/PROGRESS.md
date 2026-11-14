@@ -29,9 +29,9 @@ The working list for the overnight build of the pixel-art trailhead. Tick items 
 ## Checklist
 
 ### World map
-- [ ] Spires become a jagged glaciated massif like the peak behind the lake: six named sub-peaks, glacier ice rather than snow.
-- [ ] Fix visual bugs, starting with the hard line between the forest band and the meadow above About Lake. Blend terrain edges.
-- [ ] A little more tree and plant variety and palette range, without going overboard.
+- [x] Spires become a jagged glaciated massif like the peak behind the lake: six named sub-peaks, glacier ice rather than snow.
+- [x] Fix visual bugs, starting with the hard line between the forest band and the meadow above About Lake. Blend terrain edges.
+- [x] A little more tree and plant variety and palette range, without going overboard.
 - [ ] Entry points and transitions into each scene and back.
 - [ ] Flags on finished destinations and footprints on finished trails.
 
@@ -93,3 +93,10 @@ Each of these slowed or spoiled the low-poly prototype. Check the list before ev
 ## Calls made
 
 (one line each)
+
+- The renderer is split into `core.js` (palette, bitmaps, screen), `world.js`, `sprites.js`, `tj.js` and a small scene manager in `pixel.js`, so each scene is its own file. Cost: one mechanical move, checked against version 5 screenshots.
+- A route is a list of legs (one scene each), weighted by time; a round window closes on him and opens on the next scene. Scrubbing across a scene change uses a faster cut.
+- Massif: six pyramids of fanned ridges like the lake peak, rock buttress under each summit, glacier ice in the cirques between, pouring out of the middle onto the ground glacier through a ragged edge.
+- Kits follow the PRD: yellow sun hoody, black tights, dark blue Salomon vest with white flasks; orange cap kept because it reads best against the green.
+- Variety kept small: huckleberry, heather, green shrubs, silver snags; one new ice ramp. No new tree species.
+- The lake loop's distance on the sign is fixed at 5.2 km, as in version 5, now that the run happens inside scenes.
