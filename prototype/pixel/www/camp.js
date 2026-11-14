@@ -218,10 +218,10 @@ export function makeCamp() {
 
       { const [kx, ky] = seat(); kayti.draw(scr, kx, ky, t, t - waved < 1.6); }
 
-      // He walks in along the moraine and waits by the tents.
-      const mx = cx + 36 + Math.round((1 - q) * 34), my = cy + 6 + Math.round((1 - q) * 2);
+      // He walks in along the moraine from the west, the way the trail brought him, past the tents to where she sits.
+      const mx = cx + 36 - Math.round((1 - q) * 62), my = cy + 6 + Math.round((1 - q) * 2);
       scr.shadow(mx, my, 5, 1);
-      scr.put(q < 1 && env.moving ? run.side[Math.floor(q * 34 / 4.2) % 6] : idle, mx, my, q < 1);
+      scr.put(q < 1 && env.moving ? run.side[Math.floor(q * 62 / 4.2) % 6] : q < 1 ? run.sideIdle[0] : idle, mx, my, false);
       focus.x = mx; focus.y = my - 14;
     }
   };

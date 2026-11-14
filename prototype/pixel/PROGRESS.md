@@ -320,3 +320,6 @@ Controls and the rest
 - To see it: the debug panel has "Break this scene", and the address takes ?break=forest (any scene's name), ?break=load:forest, ?break=renderer or ?break=mount.
 - Polish, glitches: on the map's north-east horizon the far ranges ended in flat bands and boxes where nothing stood in front of them. Their flanks now carry on down as slopes, the foot of the granite needles is a belt of larch, and the glacier that comes down behind the Spires fades in at its head. The west of the horizon is unchanged apart from a few far slopes.
 - Polish, glitches: on the rappel he takes each piece of gear out as he passes it, so none is left on The Stack with no rope through it. At base camp a climbed tower's name tag now sits above its flag, which it used to cover.
+- Polish, flow: the forest used to open deep among the trees although he had just run in from the meadow at the trailhead. The trees now thin out behind where he enters, so the first frames show open sky at his back and the forest closing in ahead. The other end already thinned toward the lake.
+- Polish, flow: at base camp he used to walk in from the east, although the trail on the map reaches the camp from the west. He now walks in from the west, past the tents.
+- Polish, flow: the borders between biomes on the map were looked at one by one and left as they are.

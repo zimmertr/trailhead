@@ -14,8 +14,9 @@ const X0 = SW - 500, LEN = 640, DUR = 8.2;
 const D_SIGN = 300, D_SLUG = 372, D_ELK = 452, D_BEAR = 524, D_JAY = 132;
 let sasquatchSeen = false;
 
-// How far the forest has thinned out: 0 in the thick of it, 1 where it ends at the lake.
-const thinAt = x => smooth(660, 380, x);
+// How far the forest has thinned out: 0 in the thick of it, 1 where it ends at the lake, and 1 again
+// behind where he comes in from the meadow, so he is seen entering it.
+const thinAt = x => Math.max(smooth(660, 380, x), smooth(1040, 1330, x));
 // The line he runs along rolls a little.
 const g = x => Math.round(5 * Math.sin(x / 97) + 3 * Math.sin(x / 41 + 2));
 const farBank = x => 17 + Math.round(2.5 * Math.sin(x / 23) + 2 * vnoise(x / 9, 1, 81));
