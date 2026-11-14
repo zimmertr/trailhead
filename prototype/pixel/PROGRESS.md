@@ -231,7 +231,7 @@ Round 2 lives on its own branch and its own artifact so TJ can compare it with t
 Map
 - [x] Revise the block-in (`www/plan.js`) to the mark-up above and republish it. Keep a strip of sky on the first desktop screen, as today.
 - [x] Build the real map in `www/world.js` from the block-in: the larger world, every biome, the uneven lake with its island, the river and log bridge, the deeper forest loop with mist, the Stack trail turning talus grey, the Spires trail becoming a boot track in snow, larches by the Spires, big-leaf maples in the run forest. Everything that depends on map coordinates moves with it: camera limits, the cats' area, kiosk, flags, footprints, cloud shadows, fireflies, the trail map sheet (`MAP` and `DOTS` in `app.js`), where the lake route enters and leaves the forest.
-- [ ] Animals that move: elk, bear, squirrels, chipmunks and birds in the south meadow, goats in the basin, bighorn sheep in the scablands, marmots, a whale that breaches now and then, jellyfish near the shore, waves on the beach.
+- [x] Animals that move: elk, bear, squirrels, chipmunks and birds in the south meadow, goats in the basin, bighorn sheep in the scablands, marmots, a whale that breaches now and then, jellyfish near the shore, waves on the beach.
 - [ ] Signs stand on the terrain they name, with the twelve new names. Sign names and every other stray line of copy move into `content.js`.
 - [ ] Labels on the map for Trailhead, About Lake, The Stack and Sideproject Spires, in the style of the summit name tags. A click at any time sends him there; partway down another trail he turns round and goes back through the junction.
 - [ ] Zoom in whole steps on the world map only: wheel, pinch, plus and minus. The camera limits still hide the world's edge at every step.
@@ -265,3 +265,11 @@ Controls and the rest
 - The meadow's fir clumps use the MVP's own noise pattern, so the middle of the map keeps the look it had.
 - The mist over the west forest is drawn over the trees each frame but does not move yet. The new animals stand still until the animals item.
 - Known cost: the page is ready in about 2.0 s in the test container, up from 0.7 s, because the map is five times the area. To be brought down in polish.
+- Animals: all of them live in one new file, `www/critters.js`, which the world scene and the block-in page both draw from. Elk, goats, bighorn sheep and the bear graze, look about and wander near where they were put, going round trees, water and the trail. A goat kid stays near its mother.
+- The elk herd is mostly cows now, with a bull every third animal, and a bull keeps his antlers when he lowers his head. The bear on the map is a new small one on all fours; the tall standing bear stays in the forest scene.
+- Squirrels and chipmunks sit, then dart, and bolt away from him when he runs close. Marmots sit up when he is near and now and then on their own.
+- Birds: a flock circles the south meadow, a single hawk each over the basin and the scablands, and gulls over the cove, each with a shadow on the ground. The V of birds across the sky stays.
+- The sea is no longer painted into the ground: swells roll toward the beach, the wash runs up the sand in time with them, and the jellyfish pulse and drift.
+- The whale breaches every sixteen seconds and blows half way between. It moved to (222, 934) because its first spot sat under the bottom bar on a desktop and on top of a sea stack.
+- For screenshots only: `look=x,y` in the address puts the dragged view somewhere, and `sheet.sh` takes `CROP=x,y,w,h` to enlarge one part of every frame.
+- Not done here and left for polish: the elk drawing itself is still the MVP's small one and reads a little blunt next to the new goats and sheep.

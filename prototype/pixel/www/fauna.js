@@ -108,16 +108,15 @@ function pika(f) {
   return b;
 }
 
-// A mountain goat, white and shaggy, facing right. pose: 'stand', 'look' (head turned to watch).
-function goat(pose, kid) {
+// A mountain goat, white and shaggy, facing right. pose: 'stand', 'look' (head turned to watch), 'graze'.
+function goat(pose, kid, step = 0) {
   const s = kid ? 0.7 : 1, b = new BM(26, 22); b.ox = 12; b.oy = 21;
   // Cream, not snow white, so a goat shows up standing on a snowfield.
   const wool = (nx, ny, x, y) => { const v = 3.4 - ny * 1.2 + (hash(x, y, 3) - 0.5); return v >= 3.1 ? R.white[1] : v >= 2.3 ? R.white[0] : R.gold[4]; };
-  for (const [lx, far] of [[7, 1], [9, 0], [15, 1], [17, 0]]) thick(b, lx * s + (kid ? 4 : 0), 14, lx * s + (kid ? 4 : 0), 20, 2, far ? R.gold[4] : R.white[0]);
-  for (const lx of [7, 9, 15, 17]) b.set(lx * s + (kid ? 4 : 0), 21, INK);
+  for (const [lx, far] of [[7, 1], [9, 0], [15, 1], [17, 0]]) { const X = lx * s + (kid ? 4 : 0), sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, X, 14, X + sw, 20, 2, far ? R.gold[4] : R.white[0]); b.set(X + sw, 21, INK); }
   ell(b, 12 * s + (kid ? 4 : 0), 12, 7 * s, 4.2 * s, wool);
   ell(b, 9 * s + (kid ? 4 : 0), 9, 3 * s, 2.5 * s, wool);
-  const hx = (pose === 'look' ? 17 : 19) * s + (kid ? 4 : 0), hy = pose === 'look' ? 6 : 7;
+  const hx = (pose === 'look' ? 17 : pose === 'graze' ? 20 : 19) * s + (kid ? 4 : 0), hy = pose === 'look' ? 6 : pose === 'graze' ? (kid ? 15 : 14) : 7;
   thick(b, 16 * s + (kid ? 4 : 0), 10, hx, hy + 1, 3, R.white[1]);
   // The head is a long face in profile: a muzzle with a dark nose, an ear, and the shadow of the jaw
   // to set it off from the white of the neck.

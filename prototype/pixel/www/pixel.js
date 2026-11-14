@@ -184,6 +184,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
 
   const stopNear = q => stops.find(s => Math.abs(s.at - q) < 0.006);
   const api = {
+    // For screenshots: put the dragged view somewhere, in scene pixels from where the camera rests.
+    look(x, y) { look.x = x; look.y = y; recentre = false; },
     stops: () => stops.map(s => ({ id: s.id, at: s.at })),
     route: () => route,
     async setRoute(r) {

@@ -11,6 +11,7 @@ const T = { x: 820, y: 630 }, PEAK = { x: 645, y: 514 }, STACK = { x: 805, y: 54
 const GL = { x0: 976, y0: 510, x1: 958, y1: 584 };
 export function buildTerrain(peak) {
 const g = new Uint8Array(NW * NH);
+const SEA = { y0: 630, w: 680, h: NH - 630 }; for (const k of ['ph', 'gate', 'shore']) SEA[k] = new Uint8Array(SEA.w * SEA.h);
 const at = (x, y) => y * NW + x;
 
 // ---- shapes -------------------------------------------------------------------------------
@@ -178,11 +179,16 @@ function ground(x, y) {
   const i = at(x, y), n1 = hash(x, y, 31) - 0.5;
   const cs = coast(x, y);
   if (cs > 0) {
-    if (cs < 2.5 + 2 * Math.sin(x / 7 + y / 9)) return R.white[1];
-    // Swells run in toward the beach in broken white lines, closer together near the shore.
-    { const wv = frac((cs + 7 * Math.sin(x / 37 + y / 61)) / 24); if (cs > 9 && wv < 0.1 && vnoise(x / 16, y / 5, 85) > (cs < 60 ? 0.38 : 0.52)) return cs < 40 ? R.sea[5] : R.sea[4]; }
+    // The water that moves is kept apart from the ground, for the scene to draw each frame: where a
+    // swell can show and how far along its 24 pixel wavelength this spot is, and how close the shore is.
+    if (x < SEA.w && y >= SEA.y0) {
+      const j = (y - SEA.y0) * SEA.w + x;
+      if (cs < 8) SEA.shore[j] = 1 + Math.round((cs + 4) * 8);
+      else if (vnoise(x / 22, y / 9, 85) > (cs < 60 ? 0.4 : 0.54)) { SEA.gate[j] = cs < 40 ? 2 : 1; SEA.ph[j] = Math.floor(frac((cs + 7 * Math.sin(x / 37 + y / 61)) / 24) * 240); }
+    }
     return pick('sea', 0.75 - smooth(0, 150, cs) * 0.6 + 0.12 * (vnoise(x / 14, y / 3, 86) - 0.5), x, y);
   }
+  if (cs > -4 && x < SEA.w && y >= SEA.y0) SEA.shore[(y - SEA.y0) * SEA.w + x] = 1 + Math.round((cs + 4) * 8);
   if (cs > -15 - 6 * vnoise(x / 20, y / 20, 87)) return R.sand[cs > -4 ? 0 : hash(x, y, 88) < 0.25 ? 1 : 2];
   if (isleD(x, y) < 1) return pick('grass', 0.55 + 0.3 * n1, x, y);
   const ld = lakeD(x, y);
@@ -378,13 +384,12 @@ for (let n = 0; n < 500; n++) {
   const len = 6 + rand() * 12, a = (rand() - 0.5) * 0.9 + 0.6;
   for (let k = 0; k < len; k++) { const px = Math.round(x + Math.cos(a) * k), py = Math.round(y + Math.sin(a) * k * 0.5); if (px > 0 && py > 0 && px < NW && py < NH - 1) { g[at(px, py)] = R.rock[4]; g[at(px, py + 1)] = R.rock[2]; } }
 }
-for (let n = 0, made = 0; n < 4000 && made < 16; n++) {
-  const x = Math.round(rand() * 560), y = Math.round(700 + rand() * 370), cs = coast(x, y); if (cs < 12 || cs > 70 || x < 4 || y > NH - 8) continue;
-  made++; const c = made % 3 ? R.pink[2] : R.white[1];
-  for (const [dx, dy] of [[0, 0], [1, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1]]) g[at(x + dx, y + dy)] = dy ? R.pink[1] : c;
-  g[at(x, y + 1)] = c; for (const [dx, dy] of [[-1, 2], [1, 3], [3, 2], [0, 4], [2, 4]]) g[at(x + dx, y + dy)] = R.pink[1];
+const jelly = [];
+for (let n = 0; n < 4000 && jelly.length < 18; n++) {
+  const x = Math.round(rand() * 560), y = Math.round(700 + rand() * 370), cs = coast(x, y); if (cs < 14 || cs > 80 || x < 6 || y > NH - 10) continue;
+  jelly.push([x, y, jelly.length % 3 ? 0 : 1]);
 }
-function whale() {
+function whale(splash = true) {
   // A humpback two thirds out of the water: dark back, pale grooved belly, one long flipper flung out.
   const b = new BM(56, 50); b.ox = 20; b.oy = 44;
   for (let s = 0; s <= 1; s += 0.01) {
@@ -397,26 +402,26 @@ function whale() {
   }
   thick(b, 24, 24, 7, 15, 3, R.navy[1]); thick(b, 22, 24, 8, 17, 1, R.white[0]); b.set(42, 10, R.white[1]);
   outline(b, INK);
-  for (const [x, y] of [[4, 44], [8, 41], [12, 45], [26, 44], [30, 41], [34, 45], [2, 40], [36, 40], [16, 47], [22, 47], [9, 36], [31, 36], [6, 47], [30, 47]]) { b.set(x, y, R.white[1]); b.set(x + 1, y, R.white[1]); b.set(x, y + 1, R.sea[5]); }
+  if (splash) for (const [x, y] of [[4, 44], [8, 41], [12, 45], [26, 44], [30, 41], [34, 45], [2, 40], [36, 40], [16, 47], [22, 47], [9, 36], [31, 36], [6, 47], [30, 47]]) { b.set(x, y, R.white[1]); b.set(x + 1, y, R.white[1]); b.set(x, y + 1, R.sea[5]); }
   return b;
 }
 plant(firs[2], ISLE.x, ISLE.y + 1);
 // Where the things stand that the scene draws itself, because they move or can be clicked.
 const spots = {
-  tents: [[924, 564, 'tent'], [948, 574, 'red']], signpost: [T.x - 4, T.y - 8], kiosk: [872, 657], ferry: [44, 916], whale: [128, 962],
+  tents: [[924, 564, 'tent'], [948, 574, 'red']], signpost: [T.x - 4, T.y - 8], kiosk: [872, 657], ferry: [44, 916], whale: [222, 934],
   signs: [[972, 592, 'Scope Creep Glacier'], [856, 566, 'Segfault Scree'], [886, 532, 'Merge Conflict Col'], [800, 742, 'Yak Shave Meadow'], [766, 631, 'About Lake, 2.4 km'], [1160, 600, 'Rollback Basin'], [1300, 552, 'Feature Flag Tarns'], [1226, 884, 'Hotfix Burn'], [1420, 966, 'Postmortem Burn'], [1474, 724, 'Cron Job Coulee'], [1506, 806, 'Tech Debt Badlands'], [278, 864, 'Cache Miss Cove'], [334, 612, 'Stack Trace Thicket']],
   elk: [[760, 820, 0], [792, 836, 1], [738, 846, 1], [900, 900, 0], [640, 960, 1], [840, 1000, 1], [872, 1012, 0], [1010, 790, 1], [960, 760, 0], [700, 1030, 0], [776, 606, 1]],
   bear: [1010, 930], marmots: [[846, 574], [1340, 590], [700, 900]],
   goats: [[1196, 556, 0], [1212, 562, 1], [1126, 528, 0], [1290, 598, 0], [1304, 603, 1], [1384, 548, 0], [1250, 500, 0]],
   sheep: [[1484, 694, 0], [1512, 702, 1], [1470, 764, 0], [1530, 830, 1], [1402, 772, 1], [1420, 778, 0]],
-  squirrels: [], birds: [[860, 700], [872, 694], [884, 702], [980, 840], [600, 880], [1100, 700], [420, 300], [436, 292], [1240, 330]]
+  squirrels: [], jelly, birds: [[860, 700], [872, 694], [884, 702], [980, 840], [600, 880], [1100, 700], [420, 300], [436, 292], [1240, 330]]
 };
 for (let n = 0; n < 14; n++) { const x = 720 + rand() * 420, y = 760 + rand() * 300; if (open(x, y)) spots.squirrels.push([Math.round(x), Math.round(y), n % 3 === 0 ? 1 : 0]); }
-function sheep(grazing) {
+function sheep(grazing, step = 0) {
   // A bighorn ram: sandy brown, white rump and muzzle, and a heavy horn curling round the ear.
   const b = new BM(24, 19); b.ox = 11; b.oy = 18;
   const coat = (nx, ny, x, y) => pick('dirt', 0.5 - ny * 0.3 - nx * 0.05, x, y, 0.5);
-  for (const lx of [6, 8, 15, 17]) { thick(b, lx, 12, lx, 17, 1, R.dirt[lx % 2 ? 1 : 0]); b.set(lx, 18, INK); }
+  for (const lx of [6, 8, 15, 17]) { const sw = step ? (lx % 2 ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 12, lx + sw, 17, 1, R.dirt[lx % 2 ? 1 : 0]); b.set(lx + sw, 18, INK); }
   ell(b, 11, 10, 7, 4, coat); ell(b, 4.5, 9.5, 1.6, 2.2, () => R.white[1]);
   const hx = grazing ? 19 : 18, hy = grazing ? 12 : 6;
   thick(b, 16, 9, hx, hy + 1, 3, R.dirt[2]); ell(b, hx + 1, hy, 2.4, 2, coat); b.set(hx + 3, hy + 1, R.white[1]); b.set(hx + 4, hy + 1, R.white[0]); b.set(hx + 2, hy - 1, INK);
@@ -424,11 +429,15 @@ function sheep(grazing) {
   for (const [dx, dy] of [[-1, -2], [0, -3], [1, -3], [2, -2], [2, -1], [1, 0], [0, 0], [-2, -1], [-2, 0], [-1, 1]]) b.set(hx + dx, hy + dy, dx + dy < -2 ? R.dry[3] : R.dry[1]);
   return b;
 }
-function squirrel(chip) {
+function squirrel(chip, run) {
   const b = new BM(10, 8), c = chip ? R.dirt : R.wood; b.ox = 5; b.oy = 7;
-  ell(b, 5.5, 5, 2.2, 1.8, () => c[3]); ell(b, 7.5, 3.5, 1.3, 1.2, () => c[3]); ell(b, 2.5, 3, 1.6, 2.6, () => c[2]);
-  if (chip) { b.set(4, 4, R.white[1]); b.set(5, 4, R.white[1]); b.set(6, 4, R.white[1]); }
-  b.set(8, 3, INK); outline(b, INK);
+  if (run) { ell(b, 5, 5.6, 2.6, 1.3, () => c[3]); ell(b, 8, 4.8, 1.2, 1.1, () => c[3]); ell(b, 1.6, 4.4, 1.8, 1.1, () => c[2]); if (chip) { b.set(4, 5, R.white[1]); b.set(5, 5, R.white[1]); } b.set(8, 4, INK); }
+  else {
+    ell(b, 5.5, 5, 2.2, 1.8, () => c[3]); ell(b, 7.5, 3.5, 1.3, 1.2, () => c[3]); ell(b, 2.5, 3, 1.6, 2.6, () => c[2]);
+    if (chip) { b.set(4, 4, R.white[1]); b.set(5, 4, R.white[1]); b.set(6, 4, R.white[1]); }
+    b.set(8, 3, INK);
+  }
+  outline(b, INK);
   return b;
 }
 
@@ -450,6 +459,6 @@ for (let y = 440; y < NH; y++) for (let x = 0; x < 620; x++) {
   if (!sea && a > 0.1 && nearTrail(x, y, 9)) a *= 0.3;
   if (a > 0 && bayer(x, y) < a * 0.85) mist[at(x, y)] = R.fog[a > 0.8 ? 2 : a > 0.45 ? 1 : (bayer(x + 2, y + 1) < 0.5 ? 1 : 0)];
 }
-return { g, things, spots, mist, trackPts, trails: TRAILS, forestAmt, lakeD, coast, groundLine, glacier, talus, open, nearTrail, make: { ferry, whale, sheep, squirrel } };
+return { g, things, spots, mist, sea: SEA, trackPts, trails: TRAILS, forestAmt, lakeD, coast, groundLine, glacier, talus, open, nearTrail, make: { ferry, whale, sheep, squirrel } };
 }
 export { OX, OY, NW, NH, T, PEAK, STACK, SPIRES };

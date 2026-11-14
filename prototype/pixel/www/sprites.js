@@ -170,18 +170,21 @@ function makeJournal() {
 
 // The runner, drawn from a pose each frame: a chibi with a big head, as SNES sprites are, then
 // outlined in one pass.
-function makeElk(headDown) {
+function makeElk(headDown, step = 0, bull = true) {
   const b = new BM(24, 20); b.ox = 11; b.oy = 19;
   for (let y = 0; y < 20; y++) for (let x = 0; x < 24; x++) {
     const nx = (x - 10) / 7, ny = (y - 10) / 3.6;
     if (nx * nx + ny * ny <= 1) b.set(x, y, x > 13 ? R.dirt[3] : pick('bark', 0.75 - ny * 0.4, x, y, 0.5));
   }
-  for (const [lx, d] of [[5, 1], [7, 0], [12, 1], [14, 0]]) for (let y = 12; y < 20; y++) b.set(lx, y, R.bark[d ? 1 : 2]);
+  // The near and far legs swing opposite ways when it walks.
+  for (const [lx, d] of [[5, 1], [7, 0], [12, 1], [14, 0]]) { const sw = step ? (d ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 12; y < 20; y++) b.set(lx + (y > 15 ? sw : 0), y, R.bark[d ? 1 : 2]); }
   const hx = headDown ? 3 : 2, hy = headDown ? 15 : 3;
   thick(b, 5, 9, hx + 1, hy + 1, 2, R.bark[1]);
   disc(b, hx, hy, 2, () => R.bark[2]);
   b.set(hx - 2, hy + 1, R.bark[0]);
-  if (!headDown) { thick(b, hx + 1, hy - 1, hx + 4, hy - 4, 1, R.white[0]); thick(b, hx, hy - 1, hx - 3, hy - 4, 1, R.white[0]); b.set(hx + 3, hy - 2, R.white[0]); b.set(hx - 2, hy - 2, R.white[0]); }
+  if (bull && !headDown) { thick(b, hx + 1, hy - 1, hx + 4, hy - 4, 1, R.white[0]); thick(b, hx, hy - 1, hx - 3, hy - 4, 1, R.white[0]); b.set(hx + 3, hy - 2, R.white[0]); b.set(hx - 2, hy - 2, R.white[0]); }
+  if (bull && headDown) { thick(b, hx + 1, hy - 2, hx + 3, hy - 6, 1, R.white[0]); thick(b, hx - 1, hy - 2, hx - 2, hy - 6, 1, R.white[0]); b.set(hx + 1, hy - 5, R.white[0]); b.set(hx - 3, hy - 4, R.white[0]); }
+  if (!bull && !headDown) { b.set(hx + 1, hy - 2, R.bark[1]); b.set(hx + 2, hy - 3, R.bark[1]); }
   b.set(17, 9, R.bark[1]);
   outline(b, INK);
   return b;

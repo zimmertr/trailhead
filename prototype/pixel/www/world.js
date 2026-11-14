@@ -1,7 +1,7 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
-import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeBird, makeFlag } from './sprites.js';
-import { bear, goat, marmot } from './fauna.js';
+import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
+import { makeCritters } from './critters.js';
 import { makeCats } from './cats.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, NW as WW, NH as WH, T, PEAK as PEAK_AT, STACK as STACK_AT, SPIRES as SPIRES_AT } from './terrain.js';
@@ -170,14 +170,10 @@ export function makeWorld() {
   // Two climbers high on the wall, on a rope; they sort in front of it by standing on its foot line.
   things.push({ bm: makeClimber('red'), x: STACK.x + 21, y: STACK.y + 1, lift: 70, rope: true }, { bm: makeClimber('teal'), x: STACK.x + 24, y: STACK.y + 1, lift: 58 });
   for (const [x, y, c] of spots.tents) put(makeTent(c), x, y);
-  const elk = [makeElk(false), makeElk(true)];
-  for (const [x, y, d] of spots.elk) things.push({ critter: 'elk', bm: elk[0], x, y, ph: d * 4 + (x % 5) });
-  put(bear(false), spots.bear[0], spots.bear[1]);
-  for (const [x, y] of spots.marmots) put(marmot('sun'), x, y);
-  for (const [x, y, kid] of spots.goats) put(goat((x & 2) ? 'stand' : 'look', !!kid), x, y);
-  for (const [x, y, d] of spots.sheep) put(W.make.sheep(!!d), x, y);
-  for (const [x, y, chip] of spots.squirrels) put(W.make.squirrel(!!chip), x, y);
-  put(W.make.ferry(), spots.ferry[0], spots.ferry[1]); put(W.make.whale(), spots.whale[0], spots.whale[1]);
+  // The animals look after themselves: see critters.js.
+  const crit = makeCritters(W);
+  for (const it of crit.items) things.push(it);
+  put(W.make.ferry(), spots.ferry[0], spots.ferry[1]);
   const birds = [makeBird(0), makeBird(1)];
   const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 270 + 40, y: 120 + (i & 1) * 80 + i * 24, v: 3 + (i % 4) }));
   const runner = makeRunner('trail');
@@ -275,6 +271,8 @@ export function makeWorld() {
         if (b < ox + VW) fb.fill(wy < 462 ? R.sky[2] : R.grass[2], row + (b - ox), row + VW);
         if (b > a) fb.set(ground.subarray(wy * WW + a, wy * WW + b), row + (a - ox));
       }
+      crit.sea(scr, ox, oy, t);
+      crit.update(dt, t, env.hideMe ? null : here);
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
       for (const k in prints) if (env.done[k]) for (const [x, y] of prints[k]) { const sx = x - ox, sy = y - oy; if (sx >= 0 && sy >= 0 && sx < VW && sy < VH && KIND[fb[sy * VW + sx]] === 3) fb[sy * VW + sx] = R.dirt[0]; }
 
@@ -305,8 +303,8 @@ export function makeWorld() {
             const [wx, wy] = windAt(x + (part.lx || 0), y + part.y, tq, part.sway);
             scr.blit(part.bm, x + part.x + wx - ox, y + part.y + wy - oy);
           }
-        } else if (th.critter === 'elk') {
-          scr.blit(elk[((t + th.ph) % 9) < 6 ? 1 : 0], th.x - 11 - ox, th.y - 19 - oy);
+        } else if (th.critter) {
+          crit.draw(scr, th, ox, oy, t);
         } else if (th.fern) {
           const [wx] = windAt(th.x, th.y, tq, 0.6);
           scr.blit(th.bm, th.x - th.bm.ox + wx - ox, th.y - th.bm.oy - oy);
@@ -338,6 +336,7 @@ export function makeWorld() {
         const c = age < 0.5 ? R.white[1] : R.white[0];
         fb[y * VW + x] = c; if (age > 0.3) fb[y * VW + x + 1] = c;
       }
+      crit.over(scr, ox, oy, t);
       // Birds cross the sky in a loose V, flapping a few times a second.
       for (let k = 0; k < 4; k++) {
         const bx = ((t * 22 + k * 11) % (WW + 200)) - 100, by = 318 + 8 * Math.sin(t * 0.7) + [0, 5, 9, 4][k];

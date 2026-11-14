@@ -1,29 +1,29 @@
 // A workbench page: one still picture of the whole world map, for looking at its layout.
 // plan.html?crop=x,y,w,h&scale=3 magnifies one part. Nothing here is used by the site.
-import { DAY, R } from './core.js';
-import { makeSignpost, makeSmallSign, makeKiosk, makeTent, makeElk, makeBird } from './sprites.js';
-import { bear, goat, marmot } from './fauna.js';
+import { DAY, R, Screen } from './core.js';
+import { makeSignpost, makeSmallSign, makeKiosk, makeTent, makeBird } from './sprites.js';
 import { makeStack, makeMassif, makePeak } from './world.js';
+import { makeCritters } from './critters.js';
 import { buildTerrain, NW, NH, PEAK, STACK, SPIRES } from './terrain.js';
 
 const peak = makePeak(), W = buildTerrain(peak), { g, spots: S, make } = W, at = (x, y) => y * NW + x;
-const things = W.things.slice(), put = (bm, x, y, lift = 0) => things.push({ bm, x, y, lift });
+// The scene's own drawing code paints straight onto the map: a screen the size of the world.
+const scr = Object.assign(Object.create(Screen.prototype), { VW: NW, VH: NH, fb: g }), crit = makeCritters(W);
+crit.sea(scr, 0, 0, 0);
+const things = W.things.concat(crit.items), put = (bm, x, y, lift = 0) => things.push({ bm, x, y, lift });
 put(peak, PEAK.x, PEAK.y); put(makeStack(), STACK.x, STACK.y); put(makeMassif(), SPIRES.x, SPIRES.y);
 for (const [x, y, c] of S.tents) put(makeTent(c), x, y);
-put(makeSignpost(), ...S.signpost); put(makeKiosk(), ...S.kiosk); put(make.ferry(), ...S.ferry); put(make.whale(), ...S.whale);
+put(makeSignpost(), ...S.signpost); put(makeKiosk(), ...S.kiosk); put(make.ferry(), ...S.ferry);
 for (const [x, y] of S.signs) put(makeSmallSign(), x, y);
-for (const [x, y, d] of S.elk) put(makeElk(!!d), x, y);
-put(bear(false), ...S.bear); for (const [x, y] of S.marmots) put(marmot('sun'), x, y);
-for (const [x, y, kid] of S.goats) put(goat('stand', !!kid), x, y);
-for (const [x, y, d] of S.sheep) put(make.sheep(!!d), x, y);
-for (const [x, y, chip] of S.squirrels) put(make.squirrel(!!chip), x, y);
 for (const [x, y] of S.birds) put(makeBird(x & 1), x, y + 400, 400);
-const blit = (bm, sx, sy) => { sx = Math.round(sx); sy = Math.round(sy); for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i], x = sx + i, y = sy + j; if (c && x >= 0 && y >= 0 && x < NW && y < NH) g[at(x, y)] = c; } };
+const blit = (bm, sx, sy) => scr.blit(bm, sx, sy);
 things.sort((a, b) => a.y - b.y);
 for (const th of things) {
   if (th.tree) for (const p of th.tree.parts) blit(p.bm, th.x + p.x, th.y + p.y);
+  else if (th.critter) crit.draw(scr, th, 0, 0, 0);
   else blit(th.bm, th.x - (th.bm.ox || 0), th.y - (th.bm.oy || 0) - (th.lift || 0));
 }
+crit.over(scr, 0, 0, 0);
 // The boot track on the ice, and the mist over everything.
 W.trackPts.forEach(([px, py], n) => {
   const f = n / (W.trackPts.length - 1), x = Math.round(px), y = Math.round(py);

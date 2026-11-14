@@ -226,12 +226,14 @@ try {
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(nudgeMarks);
   document.documentElement.style.setProperty('--px', api.scale() + 'px');
   addEventListener('resize', () => setTimeout(() => { document.documentElement.style.setProperty('--px', api.scale() + 'px'); nudgeMarks(); }, 0));
-  // For screenshots: ?route=stack&p=0.5 or ?stop=1 or ?dusk=1 or ?done=lake,stack,spires
+  // For screenshots: ?route=stack&p=0.5 or ?stop=1 or ?dusk=1 or ?done=lake,stack,spires or ?look=-200,150
   const q = new URLSearchParams(location.search);
   if (q.get('done')) api.mark(q.get('done').split(','));
   if (q.get('route')) { await api.setRoute(q.get('route')); buildMarks(); }
   if (q.get('p')) api.scrub(+q.get('p'));
   if (q.get('stop')) for (let i = 0; i < +q.get('stop'); i++) api.key('ArrowRight');
+  // The view position is set once the opening has finished, since a scene change puts it back.
+  if (q.get('look')) setTimeout(() => api.look(...q.get('look').split(',').map(Number)), 900);
   // It starts in Day whatever the device prefers; a visitor who chose Dusk gets Dusk next time.
   let dusk = false; try { dusk = localStorage.getItem('trailhead.theme') === 'dark'; } catch { /* private window */ }
   if (q.get('dusk') || dusk) { api.setTheme('dark'); syncTop(); }
