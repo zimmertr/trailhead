@@ -232,6 +232,8 @@ export function makeWorld() {
     },
     enter(scr, leg, q) { const [tx, ty] = target(scr, where(leg, q)); cam.x = tx; cam.y = ty; },
     focus: () => focus,
+    // The spot of the map under a point of the screen.
+    at: (sx, sy) => ({ x: sx + last.ox, y: sy + last.oy }),
     // The four places he can be sent to, for the page to pin a name on. The page keeps a name on screen
     // when its place is out of view.
     labels() { return PLACES.map(d => ({ id: 'go:' + d.id, name: DEST_NAMES[d.id], x: d.x - last.ox, y: d.y - last.oy })); },
@@ -257,6 +259,8 @@ export function makeWorld() {
       if (env.home && env.idle > 4 && Math.abs(env.look.x) + Math.abs(env.look.y) < 1) tx += Math.sin((env.idle - 4) * 0.16) * Math.min(130, Math.max(0, (WW - VW) / 2 - Math.abs(tx - WW / 2))) * 0.9 * Math.min(1, (env.idle - 4) / 3);
       const damp = 1 - Math.exp(-dt * 3.2);
       cam.x += (tx - cam.x) * damp; cam.y += (ty - cam.y) * damp;
+      // A zoom step keeps one spot of the map under the pointer: the camera goes straight to its new rest and the dragged view makes up the difference.
+      if (env.anchor && !env.fixed) { const a = env.anchor; cam.x = tx; cam.y = ty; env.look.x = a.wx - a.sx + VW / 2 - cam.x; env.look.y = a.wy - a.sy + VH / 2 - cam.y; env.anchor = null; }
       // How far a drag may take the view: the hard limits below keep the edge of the world out of sight,
       // and the last 26 pixels before them push back.
       if (!env.fixed) { const M = 26, b = { x0: Math.min(0, VW / 2 + M - cam.x), x1: Math.max(0, WW - VW / 2 - M - cam.x), y0: Math.min(0, VH / 2 + M - cam.y), y1: Math.max(0, WH - VH / 2 - M - cam.y) }; if (VW >= WW) b.x0 = b.x1 = 0; if (VH >= WH) b.y0 = b.y1 = 0; env.lookBox = b; }

@@ -109,7 +109,7 @@ export const FINDS = {
   'egg:kubernetes-manifests': ['The cairn', 'On top of Kubernetes-Manifests']
 };
 
-export const HELP = [['Space', 'start and stop'], ['Left / Right, A / D', 'jump between milestones'], ['Up / Down, W / S', 'start, stop'], ['M or Esc', 'the trail map'], ['T', 'day and dusk'], ['Drag', 'look around'], ['Click', 'signs, animals, summits, the lake']];
+export const HELP = [['Space', 'start and stop'], ['Left / Right, A / D', 'jump between milestones'], ['Up / Down, W / S', 'start, stop'], ['M or Esc', 'the trail map'], ['T', 'day and dusk'], ['Drag', 'look around'], ['+ and -, wheel, pinch', 'zoom the map'], ['Click', 'signs, animals, summits, the lake']];
 
 export const CONSOLE = ["%c  /\\      trailhead\n /  \\  /\\   You found the trail register's back door.\n/    \\/  \\  Everything here is drawn in code, a pixel at a time.\n          The source: https://github.com/zimmertr/trailhead", 'font-family: monospace; color: #467a30'];
 

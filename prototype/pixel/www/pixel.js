@@ -46,6 +46,19 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   let drawn = null, tr = null, scrubbing = 0, stillAt = performance.now() / 1000;
   const look = { x: 0, y: 0 }, FREE = { x0: -150, x1: 150, y0: -40, y1: 40 };
   let recentre = false, wasRunning = false;
+  // Zoom, on the map only: whole steps of pixel size either side of the one that suits the window. It stops
+  // short of a view wider or taller than the world, so the camera's limits still hide the world's edge.
+  let zoom = 0, anchor = null;
+  const zoomRange = () => { const dpr = window.devicePixelRatio || 1, fit = Math.ceil(Math.max(innerWidth * dpr / (world.WW - 56), innerHeight * dpr / (world.WH - 56))); return [Math.min(scr.S0, Math.max(Math.ceil(scr.S0 / 2), fit)), scr.S0 * 2]; };
+  // at: the point of the page, in CSS pixels, that should stay over the same spot of the map.
+  function zoomBy(d, at) {
+    if (drawn.s !== 'world' || tr) return false;
+    const [lo, hi] = zoomRange(), s = clamp(scr.S0 + zoom + d, lo, hi); if (s === scr.S) return false;
+    const dpr = window.devicePixelRatio || 1;
+    if (at) { const w = world.at(at[0] * dpr / scr.S, at[1] * dpr / scr.S); anchor = { wx: w.x, wy: w.y, sx: at[0] * dpr / s, sy: at[1] * dpr / s }; }
+    zoom = s - scr.S0; emit({ type: 'sfx', name: 'step' });
+    return true;
+  }
   let done = {};
   try { done = JSON.parse(localStorage.getItem('trailhead.done') || '{}') || {}; } catch { done = {}; }
   let found = {};
@@ -137,6 +150,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
         else tr = null;
       }
     }
+    { const [lo, hi] = zoomRange(), s = drawn.s === 'world' ? clamp(scr.S0 + zoom, lo, hi) : scr.S0; if (s !== scr.S) { scr.setScale(s); if (anchor) env.anchor = anchor; } anchor = null; }
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
     env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = dt; env.mix = mix;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
@@ -159,12 +173,18 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
 
   // Drag to look around. The view pushes back as it nears a scene's limit. A press that does not move is a click on
   // whatever is under it.
-  let lastPt = null, moved = 0, hover = null;
+  let lastPt = null, moved = 0, hover = null, wheelAcc = 0, wheelAt = 0, wheelStep = 0;
   const toView = e => { const k = (window.devicePixelRatio || 1) / scr.S; return [e.clientX * k, e.clientY * k]; };
   // What is under a point. A fingertip is blunt, so a touch that misses also tries the ground close around it.
   const probe = (x, y, blunt) => { if (!drawn.scene.pick) return null; let h = drawn.scene.pick(x, y); if (!h && blunt) for (const r of [5, 9]) for (let a = 0; a < 8 && !h; a++) h = drawn.scene.pick(x + r * Math.cos(a * Math.PI / 4), y + r * Math.sin(a * Math.PI / 4)); return h; };
-  canvas.addEventListener('pointerdown', e => { dragging = 'look'; recentre = false; moved = 0; lastPt = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+  // Two fingers pinch to zoom: each time they have moved apart or together by a third, one step.
+  const touches = new Map(); let pinch0 = 0;
+  const spread = () => { const [a, b] = [...touches.values()]; return [Math.hypot(a[0] - b[0], a[1] - b[1]), [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]]; };
+  canvas.addEventListener('wheel', e => { if (drawn.s !== 'world') return; e.preventDefault(); acted(); const now = performance.now(); if (now - wheelAt > 320) wheelAcc = 0; wheelAcc += e.deltaY * (e.deltaMode === 1 ? 30 : 1); if (Math.abs(wheelAcc) >= 40 && now - wheelStep > 170) { zoomBy(wheelAcc < 0 ? 1 : -1, [e.clientX, e.clientY]); wheelAcc = 0; wheelStep = now; } wheelAt = now; }, { passive: false });
+  canvas.addEventListener('pointerdown', e => { touches.set(e.pointerId, [e.clientX, e.clientY]); if (touches.size > 1) { if (touches.size === 2) { dragging = 'pinch'; pinch0 = spread()[0]; lastPt = null; } try { canvas.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer knows */ } return; } dragging = 'look'; recentre = false; moved = 0; lastPt = [e.clientX, e.clientY]; try { canvas.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer knows */ } });
   canvas.addEventListener('pointermove', e => {
+    if (touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
+    if (dragging === 'pinch' || dragging === 'held') { if (dragging === 'pinch' && touches.size === 2) { const [d, mid] = spread(); if (pinch0 > 0 && (d > pinch0 * 1.3 || d < pinch0 / 1.3)) { zoomBy(d > pinch0 ? 1 : -1, mid); pinch0 = d; } } return; }
     if (dragging === 'look' && lastPt) {
       const k = (window.devicePixelRatio || 1) / scr.S;
       moved += Math.abs(e.clientX - lastPt[0]) + Math.abs(e.clientY - lastPt[1]);
@@ -177,6 +197,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     if ((h && h.label) !== (hover && hover.label)) { hover = h; canvas.style.cursor = h ? 'pointer' : ''; const k = scr.S / (window.devicePixelRatio || 1), tipped = h && !h.named; emit({ type: 'hover', label: tipped ? h.label : null, x: tipped ? h.x * k : 0, y: tipped ? h.y * k : 0 }); }
   });
   const endLook = e => {
+    touches.delete(e.pointerId);
+    // After a pinch the finger still down neither drags nor clicks.
+    if (dragging === 'pinch' || dragging === 'held') { dragging = touches.size ? 'held' : null; lastPt = null; return; }
     if (dragging === 'look' && moved < 5 && e.type === 'pointerup') {
       const [x, y] = toView(e), h = probe(x, y, e.pointerType !== 'mouse');
       if (h) { const k = scr.S / (window.devicePixelRatio || 1); if (h.label && !h.named) emit({ type: 'hover', label: h.label, x: h.x * k, y: h.y * k, tap: true }); if (h.act) { if (!drawn.scene.act || !drawn.scene.act(h.act, env)) emit({ type: 'act', id: h.act }); } }
@@ -229,6 +252,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     },
     key(code) {
       if (code === 'Space') { api.toggle(); return true; }
+      if (code === 'Equal' || code === 'NumpadAdd' || code === 'Minus' || code === 'NumpadSubtract') { zoomBy(code === 'Equal' || code === 'NumpadAdd' ? 1 : -1, Math.abs(look.x) + Math.abs(look.y) > 2 ? [innerWidth / 2, innerHeight / 2] : null); return true; }
       if (code === 'ArrowUp' || code === 'KeyW') { if (!running) api.start(); return true; }
       if (code === 'ArrowDown' || code === 'KeyS') { running = false; return true; }
       const fwd = code === 'ArrowRight' || code === 'KeyD';
@@ -246,8 +270,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     find,
     // Marks routes as finished without walking them (the screenshots use it).
     mark(list) { for (const k of list) { done[k] = true; if (k.startsWith('spire:')) done.spires = true; } },
-    // How many screen pixels one pixel of the world takes, in CSS pixels.
-    scale: () => scr.S / (window.devicePixelRatio || 1),
+    // How many CSS pixels one pixel of the page's own size takes: the panels are drawn at this size whatever the map's zoom.
+    scale: () => scr.S0 / (window.devicePixelRatio || 1),
+    zoom: (d, at) => zoomBy(d, at),
     // The ups and downs of the whole route, n heights from start to end. The map knows how high
     // each of its points is; the scenes between two stretches of map are tilted to meet them.
     profile(n = 120) {

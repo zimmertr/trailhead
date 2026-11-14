@@ -224,7 +224,9 @@ class Screen {
   }
   resize() {
     const dpr = window.devicePixelRatio || 1, Wd = Math.round(innerWidth * dpr), Hd = Math.round(innerHeight * dpr);
-    const S = this.S = this.fixed ? 1 : Math.max(1, Math.min(Math.floor(Hd / 290), Math.floor(Wd / 280)));
+    // S0 is the pixel size that suits the window. A scene may ask for bigger or smaller pixels (`want`): the map does, to zoom.
+    const S0 = this.S0 = this.fixed ? 1 : Math.max(1, Math.min(Math.floor(Hd / 290), Math.floor(Wd / 280)));
+    const S = this.S = this.fixed ? 1 : this.want || S0;
     const VW = this.VW = this.fixed ? this.fixed[0] : Math.ceil(Wd / S), VH = this.VH = this.fixed ? this.fixed[1] : Math.ceil(Hd / S);
     this.canvas.width = VW; this.canvas.height = VH;
     if (!this.fixed) { this.canvas.style.width = (VW * S / dpr) + 'px'; this.canvas.style.height = (VH * S / dpr) + 'px'; }
@@ -234,6 +236,7 @@ class Screen {
     // keep the action in the upper part.
     this.narrow = VW < VH;
   }
+  setScale(s) { const want = s === this.S0 ? 0 : s; if (want !== (this.want || 0) || s !== this.S) { this.want = want; this.resize(); } }
   set(x, y, c) { if (x >= 0 && y >= 0 && x < this.VW && y < this.VH) this.fb[y * this.VW + x] = c; }
   get(x, y) { return x >= 0 && y >= 0 && x < this.VW && y < this.VH ? this.fb[y * this.VW + x] : 0; }
   blit(bm, sx, sy) {

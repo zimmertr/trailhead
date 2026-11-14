@@ -234,7 +234,7 @@ Map
 - [x] Animals that move: elk, bear, squirrels, chipmunks and birds in the south meadow, goats in the basin, bighorn sheep in the scablands, marmots, a whale that breaches now and then, jellyfish near the shore, waves on the beach.
 - [x] Signs stand on the terrain they name, with the twelve new names. Sign names and every other stray line of copy move into `content.js`.
 - [x] Labels on the map for Trailhead, About Lake, The Stack and Sideproject Spires, in the style of the summit name tags. A click at any time sends him there; partway down another trail he turns round and goes back through the junction.
-- [ ] Zoom in whole steps on the world map only: wheel, pinch, plus and minus. The camera limits still hide the world's edge at every step.
+- [x] Zoom in whole steps on the world map only: wheel, pinch, plus and minus. The camera limits still hide the world's edge at every step.
 
 Scenes
 - [ ] Base camp: a camp on a huge glacier under enormous walls, filling the frame. Cold, craggy, Patagonian. No landmass floating in the sky. The six summits keep their name tags and clicks.
@@ -283,3 +283,9 @@ Controls and the rest
 - What a click does: at the junction it starts that route. Out along another trail he turns round where he stands, comes back to the junction and sets off for it. Already heading back he carries on to the junction and then sets off. Heading home along the trail he now wants, he turns round on the spot. "Trailhead" brings him back and stops, and at the junction it only recentres a dragged view.
 - Turning back does not count as finishing: no flag, nothing marked done. The strip along the bottom shows just the stretch back to the Trailhead while he does it.
 - The tags only exist on the map. Inside a scene (forest, wall, camp) the trail map sheet is still the way to jump elsewhere.
+- Zoom: on the map only, in whole steps of pixel size. The mouse wheel and a two-finger pinch keep the spot under the pointer where it is; the plus and minus keys zoom about where the view rests. Other scenes always draw at the page's own size, and the map remembers its zoom when he comes back out.
+- How far: in to twice the page's own pixel size, out to half of it, and never so far that the view is wider or taller than the world, so the camera limits still hide the edge. On a 1440 x 900 desktop that is 2 to 6 (3 is normal); on the test phone 3 to 8 (4 is normal).
+- The signs, the cards and the bars do not change size with the zoom. No plus and minus buttons on screen: the top bar has no room on a phone, where the pinch does it. The keys list in the Keys sheet names the zoom.
+- A key held with Command, Control or Alt is now left to the browser (Command and plus is the browser's own zoom; Command and T used to flip Day and Dusk as well as open a tab).
+- Measured in the test container: 60 frames a second at the normal size, 60 zoomed out at the Trailhead, 50 zoomed out over the west forest.
+- For screenshots only: `wheel=x,y,dy` is a new step in `shot.mjs`.

@@ -268,6 +268,8 @@ addEventListener('keydown', e => {
   audio.start();
   if (e.code === 'Escape') { if (!plain.hidden) navigate(''); else if (!sheet.hidden) closeSheet(); else openSheet('map'); e.preventDefault(); return; }
   if (!sheet.hidden || !plain.hidden) return;
+  // A key held with Command, Control or Alt belongs to the browser.
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === 'KeyM') { openSheet('map'); return; }
   if (e.code === 'KeyT') { toggleDusk(); return; }
   if (e.target.closest && e.target.closest('button, a') && (e.code === 'Space' || e.code === 'Enter')) return;
