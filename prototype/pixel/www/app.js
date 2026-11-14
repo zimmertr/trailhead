@@ -176,7 +176,7 @@ function openPlain() {
   const cardOut = id => { const c = CARDS[id]; return [el('h4', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null]; };
   const still = api.mapImage(MAP.x, MAP.y, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', 'The map of the world: a lake in a forest, a granite wall and six glaciated summits around a trailhead');
   plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: 'Trailhead' }), el('button', { class: 'plank', onclick: () => navigate('') }, el('span', { text: 'Back to the world' }))),
-    el('div', { class: 'wrap' }, el('h1', { text: 'TJ Zimmerman' }), el('p', { text: 'TJ Zimmerman ' + INTRO.replace(' Choose a destination to learn more!', '') }), still,
+    el('div', { class: 'wrap' }, el('h1', { text: 'TJ Zimmerman' }), still,
       ...sec('About Lake', ...['who', 'mountains', 'note'].flatMap(cardOut)), ...sec('The Stack', ...['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'].flatMap(cardOut)),
       ...sec('Sideproject Spires', ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h4', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: `${p.stars} stars, ${p.release ? p.release + ' released ' + ago(p.released) : 'no release yet'}, ${p.language}, ${p.license}` }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, text: 'github.com/' + p.repo })))]; }))));
   plain.hidden = false; plain.scrollTop = 0; api.stop();

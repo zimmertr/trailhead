@@ -38,7 +38,7 @@ function bear(blink) {
 }
 
 // Sasquatch in mid-stride, a silhouette in the far trees. Two frames.
-function sasquatch(f, c = R.mist[1]) {
+function sasquatch(f, c = R.fur[1]) {
   const b = new BM(18, 34); b.ox = 9; b.oy = 33;
   disc(b, 9, 4, 3.2, () => c); b.set(9, 0, c);
   for (let y = 7; y < 20; y++) for (let x = 5 - (y < 12 ? 1 : 0); x <= 12 + (y < 12 ? 1 : 0); x++) b.set(x, y, c);
@@ -46,6 +46,8 @@ function sasquatch(f, c = R.mist[1]) {
   thick(b, 5, 9, 5 + a * 3, 21, 3, c); thick(b, 13, 9, 13 - a * 3, 21, 3, c);
   thick(b, 7, 19, 7 - a * 4, 27, 3, c); thick(b, 7 - a * 4, 27, 6 - a * 4, 33, 3, c);
   thick(b, 11, 19, 11 + a * 4, 27, 3, c); thick(b, 11 + a * 4, 27, 13 + a * 3, 33, 3, c);
+  // Light catches the fur along his leading edge; the rest stays a dark shape, as in every photo of him.
+  const d = b.d.slice(); for (let y = 0; y < b.h; y++) for (let x = 1; x < b.w; x++) if (d[y * b.w + x] && !d[y * b.w + x - 1]) b.set(x, y, R.fur[3]); else if (d[y * b.w + x] && x > 1 && !d[y * b.w + x - 2]) b.set(x, y, R.fur[2]);
   return b;
 }
 

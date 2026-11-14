@@ -295,17 +295,19 @@ export function makeForest() {
         if (e < 0.6 || b0 >= mist.length - 1) fb.fill(mist[Math.min(mist.length - 1, b0)], row, row + VW);
         else for (let x = 0; x < VW; x++) fb[row + x] = mist[b0 + (bayer(x, y) < (e - 0.6) / 0.4 ? 1 : 0)];
       }
-      // Sasquatch crosses between the far trees, once a visit.
-      if (!sasquatchSeen && q > 0.66 && q < 0.9) {
-        const u = (q - 0.66) / 0.24;
-        scr.put(sas[Math.floor(u * 14) & 1], Math.round(VW * (anchor - 0.16 - u * 0.2)), base - 7, true);
-        if (q > 0.74 && env.running) env.found('sasquatch');
-        if (q > 0.88 && env.running) sasquatchSeen = true;
-      }
       drawStrip(scr, far, camX * 0.3 + 300, base - 3, true, R.mist[3]);
       drawStrip(scr, mid, camX * 0.6 + 200, base - 1, true, R.mist[1]);
       drawStrip(scr, waterAbs, camX, base, false, 0, r => Math.round(Math.sin(t * 1.6 + r * 0.7)));
       drawStrip(scr, main, camX, base, false, R.moss[1]);
+      // Sasquatch strides through the undergrowth behind the trail, in front of the far trees and
+      // behind every trunk, log and fern that stands nearer. Once a visit.
+      if (!sasquatchSeen && q > 0.66 && q < 0.9) {
+        const u = (q - 0.66) / 0.24;
+        // He stands a little up the bank, shin-deep in the ferns, so the low growth by the trail cannot hide him.
+        { const bm = sas[Math.floor(u * 14) & 1], sx = Math.round(VW * (anchor - 0.14 - u * 0.24)) - bm.ox, sy = base - 24 - bm.oy; for (let j = 0; j < bm.h - 5; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (c) scr.set(sx + i, sy + j, c); } }
+        if (q > 0.74 && env.running) env.found('sasquatch');
+        if (q > 0.88 && env.running) sasquatchSeen = true;
+      }
       // Sparkles on the stream where the light falls on it.
       for (let k = 0; k < 60; k++) {
         const wx = Math.floor(camX / 40) * 40 + k * 17 + Math.round(8 * hash(k, 1, 103)), ry = farBank(wx) + 5 + hash(k, 2, 103) * 34;
