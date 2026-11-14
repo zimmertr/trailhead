@@ -1,5 +1,6 @@
 // Sound, all of it made in the browser: square and triangle voices and a noise channel, the way
 // the consoles of the time did it. Nothing plays until the visitor has clicked or pressed a key.
+import { TRACK_NAMES, SET_NAMES } from './content.js';
 
 const NOTE = { C: 0, 'C#': 1, D: 2, 'D#': 3, E: 4, F: 5, 'F#': 6, G: 7, 'G#': 8, A: 9, 'A#': 10, B: 11 };
 const hz = n => { const m = /^([A-G]#?)(\d)$/.exec(n); return m ? 440 * Math.pow(2, (NOTE[m[1]] + (m[2] - 4) * 12 - 9) / 12) : 0; };
@@ -8,37 +9,37 @@ const line = s => s.replace(/\|/g, ' ').trim().split(/\s+/);
 
 // Each track: tempo, steps per beat, and one line per voice. All lines are the same length and loop.
 export const TRACKS = [
-  { name: 'Wildflower Meadow', bpm: 104, div: 2,
+  { bpm: 104, div: 2,
     lead: line('E5 - G5 - C6 . B5 A5 | G5 . . D5 G5 . B5 . | A5 . C6 . E6 . D6 C6 | A5 . . F5 A5 . C6 . | E5 - G5 - C6 . D6 E6 | D6 . B5 . G5 . . . | F5 . A5 . C6 . A5 . | G5 . . . . . - -'),
     arp: line('C4 E4 G4 E4 C4 E4 G4 E4 | B3 D4 G4 D4 B3 D4 G4 D4 | A3 C4 E4 C4 A3 C4 E4 C4 | A3 C4 F4 C4 A3 C4 F4 C4 | C4 E4 G4 E4 C4 E4 G4 E4 | B3 D4 G4 D4 B3 D4 G4 D4 | A3 C4 F4 C4 A3 C4 F4 C4 | B3 D4 G4 D4 B3 D4 G4 D4'),
     bass: line('C3 . . . G2 . . . | G2 . . . D3 . . . | A2 . . . E3 . . . | F2 . . . C3 . . . | C3 . . . G2 . . . | G2 . . . D3 . . . | F2 . . . C3 . . . | G2 . . . G2 . D3 .'),
     drum: line('k - h - s - h - | k - h - s - h h | k - h - s - h - | k - h - s - h h | k - h - s - h - | k - h - s - h h | k - h - s - h - | k - h - s s h h') },
-  { name: 'Hall of Mosses', bpm: 80, div: 2,
+  { bpm: 80, div: 2,
     lead: line('A4 . . . C5 . E5 . | D5 . . . . . C5 . | E5 . . . G5 . E5 . | D5 . . . . . - - | A4 . . . C5 . E5 . | F5 . . . E5 . D5 . | C5 . . . B4 . G4 . | A4 . . . . . - -'),
     arp: line('A3 E4 A4 E4 A3 E4 A4 E4 | F3 C4 F4 C4 F3 C4 F4 C4 | C4 G4 C5 G4 C4 G4 C5 G4 | G3 D4 G4 D4 G3 D4 G4 D4 | A3 E4 A4 E4 A3 E4 A4 E4 | F3 C4 F4 C4 F3 C4 F4 C4 | E3 B3 E4 B3 G3 D4 G4 D4 | A3 E4 A4 E4 A3 E4 A4 E4'),
     bass: line('A2 . . . . . . . | F2 . . . . . . . | C3 . . . . . . . | G2 . . . . . . . | A2 . . . . . . . | F2 . . . . . . . | E2 . . . G2 . . . | A2 . . . . . . .'),
     drum: line('- - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h - | - - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h -') },
-  { name: 'Granite Hours', bpm: 124, div: 2,
+  { bpm: 124, div: 2,
     lead: line('D5 - D5 F#5 A5 . F#5 A5 | B5 . A5 . F#5 . D5 . | C5 - C5 E5 G5 . E5 G5 | A5 . G5 . E5 . C5 . | D5 - D5 F#5 A5 . B5 D6 | C6 . B5 . A5 . G5 . | G5 . A5 . B5 . D6 . | A5 . . . . . - -'),
     arp: line('D4 A4 D4 A4 D4 A4 D4 A4 | D4 A4 D4 A4 D4 A4 D4 A4 | C4 G4 C4 G4 C4 G4 C4 G4 | C4 G4 C4 G4 C4 G4 C4 G4 | D4 A4 D4 A4 D4 A4 D4 A4 | C4 G4 C4 G4 C4 G4 C4 G4 | G3 D4 G3 D4 G3 D4 G3 D4 | A3 E4 A3 E4 A3 E4 A3 E4'),
     bass: line('D2 . D3 . D2 . D3 . | D2 . D3 . D2 . A2 . | C2 . C3 . C2 . C3 . | C2 . C3 . C2 . G2 . | D2 . D3 . D2 . D3 . | C2 . C3 . C2 . C3 . | G2 . G2 . G2 . B2 . | A2 . A2 . A2 . C#3 .'),
     drum: line('k - h k s - h - | k - h k s - h h | k - h k s - h - | k - h k s - h h | k - h k s - h - | k - h k s - h h | k - h k s - h - | k k h k s s h h') },
-  { name: 'Above the Icefall', bpm: 92, div: 2,
+  { bpm: 92, div: 2,
     lead: line('B4 . . . E5 . . . | G5 . F#5 . E5 . . . | D5 . . . G5 . . . | B5 . A5 . G5 . . . | A5 . . . G5 . E5 . | F#5 . . . D5 . . . | E5 . G5 . B5 . A5 . | B5 . . . . . - -'),
     arp: line('E4 B4 E5 B4 G4 B4 E5 B4 | E4 B4 E5 B4 G4 B4 E5 B4 | G4 D5 G5 D5 B4 D5 G5 D5 | G4 D5 G5 D5 B4 D5 G5 D5 | A4 E5 A5 E5 C5 E5 A5 E5 | D4 A4 D5 A4 F#4 A4 D5 A4 | E4 B4 E5 B4 G4 B4 E5 B4 | B3 F#4 B4 F#4 D#4 F#4 B4 F#4'),
     bass: line('E2 . . . . . B2 . | E2 . . . . . . . | G2 . . . . . D3 . | G2 . . . . . . . | A2 . . . . . E3 . | D2 . . . . . A2 . | E2 . . . . . . . | B2 . . . . . . .'),
     drum: line('k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - s - h -') },
-  { name: 'Larch March', bpm: 132, div: 2,
+  { bpm: 132, div: 2,
     lead: line('G5 G5 - E5 G5 . A5 . | G5 . E5 . C5 . D5 . | E5 E5 - C5 E5 . F5 . | E5 . D5 . G4 . - - | G5 G5 - E5 G5 . A5 . | C6 . B5 . A5 . G5 . | F5 . E5 . D5 . B4 . | C5 . . . . . - -'),
     arp: line('C4 G4 E4 G4 C4 G4 E4 G4 | C4 G4 E4 G4 C4 G4 E4 G4 | A3 E4 C4 E4 A3 E4 C4 E4 | G3 D4 B3 D4 G3 D4 B3 D4 | C4 G4 E4 G4 C4 G4 E4 G4 | F3 C4 A3 C4 F3 C4 A3 C4 | D4 A4 F4 A4 G3 D4 B3 D4 | C4 G4 E4 G4 C4 G4 E4 G4'),
     bass: line('C3 . G2 . C3 . G2 . | C3 . G2 . C3 . G2 . | A2 . E2 . A2 . E2 . | G2 . D2 . G2 . D2 . | C3 . G2 . C3 . G2 . | F2 . C2 . F2 . C2 . | D2 . A2 . G2 . D2 . | C3 . G2 . C3 . . .'),
     drum: line('k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - s s s -') },
-  { name: 'Tarn at Noon', bpm: 72, div: 2,
+  { bpm: 72, div: 2,
     lead: line('F#5 . . A5 . . D6 . | B5 . . . F#5 . D5 . | G5 . . B5 . . D6 . | C#6 . . . A5 . E5 . | F#5 . A5 . D6 . F#6 . | D6 . . . B5 . F#5 . | G5 . B5 . A5 . C#6 . | D6 . . . . . - -'),
     arp: line('D4 A4 F#4 A4 D4 A4 F#4 A4 | B3 F#4 D4 F#4 B3 F#4 D4 F#4 | G3 D4 B3 D4 G3 D4 B3 D4 | A3 E4 C#4 E4 A3 E4 C#4 E4 | D4 A4 F#4 A4 D4 A4 F#4 A4 | B3 F#4 D4 F#4 B3 F#4 D4 F#4 | G3 D4 B3 D4 A3 E4 C#4 E4 | D4 A4 F#4 A4 D4 A4 F#4 A4'),
     bass: line('D3 . . . . . A2 . | B2 . . . . . F#2 . | G2 . . . . . D3 . | A2 . . . . . E3 . | D3 . . . . . A2 . | B2 . . . . . F#2 . | G2 . . . A2 . . . | D3 . . . . . . .'),
     drum: line('- - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h - | - - - - h - - - | - - - - h - - - | - - - - h - - - | h - - - h - h -') },
-  { name: 'Glissade', bpm: 140, div: 2,
+  { bpm: 140, div: 2,
     lead: line('A5 - C#6 - E6 . C#6 A5 | B5 . A5 . E5 . . . | F#5 - A5 - D6 . A5 F#5 | G#5 . B5 . E6 . . . | A5 - C#6 - E6 . A6 . | F#6 . E6 . C#6 . A5 . | D6 . F#6 . E6 . G#5 . | A5 . . . . . - -'),
     arp: line('A3 E4 A3 E4 A3 E4 A3 E4 | A3 E4 A3 E4 A3 E4 A3 E4 | D4 A4 D4 A4 D4 A4 D4 A4 | E4 B4 E4 B4 E4 B4 E4 B4 | A3 E4 A3 E4 A3 E4 A3 E4 | F#3 C#4 F#3 C#4 F#3 C#4 F#3 C#4 | D4 A4 D4 A4 E4 B4 E4 B4 | A3 E4 A3 E4 A3 E4 A3 E4'),
     bass: line('A2 . A3 . A2 . A3 . | A2 . A3 . A2 . A3 . | D2 . D3 . D2 . D3 . | E2 . E3 . E2 . E3 . | A2 . A3 . A2 . A3 . | F#2 . F#3 . F#2 . F#3 . | D2 . D3 . E2 . E3 . | A2 . A3 . A2 . . .'),
@@ -48,10 +49,13 @@ export const TRACKS = [
 // The same notes through three different instruments. A set names the wave each voice uses, how
 // loud the drums are, and how the effects are pitched.
 export const SETS = [
-  { name: 'Console', lead: 'square', arp: 'square', bass: 'triangle', fx: { square: 'square', triangle: 'triangle' }, drums: 1, pitch: 1 },
-  { name: 'Handheld', lead: 'pulse', arp: 'pulse', bass: 'square', fx: { square: 'pulse', triangle: 'triangle' }, drums: 0.7, pitch: 1.5, bassVol: 0.4 },
-  { name: 'Music box', lead: 'sine', arp: 'triangle', bass: 'sine', fx: { square: 'sine', triangle: 'sine' }, drums: 0, pitch: 2, pluck: true, octave: 2 }
+  { lead: 'square', arp: 'square', bass: 'triangle', fx: { square: 'square', triangle: 'triangle' }, drums: 1, pitch: 1 },
+  { lead: 'pulse', arp: 'pulse', bass: 'square', fx: { square: 'pulse', triangle: 'triangle' }, drums: 0.7, pitch: 1.5, bassVol: 0.4 },
+  { lead: 'sine', arp: 'triangle', bass: 'sine', fx: { square: 'sine', triangle: 'sine' }, drums: 0, pitch: 2, pluck: true, octave: 2 }
 ];
+
+// Their names are words on the page, so they live with the rest of the words.
+TRACKS.forEach((tr, i) => { tr.name = TRACK_NAMES[i]; }); SETS.forEach((st, i) => { st.name = SET_NAMES[i]; });
 
 // Which tunes belong to which place, the first one first. Glissade is the walk back out.
 const PLACES = { world: [0, 4], out: [6, 0], forest: [1, 5], lakeside: [5, 1], wall: [2, 4], camp: [4, 3], climb: [3, 6], offroute: [3] };

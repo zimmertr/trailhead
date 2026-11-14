@@ -409,7 +409,8 @@ plant(firs[2], ISLE.x, ISLE.y + 1);
 // Where the things stand that the scene draws itself, because they move or can be clicked.
 const spots = {
   tents: [[924, 564, 'tent'], [948, 574, 'red']], signpost: [T.x - 4, T.y - 8], kiosk: [872, 657], ferry: [44, 916], whale: [222, 934],
-  signs: [[972, 592, 'Scope Creep Glacier'], [856, 566, 'Segfault Scree'], [886, 532, 'Merge Conflict Col'], [800, 742, 'Yak Shave Meadow'], [766, 631, 'About Lake, 2.4 km'], [1160, 600, 'Rollback Basin'], [1300, 552, 'Feature Flag Tarns'], [1226, 884, 'Hotfix Burn'], [1420, 966, 'Postmortem Burn'], [1474, 724, 'Cron Job Coulee'], [1506, 806, 'Tech Debt Badlands'], [278, 864, 'Cache Miss Cove'], [334, 612, 'Stack Trace Thicket']],
+  // Each sign stands on the ground it names; content.js has the words. Whatever would stand in front of one is cleared below.
+  signs: [[972, 592, 'scope-creep'], [858, 557, 'segfault'], [886, 532, 'merge-conflict'], [800, 742, 'yak-shave'], [766, 631, 'about-lake'], [1160, 600, 'rollback'], [1300, 552, 'feature-flag'], [1226, 884, 'hotfix'], [1420, 966, 'postmortem'], [1474, 724, 'cron-job'], [1506, 806, 'tech-debt'], [258, 864, 'cache-miss'], [334, 612, 'stack-trace'], [262, 480, 'off-by-one'], [470, 480, 'dependency'], [668, 586, 'monorepo'], [404, 996, 'latency']],
   elk: [[760, 820, 0], [792, 836, 1], [738, 846, 1], [900, 900, 0], [640, 960, 1], [840, 1000, 1], [872, 1012, 0], [1010, 790, 1], [960, 760, 0], [700, 1030, 0], [776, 606, 1]],
   bear: [1010, 930], marmots: [[846, 574], [1340, 590], [700, 900]],
   goats: [[1196, 556, 0], [1212, 562, 1], [1126, 528, 0], [1290, 598, 0], [1304, 603, 1], [1384, 548, 0], [1250, 500, 0]],
@@ -417,6 +418,12 @@ const spots = {
   squirrels: [], jelly, birds: [[860, 700], [872, 694], [884, 702], [980, 840], [600, 880], [1100, 700], [420, 300], [436, 292], [1240, 330]]
 };
 for (let n = 0; n < 14; n++) { const x = 720 + rand() * 420, y = 760 + rand() * 300; if (open(x, y)) spots.squirrels.push([Math.round(x), Math.round(y), n % 3 === 0 ? 1 : 0]); }
+// Nothing stands in front of a sign: a tree, bush or boulder that would cover one is taken out.
+const clearSigns = () => { for (const [sx, sy] of spots.signs) for (let i = things.length - 1; i >= 0; i--) {
+  const th = things[i], w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h;
+  if (th.y > sy - 3 && th.y - h < sy + 1 && Math.abs(th.x - sx) < w / 2 + 7) things.splice(i, 1);
+} };
+clearSigns();
 function sheep(grazing, step = 0) {
   // A bighorn ram: sandy brown, white rump and muzzle, and a heavy horn curling round the ear.
   const b = new BM(24, 19); b.ox = 11; b.oy = 18;
@@ -450,6 +457,7 @@ function shade(c) { for (const k in R) { const r = R[k], s = r.indexOf(c); if (s
 const ferns = Array.from({ length: 6 }, (_, i) => makeFern(400 + i));
 for (let n = 0; n < 3400; n++) { const x = rand() * 790, y = 478 + rand() * 600; if (y >= NH || forestAmt(x, y) < 0.6 || !open(x, y) || nearTrail(x, y, 4)) continue; things.push({ bm: ferns[(rand() * 6) | 0], x: Math.round(x), y: Math.round(y), fern: true }); }
 for (let n = 0; n < 60; n++) { const x = rand() * 760, y = 490 + rand() * 560; if (forestAmt(x, y) > 0.7 && open(x, y) && !nearTrail(x, y, 9)) put(makeLog(), x, y); }
+clearSigns();
 // Mist: thin bands of it lie in the deep forest and thicken to the west; a fog bank stands off the
 // coast. It is kept apart from the ground so the scene can lay it over the trees.
 const mist = new Uint8Array(NW * NH);
@@ -459,6 +467,8 @@ for (let y = 440; y < NH; y++) for (let x = 0; x < 620; x++) {
   if (!sea && a > 0.1 && nearTrail(x, y, 9)) a *= 0.3;
   if (a > 0 && bayer(x, y) < a * 0.85) mist[at(x, y)] = R.fog[a > 0.8 ? 2 : a > 0.45 ? 1 : (bayer(x + 2, y + 1) < 0.5 ? 1 : 0)];
 }
+// The mist parts round a sign so its board can be read.
+for (const [sx, sy] of spots.signs) for (let y = sy - 19; y <= sy + 2; y++) for (let x = sx - 10; x <= sx + 10; x++) if (x >= 0 && y >= 0 && x < NW && y < NH && (Math.abs(x - sx) < 9 || bayer(x, y) < 0.5)) mist[at(x, y)] = 0;
 return { g, things, spots, mist, sea: SEA, trackPts, trails: TRAILS, forestAmt, lakeD, coast, groundLine, glacier, talus, open, nearTrail, make: { ferry, whale, sheep, squirrel } };
 }
 export { OX, OY, NW, NH, T, PEAK, STACK, SPIRES };

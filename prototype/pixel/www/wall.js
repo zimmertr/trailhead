@@ -6,6 +6,7 @@ import { Strip, drawStrip, baseline } from './side.js';
 import { makeFir, makeSpruce, makeBoulder, makeCloud, makeFlag, makeBush } from './sprites.js';
 import { pika, speck } from './fauna.js';
 import { makeRunner, frontFig, backFig } from './tj.js';
+import { NAMES } from './content.js';
 
 const W = 1340, RX = 760, UP = 500, DOWN = 250;
 const H1 = 110, H2 = 220, ROOF = 292, H3 = 326, HS = 360, C = 12;
@@ -156,10 +157,10 @@ export function makeWall() {
     focus: () => focus,
     pick(sx, sy) {
       const wx = sx + last.camX, s = last.base + camS - sy;
-      if (Math.abs(wx - pikaX) < 12 && s > 8 && s < 34) return { label: 'Pika', x: pikaX - last.camX, y: last.base + camS - 36, act: 'pika' };
-      if (Math.abs(wx - route(H2)) < 34 && Math.abs(s - H2) < 8) return { label: 'Deadlock Ledge', x: sx, y: sy - 10 };
-      if (Math.abs(wx - RX - 10) < 78 && s > ROOF - 12 && s < ROOF + 3) return { label: 'Rollback Roof', x: sx, y: sy - 10 };
-      if (wx < RX + 150 && s < 0 && s > -70 && Math.abs(wx - RX) > 20) return { label: 'Segfault Scree', x: sx, y: sy - 10 };
+      if (Math.abs(wx - pikaX) < 12 && s > 8 && s < 34) return { label: NAMES.wall.pika, x: pikaX - last.camX, y: last.base + camS - 36, act: 'pika' };
+      if (Math.abs(wx - route(H2)) < 34 && Math.abs(s - H2) < 8) return { label: NAMES.wall.ledge, x: sx, y: sy - 10 };
+      if (Math.abs(wx - RX - 10) < 78 && s > ROOF - 12 && s < ROOF + 3) return { label: NAMES.wall.roof, x: sx, y: sy - 10 };
+      if (wx < RX + 150 && s < 0 && s > -70 && Math.abs(wx - RX) > 20) return { label: NAMES.wall.scree, x: sx, y: sy - 10 };
       return null;
     },
     act(id, env) { if (id === 'pika') { env.sfx('eep'); st.eep = env.t; env.found('pika'); return true; } return false; },

@@ -6,6 +6,7 @@ import { Strip, drawStrip, blitTall, baseline } from './side.js';
 import { makeMaple, makeSpruce, makeBoulder } from './sprites.js';
 import { elk, bear, sasquatch, jay, slug } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
+import { NAMES } from './content.js';
 
 const SW = 1640, UP = 480, DOWN = 240;
 const X0 = SW - 500, LEN = 640, DUR = 8.2;
@@ -276,8 +277,8 @@ export function makeForest() {
     focus: () => focus,
     pick(sx, sy) {
       const wx = sx + last.camX, wy = sy - last.base;
-      if (Math.abs(wx - signX) < 12 && wy > g(signX) - 34 && wy < g(signX) - 4) return { label: 'Legacy Grove', x: signX - last.camX, y: last.base + g(signX) - 36 };
-      if (wy > g(wx) + farBank(wx) && wy < g(wx) + nearBank(wx)) return { label: 'Cache Miss Creek', x: sx, y: sy - 8 };
+      if (Math.abs(wx - signX) < 12 && wy > g(signX) - 34 && wy < g(signX) - 4) return { label: NAMES.forest.sign, x: signX - last.camX, y: last.base + g(signX) - 36 };
+      if (wy > g(wx) + farBank(wx) && wy < g(wx) + nearBank(wx)) return { label: NAMES.forest.creek, x: sx, y: sy - 8 };
       return null;
     },
     draw(scr, env, arg, q) {

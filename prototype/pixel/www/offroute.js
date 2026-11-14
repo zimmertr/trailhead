@@ -4,6 +4,7 @@ import { clamp, frac, hash, fbm, bayer, R, INK, BM, outline } from './core.js';
 import { baseline } from './side.js';
 import { makeRunner, frontFig } from './tj.js';
 import { makeSmallSign } from './sprites.js';
+import { NAMES } from './content.js';
 
 export function makeOffroute() {
   const run = makeRunner('alpine'), idle = frontFig('alpine'), st = {}, focus = { x: 0, y: 0 };
@@ -17,7 +18,7 @@ export function makeOffroute() {
     cues: () => [{ at: 0.05, name: 'wind' }],
     enter() { st.y = null; },
     focus: () => focus,
-    pick(sx, sy) { return Math.abs(sx - focus.x - 26) < 8 && Math.abs(sy - focus.y) < 22 ? { label: 'The only wand for miles', x: focus.x + 26, y: focus.y - 16 } : null; },
+    pick(sx, sy) { return Math.abs(sx - focus.x - 26) < 8 && Math.abs(sy - focus.y) < 22 ? { label: NAMES.offroute.wand, x: focus.x + 26, y: focus.y - 16 } : null; },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t } = env, base = baseline(scr, env.shown, st), cx = Math.round(scr.narrow ? VW * 0.5 : VW * 0.62);
       // Snow underfoot fading into cloud: the horizon is somewhere in there.

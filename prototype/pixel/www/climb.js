@@ -6,6 +6,7 @@ import { Strip, drawStrip, baseline } from './side.js';
 import { makeTent, makeFlag, clump, makeCloud } from './sprites.js';
 import { bluebird, speck, goat } from './fauna.js';
 import { sideFig, frontFig } from './tj.js';
+import { NAMES, FINDS, UI } from './content.js';
 
 const W = 1000, OFF = 320, UP = 340, DOWN = 240, SX = 262, DUR = 8.6;
 const T_UP = 0.5, T_SUM = 5.0, T_PUSH = 5.5, T_BOT = 7.9;
@@ -13,12 +14,12 @@ const T_UP = 0.5, T_SUM = 5.0, T_PUSH = 5.5, T_BOT = 7.9;
 // Each route: the line of the slope from camp (0, 0) to the summit flat and off the far side,
 // what kind of ground it is, and what stands on top.
 const ROUTES = {
-  bluebird: { kind: 'ridge', top: 'Weather station', pts: [[0, 0], [50, -10], [110, -52], [170, -100], [230, -140], [262, -150], [304, -150], [330, -112], [400, -10], [500, 120]] },
-  tks: { kind: 'icefall', top: 'The hut', pts: [[0, 0], [40, -6], [58, -30], [96, -32], [112, -64], [152, -66], [168, -100], [208, -102], [224, -130], [262, -138], [304, -138], [330, -100], [400, 0], [500, 120]] },
-  'hevy-garmin-sync': { kind: 'ice', top: 'Weight bench', pts: [[0, 0], [70, -14], [122, -30], [138, -112], [152, -126], [230, -146], [262, -150], [304, -150], [330, -112], [400, -10], [500, 120]] },
-  trailhead: { kind: 'bridge', top: 'Survey marker', gap: [150, 176], pts: [[0, 0], [80, -30], [140, -64], [150, -66], [176, -72], [230, -128], [262, -146], [304, -146], [330, -110], [400, -10], [500, 120]] },
-  yggdrasil: { kind: 'ladder', top: 'The world tree', gap: [130, 160], pts: [[0, 0], [70, -20], [130, -56], [160, -76], [220, -124], [262, -146], [304, -146], [330, -110], [400, -10], [500, 120]] },
-  'kubernetes-manifests': { kind: 'wands', top: 'The cairn', pts: [[0, 0], [90, -26], [170, -74], [230, -120], [262, -140], [304, -140], [330, -104], [400, 0], [500, 120]] }
+  bluebird: { kind: 'ridge', pts: [[0, 0], [50, -10], [110, -52], [170, -100], [230, -140], [262, -150], [304, -150], [330, -112], [400, -10], [500, 120]] },
+  tks: { kind: 'icefall', pts: [[0, 0], [40, -6], [58, -30], [96, -32], [112, -64], [152, -66], [168, -100], [208, -102], [224, -130], [262, -138], [304, -138], [330, -100], [400, 0], [500, 120]] },
+  'hevy-garmin-sync': { kind: 'ice', pts: [[0, 0], [70, -14], [122, -30], [138, -112], [152, -126], [230, -146], [262, -150], [304, -150], [330, -112], [400, -10], [500, 120]] },
+  trailhead: { kind: 'bridge', gap: [150, 176], pts: [[0, 0], [80, -30], [140, -64], [150, -66], [176, -72], [230, -128], [262, -146], [304, -146], [330, -110], [400, -10], [500, 120]] },
+  yggdrasil: { kind: 'ladder', gap: [130, 160], pts: [[0, 0], [70, -20], [130, -56], [160, -76], [220, -124], [262, -146], [304, -146], [330, -110], [400, -10], [500, 120]] },
+  'kubernetes-manifests': { kind: 'wands', pts: [[0, 0], [90, -26], [170, -74], [230, -120], [262, -140], [304, -140], [330, -104], [400, 0], [500, 120]] }
 };
 const hOf = (pts, x) => { if (x <= 0) return 0; for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; return lerp(y0, y1, (x - x0) / (x1 - x0)); } return pts[pts.length - 1][1]; };
 
@@ -139,9 +140,9 @@ export function makeClimb() {
     pick(sx, sy) {
       if (last.ph !== 'up') return null;
       const cfg = ROUTES[last.id], x = sx + last.camX - OFF, y = sy - last.base, ty = hOf(cfg.pts, SX + 24);
-      if (Math.abs(x - SX - 24) < 20 && y < ty + 3 && y > ty - (cfg.kind === 'ladder' ? 66 : 34)) return { label: cfg.top, x: SX + 24 + OFF - last.camX, y: last.base + ty - (cfg.kind === 'ladder' ? 68 : 36), act: 'egg' };
-      if (cfg.kind === 'bridge' && Math.abs(x - 163) < 14 && Math.abs(y + 60) < 30) return { label: 'Tech Debt Crevasse', x: sx, y: sy - 8 };
-      if (cfg.kind === 'ridge' && x > 100 && x < 250 && Math.abs(y - hOf(cfg.pts, x)) < 8) return { label: 'Race Condition Ridge', x: sx, y: sy - 8 };
+      if (Math.abs(x - SX - 24) < 20 && y < ty + 3 && y > ty - (cfg.kind === 'ladder' ? 66 : 34)) return { label: FINDS['egg:' + last.id][0], x: SX + 24 + OFF - last.camX, y: last.base + ty - (cfg.kind === 'ladder' ? 68 : 36), act: 'egg' };
+      if (cfg.kind === 'bridge' && Math.abs(x - 163) < 14 && Math.abs(y + 60) < 30) return { label: NAMES.climb.crevasse, x: sx, y: sy - 8 };
+      if (cfg.kind === 'ridge' && x > 100 && x < 250 && Math.abs(y - hOf(cfg.pts, x)) < 8) return { label: NAMES.climb.ridge, x: sx, y: sy - 8 };
       return null;
     },
     act(id, env) { if (id === 'egg' && env.shown && env.t - egg > 5.5) { egg = env.t; env.sfx('egg'); env.found('egg:' + last.id); return true; } return false; },
@@ -207,7 +208,7 @@ export function makeClimb() {
           // The survey marker shows how the world is put together: its pixel grid and every colour in the palette.
           for (let y = 0; y < VH; y++) for (let x = (y % 8 === 0) ? 0 : (8 - (camX % 8)) % 8; x < VW; x += (y % 8 === 0) ? 2 : 8) if ((x + y) & 1 || y % 8) { const i = y * VW + x; fb[i] = LIGHT[fb[i]] === fb[i] ? SHADE[fb[i]] : LIGHT[fb[i]]; }
           for (let i = 1; i < N; i++) for (let j = 0; j < 5; j++) { scr.set(6 + i, 16 + j, i); if (6 + i + 0 < VW && scr.narrow) scr.set(6 + (i % 140), 16 + j + Math.floor(i / 140) * 6, i); }
-          if (!st.told || t - st.told > 5) { st.told = t; env.emit({ type: 'say', text: (N - 1) + ' colours, ' + VW + ' x ' + VH + ' pixels, every one drawn in code' }); }
+          if (!st.told || t - st.told > 5) { st.told = t; env.emit({ type: 'say', text: UI.pixels(N - 1, VW, VH) }); }
         }
       } else {
         // Camp at the bottom of the glissade.

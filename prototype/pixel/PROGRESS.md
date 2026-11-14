@@ -232,7 +232,7 @@ Map
 - [x] Revise the block-in (`www/plan.js`) to the mark-up above and republish it. Keep a strip of sky on the first desktop screen, as today.
 - [x] Build the real map in `www/world.js` from the block-in: the larger world, every biome, the uneven lake with its island, the river and log bridge, the deeper forest loop with mist, the Stack trail turning talus grey, the Spires trail becoming a boot track in snow, larches by the Spires, big-leaf maples in the run forest. Everything that depends on map coordinates moves with it: camera limits, the cats' area, kiosk, flags, footprints, cloud shadows, fireflies, the trail map sheet (`MAP` and `DOTS` in `app.js`), where the lake route enters and leaves the forest.
 - [x] Animals that move: elk, bear, squirrels, chipmunks and birds in the south meadow, goats in the basin, bighorn sheep in the scablands, marmots, a whale that breaches now and then, jellyfish near the shore, waves on the beach.
-- [ ] Signs stand on the terrain they name, with the twelve new names. Sign names and every other stray line of copy move into `content.js`.
+- [x] Signs stand on the terrain they name, with the twelve new names. Sign names and every other stray line of copy move into `content.js`.
 - [ ] Labels on the map for Trailhead, About Lake, The Stack and Sideproject Spires, in the style of the summit name tags. A click at any time sends him there; partway down another trail he turns round and goes back through the junction.
 - [ ] Zoom in whole steps on the world map only: wheel, pinch, plus and minus. The camera limits still hide the world's edge at every step.
 
@@ -273,3 +273,8 @@ Controls and the rest
 - The whale breaches every sixteen seconds and blows half way between. It moved to (222, 934) because its first spot sat under the bottom bar on a desktop and on top of a sea stack.
 - For screenshots only: `look=x,y` in the address puts the dragged view somewhere, and `sheet.sh` takes `CROP=x,y,w,h` to enlarge one part of every frame.
 - Not done here and left for polish: the elk drawing itself is still the MVP's small one and reads a little blunt next to the new goats and sheep.
+- Signs: all seventeen names now have a sign. Segfault Scree moved up onto the talus and Cache Miss Cove down onto the beach. The four that had no sign got one: Off By One Peak and Dependency Range at the north edge of the west forest under the range (where the block-in had their labels), Monorepo Woods beside the lake loop just south of the lake, Latency Bay on the beach further south.
+- Anything that would stand in front of a sign (a tree, bush, boulder or log) is taken out when the map is built, and the mist parts round each board, so no sign hides.
+- Copy: `content.js` now also holds the sign names (`SIGNS`), the names of everything you can point at in a scene (`NAMES`), the music and instrument names, and every word of the interface (`UI`). The scene files and `app.js` only look words up. The buttons that are written straight into `index.html` (Trail map, Dusk, Keys, Start, Close) stay there, so that file is the one other place a word lives.
+- Draft copy changed along the way: the trail map's legend is built from the list of names, so it cannot fall behind ("The small signs in the world carry names: ..."); the kiosk's wildlife line lists the new animals; the hover label on a summit object now matches the checklist ("The weather station", not "Weather station").
+- The trail map's dots take a card's title or a project's name, so they cannot differ from the cards.

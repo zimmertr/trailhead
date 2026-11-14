@@ -4,6 +4,7 @@
 // and on what she was doing.
 import { clamp, lerp, rng, hash, vnoise, R, INK, BM, outline, thick } from './core.js';
 import { OX, OY } from './terrain.js';
+import { NAMES } from './content.js';
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
 
@@ -75,7 +76,6 @@ const POSES = {
   stretch: { body: [[10, 12.2, 3.6, 3.2], [15, 14.4, 4.6, 2.4]], head: [20.6, 15], ruff: false, eyes: 'shut', tail: [[7, 10], [5, 7], [6, 4.6]], near: [[17, 16.4, 23, 17.6], [9, 14, 9, 17.6]] }
 };
 
-const NAMES = { tortie: 'Doot Doot', nebel: 'Peevers' };
 export const sheet = () => ['tortie', 'nebel'].flatMap(n => Object.keys(POSES).map(p => build(n, POSES[p])));
 
 // How long each thing takes (shortest, longest), and how likely each cat is to pick it.
@@ -181,7 +181,7 @@ export function makeCats() {
     // For the workbench: put a cat into a state by name.
     force(id, st, t, extra) { go(cats.find(q => q.id === id), st, t, extra); },
     pick(wx, wy) {
-      for (const c of cats) { const y = c.y - (c.lift || 0); if (Math.abs(wx - c.x) < 9 && wy > y - 15 && wy < y + 3) return { label: NAMES[c.id], wx: c.x, wy: y - 17, act: 'cat:' + c.id }; }
+      for (const c of cats) { const y = c.y - (c.lift || 0); if (Math.abs(wx - c.x) < 9 && wy > y - 15 && wy < y + 3) return { label: NAMES.cats[c.id], wx: c.x, wy: y - 17, act: 'cat:' + c.id }; }
       return null;
     },
     // A click on a cat. Peevers bolts the first time; after that each click is the next trick.

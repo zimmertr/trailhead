@@ -119,3 +119,74 @@ export function ago(iso, now = new Date()) {
   const d = Math.max(0, Math.round((now - new Date(iso + 'T12:00:00Z')) / 86400000));
   return d === 0 ? 'today' : d === 1 ? 'yesterday' : d < 60 ? d + ' days ago' : d < 730 ? Math.round(d / 30) + ' months ago' : Math.round(d / 365) + ' years ago';
 }
+
+// The joke place names that stand as signs on the world map. terrain.js holds where each one stands.
+export const SIGNS = {
+  'scope-creep': 'Scope Creep Glacier', segfault: 'Segfault Scree', 'merge-conflict': 'Merge Conflict Col', 'yak-shave': 'Yak Shave Meadow', 'about-lake': 'About Lake, 2.4 km',
+  rollback: 'Rollback Basin', 'feature-flag': 'Feature Flag Tarns', hotfix: 'Hotfix Burn', postmortem: 'Postmortem Burn', 'cron-job': 'Cron Job Coulee', 'tech-debt': 'Tech Debt Badlands',
+  'off-by-one': 'Off By One Peak', dependency: 'Dependency Range', 'stack-trace': 'Stack Trace Thicket', monorepo: 'Monorepo Woods', 'cache-miss': 'Cache Miss Cove', latency: 'Latency Bay'
+};
+// The names of things you can point at inside a scene.
+export const NAMES = {
+  kiosk: 'Trail conditions',
+  cats: { tortie: 'Doot Doot', nebel: 'Peevers' },
+  forest: { sign: 'Legacy Grove', creek: 'Cache Miss Creek' },
+  lakeside: { sign: 'Cold Start Cove', marmot: 'Hoary marmot', plunge: 'Cold plunge' },
+  wall: { pika: 'Pika', ledge: 'Deadlock Ledge', roof: 'Rollback Roof', scree: 'Segfault Scree' },
+  climb: { crevasse: 'Tech Debt Crevasse', ridge: 'Race Condition Ridge' },
+  offroute: { wand: 'The only wand for miles' }
+};
+// Every joke place name, for the legend on the trail map.
+const PLACE_NAMES = [...Object.values(SIGNS).filter(n => !n.includes(',')), NAMES.forest.sign, NAMES.forest.creek, NAMES.lakeside.sign, NAMES.wall.ledge, NAMES.wall.roof, NAMES.climb.crevasse, NAMES.climb.ridge].filter((n, i, a) => a.indexOf(n) === i);
+
+// The music, in the order audio.js holds the tunes, and the three sets of instruments.
+export const TRACK_NAMES = ['Wildflower Meadow', 'Hall of Mosses', 'Granite Hours', 'Above the Icefall', 'Larch March', 'Tarn at Noon', 'Glissade'];
+export const SET_NAMES = ['Console', 'Handheld', 'Music box'];
+
+// The words of the interface itself: buttons, headings and messages. A function takes the numbers it needs.
+export const UI = {
+  name: 'TJ Zimmerman',
+  run: ['Start', 'Stop'], home: ['Trailhead', 'Camp'], sound: ['Sound on', 'Sound off'], theme: ['Dusk', 'Day'],
+  auto: name => 'Auto: ' + name,
+  pixels: (colours, w, h) => colours + ' colours, ' + w + ' x ' + h + ' pixels, every one drawn in code',
+  found: (name, n, of) => 'Found: ' + name + '. ' + n + ' of ' + of + ' on the kiosk checklist.',
+  allDone: 'All three destinations done. The summit register is open, on the trail map.',
+  fail: 'The world could not be drawn here. The trail map has everything as text.',
+  card: {
+    summit: top => 'On the summit: ' + top.toLowerCase(),
+    egg: top => 'Click ' + top.toLowerCase().replace(/^a /, 'the ') + ' up there.',
+    facts: ['Stars', 'Latest release', 'Language', 'License'], noRelease: 'none yet',
+    pitches: [['Pitch 1', 100, 'sent'], ['Pitch 2', 100, 'one fall, caught'], ['Pitch 3', 34, 'next']],
+    github: 'GitHub', climbed: 'climbed', walkOut: 'Walk out to the Trailhead', glissade: 'Glissade to camp'
+  },
+  marks: { camp: 'Base camp', trailhead: 'Trailhead', summit: 'Summit' },
+  keys: { title: 'Keys', note: 'Everything also works by touch.' },
+  map: {
+    title: 'Trailhead', sub: 'TJ Zimmerman, Seattle, Washington',
+    // The dots on the trail map take a card's title or a project's name, except these.
+    dots: { summit: 'The summit', 'base-camp': 'Base camp' },
+    lake: ['About Lake', km => km + ' km loop, on foot'], stack: ['The Stack', km => km + ' km in, three pitches up'], spires: ['Sideproject Spires', km => km + ' km to base camp, six summits'],
+    elsewhere: 'TJ elsewhere', onMap: 'On this map', plain: 'Read as a page',
+    settings: 'Settings', sound: 'Sound', onOff: ['on', 'off'], music: 'Music', playedOn: 'Played on', dusk: 'Day or dusk', clear: 'Clear my flags', cleared: 'Flags and footprints cleared.',
+    legend: 'The small signs in the world carry names: ' + PLACE_NAMES.slice(0, -1).join(', ') + ' and ' + PLACE_NAMES[PLACE_NAMES.length - 1] + '.'
+  },
+  kiosk: {
+    title: 'Trail conditions', sub: 'Posted at the Trailhead kiosk', version: 'Running version', deployed: 'Deployed', uptime: 'Uptime',
+    up: s => s < 90 ? s + ' seconds' : Math.round(s / 60) + ' minutes',
+    status: ['Status', 'All trails open'], open: 'Open', lakeDone: 'Run. Flag flying.', stackDone: 'Climbed. Flag flying.', summits: n => n + ' of 6 summits',
+    wildlife: ['Wildlife', 'Elk, a bear, goats, bighorn sheep, a whale, two cats'],
+    checklist: (n, of) => 'Field checklist: ' + n + ' of ' + of + ' found', notFound: 'Not found yet', got: 'Found'
+  },
+  register: {
+    title: 'Summit register', sub: 'You did all three. Sign in.', open: 'open', locked: 'locked',
+    lockedSay: 'The summit register opens once all three destinations are done.',
+    pending: 'waiting for TJ to approve it', signed: 'Signed. Your entry waits for TJ to approve it.',
+    yourName: 'Your name', yourNote: 'A note for the register', sign: 'Sign the register', mock: 'This is a mock. Entries stay in this browser.'
+  },
+  plain: {
+    back: 'Back to the world',
+    mapAlt: 'The map of the world: a lake in a forest, a granite wall and six glaciated summits around a trailhead',
+    facts: (stars, release, language, license) => stars + ' stars, ' + release + ', ' + language + ', ' + license,
+    released: (version, when) => version + ' released ' + when, noRelease: 'no release yet'
+  }
+};

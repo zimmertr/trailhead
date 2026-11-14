@@ -2,7 +2,7 @@
 // sheets that open over it (trail map, kiosk, register, keys, plain page).
 import { mount } from './pixel.js';
 import { makeAudio } from './audio.js';
-import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, ago } from './content.js';
+import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, UI, ago } from './content.js';
 import { OX, OY } from './terrain.js';
 
 const $ = id => document.getElementById(id);
@@ -22,29 +22,29 @@ function showCard(id) {
   const c = CARDS[id], pr = projectOf(id); if (!c && !pr) return;
   shown = id;
   card.dataset.kind = pr ? 'project' : c.kind;
-  $('card-from').textContent = pr ? 'On the summit: ' + pr.top.toLowerCase() : c.from;
+  $('card-from').textContent = pr ? UI.card.summit(pr.top) : c.from;
   $('card-title').textContent = pr ? pr.name : c.title;
   const body = $('card-body'); body.replaceChildren(...(pr ? pr.body : c.body).map(t => el('p', { text: t })));
   if (c && c.aside) body.append(el('p', { class: 'aside', text: c.aside }));
   const facts = $('card-facts'); facts.replaceChildren(); facts.hidden = !pr;
-  if (pr) for (const [k, v] of [['Stars', String(pr.stars)], ['Latest release', pr.release ? pr.release + ', ' + ago(pr.released) : 'none yet'], ['Language', pr.language], ['License', pr.license]]) facts.append(el('dt', { text: k }), el('dd', { text: v }));
+  if (pr) for (const [k, v] of [[UI.card.facts[0], String(pr.stars)], [UI.card.facts[1], pr.release ? pr.release + ', ' + ago(pr.released) : UI.card.noRelease], [UI.card.facts[2], pr.language], [UI.card.facts[3], pr.license]]) facts.append(el('dt', { text: k }), el('dd', { text: v }));
   const gauges = $('card-gauges'); gauges.replaceChildren(); gauges.hidden = !(c && c.kind === 'watch');
-  if (c && c.kind === 'watch') for (const [k, w, v] of [['Pitch 1', 100, 'sent'], ['Pitch 2', 100, 'one fall, caught'], ['Pitch 3', 34, 'next']]) gauges.append(el('span', { text: k }), el('i', { style: 'width:' + w + '%' }), el('span', { text: v }));
+  if (c && c.kind === 'watch') for (const [k, w, v] of UI.card.pitches) gauges.append(el('span', { text: k }), el('i', { style: 'width:' + w + '%' }), el('span', { text: v }));
   const tools = $('card-tools'); tools.replaceChildren(...((c && c.tools) || []).map(t => el('li', { text: t }))); tools.hidden = !(c && c.tools);
   const links = $('card-links'); links.replaceChildren();
-  if (pr) { links.append(el('li', {}, el('a', { href: 'https://github.com/' + pr.repo, target: '_blank', rel: 'noopener', text: 'GitHub' }))); if (pr.site) links.append(el('li', {}, el('a', { href: pr.site, target: '_blank', rel: 'noopener', text: pr.site.replace('https://', '') }))); for (const [n, h] of pr.extra || []) links.append(el('li', {}, el('a', { href: h, target: '_blank', rel: 'noopener', text: n }))); }
+  if (pr) { links.append(el('li', {}, el('a', { href: 'https://github.com/' + pr.repo, target: '_blank', rel: 'noopener', text: UI.card.github }))); if (pr.site) links.append(el('li', {}, el('a', { href: pr.site, target: '_blank', rel: 'noopener', text: pr.site.replace('https://', '') }))); for (const [n, h] of pr.extra || []) links.append(el('li', {}, el('a', { href: h, target: '_blank', rel: 'noopener', text: n }))); }
   else for (const k of c.links) links.append(linkLi(k));
   links.hidden = !links.children.length;
   // Base camp is a menu: one plank per summit, and the way out.
   const menu = $('card-menu'); menu.replaceChildren(); menu.hidden = id !== 'base-camp';
   if (id === 'base-camp') {
     const done = api.done();
-    for (const s of SPIRE_ORDER) menu.append(el('li', {}, el('button', { class: 'plank choice', onclick: () => climb(s) }, el('i', { class: 'arrow up' }), el('span', { text: PROJECTS[s].name }), el('small', { text: done['spire:' + s] ? 'climbed' : '' }))));
-    menu.append(el('li', {}, el('button', { class: 'plank choice', onclick: walkOut }, el('i', { class: 'arrow left' }), el('span', { text: 'Walk out to the Trailhead' }))));
+    for (const s of SPIRE_ORDER) menu.append(el('li', {}, el('button', { class: 'plank choice', onclick: () => climb(s) }, el('i', { class: 'arrow up' }), el('span', { text: PROJECTS[s].name }), el('small', { text: done['spire:' + s] ? UI.card.climbed : '' }))));
+    menu.append(el('li', {}, el('button', { class: 'plank choice', onclick: walkOut }, el('i', { class: 'arrow left' }), el('span', { text: UI.card.walkOut }))));
   }
-  $('card-egg').hidden = !pr; if (pr) $('card-egg').textContent = 'Click ' + pr.top.toLowerCase().replace(/^a /, 'the ') + ' up there.';
+  $('card-egg').hidden = !pr; if (pr) $('card-egg').textContent = UI.card.egg(pr.top);
   $('card-draft').hidden = !((c && c.draft) || (pr && false));
-  const go = $('card-go'); go.hidden = id === 'base-camp'; go.querySelector('span').textContent = pr ? 'Glissade to camp' : c.go || '';
+  const go = $('card-go'); go.hidden = id === 'base-camp'; go.querySelector('span').textContent = pr ? UI.card.glissade : c.go || '';
   card.hidden = false; card.scrollTop = 0; audio.focus(1);
   setAddress(slugOf(id));
   audio.sfx(id === 'summit' ? 'summit' : pr ? 'flag' : 'stop');
@@ -62,11 +62,11 @@ function say(text, ms = 4200) { toast.textContent = text; toast.hidden = false; 
 function buildMarks() {
   const marks = $('marks'); marks.replaceChildren();
   const r = api.route(), stops = api.stops();
-  const all = [{ at: 0, label: r.startsWith('spire:') || r === 'spires-home' ? 'Base camp' : 'Trailhead' }, ...stops.filter(s => s.at < 0.995).map(s => ({ at: s.at, label: LABELS[s.id] || (PROJECTS[s.id] ? 'Summit' : s.id) })), { at: 1, label: r.startsWith('spire:') ? 'Base camp' : ENDS[r] || 'Trailhead' }];
+  const all = [{ at: 0, label: r.startsWith('spire:') || r === 'spires-home' ? UI.marks.camp : UI.marks.trailhead }, ...stops.filter(s => s.at < 0.995).map(s => ({ at: s.at, label: LABELS[s.id] || (PROJECTS[s.id] ? UI.marks.summit : s.id) })), { at: 1, label: r.startsWith('spire:') ? UI.marks.camp : ENDS[r] || UI.marks.trailhead }];
   for (const m of all) marks.append(el('span', { class: 'mark' + (m.at === 0 ? ' first' : m.at === 1 ? ' last' : ''), style: 'left:' + (m.at * 100) + '%', 'data-at': m.at, text: m.label }));
   profile = api.profile(160);
   nudgeMarks();
-  $('home').textContent = r.startsWith('spire:') ? 'Camp' : 'Trailhead';
+  $('home').textContent = UI.home[r.startsWith('spire:') ? 1 : 0];
 }
 // Labels of milestones that sit close together are pushed apart, left to right.
 function nudgeMarks() {
@@ -114,7 +114,7 @@ function openSheet(name) {
   if (name === 'map') body.append(...trailMap());
   else if (name === 'kiosk') body.append(...kiosk());
   else if (name === 'register') body.append(...register());
-  else body.append(el('div', { class: 'band' }, el('h2', { text: 'Keys' }), el('p', { text: 'Everything also works by touch.' })), el('dl', { class: 'keys' }, ...HELP.flatMap(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })])));
+  else body.append(el('div', { class: 'band' }, el('h2', { text: UI.keys.title }), el('p', { text: UI.keys.note })), el('dl', { class: 'keys' }, ...HELP.flatMap(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })])));
   sheet.hidden = false; audio.sfx('open'); audio.focus(2); $('close').focus();
 }
 function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; sheetName = null; audio.sfx('close'); audio.focus(shown ? 1 : 0); } }
@@ -122,64 +122,64 @@ function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; sheetName = nu
 // Where each milestone sits on the brochure map, in world pixels.
 const MAP = { x: 236, y: 204, w: 600, h: 372 };
 const DOTS = [
-  ['', 'Trailhead', 560, 470, true], ['who', 'Who TJ is', 352, 526], ['mountains', 'In the mountains', 384, 396], ['note', 'A personal note', 446, 374],
-  ['platform-engineering', 'Platform Engineering', 545, 366], ['site-reliability-engineering', 'Site Reliability Engineering', 545, 338], ['software-engineering', 'Software Engineering', 545, 308], ['summit', 'The summit', 545, 272],
-  ['base-camp', 'Base camp', 676, 410], ['bluebird', 'Bluebird Forecast', 703, 229], ['tks', 'TJs-Kubernetes-Service', 732, 253], ['hevy-garmin-sync', 'hevy-garmin-sync', 675, 271], ['trailhead', 'trailhead', 759, 279], ['yggdrasil', 'yggdrasil', 649, 302], ['kubernetes-manifests', 'Kubernetes-Manifests', 782, 306]
+  ['', 560, 470, true], ['who', 352, 526], ['mountains', 384, 396], ['note', 446, 374],
+  ['platform-engineering', 545, 366], ['site-reliability-engineering', 545, 338], ['software-engineering', 545, 308], ['summit', 545, 272],
+  ['base-camp', 676, 410], ['bluebird', 703, 229], ['tks', 732, 253], ['hevy-garmin-sync', 675, 271], ['trailhead', 759, 279], ['yggdrasil', 649, 302], ['kubernetes-manifests', 782, 306]
 ];
 function trailMap() {
   const box = el('div', { class: 'mapbox', style: `aspect-ratio:${MAP.w}/${MAP.h}` }), cv = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); box.append(cv);
-  for (const [id, name, x, y, big] of DOTS) box.append(el('button', { class: 'dot' + (big ? ' big' : ''), style: `left:${(x - MAP.x) / MAP.w * 100}%;top:${(y - MAP.y) / MAP.h * 100}%`, 'aria-label': name, onclick: () => navigate('#' + slugOf(id)) }, el('span', { text: name })));
+  for (const [id, x, y, big] of DOTS) { const name = id === '' ? UI.map.title : UI.map.dots[id] || (CARDS[id] ? CARDS[id].title : PROJECTS[id].name); box.append(el('button', { class: 'dot' + (big ? ' big' : ''), style: `left:${(x - MAP.x) / MAP.w * 100}%;top:${(y - MAP.y) / MAP.h * 100}%`, 'aria-label': name, onclick: () => navigate('#' + slugOf(id)) }, el('span', { text: name }))); }
   // Under the map, the same places as words: every milestone is a link.
   const lengths = api.info().lengths, list = ids => el('ul', {}, ...ids.map(id => el('li', {}, el('button', { text: CARDS[id] ? CARDS[id].title : PROJECTS[id].name, onclick: () => navigate('#' + slugOf(id)) }))));
   const key = el('div', { class: 'key' },
-    el('div', {}, el('h3', { text: 'About Lake' }), el('small', { text: lengths.lake + ' km loop, on foot' }), list(['who', 'mountains', 'note'])),
-    el('div', {}, el('h3', { text: 'The Stack' }), el('small', { text: lengths.stack + ' km in, three pitches up' }), list(['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'])),
-    el('div', {}, el('h3', { text: 'Sideproject Spires' }), el('small', { text: lengths.spires + ' km to base camp, six summits' }), list(SPIRE_ORDER)));
+    el('div', {}, el('h3', { text: UI.map.lake[0] }), el('small', { text: UI.map.lake[1](lengths.lake) }), list(['who', 'mountains', 'note'])),
+    el('div', {}, el('h3', { text: UI.map.stack[0] }), el('small', { text: UI.map.stack[1](lengths.stack) }), list(['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'])),
+    el('div', {}, el('h3', { text: UI.map.spires[0] }), el('small', { text: UI.map.spires[1](lengths.spires) }), list(SPIRE_ORDER)));
   const done = api.done(), all = done.lake && done.stack && done.spires;
   const side = el('div', { class: 'side' },
-    el('h3', { text: 'TJ elsewhere' }), el('ul', { class: 'links' }, ...['resume', 'linkedin', 'github', 'strava', 'peakbagger', 'mountainproject'].map(linkLi)),
-    el('h3', { text: 'On this map' }),
-    el('button', { class: 'plank', onclick: () => navigate('#plain') }, el('span', { text: 'Read as a page' })),
-    el('button', { class: 'plank', onclick: () => navigate('#kiosk') }, el('span', { text: 'Trail conditions' })),
-    el('button', { class: 'plank', onclick: () => { if (all) navigate('#register'); else { audio.sfx('locked'); say('The summit register opens once all three destinations are done.'); } } }, el('span', { text: 'Summit register' }), el('small', { text: all ? 'open' : 'locked' })),
-    el('h3', { text: 'Settings' }),
-    el('button', { class: 'plank', onclick: e => { toggleSound(); e.currentTarget.querySelector('small').textContent = audio.muted() ? 'off' : 'on'; } }, el('span', { text: 'Sound' }), el('small', { text: audio.muted() ? 'off' : 'on' })),
-    el('button', { class: 'plank', onclick: e => { nextTrack(); e.currentTarget.querySelector('small').textContent = trackName(); } }, el('span', { text: 'Music' }), el('small', { text: trackName() })),
-    el('button', { class: 'plank', onclick: e => { audio.start(); e.currentTarget.querySelector('small').textContent = audio.setSet(audio.set().index + 1); audio.sfx('flag'); } }, el('span', { text: 'Played on' }), el('small', { text: audio.set().name })),
-    el('button', { class: 'plank', onclick: () => { toggleDusk(); } }, el('span', { text: 'Day or dusk' })),
-    el('button', { class: 'plank', onclick: () => { api.forget(); say('Flags and footprints cleared.'); closeSheet(); } }, el('span', { text: 'Clear my flags' })),
-    el('p', { class: 'legend', text: 'Small names on the map are real signs in the world: Scope Creep Glacier, Segfault Scree, Merge Conflict Col, Yak Shave Meadow, Cache Miss Creek, Legacy Grove, Cold Start Cove, Deadlock Ledge, Rollback Roof, Tech Debt Crevasse and Race Condition Ridge.' }));
-  return [el('div', { class: 'band' }, el('h2', { text: 'Trailhead' }), el('p', { text: 'TJ Zimmerman, Seattle, Washington' })), el('div', { class: 'cols' }, el('div', {}, box, key), side)];
+    el('h3', { text: UI.map.elsewhere }), el('ul', { class: 'links' }, ...['resume', 'linkedin', 'github', 'strava', 'peakbagger', 'mountainproject'].map(linkLi)),
+    el('h3', { text: UI.map.onMap }),
+    el('button', { class: 'plank', onclick: () => navigate('#plain') }, el('span', { text: UI.map.plain })),
+    el('button', { class: 'plank', onclick: () => navigate('#kiosk') }, el('span', { text: UI.kiosk.title })),
+    el('button', { class: 'plank', onclick: () => { if (all) navigate('#register'); else { audio.sfx('locked'); say(UI.register.lockedSay); } } }, el('span', { text: UI.register.title }), el('small', { text: all ? UI.register.open : UI.register.locked })),
+    el('h3', { text: UI.map.settings }),
+    el('button', { class: 'plank', onclick: e => { toggleSound(); e.currentTarget.querySelector('small').textContent = UI.map.onOff[audio.muted() ? 1 : 0]; } }, el('span', { text: UI.map.sound }), el('small', { text: UI.map.onOff[audio.muted() ? 1 : 0] })),
+    el('button', { class: 'plank', onclick: e => { nextTrack(); e.currentTarget.querySelector('small').textContent = trackName(); } }, el('span', { text: UI.map.music }), el('small', { text: trackName() })),
+    el('button', { class: 'plank', onclick: e => { audio.start(); e.currentTarget.querySelector('small').textContent = audio.setSet(audio.set().index + 1); audio.sfx('flag'); } }, el('span', { text: UI.map.playedOn }), el('small', { text: audio.set().name })),
+    el('button', { class: 'plank', onclick: () => { toggleDusk(); } }, el('span', { text: UI.map.dusk })),
+    el('button', { class: 'plank', onclick: () => { api.forget(); say(UI.map.cleared); closeSheet(); } }, el('span', { text: UI.map.clear })),
+    el('p', { class: 'legend', text: UI.map.legend }));
+  return [el('div', { class: 'band' }, el('h2', { text: UI.map.title }), el('p', { text: UI.map.sub })), el('div', { class: 'cols' }, el('div', {}, box, key), side)];
 }
 function kiosk() {
   api.find('kiosk');
   const done = api.done(), up = Math.round((Date.now() - BUILT) / 1000), found = api.found(), ids = Object.keys(FINDS);
   const cell = (k, v, cls) => el('div', {}, el('dt', { text: k }), el('dd', { class: cls || '', text: v }));
-  return [el('div', { class: 'band' }, el('h2', { text: 'Trail conditions' }), el('p', { text: 'Posted at the Trailhead kiosk' })),
-    el('dl', { class: 'board' }, cell('Running version', VERSION), cell('Deployed', BUILT.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })), cell('Uptime', up < 90 ? up + ' seconds' : Math.round(up / 60) + ' minutes'), cell('Status', 'All trails open', 'open'),
-      cell('About Lake', done.lake ? 'Run. Flag flying.' : 'Open'), cell('The Stack', done.stack ? 'Climbed. Flag flying.' : 'Open'), cell('Sideproject Spires', SPIRE_ORDER.filter(s => done['spire:' + s]).length + ' of 6 summits'), cell('Wildlife', 'Elk, a bear, two cats')),
-    el('h3', { text: 'Field checklist: ' + ids.filter(k => found[k]).length + ' of ' + ids.length + ' found' }),
-    el('ul', { class: 'checks' }, ...ids.map(k => el('li', { class: found[k] ? 'got' : '' }, el('b', { text: found[k] ? FINDS[k][0] : 'Not found yet' }), el('span', { text: found[k] ? 'Found' : FINDS[k][1] }))))];
+  return [el('div', { class: 'band' }, el('h2', { text: UI.kiosk.title }), el('p', { text: UI.kiosk.sub })),
+    el('dl', { class: 'board' }, cell(UI.kiosk.version, VERSION), cell(UI.kiosk.deployed, BUILT.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })), cell(UI.kiosk.uptime, UI.kiosk.up(up)), cell(UI.kiosk.status[0], UI.kiosk.status[1], 'open'),
+      cell(UI.map.lake[0], done.lake ? UI.kiosk.lakeDone : UI.kiosk.open), cell(UI.map.stack[0], done.stack ? UI.kiosk.stackDone : UI.kiosk.open), cell(UI.map.spires[0], UI.kiosk.summits(SPIRE_ORDER.filter(s => done['spire:' + s]).length)), cell(UI.kiosk.wildlife[0], UI.kiosk.wildlife[1])),
+    el('h3', { text: UI.kiosk.checklist(ids.filter(k => found[k]).length, ids.length) }),
+    el('ul', { class: 'checks' }, ...ids.map(k => el('li', { class: found[k] ? 'got' : '' }, el('b', { text: found[k] ? FINDS[k][0] : UI.kiosk.notFound }), el('span', { text: found[k] ? UI.kiosk.got : FINDS[k][1] }))))];
 }
 function register() {
   let mine = []; try { mine = JSON.parse(localStorage.getItem('trailhead.register') || '[]'); } catch { mine = []; }
-  const list = el('ul', { class: 'entries' }, ...REGISTER.map(e => el('li', {}, el('b', { text: e.name }), el('time', { text: e.date }), el('p', { text: e.note }))), ...mine.map(e => el('li', {}, el('b', { text: e.name }), el('span', { class: 'pending', text: 'waiting for TJ to approve it' }), el('p', { text: e.note }))));
+  const list = el('ul', { class: 'entries' }, ...REGISTER.map(e => el('li', {}, el('b', { text: e.name }), el('time', { text: e.date }), el('p', { text: e.note }))), ...mine.map(e => el('li', {}, el('b', { text: e.name }), el('span', { class: 'pending', text: UI.register.pending }), el('p', { text: e.note }))));
   const name = el('input', { id: 'reg-name', maxlength: 40, required: '' }), note = el('textarea', { id: 'reg-note', rows: 3, maxlength: 240, required: '' });
-  const form = el('form', { onsubmit: e => { e.preventDefault(); mine.push({ name: name.value, note: note.value }); try { localStorage.setItem('trailhead.register', JSON.stringify(mine)); } catch { /* private window */ } audio.sfx('flag'); say('Signed. Your entry waits for TJ to approve it.'); openSheet('register'); } },
-    el('label', { for: 'reg-name', text: 'Your name' }), name, el('label', { for: 'reg-note', text: 'A note for the register' }), note, el('button', { class: 'plank', type: 'submit' }, el('span', { text: 'Sign the register' })), el('p', { class: 'legend', text: 'This is a mock. Entries stay in this browser.' }));
-  return [el('div', { class: 'band' }, el('h2', { text: 'Summit register' }), el('p', { text: 'You did all three. Sign in.' })), list, form];
+  const form = el('form', { onsubmit: e => { e.preventDefault(); mine.push({ name: name.value, note: note.value }); try { localStorage.setItem('trailhead.register', JSON.stringify(mine)); } catch { /* private window */ } audio.sfx('flag'); say(UI.register.signed); openSheet('register'); } },
+    el('label', { for: 'reg-name', text: UI.register.yourName }), name, el('label', { for: 'reg-note', text: UI.register.yourNote }), note, el('button', { class: 'plank', type: 'submit' }, el('span', { text: UI.register.sign })), el('p', { class: 'legend', text: UI.register.mock }));
+  return [el('div', { class: 'band' }, el('h2', { text: UI.register.title }), el('p', { text: UI.register.sub })), list, form];
 }
-function checkRegister() { const d = api.done(); if (d.lake && d.stack && d.spires) { let told = false; try { told = localStorage.getItem('trailhead.told') === '1'; localStorage.setItem('trailhead.told', '1'); } catch { /* private window */ } if (!told) { audio.sfx('unlock'); say('All three destinations done. The summit register is open, on the trail map.', 7000); } } }
+function checkRegister() { const d = api.done(); if (d.lake && d.stack && d.spires) { let told = false; try { told = localStorage.getItem('trailhead.told') === '1'; localStorage.setItem('trailhead.told', '1'); } catch { /* private window */ } if (!told) { audio.sfx('unlock'); say(UI.allDone, 7000); } } }
 
 // The whole site as one page of text, for reading or for anything that cannot draw the world.
 function openPlain() {
   const sec = (title, ...kids) => [el('h3', { text: title }), ...kids];
   const cardOut = id => { const c = CARDS[id]; return [el('h4', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null]; };
-  const still = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', 'The map of the world: a lake in a forest, a granite wall and six glaciated summits around a trailhead');
-  plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: 'Trailhead' }), el('button', { class: 'plank', onclick: () => navigate('') }, el('span', { text: 'Back to the world' }))),
-    el('div', { class: 'wrap' }, el('h1', { text: 'TJ Zimmerman' }), still,
-      ...sec('About Lake', ...['who', 'mountains', 'note'].flatMap(cardOut)), ...sec('The Stack', ...['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'].flatMap(cardOut)),
-      ...sec('Sideproject Spires', ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h4', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: `${p.stars} stars, ${p.release ? p.release + ' released ' + ago(p.released) : 'no release yet'}, ${p.language}, ${p.license}` }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, text: 'github.com/' + p.repo })))]; }))));
+  const still = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', UI.plain.mapAlt);
+  plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: UI.map.title }), el('button', { class: 'plank', onclick: () => navigate('') }, el('span', { text: UI.plain.back }))),
+    el('div', { class: 'wrap' }, el('h1', { text: UI.name }), still,
+      ...sec(UI.map.lake[0], ...['who', 'mountains', 'note'].flatMap(cardOut)), ...sec(UI.map.stack[0], ...['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'].flatMap(cardOut)),
+      ...sec(UI.map.spires[0], ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h4', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: UI.plain.facts(p.stars, p.release ? UI.plain.released(p.release, ago(p.released)) : UI.plain.noRelease, p.language, p.license) }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, text: 'github.com/' + p.repo })))]; }))));
   plain.hidden = false; plain.scrollTop = 0; api.stop();
 }
 function closePlain() { plain.hidden = true; }
@@ -188,10 +188,10 @@ function closePlain() { plain.hidden = true; }
 
 function toggleSound() { audio.start(); audio.setMuted(!audio.muted()); syncTop(); if (!audio.muted()) audio.sfx('select'); }
 let lastScene = 'world';
-const trackName = () => { const k = audio.track(); return k.auto ? 'Auto: ' + k.name : k.name; };
+const trackName = () => { const k = audio.track(); return k.auto ? UI.auto(k.name) : k.name; };
 function nextTrack() { audio.start(); if (audio.muted()) audio.setMuted(false); audio.cycle(); syncTop(); }
 function toggleDusk() { api.setTheme(api.theme() === 'dark' ? 'light' : 'dark'); syncTop(); audio.sfx('select'); if (api.theme() === 'dark') setTimeout(() => api.find('dusk'), 2500); try { localStorage.setItem('trailhead.theme', api.theme()); } catch { /* private window */ } }
-function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = trackName(); $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? 'Sound off' : 'Sound on'; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = api.theme() === 'dark' ? 'Day' : 'Dusk'; }
+function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = trackName(); $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = UI.sound[audio.muted() ? 1 : 0]; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = UI.theme[api.theme() === 'dark' ? 1 : 0]; }
 
 // The pointer is drawn like everything else: an arrow in the sprites' ink, yellow over anything
 // that can be pressed.
@@ -213,7 +213,7 @@ try {
       else if (e.type === 'sfx') audio.sfx(e.name);
       else if (e.type === 'scene') { audio.ambience(e.name); audio.place(e.name === 'world' && lastScene !== 'world' ? 'out' : e.name); lastScene = e.name; syncTop(); }
       else if (e.type === 'say') say(e.text);
-      else if (e.type === 'found' && FINDS[e.id]) { const n = Object.keys(api ? api.found() : {}).filter(k => FINDS[k]).length; if (e.id !== 'kiosk') { say('Found: ' + FINDS[e.id][0] + '. ' + n + ' of ' + Object.keys(FINDS).length + ' on the kiosk checklist.', 5200); audio.sfx('egg'); } }
+      else if (e.type === 'found' && FINDS[e.id]) { const n = Object.keys(api ? api.found() : {}).filter(k => FINDS[k]).length; if (e.id !== 'kiosk') { say(UI.found(FINDS[e.id][0], n, Object.keys(FINDS).length), 5200); audio.sfx('egg'); } }
       else if (e.type === 'hover') { tip.hidden = !e.label; if (e.label) { tip.textContent = e.label; tip.style.left = e.x + 'px'; tip.style.top = (e.y - 4) + 'px'; if (e.tap) { clearTimeout(tip._t); tip._t = setTimeout(() => { tip.hidden = true; }, 2200); } } }
       else if (e.type === 'act') { if (e.id === 'kiosk') openSheet('kiosk'); else if (e.id.startsWith('spire:')) climb(e.id.slice(6)); }
     }
@@ -244,7 +244,7 @@ try {
   window.__ready = true;
   try { console.log(...CONSOLE); } catch { /* no console */ }
 } catch (err) {
-  status.textContent = 'The world could not be drawn here. The trail map has everything as text.';
+  status.textContent = UI.fail;
   throw err;
 }
 
@@ -287,7 +287,7 @@ const names = $('names'); let nameKey = '';
   drawProfile(p);
   $('thumb').setAttribute('aria-valuenow', Math.round(p * 100));
   document.querySelectorAll('.mark').forEach(d => d.classList.toggle('passed', +d.dataset.at <= p + 0.001));
-  $('run').textContent = running ? 'Stop' : 'Start';
+  $('run').textContent = UI.run[running ? 1 : 0];
   fork.hidden = running || p > 0.002 || shown != null || api.route() !== 'lake';
   // The six summits carry their names at base camp.
   const labels = sheet.hidden && plain.hidden ? api.labels() : [], key = labels.map(l => l.id + Math.round(l.x) + ',' + Math.round(l.y)).join('|');

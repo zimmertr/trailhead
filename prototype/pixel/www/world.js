@@ -2,6 +2,7 @@
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
 import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
 import { makeCritters } from './critters.js';
+import { SIGNS, NAMES } from './content.js';
 import { makeCats } from './cats.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, NW as WW, NH as WH, T, PEAK as PEAK_AT, STACK as STACK_AT, SPIRES as SPIRES_AT } from './terrain.js';
@@ -232,9 +233,9 @@ export function makeWorld() {
     // What is under a point of the screen: a sign with a name, the kiosk, a cat.
     pick(sx, sy) {
       const wx = sx + last.ox, wy = sy + last.oy;
-      for (const s of spots.signs) if (Math.abs(wx - s[0]) < 8 && wy > s[1] - 17 && wy < s[1] + 3) return { label: s[2], x: s[0] - last.ox, y: s[1] - 18 - last.oy };
+      for (const s of spots.signs) if (Math.abs(wx - s[0]) < 8 && wy > s[1] - 17 && wy < s[1] + 3) return { label: SIGNS[s[2]], x: s[0] - last.ox, y: s[1] - 18 - last.oy };
       const c = kit.pick(wx, wy); if (c) return { label: c.label, x: c.wx - last.ox, y: c.wy - last.oy, act: c.act };
-      { const [kx, ky] = spots.kiosk; if (Math.abs(wx - kx) < 14 && wy > ky - 27 && wy < ky + 3) return { label: 'Trail conditions', x: kx - last.ox, y: ky - 27 - last.oy, act: 'kiosk' }; }
+      { const [kx, ky] = spots.kiosk; if (Math.abs(wx - kx) < 14 && wy > ky - 27 && wy < ky + 3) return { label: NAMES.kiosk, x: kx - last.ox, y: ky - 27 - last.oy, act: 'kiosk' }; }
       return null;
     },
     act(id, env) { return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },

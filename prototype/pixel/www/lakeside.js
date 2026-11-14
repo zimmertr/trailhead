@@ -6,6 +6,7 @@ import { Strip, drawStrip, baseline } from './side.js';
 import { makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush } from './sprites.js';
 import { marmot, speck } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
+import { NAMES } from './content.js';
 
 const SW = 1640, X0 = 500, LEN = 624, DUR = 8;
 const D_MAP = 125, D_NOTE = 437, D_MARMOT = 276;
@@ -133,9 +134,9 @@ export function makeLakeside() {
     focus: () => focus,
     pick(sx, sy) {
       const wx = sx + last.camX, wy = sy - last.base;
-      if (Math.abs(wx - signX) < 8 && wy > g(signX) - 22 && wy < g(signX) - 2) return { label: 'Cold Start Cove', x: signX - last.camX, y: last.base + g(signX) - 24 };
-      if (Math.abs(wx - xMarmot) < 13 && wy > shore(xMarmot) - 32 && wy < shore(xMarmot) + 6) return { label: 'Hoary marmot', x: xMarmot - last.camX, y: last.base + shore(xMarmot) - 30, act: 'marmot' };
-      if (wy > FAR + 2 && wy < shore(wx) - 1) return { label: 'Cold plunge', x: sx, y: sy - 6, act: 'plunge' };
+      if (Math.abs(wx - signX) < 8 && wy > g(signX) - 22 && wy < g(signX) - 2) return { label: NAMES.lakeside.sign, x: signX - last.camX, y: last.base + g(signX) - 24 };
+      if (Math.abs(wx - xMarmot) < 13 && wy > shore(xMarmot) - 32 && wy < shore(xMarmot) + 6) return { label: NAMES.lakeside.marmot, x: xMarmot - last.camX, y: last.base + shore(xMarmot) - 30, act: 'marmot' };
+      if (wy > FAR + 2 && wy < shore(wx) - 1) return { label: NAMES.lakeside.plunge, x: sx, y: sy - 6, act: 'plunge' };
       return null;
     },
     act(id, env) {
