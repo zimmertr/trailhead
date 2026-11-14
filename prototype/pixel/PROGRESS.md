@@ -240,7 +240,7 @@ Scenes
 - [x] Base camp: a camp on a huge glacier under enormous walls, filling the frame. Cold, craggy, Patagonian. No landmass floating in the sky. The six summits keep their name tags and clicks.
 - [x] Kayti at base camp: long brown hair, painting with a small backpacking paint kit, her name on hover like the cats, no other text.
 - [x] The Stack: two people at the foot, a man with short black hair and a woman with long red hair. One belays, picked at random each visit, the other sits on a rock with a snack. The lead rope runs visibly from belayer through the gear to him, and both it and the rappel rope get a dark outline and a bright core.
-- [ ] About Lake: the forest's last stretch thins and brightens and the lake scene opens with the forest edge on its left. Try a straight scroll between the two in place of the round window; keep it only if it is better.
+- [x] About Lake: the forest's last stretch thins and brightens and the lake scene opens with the forest edge on its left. Try a straight scroll between the two in place of the round window; keep it only if it is better.
 - [ ] Cold plunge: he drops vest, shirt and shoes in a pile, wades in wearing shorts, then dresses again.
 
 Controls and the rest
@@ -304,3 +304,7 @@ Controls and the rest
 - The lead rope now starts in a pile at the belayer's feet, runs through both hands, up through every piece and on to him, and he is on it from the moment he walks in. During the rappel the belayer just stands and watches.
 - Both ropes are three pixels wide: a dark edge either side and a bright teal core with white flecks. The gear is drawn over the rope so it still shows.
 - The belayer is drawn at the climbing figure's size and the seated one at the walking figure's size, as he is himself in this scene, so the belayer is the bigger of the two.
+- About Lake, the scroll: kept. Forest and lake now scroll into one another in place of the round window. Both scenes are drawn side by side for 2.2 seconds while the view pans across, he keeps running, and one big tree in the foreground stands exactly on the join so it never shows. Scrubbing across the join does the same in half a second, in either direction. Every other scene change still uses the round window.
+- For the scroll to make sense he has to run the same way in both scenes, and the lake had to keep its forest on the left. So the forest is now shown mirrored: he runs left to right through it. Nothing in it moved relative to anything else. He stands a little right of the middle there, so the card at the trail sign stays clear of him on a narrower window.
+- The forest's last stretch thins and brightens: from just past the bear, more and more of the giant trunks are missing, the far trees give way to pale open light in clumps, and the ground lightens. The trail sign stop is still in thick forest.
+- The lake scene opens with the forest on its left: a wall of leaves closing off the water there, three giant trunks with mossy limbs reaching out over the shore, maples and sword ferns under them, and moss in place of meadow on the ground. A phone has room for one trunk, a maple and the overhanging leaves.

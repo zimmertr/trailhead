@@ -2,8 +2,9 @@
 // peak. He runs left to right along the near shore, stops for the view with the map out, and
 // again at the boulder where his journal lies open.
 import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, thick, windAt } from './core.js';
-import { Strip, drawStrip, baseline } from './side.js';
-import { makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush } from './sprites.js';
+import { Strip, drawStrip, blitTall, baseline, edgeTrunk } from './side.js';
+import { makeTrunk, makeLimb, swordFern } from './forest.js';
+import { makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush, makeMaple } from './sprites.js';
 import { marmot, speck } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
 import { NAMES } from './content.js';
@@ -14,6 +15,9 @@ const FAR = -50; // the far shore, measured up from the trail
 
 const shore = x => -9 + Math.round(2.5 * Math.sin(x / 37) + 3 * vnoise(x / 15, 3, 120));
 const g = x => Math.round(2 * Math.sin(x / 120 + 1));
+// How much forest there still is: 1 at the trees he has just left, 0 out on the open shore.
+const woodAt = x => smooth(X0 - 64, X0 - 190, x);
+const WX = X0 - 470, WW = 420, WUP = 760;
 
 // The peak: the same snowy pyramid that stands behind the lake on the map, now filling the sky.
 // One summit, long sweeping ridges with lesser tops on its shoulders, ridges fanning from the top,
@@ -79,6 +83,9 @@ export function makeLakeside() {
       else if (slab) c = Math.abs(frac(x / 31 + y / 11 + vnoise(x / 30, y / 30, 145)) - 0.5) < 0.016 ? R.rock[1] : fbm(x / 34, (y + 2) / 15, 141, 3) <= 0.6 - smooth(6, -8, r) * 0.25 ? R.rock[1] : pick('rock', 0.86 - (y - sy) * 0.0012 + 0.16 * (vnoise(x / 7, y / 4, 146) - 0.5), x, y, 0.5);
       else if (r < -3 && gravel > 0.5) c = pick('rock', 0.7 + 0.3 * (hash(x, y, 147) - 0.5), x, y);
       else c = pick('grass', 0.58 + 0.5 * (fbm(x / 22, y / 12, 148, 3) - 0.5) + 0.12 * (hash(x >> 1, y >> 1, 149) - 0.5) - smooth(60, 230, r) * 0.25, x, y, 0.3);
+      // Under the trees the ground is still the forest's: moss, no slabs, no gravel.
+      const wd = woodAt(x);
+      if (wd > 0 && y - sy >= 2 && !(r >= -3 && r <= 4) && hash(x, y, 331) < wd * 1.2 - 0.1) c = pick('moss', 0.36 + 0.3 * (fbm(x / 8, y / 5, 332, 3) - 0.5) + 0.08 * (1 - wd), x, y, 0.8);
       main.set(x, y, c);
     }
   }
@@ -113,6 +120,32 @@ export function makeLakeside() {
   things.push({ bm: noteRock, x: xNote + 15, y: g(xNote) - 4 });
   const signX = X0 + 40; things.push({ bm: makeSmallSign(), x: signX, y: g(signX) - 5 });
   const clouds = [0, 1, 2, 3].map(i => ({ bm: makeCloud(610 + i), x: i * 210, y: 30 + (i & 1) * 34 + i * 9, v: 2.5 + i }));
+
+  // The forest he has just come out of stands at the left: a wall of leaves closing off the lake
+  // there, three of the giants with their limbs reaching out over the shore, maples and ferns under them.
+  const woods = new Strip(WW, WUP, 10);
+  for (let col = 0; col < WW; col++) for (let y = -WUP; y < 10; y++) {
+    // The wall's edge is ragged, and leans out over the shore higher up.
+    const e = (col - 322) / 110 - 0.75 * smooth(-110, -250, y), n = fbm(col / 15, y / 19, 333, 3), m = (n - 0.5) * 0.9 - e;
+    if (m <= 0) continue;
+    // Boughs in clumps, each lit along its top and dark underneath.
+    const leaf = fbm(col / 5, y / 4, 334, 3), deep = smooth(0, 0.5, m), cl = fbm(col / 17, y / 11, 335, 3), up = fbm(col / 17, (y - 5) / 11, 335, 3);
+    woods.set(col, y, pick('moss', 0.4 - 0.2 * deep + 0.3 * (leaf - 0.5) + clamp((cl - up) * 1.6, -0.08, 0.1) + 0.16 * (cl - 0.5) + (m < 0.05 ? 0.16 : 0) - smooth(-60, 6, y) * 0.12, col, y, 0.8));
+  }
+  const re = rng(571), edge = [];
+  for (const [dx, w, by, limbs] of [[-262, 30, -8, [[1, 210, 52], [1, 128, 40]]], [-186, 24, -7, [[1, 168, 58], [-1, 250, 36]]], [-118, 18, -6, [[1, 142, 44]]]]) {
+    const x = X0 + dx, t = { bm: makeTrunk(1500 + dx, w, 300), x, y: g(x) + by, tall: true };
+    edge.push(t);
+    for (const [dir, up, len] of limbs) edge.push({ bm: makeLimb(2500 + dx + up, len, dir), x: x + dir * (w / 2 - 2), y: t.y - up, z: t.y + 0.1 });
+  }
+  const maples = [0, 1, 2].map(i => makeMaple(126 + i)), ferns = [7, 9, 12, 15].map((r, i) => swordFern(340 + i, r));
+  for (const [dx, k] of [[-226, 0], [-150, 1], [-88, 2]]) edge.push({ tree: maples[k], x: X0 + dx, y: g(X0 + dx) - 5 });
+  for (let n = 0; n < 44; n++) {
+    const x = Math.round(X0 - 330 + re() * 290), wd = woodAt(x), front = re() < 0.6, dy = front ? 7 + sq(re()) * 70 : -5 - re() * 2, k = re();
+    if (k > wd + 0.15) continue;
+    edge.push({ bm: ferns[Math.min(3, (front ? 1 + dy / 30 : 0) + re() * 1.5 | 0)], x, y: g(x) + Math.round(dy) });
+  }
+  things.push(...edge);
 
   const run = makeRunner('trail');
   const mapFig = sideFig('trail', { lean: 0, look: 'down', hands: [[5, 1], [4, 2]], elbowFwd: false, held: (b, sh) => { for (let y = 0; y < 5; y++) for (let x = 0; x < 6; x++) b.set(sh[0] + 4 + x, sh[1] - 1 + y, (x + y) % 4 === 1 ? R.moss[5] : x === 3 ? R.white[0] : R.white[1]); b.set(sh[0] + 6, sh[1] + 1, R.tarn[3]); b.set(sh[0] + 8, sh[1] + 2, R.red[1]); } });
@@ -199,6 +232,11 @@ export function makeLakeside() {
       }
       for (let k = 0; k < 3; k++) { const bx = ((t * 16 + k * 13) % (VW + 160)) - 80; scr.put(bird[(Math.floor(t * 4) + k) & 1], bx + [0, 9, -8][k], hor - 120 + [0, 5, 8][k] + 6 * Math.sin(t * 0.6), false); }
 
+      // The wall of the forest, over the water and the far shore.
+      for (let x = Math.max(0, WX - camX), x1 = Math.min(VW, WX + WW - camX); x < x1; x++) {
+        const col = camX + x - WX;
+        for (let y = 0, y1 = Math.min(VH, base + 10); y < y1; y++) { const c = woods.d[Math.max(0, y - base + WUP) * WW + col]; if (c) fb[y * VW + x] = c; }
+      }
       drawStrip(scr, main, camX, base, false, R.grass[1]);
 
       list.length = 0;
@@ -217,6 +255,7 @@ export function makeLakeside() {
         if (th.me) {
           const u = t - plunge;
           focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
+          if (env.hideMe) continue;
           if (u < 6.4) {
             // The cold plunge: up the bank, in with a splash, a few seconds of regret, and out again.
             const wy = base + shore(mx) - 7, inY = wy - 12;
@@ -236,8 +275,11 @@ export function makeLakeside() {
           scr.put(bm, sx, base + my + (snack ? 2 : 0), false);
         } else if (th.tree) {
           for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
-        } else scr.put(th.bm, sx, sy, th.flip);
+        } else if (th.tall) blitTall(scr, th.bm, sx - th.bm.ox, sy - th.bm.oy);
+        else scr.put(th.bm, sx, sy, th.flip);
       }
+      // The forest's last tree, in front of everything, at the left edge of where the scene opens.
+      edgeTrunk(scr, Math.round(xOf(0) - VW * anchor) - camX);
     }
   };
 }
