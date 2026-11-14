@@ -3,7 +3,7 @@
 // way: he sits down and glissades back to camp.
 import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, N, INK, SHADE, LIGHT, pick, BM, outline, disc, thick } from './core.js';
 import { Strip, drawStrip, baseline } from './side.js';
-import { makeTent, makeFlag, clump } from './sprites.js';
+import { makeTent, makeFlag, clump, makeCloud } from './sprites.js';
 import { bluebird, speck, goat } from './fauna.js';
 import { sideFig, frontFig } from './tj.js';
 
@@ -90,6 +90,7 @@ export function makeClimb() {
   const squirrel = (() => { const b = new BM(7, 5); b.ox = 3; b.oy = 4; b.set(1, 2, R.blaze[0]); b.set(2, 2, R.blaze[1]); b.set(3, 2, R.blaze[1]); b.set(4, 1, R.blaze[1]); b.set(5, 1, INK); b.set(0, 0, R.blaze[2]); b.set(0, 1, R.blaze[1]); b.set(1, 1, R.blaze[1]); b.set(2, 3, R.blaze[0]); b.set(4, 3, R.blaze[0]); return b; })();
 
   const st = {}, focus = { x: 0, y: 0 };
+  const clouds = [0, 1, 2, 3].map(i => ({ bm: makeCloud(640 + i), x: i * 170 + 40, y: 0.1 + (i % 3) * 0.13 + i * 0.02, v: 2.5 + i * 1.2 }));
   let cam = { x: 0, y: 0 }, last = { camX: 0, base: 0, id: '' }, egg = -99, hutGreen = -99;
   const get = id => { if (!strips[id]) strips[id] = paint(ROUTES[id], 250 + Object.keys(ROUTES).indexOf(id) * 13); return strips[id]; };
 
@@ -164,6 +165,8 @@ export function makeClimb() {
         for (let x = 0; x < VW; x++) fb[row + x] = storm > 0 && bayer(x, y) < storm * 1.6 - 0.5 * fbm((x + t * 40) / 70, y / 30, 253, 3) ? pick('rock', 0.2 + 0.55 * fbm((x + t * 60) / 110, y / 17, 254, 4) + 0.3 * y / VH, x, y, 1.1) : sb[Math.min(sb.length - 1, b0 + (e > 0.72 && bayer(x, y) < (e - 0.72) / 0.28 ? 1 : 0))];
       }
       st.storm = storm;
+      // Fair-weather cloud drifting high over the range, when there is sky to see.
+      if (storm < 0.3 && white < 0.3) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v - camX * 0.06) % (VW + 140) + VW + 140) % (VW + 140) - 70, c.y * VH * 0.5 + 12 + cam.y * 0.12);
       drawStrip(scr, far, 200 + camX * 0.15, base + 40 + cam.y * 0.8 + 30);
       drawStrip(scr, mid, 120 + camX * 0.42, base + cam.y * 0.55 + 46, false, 0);
       // A sea of cloud below the summits.
@@ -176,6 +179,11 @@ export function makeClimb() {
       }
       drawStrip(scr, S, camX, base, false, R.snow[1]);
       const X = x => Math.round(x + OFF - camX), Y = y => Math.round(base + y);
+      // His tracks stay in the snow behind him: boot prints on the way up, one long groove on the way down.
+      if (me.ph === 'up') { for (let x = -30; x < me.x - 3; x += 4) { if (cfg.gap && x > cfg.gap[0] - 6 && x < cfg.gap[1] + 6) continue; const y = hOf(pts, x), sl = hOf(pts, x + 2) - hOf(pts, x - 2); if (sl < -7) continue; scr.set(X(x), Y(y) + 2, R.snow[1]); scr.set(X(x) + 1, Y(y) + 2, R.snow[2]); } }
+      else if (me.mode === 'sit') for (let x = Math.ceil(me.x) + 4; x < 400; x++) { const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[2]); if (x & 1) scr.set(X(x), Y(y) + 3, R.snow[3]); }
+      // Spindrift blows off the top.
+      if (me.ph === 'up' && white < 0.3) for (let k = 0; k < 34; k++) { const a = frac(t * (0.5 + storm) + k / 34), x0 = SX + 38 + (k % 5) * 3, y0 = hOf(pts, x0) - 1; const x = X(x0 + a * (46 + 30 * storm) + 4 * Math.sin(a * 9 + k)), y = Y(y0 - a * 13 - 3 * Math.sin(a * 5 + k * 2)); if (bayer(x, y) > a * 0.9) scr.set(x, y, a < 0.4 ? R.white[1] : R.snow[3]); }
       // Snow driven flat across everything while the storm lasts.
       if (storm > 0.05) for (let k = 0; k < 150 * storm; k++) { const sp = 220 + hash(k, 1, 255) * 160, x = Math.round(VW + 20 - frac(hash(k, 2, 255) + t * sp / (VW + 40)) * (VW + 40)), y = Math.round(frac(hash(k, 3, 255) + t * 0.11) * VH), len = 2 + (k % 4); for (let j = 0; j < len; j++) scr.set(x + j, y - (j >> 2), j ? R.snow[3] : R.white[1]); }
 
