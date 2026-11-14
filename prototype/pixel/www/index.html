@@ -1,0 +1,210 @@
+<title>Trailhead Pixel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&display=swap">
+<style>
+/* The world fills the screen at whole-pixel scale. Every panel is a JRPG text window:
+   a deep blue gradient inside a pale double frame, sitting along the bottom of the screen. */
+:root {
+  --win-top: #2c45a8;
+  --win-bottom: #121a5a;
+  --frame: #eef1fb;
+  --frame-dark: #0c0f2a;
+  --frame-mid: #7d90dc;
+  --text: #f6f8ff;
+  --text-dim: #b8c2ec;
+  --cursor: #ffd84a;
+  --sky: #88aee6;
+  --font: 'Pixelify Sans', 'Courier New', monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--sky); color: var(--text); font-family: var(--font); font-size: 18px; line-height: 1.35; overflow: hidden; -webkit-font-smoothing: none; }
+canvas { position: fixed; left: 0; top: 0; display: block; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; }
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; padding: 0; }
+:focus-visible { outline: 3px solid var(--cursor); outline-offset: 2px; }
+
+.win {
+  background: linear-gradient(var(--win-top), var(--win-bottom));
+  border: 3px solid var(--frame);
+  border-radius: 7px;
+  box-shadow: 0 0 0 3px var(--frame-dark), inset 0 0 0 2px var(--frame-mid), 0 8px 0 3px rgba(12, 15, 42, .35);
+  text-shadow: 2px 2px 0 var(--frame-dark);
+}
+.win h1, .win h2 { margin: 0; font-weight: 700; line-height: 1.05; }
+.win h1 { font-size: 32px; }
+.win h2 { font-size: 26px; }
+.win p { margin: 0; max-width: 34em; }
+
+#fork, #card { position: fixed; z-index: 2; left: max(20px, env(safe-area-inset-left, 0px)); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: min(460px, calc(100% - 46px)); padding: 16px 20px 16px; display: flex; flex-direction: column; gap: 10px; }
+.menu { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.choice { position: relative; display: flex; justify-content: space-between; align-items: baseline; gap: 16px; width: 100%; padding: 4px 6px 4px 30px; text-align: left; font-size: 21px; }
+.choice span { color: var(--text-dim); font-size: 17px; white-space: nowrap; }
+.choice::before { content: ""; position: absolute; left: 6px; top: 50%; margin-top: -7px; width: 0; height: 0; border-left: 12px solid var(--cursor); border-top: 7px solid transparent; border-bottom: 7px solid transparent; opacity: 0; filter: drop-shadow(2px 2px 0 var(--frame-dark)); }
+.choice:hover::before, .choice:focus-visible::before, .choice.on::before { opacity: 1; }
+.choice:focus-visible { outline: none; }
+.draft { color: var(--text-dim); font-size: 15px; }
+.links { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; list-style: none; font-size: 17px; }
+.links li::before { content: "\25C6  "; color: var(--cursor); }
+.links a { color: inherit; }
+.go { align-self: flex-end; position: relative; padding: 2px 4px 2px 26px; font-size: 20px; }
+.go::before { content: ""; position: absolute; left: 4px; top: 50%; margin-top: -7px; border-left: 12px solid var(--cursor); border-top: 7px solid transparent; border-bottom: 7px solid transparent; animation: nudge .8s steps(2) infinite; }
+@keyframes nudge { 50% { transform: translateX(3px); } }
+
+#bar { position: fixed; z-index: 2; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); display: flex; align-items: center; gap: 14px; padding: 8px 14px; }
+#bar button { padding: 4px 12px; font-size: 19px; border: 2px solid var(--frame-mid); border-radius: 4px; white-space: nowrap; background: rgba(12, 15, 42, .35); }
+#bar button:hover { border-color: var(--frame); }
+#bar #run { min-width: 4.6em; color: var(--cursor); }
+#line { position: relative; flex: 1; min-width: 0; height: 40px; margin-inline: 14px; cursor: pointer; touch-action: none; }
+#line::before { content: ""; position: absolute; left: 0; right: 0; top: 12px; height: 6px; background: var(--frame-dark); box-shadow: inset 0 0 0 2px var(--frame-mid); }
+#fill { position: absolute; left: 0; top: 14px; height: 2px; background: var(--cursor); }
+.dot { position: absolute; top: 8px; width: 12px; height: 12px; margin-left: -6px; background: var(--frame-dark); border: 2px solid var(--frame); transform: rotate(45deg); }
+.dot.passed { background: var(--cursor); }
+.dot.first label { transform: rotate(-45deg) translateX(-6px); }
+.dot.last label { transform: rotate(-45deg) translateX(calc(-100% + 6px)); }
+.dot label { position: absolute; top: 18px; left: 6px; transform: rotate(-45deg) translateX(-50%); transform-origin: 0 0; font-size: 14px; color: var(--text-dim); white-space: nowrap; pointer-events: none; }
+#thumb { position: absolute; top: 5px; width: 18px; height: 18px; margin-left: -9px; background: var(--cursor); border: 3px solid var(--frame-dark); border-radius: 2px; }
+#hint { position: fixed; z-index: 1; right: 20px; top: calc(16px + env(safe-area-inset-top, 0px)); margin: 0; font-size: 15px; color: var(--text); text-shadow: 2px 2px 0 var(--frame-dark); pointer-events: none; }
+#status { position: fixed; inset: 0; z-index: 3; display: grid; place-items: center; background: var(--win-bottom); font-size: 24px; padding: 16px; text-align: center; }
+
+@media (max-width: 760px) {
+  body { font-size: 16px; }
+  #fork, #card { left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: auto; bottom: calc(116px + env(safe-area-inset-bottom, 0px)); padding: 12px 14px; }
+  .win h1 { font-size: 26px; }
+  .choice { font-size: 19px; }
+  #bar { flex-wrap: wrap; gap: 6px 10px; }
+  #line { order: -1; flex-basis: 100%; }
+  .dot label, #hint { display: none; }
+}
+</style>
+<canvas id="c" aria-label="A pixel-art mountain world with a runner standing at a trail junction in a wildflower meadow"></canvas>
+<div id="status" role="status">Drawing the world</div>
+
+<section id="fork" class="win" hidden>
+  <h1>TJ Zimmerman</h1>
+  <p>is a principal platform engineer based out of Seattle, WA. When he's not playing in the mountains, he's usually hacking on computers. Choose a destination to learn more!</p>
+  <ul class="menu">
+    <li><button class="choice" data-route="lake">Run to About Lake<span></span></button></li>
+    <li><button class="choice" data-route="stack">Climb The Stack<span></span></button></li>
+    <li><button class="choice" data-route="spires">Climb the Sideproject Spires<span></span></button></li>
+  </ul>
+</section>
+
+<section id="card" class="win" hidden aria-live="polite">
+  <h2 id="card-title"></h2>
+  <p id="card-body"></p>
+  <p id="card-draft" class="draft"></p>
+  <ul id="card-links" class="links"></ul>
+  <button id="card-go" class="go"></button>
+</section>
+
+<p id="hint">Space starts and stops. Left and right jump between milestones. Drag to look around.</p>
+
+<nav id="bar" class="win" aria-label="Route controls">
+  <button id="run">Start</button>
+  <div id="line"><div id="fill"></div><div id="thumb" role="slider" tabindex="0" aria-label="Place along the route" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></div>
+  <button id="dusk">Dusk</button>
+</nav>
+
+<script type="module">
+import { mount } from './pixel.js';
+const $ = id => document.getElementById(id);
+const status = $('status'), fork = $('fork'), card = $('card'), line = $('line'), fill = $('fill'), thumb = $('thumb');
+
+// What each milestone's window says. Only the first card's sentence is TJ's own; the rest is draft copy.
+const CARDS = {
+  who: { title: 'Who TJ is', body: "TJ Zimmerman is a principal platform engineer based out of Seattle, WA. When he's not playing in the mountains, he's usually hacking on computers.", draft: 'Opens from the trail sign in the forest.', links: [['GitHub', 'https://github.com/zimmertr'], ['LinkedIn'], ['Resume']], go: 'Keep running' },
+  mountains: { title: 'In the mountains', body: 'Trail running, rock climbing and mountaineering, with where to follow each.', draft: 'Draft copy. In the real build this card comes out of the map in his pocket.', links: [['Strava'], ['Peakbagger'], ['Mountain Project']], go: 'Keep running' },
+  note: { title: 'A personal note', body: 'TJ will write this one himself.', draft: 'Draft copy. It opens from the trail journal on a boulder at the far shore.', links: [], go: 'Run home' },
+  'stack-base': { title: 'The Stack', body: 'The approach ends at the foot of the wall for now. The climb comes next: three pitches, Platform Engineering, Site Reliability Engineering and Software Engineering.', draft: 'Draft copy.', links: [], go: 'Back to the Trailhead', home: true },
+  'base-camp': { title: 'Base camp', body: 'The approach ends at camp for now. From here he will pick a spire, climb it and glissade back.', draft: 'Draft copy.', links: [], go: 'Back to the Trailhead', home: true }
+};
+const LABELS = { who: 'Who TJ is', mountains: 'In the mountains', note: 'A personal note', 'stack-base': 'The Stack', 'base-camp': 'Base camp' };
+const ENDS = { lake: 'Trailhead', stack: 'The wall', spires: 'Base camp' };
+
+let api, shown = null;
+function showCard(id) {
+  const c = CARDS[id]; if (!c) return;
+  shown = id;
+  $('card-title').textContent = c.title; $('card-body').textContent = c.body; $('card-draft').textContent = c.draft; $('card-go').textContent = c.go;
+  const ul = $('card-links'); ul.replaceChildren(); ul.hidden = !c.links.length;
+  for (const [name, href] of c.links) {
+    const li = document.createElement('li');
+    if (href) { const a = document.createElement('a'); a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = name; li.append(a); } else li.textContent = name;
+    ul.append(li);
+  }
+  card.hidden = false;
+}
+function hideCard() { shown = null; card.hidden = true; }
+function home() { hideCard(); api.setRoute('lake'); drawDots(); }
+
+function drawDots() {
+  line.querySelectorAll('.dot').forEach(d => d.remove());
+  const stops = api.stops(), name = api.route();
+  const marks = [{ at: 0, label: 'Trailhead' }, ...stops.filter(s => s.at < 0.995).map(s => ({ at: s.at, label: LABELS[s.id] })), { at: 1, label: ENDS[name] }];
+  for (const m of marks) {
+    const d = document.createElement('div'); d.className = 'dot' + (m.at === 0 ? ' first' : m.at === 1 ? ' last' : ''); d.style.left = (m.at * 100) + '%'; d.dataset.at = m.at;
+    const l = document.createElement('label'); l.textContent = m.label; d.append(l); line.insertBefore(d, thumb);
+  }
+}
+
+try {
+  api = await mount($('c'), {
+    theme: 'light',
+    onEvent(e) {
+      if (e.type === 'stop') showCard(e.id);
+      else if (e.type === 'leave') hideCard();
+      else if (e.type === 'end') home();
+    }
+  });
+  const lengths = api.info().lengths;
+  document.querySelectorAll('.choice').forEach(b => {
+    const r = b.dataset.route;
+    b.querySelector('span').textContent = r === 'lake' ? lengths[r] + ' km loop' : lengths[r] + ' km';
+    b.addEventListener('click', () => { api.setRoute(r); drawDots(); api.start(); b.blur(); });
+  });
+  drawDots();
+  // For screenshots: ?route=stack&p=0.5 or ?route=lake&stop=1 or ?dusk=1
+  const q = new URLSearchParams(location.search);
+  if (q.get('route')) { api.setRoute(q.get('route')); drawDots(); }
+  if (q.get('p')) api.scrub(+q.get('p'));
+  if (q.get('stop')) for (let i = 0; i < +q.get('stop'); i++) api.key('ArrowRight');
+  if (q.get('dusk')) api.setTheme('dark');
+  status.hidden = true;
+  window.__ready = true;
+} catch (err) {
+  status.textContent = 'The world could not be drawn here.';
+  throw err;
+}
+
+$('run').addEventListener('click', e => { api.toggle(); e.currentTarget.blur(); });
+$('dusk').addEventListener('click', e => { api.setTheme(api.theme() === 'dark' ? 'light' : 'dark'); e.currentTarget.blur(); });
+$('card-go').addEventListener('click', () => { const c = CARDS[shown]; if (c && c.home) home(); else api.start(); });
+
+addEventListener('keydown', e => {
+  if (e.target.closest && e.target.closest('button, a') && e.code === 'Space') return;
+  if (api.key(e.code, true)) e.preventDefault();
+});
+
+let dragging = false;
+const scrubTo = e => { const r = line.getBoundingClientRect(); api.scrub((e.clientX - r.left) / r.width); };
+line.addEventListener('pointerdown', e => { dragging = true; line.setPointerCapture(e.pointerId); scrubTo(e); });
+line.addEventListener('pointermove', e => { if (dragging) scrubTo(e); });
+line.addEventListener('pointerup', () => { dragging = false; });
+line.addEventListener('pointercancel', () => { dragging = false; });
+thumb.addEventListener('keydown', e => {
+  if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') { api.scrub(api.progress() + (e.code === 'ArrowRight' ? 0.02 : -0.02)); e.preventDefault(); e.stopPropagation(); }
+});
+
+(function tick() {
+  requestAnimationFrame(tick);
+  const p = api.progress(), running = api.running();
+  fill.style.width = thumb.style.left = (p * 100) + '%';
+  thumb.setAttribute('aria-valuenow', Math.round(p * 100));
+  line.querySelectorAll('.dot').forEach(d => d.classList.toggle('passed', +d.dataset.at <= p + 0.001));
+  $('run').textContent = running ? 'Stop' : 'Start';
+  $('dusk').textContent = api.theme() === 'dark' ? 'Day' : 'Dusk';
+  fork.hidden = running || p > 0.002 || shown != null;
+})();
+</script>
