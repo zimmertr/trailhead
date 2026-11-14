@@ -244,7 +244,7 @@ Scenes
 - [x] Cold plunge: he drops vest, shirt and shoes in a pile, wades in wearing shorts, then dresses again.
 
 Controls and the rest
-- [ ] Debug panel, hidden: the backtick key, and a "Debug" sign at the bottom of the trail map sheet. Layer toggles (trees, clouds, labels, animals), outlines (roam areas, tap targets, trail lines, camera limits), force a cat state, go to the off-route page.
+- [x] Debug panel, hidden: the backtick key, and a "Debug" sign at the bottom of the trail map sheet. Layer toggles (trees, clouds, labels, animals), outlines (roam areas, tap targets, trail lines, camera limits), force a cat state, go to the off-route page.
 - [ ] A scene that throws lands him on the off-route page; if the renderer itself is broken, the plain page shows.
 - [x] Summit name tags no longer get a second label stuck on them.
 - [x] Cats roam mostly below the junction, left of the kiosk, never under a panel; each click is the next trick.
@@ -310,3 +310,8 @@ Controls and the rest
 - The lake scene opens with the forest on its left: a wall of leaves closing off the water there, three giant trunks with mossy limbs reaching out over the shore, maples and sword ferns under them, and moss in place of meadow on the ground. A phone has room for one trunk, a maple and the overhanging leaves.
 - Cold plunge: the vest goes down on the trail, the shirt on top of it, the shoes beside them. He walks up the bank in his tights and cap, wades in until only his head and shoulders show, shivers there for about three seconds, wades out, drips, and dresses in the reverse order. It takes about nine seconds, up from six and a half, because wading is slower than the old jump.
 - He keeps the cap and the sunglasses on in the water. The splash sound now plays when he reaches the water, not on the click.
+- The debug panel is a narrow column down the right side, not a sheet, so the world stays in view while things are switched. The backtick key opens and closes it, Escape closes it, and a small faded "Debug" sign at the very bottom of the trail map opens it. Adding ?debug=roam,taps,-trees to the address opens it with those outlines on and those layers off.
+- Layers: "Animals" hides the wildlife (grazers, squirrels, marmots, whale, flocks, the birds and the butterflies) but leaves the two cats, so a forced cat state can still be seen. "Labels" hides every name tag and hover name. "Trees" hides the trees on the map only.
+- Outlines: roam areas are red ovals for each animal and flock and pink boxes for the cats. Trail lines are the three paths he follows, one colour each, with white crosses where the lake loop enters and leaves the forest. Camera limits are the box the middle of the view may move in, the band that pushes a drag back, the edge of the world, and two crosses for where the camera rests and where the view is. All three show on the map only.
+- Tap targets work in every scene, not just the map: every spot that answers a tap or a hover is hatched pink, worked out by asking the scene itself, so it cannot drift from the real targets. The four place names and the buttons are page elements and are not hatched.
+- Forcing a cat state offers the seven tricks a click cycles through (sit, groom, roll, bat, loaf, stretch, sleep) for either cat, held for eight seconds. Chasing, stalking and the kiosk roof are left out because they need a target to go to.

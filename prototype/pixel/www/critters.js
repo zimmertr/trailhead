@@ -187,6 +187,8 @@ export function makeCritters(W) {
         else { for (let dx = -1; dx < 4; dx++) scr.set(x + dx, y + 1, dx === 0 ? c : d); for (const [dx, dy] of [[-1, 2], [1, 3], [3, 2], [0, 4], [2, 4]]) scr.set(x + dx, y + dy, d); }
       });
     },
+    // Where each animal may wander and each flock circles, as ovals on the map, for the debug panel.
+    areas: () => [...items.filter(a => a.walker).map(a => ({ x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...FLOCKS.map(F => ({ x: F.cx, y: F.cy, rx: F.rx, ry: F.ry }))],
     // What flies over everything else.
     over(scr, ox, oy, t) {
       const { VW, VH, fb } = scr;

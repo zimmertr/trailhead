@@ -1,5 +1,5 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
-import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
+import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
 import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
 import { makeCritters } from './critters.js';
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
@@ -283,13 +283,14 @@ export function makeWorld() {
       }
       crit.sea(scr, ox, oy, t);
       crit.update(dt, t, env.hideMe ? null : here);
-      for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
+      if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
       for (const k in prints) if (env.done[k]) for (const [x, y] of prints[k]) { const sx = x - ox, sy = y - oy; if (sx >= 0 && sy >= 0 && sx < VW && sy < VH && KIND[fb[sy * VW + sx]] === 3) fb[sy * VW + sx] = R.dirt[0]; }
 
       // Everything that stands, back to front.
       list.length = 0;
       for (const th of things) {
         if (th.flag && !env.done[th.flag]) continue;
+        if ((th.kind === 'tree' && !DEBUG.trees) || (th.critter && !DEBUG.animals)) continue;
         const w = th.kind === 'tree' ? th.t.tree.w + 8 : th.bm.w, h = (th.kind === 'tree' ? th.t.tree.h + 10 : th.bm.h) + (th.lift || 0);
         if (th.x + w < ox || th.x - w > ox + VW || th.y - h > oy + VH || th.y + 4 < oy) continue;
         list.push(th);
@@ -327,7 +328,7 @@ export function makeWorld() {
       }
 
       // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge.
-      for (let k = 0; k < 4; k++) {
+      for (let k = 0; DEBUG.clouds && k < 4; k++) {
         const cw = 78 + 30 * hash(k, 1, 91), chh = 24 + 10 * hash(k, 2, 91), cxw = ((k * 310 + t * (5 + k * 1.3)) % (WW + 300)) - 150, cyw = 392 + hash(k, 3, 91) * 250;
         const y0 = Math.max(0, Math.round(cyw - chh - oy)), y1 = Math.min(VH - 1, Math.round(cyw + chh - oy)), x0 = Math.max(0, Math.round(cxw - cw - ox)), x1 = Math.min(VW - 1, Math.round(cxw + cw - ox));
         for (let y = y0; y <= y1; y++) { const wy = y + oy; if (wy < 470) continue; for (let x = x0; x <= x1; x++) {
@@ -346,14 +347,14 @@ export function makeWorld() {
         const c = age < 0.5 ? R.white[1] : R.white[0];
         fb[y * VW + x] = c; if (age > 0.3) fb[y * VW + x + 1] = c;
       }
-      crit.over(scr, ox, oy, t);
+      if (DEBUG.animals) crit.over(scr, ox, oy, t);
       // Birds cross the sky in a loose V, flapping a few times a second.
-      for (let k = 0; k < 4; k++) {
+      for (let k = 0; DEBUG.animals && k < 4; k++) {
         const bx = ((t * 22 + k * 11) % (WW + 200)) - 100, by = 318 + 8 * Math.sin(t * 0.7) + [0, 5, 9, 4][k];
         scr.blit(birds[(Math.floor(t * 4) + k) & 1], bx - [0, -9, 9, -17][k] - 3 - ox, by - 2 - oy);
       }
       // Butterflies over the flowers by the Trailhead.
-      for (let k = 0; k < 6; k++) {
+      for (let k = 0; DEBUG.animals && k < 6; k++) {
         const bx = Math.round(T.x - 120 + k * 52 + 14 * Math.sin(t * 0.9 + k * 2)), by = Math.round(T.y + 10 - (k % 3) * 22 + 6 * Math.sin(t * 1.7 + k));
         const sx = bx - ox, sy = by - oy, col = k % 3 ? R.white[1] : R.yellow[1];
         if (sx < 1 || sy < 1 || sx >= VW - 1 || sy >= VH - 1) continue;
@@ -373,6 +374,28 @@ export function makeWorld() {
         for (let x = (y + oy + ox) & 1; x < VW; x += 2) {
           const wx = ox + x; if (wx < 0 || wx >= WW || !shaftMask[wy * WW + wx]) continue;
           const i = y * VW + x; fb[i] = shaftMask[wy * WW + wx] === 2 ? LIGHT[LIGHT[fb[i]]] : LIGHT[fb[i]];
+        }
+      }
+      // The debug panel's outlines, over the finished map.
+      if (!env.fixed && (DEBUG.roam || DEBUG.trails || DEBUG.camera)) {
+        const dot = (x, y, c) => scr.set(Math.round(x) - ox, Math.round(y) - oy, c);
+        const oval = (a, c) => { const n = Math.ceil((a.rx + a.ry) * 2); for (let k = 0; k < n; k += 2) dot(a.x + Math.cos(k / n * TAU) * a.rx, a.y + Math.sin(k / n * TAU) * a.ry, c); };
+        const box = (b, c, step) => { for (let x = b.x0; x <= b.x1; x += step) { dot(x, b.y0, c); dot(x, b.y1, c); } for (let y = b.y0; y <= b.y1; y += step) { dot(b.x0, y, c); dot(b.x1, y, c); } };
+        // Red ovals: where each animal wanders and each flock circles. Pink boxes: where the cats keep to.
+        if (DEBUG.roam) { for (const a of crit.areas()) oval(a, R.red[1]); for (const b of kit.areas()) box(b, R.pink[1], 2); }
+        // Each trail as the line he actually follows, with a knot every twenty pixels, and a white cross
+        // where the lake loop goes into the forest and where it comes back out.
+        if (DEBUG.trails) {
+          for (const [k, c] of [['lake', R.red[1]], ['stack', R.yellow[1]], ['spires', R.pink[2]]]) { const P = paths[k]; for (let d = 0; d <= P.len; d++) { const a = P.at(d / P.len); dot(a.x, a.y, c); if (d % 20 === 0) { dot(a.x + 1, a.y, c); dot(a.x - 1, a.y, c); dot(a.x, a.y + 1, c); dot(a.x, a.y - 1, c); } } }
+          for (const q of [lakeIn, lakeOut]) { const a = paths.lake.at(q); for (let k = -3; k <= 3; k++) { dot(a.x + k, a.y + k, R.white[1]); dot(a.x + k, a.y - k, R.white[1]); } }
+        }
+        // Yellow: where the middle of the view may go. Orange: where a drag starts to be pushed back.
+        // White: the edge of the world. Yellow cross: where the camera rests. White cross: the middle of the view.
+        if (DEBUG.camera) {
+          box({ x0: VW / 2, x1: WW - VW / 2, y0: VH / 2, y1: WH - VH / 2 + past }, R.yellow[1], 2);
+          box({ x0: VW / 2 + 26, x1: WW - VW / 2 - 26, y0: VH / 2 + 26, y1: WH - VH / 2 - 26 }, R.blaze[1], 3);
+          box({ x0: 0, x1: WW - 1, y0: 0, y1: WH - 1 }, R.white[1], 1);
+          for (let k = -4; k <= 4; k++) { dot(cam.x + k, cam.y, R.yellow[1]); dot(cam.x, cam.y + k, R.yellow[1]); dot(ox + VW / 2 + k, oy + VH / 2, R.white[1]); dot(ox + VW / 2, oy + VH / 2 + k, R.white[1]); }
         }
       }
     }

@@ -2,8 +2,10 @@
 // sheets that open over it (trail map, kiosk, register, keys, plain page).
 import { mount } from './pixel.js';
 import { makeAudio } from './audio.js';
-import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, UI, ago } from './content.js';
+import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, UI, NAMES, ago } from './content.js';
 import { OX, OY } from './terrain.js';
+import { DEBUG } from './core.js';
+import { TRICKS } from './cats.js';
 
 const $ = id => document.getElementById(id);
 const el = (tag, attrs = {}, ...kids) => { const n = document.createElement(tag); for (const k in attrs) { if (k === 'class') n.className = attrs[k]; else if (k === 'text') n.textContent = attrs[k]; else if (k.startsWith('on')) n.addEventListener(k.slice(2), attrs[k]); else n.setAttribute(k, attrs[k]); } n.append(...kids.filter(k => k != null)); return n; };
@@ -121,6 +123,25 @@ function openSheet(name) {
 }
 function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; sheetName = null; audio.sfx('close'); audio.focus(shown ? 1 : 0); } }
 
+// ------------------------------------------------------------------ the debug panel
+// Hidden: the backtick key opens and closes it, and so does the small sign at the foot of the trail map.
+const debug = $('debug');
+function openDebug(on) {
+  if (!on) { debug.hidden = true; return; }
+  const D = UI.debug, onOff = k => UI.map.onOff[DEBUG[k] ? 0 : 1];
+  const toggle = k => el('button', { class: 'plank', 'aria-pressed': String(DEBUG[k]), onclick: e => { DEBUG[k] = !DEBUG[k]; e.currentTarget.setAttribute('aria-pressed', String(DEBUG[k])); e.currentTarget.querySelector('small').textContent = onOff(k); document.body.classList.toggle('no-labels', !DEBUG.labels); audio.sfx('step'); } }, el('span', { text: D.toggles[k] }), el('small', { text: onOff(k) }));
+  const cat = el('select', { 'aria-label': D.cats }, ...Object.keys(NAMES.cats).map(id => el('option', { value: id, text: NAMES.cats[id] })));
+  const trick = el('select', { 'aria-label': D.set }, ...TRICKS.map(s => el('option', { value: s, text: s })));
+  debug.replaceChildren(
+    el('h2', {}, el('span', { text: D.title }), el('button', { class: 'plank', style: 'width:auto', onclick: () => openDebug(false) }, el('span', { text: D.close }))),
+    el('h3', { text: D.layers }), ...['trees', 'clouds', 'labels', 'animals'].map(toggle),
+    el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle),
+    el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, performance.now() / 1000, { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
+    el('button', { class: 'plank', onclick: () => navigate('#off-route') }, el('span', { text: D.offRoute })),
+    el('p', { class: 'legend', text: D.note }));
+  debug.hidden = false;
+}
+
 // Where each milestone sits on the brochure map, in world pixels.
 const MAP = { x: 236, y: 204, w: 600, h: 372 };
 const DOTS = [
@@ -150,7 +171,8 @@ function trailMap() {
     el('button', { class: 'plank', onclick: e => { audio.start(); e.currentTarget.querySelector('small').textContent = audio.setSet(audio.set().index + 1); audio.sfx('flag'); } }, el('span', { text: UI.map.playedOn }), el('small', { text: audio.set().name })),
     el('button', { class: 'plank', onclick: () => { toggleDusk(); } }, el('span', { text: UI.map.dusk })),
     el('button', { class: 'plank', onclick: () => { api.forget(); say(UI.map.cleared); closeSheet(); } }, el('span', { text: UI.map.clear })),
-    el('p', { class: 'legend', text: UI.map.legend }));
+    el('p', { class: 'legend', text: UI.map.legend }),
+    el('button', { class: 'plank debug-sign', onclick: () => { closeSheet(); openDebug(true); } }, el('span', { text: UI.debug.title })));
   return [el('div', { class: 'band' }, el('h2', { text: UI.map.title }), el('p', { text: UI.map.sub })), el('div', { class: 'cols' }, el('div', {}, box, key), side)];
 }
 function kiosk() {
@@ -240,6 +262,8 @@ try {
   let dusk = false; try { dusk = localStorage.getItem('trailhead.theme') === 'dark'; } catch { /* private window */ }
   if (q.get('dusk') || dusk) { api.setTheme('dark'); syncTop(); }
   if (q.get('sheet')) openSheet(q.get('sheet'));
+  // ?debug=roam,taps,-trees opens the panel with those outlines on and those layers off.
+  if (q.get('debug') != null) { for (const k of q.get('debug').split(',')) { const off = k.startsWith('-'), key = off ? k.slice(1) : k; if (key in DEBUG) DEBUG[key] = !off; } document.body.classList.toggle('no-labels', !DEBUG.labels); openDebug(true); }
   if (location.hash.length > 1 && !q.get('route')) await navigate(location.hash);
   audio.ambience('world'); audio.onchange = syncTop;
   status.hidden = true;
@@ -266,7 +290,8 @@ sheet.addEventListener('pointerdown', e => { if (e.target === sheet) closeSheet(
 addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input, textarea')) return;
   audio.start();
-  if (e.code === 'Escape') { if (!plain.hidden) navigate(''); else if (!sheet.hidden) closeSheet(); else openSheet('map'); e.preventDefault(); return; }
+  if (e.code === 'Backquote' && !e.metaKey && !e.ctrlKey && !e.altKey) { openDebug(debug.hidden); e.preventDefault(); return; }
+  if (e.code === 'Escape') { if (!plain.hidden) navigate(''); else if (!sheet.hidden) closeSheet(); else if (!debug.hidden) openDebug(false); else openSheet('map'); e.preventDefault(); return; }
   if (!sheet.hidden || !plain.hidden) return;
   // A key held with Command, Control or Alt belongs to the browser.
   if (e.metaKey || e.ctrlKey || e.altKey) return;

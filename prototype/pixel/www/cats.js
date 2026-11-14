@@ -88,7 +88,7 @@ const DO = {
 const JX = 560 + OX, JY = 470 + OY;   // the junction, where he stands at the Trailhead
 const HOME = { x0: 508 + OX, x1: 642 + OX, y0: 440 + OY, y1: 528 + OY }, LEFT = { x0: 512 + OX, x1: 598 + OX, y0: 482 + OY, y1: 526 + OY }, ROOF = { x: 612 + OX, y: 498 + OY, h: 25 };
 
-const TRICKS = ['sit', 'groom', 'roll', 'bat', 'loaf', 'stretch', 'sleep'];
+export const TRICKS = ['sit', 'groom', 'roll', 'bat', 'loaf', 'stretch', 'sleep'];
 
 export function makeCats() {
   const S = {}; for (const n of ['tortie', 'nebel']) { S[n] = {}; for (const p in POSES) S[n][p] = build(n, POSES[p]); }
@@ -178,6 +178,8 @@ export function makeCats() {
       }
       if (fly) { const up = fly.gone ? (t - fly.gone) * 22 : 0, x = Math.round(fly.x - ox + 3 * Math.sin(t * 2.3) + up * 0.6), y = Math.round(fly.y - oy + 2 * Math.sin(t * 3.1) - up), open = Math.floor(t * 9) & 1; scr.set(x, y, INK); scr.set(x - 1, y, R.blaze[2]); scr.set(x + 1, y, R.blaze[2]); if (open) { scr.set(x - 1, y - 1, R.blaze[1]); scr.set(x + 1, y - 1, R.blaze[1]); } }
     },
+    // The two boxes the cats keep to, for the debug panel.
+    areas: () => [HOME, LEFT],
     // For the workbench: put a cat into a state by name.
     force(id, st, t, extra) { go(cats.find(q => q.id === id), st, t, extra); },
     pick(wx, wy) {

@@ -2,7 +2,7 @@
 // that says how far along a route he is, and the cut from one scene to the next. Each scene lives
 // in its own file and only has to draw itself for a given place along its stretch of the route.
 
-import { clamp, lerp, Screen } from './core.js';
+import { clamp, lerp, Screen, DEBUG, R } from './core.js';
 import { makeWorld } from './world.js';
 import { edgeTrunk } from './side.js';
 import { makeRunner } from './tj.js';
@@ -190,6 +190,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     if (env.moving || tr) stillAt = t;
     env.still = t - Math.max(stillAt, lastAct);
     if (tr && tr.phase === 'slide') slide(t); else drawn.scene.draw(scr, env, drawn.arg, q);
+    // The debug panel's tap targets: every other pixel that answers a tap or a hover, in any scene, goes pink.
+    if (DEBUG.taps && !tr && drawn.scene.pick) { const { VW, VH, fb } = scr; for (let y = 0; y < VH; y++) for (let x = y & 1; x < VW; x += 2) if (drawn.scene.pick(x, y)) fb[y * VW + x] = R.pink[1]; }
     scr.night(t, mix);
     if (tr && tr.phase !== 'slide') {
       const f = drawn.scene.focus(), e = tr.k * tr.k * (3 - 2 * tr.k), full = Math.hypot(Math.max(f.x, scr.VW - f.x), Math.max(f.y, scr.VH - f.y)) + 6;

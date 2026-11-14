@@ -164,6 +164,12 @@ export const UI = {
   },
   marks: { camp: 'Base camp', trailhead: 'Trailhead', summit: 'Summit' },
   keys: { title: 'Keys', note: 'Everything also works by touch.' },
+  // The hidden panel behind the backtick key and the small sign at the foot of the trail map.
+  debug: {
+    title: 'Debug', close: 'Close', layers: 'Layers', outlines: 'Outlines', cats: 'Cats', set: 'Set', offRoute: 'Go to the off-route page',
+    toggles: { trees: 'Trees', clouds: 'Clouds', labels: 'Labels', animals: 'Animals', roam: 'Roam areas', taps: 'Tap targets', trails: 'Trail lines', camera: 'Camera limits' },
+    note: 'Roam areas, trail lines and camera limits show on the map. Tap targets show in every scene.'
+  },
   map: {
     title: DEST_NAMES.trailhead, sub: 'TJ Zimmerman, Seattle, Washington',
     // The dots on the trail map take a card's title or a project's name, except these.
