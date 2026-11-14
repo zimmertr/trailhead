@@ -234,6 +234,16 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   #b-help, #b-track { display: none; }
   .name { font-size: 10px; }
 }
+/* A phone on its side: the signs keep to the left two fifths so he stays in view beside them. */
+@media (max-height: 480px) and (orientation: landscape) {
+  #fork, #card { width: min(456px, 42%); bottom: calc(var(--px) * 30 + env(safe-area-inset-bottom, 0px)); }
+  #card { max-height: calc(100% - var(--px) * 40); padding: calc(var(--px) * 3) calc(var(--px) * 4); }
+  #fork .placard { padding: calc(var(--px) * 3) calc(var(--px) * 4); }
+  .plank .where { display: none; }
+  #line { height: calc(var(--px) * 16); }
+  .mark { display: none; }
+  #b-help, #b-track { display: none; }
+}
 /* Signs drop into place in a few steps, the way a sprite moves, never a slide. */
 @keyframes drop { from { transform: translateY(calc(var(--px) * -5)); opacity: 0; } }
 @media (prefers-reduced-motion: no-preference) {
