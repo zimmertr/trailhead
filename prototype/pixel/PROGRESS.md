@@ -164,7 +164,7 @@ Every item on the checklist is ticked, and each polish pass in the brief has had
 
 - 17 script files and one page, 316 KB in all, 99 KB compressed. No build step and no libraries.
 - Ready in about 0.7 seconds in the test browser, and 60 frames a second in every scene.
-- 14 commits on the branch tonight.
+- 16 commits on the branch tonight, before this report.
 
 ### Links
 
