@@ -66,6 +66,30 @@ The working list for the overnight build of the pixel-art trailhead. Tick items 
 - Auto mode once blocked a `git push` and allowed the retry. If pushes stay blocked, keep committing locally and say so in the morning report.
 - What made version 5 work: one scene at a time, an early publish, then many small passes judged from screenshots. Stay in that loop.
 
+## Traps the 3D prototype fell into
+
+Each of these slowed or spoiled the low-poly prototype. Check the list before every new scene.
+
+- **Plumbing before design.** No port, no repo docs, no services, no Helm, no PRD edits tonight. Only `prototype/` and this file change.
+- **Paperwork per change.** One line under "Calls made" is the whole record of a decision.
+- **Progress counted in tasks.** An item is done when its screenshot looks right next to version 5, not when its code exists.
+- **Big bets without weighing them.** The planet constrained every mountain to serve one easter egg. Before any choice that boxes in the art (a projection, a fixed scale, a shared engine change), write down its cost in one line and prefer the choice you can undo.
+- **Rebuilding what worked.** When something already looks good, extend it; never redraw it from scratch. TJ: "it looked way better before."
+- **Shrinking to fit.** Keep the same pixel size in every scene. Make the scene bigger, never the art smaller.
+- **Scale against pacing.** Milestones stay about 4 seconds apart. Shorten a long climb with cuts between moves (fade, a new pitch, the camera jumping up), never by sliding him along at high speed.
+- **One giant file.** Each scene gets its own file. The shared renderer changes only when every scene needs it.
+- **Judging motion blind.** Check movement with timed sequences of screenshots (several frames a fraction of a second apart), not a single still.
+- **The camera fighting the scenery.** Place scenery so he can never be hidden (keep tall things out of the band in front of his path), rather than fixing each overlap one at a time.
+- **Visible edges.** No scene may show its own edge, an empty band or bare ground where the art stops.
+- **Misreading the layout.** Reread TJ's words for a place before drawing it; left to right on the world map is forest and About Lake, The Stack, Sideproject Spires.
+- **Landmarks that read wrong.** Check each landmark from the world map and up close. The Stack must read as a granite wall, the Spires as one jagged glaciated mountain, the forest as lush and varied.
+- **Panels over the action.** Cards and menus never cover him or the thing a milestone is about, at 1440x900 and at 390x844.
+- **No cheap sketch first.** Try a new scene idea small (one screen, rough) before building it out.
+- **Ignoring the load budget.** Keep the page light: no huge data, art drawn at load. Put the total size and load time in the morning report.
+- **A character that slides.** Feet plant, hands reach holds, tools swing. If a move can't look right yet, cut away from it rather than show it wrong.
+- **Brittle edits.** After any scripted edit, confirm it applied (grep or a screenshot) before building on it.
+- **Long chat output.** Keep replies to a line or two; anything longer belongs in this file.
+
 ## Calls made
 
 (one line each)
