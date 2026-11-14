@@ -451,9 +451,12 @@ export function makeWorld() {
 
       // Camera: the whole view from the Trailhead, then follow him.
       let [tx, ty] = target(scr, here);
-      if (env.home && env.idle > 4) tx += Math.sin((env.idle - 4) * 0.16) * Math.max(0, (WW - VW) / 2 - Math.abs(tx - WW / 2)) * 0.9 * Math.min(1, (env.idle - 4) / 3);
+      if (env.home && env.idle > 4 && Math.abs(env.look.x) + Math.abs(env.look.y) < 1) tx += Math.sin((env.idle - 4) * 0.16) * Math.max(0, (WW - VW) / 2 - Math.abs(tx - WW / 2)) * 0.9 * Math.min(1, (env.idle - 4) / 3);
       const damp = 1 - Math.exp(-dt * 3.2);
       cam.x += (tx - cam.x) * damp; cam.y += (ty - cam.y) * damp;
+      // How far a drag may take the view: the hard limits below keep the edge of the world out of sight,
+      // and the last 26 pixels before them push back.
+      if (!env.fixed) { const M = 26, b = { x0: Math.min(0, VW / 2 + M - cam.x), x1: Math.max(0, WW - VW / 2 - M - cam.x), y0: Math.min(0, VH / 2 + M - cam.y), y1: Math.max(0, WH - VH / 2 - M - cam.y) }; if (VW >= WW) b.x0 = b.x1 = 0; if (VH >= WH) b.y0 = b.y1 = 0; env.lookBox = b; }
       let cx = cam.x + env.look.x, cy = cam.y + env.look.y;
       cx = VW >= WW ? WW / 2 : clamp(cx, VW / 2, WW - VW / 2);
       past += ((scr.narrow && env.home ? VH * 0.34 : 0) - past) * (env.fixed ? 0 : Math.min(1, dt * 4));

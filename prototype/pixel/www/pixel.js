@@ -40,7 +40,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   let route = 'lake', legs = [], stops = [], cues = [], total = 1;
   let p = 0, running = false, shown = null, mode = theme === 'dark' ? 1 : 0, mix = mode;
   let drawn = null, tr = null, scrubbing = 0, stillAt = performance.now() / 1000;
-  const look = { x: 0, y: 0 };
+  const look = { x: 0, y: 0 }, FREE = { x0: -150, x1: 150, y0: -40, y1: 40 };
+  let recentre = false, wasRunning = false;
   let done = {};
   try { done = JSON.parse(localStorage.getItem('trailhead.done') || '{}') || {}; } catch { done = {}; }
   let found = {};
@@ -98,7 +99,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   addEventListener('resize', onResize);
   // A thing to find, the first time it is found.
   const find = id => { if (found[id]) return; found[id] = 1; try { localStorage.setItem('trailhead.found', JSON.stringify(found)); } catch { /* private window */ } emit({ type: 'found', id }); };
-  const env = { t: 0, tq: 0, dt: 0, mix: 0, moving: false, running: false, home: false, idle: 0, look, done, shown: null, sfx: name => emit({ type: 'sfx', name }), emit, found: find };
+  const env = { t: 0, tq: 0, dt: 0, mix: 0, moving: false, running: false, home: false, idle: 0, look, lookBox: FREE, done, shown: null, sfx: name => emit({ type: 'sfx', name }), emit, found: find };
 
   function draw(now) {
     if (!alive) return;
@@ -107,7 +108,15 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     const t = now / 1000;
     step(dt);
     mix += (mode - mix) * (1 - Math.exp(-dt * 3)); if (Math.abs(mix - mode) < 0.002) mix = mode;
-    if (dragging !== 'look') { look.x *= Math.exp(-dt * 2.5); look.y *= Math.exp(-dt * 2.5); }
+    // A dragged view stays where it is left. Let go near the edge of what a scene lets you see and it
+    // eases back inside; it returns to him only when he starts or stops moving.
+    if (running !== wasRunning) { wasRunning = running; recentre = true; }
+    if (dragging !== 'look') {
+      const b = env.lookBox, k = 1 - Math.exp(-dt * 7);
+      if (recentre) { look.x *= Math.exp(-dt * 4); look.y *= Math.exp(-dt * 4); if (Math.abs(look.x) + Math.abs(look.y) < 0.5) { look.x = look.y = 0; recentre = false; } }
+      else { look.x += (clamp(look.x, b.x0, b.x1) - look.x) * k; look.y += (clamp(look.y, b.y0, b.y1) - look.y) * k; }
+    }
+    env.lookBox = FREE;
     if (scrubbing > 0) scrubbing -= dt;
 
     // The cut between scenes: a round window closes on him, the scene changes, it opens again.
@@ -119,7 +128,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     if (tr) {
       tr.k += dt / (tr.fast ? 0.14 : tr.phase === 'out' ? 0.3 : 0.36);
       if (tr.k >= 1) {
-        if (tr.phase === 'out') { drawn = legAt(p); drawn.scene.enter(scr, drawn.arg, local(drawn, p)); tr = { phase: 'in', k: 0, fast: tr.fast }; emit({ type: 'scene', name: drawn.s }); }
+        if (tr.phase === 'out') { drawn = legAt(p); drawn.scene.enter(scr, drawn.arg, local(drawn, p)); look.x = look.y = 0; tr = { phase: 'in', k: 0, fast: tr.fast }; emit({ type: 'scene', name: drawn.s }); }
         else tr = null;
       }
     }
@@ -143,18 +152,19 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   drawn.scene.enter(scr, drawn.arg, 0);
   requestAnimationFrame(draw);
 
-  // Drag to look around; it drifts back when let go. A press that does not move is a click on
+  // Drag to look around. The view pushes back as it nears a scene's limit. A press that does not move is a click on
   // whatever is under it.
   let lastPt = null, moved = 0, hover = null;
   const toView = e => { const k = (window.devicePixelRatio || 1) / scr.S; return [e.clientX * k, e.clientY * k]; };
   // What is under a point. A fingertip is blunt, so a touch that misses also tries the ground close around it.
   const probe = (x, y, blunt) => { if (!drawn.scene.pick) return null; let h = drawn.scene.pick(x, y); if (!h && blunt) for (const r of [5, 9]) for (let a = 0; a < 8 && !h; a++) h = drawn.scene.pick(x + r * Math.cos(a * Math.PI / 4), y + r * Math.sin(a * Math.PI / 4)); return h; };
-  canvas.addEventListener('pointerdown', e => { dragging = 'look'; moved = 0; lastPt = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+  canvas.addEventListener('pointerdown', e => { dragging = 'look'; recentre = false; moved = 0; lastPt = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove', e => {
     if (dragging === 'look' && lastPt) {
       const k = (window.devicePixelRatio || 1) / scr.S;
       moved += Math.abs(e.clientX - lastPt[0]) + Math.abs(e.clientY - lastPt[1]);
-      look.x = clamp(look.x - (e.clientX - lastPt[0]) * k, -1000, 1000); look.y = clamp(look.y - (e.clientY - lastPt[1]) * k, -720, 720);
+      const b = env.lookBox, push = (v, d, lo, hi) => { const over = d < 0 ? lo - v : v - hi; return v + d * (over > 0 ? Math.max(0, 1 - over / 26) : 1); };
+      look.x = push(look.x, -(e.clientX - lastPt[0]) * k, b.x0, b.x1); look.y = push(look.y, -(e.clientY - lastPt[1]) * k, b.y0, b.y1);
       lastPt = [e.clientX, e.clientY];
       return;
     }
