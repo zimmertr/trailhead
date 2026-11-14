@@ -159,8 +159,11 @@ export function makeClimb() {
       const sb = R.skyband;
       for (let y = 0; y < VH; y++) {
         const f = clamp((y + 60 + cam.y * 0.3) / 320, 0, 1) * (sb.length - 1), b0 = Math.floor(f), e = f - b0, row = y * VW;
-        for (let x = 0; x < VW; x++) fb[row + x] = storm > 0 && bayer(x, y) < storm * 1.6 - 0.5 * fbm((x + t * 40) / 70, y / 30, 253, 3) ? R.rock[fbm((x + t * 55) / 50, y / 22, 254, 3) > 0.5 ? 4 : 3] : sb[Math.min(sb.length - 1, b0 + (e > 0.72 && bayer(x, y) < (e - 0.72) / 0.28 ? 1 : 0))];
+        // The storm is long banks of cloud driven sideways, dark above and paler toward the horizon; it
+        // thins in patches as he gains height.
+        for (let x = 0; x < VW; x++) fb[row + x] = storm > 0 && bayer(x, y) < storm * 1.6 - 0.5 * fbm((x + t * 40) / 70, y / 30, 253, 3) ? pick('rock', 0.2 + 0.55 * fbm((x + t * 60) / 110, y / 17, 254, 4) + 0.3 * y / VH, x, y, 1.1) : sb[Math.min(sb.length - 1, b0 + (e > 0.72 && bayer(x, y) < (e - 0.72) / 0.28 ? 1 : 0))];
       }
+      st.storm = storm;
       drawStrip(scr, far, 200 + camX * 0.15, base + 40 + cam.y * 0.8 + 30);
       drawStrip(scr, mid, 120 + camX * 0.42, base + cam.y * 0.55 + 46, false, 0);
       // A sea of cloud below the summits.
@@ -173,6 +176,8 @@ export function makeClimb() {
       }
       drawStrip(scr, S, camX, base, false, R.snow[1]);
       const X = x => Math.round(x + OFF - camX), Y = y => Math.round(base + y);
+      // Snow driven flat across everything while the storm lasts.
+      if (storm > 0.05) for (let k = 0; k < 150 * storm; k++) { const sp = 220 + hash(k, 1, 255) * 160, x = Math.round(VW + 20 - frac(hash(k, 2, 255) + t * sp / (VW + 40)) * (VW + 40)), y = Math.round(frac(hash(k, 3, 255) + t * 0.11) * VH), len = 2 + (k % 4); for (let j = 0; j < len; j++) scr.set(x + j, y - (j >> 2), j ? R.snow[3] : R.white[1]); }
 
       if (me.ph === 'up') {
         // The crux of each route.

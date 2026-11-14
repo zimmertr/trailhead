@@ -90,6 +90,8 @@ export function makeCamp() {
     if (A !== forA) { dio = build(A); forA = A; }
     org.x = Math.round((scr.narrow ? scr.VW / 2 : scr.VW * 0.64) - dio.cx);
     org.y = Math.round((scr.narrow ? scr.VH * 0.03 : 8) + (room - dio.b.h) / 2);
+    // Room above the highest summit for its name tag, clear of the tags along the top of the page.
+    org.y = Math.max(org.y, 21 - Math.min(...dio.geo.map(g => g.top)));
   }
 
   return {

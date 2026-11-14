@@ -45,7 +45,9 @@ function paintWall(S) {
       const warm = fbm(x / 13, y / 34, 173, 3) > 0.64 && v > 0.42 && v < 0.86 && hash(x, s, 1) < 0.8;
       // Small edges to climb on, near the line.
       if (Math.abs(x - route(s)) < 13 && s > H1 && hash(x >> 1, s >> 1, 174) < 0.035) v = hash(x, s, 2) < 0.5 ? 0.25 : 0.95;
-      S.set(x, y, pick(warm ? 'ochre' : 'gold', v, x, y));
+      // Lichen: pale sage where the rock stays damp, in drifts that run down the face.
+      const lichen = v > 0.34 && v < 0.9 && fbm(x / 7, y / 19, 176, 3) > 0.66 && vnoise(x / 64, y / 110, 177) > 0.56 && hash(x, s, 3) < 0.7;
+      S.set(x, y, lichen ? pick('mist', 0.42 + v * 0.5, x, y) : pick(warm ? 'ochre' : 'gold', v, x, y));
     }
     if (x <= edge(top)) S.set(x, -top - 1, INK);
   }
@@ -54,6 +56,13 @@ function paintWall(S) {
   const rand = rng(8);
   for (let x = 6; x < RX + 60; x += 7 + rand() * 16) { if (Math.abs(x - RX) < 26) continue; const h = 5 + rand() * 9, t = rim(x); for (let j = 0; j < h; j++) for (let dx = -Math.floor(j / 2.4); dx <= Math.floor(j / 2.4); dx++) S.set(x + dx, -t - h + j, R.conifer[dx < 0 ? 3 : 1]); }
   for (const [h, dx] of [[H1, -18], [H2, 22], [H2, -24], [H3, 15]]) { const b = makeBush(60 + h + dx, 'green'); S.stamp(b, route(h) + dx, -h); }
+  // A few firs that found a foothold on the face, each on its own small ledge, well away from the line.
+  for (const [x, sLedge, h] of [[RX - 196, 148, 13], [RX - 96, 262, 10], [RX + 78, 196, 9], [RX - 292, 74, 15], [RX - 330, 236, 11], [RX - 150, 44, 12]]) {
+    if (x > edge(sLedge) - 12) continue;
+    for (let dx = -7; dx <= 7; dx++) { S.set(x + dx, -sLedge, R.gold[5]); S.set(x + dx, -sLedge + 1, R.gold[1]); if (Math.abs(dx) < 6) S.set(x + dx, -sLedge + 2, R.gold[2]); }
+    for (let j = 0; j < h; j++) { const w = Math.floor(j / 2.2); for (let dx = -w; dx <= w; dx++) S.set(x + dx, -sLedge - h + j - 1, R.conifer[dx < 0 ? 3 : dx === w && w ? 0 : 1]); }
+    S.set(x, -sLedge - 1, R.bark[1]); S.set(x - 4, -sLedge - 1, R.moss[4]); S.set(x + 3, -sLedge - 1, R.moss[5]); S.set(x + 5, -sLedge - 1, R.moss[4]);
+  }
 }
 
 function paintGround(S, things) {

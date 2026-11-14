@@ -514,6 +514,15 @@ export function makeWorld() {
         } else scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.bm.oy - oy);
       }
 
+      // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge.
+      for (let k = 0; k < 4; k++) {
+        const cw = 78 + 30 * hash(k, 1, 91), chh = 24 + 10 * hash(k, 2, 91), cxw = ((k * 310 + t * (5 + k * 1.3)) % (WW + 300)) - 150, cyw = 392 + hash(k, 3, 91) * 250;
+        const y0 = Math.max(0, Math.round(cyw - chh - oy)), y1 = Math.min(VH - 1, Math.round(cyw + chh - oy)), x0 = Math.max(0, Math.round(cxw - cw - ox)), x1 = Math.min(VW - 1, Math.round(cxw + cw - ox));
+        for (let y = y0; y <= y1; y++) { const wy = y + oy; if (wy < 330) continue; for (let x = x0; x <= x1; x++) {
+          const nx = (x + ox - cxw) / cw, ny = (wy - cyw) / chh, d = nx * nx + ny * ny + 0.22 * Math.sin(nx * 7 + k) * Math.sin(ny * 5 + k * 2);
+          if (d < 0.82 || (d < 1 && ((x + ox + wy) & 1))) { const i = y * VW + x; fb[i] = SHADE[fb[i]]; }
+        } }
+      }
       kit.drawOver(scr, ox, oy, t);
       // Smoke from the stove at base camp, drifting off with the wind.
       for (let k = 0; k < 6; k++) {
