@@ -8,6 +8,8 @@ const KITS = {
   trail: { top: R.sun, upper: [R.navy[0], R.navy[1]], lower: [R.skin[1], R.skin[2]], hand: [R.skin[1], R.skin[2]], hat: R.blaze, brim: true, pack: [R.navy[1], R.navy[2]], packW: 1, strap: R.navy[2], flask: R.shoe[2], shoe: R.shoe },
   // Yellow pants, yellow sun hoody, yellow climbing pack, green helmet.
   wall: { top: R.sun, upper: [R.mustard[0], R.mustard[1]], lower: [R.mustard[0], R.mustard[1]], hand: [R.skin[1], R.skin[2]], hat: R.kit, pack: [R.mustard[1], R.mustard[2]], packW: 2, strap: R.mustard[0], shoe: [R.bark[0], R.red[1], R.red[2]] },
+  // For a swim: the tights and the cap, and nothing else. No vest, no shirt, no shoes.
+  plunge: { top: R.skin, upper: [R.navy[0], R.navy[1]], lower: [R.skin[1], R.skin[2]], hand: [R.skin[1], R.skin[2]], hat: R.blaze, brim: true, packW: -1, shoe: [R.skin[0], R.skin[1], R.skin[2]] },
   // Soft shell pants, green puffy, green helmet, mountaineering pack, boots and gloves.
   alpine: { top: R.kit, upper: [R.rock[0], R.rock[1]], lower: [R.rock[0], R.rock[1]], hand: [R.navy[0], R.navy[1]], hat: R.kit, pack: [R.blaze[0], R.blaze[1]], packW: 3, strap: R.blaze[0], shoe: [R.bark[0], R.bark[1], R.bark[2]] }
 };

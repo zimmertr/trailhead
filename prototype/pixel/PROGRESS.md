@@ -241,7 +241,7 @@ Scenes
 - [x] Kayti at base camp: long brown hair, painting with a small backpacking paint kit, her name on hover like the cats, no other text.
 - [x] The Stack: two people at the foot, a man with short black hair and a woman with long red hair. One belays, picked at random each visit, the other sits on a rock with a snack. The lead rope runs visibly from belayer through the gear to him, and both it and the rappel rope get a dark outline and a bright core.
 - [x] About Lake: the forest's last stretch thins and brightens and the lake scene opens with the forest edge on its left. Try a straight scroll between the two in place of the round window; keep it only if it is better.
-- [ ] Cold plunge: he drops vest, shirt and shoes in a pile, wades in wearing shorts, then dresses again.
+- [x] Cold plunge: he drops vest, shirt and shoes in a pile, wades in wearing shorts, then dresses again.
 
 Controls and the rest
 - [ ] Debug panel, hidden: the backtick key, and a "Debug" sign at the bottom of the trail map sheet. Layer toggles (trees, clouds, labels, animals), outlines (roam areas, tap targets, trail lines, camera limits), force a cat state, go to the off-route page.
@@ -308,3 +308,5 @@ Controls and the rest
 - For the scroll to make sense he has to run the same way in both scenes, and the lake had to keep its forest on the left. So the forest is now shown mirrored: he runs left to right through it. Nothing in it moved relative to anything else. He stands a little right of the middle there, so the card at the trail sign stays clear of him on a narrower window.
 - The forest's last stretch thins and brightens: from just past the bear, more and more of the giant trunks are missing, the far trees give way to pale open light in clumps, and the ground lightens. The trail sign stop is still in thick forest.
 - The lake scene opens with the forest on its left: a wall of leaves closing off the water there, three giant trunks with mossy limbs reaching out over the shore, maples and sword ferns under them, and moss in place of meadow on the ground. A phone has room for one trunk, a maple and the overhanging leaves.
+- Cold plunge: the vest goes down on the trail, the shirt on top of it, the shoes beside them. He walks up the bank in his tights and cap, wades in until only his head and shoulders show, shivers there for about three seconds, wades out, drips, and dresses in the reverse order. It takes about nine seconds, up from six and a half, because wading is slower than the old jump.
+- He keeps the cap and the sunglasses on in the water. The splash sound now plays when he reaches the water, not on the click.

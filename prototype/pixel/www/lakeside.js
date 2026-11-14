@@ -12,6 +12,7 @@ import { NAMES } from './content.js';
 const SW = 1640, X0 = 500, LEN = 624, DUR = 8;
 const D_MAP = 125, D_NOTE = 437, D_MARMOT = 276;
 const FAR = -50; // the far shore, measured up from the trail
+const PLUNGE = 8.9; // how long the cold plunge takes, from the first thing off to the last thing back on
 
 const shore = x => -9 + Math.round(2.5 * Math.sin(x / 37) + 3 * vnoise(x / 15, 3, 120));
 const g = x => Math.round(2 * Math.sin(x / 120 + 1));
@@ -147,14 +148,19 @@ export function makeLakeside() {
   }
   things.push(...edge);
 
-  const run = makeRunner('trail');
+  const run = makeRunner('trail'), dip = makeRunner('plunge');
+  // What he leaves on the trail while he swims: the vest, the shirt folded on top of it, the shoes beside them.
+  const pile = {};
+  { const v = pile.vest = new BM(10, 5); v.ox = 4; v.oy = 4; for (let y = 1; y < 4; y++) for (let x = 1; x < 9; x++) v.set(x, y, y === 1 ? R.navy[2] : R.navy[1]); v.set(2, 2, R.shoe[2]); v.set(7, 2, R.shoe[2]); v.set(4, 3, R.navy[0]); v.set(5, 3, R.navy[0]); outline(v, INK); }
+  { const h = pile.shirt = new BM(9, 5); h.ox = 4; h.oy = 4; for (let y = 1; y < 4; y++) for (let x = 1; x < 8; x++) h.set(x, y, y === 1 ? R.sun[2] : y === 3 ? R.sun[0] : R.sun[1]); outline(h, INK); }
+  { const o = pile.shoes = new BM(11, 5); o.ox = 4; o.oy = 4; for (const x0 of [1, 6]) { o.set(x0, 2, R.shoe[1]); o.set(x0 + 1, 2, R.shoe[1]); o.set(x0, 3, R.shoe[1]); o.set(x0 + 1, 3, R.shoe[2]); o.set(x0 + 2, 3, R.shoe[2]); o.set(x0 + 3, 3, R.shoe[0]); o.set(x0 + 1, 1, R.blaze[1]); } outline(o, INK); }
   const mapFig = sideFig('trail', { lean: 0, look: 'down', hands: [[5, 1], [4, 2]], elbowFwd: false, held: (b, sh) => { for (let y = 0; y < 5; y++) for (let x = 0; x < 6; x++) b.set(sh[0] + 4 + x, sh[1] - 1 + y, (x + y) % 4 === 1 ? R.moss[5] : x === 3 ? R.white[0] : R.white[1]); b.set(sh[0] + 6, sh[1] + 1, R.tarn[3]); b.set(sh[0] + 8, sh[1] + 2, R.red[1]); } });
   const writeFig = [0, 1].map(f => sideFig('trail', { lean: 2, look: 'down', hands: [[6, 3 + f], [4, 4]], held: (b, sh, hands) => { b.set(sh[0] + 7, sh[1] + 2 + f, R.navy[0]); } }));
   const sit = [0, 1].map(f => sideFig('trail', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: f ? [[4, -2], [2, 3]] : [[3, 3], [2, 3]] }));
   const marm = { sun: marmot('sun'), up: marmot('up') }, bird = [speck(0), speck(1)];
 
   const st = {}, focus = { x: 0, y: 0 };
-  let cam = 0, last = { camX: 0, base: 0 }, plunge = -99, whistled = false;
+  let cam = 0, last = { camX: 0, base: 0 }, plunge = -99, whistled = false, splashed = false;
   const list = [];
   const xOf = q => X0 + q * LEN;
 
@@ -173,7 +179,7 @@ export function makeLakeside() {
       return null;
     },
     act(id, env) {
-      if (id === 'plunge' && !env.running && env.t - plunge > 6.5) { plunge = env.t; env.sfx('splash'); env.found('plunge'); return true; }
+      if (id === 'plunge' && !env.running && env.t - plunge > PLUNGE + 0.3) { plunge = env.t; splashed = false; env.found('plunge'); return true; }
       if (id === 'marmot') { whistled = env.t; env.sfx('whistle'); env.found('marmot'); return true; }
       return false;
     },
@@ -248,7 +254,7 @@ export function makeLakeside() {
       list.push({ bm: alert ? marm.up : marm.sun, x: xMarmot + 1, y: shore(xMarmot) + 5 - marmotRock.h + 5, z: shore(xMarmot) + 5.5, flip: d > D_MARMOT });
       list.push({ me: true, x: mx, y: my + 0.5 });
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
-      const snack = !env.running && env.still > 60 && t - plunge > 8;
+      const snack = !env.running && env.still > 60 && t - plunge > PLUNGE + 2;
       if (snack) env.found('snack');
       for (const th of list) {
         const sx = th.x - camX, sy = base + th.y;
@@ -256,18 +262,31 @@ export function makeLakeside() {
           const u = t - plunge;
           focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
           if (env.hideMe) continue;
-          if (u < 6.4) {
-            // The cold plunge: up the bank, in with a splash, a few seconds of regret, and out again.
-            const wy = base + shore(mx) - 7, inY = wy - 12;
-            if (u < 0.7) scr.put(run.up[Math.floor(u * 12) % 4], sx, lerp(base + my, wy, u / 0.7), false);
-            else if (u < 1.0) { const a = (u - 0.7) / 0.3; scr.put(run.up[1], sx, lerp(wy, inY, a) - Math.sin(a * Math.PI) * 9, false); }
-            else if (u < 4.6) {
-              const bob = Math.round(Math.sin(u * 5) * 1), bm = run.downIdle[0], top = Math.round(inY - 22 + bob);
-              for (let j = 0; j < 26; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (c) scr.set(Math.round(sx) - bm.ox + i + (u > 2 && (Math.floor(u * 14) & 1) ? 1 : 0), top + j, c); }
-              for (let r = 0; r < 3; r++) { const rr = ((u - 1) * 9 + r * 6) % 18; for (let a = 0; a < 20; a++) scr.set(Math.round(sx + Math.cos(a / 20 * 6.283) * (5 + rr)), Math.round(top + 26 + Math.sin(a / 20 * 6.283) * (1.5 + rr * 0.3)), tarn[5]); }
-              if (u < 1.5) for (let k = 0; k < 10; k++) { const a = (u - 1) / 0.5; scr.set(Math.round(sx + (hash(k, 1, 152) - 0.5) * 26 * a), Math.round(top + 25 - Math.sin(a * Math.PI) * (6 + hash(k, 2, 152) * 12)), R.white[1]); }
-            } else if (u < 5.4) scr.put(run.down[Math.floor(u * 12) % 4], sx, lerp(inY, base + my, (u - 4.6) / 0.8), false);
-            else { scr.put(run.downIdle[0], sx + (Math.floor(u * 16) & 1), base + my, false); for (let k = 0; k < 4; k++) scr.set(Math.round(sx - 6 + k * 4), Math.round(base + my - 6 + ((u * 20 + k * 5) % 8)), tarn[5]); }
+          if (u < PLUNGE) {
+            // The cold plunge. Vest, shirt and shoes come off in a pile on the trail, he walks up the
+            // bank and wades in wearing his tights, stands it for a few seconds, wades out, and dresses.
+            const X = Math.round(sx), land = base + my, edge = base + shore(mx), deep = edge - 13;
+            const items = u < 0.12 ? 0 : u < 0.28 ? 1 : u < 0.42 ? 2 : u < 8.45 ? 3 : u < 8.62 ? 2 : u < 8.78 ? 1 : 0;
+            if (items > 0) scr.put(pile.vest, X + 11, land + 1, false);
+            if (items > 1) scr.put(pile.shirt, X + 11, land - 1, false);
+            if (items > 2) scr.put(pile.shoes, X + 19, land + 1, false);
+            // A figure standing in the water shows only down to where the water reaches on him.
+            const wade = (bm, fy, depth, dx) => {
+              const x0 = X - bm.ox + dx, y0 = Math.round(fy) - bm.oy, wl = Math.round(fy - depth);
+              for (let j = 0; j < bm.h && (depth < 1 || y0 + j < wl); j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (c) scr.set(x0 + i, y0 + j, c); }
+              if (depth >= 1) for (let r = 0; r < 3; r++) { const rr = (u * 9 + r * 6) % 18; for (let k = 0; k < 20; k++) scr.set(Math.round(X + Math.cos(k / 20 * 6.283) * (5 + rr)), Math.round(wl + Math.sin(k / 20 * 6.283) * (1.5 + rr * 0.3)), tarn[5]); }
+            };
+            const drip = () => { for (let k = 0; k < 4; k++) scr.set(X - 6 + k * 4, Math.round(land - 6 + ((u * 20 + k * 5) % 8)), tarn[5]); };
+            if (u >= 1.2 && !splashed) { splashed = true; env.sfx('splash'); }
+            if (u < 0.5 || u >= 8.3) { scr.shadow(X, land, 5, 1); scr.put(run.down[Math.floor(u * 12) % 4], sx, land, false); }
+            else if (u < 1.1) { const fy = lerp(land, edge + 1, (u - 0.5) / 0.6); scr.shadow(X, Math.round(fy), 5, 1); scr.put(dip.up[Math.floor(u * 10) % 4], sx, fy, false); }
+            else if (u < 2.3) {
+              const k = (u - 1.1) / 1.2; wade(dip.up[Math.floor(u * 8) % 4], lerp(edge + 1, deep, k), k * 10, 0);
+              if (u > 1.2 && u < 1.7) for (let n = 0; n < 8; n++) { const e = (u - 1.2) / 0.5; scr.set(Math.round(X + (hash(n, 1, 152) - 0.5) * 22 * e), Math.round(edge - 2 - Math.sin(e * Math.PI) * (4 + hash(n, 2, 152) * 9)), R.white[1]); }
+            } else if (u < 5.6) wade(dip.downIdle[0], deep + Math.round(Math.sin(u * 5)), 10, u > 3.2 && (Math.floor(u * 14) & 1) ? 1 : 0);
+            else if (u < 6.8) { const k = (u - 5.6) / 1.2; wade(dip.down[Math.floor(u * 8) % 4], lerp(deep, edge + 1, k), (1 - k) * 10, 0); }
+            else if (u < 7.4) { const fy = lerp(edge + 1, land, (u - 6.8) / 0.6); scr.shadow(X, Math.round(fy), 5, 1); scr.put(dip.down[Math.floor(u * 10) % 4], sx, fy, false); drip(); }
+            else { scr.shadow(X, land, 5, 1); scr.put(dip.downIdle[0], sx + (Math.floor(u * 16) & 1), land, false); drip(); }
             continue;
           }
           const bm = snack ? sit[Math.floor(t * 1.5) & 1] : env.moving ? run.side[Math.floor(d / 4.2) % 6] : env.shown === 'mountains' ? mapFig : env.shown === 'note' ? writeFig[Math.floor(t * 3) & 1] : run.sideIdle[0];
