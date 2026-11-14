@@ -198,8 +198,10 @@ export function makeWall() {
       const pts = [], gear = [];
       const seg = (x0, h0, x1, h1, bow, sag) => { const n = Math.max(1, Math.abs(h1 - h0), Math.abs(x1 - x0)); for (let k = 0; k <= n; k++) { const u = k / n, w = Math.sin(u * Math.PI); pts.push(Math.round(lerp(x0, x1, u) + w * bow) - camX, rowOf(lerp(h0, h1, u) - w * sag)); } };
       const high = tau >= 15.5 ? HS : tau >= 7.9 && tau < 10.3 ? Math.max(s, 170) : s;
+      // On the way down he takes his gear out as he passes it, so nothing is left hanging on the wall.
       for (const h of PRO) {
         if (h > high - 4 && !(tau >= 15.5)) break;
+        if (cut && h > s - 6) continue;
         gear.push([Math.round(route(h)) + (h < H1 ? 0 : 4), h]);
       }
       if (cut) seg(route(HS) + 1, HS + 2, route(HS) + 1, -2, 0, 0);

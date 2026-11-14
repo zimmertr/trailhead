@@ -107,13 +107,17 @@ function paintPeak({ cx, base, h, w, L, seed, kind, fill, pal }) {
   const sx = cx + (r() - 0.5) * w * 0.24, ty = base - h;
   // A second, lower summit on one shoulder, and a flank that is hollow (a horn) or full (a dome).
   const sh = { x: sx + (r() < 0.5 ? -1 : 1) * w * (0.17 + 0.12 * r()), d: h * (0.1 + 0.2 * r()), s: w * 0.07 }, curve = needle ? 0.55 + 0.15 * r() : 0.74 + 0.4 * r();
+  // Below its base a peak is only filler behind the row in front. Its flanks carry on down at the slope
+  // they reach the base with, so where the filler does show it is the foot of a mountain and not a box.
   const top = x => {
-    const half = x < sx ? sx - x0 : x1 - sx, u = Math.min(1, Math.abs(x - sx) / Math.max(1, half));
+    const half = x < sx ? sx - x0 : x1 - sx, u0 = Math.abs(x - sx) / Math.max(1, half), u = Math.min(1, u0);
+    if (u0 > 1) return base + (u0 - 1) * h * (hill ? 1.3 : curve);
     if (hill) return ty + h * (0.5 - 0.5 * Math.cos(Math.PI * u)) + 1.5 * (vnoise(x / 9, seed, 700) - 0.5);
     return ty + h * Math.pow(u, curve) - sh.d * Math.exp(-sq((x - sh.x) / sh.s)) * (1 - u * 0.3) + (L < 2 ? 3 : 1.5) * (vnoise(x / 4, seed, 700) - 0.5) - (needle ? h * 0.16 * sq(rdg(vnoise(x / 6, seed, 704))) * u : 0);
   };
   const rocks = needle ? GRAN[A] : P.rock;
-  for (let x = Math.max(0, x0); x <= Math.min(NW - 1, x1); x++) {
+  const foot = half => Math.min(half * 1.5, Math.ceil(fill * half / Math.max(1, h * (hill ? 1.3 : curve))));
+  for (let x = Math.max(0, Math.floor(x0 - foot(sx - x0))); x <= Math.min(NW - 1, Math.ceil(x1 + foot(x1 - sx))); x++) {
     const t0 = Math.round(top(x)), yEnd = Math.min(NH - 1, Math.round(base + fill));
     for (let y = Math.max(0, t0); y <= yEnd; y++) {
       const d = y - t0, yr = y - ty;
@@ -122,7 +126,8 @@ function paintPeak({ cx, base, h, w, L, seed, kind, fill, pal }) {
       const v = 0.5 + (left ? 0.2 : -0.18) + (fr < 0.5 ? 0.14 : -0.14) + 0.12 * (vnoise(x / 4, y / 5, seed + 2) - 0.5), s = v > 0.6 ? 2 : v > 0.38 ? 1 : 0;
       let c;
       if (hill) c = A >= 3 ? (bayer(x, y) < 0.3 + 0.5 * d / (h + 8) ? R.far[3] : R.dry[3]) : d === 0 ? R.dry[3] : hash(x >> 1, y >> 1, seed) < 0.05 ? R.sage[1] : pick(A ? 'ochre' : 'dry', 0.9 - 0.75 * d / (h + 10) + 0.15 * (vnoise(x / 8, y / 4, seed) - 0.5), x, y);
-      else if (y > base + 1) c = A <= 1 ? pick(A ? 'hill' : 'conifer', 0.2 + 0.5 * hash(x, y, 703), x, y) : P.rock[0];
+      // The foot: larch wood under the needles, conifers under the near peaks, hazy bands further off.
+      else if (y > base + 1) c = A <= 1 ? (needle ? pick('larch', 0.08 + 0.5 * vnoise(x / 2.5, y / 2, 706) - smooth(base, base + 14, y) * 0.12, x, y) : pick(A ? 'hill' : 'conifer', 0.2 + 0.5 * hash(x, y, 703), x, y)) : vnoise(x / 16, y / 2.2, seed + 9) > 0.56 ? P.rock[1] : P.rock[0];
       else if (d === 0) c = P.crest;
       else {
         const snowLine = needle ? h * 0.14 : (h * ((A <= 1 ? 0.36 : 0.5) + 0.22 * vnoise(x / 12, seed, 701)) + (fr < 0.5 ? 5 : -4) + A * h * 0.07) * smooth(18, 58, h);
@@ -168,7 +173,7 @@ function paintNorth() {
       cx += w * (0.4 + 0.3 * r());
     }
     // The glaciers come down between the peaks of the second row, so the front row stands across them.
-    if (L === 0) for (let y = 380; y < 480; y++) for (let x = 840; x < 1140; x++) { if (y >= groundLine(x) || !pk[at(x, y)]) continue; const gl = glacier(x, y, 1); if (gl.d < gl.w) g[at(x, y)] = iceAt(gl, x, y); else if (gl.d < gl.w + 2) g[at(x, y)] = R.rock[1]; }
+    if (L === 0) for (let y = 380; y < 480; y++) for (let x = 840; x < 1140; x++) { if (y >= groundLine(x) || !pk[at(x, y)]) continue; const gl = glacier(x, y, 1); if (gl.t < 0.14 && bayer(x, y) >= gl.t / 0.14) continue; if (gl.d < gl.w) g[at(x, y)] = iceAt(gl, x, y); else if (gl.d < gl.w + 2 && gl.t > 0.14) g[at(x, y)] = R.rock[1]; }
     for (const p of row.sort((a, b) => a.h - b.h)) paintPeak(p);
   }
 }

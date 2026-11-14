@@ -173,7 +173,7 @@ export function makeCamp() {
   const clouds = [0, 1, 2, 3].map(i => ({ bm: makeCloud(630 + i), x: i * 170, y: 0.1 + (i % 3) * 0.22 + i * 0.04, v: 3 + i * 1.6 }));
   const focus = { x: 0, y: 0 };
   // Kayti sits at the east end of the moraine and paints the towers. waved: when she was last clicked.
-  const kayti = makeKayti(); let waved = -9, now = 0;
+  const kayti = makeKayti(); let waved = -9, now = 0, flown = {};
   const seat = () => [pic.camp[0] + Math.round(pic.rx * 0.7), pic.camp[1]];
 
   function fit(scr) { const k = scr.VW + 'x' + scr.VH; if (k !== key) { key = k; pic = build(scr.VW, scr.VH, scr.narrow); } }
@@ -186,7 +186,8 @@ export function makeCamp() {
     enter(scr) { fit(scr); },
     focus: () => focus,
     // Where each tower's name goes, for the page to label them.
-    labels() { return pic ? pic.geo.map(g => ({ id: g.id, name: g.name, x: g.x, y: Math.max(13, g.top - 4) })) : []; },
+    // A tower he has climbed carries a flag, and its name sits above the flag.
+    labels() { return pic ? pic.geo.map(g => ({ id: g.id, name: g.name, x: g.x, y: Math.max(13, g.top - (flown['spire:' + g.id] ? 16 : 4)) })) : []; },
     pick(x, y) {
       if (!pic) return null;
       { const [kx, ky] = seat(); if (Math.abs(x - kx) < 9 && y > ky - 25 && y < ky + 3) return { label: NAMES.kayti, x: kx, y: ky - 27, act: 'kayti' }; }
@@ -196,7 +197,7 @@ export function makeCamp() {
     // A click on her and she looks up from the page and waves.
     act(id) { if (id !== 'kayti') return false; waved = now; return true; },
     draw(scr, env, arg, q) {
-      fit(scr); now = env.t;
+      fit(scr); now = env.t; flown = env.done;
       const { VW, VH, fb } = scr, { t } = env, { geo, camp, rx, yh } = pic;
       fb.set(pic.back.d);
       // Cloud drifts behind the towers, and birds cross high up.
