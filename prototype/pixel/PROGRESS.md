@@ -229,7 +229,7 @@ Round 2 lives on its own branch and its own artifact so TJ can compare it with t
 ### Checklist
 
 Map
-- [ ] Revise the block-in (`www/plan.js`) to the mark-up above and republish it. Keep a strip of sky on the first desktop screen, as today.
+- [x] Revise the block-in (`www/plan.js`) to the mark-up above and republish it. Keep a strip of sky on the first desktop screen, as today.
 - [ ] Build the real map in `www/world.js` from the block-in: the larger world, every biome, the uneven lake with its island, the river and log bridge, the deeper forest loop with mist, the Stack trail turning talus grey, the Spires trail becoming a boot track in snow, larches by the Spires, big-leaf maples in the run forest. Everything that depends on map coordinates moves with it: camera limits, the cats' area, kiosk, flags, footprints, cloud shadows, fireflies, the trail map sheet (`MAP` and `DOTS` in `app.js`), where the lake route enters and leaves the forest.
 - [ ] Animals that move: elk, bear, squirrels, chipmunks and birds in the south meadow, goats in the basin, bighorn sheep in the scablands, marmots, a whale that breaches now and then, jellyfish near the shore, waves on the beach.
 - [ ] Signs stand on the terrain they name, with the twelve new names. Sign names and every other stray line of copy move into `content.js`.
@@ -256,3 +256,7 @@ Controls and the rest
 ### Calls made in round 2
 
 - Restored the MVP artifact to the overnight build (its version 7) so it is a clean baseline; today's fixes are only in the round 2 artifact.
+- Block-in, second pass: the ranges are rows of drawn peaks in five layers, tall in the west and sunk to low ridges behind the three destinations, because the Spires and the lake peak read best against sky and the first screen keeps its strip of it.
+- "Glaciers between the peaks behind the Spires" needed peaks there, so a taller glaciated group now stands right behind the Spires with one glacier winding down between its peaks, and the volcano rises behind that group at centre-right.
+- A small second glacier comes through the gap between The Stack and the Spires, which gives Merge Conflict Col its col.
+- Biome edges are now wide bands where each side's ground and trees scatter into the other; where the burn meets the pines the pines stand charred.

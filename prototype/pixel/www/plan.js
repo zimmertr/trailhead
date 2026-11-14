@@ -1,8 +1,8 @@
 // A workbench page: a block-in of the larger world map, for agreeing the layout before it is drawn
 // properly. Nothing here is used by the site. plan.html?crop=x,y,w,h&scale=3 magnifies one part.
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, ramp, pick, BM, outline, thick, catmull, INK } from './core.js';
-import { clump, makeMaple, makeSpruce, makeFir, makeConifer, makeBoulder, makeLog, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeSnag, makeBush, makeElk } from './sprites.js';
-import { bear, goat, marmot } from './fauna.js';
+import { clump, makeMaple, makeSpruce, makeFir, makeConifer, makeBoulder, makeLog, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeSnag, makeBush, makeElk, makeBird } from './sprites.js';
+import { ell, bear, goat, marmot } from './fauna.js';
 import { makeStack, makeMassif, makePeak } from './world.js';
 
 ramp('larch', ['#6a4610', '#a8701a', '#d89a24', '#f2c43c', '#fbe478']);
@@ -35,18 +35,32 @@ const groundLine = x => 462 + 8 * (fbm(x / 9, 3.3, 14, 2) - 0.5);
 const forestEdge = y => 740 + 36 * (fbm(y / 50, 2.3, 3, 3) - 0.5) - smooth(700, 800, y) * 60;
 const forestSouth = x => lerp(1200, 792 + 40 * (fbm(x / 70, 5, 6, 3) - 0.5), smooth(360, 640, x));
 const forestAmt = (x, y) => smooth(forestEdge(y) + 12, forestEdge(y) - 12, x) * smooth(forestSouth(x) + 14, forestSouth(x) - 14, y) * smooth(1.15, 1.6, lakeD(x, y)) * smooth(-6, -26, coast(x, y));
-const basinAmt = (x, y) => smooth(1060, 1140, x + 30 * (vnoise(y / 40, 1, 7) - 0.5)) * smooth(650, 596, y + 34 * (fbm(x / 60, 2, 8, 3) - 0.5));
-const dryAmt = (x, y) => smooth(1190, 1330, x + 60 * (fbm(y / 70, 3, 9, 3) - 0.5)) * smooth(600, 660, y + 34 * (fbm(x / 60, 2, 8, 3) - 0.5));
-const sageAmt = (x, y) => smooth(1350, 1470, x + 50 * (fbm(y / 60, 4, 10, 3) - 0.5));
-const burnAmt = (x, y) => smooth(1090, 1230, x + 70 * (fbm(y / 80, 5, 11, 3) - 0.5)) * smooth(830, 900, y + 50 * (fbm(x / 80, 6, 12, 3) - 0.5));
+// How much of each biome a spot has. The edges are wide and wander, so one biome thins into the next.
+const basinAmt = (x, y) => smooth(1020, 1210, x + 60 * (fbm(y / 60, 1, 7, 3) - 0.5)) * smooth(700, 580, y + 60 * (fbm(x / 70, 2, 8, 3) - 0.5));
+const dryAmt = (x, y) => smooth(1120, 1400, x + 110 * (fbm(y / 90, 3, 9, 3) - 0.5)) * smooth(560, 700, y + 60 * (fbm(x / 70, 2, 8, 3) - 0.5));
+const sageAmt = (x, y) => smooth(1330, 1490, x + 60 * (fbm(y / 60, 4, 10, 3) - 0.5));
+const burnAmt = (x, y) => smooth(1000, 1300, x + 120 * (fbm(y / 90, 5, 11, 3) - 0.5)) * smooth(780, 950, y + 80 * (fbm(x / 90, 6, 12, 3) - 0.5));
 const MESAS = [[1496, 700, 52, 17], [1462, 772, 40, 14], [1526, 836, 44, 15], [1420, 708, 16, 7]];
 const mesa = (x, y) => MESAS.some(([cx, cy, rx, ry]) => Math.hypot((x - cx) / rx, (y - cy) / ry) < 1 + 0.25 * (vnoise(x / 9, y / 7, 141) - 0.5));
 const couleeAmt = (x, y) => mesa(x, y) || mesa(x, y - 15) || mesa(x, y - 22) ? 1 : 0;
 const talus = (x, y) => (y > 528 && y < 580) ? smooth(118, 64, Math.abs(x - STACK.x) + (y - 536) * 2.4) : 0;
 const moraine = (x, y) => (y > 510 && y < 540 && Math.abs(x - SPIRES.x) < 100) ? smooth(538, 520, y + 5 * vnoise(x / 6, 1, 15)) * smooth(100, 84, Math.abs(x - SPIRES.x)) * 0.8 : 0;
-function glacier(x, y) {
-  const dx = GL.x1 - GL.x0, dy = GL.y1 - GL.y0, t = clamp(((x - GL.x0) * dx + (y - GL.y0) * dy) / (dx * dx + dy * dy), 0, 1), px = GL.x0 + dx * t, py = GL.y0 + dy * t;
-  return { t, d: Math.hypot(x - px, y - py), w: lerp(64, 11, Math.pow(t, 0.8)) + 5 * (vnoise(x / 8, y / 8, 9) - 0.5), side: x - px };
+// The glacier out of the Spires, and two more that come down between the low peaks behind them.
+const TONGUES = [{ ...GL, w0: 64, w1: 11 }, { x0: 891, y0: 450, x1: 888, y1: 524, w0: 4, mid: [0.4, 11], w1: 6 }, { x0: 1060, y0: 386, x1: 1096, y1: 514, w0: 5, mid: [0.55, 22], w1: 8 }];
+function glacier(x, y, from = 0) {
+  let best = null;
+  for (let i = from; i < TONGUES.length; i++) {
+    const q = TONGUES[i], dx = q.x1 - q.x0, dy = q.y1 - q.y0, t = clamp(((x - q.x0) * dx + (y - q.y0) * dy) / (dx * dx + dy * dy), 0, 1), px = q.x0 + dx * t + (i ? 5 * Math.sin(t * 5.5 + i * 2) * Math.sin(t * Math.PI) : 0), py = q.y0 + dy * t;
+    const wd = q.mid ? (t < q.mid[0] ? lerp(q.w0, q.mid[1], t / q.mid[0]) : lerp(q.mid[1], q.w1, (t - q.mid[0]) / (1 - q.mid[0]))) : lerp(q.w0, q.w1, Math.pow(t, 0.8));
+    const o = { t, d: Math.hypot(x - px, y - py), w: wd + (i ? 2.5 : 5) * (vnoise(x / 8, y / 8, 9 + i) - 0.5), side: x - px, i };
+    if (!best || o.d - o.w < best.d - best.w) best = o;
+  }
+  return best;
+}
+function iceAt(gl, x, y) {
+  const cre = frac(gl.t * 7 - sq(gl.side / gl.w) * 0.35 + 0.35 * vnoise(x / 6, y / 6, 2));
+  if (cre < 0.07 && gl.d < gl.w - 3 && vnoise(x / 5, y / 3, 3) > 0.35) return cre < 0.04 ? R.glac[0] : R.glac[2];
+  return gl.t > 0.8 && hash(x >> 1, y >> 1, 9) < (gl.t - 0.8) * 2 ? R.rock[1] : pick('glac', 0.8 - 0.3 * gl.side / gl.w + 0.18 * (vnoise(x / 4, y / 4, 8) - 0.5) - gl.t * 0.15, x, y, 0.6);
 }
 
 // ---- trails and the river ---------------------------------------------------------------------
@@ -79,90 +93,104 @@ const trackPts = catmull(TRAILS.track);
 stamp(river, RIVER, 2.2, 6, null); stamp(river, INLET, 1.2, 1.6, null);
 const nearTrail = (x, y, r) => { for (let i = 0; i < trailPts.length; i += 3) { const p = trailPts[i]; if (Math.abs(p[0] - x) < r && Math.abs(p[1] - y) < r) return true; } return false; };
 
-// ---- the north: ridge on ridge to the horizon ---------------------------------------------------
-const BASE = [460, 424, 388, 352, 318, 288], AMP = [50, 52, 46, 38, 28, 18], SC = [150, 128, 108, 90, 74, 60];
+// ---- the north: layer on layer of peaks -------------------------------------------------------
+// Each layer is a row of drawn peaks, the farthest first and palest. The ranges stand tall in the
+// west, sink to low ridges behind the three destinations so those keep the sky behind them, rise
+// again as granite needles over the larch basin, and flatten into dry hills in the far east.
+// envS is the taller group that stands right behind the Spires, the source of their glaciers.
+const envS = x => smooth(930, 1010, x) * smooth(1160, 1085, x) * 0.6, pk = new Uint8Array(NW * NH);
+const envW = x => smooth(660, 230, x), envNE = x => smooth(1090, 1230, x) * smooth(1500, 1380, x), envDry = x => smooth(1340, 1520, x);
+const skyAt = (x, y) => { const sb = R.skyband, f = clamp(y / 400, 0, 1) * (sb.length - 1), b0 = Math.floor(f), e = f - b0; return sb[Math.min(sb.length - 1, b0 + (e > 0.72 && bayer(x, y) < (e - 0.72) / 0.28 ? 1 : 0))]; };
+// Shaded, plain and lit snow and rock for each layer, nearest first; every layer back is paler and bluer.
+const LP = [
+  { snow: [R.snow[1], R.snow[3], R.snow[4]], rock: [R.rock[0], R.rock[1], R.rock[3]], crest: INK },
+  { snow: [R.snow[2], R.snow[3], R.snow[4]], rock: [R.rock[1], R.rock[2], R.rock[3]], crest: R.rock[0] },
+  { snow: [R.snow[2], R.snow[3], R.snow[3]], rock: [R.far[0], R.far[1], R.far[2]], crest: R.far[0] },
+  { snow: [R.far[3], R.farsnow[0], R.farsnow[1]], rock: [R.far[1], R.far[2], R.far[3]], crest: R.far[1] },
+  { snow: [R.far[3], R.farsnow[0], R.farsnow[0]], rock: [R.far[2], R.far[3], R.far[3]], crest: R.far[2] }
+];
+const GRAN = [[R.granite[1], R.granite[3], R.granite[5]], [R.granite[2], R.granite[3], R.granite[4]], [R.granite[3], R.granite[4], R.granite[5]], [R.far[2], R.far[3], R.farsnow[0]], [R.far[3], R.far[3], R.farsnow[0]]];
 const rdg = n => 1 - Math.abs(2 * n - 1);
-const zIce = x => smooth(770, 840, x) * smooth(1070, 1000, x);
-const zNE = (x, k) => smooth(1050 + k * 16, 1150 + k * 16, x) * smooth(1470 - k * 22, 1390 - k * 22, x);
-const zDry = (x, k) => smooth(1310 - k * 14, 1530 - k * 14, x);
-const ridge = [], lean = [];
-BASE.forEach((base, k) => {
-  const a = new Float32Array(NW + 8), s = SC[k];
-  for (let x = 0; x < NW + 8; x++) {
-    let h = 0.62 * rdg(vnoise(x / s, k * 7.7, 500 + k)) + 0.26 * rdg(vnoise(x / (s / 3.1), k * 3.3, 510 + k)) + 0.12 * rdg(vnoise(x / (s / 9), k, 520 + k));
-    h = Math.pow(h, 1.25);
-    let amp = AMP[k]; if (k <= 1) amp *= 1 - 0.7 * zIce(x);
-    // The dry side has no crags, only long rolling hills.
-    const roll = 0.5 + 0.5 * Math.sin(x / (40 + k * 6) + k * 2) * vnoise(x / 90, k, 530);
-    let y = base - amp * lerp(h, roll * 0.45, zDry(x, k));
-    if (k <= 2) y -= zNE(x, k) * (15 - k * 3) * Math.pow(rdg(vnoise(x / 7, k * 3.1, 540)), 2);
-    // The col between The Stack and the Spires.
-    if (k === 0) y += 22 * Math.exp(-sq((x - 884) / 16));
-    a[x] = y;
+function paintPeak({ cx, base, h, w, L, seed, kind, fill }) {
+  const r = rng(seed), P = LP[L], x0 = Math.floor(cx - w / 2), x1 = Math.ceil(cx + w / 2), needle = kind === 'needle', hill = kind === 'hill';
+  const sx = cx + (r() - 0.5) * w * 0.24, ty = base - h;
+  // A second, lower summit on one shoulder, and a flank that is hollow (a horn) or full (a dome).
+  const sh = { x: sx + (r() < 0.5 ? -1 : 1) * w * (0.17 + 0.12 * r()), d: h * (0.1 + 0.2 * r()), s: w * 0.07 }, curve = needle ? 0.55 + 0.15 * r() : 0.74 + 0.4 * r();
+  const top = x => {
+    const half = x < sx ? sx - x0 : x1 - sx, u = Math.min(1, Math.abs(x - sx) / Math.max(1, half));
+    if (hill) return ty + h * (0.5 - 0.5 * Math.cos(Math.PI * u)) + 1.5 * (vnoise(x / 9, seed, 700) - 0.5);
+    return ty + h * Math.pow(u, curve) - sh.d * Math.exp(-sq((x - sh.x) / sh.s)) * (1 - u * 0.3) + (L < 2 ? 3 : 1.5) * (vnoise(x / 4, seed, 700) - 0.5) - (needle ? h * 0.16 * sq(rdg(vnoise(x / 6, seed, 704))) * u : 0);
+  };
+  const rocks = needle ? GRAN[L] : P.rock;
+  for (let x = Math.max(0, x0); x <= Math.min(NW - 1, x1); x++) {
+    const t0 = Math.round(top(x)), yEnd = Math.min(NH - 1, Math.round(base + fill));
+    for (let y = Math.max(0, t0); y <= yEnd; y++) {
+      const d = y - t0, yr = y - ty;
+      // Ridges fan out from the summit; each facet is lit on one side and shaded on the other.
+      const fr = frac((x - sx) / Math.max(3, yr) * 2.4 + 0.3 * vnoise(x / 7, y / 7, seed + 1)), left = x < sx + (fr - 0.5) * 3;
+      const v = 0.5 + (left ? 0.2 : -0.18) + (fr < 0.5 ? 0.14 : -0.14) + 0.12 * (vnoise(x / 4, y / 5, seed + 2) - 0.5), s = v > 0.6 ? 2 : v > 0.38 ? 1 : 0;
+      let c;
+      if (hill) c = L >= 3 ? (bayer(x, y) < 0.3 + 0.5 * d / (h + 8) ? R.far[3] : R.dry[3]) : d === 0 ? R.dry[3] : hash(x >> 1, y >> 1, seed) < 0.05 ? R.sage[1] : pick(L ? 'ochre' : 'dry', 0.9 - 0.75 * d / (h + 10) + 0.15 * (vnoise(x / 8, y / 4, seed) - 0.5), x, y);
+      else if (y > base + 1) c = L <= 1 ? pick(L ? 'hill' : 'conifer', 0.2 + 0.5 * hash(x, y, 703), x, y) : P.rock[0];
+      else if (d === 0) c = P.crest;
+      else {
+        const snowLine = needle ? h * 0.14 : h * ((L <= 1 ? 0.36 : 0.5) + 0.22 * vnoise(x / 12, seed, 701)) + (fr < 0.5 ? 5 : -4) + L * h * 0.07;
+        const gully = fr > 0.6 && fr < 0.76 && yr < h * (needle ? 0.5 : 0.86);
+        // On the big near peaks a glacier hangs in one of the cirques and spills toward the valley.
+        const ice = !needle && L <= 1 && h > 56 && Math.abs(fr - 0.3) < 0.1 && yr > h * 0.3;
+        if (ice) c = frac(yr / 7 + 0.4 * vnoise(x / 9, y / 9, seed + 3)) < 0.12 ? R.glac[2] : pick('glac', 0.55 + v * 0.5, x, y, 0.6);
+        else c = yr < snowLine || gully ? P.snow[s] : rocks[s];
+        // Trees climb the foot of the nearer peaks: conifers in the west, larch under the needles.
+        if (L <= 1 && y > base - (6 + 8 * vnoise(x / 5, seed, 702)) && !ice) c = needle ? pick('larch', 0.3 + 0.6 * hash(x >> 1, y, 705), x, y) : pick(L ? 'hill' : 'conifer', 0.25 + 0.5 * hash(x, y, 703), x, y);
+      }
+      g[at(x, y)] = c; pk[at(x, y)] = 1;
+    }
   }
-  ridge.push(a);
-  // Which way each slope faces, read off a smoothed skyline: faces that look left take the light.
-  const l = new Uint8Array(NW);
-  const sm = 4 + k * 2; for (let x = 0; x < NW; x++) l[x] = a[Math.min(NW + 7, x + sm)] - a[Math.max(0, x - sm)] < 0 ? 1 : 0;
-  lean.push(l);
-});
-// The icefield: one broad cap of ice behind the Stack and the Spires, with rock points standing out of it.
-const iceTop = x => 304 + 150 * Math.pow(Math.abs(x - 915) / 300, 4) + 14 * (fbm(x / 60, 2, 550, 3) - 0.5);
-const NUN = [[742, 372, 9], [806, 348, 6], [866, 384, 11], [930, 336, 5], [972, 366, 8], [1034, 346, 6], [1090, 380, 10], [690, 392, 7], [1140, 396, 8]];
-function iceAt(x, y, top) {
-  for (const [nx, by, h] of NUN) { const dx = x - nx; if (y <= by && y > by - h && dx > -(y - (by - h)) * 1.5 - 0.5 - 2 * vnoise(y / 2, nx, 554) && dx < (y - (by - h)) * 0.8 + 0.5) return dx < -1 ? (hash(x, y, 555) < 0.3 ? R.snow[3] : R.rock[2]) : R.rock[0]; }
-  for (const [nx, by, h] of NUN) if (y > by && y < by + 4 && x > nx - 2 && x < nx + h + (y - by) * 2) return R.glac[3];
-  const d = y - top;
-  if (d < 2) return R.glac[5];
-  if (vnoise(x / 50, y / 26, 552) > 0.6 && y % 4 === 0 && vnoise(x / 7, y / 4, 553) > 0.45) return R.glac[d > 60 ? 1 : 2];
-  const flow = fbm(x / 70, y / 16, 551, 3);
-  return pick('glac', 0.94 - smooth(0.5, 0.36, flow) * 0.34 - smooth(70, 130, d) * 0.12, x, y, 0.6);
 }
-const VOLC = { x: 800, top: 186 };
-const volc = x => { const dx = Math.abs(x - VOLC.x); return VOLC.top + Math.max(0, dx - 5) * 0.56 + Math.pow(Math.max(0, dx - 5), 1.35) * 0.012 + 3 * (vnoise(x / 9, 2, 560) - 0.5) + (dx < 7 ? 2 * Math.sin(x / 2.2) : 0); };
-// Lit snow, shaded snow, lit rock, shaded rock for each rank: every rank back is paler and bluer.
-const PAL = [[R.snow[4], R.snow[2], R.rock[2], R.rock[0]], [R.snow[4], R.snow[2], R.rock[1], R.far[0]], [R.snow[3], R.snow[1], R.far[0], R.far[0]], [R.snow[3], R.snow[2], R.far[1], R.far[0]], [R.farsnow[1], R.farsnow[0], R.far[3], R.far[2]], [R.farsnow[0], R.far[3], R.far[3], R.far[3]]];
-const ROCKT = [0.47, 0.5, 0.54, 0.58, 0.66, 0.85];
-const rankOf = (x, y, k0, k1) => { for (let j = k0; j <= k1; j++) if (y >= ridge[j][x]) return j; return -1; };
-function north(x, y) {
-  let k = rankOf(x, y, 0, 1);
-  if (k < 0) { const it = iceTop(x); if (y >= it && it < ridge[1][x]) return iceAt(x, y, it); k = rankOf(x, y, 2, 5); }
-  if (k < 0) {
-    const vy = volc(x);
-    if (y >= vy && vy < 290) { const lit = x < VOLC.x + 3 * Math.sin(y / 6), rib = vnoise((x - VOLC.x) / (y - VOLC.top + 8) * 7, y / 30, 561); return rib > 0.72 && y > vy + 6 ? R.far[2] : lit ? R.farsnow[1] : (bayer(x, y) < 0.5 ? R.farsnow[0] : R.far[3]); }
-    const sb = R.skyband, f = clamp(y / 262, 0, 1) * (sb.length - 1), b0 = Math.floor(f), e = f - b0;
-    return sb[Math.min(sb.length - 1, b0 + (e > 0.72 && bayer(x, y) < (e - 0.72) / 0.28 ? 1 : 0))];
+// One white volcano stands alone on the horizon, right of centre, with the low ridges at its feet.
+const VOLC = { x: 1088, top: 244, h: 176, half: 218 };
+function paintVolcano() {
+  const { x: vx, top: ty, h, half } = VOLC;
+  for (let x = Math.max(0, vx - half); x <= Math.min(NW - 1, vx + half); x++) {
+    const dx = Math.abs(x - vx), u = dx / half;
+    let t0 = ty + 3 + h * Math.pow(Math.max(0, dx - 10) / (half - 10), 0.7) + 2 * (vnoise(x / 9, 2, 560) - 0.5) * Math.min(1, dx / 30);
+    if (dx < 6) t0 = ty + 5;
+    t0 = Math.round(t0);
+    for (let y = t0; y < ty + h + 6 && y < NH; y++) {
+      const yr = y - ty, fr = frac((x - vx) / Math.max(5, yr) * 3 + 0.25 * vnoise(x / 11, y / 11, 561)), left = x < vx + (fr - 0.5) * 8;
+      const rib = fr > 0.4 && fr < 0.5 && yr > 26 && vnoise(x / 7, y / 10, 562) > 0.42;
+      g[at(x, y)] = y === t0 ? R.far[2] : rib ? R.far[2] : left ? (fr < 0.5 ? R.farsnow[1] : R.farsnow[0]) : (fr < 0.5 ? R.farsnow[0] : R.far[3]);
+    }
   }
-  const r = ridge[k], d = y - r[x], lit = lean[k][x], room = (k ? ridge[k - 1][x] : groundLine(x)) - r[x];
-  const th = 0.5 + 0.6 * (vnoise(x / 14, y / 10, 70 + k) - 0.5), thd = 0.5 + 0.9 * (fbm(x / 46, y / 16, 170 + k, 2) - 0.5);
-  const rib = vnoise((x + (lit ? 1 : -1) * d * 0.9) / 4, d / 22, 600 + k) + 0.3 * (fbm(x / 44, y / 30, 610 + k, 2) - 0.5);
-  if (zDry(x, k) > thd) {
-    if (k >= 3) return d < 2 ? R.dry[3] : bayer(x, y) < 0.35 + 0.4 * d / Math.max(8, room) ? R.far[3] : R.dry[k === 3 ? 2 : 3];
-    if (k === 0 && hash(x >> 1, y >> 1, 71) < 0.08) return R.sage[1];
-    return pick(k === 0 ? 'dry' : 'ochre', 0.95 - 0.7 * d / Math.max(10, room) + 0.2 * (vnoise(x / 9, y / 5, 72) - 0.5), x, y);
+}
+function paintNorth() {
+  for (let y = 0; y < 480; y++) for (let x = 0; x < NW; x++) if (y < groundLine(x)) g[at(x, y)] = skyAt(x, y);
+  paintVolcano();
+  const r = rng(77);
+  for (let L = 4; L >= 0; L--) {
+    const row = [];
+    for (let cx = -50; cx < NW + 70;) {
+      const eW = envW(cx) + envS(cx), eN = envNE(cx), kind = r() < envDry(cx) ? 'hill' : r() < eN * 1.15 - envS(cx) * 2 ? 'needle' : 'peak', step = 9.5 + 30 * eW + 13 * eN;
+      let h = (22 + 90 * eW + 44 * eN) * (1 - L * 0.11) * (0.72 + 0.5 * r()), w;
+      if (kind === 'needle') { h *= 1.3; w = h * (0.75 + 0.35 * r()); } else if (kind === 'hill') { h = (13 + 11 * r()) * (1 - L * 0.1); w = h * (4 + 2 * r()); } else w = Math.max(44, h * (1.5 + 0.7 * r()));
+      row.push({ cx, base: groundLine(clamp(Math.round(cx), 0, NW - 1)) + 2 - L * step, h, w, L, seed: 1000 + L * 100 + row.length, kind, fill: L ? step + 12 : 3 });
+      cx += w * (0.4 + 0.3 * r());
+    }
+    // The glaciers come down between the peaks of the second row, so the front row stands across them.
+    if (L === 0) for (let y = 380; y < 480; y++) for (let x = 840; x < 1140; x++) { if (y >= groundLine(x) || !pk[at(x, y)]) continue; const gl = glacier(x, y, 1); if (gl.d < gl.w) g[at(x, y)] = iceAt(gl, x, y); else if (gl.d < gl.w + 2) g[at(x, y)] = R.rock[1]; }
+    for (const p of row.sort((a, b) => a.h - b.h)) paintPeak(p);
   }
-  if (k <= 1 && zIce(x) > th) { const sv = frac(d / 7 + 0.5 * vnoise(x / 9, y / 9, 74)); return sv < 0.16 && d > 3 ? R.glac[sv < 0.07 ? 1 : 2] : pick('glac', 0.9 - 0.3 * vnoise(x / 8, y / 5, 76) - (d < 2 ? -0.1 : 0), x, y, 0.6); }
-  if (k <= 2 && zNE(x, k) > th) {
-    // Pale granite needles, larch running up their lower slopes.
-    if (d > room * (0.35 + 0.6 * fbm(x / 22, k * 5, 78, 3)) && hash(x >> 1, y >> 1, 79) < 0.5 + 0.4 * vnoise(x / 9, y / 6, 80)) return k === 2 ? R.mustard[hash(x, y, 81) < 0.5 ? 1 : 2] : pick('larch', 0.35 + 0.6 * hash(x >> 1, y, 81), x, y);
-    if (rib < 0.3 && d < 16) return lit ? R.snow[4] : R.snow[2];
-    return pick('granite', (lit ? 0.82 : 0.46) + 0.24 * (rib - 0.5) + (k === 2 ? 0.1 : 0), x, y, 0.7);
-  }
-  // Snowy ridges with dark rock ribs, forest in the valley floors.
-  if (k <= 1 && d > room * (0.7 + 0.2 * vnoise(x / 15, k, 82))) return pick(k ? 'hill' : 'conifer', 0.2 + 0.5 * hash(x, y, 83), x, y);
-  const p = PAL[k];
-  if (d >= 2 && rib > ROCKT[k] + (lit ? 0.07 : 0)) return k === 2 && !lit && bayer(x, y) < 0.5 ? R.rock[1] : p[lit ? 2 : 3];
-  return p[lit ? 0 : 1];
 }
 
 // ---- the ground -------------------------------------------------------------------------------
 function ground(x, y) {
-  if (y < groundLine(x)) return north(x, y);
+  if (y < groundLine(x)) return skyAt(x, y);
   const i = at(x, y), n1 = hash(x, y, 31) - 0.5;
   const cs = coast(x, y);
   if (cs > 0) {
     if (cs < 2.5 + 2 * Math.sin(x / 7 + y / 9)) return R.white[1];
-    if (cs > 14 && cs < 17 && vnoise(x / 10, y / 3, 85) > 0.55) return R.sea[5];
+    // Swells run in toward the beach in broken white lines, closer together near the shore.
+    { const wv = frac((cs + 7 * Math.sin(x / 37 + y / 61)) / 24); if (cs > 9 && wv < 0.1 && vnoise(x / 16, y / 5, 85) > (cs < 60 ? 0.38 : 0.52)) return cs < 40 ? R.sea[5] : R.sea[4]; }
     return pick('sea', 0.75 - smooth(0, 150, cs) * 0.6 + 0.12 * (vnoise(x / 14, y / 3, 86) - 0.5), x, y);
   }
   if (cs > -15 - 6 * vnoise(x / 20, y / 20, 87)) return R.sand[cs > -4 ? 0 : hash(x, y, 88) < 0.25 ? 1 : 2];
@@ -176,12 +204,8 @@ function ground(x, y) {
   if (river[i] === 2) return hash(x, y, 9) < 0.08 ? R.water[5] : R.water[y & 1 ? 3 : 4];
   if (river[i] === 1) return trail[i] ? R.wood[1] : R.water[1];
   const gl = glacier(x, y);
-  if (y > 500 && gl.d < gl.w) {
-    const cre = frac(gl.t * 7 - sq(gl.side / gl.w) * 0.35 + 0.35 * vnoise(x / 6, y / 6, 2));
-    if (cre < 0.07 && gl.d < gl.w - 3 && vnoise(x / 5, y / 3, 3) > 0.35) return cre < 0.04 ? R.glac[0] : R.glac[2];
-    return gl.t > 0.8 && hash(x >> 1, y >> 1, 9) < (gl.t - 0.8) * 2 ? R.rock[1] : pick('glac', 0.8 - 0.3 * gl.side / gl.w + 0.18 * (vnoise(x / 4, y / 4, 8) - 0.5) - gl.t * 0.15, x, y, 0.6);
-  }
-  if (y > 500 && gl.d < gl.w + 5) return pick('rock', 0.2 + 0.55 * hash(x >> 1, y >> 1, 11), x, y);
+  if (gl.d < gl.w) return iceAt(gl, x, y);
+  if (gl.d < gl.w + (gl.i ? 3 : 5)) return pick('rock', 0.2 + 0.55 * hash(x >> 1, y >> 1, 11), x, y);
   const tal = Math.max(talus(x, y), moraine(x, y));
   if (trail[i] === 2) { const grey = tkind[i] === 1 && hash(x, y, 14) < 0.85; return grey ? R.rock[hash(x, y, 5) < 0.2 ? 2 : hash(x, y, 6) < 0.3 ? 4 : 3] : hash(x, y, 5) < 0.1 ? R.dirt[2] : hash(x, y, 6) < 0.15 ? R.dirt[4] : R.dirt[3]; }
   if (trail[i] === 1) return tkind[i] === 1 ? R.rock[1] : R.dirt[1];
@@ -201,30 +225,37 @@ function ground(x, y) {
     if (mesa(x, y - 22)) return hash(x, y, 92) < 0.5 ? R.basalt[2] : R.ash[1];
     return R.sand[0];
   }
-  const ba = basinAmt(x, y);
-  if (ba > 0.5 + 0.2 * n1) {
+  const ba = basinAmt(x, y), bu = burnAmt(x, y), da = dryAmt(x, y);
+  // Each biome wins where its share beats a blotchy threshold, so its edge is a scatter of patches, not a line.
+  const blot = s => 0.5 + 0.85 * (fbm(x / 32, y / 21, s, 3) - 0.5) + 0.2 * n1;
+  if (ba > blot(181)) {
     // The larch basin: pale granite slabs with seams of grass and heather between them.
     const slab = fbm(x / 22, y / 11, 96, 3);
-    if (slab > 0.5) return vnoise(x / 3, y / 9, 97) > 0.78 ? R.granite[2] : pick('granite', 0.62 + 0.5 * (slab - 0.5) + 0.2 * n1, x, y, 0.7);
-    return hash(x, y, 98) < 0.06 ? R.pink[1] : pick('grass', 0.4 + 0.5 * (fbm(x / 20, y / 20, 99, 3) - 0.5) + 0.2 * n1, x, y, 0.4);
+    if (slab > 0.5 + (1 - ba) * 0.12) return vnoise(x / 3, y / 9, 97) > 0.78 ? R.granite[2] : pick('granite', 0.62 + 0.5 * (slab - 0.5) + 0.2 * n1, x, y, 0.7);
+    return hash(x, y, 98) < 0.06 ? R.pink[1] : pick('grass', 0.42 + 0.5 * (fbm(x / 20, y / 20, 99, 3) - 0.5) + 0.2 * n1, x, y, 0.4);
   }
-  const bu = burnAmt(x, y);
-  if (bu > 0.5 + 0.2 * n1) {
+  if (bu > blot(182)) {
     // The old burn: ash-grey ground, green coming back in patches, fireweed everywhere.
     const green = fbm(x / 24, y / 16, 100, 3);
     if (hash(x, y, 101) < 0.05 && hash(x, y - 1, 101) >= 0.05) return R.pink[1];
     if (hash(x, y + 1, 101) < 0.05) return R.pink[2];
-    return green > 0.56 ? pick('grass', 0.3 + 0.5 * (green - 0.5) + 0.2 * n1, x, y, 0.5) : pick('ash', 0.4 + 0.5 * fbm(x / 14, y / 9, 102, 3) + 0.2 * n1, x, y);
+    return green > 0.56 - (1 - bu) * 0.2 ? pick('grass', 0.3 + 0.5 * (green - 0.5) + 0.2 * n1, x, y, 0.5) : pick('ash', 0.4 + 0.5 * fbm(x / 14, y / 9, 102, 3) + 0.2 * n1, x, y);
   }
-  const da = dryAmt(x, y);
-  if (da > 0.5 + 0.25 * n1) {
+  if (da > blot(183)) {
     const sg = sageAmt(x, y);
     if (hash(x >> 1, y >> 1, 103) < 0.04 + sg * 0.3) return R.sage[1 + (hash(x, y, 104) < 0.5 ? 0 : 1)];
+    if (hash(x >> 1, y >> 1, 106) < (1 - da) * 0.45) return pick('grass', 0.72 + 0.2 * n1, x, y, 0.4);
     return pick('dry', 0.5 + 0.5 * (fbm(x / 24, y / 14, 105, 3) - 0.5) + 0.15 * n1 + sg * 0.1, x, y);
   }
-  return pick('grass', 0.56 + 0.55 * (fbm(x / 26, y / 26, 31, 3) - 0.5) + 0.14 * (hash(x >> 1, y >> 1, 32) - 0.5) - fa * 0.45 - smooth(462, 505, y) * 0.1 - da * 0.5, x, y, 0.3);
+  // The fringes: each biome scatters a little of itself into the meadow around it.
+  const h2 = hash(x >> 1, y >> 1, 107);
+  if (da > 0.1 && h2 < da * 0.6) return pick('dry', 0.55 + 0.3 * n1, x, y);
+  if (bu > 0.1 && h2 > 1 - bu * 0.5) return pick('ash', 0.55 + 0.3 * n1, x, y);
+  if (ba > 0.1 && hash(x >> 1, y >> 1, 108) < ba * 0.3) return R.granite[3 + (hash(x, y, 109) < 0.5 ? 0 : 1)];
+  return pick('grass', 0.56 + 0.55 * (fbm(x / 26, y / 26, 31, 3) - 0.5) + 0.14 * (hash(x >> 1, y >> 1, 32) - 0.5) - fa * 0.45 - smooth(462, 505, y) * 0.1 + da * 0.2, x, y, 0.3);
 }
 for (let y = 0; y < NH; y++) for (let x = 0; x < NW; x++) g[at(x, y)] = ground(x, y);
+paintNorth();
 
 // Wildflowers across the meadows, thickest in the south.
 {
@@ -298,45 +329,71 @@ for (let gy = 474; gy < NH + 30; gy += 9) for (let gx = -10; gx < 800; gx += 9) 
   if (!clearOf(x, y, gold ? 26 : tree.w, gold ? 40 : tree.h)) continue;
   if (gold) put(bigleaf[(rand() * 4) | 0], x, y); else plant(tree, x, y);
 }
-// Firs in clumps across the meadows.
-for (let n = 0; n < 1500; n++) {
-  const x = 700 + rand() * 600, y = 478 + rand() * 590;
-  if (fbm(x / 60, y / 60, 71, 3) < 0.57 || !open(x, y) || forestAmt(x, y) > 0.2 || Math.hypot(x - T.x, (y - T.y) * 1.4) < 70 || talus(x, y) > 0.05 || basinAmt(x, y) > 0.3 || dryAmt(x, y) > 0.3 || burnAmt(x, y) > 0.3) continue;
+// Firs in clumps across the meadows, thinning out where the next biome begins.
+for (let n = 0; n < 1700; n++) {
+  const x = 700 + rand() * 700, y = 478 + rand() * 590;
+  if (fbm(x / 60, y / 60, 71, 3) < 0.57 || !open(x, y) || forestAmt(x, y) > 0.2 || Math.hypot(x - T.x, (y - T.y) * 1.4) < 70 || talus(x, y) > 0.05) continue;
+  if (rand() < Math.max(basinAmt(x, y), dryAmt(x, y) * 1.2, burnAmt(x, y) * 1.1)) continue;
   const gl = glacier(x, y); if (gl.d < gl.w + 8 || (Math.abs(x - SPIRES.x) < 96 && y < SPIRES.y + 4) || !clearOf(x, y, 12, 30)) continue;
   plant(firs[(rand() * 8) | 0], x, y);
 }
-// Larches: thick in the basin, a few down by the Spires camp.
-for (let n = 0; n < 900; n++) {
-  const x = 880 + rand() * 640, y = 470 + rand() * 200, ba = basinAmt(x, y), nearCamp = Math.hypot(x - 930, (y - 585) * 1.5) < 70;
-  if (!open(x, y) || !(ba > 0.4 && fbm(x / 40, y / 30, 120, 3) > 0.54 && rand() < 0.5 || nearCamp && rand() < 0.07)) continue;
+// Larches: thick in the basin, thinning into the meadow and the pines, a few down by the Spires camp.
+for (let n = 0; n < 1500; n++) {
+  const x = 860 + rand() * 690, y = 470 + rand() * 270, ba = basinAmt(x, y), nearCamp = Math.hypot(x - 930, (y - 585) * 1.5) < 70;
+  if (!open(x, y) || !(rand() < ba * 0.8 && fbm(x / 40, y / 30, 120, 3) > 0.52 - (1 - ba) * 0.12 && rand() < 0.5 || nearCamp && rand() < 0.07)) continue;
   const gl = glacier(x, y); if (gl.d < gl.w + 8 || !clearOf(x, y, 14, 34) || (Math.abs(x - SPIRES.x) < 96 && y < SPIRES.y + 4)) continue;
   plant(larches[(rand() * 6) | 0], x, y);
 }
-for (let n = 0; n < 60; n++) { const x = 1080 + rand() * 440, y = 480 + rand() * 150; if (basinAmt(x, y) > 0.5 && open(x, y)) put(slabs[(rand() * 4) | 0], x, y); }
-// The dry side: open ponderosa, then sagebrush, then nothing but rock and grass.
-for (let n = 0; n < 420; n++) {
-  const x = 1180 + rand() * 380, y = 610 + rand() * 280, da = dryAmt(x, y), sg = sageAmt(x, y);
-  if (da < 0.5 || burnAmt(x, y) > 0.4 || couleeAmt(x, y) > 0.5) continue;
-  if (rand() < (1 - sg) * 0.3 && fbm(x / 50, y / 40, 121, 3) > 0.45) put(pines[(rand() * 5) | 0], x, y); else if (rand() < 0.25 + sg * 0.6) put(sages[(rand() * 3) | 0], x, y);
+for (let n = 0; n < 90; n++) { const x = 1030 + rand() * 500, y = 480 + rand() * 210; if (rand() < basinAmt(x, y) && open(x, y) && glacier(x, y).d > glacier(x, y).w + 6) put(slabs[(rand() * 4) | 0], x, y); }
+// The dry side: open ponderosa, then sagebrush, then nothing but rock and grass. Where the burn
+// reached the pines it left them standing black.
+for (let n = 0; n < 760; n++) {
+  const x = 1090 + rand() * 470, y = 560 + rand() * 380, da = dryAmt(x, y), sg = sageAmt(x, y);
+  if (rand() > da || couleeAmt(x, y) || !open(x, y)) continue;
+  if (rand() < burnAmt(x, y)) { if (rand() < 0.45) put(burnt[(rand() * 4) | 0], x, y); continue; }
+  if (rand() < (1 - sg) * 0.3 && fbm(x / 50, y / 40, 121, 3) > 0.42) put(pines[(rand() * 5) | 0], x, y); else if (rand() < 0.2 + sg * 0.6) put(sages[(rand() * 3) | 0], x, y);
 }
-// The old burn: silver and charred snags standing over young trees.
-for (let n = 0; n < 520; n++) {
-  const x = 1080 + rand() * 480, y = 830 + rand() * 250; if (burnAmt(x, y) < 0.5) continue;
+// The old burn: silver and charred snags standing over young trees, thinning out at its edges.
+for (let n = 0; n < 760; n++) {
+  const x = 980 + rand() * 580, y = 770 + rand() * 310; if (rand() > burnAmt(x, y) * 1.1 || !open(x, y)) continue;
   const r = rand(); if (r < 0.34) put(snags[(rand() * 5) | 0], x, y); else if (r < 0.52) put(burnt[(rand() * 4) | 0], x, y); else if (r < 0.7) plant(young[(rand() * 4) | 0], x, y); else if (r < 0.74) put(makeLog(), x, y);
 }
 // Boulders, bushes and the odd snag in the open ground.
 const bushes = [0, 1, 2].map(i => makeBush(700 + i, 'huck')).concat([0, 1, 2].map(i => makeBush(710 + i, 'heather')), [0, 1].map(i => makeBush(720 + i, 'green')));
-for (let n = 0; n < 240; n++) {
-  const x = 560 + rand() * 700, y = 480 + rand() * 590; if (!open(x, y) || nearTrail(x, y, 7) || Math.hypot(x - T.x, y - T.y) < 34 || forestAmt(x, y) > 0.3 || burnAmt(x, y) > 0.4 || dryAmt(x, y) > 0.4) continue;
+for (let n = 0; n < 300; n++) {
+  const x = 560 + rand() * 760, y = 480 + rand() * 590; if (!open(x, y) || nearTrail(x, y, 7) || Math.hypot(x - T.x, y - T.y) < 34 || forestAmt(x, y) > 0.3 || rand() < Math.max(burnAmt(x, y), dryAmt(x, y))) continue;
   if (rand() < 0.3) put(boulders[(rand() * 6) | 0], x, y); else put(bushes[(rand() * 8) | 0], x, y);
 }
-// The coast: sea stacks, driftwood along the beach, a ferry out by the fog.
+// The coast: sea stacks, driftwood along the beach, a ferry out by the fog, a humpback breaching,
+// and jellyfish drifting in the shallows.
 put(seaStack(1, 44, 20), 112, 852); put(seaStack(2, 30, 15), 192, 908); put(seaStack(3, 22, 11), 58, 802); put(seaStack(4, 50, 22), 332, 990); put(seaStack(5, 16, 9), 252, 958); put(seaStack(6, 26, 12), 420, 1050);
-put(ferry(), 150, 985);
+put(ferry(), 44, 916); put(whale(), 128, 962);
 for (let n = 0; n < 500; n++) {
   const x = rand() * 600, y = 690 + rand() * 390, cs = coast(x, y); if (cs > -3 || cs < -13) continue;
   const len = 6 + rand() * 12, a = (rand() - 0.5) * 0.9 + 0.6;
   for (let k = 0; k < len; k++) { const px = Math.round(x + Math.cos(a) * k), py = Math.round(y + Math.sin(a) * k * 0.5); if (px > 0 && py > 0 && px < NW && py < NH - 1) { g[at(px, py)] = R.rock[4]; g[at(px, py + 1)] = R.rock[2]; } }
+}
+for (let n = 0, made = 0; n < 4000 && made < 16; n++) {
+  const x = Math.round(rand() * 560), y = Math.round(700 + rand() * 370), cs = coast(x, y); if (cs < 12 || cs > 70 || x < 4 || y > NH - 8) continue;
+  made++; const c = made % 3 ? R.pink[2] : R.white[1];
+  for (const [dx, dy] of [[0, 0], [1, 0], [2, 0], [-1, 1], [0, 1], [1, 1], [2, 1], [3, 1]]) g[at(x + dx, y + dy)] = dy ? R.pink[1] : c;
+  g[at(x, y + 1)] = c; for (const [dx, dy] of [[-1, 2], [1, 3], [3, 2], [0, 4], [2, 4]]) g[at(x + dx, y + dy)] = R.pink[1];
+}
+function whale() {
+  // A humpback two thirds out of the water: dark back, pale grooved belly, one long flipper flung out.
+  const b = new BM(56, 50); b.ox = 20; b.oy = 44;
+  for (let s = 0; s <= 1; s += 0.01) {
+    const cx = 14 + 26 * s + 5 * s * s, cy = 42 - 36 * s, rr = 2 + 8.5 * Math.sin(Math.PI * (0.12 + 0.8 * s));
+    for (let dy = -Math.ceil(rr); dy <= rr; dy++) for (let dx = -Math.ceil(rr); dx <= rr; dx++) {
+      if (dx * dx + dy * dy > rr * rr) continue;
+      const belly = dx * 0.75 - dy * 0.65 < -rr * 0.5 && s < 0.8, x = Math.round(cx + dx), y = Math.round(cy + dy);
+      b.set(x, y, belly ? ((x + y * 2) % 4 === 0 ? R.rock[3] : R.white[1]) : R.navy[dx + dy > rr * 0.5 ? 0 : dx + dy < -rr * 0.2 ? 2 : 1]);
+    }
+  }
+  thick(b, 24, 24, 7, 15, 3, R.navy[1]); thick(b, 22, 24, 8, 17, 1, R.white[0]); b.set(42, 10, R.white[1]);
+  outline(b, INK);
+  for (const [x, y] of [[4, 44], [8, 41], [12, 45], [26, 44], [30, 41], [34, 45], [2, 40], [36, 40], [16, 47], [22, 47], [9, 36], [31, 36], [6, 47], [30, 47]]) { b.set(x, y, R.white[1]); b.set(x + 1, y, R.white[1]); b.set(x, y + 1, R.sea[5]); }
+  return b;
 }
 // The lake's island and its one tree; the camp; the furniture at the Trailhead.
 plant(firs[2], ISLE.x, ISLE.y + 1);
@@ -344,9 +401,33 @@ put(makeTent('tent'), 924, 564); put(makeTent('red'), 948, 574);
 put(makeSignpost(), T.x - 4, T.y - 8); put(makeKiosk(), 872, 657);
 const SIGNS = [[972, 592], [856, 566], [886, 532], [800, 742], [766, 631], [1160, 600], [1300, 552], [1226, 884], [1420, 966], [1474, 724], [1506, 806], [278, 864], [334, 612]];
 for (const [x, y] of SIGNS) put(makeSmallSign(), x, y);
-// Animals across the south meadow and beyond.
-for (const [x, y, d] of [[760, 820, 0], [792, 836, 1], [738, 846, 1], [900, 900, 0], [640, 960, 1], [840, 1000, 1], [872, 1012, 0], [1060, 800, 1], [960, 760, 0]]) put(makeElk(!!d), x, y);
-put(bear(false), 1010, 930); put(goat(0, false), 1196, 556); put(goat(0, true), 1212, 562); put(marmot(0), 846, 574); put(marmot(0), 1340, 590); put(marmot(0), 700, 900);
+// Animals: elk, a bear, squirrels and birds in the south meadow, goats in the basin, bighorn sheep in the scablands.
+for (const [x, y, d] of [[760, 820, 0], [792, 836, 1], [738, 846, 1], [900, 900, 0], [640, 960, 1], [840, 1000, 1], [872, 1012, 0], [1010, 790, 1], [960, 760, 0], [700, 1030, 0]]) put(makeElk(!!d), x, y);
+put(bear(false), 1010, 930); put(marmot(0), 846, 574); put(marmot(0), 1340, 590); put(marmot(0), 700, 900);
+for (const [x, y, kid] of [[1196, 556, 0], [1212, 562, 1], [1126, 528, 0], [1290, 598, 0], [1304, 603, 1], [1384, 548, 0], [1250, 500, 0]]) put(goat(kid ? 'stand' : n2() < 0.5 ? 'stand' : 'look', !!kid), x, y);
+for (const [x, y] of [[1484, 694], [1512, 702], [1470, 764], [1530, 830], [1402, 772], [1420, 778]]) put(sheep(n2() < 0.5), x, y);
+for (let n = 0; n < 14; n++) { const x = 720 + n2() * 420, y = 760 + n2() * 300; if (open(x, y)) put(squirrel(n % 3 === 0), x, y); }
+{ const bird = makeBird(0), bird2 = makeBird(1); for (const [x, y] of [[860, 700], [872, 694], [884, 702], [980, 840], [600, 880], [1100, 700], [420, 300], [436, 292], [1240, 330]]) things.push({ bm: (x & 4) ? bird : bird2, x, y: y + 400, lift: 400 }); }
+function n2() { return rand(); }
+function sheep(grazing) {
+  // A bighorn ram: sandy brown, white rump and muzzle, and a heavy horn curling round the ear.
+  const b = new BM(24, 19); b.ox = 11; b.oy = 18;
+  const coat = (nx, ny, x, y) => pick('dirt', 0.5 - ny * 0.3 - nx * 0.05, x, y, 0.5);
+  for (const lx of [6, 8, 15, 17]) { thick(b, lx, 12, lx, 17, 1, R.dirt[lx % 2 ? 1 : 0]); b.set(lx, 18, INK); }
+  ell(b, 11, 10, 7, 4, coat); ell(b, 4.5, 9.5, 1.6, 2.2, () => R.white[1]);
+  const hx = grazing ? 19 : 18, hy = grazing ? 12 : 6;
+  thick(b, 16, 9, hx, hy + 1, 3, R.dirt[2]); ell(b, hx + 1, hy, 2.4, 2, coat); b.set(hx + 3, hy + 1, R.white[1]); b.set(hx + 4, hy + 1, R.white[0]); b.set(hx + 2, hy - 1, INK);
+  outline(b, INK);
+  for (const [dx, dy] of [[-1, -2], [0, -3], [1, -3], [2, -2], [2, -1], [1, 0], [0, 0], [-2, -1], [-2, 0], [-1, 1]]) b.set(hx + dx, hy + dy, dx + dy < -2 ? R.dry[3] : R.dry[1]);
+  return b;
+}
+function squirrel(chip) {
+  const b = new BM(10, 8), c = chip ? R.dirt : R.wood; b.ox = 5; b.oy = 7;
+  ell(b, 5.5, 5, 2.2, 1.8, () => c[3]); ell(b, 7.5, 3.5, 1.3, 1.2, () => c[3]); ell(b, 2.5, 3, 1.6, 2.6, () => c[2]);
+  if (chip) { b.set(4, 4, R.white[1]); b.set(5, 4, R.white[1]); b.set(6, 4, R.white[1]); }
+  b.set(8, 3, INK); outline(b, INK);
+  return b;
+}
 
 things.sort((a, b) => a.y - b.y);
 for (const th of things) {
@@ -355,7 +436,7 @@ for (const th of things) {
 function shade(c) { for (const k in R) { const r = R[k], s = r.indexOf(c); if (s >= 0) return r[Math.max(0, s - 1)]; } return c; }
 for (const th of things) {
   if (th.tree) for (const p of th.tree.parts) blit(p.bm, th.x + p.x, th.y + p.y);
-  else blit(th.bm, th.x - th.bm.ox, th.y - th.bm.oy);
+  else blit(th.bm, th.x - th.bm.ox, th.y - th.bm.oy - (th.lift || 0));
 }
 // The boot track, drawn over the ice: it thins to single prints and stops.
 trackPts.forEach(([px, py], n) => {
@@ -366,7 +447,7 @@ trackPts.forEach(([px, py], n) => {
 // Mist: thin bands of it lie in the deep forest and thicken to the west; a fog bank stands off the coast.
 for (let y = 440; y < NH; y++) for (let x = 0; x < 620; x++) {
   const cs = coast(x, y), sea = cs > 0;
-  let a = sea ? smooth(150, 330, cs) * 1.1 : smooth(520, 20, x) * smooth(groundLine(x) - 10, groundLine(x) + 40, y) * (0.12 + 0.95 * smooth(0.47, 0.6, fbm(x / 110, y / 13, 130, 3))) * (smooth(-4, -40, cs) * 0.9 + 0.1);
+  let a = sea ? smooth(210, 390, cs) * 1.1 : smooth(520, 20, x) * smooth(groundLine(x) - 10, groundLine(x) + 40, y) * (0.12 + 0.95 * smooth(0.47, 0.6, fbm(x / 110, y / 13, 130, 3))) * (smooth(-4, -40, cs) * 0.9 + 0.1);
   if (!sea && a > 0.1 && nearTrail(x, y, 9)) a *= 0.3;
   if (a > 0 && bayer(x, y) < a * 0.85) g[at(x, y)] = R.fog[a > 0.8 ? 2 : a > 0.45 ? 1 : (bayer(x + 2, y + 1) < 0.5 ? 1 : 0)];
 }

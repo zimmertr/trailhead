@@ -52,7 +52,7 @@ ul li { padding: 2px 0; }
 <div class="wrap">
   <header>
     <h1>Trailhead Map Plan</h1>
-    <p class="lede">A block-in of the larger world map. The middle is today's map with your changes worked in. Everything around it is new. Judge where things are and what they are. The proper drawing comes after you agree the layout.</p>
+    <p class="lede">The second block-in of the larger world map, redrawn to your notes on the first. The middle is today's map with your changes worked in. Everything around it is new. The real map gets built from this.</p>
   </header>
   <div class="bar">
     <div class="group" id="zoom"><span>Size</span>
@@ -67,7 +67,7 @@ ul li { padding: 2px 0; }
   <ol id="notes"></ol>
   <h2>What is rough on purpose</h2>
   <ul>
-    <li>The icefield, the sea stacks, the ponderosa and the mesas are placeholders for shape and place. They get drawn properly.</li>
+    <li>The sea stacks, the ponderosa, the mesas and the whale are placeholders for shape and place. They get drawn properly.</li>
     <li>The forest is thinner here than it will be, so the trail shows.</li>
     <li>Animals are sparse. The south meadow gets many more, and they will move.</li>
     <li>Nothing here animates. No water, wind, clouds or cats.</li>
@@ -90,15 +90,18 @@ const NOTES = [
   [1500, 760, 'Scablands', 'Flat benches ending in walls of columnar basalt, with dry rolling hills on the horizon.', 'F9'],
   [1200, 498, 'The larch basin', 'Golden larch, pale granite slabs, small tarns and goats. It leads into the Spires.', 'F9, F21'],
   [1280, 410, 'Granite needles', 'Pale spires behind the basin, with larch running up their lower slopes.', 'F9'],
-  [915, 345, 'The icefield', 'One broad cap of ice behind The Stack and the Spires, with rock points standing out of it. The new base camp scene looks out over this.', 'F1'],
-  [800, 215, 'The volcano', 'One white volcano far off on the horizon.', ''],
-  [330, 385, 'The north-west ranges', 'Ridge on ridge of snow and dark rock, each rank paler than the one in front, as in your photo.', 'F9'],
+  [1040, 380, 'The peaks behind the Spires', 'No ice cap. A taller glaciated group stands right behind the Spires, with a glacier coming down between its peaks to the meadow. The new base camp scene sits up in here.', 'F1'],
+  [1088, 270, 'The volcano', 'Moved right of centre. It stands alone above the low ridges, behind the Spires and the larch basin.', ''],
+  [300, 300, 'The north-west ranges', 'Layer on layer of drawn peaks, each layer paler than the one in front. They sink to low ridges behind the three destinations, so those keep the sky behind them on the first screen.', 'F9'],
   [798, 584, 'The Stack trail', 'Turns talus grey over its last stretch and runs into the scree.', 'F14'],
   [962, 534, 'The Spires trail', 'Past the tents it becomes a boot track in the snow, winding up the glacier and thinning out until it stops.', 'F14'],
-  [884, 476, 'The col', 'A saddle between The Stack and the Spires, so Merge Conflict Col has a col.', 'F7']
+  [884, 476, 'The col', 'A small glacier comes through the gap between The Stack and the Spires, so Merge Conflict Col has a col.', 'F7'],
+  [92, 996, 'Sea life', 'A humpback breaching, jellyfish in the shallows, and swells running in to the beach.', ''],
+  [1534, 664, 'Bighorn sheep', 'On the scabland benches. Mountain goats are up in the larch basin.', ''],
+  [1180, 700, 'How the biomes meet', 'Each biome thins into the next across a wide, uneven band: larch into pine, pine into burnt pine, grass into dry grass and ash.', '']
 ];
 const NAMES = [[972, 592, 'Scope Creep Glacier'], [856, 566, 'Segfault Scree'], [886, 532, 'Merge Conflict Col'], [800, 742, 'Yak Shave Meadow'], [1160, 600, 'Rollback Basin'], [1300, 552, 'Feature Flag Tarns'], [1226, 884, 'Hotfix Burn'], [1420, 966, 'Postmortem Burn'], [1474, 724, 'Cron Job Coulee'], [1506, 806, 'Tech Debt Badlands'], [278, 864, 'Cache Miss Cove'], [334, 612, 'Stack Trace Thicket'],
-  [150, 520, 'Monorepo Woods', 1], [110, 1040, 'Latency Bay', 1], [250, 330, 'Off By One Peak', 1], [520, 300, 'Dependency Range', 1]];
+  [150, 520, 'Monorepo Woods', 1], [110, 1040, 'Latency Bay', 1], [262, 262, 'Off By One Peak', 1], [470, 318, 'Dependency Range', 1]];
 const DESTS = [[820, 668, 'Trailhead'], [645, 480, 'About Lake'], [805, 452, 'The Stack'], [990, 432, 'Sideproject Spires']];
 const sheet = document.getElementById('sheet'), view = document.getElementById('view'), list = document.getElementById('notes');
 const pct = (x, y) => 'left:' + (x / NW * 100) + '%;top:' + (y / NH * 100) + '%';
