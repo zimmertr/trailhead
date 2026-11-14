@@ -22,12 +22,22 @@ const SLIDE = { 'forest>lakeside': 1, 'lakeside>forest': -1 };
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
-export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}) {
+// breakAt is for testing what happens when something goes wrong: a scene's name makes that scene throw
+// the first time it is drawn, 'load:' and a name makes it fail to build, 'renderer' breaks the frame itself.
+export async function mount(canvas, { onEvent = () => {}, theme = 'light', breakAt = null } = {}) {
   const scr = new Screen(canvas);
   const world = makeWorld();
   const scenes = { world };
+  // broken: the stretch of route whose scene threw, left undrawn until he is somewhere else.
+  let broken = null, sabotage = breakAt;
+  // A scene that cannot be built still gets a place on the route: it throws when he reaches it, and
+  // from there it is handled like any other scene that throws.
+  const stub = (name, err) => ({ name, dur: () => 1, stops: () => [], elev: () => 0, enter() {}, focus: () => ({ x: 0, y: 0 }), draw() { throw err; } });
   async function need(names) {
-    for (const n of names) if (!scenes[n] && READY.includes(n)) scenes[n] = await MAKERS[n]();
+    for (const n of names) if (!scenes[n] && READY.includes(n)) {
+      try { if (sabotage === 'load:' + n) throw new Error('Broken on purpose: loading ' + n); scenes[n] = await MAKERS[n](); }
+      catch (err) { console.error(err); scenes[n] = stub(n, err); }
+    }
   }
 
   // A route is a list of legs, each one scene drawing one stretch. Legs are weighted by how long
@@ -89,6 +99,16 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   drawn = legs[0];
 
   function emit(e) { try { onEvent(e); } catch (err) { console.error(err); } }
+  // Something threw. A scene that throws is left undrawn and the page is told, so it can take him to
+  // the off-route page. If it was the map, the off-route page itself, or anything outside the scenes,
+  // the world cannot be shown at all: the loop stops and the page falls back to plain text.
+  function fail(leg, err) {
+    console.error(err);
+    const fatal = leg.s === 'world' || leg.s === 'offroute' || leg.s === 'renderer';
+    broken = leg; running = false; tr = null; if (sabotage === leg.s) sabotage = null;
+    if (fatal) alive = false;
+    emit({ type: 'broken', scene: leg.s, fatal });
+  }
   function showStop(s) { shown = s; emit({ type: 'stop', id: s.id }); }
   function leave() { if (shown) { shown = null; emit({ type: 'leave' }); } }
   function finish() {
@@ -148,6 +168,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   function draw(now) {
     if (!alive) return;
     requestAnimationFrame(draw);
+    try { frame(now); } catch (err) { fail({ s: 'renderer' }, err); }
+  }
+  function frame(now) {
+    if (sabotage === 'renderer') throw new Error('Broken on purpose: the renderer');
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     const t = now / 1000;
     step(dt);
@@ -165,19 +189,24 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
 
     // The cut between scenes: a round window closes on him, the scene changes, it opens again.
     const want = legAt(p);
-    if (want !== drawn && !tr) {
+    if (want !== drawn && want !== broken && !tr) {
       if (want.s === 'world' && drawn.s === 'world') drawn = want;
       else if (SLIDE[drawn.s + '>' + want.s]) {
         const dir = SLIDE[drawn.s + '>' + want.s];
         tr = { phase: 'slide', k: 0, from: drawn, to: want, dir, fast: scrubbing > 0 || !running };
-        want.scene.enter(scr, want.arg, dir > 0 ? 0 : 1); emit({ type: 'scene', name: want.s });
+        try { want.scene.enter(scr, want.arg, dir > 0 ? 0 : 1); } catch (err) { fail(want, err); return; }
+        emit({ type: 'scene', name: want.s });
       } else { tr = { phase: 'out', k: 0, fast: scrubbing > 0 || !running }; emit({ type: 'sfx', name: 'iris' }); }
     }
     if (tr && tr.phase === 'slide') { tr.k += dt / (tr.fast ? 0.5 : 2.2); if (tr.k >= 1) { drawn = tr.to; tr = null; } }
     else if (tr) {
       tr.k += dt / (tr.fast ? 0.14 : tr.phase === 'out' ? 0.3 : 0.36);
       if (tr.k >= 1) {
-        if (tr.phase === 'out') { drawn = legAt(p); drawn.scene.enter(scr, drawn.arg, local(drawn, p)); look.x = look.y = 0; tr = { phase: 'in', k: 0, fast: tr.fast }; emit({ type: 'scene', name: drawn.s }); }
+        if (tr.phase === 'out') {
+          drawn = legAt(p);
+          try { drawn.scene.enter(scr, drawn.arg, local(drawn, p)); } catch (err) { fail(drawn, err); return; }
+          look.x = look.y = 0; tr = { phase: 'in', k: 0, fast: tr.fast }; emit({ type: 'scene', name: drawn.s });
+        }
         else tr = null;
       }
     }
@@ -189,7 +218,12 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     env.idle = env.home && dragging == null ? t - lastAct : 0;
     if (env.moving || tr) stillAt = t;
     env.still = t - Math.max(stillAt, lastAct);
-    if (tr && tr.phase === 'slide') slide(t); else drawn.scene.draw(scr, env, drawn.arg, q);
+    // A scene that threw stays as it was last shown until the page has taken him somewhere else.
+    if (drawn === broken) return;
+    try {
+      if (sabotage === drawn.s) throw new Error('Broken on purpose: ' + drawn.s);
+      if (tr && tr.phase === 'slide') slide(t); else drawn.scene.draw(scr, env, drawn.arg, q);
+    } catch (err) { fail(tr && tr.phase === 'slide' ? tr.to : drawn, err); return; }
     // The debug panel's tap targets: every other pixel that answers a tap or a hover, in any scene, goes pink.
     if (DEBUG.taps && !tr && drawn.scene.pick) { const { VW, VH, fb } = scr; for (let y = 0; y < VH; y++) for (let x = y & 1; x < VW; x += 2) if (drawn.scene.pick(x, y)) fb[y * VW + x] = R.pink[1]; }
     scr.night(t, mix);
@@ -249,6 +283,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     look(x, y) { look.x = x; look.y = y; recentre = false; },
     stops: () => stops.map(s => ({ id: s.id, at: s.at })),
     route: () => route,
+    // For the debug panel: makes the scene he is in throw on its next frame.
+    breakScene() { sabotage = drawn.s; },
     async setRoute(r) {
       if (!ROUTES[r]) return;
       await need(ROUTES[r]().map(l => l[0]));

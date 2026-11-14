@@ -155,6 +155,8 @@ export const UI = {
   found: (name, n, of) => 'Found: ' + name + '. ' + n + ' of ' + of + ' on the kiosk checklist.',
   allDone: 'All three destinations done. The summit register is open, on the trail map.',
   fail: 'The world could not be drawn here. The trail map has everything as text.',
+  // Said when a scene breaks and he is put on the off-route page instead.
+  broken: 'That stretch of trail has washed out. He is off route.',
   card: {
     summit: top => 'On the summit: ' + top.toLowerCase(),
     egg: top => 'Click ' + top.toLowerCase().replace(/^a /, 'the ') + ' up there.',
@@ -166,7 +168,7 @@ export const UI = {
   keys: { title: 'Keys', note: 'Everything also works by touch.' },
   // The hidden panel behind the backtick key and the small sign at the foot of the trail map.
   debug: {
-    title: 'Debug', close: 'Close', layers: 'Layers', outlines: 'Outlines', cats: 'Cats', set: 'Set', offRoute: 'Go to the off-route page',
+    title: 'Debug', close: 'Close', layers: 'Layers', outlines: 'Outlines', cats: 'Cats', set: 'Set', offRoute: 'Go to the off-route page', breakScene: 'Break this scene',
     toggles: { trees: 'Trees', clouds: 'Clouds', labels: 'Labels', animals: 'Animals', roam: 'Roam areas', taps: 'Tap targets', trails: 'Trail lines', camera: 'Camera limits' },
     note: 'Roam areas, trail lines and camera limits show on the map. Tap targets show in every scene.'
   },
@@ -194,6 +196,8 @@ export const UI = {
   },
   plain: {
     back: 'Back to the world',
+    // Shown at the top of the page of text when the world itself cannot be drawn.
+    down: 'The world could not be drawn here, so this is all of it as one page.',
     mapAlt: 'The map of the world: a lake in a forest, a granite wall and six glaciated summits around a trailhead',
     facts: (stars, release, language, license) => stars + ' stars, ' + release + ', ' + language + ', ' + license,
     released: (version, when) => version + ' released ' + when, noRelease: 'no release yet'

@@ -13,6 +13,8 @@ const status = $('status'), fork = $('fork'), card = $('card'), line = $('line')
 const audio = makeAudio();
 const BUILT = new Date(), VERSION = 'v0.1.5, pixel build';
 let api, shown = null, sheetName = null, profile = [], toastT = 0;
+// Set when the world cannot be drawn at all and the page of text has taken its place for good.
+let worldDown = false;
 
 const linkLi = key => { const [name, href] = LINKS[key]; return el('li', {}, el('a', { href, target: '_blank', rel: 'noopener', text: name })); };
 const projectOf = id => PROJECTS[id];
@@ -99,6 +101,7 @@ function drawProfile(p) {
 
 function setAddress(slug) { try { if (decodeURIComponent(location.hash.slice(1)) !== slug) history.pushState(null, '', slug ? '#' + slug : location.pathname + location.search); } catch { /* sandboxed frames may refuse */ } }
 async function navigate(hash) {
+  if (worldDown) return;
   const slug = decodeURIComponent((hash || '').replace(/^#\/?/, ''));
   closeSheet(); closePlain();
   if (!slug) return home();
@@ -138,6 +141,7 @@ function openDebug(on) {
     el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle),
     el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, performance.now() / 1000, { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
     el('button', { class: 'plank', onclick: () => navigate('#off-route') }, el('span', { text: D.offRoute })),
+    el('button', { class: 'plank', onclick: () => api.breakScene() }, el('span', { text: D.breakScene })),
     el('p', { class: 'legend', text: D.note }));
   debug.hidden = false;
 }
@@ -199,12 +203,26 @@ function checkRegister() { const d = api.done(); if (d.lake && d.stack && d.spir
 function openPlain() {
   const sec = (title, ...kids) => [el('h3', { text: title }), ...kids];
   const cardOut = id => { const c = CARDS[id]; return [el('h4', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null]; };
-  const still = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', UI.plain.mapAlt);
-  plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: UI.map.title }), el('button', { class: 'plank', onclick: () => navigate('') }, el('span', { text: UI.plain.back }))),
-    el('div', { class: 'wrap' }, el('h1', { text: UI.name }), still,
+  // Without the world there is no picture of the map and no way back to it, and the page says why.
+  let still = null;
+  if (!worldDown) try { still = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', UI.plain.mapAlt); } catch (err) { console.error(err); still = null; }
+  plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: UI.map.title }), worldDown ? null : el('button', { class: 'plank', onclick: () => navigate('') }, el('span', { text: UI.plain.back }))),
+    el('div', { class: 'wrap' }, el('h1', { text: UI.name }), worldDown ? el('p', { class: 'legend', text: UI.plain.down }) : null, still,
       ...sec(UI.map.lake[0], ...['who', 'mountains', 'note'].flatMap(cardOut)), ...sec(UI.map.stack[0], ...['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'].flatMap(cardOut)),
       ...sec(UI.map.spires[0], ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h4', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: UI.plain.facts(p.stars, p.release ? UI.plain.released(p.release, ago(p.released)) : UI.plain.noRelease, p.language, p.license) }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, text: 'github.com/' + p.repo })))]; }))));
-  plain.hidden = false; plain.scrollTop = 0; api.stop();
+  plain.hidden = false; plain.scrollTop = 0; if (api && !worldDown) api.stop();
+}
+// The world cannot be drawn: everything that belongs to it goes, and the page of text is what is left.
+function plainOnly() {
+  worldDown = true;
+  for (const id of ['top', 'bar', 'fork', 'card', 'names', 'tip', 'toast', 'sheet', 'debug', 'status']) $(id).hidden = true;
+  openPlain();
+}
+// A scene broke under him: he is put on the off-route page and told why. If it is worse than that, plain text.
+async function washedOut(e) {
+  if (e.fatal) return plainOnly();
+  hideCard(); closeSheet(); say(UI.broken, 6000);
+  await api.setRoute('off-route'); buildMarks(); api.goto('off-route'); api.find('offroute');
 }
 function closePlain() { plain.hidden = true; }
 
@@ -228,10 +246,14 @@ function cursors() {
 // ------------------------------------------------------------------ start
 
 try {
+  // ?break=forest (any scene), ?break=load:forest, ?break=renderer or ?break=mount: see what happens when it goes wrong.
+  const breakAt = new URLSearchParams(location.search).get('break');
+  if (breakAt === 'mount') throw new Error('Broken on purpose: the start');
   api = await mount($('c'), {
-    theme: 'light',
+    theme: 'light', breakAt,
     onEvent(e) {
-      if (e.type === 'stop') showCard(e.id);
+      if (e.type === 'broken') washedOut(e);
+      else if (e.type === 'stop') showCard(e.id);
       else if (e.type === 'leave') hideCard();
       else if (e.type === 'end') { if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
       else if (e.type === 'sfx') audio.sfx(e.name);
@@ -270,7 +292,8 @@ try {
   window.__ready = true;
   try { console.log(...CONSOLE); } catch { /* no console */ }
 } catch (err) {
-  status.textContent = UI.fail;
+  // Nothing could be drawn at all: the whole site as a page of text takes the world's place.
+  try { plainOnly(); } catch { status.hidden = false; status.textContent = UI.fail; }
   throw err;
 }
 
@@ -288,6 +311,7 @@ $('close').addEventListener('click', closeSheet);
 sheet.addEventListener('pointerdown', e => { if (e.target === sheet) closeSheet(); });
 
 addEventListener('keydown', e => {
+  if (worldDown) return;
   if (e.target.closest && e.target.closest('input, textarea')) return;
   audio.start();
   if (e.code === 'Backquote' && !e.metaKey && !e.ctrlKey && !e.altKey) { openDebug(debug.hidden); e.preventDefault(); return; }
@@ -313,6 +337,7 @@ const names = $('names'); let nameKey = '', nameBox = null;
 addEventListener('resize', () => { nameBox = null; });
 (function tick() {
   requestAnimationFrame(tick);
+  if (worldDown) return;
   const p = api.progress(), running = api.running();
   drawProfile(p);
   $('thumb').setAttribute('aria-valuenow', Math.round(p * 100));

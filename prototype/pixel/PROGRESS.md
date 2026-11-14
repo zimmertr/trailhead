@@ -245,7 +245,7 @@ Scenes
 
 Controls and the rest
 - [x] Debug panel, hidden: the backtick key, and a "Debug" sign at the bottom of the trail map sheet. Layer toggles (trees, clouds, labels, animals), outlines (roam areas, tap targets, trail lines, camera limits), force a cat state, go to the off-route page.
-- [ ] A scene that throws lands him on the off-route page; if the renderer itself is broken, the plain page shows.
+- [x] A scene that throws lands him on the off-route page; if the renderer itself is broken, the plain page shows.
 - [x] Summit name tags no longer get a second label stuck on them.
 - [x] Cats roam mostly below the junction, left of the kiosk, never under a panel; each click is the next trick.
 - [x] The marmot answers a tap; a touch that misses tries the ground close around it.
@@ -315,3 +315,6 @@ Controls and the rest
 - Outlines: roam areas are red ovals for each animal and flock and pink boxes for the cats. Trail lines are the three paths he follows, one colour each, with white crosses where the lake loop enters and leaves the forest. Camera limits are the box the middle of the view may move in, the band that pushes a drag back, the edge of the world, and two crosses for where the camera rests and where the view is. All three show on the map only.
 - Tap targets work in every scene, not just the map: every spot that answers a tap or a hover is hatched pink, worked out by asking the scene itself, so it cannot drift from the real targets. The four place names and the buttons are page elements and are not hatched.
 - Forcing a cat state offers the seven tricks a click cycles through (sit, groom, roll, bat, loaf, stretch, sleep) for either cat, held for eight seconds. Chasing, stalking and the kiosk roof are left out because they need a target to go to.
+- A scene that throws while it is entered or drawn is left as it was last shown, a line of text says the trail has washed out, and he lands on the off-route page. Going back and trying that route again tries the scene again. A scene that cannot even be built keeps its place on the route and throws when he reaches it, so it ends the same way.
+- The world cannot be shown at all when the map throws, the off-route page throws, anything outside the scenes throws, or the page fails to start. Then everything belonging to the world is hidden and the whole site shows as the page of text, with one line at the top saying why, no picture of the map and no "Back to the world" button.
+- To see it: the debug panel has "Break this scene", and the address takes ?break=forest (any scene's name), ?break=load:forest, ?break=renderer or ?break=mount.
