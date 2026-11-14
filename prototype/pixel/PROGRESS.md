@@ -33,7 +33,7 @@ The working list for the overnight build of the pixel-art trailhead. Tick items 
 - [x] Fix visual bugs, starting with the hard line between the forest band and the meadow above About Lake. Blend terrain edges.
 - [x] A little more tree and plant variety and palette range, without going overboard.
 - [x] Entry points and transitions into each scene and back.
-- [ ] Flags on finished destinations and footprints on finished trails.
+- [x] Flags on finished destinations and footprints on finished trails.
 
 ### About Lake (forest scene)
 - [x] Lush rainforest run: huge mossy trunks, roots, ferns, light, a stream, layered depth.
@@ -41,22 +41,22 @@ The working list for the overnight build of the pixel-art trailhead. Tick items 
 - [x] Elk, banana slug hop, bear, marmot, Steller's jay. Cold plunge, snack break, Sasquatch once per visit.
 
 ### The Stack
-- [ ] Face-on climb: crack, face, roof; ledges with cards; the gear left behind, the lead fall and catch, the glowing holds; summit flag with resume and LinkedIn; rappel home.
-- [ ] Birds on the wall, pika in the talus.
+- [x] Face-on climb: crack, face, roof; ledges with cards; the gear left behind, the lead fall and catch, the glowing holds; summit flag with resume and LinkedIn; rappel home.
+- [x] Birds on the wall, pika in the talus.
 
 ### Sideproject Spires
-- [ ] Base camp diorama: pick one of six peaks, each named; flags on finished ones; goats.
-- [ ] Six routes with their events (knife-edge ridge, icefall, ice pitch with two tools, snow bridge and crevasse jump, bergschrund ladder, wands in a whiteout), each ending in a glissade to camp.
+- [x] Base camp diorama: pick one of six peaks, each named; flags on finished ones; goats.
+- [x] Six routes with their events (knife-edge ridge, icefall, ice pitch with two tools, snow bridge and crevasse jump, bergschrund ladder, wands in a whiteout), each ending in a glissade to camp.
 - [ ] Six summit eggs, played on click and replayable.
-- [ ] Project cards with stars, release, language, licence.
+- [x] Project cards with stars, release, language, licence.
 
 ### Across the site
 - [ ] Doot Doot and Peevers: varied play and click interactions.
-- [ ] Trail map menu, `#name` addresses, plain page, 404 off-route, console message, kiosk board, joke-name signs.
-- [ ] Register mock, unlocked after all three routes.
+- [x] Trail map menu, `#name` addresses, plain page, 404 off-route, console message, kiosk board, joke-name signs.
+- [x] Register mock, unlocked after all three routes.
 - [ ] Sound with mute.
 - [ ] Dusk in every scene, with the Dusk-only sky. Phone layout in every scene.
-- [ ] Copy drafts: personal note, skill cards.
+- [x] Copy drafts: personal note, skill cards.
 
 ## Gotchas from building version 5
 
@@ -106,4 +106,14 @@ Each of these slowed or spoiled the low-poly prototype. Check the list before ev
 - On an upright phone the trail line rides at 62% of the height while he runs and 50% while a card is open.
 - Cold plunge: click the lake while he is standing at it. Snack break: 60 seconds standing still in either lake scene, and a gray jay turns up.
 - Sasquatch crosses the far trees during the second half of the forest run, once per page load.
-
+- The Stack is one face-on scene of 20 seconds: a crack, a face with the lead fall and the catch, a roof with glowing holds, a ledge and a card after each, the summit flag, then the rappel. His four limbs take turns on holds; gear and the rope stay behind him.
+- Base camp is an isometric slab cut out of the massif, floating over a sea of cloud, with the six summits in a ring so each one can be clicked. Each summit also has a wooden name tag and a plank in the card.
+- Each climb is its own side-view scene of about 9 seconds with one event from the PRD, then a push-off and a glissade on a shared slope back to camp. The summit object is the egg: click it while the card is open.
+- Menus are trail furniture, not game windows: routed wooden planks for anything you press and paper placards for anything you read. A card's paper depends on what it comes out of (trail sign, pocket map, ruled journal, watch face, guidebook with a route line).
+- Type: Jersey 15 for titles, Jersey 10 for reading, Tiny5 for small print, Silkscreen for anything routed into wood, each at a whole multiple of its pixel grid. Pixelify Sans was dropped because its 5 read as S and its Z as 2.
+- The timeline along the bottom is the route's elevation profile with a flag at each milestone. The map's north counts as uphill, and the scenes between two stretches of map are tilted to meet them.
+- Copy: only the first card's sentence and the intro are TJ's words. The personal note and the three skill cards are drafts from the Resume repo and are marked "Draft copy for TJ to rewrite" on the card.
+- Project numbers (stars, latest release and its date, language, licence) were read from GitHub on 2026-11-14 and are written into `content.js`. Release age is worked out in the browser.
+- The register is a mock: four sample entries, and a new one is kept in this browser only and shown as waiting for approval. It unlocks when the lake, the Stack and one summit are done.
+- An address with no trail behind it (any unknown `#name`) opens a whiteout with one wand and a sign pointing back.
+- The trail map sheet holds the map with a dot per milestone, TJ's links, the plain page, the kiosk, the register and the settings. Esc or M opens it.

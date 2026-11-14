@@ -126,6 +126,13 @@ export function makeClimb() {
     name: 'climb',
     dur: () => DUR,
     stops: arg => [{ id: arg.id, at: T_SUM / DUR }],
+    elev: (arg, q) => -where(arg.id, q * DUR).y,
+    cues(arg) {
+      const cfg = ROUTES[arg.id], out = [{ at: T_PUSH / DUR, name: 'glissade' }, { at: (T_BOT - 0.05) / DUR, name: 'step' }];
+      if (cfg.gap) for (let tau = T_UP; tau < T_SUM; tau += 0.02) if (where(arg.id, tau).x > cfg.gap[0] - 4) { out.push({ at: tau / DUR, name: cfg.kind === 'bridge' ? 'crack' : 'step' }); if (cfg.kind === 'bridge') out.push({ at: (tau + 0.05) / DUR, name: 'jump' }); break; }
+      if (cfg.kind === 'ridge') out.push({ at: 0.6 / DUR, name: 'wind' });
+      return out;
+    },
     enter(scr, arg, q) { const w = where(arg.id, q * DUR); cam.x = w.x; cam.y = w.y; st.y = null; egg = -99; },
     focus: () => focus,
     pick(sx, sy) {

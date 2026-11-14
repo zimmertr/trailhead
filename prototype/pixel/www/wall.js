@@ -136,6 +136,13 @@ export function makeWall() {
     name: 'wall',
     dur: () => DUR,
     stops: () => STOPS.map(([id, t]) => ({ id, at: t / DUR })),
+    elev: (arg, q) => at(q * DUR).s,
+    // Gear goes in on the way up, the hold breaks, the rope catches, and the rappel hums.
+    cues() {
+      const out = [{ at: 6.9 / DUR, name: 'crack' }, { at: 6.95 / DUR, name: 'fall' }, { at: 7.2 / DUR, name: 'catch' }, { at: 11.6 / DUR, name: 'glow' }, { at: 15.7 / DUR, name: 'glissade' }];
+      let k = 0; for (let tau = 0.9; tau < 15.5 && k < PRO.length; tau += 0.02) { const a = at(tau); if (a.mode !== 'fall' && a.s >= PRO[k]) { out.push({ at: tau / DUR, name: 'place' }); k++; } }
+      return out;
+    },
     enter(scr, arg, q) { camS = at(q * DUR).s; st.y = null; },
     focus: () => focus,
     pick(sx, sy) {

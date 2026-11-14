@@ -45,7 +45,7 @@ function blitTall(scr, bm, sx, sy) {
 // Where on the screen the line he runs along sits. On a tall, narrow screen the panels cover the
 // bottom, so the line rides higher while a card is open and lower while he runs.
 function baseline(scr, card, state) {
-  const want = scr.narrow ? scr.VH * (card ? 0.5 : 0.62) : scr.VH - 86;
+  const want = scr.narrow ? scr.VH * (card ? 0.42 : 0.62) : scr.VH - 86;
   state.y = state.y == null ? want : state.y + (want - state.y) * 0.12;
   return Math.round(state.y);
 }

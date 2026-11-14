@@ -128,6 +128,7 @@ export function makeLakeside() {
     name: 'lakeside',
     dur: () => DUR,
     stops: () => [{ id: 'mountains', at: D_MAP / LEN }, { id: 'note', at: D_NOTE / LEN }],
+    elev: (arg, q) => -g(xOf(q)) * 1.5,
     enter(scr, arg, q) { cam = xOf(q); st.y = null; plunge = -99; },
     focus: () => focus,
     pick(sx, sy) {

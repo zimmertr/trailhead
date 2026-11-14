@@ -418,6 +418,14 @@ export function makeWorld() {
     lengths: () => ({ lake: 5.2, stack: Math.round(paths.stack.len * KM * 10) / 10, spires: Math.round(paths.spires.len * KM * 10) / 10 }),
     dur: leg => Math.abs(leg.to - leg.from) * paths[leg.path].len / RUN,
     stops: () => [],
+    // North on the map is uphill, which is all the profile along the bottom needs.
+    elev: (leg, q) => (T.y - where(leg, q).y) * 0.8,
+    // One frame of the map from a fixed spot, without him: the picture on the trail map.
+    still(scr, x, y, env) {
+      const keep = [cam.x, cam.y, last, focus, facing, flip];
+      this.draw(scr, { ...env, dt: 0, moving: false, home: false, idle: 0, look: { x: 0, y: 0 }, hideMe: true, fixed: { x, y } }, { path: 'lake', from: 0, to: 0 }, 0);
+      [cam.x, cam.y, last, focus, facing, flip] = keep;
+    },
     enter(scr, leg, q) { const [tx, ty] = target(scr, where(leg, q)); cam.x = tx; cam.y = ty; },
     focus: () => focus,
     // What is under a point of the screen: a sign with a name, the kiosk, a cat.
@@ -443,7 +451,7 @@ export function makeWorld() {
       let cx = cam.x + env.look.x, cy = cam.y + env.look.y;
       cx = VW >= WW ? WW / 2 : clamp(cx, VW / 2, WW - VW / 2);
       cy = VH >= WH ? WH / 2 : clamp(cy, VH / 2, WH - VH / 2);
-      const ox = Math.round(cx - VW / 2), oy = Math.round(cy - VH / 2);
+      const ox = env.fixed ? env.fixed.x : Math.round(cx - VW / 2), oy = env.fixed ? env.fixed.y : Math.round(cy - VH / 2);
       last = { ox, oy, VW, VH };
 
       // Ground.

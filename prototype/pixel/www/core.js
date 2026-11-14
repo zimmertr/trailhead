@@ -200,16 +200,17 @@ function windAt(x, y, t, amt) {
 // The screen: a frame of palette indices at whole-pixel scale, and the table that colours it.
 
 class Screen {
-  constructor(canvas) {
-    this.canvas = canvas; this.ctx = canvas.getContext('2d', { alpha: false });
+  // With a size given it is a still picture of that many pixels, not the window.
+  constructor(canvas, fixed = null) {
+    this.canvas = canvas; this.ctx = canvas.getContext('2d', { alpha: false }); this.fixed = fixed;
     this.lut = new Uint32Array(256); this.lastLut = -1; this.resize();
   }
   resize() {
     const dpr = window.devicePixelRatio || 1, Wd = Math.round(innerWidth * dpr), Hd = Math.round(innerHeight * dpr);
-    const S = this.S = Math.max(1, Math.min(Math.floor(Hd / 290), Math.floor(Wd / 280)));
-    const VW = this.VW = Math.ceil(Wd / S), VH = this.VH = Math.ceil(Hd / S);
+    const S = this.S = this.fixed ? 1 : Math.max(1, Math.min(Math.floor(Hd / 290), Math.floor(Wd / 280)));
+    const VW = this.VW = this.fixed ? this.fixed[0] : Math.ceil(Wd / S), VH = this.VH = this.fixed ? this.fixed[1] : Math.ceil(Hd / S);
     this.canvas.width = VW; this.canvas.height = VH;
-    this.canvas.style.width = (VW * S / dpr) + 'px'; this.canvas.style.height = (VH * S / dpr) + 'px';
+    if (!this.fixed) { this.canvas.style.width = (VW * S / dpr) + 'px'; this.canvas.style.height = (VH * S / dpr) + 'px'; }
     this.fb = new Uint8Array(VW * VH); this.img = this.ctx.createImageData(VW, VH); this.u32 = new Uint32Array(this.img.data.buffer);
     this.lastLut = -1;
     // A tall, narrow view (a phone held upright) has its panels across the bottom, so scenes

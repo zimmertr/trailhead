@@ -11,9 +11,10 @@ const MAKERS = {
   lakeside: () => import('./lakeside.js').then(m => m.makeLakeside()),
   wall: () => import('./wall.js').then(m => m.makeWall()),
   camp: () => import('./camp.js').then(m => m.makeCamp()),
-  climb: () => import('./climb.js').then(m => m.makeClimb())
+  climb: () => import('./climb.js').then(m => m.makeClimb()),
+  offroute: () => import('./offroute.js').then(m => m.makeOffroute())
 };
-const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb'];
+const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb', 'offroute'];
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
@@ -31,11 +32,12 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     lake: () => [['world', { path: 'lake', from: 0, to: world.lakeIn }], ['forest', {}], ['lakeside', {}], ['world', { path: 'lake', from: world.lakeOut, to: 1 }]],
     stack: () => [['world', { path: 'stack', from: 0, to: 1 }], ['wall', {}], ['world', { path: 'stack', from: 1, to: 0 }]],
     spires: () => [['world', { path: 'spires', from: 0, to: 1 }], ['camp', {}]],
-    'spires-home': () => [['world', { path: 'spires', from: 1, to: 0 }]]
+    'spires-home': () => [['world', { path: 'spires', from: 1, to: 0 }]],
+    'off-route': () => [['offroute', {}]]
   };
   for (const id of SPIRES) ROUTES['spire:' + id] = () => [['climb', { id }]];
 
-  let route = 'lake', legs = [], stops = [], total = 1;
+  let route = 'lake', legs = [], stops = [], cues = [], total = 1;
   let p = 0, running = false, shown = null, mode = theme === 'dark' ? 1 : 0, mix = mode;
   let drawn = null, tr = null, scrubbing = 0, stillAt = performance.now() / 1000;
   const look = { x: 0, y: 0 };
@@ -48,8 +50,12 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     let t = 0;
     legs = raw.map(([s, arg]) => { const dur = scenes[s].dur(arg); const l = { s, scene: scenes[s], arg, dur, a: t }; t += dur; return l; });
     total = t || 1;
-    stops = [];
-    for (const l of legs) { l.t0 = l.a / total; l.t1 = (l.a + l.dur) / total; for (const st of l.scene.stops(l.arg)) stops.push({ ...st, at: l.t0 + st.at * (l.t1 - l.t0), leg: l }); }
+    stops = []; cues = [];
+    for (const l of legs) {
+      l.t0 = l.a / total; l.t1 = (l.a + l.dur) / total;
+      for (const st of l.scene.stops(l.arg)) stops.push({ ...st, at: l.t0 + st.at * (l.t1 - l.t0), leg: l });
+      if (l.scene.cues) for (const c of l.scene.cues(l.arg)) cues.push({ name: c.name, at: l.t0 + c.at * (l.t1 - l.t0) });
+    }
     route = name;
   }
   const legAt = q => legs.find(l => q <= l.t1 + 1e-9) || legs[legs.length - 1];
@@ -63,9 +69,11 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   function leave() { if (shown) { shown = null; emit({ type: 'leave' }); } }
   function finish() {
     running = false;
+    const first = !done[route];
     if (route === 'lake' || route === 'stack') done[route] = true;
     if (route.startsWith('spire:')) { done[route] = true; done.spires = true; }
     saveDone();
+    if (first && done[route]) emit({ type: 'sfx', name: 'flag' });
     emit({ type: 'end', route });
   }
 
@@ -75,6 +83,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     let next = Math.min(1, p + dt / total);
     const hit = stops.find(s => s.at > before + 1e-6 && s.at <= next + 1e-6);
     if (hit) next = hit.at;
+    for (const c of cues) if (c.at > before + 1e-6 && c.at <= next + 1e-6) emit({ type: 'sfx', name: c.name });
     p = next;
     if (hit) { running = false; showStop(hit); return; }
     if (p >= 1) finish();
@@ -189,6 +198,33 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     },
     done: () => ({ ...done }),
     forget() { for (const k in done) delete done[k]; saveDone(); },
+    // Marks routes as finished without walking them (the screenshots use it).
+    mark(list) { for (const k of list) { done[k] = true; if (k.startsWith('spire:')) done.spires = true; } },
+    // How many screen pixels one pixel of the world takes, in CSS pixels.
+    scale: () => scr.S / (window.devicePixelRatio || 1),
+    // The ups and downs of the whole route, n heights from start to end. The map knows how high
+    // each of its points is; the scenes between two stretches of map are tilted to meet them.
+    profile(n = 120) {
+      const E = legs.map(l => l.scene.elev ? [l.scene.elev(l.arg, 0), l.scene.elev(l.arg, 1)] : [0, 0]), off = legs.map(() => [0, 0]);
+      let level = 0;
+      for (let i = 0; i < legs.length; i++) {
+        if (legs[i].s === 'world') { level = E[i][1]; continue; }
+        let j = i; while (j + 1 < legs.length && legs[j + 1].s !== 'world') j++;
+        const rise = E.slice(i, j + 1).reduce((a, e) => a + e[1] - e[0], 0), span = legs.slice(i, j + 1).reduce((a, l) => a + l.dur, 0);
+        const miss = j + 1 < legs.length ? E[j + 1][0] - (level + rise) : 0;
+        for (let k = i; k <= j; k++) { const a = level - E[k][0], b = a + miss * legs[k].dur / span; off[k] = [a, b]; level = E[k][1] + b; }
+        i = j;
+      }
+      const out = [];
+      for (let k = 0; k < n; k++) { const q = k / (n - 1), l = legAt(q), i = legs.indexOf(l), u = local(l, q); out.push((l.scene.elev ? l.scene.elev(l.arg, u) : 0) + off[i][0] + (off[i][1] - off[i][0]) * u); }
+      return out;
+    },
+    // A still picture of part of the map as a canvas, for the trail map.
+    mapImage(x, y, w, h) {
+      const cv = document.createElement('canvas'), still = new Screen(cv, [w, h]);
+      world.still(still, x, y, env); still.present(env.t, mix);
+      return cv;
+    },
     spires: () => SPIRES.slice(),
     // Names to pin on the scene, in CSS pixels: the six summits at base camp.
     labels() { const k = scr.S / (window.devicePixelRatio || 1); return drawn.scene.labels && !tr ? drawn.scene.labels().map(l => ({ ...l, x: l.x * k, y: l.y * k })) : []; },

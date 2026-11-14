@@ -270,6 +270,8 @@ export function makeForest() {
     name: 'forest',
     dur: () => DUR,
     stops: () => [{ id: 'who', at: D_SIGN / LEN }],
+    elev: (arg, q) => -g(xOf(q)) * 1.5,
+    cues: () => [{ at: (D_SLUG - 11) / LEN, name: 'hop' }, { at: (D_JAY - 20) / LEN, name: 'jay' }],
     enter(scr, arg, q) { cam = xOf(q); st.y = null; },
     focus: () => focus,
     pick(sx, sy) {

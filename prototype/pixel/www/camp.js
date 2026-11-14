@@ -96,10 +96,11 @@ export function makeCamp() {
     name: 'camp',
     dur: () => 1.4,
     stops: () => [{ id: 'base-camp', at: 1 }],
+    elev: () => 0,
     enter(scr) { fit(scr); },
     focus: () => focus,
     // Where each summit's name goes, for the page to label them.
-    labels() { return dio ? dio.geo.map(g => ({ id: g.id, name: g.name, x: org.x + g.x, y: org.y + g.top - 4 })) : []; },
+    labels() { return dio ? dio.geo.map(g => ({ id: g.id, name: g.name, x: org.x + g.x, y: Math.max(13, org.y + g.top - 4) })) : []; },
     pick(sx, sy) {
       if (!dio) return null;
       const x = sx - org.x, y = sy - org.y;
