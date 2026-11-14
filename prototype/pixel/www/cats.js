@@ -3,6 +3,7 @@
 // again, so no two visits look the same. Clicking a cat gets an answer that depends on the cat
 // and on what she was doing.
 import { clamp, lerp, rng, hash, vnoise, R, INK, BM, outline, thick } from './core.js';
+import { OX, OY } from './terrain.js';
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
 
@@ -84,7 +85,8 @@ const DO = {
 };
 // Where they roam: mostly the meadow below the junction, to the left of the kiosk, and now and
 // then further off, up to the trails and round the kiosk.
-const HOME = { x0: 508, x1: 642, y0: 440, y1: 528 }, LEFT = { x0: 512, x1: 598, y0: 482, y1: 526 }, ROOF = { x: 612, y: 498, h: 25 };
+const JX = 560 + OX, JY = 470 + OY;   // the junction, where he stands at the Trailhead
+const HOME = { x0: 508 + OX, x1: 642 + OX, y0: 440 + OY, y1: 528 + OY }, LEFT = { x0: 512 + OX, x1: 598 + OX, y0: 482 + OY, y1: 526 + OY }, ROOF = { x: 612 + OX, y: 498 + OY, h: 25 };
 
 const TRICKS = ['sit', 'groom', 'roll', 'bat', 'loaf', 'stretch', 'sleep'];
 
@@ -92,13 +94,13 @@ export function makeCats() {
   const S = {}; for (const n of ['tortie', 'nebel']) { S[n] = {}; for (const p in POSES) S[n][p] = build(n, POSES[p]); }
   const rand = rng((Date.now() >>> 0) % 100000 + 7);
   const cats = [
-    { id: 'tortie', x: 546, y: 488, flip: false, st: 'sit', t0: 0, dur: 3, k: 0 },
-    { id: 'nebel', x: 582, y: 486, flip: true, st: 'loaf', t0: 0, dur: 5, k: 1 }
+    { id: 'tortie', x: 546 + OX, y: 488 + OY, flip: false, st: 'sit', t0: 0, dur: 3, k: 0 },
+    { id: 'nebel', x: 582 + OX, y: 486 + OY, flip: true, st: 'loaf', t0: 0, dur: 5, k: 1 }
   ];
   const fx = [];   // hearts, notes and Zs that float up from a cat
   let fly = null, wasHome = true, greeted = -99, lastT = 0, narrow = false, floor = HOME.y1;
   const other = c => cats[1 - c.k];
-  const spot = () => { for (let n = 0; n < 8; n++) { const b = rand() < 0.78 ? LEFT : HOME, x = lerp(b.x0, b.x1, rand()), y = lerp(b.y0, Math.max(b.y0 + 4, Math.min(b.y1, floor)), rand()); if (!(Math.abs(x - ROOF.x) < 24 && y > 474 && y < 502) && Math.hypot(x - 560, y - 468) > 12) return { x, y }; } return { x: 540, y: 502 }; };
+  const spot = () => { for (let n = 0; n < 8; n++) { const b = rand() < 0.78 ? LEFT : HOME, x = lerp(b.x0, b.x1, rand()), y = lerp(b.y0, Math.max(b.y0 + 4, Math.min(b.y1, floor)), rand()); if (!(Math.abs(x - ROOF.x) < 24 && y > ROOF.y - 24 && y < ROOF.y + 4) && Math.hypot(x - JX, y - JY + 2) > 12) return { x, y }; } return { x: JX - 20, y: JY + 32 }; };
   const go = (c, st, t, extra = {}) => { Object.assign(c, { st, t0: t, dur: DO[st] ? lerp(DO[st][0], DO[st][1], rand()) : 1, then: null, after: null, fast: false, busy: false }, extra); };
   const moveTo = (c, tx, ty, speed, dt) => { const dx = tx - c.x, dy = ty - c.y, d = Math.hypot(dx, dy), s = speed * dt; if (Math.abs(dx) > 0.5) c.flip = dx < 0; if (d <= s) { c.x = tx; c.y = ty; return true; } c.x += dx / d * s; c.y += dy / d * s; c.dist = (c.dist || 0) + s; return false; };
   function choose(c, t) {
@@ -119,10 +121,10 @@ export function makeCats() {
     // The scene calls this once a frame; me is where he is on the map.
     // low is the lowest row of the map that the page's panels leave in view, so the cats never sit under one.
     update(env, me, upright, low) {
-      if (low) { floor = clamp(low, 474, HOME.y1); for (const c of cats) if (c.y > floor && !c.lift && c.st !== 'jump' && c.st !== 'perch' && c.st !== 'wander' && c.st !== 'dash') c.y = floor; }
+      if (low) { floor = clamp(low, JY + 4, HOME.y1); for (const c of cats) if (c.y > floor && !c.lift && c.st !== 'jump' && c.st !== 'perch' && c.st !== 'wander' && c.st !== 'dash') c.y = floor; }
       narrow = !!upright;
       const t = env.t, dt = Math.min(0.05, Math.max(0, t - lastT)); lastT = t;
-      const near = Math.hypot(me.x - 560, me.y - 470) < 6;
+      const near = Math.hypot(me.x - JX, me.y - JY) < 6;
       // He is back at the junction: whoever is free trots over to say hello.
       if (near && !wasHome && env.home && t - greeted > 20) { greeted = t; const c = cats.find(q => q.st !== 'perch' && q.st !== 'sleep') || cats[1]; go(c, 'wander', t, { to: { x: me.x + 12, y: me.y + 2 }, then: 'rub', fast: true, busy: true }); }
       if (env.home) wasHome = true; else if (!near) wasHome = false;
@@ -187,7 +189,7 @@ export function makeCats() {
       const c = cats.find(q => q.id === id), t = env.t; if (!c || c.st === 'jump' || c.st === 'stalk' || c.st === 'dash') return false;
       c.clicks = t - (c.clicked || -99) < 6 ? (c.clicks || 0) + 1 : 1; c.clicked = t; env.found(c.id === 'tortie' ? 'doot' : 'peevers');
       if (c.st === 'perch') { c.said = t; env.sfx('meow'); say(c, 'note', t); return true; }
-      if (c.id === 'nebel' && !c.shy && c.st !== 'loaf') { c.shy = true; env.sfx('chirp'); say(c, 'bang', t); go(c, 'dash', t, { to: { x: clamp(c.x + (c.x > 600 ? -30 : 30), HOME.x0, HOME.x1), y: clamp(c.y + 8, HOME.y0, HOME.y1) }, after: null }); c.looking = t + 0.6; return true; }
+      if (c.id === 'nebel' && !c.shy && c.st !== 'loaf') { c.shy = true; env.sfx('chirp'); say(c, 'bang', t); go(c, 'dash', t, { to: { x: clamp(c.x + (c.x > JX + 40 ? -30 : 30), HOME.x0, HOME.x1), y: clamp(c.y + 8, HOME.y0, HOME.y1) }, after: null }); c.looking = t + 0.6; return true; }
       // Every click after that moves the cat on to its next trick, in a fixed order.
       const next = TRICKS[(TRICKS.indexOf(c.st) + 1) % TRICKS.length], how = { sit: ['meow', 'note'], groom: ['chirp', null], roll: ['purr', 'heart'], bat: ['chirp', 'bang'], loaf: ['purr', 'heart'], stretch: ['meow', null], sleep: [null, 'z'] }[next];
       if (how[0]) env.sfx(how[0]); if (how[1]) say(c, how[1], t);

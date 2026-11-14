@@ -100,6 +100,17 @@ ramp('tarn', ['#0c3444', '#125266', '#1a7688', '#2c9ea8', '#5cc4c0', '#a4e6da'],
 // Things that only show in the Dusk sky. Their Day colours are sky blue, so they fade in with the light.
 ramp('star', ['#6a96dc', '#88aee6', '#a8c8f0'], ['#8c7cc0', '#e8d8f4', '#fffbe6']);
 ramp('aurora', ['#5f8ed8', '#6a96dc', '#88aee6'], ['#235c6c', '#2e9c86', '#86ecb0']);
+// Added for the larger world map: the larch basin, the dry side, the burn, the coast and the mist.
+ramp('larch', ['#6a4610', '#a8701a', '#d89a24', '#f2c43c', '#fbe478']);
+ramp('sage', ['#46564c', '#667866', '#8a9a80', '#aeb89a']);
+ramp('dry', ['#8a7440', '#b09a54', '#cdb96c', '#e2d48c']);
+ramp('basalt', ['#231f2a', '#37323c', '#4e4850', '#6a6266']);
+ramp('sand', ['#a89a7c', '#c8bc9a', '#e2d8b8']);
+ramp('sea', ['#143c50', '#1e586c', '#2c7888', '#4c9aa4', '#8cc4c4', '#d8f0ec']);
+ramp('ash', ['#463c36', '#62564a', '#80725c', '#9c8e72']);
+ramp('fog', ['#a8bcb8', '#c8d6d0', '#e6eeea']);
+ramp('pine', ['#1c3a20', '#2c5a2c', '#48783a', '#6c9648', '#94b25c']);
+ramp('pbark', ['#5a2c14', '#8c4a20', '#c0702c']);
 const INK = R.ink[0];
 const N = DAY.length;
 // One step darker or lighter within an entry's own ramp, for shadows drawn onto finished pixels.
@@ -108,7 +119,7 @@ for (let i = 1; i < N; i++) { const r = R[RAMP_OF[i]], s = STEP_OF[i]; SHADE[i] 
 for (const g of R.glint) SHADE[g] = R.water[1];
 const KIND = new Uint8Array(256);
 const KINDS = ['', 'grass', 'moss', 'dirt', 'water', 'ice', 'rock'];
-for (let i = 1; i < N; i++) KIND[i] = Math.max(0, KINDS.indexOf(RAMP_OF[i] === 'glac' ? 'ice' : RAMP_OF[i]));
+for (let i = 1; i < N; i++) KIND[i] = Math.max(0, KINDS.indexOf(RAMP_OF[i] === 'glac' ? 'ice' : RAMP_OF[i] === 'sea' ? 'water' : RAMP_OF[i]));
 // The dark upper part of a sky, where stars can show.
 const SKY = new Uint8Array(256);
 for (let i = 1; i < N; i++) SKY[i] = (RAMP_OF[i] === 'sky' && STEP_OF[i] <= 1) || (RAMP_OF[i] === 'skyband' && STEP_OF[i] <= 6) ? 1 : 0;

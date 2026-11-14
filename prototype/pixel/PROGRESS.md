@@ -230,7 +230,7 @@ Round 2 lives on its own branch and its own artifact so TJ can compare it with t
 
 Map
 - [x] Revise the block-in (`www/plan.js`) to the mark-up above and republish it. Keep a strip of sky on the first desktop screen, as today.
-- [ ] Build the real map in `www/world.js` from the block-in: the larger world, every biome, the uneven lake with its island, the river and log bridge, the deeper forest loop with mist, the Stack trail turning talus grey, the Spires trail becoming a boot track in snow, larches by the Spires, big-leaf maples in the run forest. Everything that depends on map coordinates moves with it: camera limits, the cats' area, kiosk, flags, footprints, cloud shadows, fireflies, the trail map sheet (`MAP` and `DOTS` in `app.js`), where the lake route enters and leaves the forest.
+- [x] Build the real map in `www/world.js` from the block-in: the larger world, every biome, the uneven lake with its island, the river and log bridge, the deeper forest loop with mist, the Stack trail turning talus grey, the Spires trail becoming a boot track in snow, larches by the Spires, big-leaf maples in the run forest. Everything that depends on map coordinates moves with it: camera limits, the cats' area, kiosk, flags, footprints, cloud shadows, fireflies, the trail map sheet (`MAP` and `DOTS` in `app.js`), where the lake route enters and leaves the forest.
 - [ ] Animals that move: elk, bear, squirrels, chipmunks and birds in the south meadow, goats in the basin, bighorn sheep in the scablands, marmots, a whale that breaches now and then, jellyfish near the shore, waves on the beach.
 - [ ] Signs stand on the terrain they name, with the twelve new names. Sign names and every other stray line of copy move into `content.js`.
 - [ ] Labels on the map for Trailhead, About Lake, The Stack and Sideproject Spires, in the style of the summit name tags. A click at any time sends him there; partway down another trail he turns round and goes back through the junction.
@@ -260,3 +260,8 @@ Controls and the rest
 - "Glaciers between the peaks behind the Spires" needed peaks there, so a taller glaciated group now stands right behind the Spires with one glacier winding down between its peaks, and the volcano rises behind that group at centre-right.
 - A small second glacier comes through the gap between The Stack and the Spires, which gives Merge Conflict Col its col.
 - Biome edges are now wide bands where each side's ground and trees scatter into the other; where the burn meets the pines the pines stand charred.
+- The real map and the block-in are now one thing: `www/terrain.js` builds the ground and everything rooted in it, and both the world scene and the plan page draw from it, so they cannot drift apart.
+- The low ridges behind the destinations carry no snow and use the mid blues, and the group behind the Spires is drawn in the hazy far palette, so the three landmarks keep their silhouettes and the first screen keeps a strip of sky like the MVP's.
+- The meadow's fir clumps use the MVP's own noise pattern, so the middle of the map keeps the look it had.
+- The mist over the west forest is drawn over the trees each frame but does not move yet. The new animals stand still until the animals item.
+- Known cost: the page is ready in about 2.0 s in the test container, up from 0.7 s, because the map is five times the area. To be brought down in polish.

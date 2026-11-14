@@ -3,6 +3,7 @@
 import { mount } from './pixel.js';
 import { makeAudio } from './audio.js';
 import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, ago } from './content.js';
+import { OX, OY } from './terrain.js';
 
 const $ = id => document.getElementById(id);
 const el = (tag, attrs = {}, ...kids) => { const n = document.createElement(tag); for (const k in attrs) { if (k === 'class') n.className = attrs[k]; else if (k === 'text') n.textContent = attrs[k]; else if (k.startsWith('on')) n.addEventListener(k.slice(2), attrs[k]); else n.setAttribute(k, attrs[k]); } n.append(...kids.filter(k => k != null)); return n; };
@@ -126,7 +127,7 @@ const DOTS = [
   ['base-camp', 'Base camp', 676, 410], ['bluebird', 'Bluebird Forecast', 703, 229], ['tks', 'TJs-Kubernetes-Service', 732, 253], ['hevy-garmin-sync', 'hevy-garmin-sync', 675, 271], ['trailhead', 'trailhead', 759, 279], ['yggdrasil', 'yggdrasil', 649, 302], ['kubernetes-manifests', 'Kubernetes-Manifests', 782, 306]
 ];
 function trailMap() {
-  const box = el('div', { class: 'mapbox', style: `aspect-ratio:${MAP.w}/${MAP.h}` }), cv = api.mapImage(MAP.x, MAP.y, MAP.w, MAP.h); box.append(cv);
+  const box = el('div', { class: 'mapbox', style: `aspect-ratio:${MAP.w}/${MAP.h}` }), cv = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); box.append(cv);
   for (const [id, name, x, y, big] of DOTS) box.append(el('button', { class: 'dot' + (big ? ' big' : ''), style: `left:${(x - MAP.x) / MAP.w * 100}%;top:${(y - MAP.y) / MAP.h * 100}%`, 'aria-label': name, onclick: () => navigate('#' + slugOf(id)) }, el('span', { text: name })));
   // Under the map, the same places as words: every milestone is a link.
   const lengths = api.info().lengths, list = ids => el('ul', {}, ...ids.map(id => el('li', {}, el('button', { text: CARDS[id] ? CARDS[id].title : PROJECTS[id].name, onclick: () => navigate('#' + slugOf(id)) }))));
@@ -174,7 +175,7 @@ function checkRegister() { const d = api.done(); if (d.lake && d.stack && d.spir
 function openPlain() {
   const sec = (title, ...kids) => [el('h3', { text: title }), ...kids];
   const cardOut = id => { const c = CARDS[id]; return [el('h4', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null]; };
-  const still = api.mapImage(MAP.x, MAP.y, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', 'The map of the world: a lake in a forest, a granite wall and six glaciated summits around a trailhead');
+  const still = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', 'The map of the world: a lake in a forest, a granite wall and six glaciated summits around a trailhead');
   plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: 'Trailhead' }), el('button', { class: 'plank', onclick: () => navigate('') }, el('span', { text: 'Back to the world' }))),
     el('div', { class: 'wrap' }, el('h1', { text: 'TJ Zimmerman' }), still,
       ...sec('About Lake', ...['who', 'mountains', 'note'].flatMap(cardOut)), ...sec('The Stack', ...['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'].flatMap(cardOut)),
