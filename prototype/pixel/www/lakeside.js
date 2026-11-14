@@ -187,6 +187,15 @@ export function makeLakeside() {
         if (frac(t * 0.8 + hash(k, 3, 150)) < 0.25 && sy < base + shore(camX + sx) - 2) { scr.set(sx, sy, R.white[1]); scr.set(sx + 1, sy, tarn[5]); }
       }
       { const k = Math.floor(t / 5.3), u = frac(t / 5.3) * 5.3, rx = Math.round(hash(k, 1, 151) * VW), ry = hor + 14 + Math.round(hash(k, 2, 151) * 18); if (u < 1.6) { const r = 1 + u * 5; for (let a = 0; a < 24; a++) { const x = rx + Math.round(Math.cos(a / 24 * 6.283) * r), y = ry + Math.round(Math.sin(a / 24 * 6.283) * r * 0.35); if (y < base + shore(camX + x) - 1 && y > hor + 2) scr.set(x, y, tarn[5]); } } }
+      // A loon and her chick paddle along the far side, leaving a wake.
+      for (let k = 0; k < 2; k++) {
+        const lx = Math.round(((260 - k * 13 + t * 3.2 - camX * 0.7) % (VW + 80) + VW + 80) % (VW + 80)) - 40, ly = hor + 20 + (Math.floor(t * 1.5 + k) & 1), sm = k ? 1 : 0;
+        if (ly > base + shore(camX + lx) - 6) continue;
+        for (let j = 0; j < 6 - sm * 2; j++) scr.set(lx + j, ly, INK);
+        for (let j = 1; j < 5 - sm * 2; j++) scr.set(lx + j, ly - 1, (j + k) & 1 ? R.navy[1] : R.white[0]);
+        scr.set(lx + 5 - sm * 2, ly - 1, R.white[1]); scr.set(lx + 5 - sm * 2, ly - 2, INK); scr.set(lx + 6 - sm * 2, ly - 2, INK); scr.set(lx + 7 - sm * 2, ly - 2, R.rock[2]);
+        for (let j = 0; j < 4; j++) { scr.set(lx - 2 - j * 2, ly + (j & 1), tarn[5]); scr.set(lx - 2 - j * 2, ly - 1 - (j >> 1), tarn[4]); }
+      }
       for (let k = 0; k < 3; k++) { const bx = ((t * 16 + k * 13) % (VW + 160)) - 80; scr.put(bird[(Math.floor(t * 4) + k) & 1], bx + [0, 9, -8][k], hor - 120 + [0, 5, 8][k] + 6 * Math.sin(t * 0.6), false); }
 
       drawStrip(scr, main, camX, base, false, R.grass[1]);

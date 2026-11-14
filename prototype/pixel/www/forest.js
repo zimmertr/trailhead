@@ -72,7 +72,7 @@ function makeTrunk(seed, w, H) {
   for (let k = 0; k < 5; k++) {
     const y = H - 30 - rand() * (H - 60), s = rand() < 0.5 ? -1 : 1, x = cx + lean * (H - y) + s * (w / 2 - 1);
     if (rand() < 0.6) for (let j = 0; j < 4; j++) { b.set(x + s * j, y - j * 0.4 + (j > 2 ? 1 : 0), R.moss[5]); if (j & 1) b.set(x + s * j, y - j * 0.4 - 1, R.moss[6]); }
-    else { for (let j = 0; j < 4; j++) b.set(x + s * j, y, R.white[1]); for (let j = 0; j < 3; j++) b.set(x + s * j, y + 1, R.ochre[2]); }
+    else for (let n = 0; n < 3; n++) { const len = 5 - n, yy = y + n * 4; for (let j = 0; j < len; j++) { b.set(x + s * j, yy, R.white[1]); b.set(x + s * j, yy + 1, R.ochre[j < len - 1 ? 2 : 1]); } for (let j = 0; j < len - 2; j++) b.set(x + s * j, yy + 2, R.bark[0]); }
   }
   outline(b, INK);
   return b;
