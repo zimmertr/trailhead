@@ -32,13 +32,13 @@ The working list for the overnight build of the pixel-art trailhead. Tick items 
 - [x] Spires become a jagged glaciated massif like the peak behind the lake: six named sub-peaks, glacier ice rather than snow.
 - [x] Fix visual bugs, starting with the hard line between the forest band and the meadow above About Lake. Blend terrain edges.
 - [x] A little more tree and plant variety and palette range, without going overboard.
-- [ ] Entry points and transitions into each scene and back.
+- [x] Entry points and transitions into each scene and back.
 - [ ] Flags on finished destinations and footprints on finished trails.
 
 ### About Lake (forest scene)
-- [ ] Lush rainforest run: huge mossy trunks, roots, ferns, light, a stream, layered depth.
-- [ ] Three milestones with cards (who, in the mountains, personal note), the lake under its peak, the way home.
-- [ ] Elk, banana slug hop, bear, marmot, Steller's jay. Cold plunge, snack break, Sasquatch once per visit.
+- [x] Lush rainforest run: huge mossy trunks, roots, ferns, light, a stream, layered depth.
+- [x] Three milestones with cards (who, in the mountains, personal note), the lake under its peak, the way home.
+- [x] Elk, banana slug hop, bear, marmot, Steller's jay. Cold plunge, snack break, Sasquatch once per visit.
 
 ### The Stack
 - [ ] Face-on climb: crack, face, roof; ledges with cards; the gear left behind, the lead fall and catch, the glowing holds; summit flag with resume and LinkedIn; rappel home.
@@ -100,3 +100,10 @@ Each of these slowed or spoiled the low-poly prototype. Check the list before ev
 - Kits follow the PRD: yellow sun hoody, black tights, dark blue Salomon vest with white flasks; orange cap kept because it reads best against the green.
 - Variety kept small: huckleberry, heather, green shrubs, silver snags; one new ice ramp. No new tree species.
 - The lake loop's distance on the sign is fixed at 5.2 km, as in version 5, now that the run happens inside scenes.
+- About Lake is two side-view scenes: the rainforest (he runs right to left, the way he left the map) and the lakeside under the peak (left to right, the way the trail rounds the lake). The switchback between them is a scene cut.
+- Forest depth comes from three layers that scroll at different speeds, giant trunks as separate sprites sorted with him, and a stream in front that mirrors what stands behind it. Nothing tall stands in front of the trail, so he is never hidden.
+- The lake peak is the map's snowy pyramid painted large, not a new mountain. On a short screen its foot sinks behind the far shore so the summit stays in view.
+- On an upright phone the trail line rides at 62% of the height while he runs and 50% while a card is open.
+- Cold plunge: click the lake while he is standing at it. Snack break: 60 seconds standing still in either lake scene, and a gray jay turns up.
+- Sasquatch crosses the far trees during the second half of the forest run, once per page load.
+

@@ -1,6 +1,6 @@
 // Serves www/ and screenshots index.html in headless Chromium.
 // usage: shot.mjs <out.png> '<query>' [width] [height] [steps] [dpr] [me]   (me crops round the runner)
-// steps: click=<selector>;wait=<ms>;key=<code>;shot=<name.png>
+// steps: click=<selector>;wait=<ms>;key=<code>;shot=<name.png>;tap=<x,y>;move=<x,y>;eval=<js>
 import { chromium } from 'playwright';
 import http from 'node:http';
 import fs from 'node:fs';
@@ -29,7 +29,7 @@ console.log('ready in ' + (Date.now() - t0) + ' ms');
 for (const st of steps.split(';').filter(Boolean)) {
   const k = st.slice(0, st.indexOf('=')), v = st.slice(st.indexOf('=') + 1);
   if (k === 'click') await page.click(v); else if (k === 'key') await page.keyboard.press(v);
-  else if (k === 'wait') await page.waitForTimeout(+v); else if (k === 'shot') await page.screenshot({ path: '/out/' + v });
+  else if (k === 'wait') await page.waitForTimeout(+v); else if (k === 'tap') { const [x, y] = v.split(',').map(Number); await page.mouse.click(x, y); } else if (k === 'move') { const [x, y] = v.split(',').map(Number); await page.mouse.move(x, y); } else if (k === 'eval') await page.evaluate(v); else if (k === 'shot') await page.screenshot({ path: '/out/' + v });
 }
 if (clip) { const i = await page.evaluate(() => window.__info); const S = i.S / +dpr; let x, y, cw, ch; if (clip.includes(',')) [x, y, cw, ch] = clip.split(',').map(Number); else { [cw, ch] = clip === 'me' ? [80, 70] : clip.split('x').map(Number); x = Math.max(0, Math.min(i.VW - cw, i.fx - cw / 2)); y = Math.max(0, Math.min(i.VH - ch, i.fy - ch * 0.6)); } await page.screenshot({ path: '/out/' + out, clip: { x: x * S, y: y * S, width: cw * S, height: ch * S } }); } else await page.screenshot({ path: '/out/' + out });
 console.log('info: ' + JSON.stringify(await page.evaluate(() => window.__info || null)));

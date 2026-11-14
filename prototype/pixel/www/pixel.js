@@ -7,7 +7,13 @@ import { makeWorld } from './world.js';
 
 // Scenes beyond the world map are built the first time a route needs them.
 const MAKERS = {
+  forest: () => import('./forest.js').then(m => m.makeForest()),
+  lakeside: () => import('./lakeside.js').then(m => m.makeLakeside()),
+  wall: () => import('./wall.js').then(m => m.makeWall()),
+  camp: () => import('./camp.js').then(m => m.makeCamp()),
+  climb: () => import('./climb.js').then(m => m.makeClimb())
 };
+const READY = ['forest', 'lakeside'];
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
@@ -16,13 +22,13 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   const world = makeWorld();
   const scenes = { world };
   async function need(names) {
-    for (const n of names) if (!scenes[n] && MAKERS[n]) scenes[n] = await MAKERS[n]();
+    for (const n of names) if (!scenes[n] && READY.includes(n)) scenes[n] = await MAKERS[n]();
   }
 
   // A route is a list of legs, each one scene drawing one stretch. Legs are weighted by how long
   // they take, so the timeline runs at an even pace across scene changes.
   const ROUTES = {
-    lake: () => [['world', { path: 'lake', from: 0, to: 1 }]],
+    lake: () => [['world', { path: 'lake', from: 0, to: world.lakeIn }], ['forest', {}], ['lakeside', {}], ['world', { path: 'lake', from: world.lakeOut, to: 1 }]],
     stack: () => [['world', { path: 'stack', from: 0, to: 1 }]],
     spires: () => [['world', { path: 'spires', from: 0, to: 1 }]],
     'spires-home': () => [['world', { path: 'spires', from: 1, to: 0 }]]
@@ -31,7 +37,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
 
   let route = 'lake', legs = [], stops = [], total = 1;
   let p = 0, running = false, shown = null, mode = theme === 'dark' ? 1 : 0, mix = mode;
-  let drawn = null, tr = null, scrubbing = 0;
+  let drawn = null, tr = null, scrubbing = 0, stillAt = performance.now() / 1000;
   const look = { x: 0, y: 0 };
   let done = {};
   try { done = JSON.parse(localStorage.getItem('trailhead.done') || '{}') || {}; } catch { done = {}; }
@@ -48,6 +54,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   }
   const legAt = q => legs.find(l => q <= l.t1 + 1e-9) || legs[legs.length - 1];
   const local = (l, q) => clamp((q - l.t0) / Math.max(1e-9, l.t1 - l.t0), 0, 1);
+  await need(ROUTES.lake().map(l => l[0]));
   plan('lake');
   drawn = legs[0];
 
@@ -108,6 +115,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
     env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
     env.idle = env.home && dragging == null ? t - lastAct : 0;
+    if (env.moving || tr) stillAt = t;
+    env.still = t - Math.max(stillAt, lastAct);
     drawn.scene.draw(scr, env, drawn.arg, q);
     if (tr) {
       const f = drawn.scene.focus(), e = tr.k * tr.k * (3 - 2 * tr.k), full = Math.hypot(Math.max(f.x, scr.VW - f.x), Math.max(f.y, scr.VH - f.y)) + 6;
