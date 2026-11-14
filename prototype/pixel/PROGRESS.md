@@ -238,7 +238,7 @@ Map
 
 Scenes
 - [x] Base camp: a camp on a huge glacier under enormous walls, filling the frame. Cold, craggy, Patagonian. No landmass floating in the sky. The six summits keep their name tags and clicks.
-- [ ] Kayti at base camp: long brown hair, painting with a small backpacking paint kit, her name on hover like the cats, no other text.
+- [x] Kayti at base camp: long brown hair, painting with a small backpacking paint kit, her name on hover like the cats, no other text.
 - [ ] The Stack: two people at the foot, a man with short black hair and a woman with long red hair. One belays, picked at random each visit, the other sits on a rock with a snack. The lead rope runs visibly from belayer through the gear to him, and both it and the rappel rope get a dark outline and a bright core.
 - [ ] About Lake: the forest's last stretch thins and brightens and the lake scene opens with the forest edge on its left. Try a straight scroll between the two in place of the round window; keep it only if it is better.
 - [ ] Cold plunge: he drops vest, shirt and shoes in a pile, wades in wearing shorts, then dresses again.
@@ -295,3 +295,7 @@ Controls and the rest
 - The six towers keep their name tags, their clicks and their flags, and the heights still rank the same way (Bluebird Forecast tallest). They are the map's Spires drawn the same way, only taller and narrower.
 - The tents are a new, larger dome drawn for this scene, so the goats no longer stand taller than them. The goats stay, at the west end of the moraine. The east end is left clear for Kayti.
 - Nothing floats or bobs any more, so the scene is still apart from cloud, birds, smoke, spindrift and the goats.
+- Kayti sits on a rock at the east end of the moraine, facing the towers, in a purple jacket with no hat so the long brown hair shows. She paints on a small pad on her knee, with an open tin of paints on the rock and her pack on the ground. Every seven seconds or so she looks up and holds the brush out at arm's length to size up a tower. He stops next to her when he walks in.
+- Hovering her shows her name and nothing else. A click makes her look up and wave the brush for a second and a half. There is no card and no text.
+- She is drawn with his own figure painter, which now takes hair colour, hair length, no hat, no beard and no sunglasses, so the two climbers at The Stack can be drawn the same way. They will live in the same file, www/people.js.
+- The eastern rubble band on the glacier moved further east so it no longer runs through her seat.

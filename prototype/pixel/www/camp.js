@@ -6,6 +6,8 @@ import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, INK, p
 import { makeCloud, makeFlag, makeBoulder } from './sprites.js';
 import { goat, speck } from './fauna.js';
 import { makeRunner, frontFig } from './tj.js';
+import { makeKayti } from './people.js';
+import { NAMES } from './content.js';
 
 // Where each tower stands across the clear part of the picture (x), how near it is (z, 0 at the
 // back), and how tall and how wide it is: h as a share of the tallest, w as a share of its own height.
@@ -136,7 +138,7 @@ function build(VW, VH, narrow) {
     if (open && ph < thick) c = R.glac[ph < thick * 0.6 && d > 0.3 ? 0 : 1];
     else if (open && ph < thick + px * 1.1) c = R.glac[5];
     // Two bands of dirty ice and rubble ride the glacier down from the walls.
-    for (const [a0, wd] of [[-0.8, 0.075], [0.66, 0.06]]) { const off = Math.abs(a - a0 - 0.04 * Math.sin(y / 11) - 0.05 * (vnoise(y / 16, a0 * 7, 254) - 0.5)); if (!c && d > 0.05 && off < wd) { v -= 0.12 * (1 - off / wd); if (hash(x, y, 255) < 0.22 * (1 - off / wd) + 0.03) c = pick('rock', 0.2 + 0.6 * hash(x >> 1, y, 258), x, y); } }
+    for (const [a0, wd] of [[-0.8, 0.075], [0.84, 0.06]]) { const off = Math.abs(a - a0 - 0.04 * Math.sin(y / 11) - 0.05 * (vnoise(y / 16, a0 * 7, 254) - 0.5)); if (!c && d > 0.05 && off < wd) { v -= 0.12 * (1 - off / wd); if (hash(x, y, 255) < 0.22 * (1 - off / wd) + 0.03) c = pick('rock', 0.2 + 0.6 * hash(x >> 1, y, 258), x, y); } }
     { const [ct, ch] = cliff(x); if (ch && y >= ct && y < ct + ch) { const k = (y - ct) / ch; c = y - ct < 1 ? R.glac[5] : k > 0.85 ? R.glac[0] : pick('glac', 0.14 + 0.42 * hash(Math.floor(x / 2), 3, 281) + 0.12 * k - (dark ? 0.1 : 0), x, y, 0.5); } else if (ch && y >= ct + ch && y < ct + ch + 3) v -= 0.2; }
     // A pool of meltwater.
     { const pd = sq((x - pool.x) / pool.rx) + sq((y - pool.y) / pool.ry) + 0.3 * (vnoise(x / 4, y / 2, 259) - 0.5); if (pd < 1) c = pd > 0.72 ? R.glac[1] : R.tarn[pd < 0.3 ? 3 : 2]; else if (pd < 1.4 && y > pool.y) c = R.glac[5]; }
@@ -170,6 +172,9 @@ export function makeCamp() {
   const goats = { stand: goat('stand'), look: goat('look'), kid: goat('stand', true) }, bird = [speck(0), speck(1)];
   const clouds = [0, 1, 2, 3].map(i => ({ bm: makeCloud(630 + i), x: i * 170, y: 0.1 + (i % 3) * 0.22 + i * 0.04, v: 3 + i * 1.6 }));
   const focus = { x: 0, y: 0 };
+  // Kayti sits at the east end of the moraine and paints the towers. waved: when she was last clicked.
+  const kayti = makeKayti(); let waved = -9, now = 0;
+  const seat = () => [pic.camp[0] + Math.round(pic.rx * 0.7), pic.camp[1]];
 
   function fit(scr) { const k = scr.VW + 'x' + scr.VH; if (k !== key) { key = k; pic = build(scr.VW, scr.VH, scr.narrow); } }
 
@@ -184,11 +189,14 @@ export function makeCamp() {
     labels() { return pic ? pic.geo.map(g => ({ id: g.id, name: g.name, x: g.x, y: Math.max(13, g.top - 4) })) : []; },
     pick(x, y) {
       if (!pic) return null;
+      { const [kx, ky] = seat(); if (Math.abs(x - kx) < 9 && y > ky - 25 && y < ky + 3) return { label: NAMES.kayti, x: kx, y: ky - 27, act: 'kayti' }; }
       for (const g of [...pic.geo].sort((a, c) => c.by - a.by)) if (y > g.top - 3 && y < g.by && Math.abs(x - g.x) < 4 + (y - g.top) / g.h * g.w * 0.55) return { label: g.name, named: true, x: g.x, y: g.top - 6, act: 'spire:' + g.id };
       return null;
     },
+    // A click on her and she looks up from the page and waves.
+    act(id) { if (id !== 'kayti') return false; waved = now; return true; },
     draw(scr, env, arg, q) {
-      fit(scr);
+      fit(scr); now = env.t;
       const { VW, VH, fb } = scr, { t } = env, { geo, camp, rx, yh } = pic;
       fb.set(pic.back.d);
       // Cloud drifts behind the towers, and birds cross high up.
@@ -206,6 +214,8 @@ export function makeCamp() {
       for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx - 1 + age * 9 + Math.sin(age * 6 + k)), Math.round(cy - 6 - age * 24), age < 0.5 ? R.white[1] : R.white[0]); }
       for (const g of geo) if (env.done['spire:' + g.id]) scr.blit(flags[Math.floor(t * 5) & 1], g.x - 2, g.top - 14);
       { const gx = Math.round(cx - rx * 0.66), gy = cy + 1; scr.shadow(gx, gy, 7, 1); scr.put(frac(t / 5) < 0.6 ? goats.stand : goats.look, gx, gy, true); scr.put(goats.kid, gx + 14, gy + 3, frac(t / 3.3) < 0.5); }
+
+      { const [kx, ky] = seat(); kayti.draw(scr, kx, ky, t, t - waved < 1.6); }
 
       // He walks in along the moraine and waits by the tents.
       const mx = cx + 36 + Math.round((1 - q) * 34), my = cy + 6 + Math.round((1 - q) * 2);

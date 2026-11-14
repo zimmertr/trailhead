@@ -26,7 +26,7 @@ const W = 34, H = 40, OX = 16, OY = 36;
 //   bob lifts the body, lean tips the torso forward, crouch drops the hips, head moves the head,
 //   held is a function that draws whatever is in his hands, look turns the face ('up', 'down').
 function sideFig(kitName, o = {}) {
-  const k = KITS[kitName], b = new BM(W, H); b.ox = OX; b.oy = OY;
+  const k = typeof kitName === 'string' ? KITS[kitName] : kitName, b = new BM(W, H); b.ox = OX; b.oy = OY;
   const bob = o.bob || 0, lean = o.lean == null ? 1 : o.lean, drop = o.crouch || 0;
   const hip = [OX + (o.hipX || 0), 28 + bob + drop], sh = [hip[0] + lean, hip[1] - 6 + Math.round(drop * 0.3)];
   const feet = o.feet || [[1, 8.5], [-1, 8.5]], hands = o.hands || [[1, 6.5], [-1, 6.5]];
@@ -63,37 +63,43 @@ function sideFig(kitName, o = {}) {
   return b;
 }
 
-// The head, for every view. Cap or helmet on top, short hair, sunglasses, a short beard.
+// The head, for every view. Cap or helmet on top, short hair, sunglasses, a short beard: that is TJ.
+// Other people say otherwise in their kit: `hair` is their own colours (dark, main, light), `bare` is no
+// hat, `long` is how far the hair falls past the chin, and `beard` and `shades` can be turned off.
 function head(b, k, cx, cy, view, look) {
-  const helmet = !k.brim, dy = look === 'up' ? -1 : look === 'down' ? 1 : 0;
+  const helmet = !k.brim, dy = look === 'up' ? -1 : look === 'down' ? 1 : 0, hr = k.hair || R.hair, beard = k.beard !== false;
   disc(b, cx, cy, view === 'side' ? 5 : 5.2, (nx, ny, x, y) => {
     const ry = y - cy;
-    if (ry <= -2 || (helmet && ry <= -1 && view !== 'back')) return ry <= -4 ? k.hat[nx < 0.1 ? 2 : 1] : ry === -2 && !helmet ? k.hat[0] : k.hat[nx < -0.3 ? 2 : 1];
-    if (view === 'back') return ry >= 3 ? R.skin[1] : R.hair[ry >= 2 ? 0 : 1];
+    if (k.bare) { if (ry <= -3 || (ry === -2 && !(view === 'side' && nx > 0.45))) return hr[ry <= -4 && nx < 0.1 && hr[2] ? 2 : 1]; }
+    else if (ry <= -2 || (helmet && ry <= -1 && view !== 'back')) return ry <= -4 ? k.hat[nx < 0.1 ? 2 : 1] : ry === -2 && !helmet ? k.hat[0] : k.hat[nx < -0.3 ? 2 : 1];
+    if (view === 'back') return ry >= 3 && !k.long ? R.skin[1] : hr[ry >= 2 ? 0 : 1];
     if (view === 'side') {
-      if (nx < -0.4) return ry >= 2 ? R.skin[1] : R.hair[1];
-      if (ry >= 4 + dy && nx > -0.3) return R.hair[1];
-      if (ry === 3 + dy && nx > -0.3 && nx < 0.35) return R.hair[1];
+      if (nx < -0.4) return ry >= 2 && !k.long ? R.skin[1] : hr[k.long && nx < -0.78 ? 0 : 1];
+      if (beard && ry >= 4 + dy && nx > -0.3) return hr[1];
+      if (beard && ry === 3 + dy && nx > -0.3 && nx < 0.35) return hr[1];
       return R.skin[nx > 0.5 ? 1 : 2];
     }
-    if (Math.abs(nx) > 0.74) return ry >= 1 ? R.hair[1] : R.skin[1];
-    if (ry >= 4 || (ry === 3 && Math.abs(nx) > 0.25)) return R.hair[1];
+    if (Math.abs(nx) > 0.74) return k.long || (ry >= 1 && beard) ? hr[1] : R.skin[1];
+    if (beard && (ry >= 4 || (ry === 3 && Math.abs(nx) > 0.25))) return hr[1];
     return R.skin[nx > 0.3 ? 1 : 2];
   });
   if (view === 'side') {
     if (k.brim) for (let x = cx + 3; x <= cx + 6; x++) b.set(x, cy - 2 + (look === 'up' ? -1 : 0), k.hat[0]);
-    b.set(cx + 2, cy + dy, INK); b.set(cx + 3, cy + dy, INK); b.set(cx + 4, cy + dy, INK); b.set(cx + 1, cy + dy, R.navy[1]);
-    b.set(cx - 1, cy + 1, R.skin[0]);
+    if (k.shades === false) b.set(cx + 3, cy + dy, INK); else { b.set(cx + 2, cy + dy, INK); b.set(cx + 3, cy + dy, INK); b.set(cx + 4, cy + dy, INK); b.set(cx + 1, cy + dy, R.navy[1]); }
+    if (!k.long) b.set(cx - 1, cy + 1, R.skin[0]);
+    // Long hair falls down the back.
+    if (k.long) for (let y = cy + 3; y <= cy + 4 + k.long; y++) for (let x = cx - 5; x <= cx - 3; x++) b.set(x + (y > cy + 5 ? 1 : 0), y, x === cx - 5 ? hr[0] : y === cy + 4 + k.long ? hr[0] : hr[1]);
   } else if (view === 'front') {
-    for (let x = -3; x <= 3; x++) b.set(cx + x, cy, x === 0 ? R.navy[1] : INK);
+    if (k.shades === false) { b.set(cx - 2, cy, INK); b.set(cx + 2, cy, INK); } else for (let x = -3; x <= 3; x++) b.set(cx + x, cy, x === 0 ? R.navy[1] : INK);
     b.set(cx, cy + 2, R.skin[1]);
+    if (k.long) for (let y = cy + 1; y <= cy + 4 + k.long; y++) for (const x of [-6, -5, 5, 6]) b.set(cx + x, y, Math.abs(x) === 6 ? hr[0] : hr[1]);
     if (k.brim) for (let x = -4; x <= 4; x++) b.set(cx + x, cy - 2, k.hat[0]);
   }
 }
 
 // Seen from the front, or from behind when back is set. lift raises each foot, swing each hand.
 function frontFig(kitName, o = {}) {
-  const k = KITS[kitName], b = new BM(W, H); b.ox = OX; b.oy = OY;
+  const k = typeof kitName === 'string' ? KITS[kitName] : kitName, b = new BM(W, H); b.ox = OX; b.oy = OY;
   const bob = o.bob || 0, lift = o.lift || [0, 0], swing = o.swing || 0, back = !!o.back, cx = OX;
   for (let s = 0; s < 2; s++) {
     const x = s ? cx + 1 : cx - 3, up = lift[s];
