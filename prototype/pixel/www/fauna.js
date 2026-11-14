@@ -3,18 +3,19 @@ import { clamp, rng, hash, vnoise, R, INK, BM, outline, disc, thick, pick } from
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
 
-// A bull elk, facing right. pose: 'up' looking about, 'graze' with his head in the grass.
-function elk(pose, step = 0) {
+// A bull elk, facing right. pose: 'up' looking about, 'graze' with his head in the grass. alt is the
+// second frame of each: an ear flicked back, or the head a pixel lower as he tears at the grass.
+function elk(pose, step = 0, alt = 0) {
   const b = new BM(46, 40); b.ox = 20; b.oy = 38;
   const tan = (nx, ny, x, y) => pick('dirt', 0.62 - ny * 0.3 - nx * 0.05, x, y, 0.5), dark = (nx, ny, x, y) => pick('bark', 0.55 - ny * 0.35, x, y, 0.5);
   for (const [lx, far] of [[11, 1], [15, 0], [26, 1], [29, 0]]) { const sw = step && !far ? 1 : 0; thick(b, lx, 26, lx + sw, 32, 2, R.bark[far ? 0 : 1]); thick(b, lx + sw, 32, lx + sw, 37, 1.5, R.bark[far ? 0 : 1]); b.set(lx + sw, 38, INK); }
   ell(b, 20, 22, 12, 6.2, tan);
   ell(b, 9, 20, 3.5, 4, (nx, ny) => nx < 0.2 ? R.dirt[4] : 0);
   if (pose === 'graze') {
-    thick(b, 29, 21, 35, 30, 5, R.bark[1]); ell(b, 37, 33, 3.6, 2.4, dark); b.set(40, 34, R.bark[0]); b.set(36, 32, INK);
+    thick(b, 29, 21, 35, 30 + alt, 5, R.bark[1]); ell(b, 37, 33 + alt, 3.6, 2.4, dark); b.set(40, 34 + alt, R.bark[0]); b.set(36, 32 + alt, INK);
     for (const s of [0, 1]) { thick(b, 34, 30, 30 - s * 3, 24 - s, 1, R.dirt[4]); thick(b, 31 - s * 3, 26, 27 - s * 4, 22, 1, R.dirt[4]); }
   } else {
-    thick(b, 28, 20, 33, 11, 5, R.bark[1]); ell(b, 36, 9, 3.8, 2.6, dark); b.set(39, 10, R.bark[0]); b.set(36, 8, INK); b.set(33, 7, R.bark[2]);
+    thick(b, 28, 20, 33, 11, 5, R.bark[1]); ell(b, 36, 9, 3.8, 2.6, dark); b.set(39, 10, R.bark[0]); b.set(36, 8, INK); if (alt) { b.set(32, 7, R.bark[2]); b.set(31, 8, R.bark[2]); } else b.set(33, 7, R.bark[2]);
     for (const s of [0, 1]) { const ax = 33 - s * 2; thick(b, ax, 6, ax - 5, 1, 1, R.dirt[4]); thick(b, ax - 2, 4, ax - 1, 0, 1, R.dirt[4]); thick(b, ax - 4, 2, ax - 8, 3, 1, R.dirt[4]); b.set(ax + 1, 3, R.dirt[4]); }
   }
   ell(b, 27, 23, 4, 4.5, dark);
@@ -116,7 +117,7 @@ function goat(pose, kid, step = 0) {
   for (const [lx, far] of [[7, 1], [9, 0], [15, 1], [17, 0]]) { const X = lx * s + (kid ? 4 : 0), sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, X, 14, X + sw, 20, 2, far ? R.gold[4] : R.white[0]); b.set(X + sw, 21, INK); }
   ell(b, 12 * s + (kid ? 4 : 0), 12, 7 * s, 4.2 * s, wool);
   ell(b, 9 * s + (kid ? 4 : 0), 9, 3 * s, 2.5 * s, wool);
-  const hx = (pose === 'look' ? 17 : pose === 'graze' ? 20 : 19) * s + (kid ? 4 : 0), hy = pose === 'look' ? 6 : pose === 'graze' ? (kid ? 15 : 14) : 7;
+  const hx = (pose === 'look' ? 17 : pose === 'graze' ? 20 : 19) * s + (kid ? 4 : 0), hy = pose === 'look' ? 6 : pose === 'graze' ? (kid ? 12 : 14) : 7;
   thick(b, 16 * s + (kid ? 4 : 0), 10, hx, hy + 1, 3, R.white[1]);
   // The head is a long face in profile: a muzzle with a dark nose, an ear, and the shadow of the jaw
   // to set it off from the white of the neck.

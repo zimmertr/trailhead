@@ -7,7 +7,7 @@ import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './terrain.js';
 
 // A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass.
-function mapBear(pose, step = 0) {
+export function mapBear(pose, step = 0) {
   const b = new BM(28, 17); b.ox = 12; b.oy = 16;
   const fur = (nx, ny, x, y) => pick('fur', 0.42 - ny * 0.3 + 0.2 * (hash(x, y, 4) - 0.5), x, y, 0.6);
   for (const [lx, far] of [[6, 1], [8, 0], [16, 1], [18, 0]]) { const sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 10, lx + sw, 15, 2, R.fur[far ? 0 : 1]); }

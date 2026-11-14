@@ -323,3 +323,6 @@ Controls and the rest
 - Polish, flow: the forest used to open deep among the trees although he had just run in from the meadow at the trailhead. The trees now thin out behind where he enters, so the first frames show open sky at his back and the forest closing in ahead. The other end already thinned toward the lake.
 - Polish, flow: at base camp he used to walk in from the east, although the trail on the map reaches the camp from the west. He now walks in from the west, past the tents.
 - Polish, flow: the borders between biomes on the map were looked at one by one and left as they are.
+- Polish, animals: the elk on the map were the weakest drawing (a dark oval with a ball for a head). They are redrawn as elk: a buff body, a dark neck, head and legs, a pale rump, long thin legs, and on the bulls a thin rack. They stand a little taller than the goats and sheep now.
+- Polish, animals: the forest elk tears at the grass while he grazes and flicks an ear when his head is up. The kid goat at base camp bounces twice on the spot every few seconds and stands clear of its mother. A grazing kid on the map lowers its head part way, where it used to fold into a lump.
+- Polish, animals: sheet.html has a set with every animal in it (sheet.html?set=zoo), for looking at them side by side.

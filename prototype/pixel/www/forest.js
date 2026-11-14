@@ -265,7 +265,7 @@ export function makeForest() {
 
   const run = makeRunner('trail');
   const sit = [0, 1].map(f => sideFig('trail', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: f ? [[4, -2], [2, 3]] : [[3, 3], [2, 3]] }));
-  const elkBM = { up: elk('up'), graze: elk('graze') }, bearBM = [bear(false), bear(true)], sas = [sasquatch(0), sasquatch(1)];
+  const elkBM = { up: elk('up'), ear: elk('up', 0, 1), graze: elk('graze'), bite: elk('graze', 0, 1) }, bearBM = [bear(false), bear(true)], sas = [sasquatch(0), sasquatch(1)];
   const jayBM = { sit: jay('steller', 'sit'), up: jay('steller', 'up'), down: jay('steller', 'down') }, gray = { sit: jay('gray', 'sit'), up: jay('gray', 'up'), down: jay('gray', 'down') };
   const slugBM = [slug(0), slug(1)], slugX = X0 - D_SLUG;
   const elkX = X0 - D_ELK, elkY = g(elkX) - 13;
@@ -337,7 +337,7 @@ export function makeForest() {
       list.length = 0;
       for (const th of things) { const w = th.tree ? 30 : th.bm.w; if (th.x + w > camX && th.x - w < camX + VW) list.push(th); }
       // The elk lifts his head while he passes; the bear leans out from behind its trunk once he has gone by.
-      list.push({ bm: Math.abs(d - D_ELK + 20) < 90 ? elkBM.up : elkBM[frac(t / 7) < 0.7 ? 'graze' : 'up'], x: elkX, y: elkY, flip: false });
+      { const up = Math.abs(d - D_ELK + 20) < 90 || frac(t / 7) >= 0.7; list.push({ bm: up ? elkBM[frac(t / 2.9) < 0.07 ? 'ear' : 'up'] : elkBM[Math.floor(t * 2.2) & 1 ? 'bite' : 'graze'], x: elkX, y: elkY, flip: false }); }
       if (bearTrunk) { const lean = smooth(D_BEAR + 26, D_BEAR + 64, d); if (lean > 0) list.push({ bm: bearBM[frac(t / 3.1) > 0.94 ? 1 : 0], x: bearTrunk.x + Math.round(bearTrunk.w * 0.2 + lean * (bearTrunk.w * 0.5 + 5)), y: bearTrunk.y - 1, z: bearTrunk.y - 0.5, flip: true }); }
       // The jay sits on the stump until he comes close, then takes off ahead of him.
       const ju = (d - (D_JAY - 46)) / 150;

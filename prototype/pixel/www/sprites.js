@@ -170,23 +170,27 @@ function makeJournal() {
 
 // The runner, drawn from a pose each frame: a chibi with a big head, as SNES sprites are, then
 // outlined in one pass.
+// An elk for the map, facing left: a buff body, a dark neck, head and legs, a pale rump, and on a bull
+// a rack swept back over the shoulders. step 1 and 2 are the two walking frames.
 function makeElk(headDown, step = 0, bull = true) {
-  const b = new BM(24, 20); b.ox = 11; b.oy = 19;
-  for (let y = 0; y < 20; y++) for (let x = 0; x < 24; x++) {
-    const nx = (x - 10) / 7, ny = (y - 10) / 3.6;
-    if (nx * nx + ny * ny <= 1) b.set(x, y, x > 13 ? R.dirt[3] : pick('bark', 0.75 - ny * 0.4, x, y, 0.5));
-  }
-  // The near and far legs swing opposite ways when it walks.
-  for (const [lx, d] of [[5, 1], [7, 0], [12, 1], [14, 0]]) { const sw = step ? (d ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 12; y < 20; y++) b.set(lx + (y > 15 ? sw : 0), y, R.bark[d ? 1 : 2]); }
-  const hx = headDown ? 3 : 2, hy = headDown ? 15 : 3;
-  thick(b, 5, 9, hx + 1, hy + 1, 2, R.bark[1]);
-  disc(b, hx, hy, 2, () => R.bark[2]);
-  b.set(hx - 2, hy + 1, R.bark[0]);
-  if (bull && !headDown) { thick(b, hx + 1, hy - 1, hx + 4, hy - 4, 1, R.white[0]); thick(b, hx, hy - 1, hx - 3, hy - 4, 1, R.white[0]); b.set(hx + 3, hy - 2, R.white[0]); b.set(hx - 2, hy - 2, R.white[0]); }
-  if (bull && headDown) { thick(b, hx + 1, hy - 2, hx + 3, hy - 6, 1, R.white[0]); thick(b, hx - 1, hy - 2, hx - 2, hy - 6, 1, R.white[0]); b.set(hx + 1, hy - 5, R.white[0]); b.set(hx - 3, hy - 4, R.white[0]); }
-  if (!bull && !headDown) { b.set(hx + 1, hy - 2, R.bark[1]); b.set(hx + 2, hy - 3, R.bark[1]); }
-  b.set(17, 9, R.bark[1]);
+  const b = new BM(30, 30); b.ox = 15; b.oy = 29;
+  const oval = (cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
+  const buff = (nx, ny, x, y) => pick('dirt', 0.66 - ny * 0.3 + nx * 0.05, x, y, 0.5), dark = (nx, ny, x, y) => pick('bark', 0.5 - ny * 0.35, x, y, 0.5);
+  // Long thin legs; the near and far ones swing opposite ways when it walks.
+  for (const [lx, far] of [[9, 1], [12, 0], [19, 1], [22, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0, c = R.bark[far ? 0 : 1]; for (let y = 19; y < 29; y++) b.set(lx + (y > 23 ? sw : 0), y, c); if (!far) for (let y = 19; y < 24; y++) b.set(lx - 1, y, c); }
+  oval(15.5, 17.5, 8, 4, buff); oval(13, 20, 4, 2, buff);
+  oval(22.4, 16.5, 2.2, 2.8, nx => nx > -0.1 ? R.white[0] : 0);
+  const hx = headDown ? 5 : 4, hy = headDown ? 25 : 9;
+  if (headDown) thick(b, 10, 18, 7, 23, 3, R.bark[1]); else thick(b, 10, 16, 6, 10, 3, R.bark[1]);
+  oval(10.5, 18.5, 2.4, 3.4, dark);
+  oval(hx, hy, 2.8, 1.8, dark); b.set(hx - 3, hy + 1, R.bark[0]); b.set(hx, hy - 1, INK);
+  if (!bull) { b.set(hx + 3, hy - 2, R.bark[2]); b.set(hx + 4, hy - 3, R.bark[2]); }
   outline(b, INK);
+  // The rack goes on after the outline, so it stays thin: the far antler a shade darker, then the near one.
+  if (bull) {
+    const rack = headDown ? [[2, -2], [3, -3], [3, -4], [4, -5], [4, -6], [5, -7], [5, -8], [2, -5], [1, -6], [3, -7], [2, -8], [4, -9]] : [[2, -2], [3, -3], [3, -4], [4, -5], [5, -5], [6, -6], [7, -6], [8, -7], [3, -6], [3, -7], [5, -7], [5, -8], [9, -8], [7, -8]];
+    for (const [dx, c] of [[2, R.dirt[3]], [0, R.white[0]]]) for (const [x, y] of rack) b.set(hx + x + dx, hy + y, c);
+  }
   return b;
 }
 function makeSlug() {

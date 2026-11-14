@@ -209,12 +209,13 @@ export function makeCamp() {
         const age = frac(t * 0.42 + k / 14 + g.x * 0.01), x = Math.round(g.x + 2 + age * (20 + (k % 4) * 5)), y = Math.round(g.top + 1 - Math.sin(age * 2.6) * 3 + (k % 3) - age * 2);
         if (age < 0.55 || bayer(x, y) > (age - 0.55) / 0.45) scr.set(x, y, age < 0.3 ? R.snow[4] : R.snow[3]);
       }
-      // Tents and their smoke, flags on the tops he has stood on, goats at the end of the moraine.
+      // Tents and their smoke, flags on the tops he has stood on, goats at the end of the moraine: the nanny
+      // looks about, and every few seconds the kid bounces twice on the spot.
       const [cx, cy] = camp;
       scr.put(tents[0], cx - 16, cy - 1, false); scr.put(tents[1], cx + 13, cy + 4, false);
       for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx - 1 + age * 9 + Math.sin(age * 6 + k)), Math.round(cy - 6 - age * 24), age < 0.5 ? R.white[1] : R.white[0]); }
       for (const g of geo) if (env.done['spire:' + g.id]) scr.blit(flags[Math.floor(t * 5) & 1], g.x - 2, g.top - 14);
-      { const gx = Math.round(cx - rx * 0.66), gy = cy + 1; scr.shadow(gx, gy, 7, 1); scr.put(frac(t / 5) < 0.6 ? goats.stand : goats.look, gx, gy, true); scr.put(goats.kid, gx + 14, gy + 3, frac(t / 3.3) < 0.5); }
+      { const gx = Math.round(cx - rx * 0.66), gy = cy + 1; scr.shadow(gx, gy, 7, 1); scr.put(frac(t / 5) < 0.6 ? goats.stand : goats.look, gx, gy, true); const u = frac(t / 5.9) / 0.14, hop = u < 1 ? Math.round(3 * Math.abs(Math.sin(u * 2 * Math.PI))) : 0; scr.put(goats.kid, gx + 18, gy + 3 - hop, frac(t / 3.3) < 0.5); }
 
       { const [kx, ky] = seat(); kayti.draw(scr, kx, ky, t, t - waved < 1.6); }
 
