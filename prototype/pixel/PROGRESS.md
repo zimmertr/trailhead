@@ -128,3 +128,49 @@ Each of these slowed or spoiled the low-poly prototype. Check the list before ev
 - Scenery pass: the storm on the Bluebird route is banked cloud with driven snow, the wall has lichen and a few firs on ledges, cloud shadows drift over the map, a loon and her chick paddle on the lake, and the bracket fungus in the forest is drawn as shelves.
 - `IDEAS.md` beside this file lists what could come next, grouped by what it would improve.
 
+- Sasquatch had been drawn behind the forest's nearer layers since he was added, so nobody could have seen him. He now walks through the ferns behind the trail, a dark figure with light on his leading edge, in front of the far trees and behind every trunk.
+- The climbs gained fair-weather cloud, boot prints behind him, a groove behind the glissade and spindrift off each summit.
+- A phone held sideways gets narrower signs, so he stays in view beside them.
+
+## Morning report (2026-11-14)
+
+Every item on the checklist is ticked, and each polish pass in the brief has had one round. The page is live at https://claude.ai/artifact/76d6NraHh67ZTcMnMitrji and the source is on https://github.com/zimmertr/trailhead/tree/pixel-mvp under `prototype/pixel/`.
+
+### What is done
+
+- **The world map.** The Spires are one glaciated massif with six named summits. The seams between terrain are blended. Flags fly on finished destinations and his footprints stay on finished trails. Cloud shadows drift across the meadow.
+- **About Lake.** Two side-view scenes: the rainforest and the lakeside under the peak. Three cards. Elk, bear, banana slug hop, Steller's jay, marmot, loons, a cold plunge, a snack break with a gray jay, and Sasquatch.
+- **The Stack.** One face-on climb of three pitches: a crack, a face with the lead fall and the catch, a roof with glowing holds. A card on each ledge, the summit flag, the rappel. A pika and birds.
+- **Sideproject Spires.** An isometric base camp where each summit can be clicked or picked from the sign. Six climbs, each with its own event and summit object, each ending in a glissade. Project cards carry the real GitHub numbers from 2026-11-14.
+- **Doot Doot and Peevers.** A dozen poses each, their own behaviour, and different answers to a click.
+- **The page.** Wooden signs and paper cards, a route profile along the bottom that scrubs, a trail map with every milestone as a dot and as a link, `#name` addresses, a plain page, an off-route page, a kiosk with a field checklist of 16 things to find, a register mock, keys, a console message.
+- **Light and sound.** Dusk in every scene with stars, a moon, shooting stars and an aurora. Seven music tracks, a different one each visit, a tag to step through them, three instrument sets, effects for every event, a mute button.
+- **Sizes.** Checked at 1440x900, 1280x720, 1920x1080, a tablet upright, a phone upright and a phone on its side.
+
+### What is weak
+
+- **The copy is mine, not TJ's.** Only the intro sentence is his. The personal note, the three skill cards, the summit card and the base camp line are drafts and say so on the card. The project cards use each repository's own description.
+- **Nobody has listened to the sound.** Every note and effect was written in code and checked only for valid notes and for running without errors. Expect a few that are wrong or too loud. The PRD also says "no music", which tonight's brief overrode.
+- **Tested in one browser.** Everything was checked in headless Chromium in Docker. The published page was opened once in Chrome and loaded correctly, but nothing was clicked there, to keep the house quiet. Safari and Firefox are untested.
+- **The Bluebird route is not a knife-edge.** It is a snow slope in a storm that clears. A real ridge needs a different camera.
+- **Base camp does not spin.** The PRD's orbit became a still isometric view, as agreed for pixel art.
+- **The climbs are the sparest scenes.** They are better than they were, but the forest is still well ahead of them.
+- **The cats were tested in forced states.** Their free-running behaviour was watched for seconds, not minutes. A cat could still walk somewhere odd.
+- **Some things are made up.** The kiosk's version and uptime, the register's entries, and the heights in the route profile are stand-ins.
+- **Addresses in the artifact frame.** The `#name` addresses and the back button work when the page is served normally. Inside the artifact's frame the browser may refuse them, and that was not tested.
+- **It is still a prototype.** No TypeScript, no tests, no CI, no pull request, and the four fonts load from Google Fonts.
+
+### Numbers
+
+- 17 script files and one page, 316 KB in all, 99 KB compressed. No build step and no libraries.
+- Ready in about 0.7 seconds in the test browser, and 60 frames a second in every scene.
+- 14 commits on the branch tonight.
+
+### Links
+
+- The MVP: https://claude.ai/artifact/76d6NraHh67ZTcMnMitrji
+- Version 5, the bar it was held to (untouched): https://claude.ai/artifact/UgfBaAqoZCaJdKY8sBDUXF
+- The branch: https://github.com/zimmertr/trailhead/tree/pixel-mvp
+- This file: https://github.com/zimmertr/trailhead/blob/pixel-mvp/prototype/pixel/PROGRESS.md
+- Ideas for later: https://github.com/zimmertr/trailhead/blob/pixel-mvp/prototype/pixel/IDEAS.md
+- Test addresses, added to the page's address: `?route=stack&stop=2`, `?route=spire:tks&stop=1`, `?dusk=1`, `?sheet=map`, `?done=lake,stack,spires`, `#plain`, `#anything-else` for the off-route page.
