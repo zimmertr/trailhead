@@ -43,6 +43,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   const look = { x: 0, y: 0 };
   let done = {};
   try { done = JSON.parse(localStorage.getItem('trailhead.done') || '{}') || {}; } catch { done = {}; }
+  let found = {};
+  try { found = JSON.parse(localStorage.getItem('trailhead.found') || '{}') || {}; } catch { found = {}; }
   const saveDone = () => { try { localStorage.setItem('trailhead.done', JSON.stringify(done)); } catch { /* private window */ } };
 
   function plan(name) {
@@ -94,7 +96,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   addEventListener('pointerdown', acted); addEventListener('keydown', acted);
   const onResize = () => scr.resize();
   addEventListener('resize', onResize);
-  const env = { t: 0, tq: 0, dt: 0, mix: 0, moving: false, running: false, home: false, idle: 0, look, done, shown: null, sfx: name => emit({ type: 'sfx', name }), emit };
+  // A thing to find, the first time it is found.
+  const find = id => { if (found[id]) return; found[id] = 1; try { localStorage.setItem('trailhead.found', JSON.stringify(found)); } catch { /* private window */ } emit({ type: 'found', id }); };
+  const env = { t: 0, tq: 0, dt: 0, mix: 0, moving: false, running: false, home: false, idle: 0, look, done, shown: null, sfx: name => emit({ type: 'sfx', name }), emit, found: find };
 
   function draw(now) {
     if (!alive) return;
@@ -198,7 +202,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
       return false;
     },
     done: () => ({ ...done }),
-    forget() { for (const k in done) delete done[k]; saveDone(); },
+    forget() { for (const k in done) delete done[k]; saveDone(); for (const k in found) delete found[k]; try { localStorage.removeItem('trailhead.found'); } catch { /* private window */ } },
+    found: () => ({ ...found }),
+    find,
     // Marks routes as finished without walking them (the screenshots use it).
     mark(list) { for (const k of list) { done[k] = true; if (k.startsWith('spire:')) done.spires = true; } },
     // How many screen pixels one pixel of the world takes, in CSS pixels.

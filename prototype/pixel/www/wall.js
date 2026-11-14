@@ -162,7 +162,7 @@ export function makeWall() {
       if (wx < RX + 150 && s < 0 && s > -70 && Math.abs(wx - RX) > 20) return { label: 'Segfault Scree', x: sx, y: sy - 10 };
       return null;
     },
-    act(id, env) { if (id === 'pika') { env.sfx('eep'); st.eep = env.t; return true; } return false; },
+    act(id, env) { if (id === 'pika') { env.sfx('eep'); st.eep = env.t; env.found('pika'); return true; } return false; },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t } = env;
       const tau = q * DUR, me = at(tau), s = me.s;

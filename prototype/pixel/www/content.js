@@ -89,6 +89,26 @@ export const REGISTER = [
   { name: 'Party of two, Tacoma', date: '2026-11-12', note: 'Came for the resume, stayed for the glissade.' }
 ];
 
+// Things to find, with the hint the kiosk gives until each is found.
+export const FINDS = {
+  doot: ['Doot Doot', 'She runs the Trailhead'],
+  peevers: ['Peevers', 'Shy, grey, near the kiosk'],
+  kiosk: ['The kiosk', 'You are reading it'],
+  sasquatch: ['Sasquatch', 'Keep an eye on the far trees'],
+  marmot: ["The marmot's whistle", 'On a rock above the lake'],
+  plunge: ['The cold plunge', 'The lake looks inviting'],
+  snack: ['A snack break', 'Stand still for a minute by the lake or in the trees'],
+  pika: ['The pika', 'In the talus under The Stack'],
+  dusk: ['The Dusk sky', 'Look up after the light goes'],
+  offroute: ['Off route', 'An address that goes nowhere'],
+  'egg:bluebird': ['The weather station', 'On top of Bluebird Forecast'],
+  'egg:tks': ['The hut', 'On top of TJs-Kubernetes-Service'],
+  'egg:hevy-garmin-sync': ['The weight bench', 'On top of hevy-garmin-sync'],
+  'egg:trailhead': ['The survey marker', 'On top of trailhead'],
+  'egg:yggdrasil': ['The world tree', 'On top of yggdrasil'],
+  'egg:kubernetes-manifests': ['The cairn', 'On top of Kubernetes-Manifests']
+};
+
 export const HELP = [['Space', 'start and stop'], ['Left / Right, A / D', 'jump between milestones'], ['Up / Down, W / S', 'start, stop'], ['M or Esc', 'the trail map'], ['T', 'day and dusk'], ['Drag', 'look around'], ['Click', 'signs, animals, summits, the lake']];
 
 export const CONSOLE = ["%c  /\\      trailhead\n /  \\  /\\   You found the trail register's back door.\n/    \\/  \\  Everything here is drawn in code, a pixel at a time.\n          The source: https://github.com/zimmertr/trailhead", 'font-family: monospace; color: #467a30'];

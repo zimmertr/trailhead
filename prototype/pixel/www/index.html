@@ -177,6 +177,14 @@ button.name:hover, .name.done { background: var(--moss); }
 .board dt { font-family: var(--small); font-size: 15px; color: var(--dim); }
 .board dd { font-family: var(--title); font-size: 30px; line-height: 1; }
 .open { color: var(--moss); }
+.board + h3 { font-size: 30px; line-height: 1; margin: calc(var(--px) * 6) 0 calc(var(--px) * 3); }
+.checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: calc(var(--px) * 3) calc(var(--px) * 5); }
+.checks li { position: relative; padding-left: calc(var(--px) * 9); color: var(--dim); }
+.checks li::before { content: ""; position: absolute; left: var(--px); top: calc(var(--px) * 1); width: calc(var(--px) * 5); height: calc(var(--px) * 5); border: var(--px) solid var(--paper-ink); background: #fffcee; }
+.checks li.got::after { content: ""; position: absolute; left: calc(var(--px) * 2); top: calc(var(--px) * 2); width: calc(var(--px) * 5); height: calc(var(--px) * 5); background: var(--moss); clip-path: polygon(0 40%, 20% 40%, 20% 60%, 40% 60%, 40% 40%, 60% 40%, 60% 20%, 80% 20%, 80% 0, 100% 0, 100% 40%, 80% 40%, 80% 60%, 60% 60%, 60% 80%, 40% 80%, 40% 100%, 20% 100%, 20% 80%, 0 80%); }
+.checks b { display: block; font-family: var(--read); font-size: 20px; color: var(--paper-ink); }
+.checks li:not(.got) b { color: var(--dim); }
+.checks span { font-family: var(--small); font-size: 15px; }
 .entries { display: flex; flex-direction: column; gap: calc(var(--px) * 3); margin-bottom: calc(var(--px) * 5); }
 .entries li { padding-bottom: calc(var(--px) * 2); border-bottom: var(--px) dashed rgba(44, 32, 48, .4); }
 .entries b { font-size: 30px; line-height: 1; margin-right: calc(var(--px) * 3); }

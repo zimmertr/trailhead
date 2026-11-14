@@ -124,3 +124,7 @@ Each of these slowed or spoiled the low-poly prototype. Check the list before ev
 - The trail map sheet has a text key under the map, so every milestone is reachable as a plain link as well as a dot.
 - The Dusk-only sky is drawn over whatever sky a scene leaves showing: twinkling stars, a thin moon, a shooting star every so often and an aurora that comes and goes. It needs no work per scene.
 - Day is always the starting light, whatever the device prefers; a visitor who switches to Dusk gets Dusk on the next visit (the PRD says both "always starts in Day" and "remembered").
+- Things to find are tracked: the first time one is found a line says so, and the kiosk has a field checklist of all 16 with a hint for each one still missing. "Clear my flags" on the trail map clears it too.
+- Scenery pass: the storm on the Bluebird route is banked cloud with driven snow, the wall has lichen and a few firs on ledges, cloud shadows drift over the map, a loon and her chick paddle on the lake, and the bracket fungus in the forest is drawn as shelves.
+- `IDEAS.md` beside this file lists what could come next, grouped by what it would improve.
+

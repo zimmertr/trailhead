@@ -299,6 +299,7 @@ export function makeForest() {
       if (!sasquatchSeen && q > 0.66 && q < 0.9) {
         const u = (q - 0.66) / 0.24;
         scr.put(sas[Math.floor(u * 14) & 1], Math.round(VW * (anchor - 0.16 - u * 0.2)), base - 7, true);
+        if (q > 0.74 && env.running) env.found('sasquatch');
         if (q > 0.88 && env.running) sasquatchSeen = true;
       }
       drawStrip(scr, far, camX * 0.3 + 300, base - 3, true, R.mist[3]);
@@ -325,6 +326,7 @@ export function makeForest() {
       // He hops the slug.
       const ds = d - D_SLUG, hop = Math.abs(ds) < 12 ? Math.round(9 * Math.cos(ds / 12 * Math.PI / 2)) : 0;
       const snack = !env.running && env.still > 60;
+      if (snack) env.found('snack');
       const me = { me: true, x: mx, y: my + 0.5 };
       list.push(me);
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));

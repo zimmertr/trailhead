@@ -2,7 +2,7 @@
 // sheets that open over it (trail map, kiosk, register, keys, plain page).
 import { mount } from './pixel.js';
 import { makeAudio } from './audio.js';
-import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, ago } from './content.js';
+import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, ago } from './content.js';
 
 const $ = id => document.getElementById(id);
 const el = (tag, attrs = {}, ...kids) => { const n = document.createElement(tag); for (const k in attrs) { if (k === 'class') n.className = attrs[k]; else if (k === 'text') n.textContent = attrs[k]; else if (k.startsWith('on')) n.addEventListener(k.slice(2), attrs[k]); else n.setAttribute(k, attrs[k]); } n.append(...kids.filter(k => k != null)); return n; };
@@ -102,7 +102,7 @@ async function navigate(hash) {
   const dest = DESTINATIONS.find(d => d.slug === slug && d.route !== 'spires');
   if (dest) { await api.setRoute(dest.route); buildMarks(); hideCard(); return; }
   const id = Object.keys(CARDS).find(k => CARDS[k].slug === slug) || (slug.startsWith('sideproject-spires/') && PROJECTS[slug.split('/')[1]] ? slug.split('/')[1] : null);
-  if (!id) { await api.setRoute('off-route'); buildMarks(); api.goto('off-route'); return; }
+  if (!id) { await api.setRoute('off-route'); buildMarks(); api.goto('off-route'); api.find('offroute'); return; }
   await api.setRoute(PROJECTS[id] ? 'spire:' + id : CARDS[id].route); buildMarks(); api.goto(id);
 }
 
@@ -151,11 +151,14 @@ function trailMap() {
   return [el('div', { class: 'band' }, el('h2', { text: 'Trailhead' }), el('p', { text: 'TJ Zimmerman, Seattle, Washington' })), el('div', { class: 'cols' }, el('div', {}, box, key), side)];
 }
 function kiosk() {
-  const done = api.done(), up = Math.round((Date.now() - BUILT) / 1000);
+  api.find('kiosk');
+  const done = api.done(), up = Math.round((Date.now() - BUILT) / 1000), found = api.found(), ids = Object.keys(FINDS);
   const cell = (k, v, cls) => el('div', {}, el('dt', { text: k }), el('dd', { class: cls || '', text: v }));
   return [el('div', { class: 'band' }, el('h2', { text: 'Trail conditions' }), el('p', { text: 'Posted at the Trailhead kiosk' })),
     el('dl', { class: 'board' }, cell('Running version', VERSION), cell('Deployed', BUILT.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })), cell('Uptime', up < 90 ? up + ' seconds' : Math.round(up / 60) + ' minutes'), cell('Status', 'All trails open', 'open'),
-      cell('About Lake', done.lake ? 'Run. Flag flying.' : 'Open'), cell('The Stack', done.stack ? 'Climbed. Flag flying.' : 'Open'), cell('Sideproject Spires', SPIRE_ORDER.filter(s => done['spire:' + s]).length + ' of 6 summits'), cell('Wildlife', 'Elk, a bear, two cats'))];
+      cell('About Lake', done.lake ? 'Run. Flag flying.' : 'Open'), cell('The Stack', done.stack ? 'Climbed. Flag flying.' : 'Open'), cell('Sideproject Spires', SPIRE_ORDER.filter(s => done['spire:' + s]).length + ' of 6 summits'), cell('Wildlife', 'Elk, a bear, two cats')),
+    el('h3', { text: 'Field checklist: ' + ids.filter(k => found[k]).length + ' of ' + ids.length + ' found' }),
+    el('ul', { class: 'checks' }, ...ids.map(k => el('li', { class: found[k] ? 'got' : '' }, el('b', { text: found[k] ? FINDS[k][0] : 'Not found yet' }), el('span', { text: found[k] ? 'Found' : FINDS[k][1] }))))];
 }
 function register() {
   let mine = []; try { mine = JSON.parse(localStorage.getItem('trailhead.register') || '[]'); } catch { mine = []; }
@@ -184,7 +187,7 @@ function closePlain() { plain.hidden = true; }
 
 function toggleSound() { audio.start(); audio.setMuted(!audio.muted()); syncTop(); if (!audio.muted()) audio.sfx('select'); }
 function nextTrack() { audio.start(); if (audio.muted()) audio.setMuted(false); audio.setTrack(audio.track().index + 1); syncTop(); }
-function toggleDusk() { api.setTheme(api.theme() === 'dark' ? 'light' : 'dark'); syncTop(); audio.sfx('select'); try { localStorage.setItem('trailhead.theme', api.theme()); } catch { /* private window */ } }
+function toggleDusk() { api.setTheme(api.theme() === 'dark' ? 'light' : 'dark'); syncTop(); audio.sfx('select'); if (api.theme() === 'dark') setTimeout(() => api.find('dusk'), 2500); try { localStorage.setItem('trailhead.theme', api.theme()); } catch { /* private window */ } }
 function syncTop() { $('b-track').querySelector('span').textContent = audio.track().name; $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? 'Sound off' : 'Sound on'; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = api.theme() === 'dark' ? 'Day' : 'Dusk'; }
 
 // ------------------------------------------------------------------ start
@@ -199,6 +202,7 @@ try {
       else if (e.type === 'sfx') audio.sfx(e.name);
       else if (e.type === 'scene') audio.ambience(e.name);
       else if (e.type === 'say') say(e.text);
+      else if (e.type === 'found' && FINDS[e.id]) { const n = Object.keys(api ? api.found() : {}).filter(k => FINDS[k]).length; if (e.id !== 'kiosk') { say('Found: ' + FINDS[e.id][0] + '. ' + n + ' of ' + Object.keys(FINDS).length + ' on the kiosk checklist.', 5200); audio.sfx('egg'); } }
       else if (e.type === 'hover') { tip.hidden = !e.label; if (e.label) { tip.textContent = e.label; tip.style.left = e.x + 'px'; tip.style.top = (e.y - 4) + 'px'; if (e.tap) { clearTimeout(tip._t); tip._t = setTimeout(() => { tip.hidden = true; }, 2200); } } }
       else if (e.type === 'act') { if (e.id === 'kiosk') openSheet('kiosk'); else if (e.id.startsWith('spire:')) climb(e.id.slice(6)); }
     }

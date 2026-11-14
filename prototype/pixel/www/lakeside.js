@@ -139,8 +139,8 @@ export function makeLakeside() {
       return null;
     },
     act(id, env) {
-      if (id === 'plunge' && !env.running && env.t - plunge > 6.5) { plunge = env.t; env.sfx('run'); return true; }
-      if (id === 'marmot') { whistled = env.t; env.sfx('whistle'); return true; }
+      if (id === 'plunge' && !env.running && env.t - plunge > 6.5) { plunge = env.t; env.sfx('splash'); env.found('plunge'); return true; }
+      if (id === 'marmot') { whistled = env.t; env.sfx('whistle'); env.found('marmot'); return true; }
       return false;
     },
     draw(scr, env, arg, q) {
@@ -210,6 +210,7 @@ export function makeLakeside() {
       list.push({ me: true, x: mx, y: my + 0.5 });
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
       const snack = !env.running && env.still > 60 && t - plunge > 8;
+      if (snack) env.found('snack');
       for (const th of list) {
         const sx = th.x - camX, sy = base + th.y;
         if (th.me) {

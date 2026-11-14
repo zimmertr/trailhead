@@ -182,7 +182,7 @@ export function makeCats() {
     // A click on a cat. Doot Doot talks back and flops over; Peevers is shy first and sweet second.
     click(id, env) {
       const c = cats.find(q => q.id === id), t = env.t; if (!c || c.st === 'jump' || c.st === 'stalk' || c.st === 'dash') return false;
-      c.clicks = t - (c.clicked || -99) < 6 ? (c.clicks || 0) + 1 : 1; c.clicked = t;
+      c.clicks = t - (c.clicked || -99) < 6 ? (c.clicks || 0) + 1 : 1; c.clicked = t; env.found(c.id === 'tortie' ? 'doot' : 'peevers');
       if (c.st === 'sleep') { env.sfx('meow'); say(c, 'bang', t); go(c, 'stretch', t, { dur: 1.6 }); return true; }
       if (c.st === 'perch') { c.said = t; env.sfx('meow'); say(c, 'note', t); return true; }
       if (c.id === 'nebel' && c.clicks === 1 && c.st !== 'loaf') { env.sfx('chirp'); say(c, 'bang', t); go(c, 'dash', t, { to: { x: clamp(c.x + (c.x > 640 ? -30 : 30), HOME.x0, HOME.x1), y: clamp(c.y + 8, HOME.y0, HOME.y1) }, after: null }); c.looking = t + 0.6; return true; }

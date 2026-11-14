@@ -143,7 +143,7 @@ export function makeClimb() {
       if (cfg.kind === 'ridge' && x > 100 && x < 250 && Math.abs(y - hOf(cfg.pts, x)) < 8) return { label: 'Race Condition Ridge', x: sx, y: sy - 8 };
       return null;
     },
-    act(id, env) { if (id === 'egg' && env.shown && env.t - egg > 5.5) { egg = env.t; env.sfx('egg'); return true; } return false; },
+    act(id, env) { if (id === 'egg' && env.shown && env.t - egg > 5.5) { egg = env.t; env.sfx('egg'); env.found('egg:' + last.id); return true; } return false; },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t } = env, id = arg.id, cfg = ROUTES[id], kind = cfg.kind;
       const tau = q * DUR, me = where(id, tau), S = me.ph === 'up' ? get(id) : slope.S, pts = me.ph === 'up' ? cfg.pts : slope.cfg.pts;
