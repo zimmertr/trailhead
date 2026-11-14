@@ -58,6 +58,14 @@ The working list for the overnight build of the pixel-art trailhead. Tick items 
 - [ ] Dusk in every scene, with the Dusk-only sky. Phone layout in every scene.
 - [ ] Copy drafts: personal note, skill cards.
 
+## Gotchas from building version 5
+
+- Docker Desktop may need starting (`open -a Docker`). `shot.sh` builds its image on first use. Renders take a few seconds each; the 2D canvas has none of the 3D prototype's timeouts.
+- `shot.sh` queries: `stop=N`, `route=stack|spires`, `p=0.4`, `dusk=1`; steps like `click=[data-route=lake];wait=600;key=Space;wait=2600`; a seventh argument `me` crops round the runner.
+- The artifact wrapper adds its own doctype, head and body, so `index.html` has none, and it needs `[hidden] { display: none !important; }` because the panels set `display`. Publish with `files: { "pixel.js": ... }` (plus any new scene files).
+- Auto mode once blocked a `git push` and allowed the retry. If pushes stay blocked, keep committing locally and say so in the morning report.
+- What made version 5 work: one scene at a time, an early publish, then many small passes judged from screenshots. Stay in that loop.
+
 ## Calls made
 
 (one line each)
