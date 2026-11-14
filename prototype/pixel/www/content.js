@@ -120,6 +120,9 @@ export function ago(iso, now = new Date()) {
   return d === 0 ? 'today' : d === 1 ? 'yesterday' : d < 60 ? d + ' days ago' : d < 730 ? Math.round(d / 30) + ' months ago' : Math.round(d / 365) + ' years ago';
 }
 
+// The four places he can be sent to. Their names are pinned on the map and head the trail map's lists.
+export const DEST_NAMES = { trailhead: 'Trailhead', lake: 'About Lake', stack: 'The Stack', spires: 'Sideproject Spires' };
+
 // The joke place names that stand as signs on the world map. terrain.js holds where each one stands.
 export const SIGNS = {
   'scope-creep': 'Scope Creep Glacier', segfault: 'Segfault Scree', 'merge-conflict': 'Merge Conflict Col', 'yak-shave': 'Yak Shave Meadow', 'about-lake': 'About Lake, 2.4 km',
@@ -162,10 +165,10 @@ export const UI = {
   marks: { camp: 'Base camp', trailhead: 'Trailhead', summit: 'Summit' },
   keys: { title: 'Keys', note: 'Everything also works by touch.' },
   map: {
-    title: 'Trailhead', sub: 'TJ Zimmerman, Seattle, Washington',
+    title: DEST_NAMES.trailhead, sub: 'TJ Zimmerman, Seattle, Washington',
     // The dots on the trail map take a card's title or a project's name, except these.
     dots: { summit: 'The summit', 'base-camp': 'Base camp' },
-    lake: ['About Lake', km => km + ' km loop, on foot'], stack: ['The Stack', km => km + ' km in, three pitches up'], spires: ['Sideproject Spires', km => km + ' km to base camp, six summits'],
+    lake: [DEST_NAMES.lake, km => km + ' km loop, on foot'], stack: [DEST_NAMES.stack, km => km + ' km in, three pitches up'], spires: [DEST_NAMES.spires, km => km + ' km to base camp, six summits'],
     elsewhere: 'TJ elsewhere', onMap: 'On this map', plain: 'Read as a page',
     settings: 'Settings', sound: 'Sound', onOff: ['on', 'off'], music: 'Music', playedOn: 'Played on', dusk: 'Day or dusk', clear: 'Clear my flags', cleared: 'Flags and footprints cleared.',
     legend: 'The small signs in the world carry names: ' + PLACE_NAMES.slice(0, -1).join(', ') + ' and ' + PLACE_NAMES[PLACE_NAMES.length - 1] + '.'

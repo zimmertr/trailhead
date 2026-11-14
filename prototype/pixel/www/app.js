@@ -54,6 +54,8 @@ async function home() { hideCard(); await api.setRoute('lake'); audio.place('wor
 async function travel(route) { audio.start(); audio.sfx('select'); await api.setRoute(route); buildMarks(); api.start(); }
 async function climb(id) { audio.sfx('select'); hideCard(); await api.setRoute('spire:' + id); buildMarks(); api.start(); }
 async function walkOut() { audio.sfx('select'); hideCard(); await api.setRoute('spires-home'); buildMarks(); api.start(); }
+// A name on the map sends him there from wherever he is on it.
+async function send(dest) { audio.start(); const how = await api.go(dest); if (how === 'start') return travel(dest); if (how) { audio.sfx('select'); if (how === 'turn') buildMarks(); } }
 async function toCamp() { await api.setRoute('spires'); buildMarks(); api.goto('base-camp'); }
 function say(text, ms = 4200) { toast.textContent = text; toast.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { toast.hidden = true; }, ms); }
 
@@ -62,8 +64,8 @@ function say(text, ms = 4200) { toast.textContent = text; toast.hidden = false; 
 function buildMarks() {
   const marks = $('marks'); marks.replaceChildren();
   const r = api.route(), stops = api.stops();
-  const all = [{ at: 0, label: r.startsWith('spire:') || r === 'spires-home' ? UI.marks.camp : UI.marks.trailhead }, ...stops.filter(s => s.at < 0.995).map(s => ({ at: s.at, label: LABELS[s.id] || (PROJECTS[s.id] ? UI.marks.summit : s.id) })), { at: 1, label: r.startsWith('spire:') ? UI.marks.camp : ENDS[r] || UI.marks.trailhead }];
-  for (const m of all) marks.append(el('span', { class: 'mark' + (m.at === 0 ? ' first' : m.at === 1 ? ' last' : ''), style: 'left:' + (m.at * 100) + '%', 'data-at': m.at, text: m.label }));
+  const all = [{ at: 0, label: r === 'back' ? '' : r.startsWith('spire:') || r === 'spires-home' ? UI.marks.camp : UI.marks.trailhead }, ...stops.filter(s => s.at < 0.995).map(s => ({ at: s.at, label: LABELS[s.id] || (PROJECTS[s.id] ? UI.marks.summit : s.id) })), { at: 1, label: r.startsWith('spire:') ? UI.marks.camp : ENDS[r] || UI.marks.trailhead }];
+  for (const m of all) if (m.label) marks.append(el('span', { class: 'mark' + (m.at === 0 ? ' first' : m.at === 1 ? ' last' : ''), style: 'left:' + (m.at * 100) + '%', 'data-at': m.at, text: m.label }));
   profile = api.profile(160);
   nudgeMarks();
   $('home').textContent = UI.home[r.startsWith('spire:') ? 1 : 0];
@@ -209,7 +211,7 @@ try {
     onEvent(e) {
       if (e.type === 'stop') showCard(e.id);
       else if (e.type === 'leave') hideCard();
-      else if (e.type === 'end') { if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home(); }
+      else if (e.type === 'end') { if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
       else if (e.type === 'sfx') audio.sfx(e.name);
       else if (e.type === 'scene') { audio.ambience(e.name); audio.place(e.name === 'world' && lastScene !== 'world' ? 'out' : e.name); lastScene = e.name; syncTop(); }
       else if (e.type === 'say') say(e.text);
@@ -280,7 +282,8 @@ line.addEventListener('pointerup', () => { dragging = false; });
 line.addEventListener('pointercancel', () => { dragging = false; });
 $('thumb').addEventListener('keydown', e => { if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') { api.scrub(api.progress() + (e.code === 'ArrowRight' ? 0.02 : -0.02)); e.preventDefault(); e.stopPropagation(); } });
 
-const names = $('names'); let nameKey = '';
+const names = $('names'); let nameKey = '', nameBox = null;
+addEventListener('resize', () => { nameBox = null; });
 (function tick() {
   requestAnimationFrame(tick);
   const p = api.progress(), running = api.running();
@@ -289,7 +292,20 @@ const names = $('names'); let nameKey = '';
   document.querySelectorAll('.mark').forEach(d => d.classList.toggle('passed', +d.dataset.at <= p + 0.001));
   $('run').textContent = UI.run[running ? 1 : 0];
   fork.hidden = running || p > 0.002 || shown != null || api.route() !== 'lake';
-  // The six summits carry their names at base camp.
-  const labels = sheet.hidden && plain.hidden ? api.labels() : [], key = labels.map(l => l.id + Math.round(l.x) + ',' + Math.round(l.y)).join('|');
-  if (key !== nameKey) { nameKey = key; const done = api.done(); names.replaceChildren(...labels.map(l => el('button', { class: 'name' + (done['spire:' + l.id] ? ' done' : ''), style: `left:${l.x}px;top:${l.y}px`, text: l.name, onclick: () => climb(l.id) }))); }
+  // The six summits carry their names at base camp, and the four places carry theirs on the map. The tags
+  // are made once and then only moved, so a press that starts on one still lands on it while the view pans.
+  const labels = sheet.hidden && plain.hidden ? api.labels() : [], done = api.done(), key = labels.map(l => l.id + (done[l.id.startsWith('go:') ? l.id.slice(3) : 'spire:' + l.id] ? '+' : '')).join('|');
+  if (key !== nameKey) { nameKey = key; nameBox = null; names.replaceChildren(...labels.map(l => { const go = l.id.startsWith('go:'); return el('button', { class: 'name' + (done[go ? l.id.slice(3) : 'spire:' + l.id] ? ' done' : ''), text: l.name, onclick: e => { e.currentTarget.blur(); if (go) send(l.id.slice(3)); else climb(l.id); } }); })); }
+  if (!nameBox) { nameBox = { t: $('top').getBoundingClientRect().bottom + 4, b: $('bar').getBoundingClientRect().top - 6, w: innerWidth, sizes: [...names.children].map(b => [b.offsetWidth, b.offsetHeight]) }; }
+  // A place that is out of view keeps its name at the nearest edge, so he can be sent there from anywhere on the map.
+  const put = [];
+  labels.forEach((l, i) => {
+    const b = names.children[i], [w, h] = nameBox.sizes[i]; let x = l.x, y = l.y;
+    if (l.id.startsWith('go:')) {
+      x = Math.min(nameBox.w - 8 - w / 2, Math.max(8 + w / 2, x)); y = Math.min(nameBox.b, Math.max(nameBox.t + h, y));
+      for (let n = 0; n < 4 && put.some(q => Math.abs(q[1] - y) < h + 3 && Math.abs(q[0] - x) < (q[2] + w) / 2 + 4); n++) y += (y > (nameBox.t + nameBox.b) / 2 ? -1 : 1) * (h + 4);
+      put.push([x, y, w]); b.classList.toggle('away', Math.abs(x - l.x) > 1 || Math.abs(y - l.y) > 1);
+    }
+    b.style.left = x + 'px'; b.style.top = y + 'px';
+  });
 })();

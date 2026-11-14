@@ -2,7 +2,7 @@
 // that says how far along a route he is, and the cut from one scene to the next. Each scene lives
 // in its own file and only has to draw itself for a given place along its stretch of the route.
 
-import { clamp, Screen } from './core.js';
+import { clamp, lerp, Screen } from './core.js';
 import { makeWorld } from './world.js';
 
 // Scenes beyond the world map are built the first time a route needs them.
@@ -36,6 +36,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     'off-route': () => [['offroute', {}]]
   };
   for (const id of SPIRES) ROUTES['spire:' + id] = () => [['climb', { id }]];
+  // One stretch of map walked for its own sake: back to the junction from part way along a trail.
+  // `next` is where he sets off for once he gets there.
+  let detour = { path: 'lake', from: 0, to: 0 }, next = null;
+  ROUTES.back = () => [['world', { ...detour }]];
 
   let route = 'lake', legs = [], stops = [], cues = [], total = 1;
   let p = 0, running = false, shown = null, mode = theme === 'dark' ? 1 : 0, mix = mode;
@@ -77,7 +81,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     if (route.startsWith('spire:')) { done[route] = true; done.spires = true; }
     saveDone();
     if (first && done[route]) emit({ type: 'sfx', name: 'flag' });
-    emit({ type: 'end', route });
+    const then = next; next = null;
+    emit({ type: 'end', route, next: then });
   }
 
   function step(dt) {
@@ -191,7 +196,25 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     async setRoute(r) {
       if (!ROUTES[r]) return;
       await need(ROUTES[r]().map(l => l[0]));
-      plan(r); p = 0; running = false; leave();
+      plan(r); p = 0; running = false; next = null; leave();
+    },
+    // Sends him to a place on the map from wherever he is on it. Out along a trail he turns round and
+    // comes back through the junction; already heading back he carries on and sets off again from there.
+    // Says what it did: 'start' (he is at the junction, the page starts the route), 'turn', 'on' or 'home'.
+    async go(dest) {
+      if (drawn.s !== 'world' || tr || !ROUTES[dest] && dest !== 'trailhead') return null;
+      const l = legAt(p), a = l.arg, u = lerp(a.from, a.to, local(l, p));
+      if (l === legs[0] && a.from === 0 && p === 0) { if (dest === 'trailhead') { recentre = true; return 'home'; } return 'start'; }
+      const inbound = a.to === 0 || (a.path === 'lake' && a.to === 1), mine = a.path === dest;
+      if (dest !== 'trailhead') await need(ROUTES[dest]().map(x => x[0]));
+      leave();
+      if (mine && !inbound) { next = null; running = true; return 'on'; }
+      if (mine && a.to === 0) {
+        // Heading home on the trail he now wants: he turns round where he stands.
+        plan(dest); const f = legs[0]; p = f.t0 + clamp((u - f.arg.from) / (f.arg.to - f.arg.from), 0, 1) * (f.t1 - f.t0); next = null; running = true; return 'turn';
+      }
+      if (inbound) { next = dest === 'trailhead' ? null : dest; running = true; return 'on'; }
+      detour = { path: a.path, from: u, to: 0 }; plan('back'); p = 0; next = dest === 'trailhead' ? null : dest; running = true; return 'turn';
     },
     theme: () => mode ? 'dark' : 'light',
     setTheme(th) { mode = th === 'dark' ? 1 : 0; },
@@ -249,7 +272,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
       return cv;
     },
     spires: () => SPIRES.slice(),
-    // Names to pin on the scene, in CSS pixels: the six summits at base camp.
+    // Names to pin on the scene, in CSS pixels: the six summits at base camp, the four places on the map.
     labels() { const k = scr.S / (window.devicePixelRatio || 1); return drawn.scene.labels && !tr ? drawn.scene.labels().map(l => ({ ...l, x: l.x * k, y: l.y * k })) : []; },
     // Puts him at a milestone by name, with its card open.
     goto(id) { const s = stops.find(q => q.id === id); if (!s) return false; running = false; scrubbing = 0.16; p = s.at; shown = null; showStop(s); return true; },

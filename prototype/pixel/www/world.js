@@ -2,7 +2,7 @@
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
 import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
 import { makeCritters } from './critters.js';
-import { SIGNS, NAMES } from './content.js';
+import { SIGNS, NAMES, DEST_NAMES } from './content.js';
 import { makeCats } from './cats.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, NW as WW, NH as WH, T, PEAK as PEAK_AT, STACK as STACK_AT, SPIRES as SPIRES_AT } from './terrain.js';
@@ -202,6 +202,8 @@ export function makeWorld() {
   const lakeIn = (() => { const P = paths.lake; for (let q = 0; q < 1; q += 0.002) { const a = P.at(q); if (forestAmt(a.x, a.y) > 0.75) return q; } return 0.2; })();
   const lakeOut = (() => { const P = paths.lake; let best = 0, bd = 1e9; for (let q = 0.5; q < 1; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - 716, a.y - 541); if (d < bd) { bd = d; best = q; } } return best; })();
 
+  // Where each place's name is pinned: over the signpost, on the lake's near shore, on the wall's rim, on the ice under the summits.
+  const PLACES = [{ id: 'trailhead', x: T.x - 4, y: T.y - 31 }, { id: 'lake', x: 648, y: 525 }, { id: 'stack', x: STACK.x, y: STACK.y - STACK.h + 4 }, { id: 'spires', x: SPIRES.x + 10, y: SPIRES.y - 78 }];
   const cam = { x: T.x, y: 0 };
   let facing = 'down', flip = false, last = { ox: 0, oy: 0, VW: 1, VH: 1 }, focus = { x: 0, y: 0 };
   const list = [];
@@ -230,6 +232,9 @@ export function makeWorld() {
     },
     enter(scr, leg, q) { const [tx, ty] = target(scr, where(leg, q)); cam.x = tx; cam.y = ty; },
     focus: () => focus,
+    // The four places he can be sent to, for the page to pin a name on. The page keeps a name on screen
+    // when its place is out of view.
+    labels() { return PLACES.map(d => ({ id: 'go:' + d.id, name: DEST_NAMES[d.id], x: d.x - last.ox, y: d.y - last.oy })); },
     // What is under a point of the screen: a sign with a name, the kiosk, a cat.
     pick(sx, sy) {
       const wx = sx + last.ox, wy = sy + last.oy;
