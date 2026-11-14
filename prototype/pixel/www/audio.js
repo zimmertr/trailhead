@@ -53,10 +53,13 @@ export const SETS = [
   { name: 'Music box', lead: 'sine', arp: 'triangle', bass: 'sine', fx: { square: 'sine', triangle: 'sine' }, drums: 0, pitch: 2, pluck: true, octave: 2 }
 ];
 
+// Which tunes belong to which place, the first one first. Glissade is the walk back out.
+const PLACES = { world: [0, 4], out: [6, 0], forest: [1, 5], lakeside: [5, 1], wall: [2, 4], camp: [4, 3], climb: [3, 6], offroute: [3] };
+
 export function makeAudio() {
-  let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, timer = null, step = 0, nextAt = 0, cur = Math.floor(Math.random() * TRACKS.length), set = 0, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
-  // A different track each visit: any but the one that played last time.
-  try { muted = localStorage.getItem('trailhead.muted') === '1'; const was = +localStorage.getItem('trailhead.lastTrack'); if (was === cur) cur = (cur + 1 + Math.floor(Math.random() * (TRACKS.length - 1))) % TRACKS.length; localStorage.setItem('trailhead.lastTrack', String(cur)); const v = +localStorage.getItem('trailhead.set'); if (SETS[v]) set = v; } catch { /* private window */ }
+  let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, timer = null, step = 0, nextAt = 0, cur = 0, set = 0, auto = true, place = 'world', turn = 0, loops = 0, level = 0.22, swap = null, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
+  // The music follows the place unless the visitor has picked a track by hand, and a pick is kept between visits.
+  try { muted = localStorage.getItem('trailhead.muted') === '1'; const own = localStorage.getItem('trailhead.track'); if (own != null && TRACKS[+own]) { auto = false; cur = +own; } const v = +localStorage.getItem('trailhead.set'); if (SETS[v]) set = v; } catch { /* private window */ }
 
   function start() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
@@ -79,6 +82,14 @@ export function makeAudio() {
     nextAt = ctx.currentTime + 0.1;
     timer = setInterval(schedule, 90);
     if (ambName) ambience(ambName, true);
+  }
+  // Changes the tune without a jolt: the one playing fades out, the next starts from its top and fades in.
+  function fadeTo(i, quick) {
+    loops = 0; if (i === cur && swap == null) return;
+    if (!ctx) { cur = i; return; }
+    const first = swap == null; swap = i; if (!first) return;
+    music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(0.0001, ctx.currentTime, quick ? 0.06 : 0.3);
+    setTimeout(() => { cur = swap; swap = null; step = 0; if (out.onchange) out.onchange(); nextAt = Math.max(nextAt, ctx.currentTime + 0.05); music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(level, ctx.currentTime, quick ? 0.12 : 0.5); }, quick ? 220 : 1100);
   }
   // One note: a square, pulse or triangle wave with a quick attack and a falling tail.
   function tone(out, type, f0, t, dur, vol, f1) {
@@ -114,6 +125,8 @@ export function makeAudio() {
       const c = tr.bass[i]; if (c !== '.' && c !== '-') tone(music, V.bass, hz(c) * up, nextAt, dt * hold(tr.bass, i) * 0.9, V.bass === 'square' ? 0.1 : 0.3);
       const dr = tr.drum[i]; if (!dv) { /* no drums in a music box */ } else if (dr === 'k') tone(music, 'triangle', 150, nextAt, 0.12, 0.4 * dv, 45); else if (dr === 's') noise(music, nextAt, 0.11, 0.16 * dv, 1800, 0.6, 'bandpass'); else if (dr === 'h') noise(music, nextAt, 0.035, 0.05 * dv, 7000);
       step++; nextAt += dt;
+      // After a few times round the same tune in the same place, move on to the place's next one.
+      if (step % len === 0 && auto && ++loops >= 4 && PLACES[place].length > 1) { turn++; fadeTo(PLACES[place][turn % PLACES[place].length]); }
     }
   }
 
@@ -163,17 +176,21 @@ export function makeAudio() {
     if (name === 'world' || name === 'forest' || name === 'lakeside') ambTimer = setInterval(() => { if (ctx.state === 'running' && Math.random() < 0.5) FX.chirp(ctx.currentTime + Math.random() * 0.5); }, 2600);
   }
 
-  return {
+  const out = {
     start,
     sfx(name) { if (!ctx || muted || !FX[name]) return; try { FX[name](ctx.currentTime + 0.005); } catch (e) { /* a sound is never worth an error */ } },
     ambience,
     muted: () => muted,
     setMuted(m) { muted = !!m; if (master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.05); try { localStorage.setItem('trailhead.muted', muted ? '1' : '0'); } catch { /* private window */ } },
-    track: () => ({ index: cur, name: TRACKS[cur].name, count: TRACKS.length }),
-    setTrack(i) { cur = ((i % TRACKS.length) + TRACKS.length) % TRACKS.length; step = 0; try { localStorage.setItem('trailhead.lastTrack', String(cur)); } catch { /* private window */ } return TRACKS[cur].name; },
+    track: () => ({ index: swap == null ? cur : swap, name: TRACKS[swap == null ? cur : swap].name, count: TRACKS.length, auto }),
+    // The scene has changed: in Auto the music changes with it.
+    place(name) { if (!PLACES[name] || name === place) return; place = name; turn = 0; if (auto) fadeTo(PLACES[name][0]); },
+    // The track button: Auto, then each track in turn, then Auto again. A track picked here stays until Auto comes round.
+    cycle() { const at = swap == null ? cur : swap; if (auto) { auto = false; fadeTo(0, true); } else if (at + 1 >= TRACKS.length) { auto = true; fadeTo(PLACES[place][0], true); } else fadeTo(at + 1, true); try { if (auto) localStorage.removeItem('trailhead.track'); else localStorage.setItem('trailhead.track', String(swap == null ? cur : swap)); } catch { /* private window */ } },
     set: () => ({ index: set, name: SETS[set].name, count: SETS.length }),
     setSet(i) { set = ((i % SETS.length) + SETS.length) % SETS.length; try { localStorage.setItem('trailhead.set', String(set)); } catch { /* private window */ } return SETS[set].name; },
     // How much the music steps back: 0 out in the world, 1 while a card is being read, 2 under a sheet.
-    focus(level) { if (!music) return; music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime([0.22, 0.15, 0.13][level] || 0.22, ctx.currentTime, 0.25); tone0.frequency.setTargetAtTime(level === 2 ? 900 : 16000, ctx.currentTime, 0.2); }
+    focus(lv) { if (!music) return; level = [0.22, 0.15, 0.13][lv] || 0.22; if (swap == null) { music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(level, ctx.currentTime, 0.25); } tone0.frequency.setTargetAtTime(lv === 2 ? 900 : 16000, ctx.currentTime, 0.2); }
   };
+  return out;
 }

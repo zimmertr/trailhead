@@ -49,7 +49,7 @@ function showCard(id) {
   audio.sfx(id === 'summit' ? 'summit' : pr ? 'flag' : 'stop');
 }
 function hideCard() { shown = null; card.hidden = true; audio.focus(0); }
-async function home() { hideCard(); await api.setRoute('lake'); buildMarks(); setAddress(''); checkRegister(); }
+async function home() { hideCard(); await api.setRoute('lake'); audio.place('world'); lastScene = 'world'; buildMarks(); setAddress(''); checkRegister(); }
 async function travel(route) { audio.start(); audio.sfx('select'); await api.setRoute(route); buildMarks(); api.start(); }
 async function climb(id) { audio.sfx('select'); hideCard(); await api.setRoute('spire:' + id); buildMarks(); api.start(); }
 async function walkOut() { audio.sfx('select'); hideCard(); await api.setRoute('spires-home'); buildMarks(); api.start(); }
@@ -143,7 +143,7 @@ function trailMap() {
     el('button', { class: 'plank', onclick: () => { if (all) navigate('#register'); else { audio.sfx('locked'); say('The summit register opens once all three destinations are done.'); } } }, el('span', { text: 'Summit register' }), el('small', { text: all ? 'open' : 'locked' })),
     el('h3', { text: 'Settings' }),
     el('button', { class: 'plank', onclick: e => { toggleSound(); e.currentTarget.querySelector('small').textContent = audio.muted() ? 'off' : 'on'; } }, el('span', { text: 'Sound' }), el('small', { text: audio.muted() ? 'off' : 'on' })),
-    el('button', { class: 'plank', onclick: e => { nextTrack(); e.currentTarget.querySelector('small').textContent = audio.track().name; } }, el('span', { text: 'Music' }), el('small', { text: audio.track().name })),
+    el('button', { class: 'plank', onclick: e => { nextTrack(); e.currentTarget.querySelector('small').textContent = trackName(); } }, el('span', { text: 'Music' }), el('small', { text: trackName() })),
     el('button', { class: 'plank', onclick: e => { audio.start(); e.currentTarget.querySelector('small').textContent = audio.setSet(audio.set().index + 1); audio.sfx('flag'); } }, el('span', { text: 'Played on' }), el('small', { text: audio.set().name })),
     el('button', { class: 'plank', onclick: () => { toggleDusk(); } }, el('span', { text: 'Day or dusk' })),
     el('button', { class: 'plank', onclick: () => { api.forget(); say('Flags and footprints cleared.'); closeSheet(); } }, el('span', { text: 'Clear my flags' })),
@@ -186,9 +186,11 @@ function closePlain() { plain.hidden = true; }
 // ------------------------------------------------------------------ switches
 
 function toggleSound() { audio.start(); audio.setMuted(!audio.muted()); syncTop(); if (!audio.muted()) audio.sfx('select'); }
-function nextTrack() { audio.start(); if (audio.muted()) audio.setMuted(false); audio.setTrack(audio.track().index + 1); syncTop(); }
+let lastScene = 'world';
+const trackName = () => { const k = audio.track(); return k.auto ? 'Auto: ' + k.name : k.name; };
+function nextTrack() { audio.start(); if (audio.muted()) audio.setMuted(false); audio.cycle(); syncTop(); }
 function toggleDusk() { api.setTheme(api.theme() === 'dark' ? 'light' : 'dark'); syncTop(); audio.sfx('select'); if (api.theme() === 'dark') setTimeout(() => api.find('dusk'), 2500); try { localStorage.setItem('trailhead.theme', api.theme()); } catch { /* private window */ } }
-function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = audio.track().name; $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? 'Sound off' : 'Sound on'; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = api.theme() === 'dark' ? 'Day' : 'Dusk'; }
+function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = trackName(); $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? 'Sound off' : 'Sound on'; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = api.theme() === 'dark' ? 'Day' : 'Dusk'; }
 
 // The pointer is drawn like everything else: an arrow in the sprites' ink, yellow over anything
 // that can be pressed.
@@ -208,7 +210,7 @@ try {
       else if (e.type === 'leave') hideCard();
       else if (e.type === 'end') { if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home(); }
       else if (e.type === 'sfx') audio.sfx(e.name);
-      else if (e.type === 'scene') audio.ambience(e.name);
+      else if (e.type === 'scene') { audio.ambience(e.name); audio.place(e.name === 'world' && lastScene !== 'world' ? 'out' : e.name); lastScene = e.name; syncTop(); }
       else if (e.type === 'say') say(e.text);
       else if (e.type === 'found' && FINDS[e.id]) { const n = Object.keys(api ? api.found() : {}).filter(k => FINDS[k]).length; if (e.id !== 'kiosk') { say('Found: ' + FINDS[e.id][0] + '. ' + n + ' of ' + Object.keys(FINDS).length + ' on the kiosk checklist.', 5200); audio.sfx('egg'); } }
       else if (e.type === 'hover') { tip.hidden = !e.label; if (e.label) { tip.textContent = e.label; tip.style.left = e.x + 'px'; tip.style.top = (e.y - 4) + 'px'; if (e.tap) { clearTimeout(tip._t); tip._t = setTimeout(() => { tip.hidden = true; }, 2200); } } }
@@ -234,7 +236,7 @@ try {
   if (q.get('dusk') || dusk) { api.setTheme('dark'); syncTop(); }
   if (q.get('sheet')) openSheet(q.get('sheet'));
   if (location.hash.length > 1 && !q.get('route')) await navigate(location.hash);
-  audio.ambience('world');
+  audio.ambience('world'); audio.onchange = syncTop;
   status.hidden = true;
   window.__ready = true;
   try { console.log(...CONSOLE); } catch { /* no console */ }
