@@ -47,7 +47,7 @@ The working list for the overnight build of the pixel-art trailhead. Tick items 
 ### Sideproject Spires
 - [x] Base camp diorama: pick one of six peaks, each named; flags on finished ones; goats.
 - [x] Six routes with their events (knife-edge ridge, icefall, ice pitch with two tools, snow bridge and crevasse jump, bergschrund ladder, wands in a whiteout), each ending in a glissade to camp.
-- [ ] Six summit eggs, played on click and replayable.
+- [x] Six summit eggs, played on click and replayable.
 - [x] Project cards with stars, release, language, licence.
 
 ### Across the site
