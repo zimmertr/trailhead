@@ -204,3 +204,55 @@ TJ went through the MVP and the low-poly design is now scrapped: pixel is the di
 - Kiosk reads the running version and deploy time from a `status.json` written by CI, and the pod's start time from the container's start script.
 - The debug panel exists only in preview and PR containers, never on main.
 - A bad URL lands on the off-route page, and so does a caught error; if the renderer itself is broken, fall back to the plain page.
+
+## Round 2 (branch `pixel-round2`, from 2026-11-14)
+
+Round 2 lives on its own branch and its own artifact so TJ can compare it with the overnight MVP side by side.
+
+- Round 2 artifact: https://claude.ai/artifact/GwCmCx8VKWRpSbnu9yXMtj (publish `www/index.html` with this as `url`, `root` = `www`, and every `.js` file except `plan.js` in `files`).
+- Map block-in artifact: https://claude.ai/artifact/PWbdHU4ADXtaoAjc8sv2qq (publish `plan/map-plan.html` with `files` = `{"plan.png": "plan.png"}`, `root` = `plan`; render the picture with `./shot.sh plan.png '@plan.html' 1560 1080 'wait=200'` and copy `out/plan.png` to `plan/plan.png`).
+- The overnight MVP artifact (https://claude.ai/artifact/76d6NraHh67ZTcMnMitrji) and branch `pixel-mvp` are the baseline now. Do not publish to that artifact or push to that branch again.
+- The bar is unchanged: every scene must be at least as good as the same scene in the overnight MVP and in version 5. Compare screenshots before publishing and put back anything that got worse.
+
+### TJ's mark-up of the first block-in (2026-11-14)
+
+- He likes the direction.
+- The biomes must flow into each other. The east side in particular has jarring borders. Wide, uneven transitions: trees and ground of one biome thinning into the next, shared plants crossing the line, no straight edges.
+- No ice cap. In its place: the snowy ranges carry on behind the destinations, with big glaciers pouring down between the peaks behind the Spires.
+- The mountains need more work: "Less like the picture I shared and more whimsical beautiful pixel art." The photo was only to show layer upon layer of snowy peaks. Draw designed, characterful peaks in the style of the lake peak and the Spires massif, in layers, not a noise skyline.
+- The volcano is welcome and may look better centre-right. Move it and judge.
+- The larch basin needs mountain goats. The scablands need bighorn sheep and the like. The ocean needs a breaching whale, jellyfish and waves.
+- The south is open meadow full of animals (squirrels, chipmunks, elk, bear, birds), with no road or parking lot.
+- "The signpost" the cats hung round and vanished behind was the kiosk board.
+- Kayti at base camp is painting with a portable backpacking paint kit.
+
+### Checklist
+
+Map
+- [ ] Revise the block-in (`www/plan.js`) to the mark-up above and republish it. Keep a strip of sky on the first desktop screen, as today.
+- [ ] Build the real map in `www/world.js` from the block-in: the larger world, every biome, the uneven lake with its island, the river and log bridge, the deeper forest loop with mist, the Stack trail turning talus grey, the Spires trail becoming a boot track in snow, larches by the Spires, big-leaf maples in the run forest. Everything that depends on map coordinates moves with it: camera limits, the cats' area, kiosk, flags, footprints, cloud shadows, fireflies, the trail map sheet (`MAP` and `DOTS` in `app.js`), where the lake route enters and leaves the forest.
+- [ ] Animals that move: elk, bear, squirrels, chipmunks and birds in the south meadow, goats in the basin, bighorn sheep in the scablands, marmots, a whale that breaches now and then, jellyfish near the shore, waves on the beach.
+- [ ] Signs stand on the terrain they name, with the twelve new names. Sign names and every other stray line of copy move into `content.js`.
+- [ ] Labels on the map for Trailhead, About Lake, The Stack and Sideproject Spires, in the style of the summit name tags. A click at any time sends him there; partway down another trail he turns round and goes back through the junction.
+- [ ] Zoom in whole steps on the world map only: wheel, pinch, plus and minus. The camera limits still hide the world's edge at every step.
+
+Scenes
+- [ ] Base camp: a camp on a huge glacier under enormous walls, filling the frame. Cold, craggy, Patagonian. No landmass floating in the sky. The six summits keep their name tags and clicks.
+- [ ] Kayti at base camp: long brown hair, painting with a small backpacking paint kit, her name on hover like the cats, no other text.
+- [ ] The Stack: two people at the foot, a man with short black hair and a woman with long red hair. One belays, picked at random each visit, the other sits on a rock with a snack. The lead rope runs visibly from belayer through the gear to him, and both it and the rappel rope get a dark outline and a bright core.
+- [ ] About Lake: the forest's last stretch thins and brightens and the lake scene opens with the forest edge on its left. Try a straight scroll between the two in place of the round window; keep it only if it is better.
+- [ ] Cold plunge: he drops vest, shirt and shoes in a pile, wades in wearing shorts, then dresses again.
+
+Controls and the rest
+- [ ] Debug panel, hidden: the backtick key, and a "Debug" sign at the bottom of the trail map sheet. Layer toggles (trees, clouds, labels, animals), outlines (roam areas, tap targets, trail lines, camera limits), force a cat state, go to the off-route page.
+- [ ] A scene that throws lands him on the off-route page; if the renderer itself is broken, the plain page shows.
+- [x] Summit name tags no longer get a second label stuck on them.
+- [x] Cats roam mostly below the junction, left of the kiosk, never under a panel; each click is the next trick.
+- [x] The marmot answers a tap; a touch that misses tries the ground close around it.
+- [x] The goat has a face, horns and cream wool.
+- [x] A dragged view stays put, pushes back near the limits, and returns when he starts or stops.
+- [x] Music follows the place with a fade (Glissade on the walk back out); the track button cycles Auto and each track, and a picked track is kept.
+
+### Calls made in round 2
+
+- Restored the MVP artifact to the overnight build (its version 7) so it is a clean baseline; today's fixes are only in the round 2 artifact.
