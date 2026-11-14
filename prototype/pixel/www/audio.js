@@ -32,7 +32,17 @@ export const TRACKS = [
     lead: line('G5 G5 - E5 G5 . A5 . | G5 . E5 . C5 . D5 . | E5 E5 - C5 E5 . F5 . | E5 . D5 . G4 . - - | G5 G5 - E5 G5 . A5 . | C6 . B5 . A5 . G5 . | F5 . E5 . D5 . B4 . | C5 . . . . . - -'),
     arp: line('C4 G4 E4 G4 C4 G4 E4 G4 | C4 G4 E4 G4 C4 G4 E4 G4 | A3 E4 C4 E4 A3 E4 C4 E4 | G3 D4 B3 D4 G3 D4 B3 D4 | C4 G4 E4 G4 C4 G4 E4 G4 | F3 C4 A3 C4 F3 C4 A3 C4 | D4 A4 F4 A4 G3 D4 B3 D4 | C4 G4 E4 G4 C4 G4 E4 G4'),
     bass: line('C3 . G2 . C3 . G2 . | C3 . G2 . C3 . G2 . | A2 . E2 . A2 . E2 . | G2 . D2 . G2 . D2 . | C3 . G2 . C3 . G2 . | F2 . C2 . F2 . C2 . | D2 . A2 . G2 . D2 . | C3 . G2 . C3 . . .'),
-    drum: line('k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - s s s -') }
+    drum: line('k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - s s s -') },
+  { name: 'Tarn at Noon', bpm: 72, div: 2,
+    lead: line('F#5 . . A5 . . D6 . | B5 . . . F#5 . D5 . | G5 . . B5 . . D6 . | C#6 . . . A5 . E5 . | F#5 . A5 . D6 . F#6 . | D6 . . . B5 . F#5 . | G5 . B5 . A5 . C#6 . | D6 . . . . . - -'),
+    arp: line('D4 A4 F#4 A4 D4 A4 F#4 A4 | B3 F#4 D4 F#4 B3 F#4 D4 F#4 | G3 D4 B3 D4 G3 D4 B3 D4 | A3 E4 C#4 E4 A3 E4 C#4 E4 | D4 A4 F#4 A4 D4 A4 F#4 A4 | B3 F#4 D4 F#4 B3 F#4 D4 F#4 | G3 D4 B3 D4 A3 E4 C#4 E4 | D4 A4 F#4 A4 D4 A4 F#4 A4'),
+    bass: line('D3 . . . . . A2 . | B2 . . . . . F#2 . | G2 . . . . . D3 . | A2 . . . . . E3 . | D3 . . . . . A2 . | B2 . . . . . F#2 . | G2 . . . A2 . . . | D3 . . . . . . .'),
+    drum: line('- - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h - | - - - - h - - - | - - - - h - - - | - - - - h - - - | h - - - h - h -') },
+  { name: 'Glissade', bpm: 140, div: 2,
+    lead: line('A5 - C#6 - E6 . C#6 A5 | B5 . A5 . E5 . . . | F#5 - A5 - D6 . A5 F#5 | G#5 . B5 . E6 . . . | A5 - C#6 - E6 . A6 . | F#6 . E6 . C#6 . A5 . | D6 . F#6 . E6 . G#5 . | A5 . . . . . - -'),
+    arp: line('A3 E4 A3 E4 A3 E4 A3 E4 | A3 E4 A3 E4 A3 E4 A3 E4 | D4 A4 D4 A4 D4 A4 D4 A4 | E4 B4 E4 B4 E4 B4 E4 B4 | A3 E4 A3 E4 A3 E4 A3 E4 | F#3 C#4 F#3 C#4 F#3 C#4 F#3 C#4 | D4 A4 D4 A4 E4 B4 E4 B4 | A3 E4 A3 E4 A3 E4 A3 E4'),
+    bass: line('A2 . A3 . A2 . A3 . | A2 . A3 . A2 . A3 . | D2 . D3 . D2 . D3 . | E2 . E3 . E2 . E3 . | A2 . A3 . A2 . A3 . | F#2 . F#3 . F#2 . F#3 . | D2 . D3 . E2 . E3 . | A2 . A3 . A2 . . .'),
+    drum: line('k - h - s - h - | k - h h s - h - | k - h - s - h - | k - h h s - h h | k - h - s - h - | k - h h s - h - | k - h - s - h - | k - s - s s s -') }
 ];
 
 // The same notes through three different instruments. A set names the wave each voice uses, how
@@ -44,7 +54,7 @@ export const SETS = [
 ];
 
 export function makeAudio() {
-  let ctx = null, master, music, fx, amb, noiseBuf, muted = false, timer = null, step = 0, nextAt = 0, cur = Math.floor(Math.random() * TRACKS.length), set = 0, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
+  let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, timer = null, step = 0, nextAt = 0, cur = Math.floor(Math.random() * TRACKS.length), set = 0, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
   // A different track each visit: any but the one that played last time.
   try { muted = localStorage.getItem('trailhead.muted') === '1'; const was = +localStorage.getItem('trailhead.lastTrack'); if (was === cur) cur = (cur + 1 + Math.floor(Math.random() * (TRACKS.length - 1))) % TRACKS.length; localStorage.setItem('trailhead.lastTrack', String(cur)); const v = +localStorage.getItem('trailhead.set'); if (SETS[v]) set = v; } catch { /* private window */ }
 
@@ -52,9 +62,15 @@ export function makeAudio() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     ctx = new AC();
-    master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(ctx.destination);
-    music = ctx.createGain(); music.gain.value = 0.22; music.connect(master);
+    // Everything meets at one gain, with a limiter after it so a pile-up of effects cannot clip.
+    const limit = ctx.createDynamicsCompressor(); limit.threshold.value = -9; limit.ratio.value = 8; limit.attack.value = 0.003; limit.release.value = 0.2; limit.connect(ctx.destination);
+    master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(limit);
+    // The music passes a filter that closes while a sheet is open, and fades in rather than starting flat out.
+    tone0 = ctx.createBiquadFilter(); tone0.type = 'lowpass'; tone0.frequency.value = 16000; tone0.connect(master);
+    music = ctx.createGain(); music.gain.setValueAtTime(0.0001, ctx.currentTime); music.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 1.8); music.connect(tone0);
     fx = ctx.createGain(); fx.gain.value = 0.5; fx.connect(master);
+    // The echo of a cartridge: one short delay fed back into itself, darker on every pass.
+    { const d = ctx.createDelay(0.5), fb = ctx.createGain(), lp = ctx.createBiquadFilter(), wet = ctx.createGain(), send = ctx.createGain(); d.delayTime.value = 0.19; fb.gain.value = 0.34; lp.type = 'lowpass'; lp.frequency.value = 2600; wet.gain.value = 0.2; send.gain.value = 0.6; music.connect(d); fx.connect(send); send.connect(d); d.connect(lp); lp.connect(fb); fb.connect(d); lp.connect(wet); wet.connect(master); }
     amb = ctx.createGain(); amb.gain.value = 0.25; amb.connect(master);
     // A narrow pulse wave (a quarter on, three quarters off): the reedy voice of a handheld.
     { const n = 32, re = new Float32Array(n), im = new Float32Array(n); for (let k = 1; k < n; k++) { re[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * 0.25); im[k] = 2 / (k * Math.PI) * (1 - Math.cos(k * Math.PI * 0.25)); } pulse = ctx.createPeriodicWave(re, im); }
@@ -75,6 +91,7 @@ export function makeAudio() {
     if (V.pluck && out === music) { dur = Math.max(dur, 0.5); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 1.6, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
     else { g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.008); g.gain.setValueAtTime(vol, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
     o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.02);
+    return o;
   }
   function noise(out, t, dur, vol, freq = 4000, q = 0.7, type = 'highpass') {
     const n = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -88,7 +105,11 @@ export function makeAudio() {
     while (nextAt < ctx.currentTime + 0.25) {
       const i = step % len, hold = (l, k) => { let n = 1; while (l[(k + n) % len] === '.' && n < 16) n++; return n; };
       const V = SETS[set], up = V.octave || 1, dv = V.drums;
-      const a = tr.lead[i]; if (a !== '.' && a !== '-') tone(music, V.lead, hz(a) * up, nextAt, dt * hold(tr.lead, i) * 0.95, 0.16);
+      const a = tr.lead[i]; if (a !== '.' && a !== '-') {
+        const n = hold(tr.lead, i), o = tone(music, V.lead, hz(a) * up, nextAt, dt * n * 0.95, 0.16);
+        // A held note gets a little vibrato once it has settled.
+        if (o && n >= 3 && !V.pluck) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 5.6; lg.gain.setValueAtTime(0, nextAt + dt); lg.gain.linearRampToValueAtTime(hz(a) * up * 0.007, nextAt + dt * 2); l.connect(lg); lg.connect(o.frequency); l.start(nextAt); l.stop(nextAt + dt * n); }
+      }
       const b = tr.arp[i]; if (b !== '.' && b !== '-') tone(music, V.arp, hz(b) * up, nextAt, dt * 0.8, V.arp === 'square' ? 0.045 : 0.07);
       const c = tr.bass[i]; if (c !== '.' && c !== '-') tone(music, V.bass, hz(c) * up, nextAt, dt * hold(tr.bass, i) * 0.9, V.bass === 'square' ? 0.1 : 0.3);
       const dr = tr.drum[i]; if (!dv) { /* no drums in a music box */ } else if (dr === 'k') tone(music, 'triangle', 150, nextAt, 0.12, 0.4 * dv, 45); else if (dr === 's') noise(music, nextAt, 0.11, 0.16 * dv, 1800, 0.6, 'bandpass'); else if (dr === 'h') noise(music, nextAt, 0.035, 0.05 * dv, 7000);
@@ -152,6 +173,7 @@ export function makeAudio() {
     setTrack(i) { cur = ((i % TRACKS.length) + TRACKS.length) % TRACKS.length; step = 0; try { localStorage.setItem('trailhead.lastTrack', String(cur)); } catch { /* private window */ } return TRACKS[cur].name; },
     set: () => ({ index: set, name: SETS[set].name, count: SETS.length }),
     setSet(i) { set = ((i % SETS.length) + SETS.length) % SETS.length; try { localStorage.setItem('trailhead.set', String(set)); } catch { /* private window */ } return SETS[set].name; },
-    setMusic(v) { if (music) music.gain.setTargetAtTime(v, ctx.currentTime, 0.1); }
+    // How much the music steps back: 0 out in the world, 1 while a card is being read, 2 under a sheet.
+    focus(level) { if (!music) return; music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime([0.22, 0.15, 0.13][level] || 0.22, ctx.currentTime, 0.25); tone0.frequency.setTargetAtTime(level === 2 ? 900 : 16000, ctx.currentTime, 0.2); }
   };
 }

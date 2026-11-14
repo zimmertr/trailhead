@@ -44,11 +44,11 @@ function showCard(id) {
   $('card-egg').hidden = !pr; if (pr) $('card-egg').textContent = 'Click ' + pr.top.toLowerCase().replace(/^a /, 'the ') + ' up there.';
   $('card-draft').hidden = !((c && c.draft) || (pr && false));
   const go = $('card-go'); go.hidden = id === 'base-camp'; go.querySelector('span').textContent = pr ? 'Glissade to camp' : c.go || '';
-  card.hidden = false; card.scrollTop = 0;
+  card.hidden = false; card.scrollTop = 0; audio.focus(1);
   setAddress(slugOf(id));
   audio.sfx(id === 'summit' ? 'summit' : pr ? 'flag' : 'stop');
 }
-function hideCard() { shown = null; card.hidden = true; }
+function hideCard() { shown = null; card.hidden = true; audio.focus(0); }
 async function home() { hideCard(); await api.setRoute('lake'); buildMarks(); setAddress(''); checkRegister(); }
 async function travel(route) { audio.start(); audio.sfx('select'); await api.setRoute(route); buildMarks(); api.start(); }
 async function climb(id) { audio.sfx('select'); hideCard(); await api.setRoute('spire:' + id); buildMarks(); api.start(); }
@@ -114,9 +114,9 @@ function openSheet(name) {
   else if (name === 'kiosk') body.append(...kiosk());
   else if (name === 'register') body.append(...register());
   else body.append(el('div', { class: 'band' }, el('h2', { text: 'Keys' }), el('p', { text: 'Everything also works by touch.' })), el('dl', { class: 'keys' }, ...HELP.flatMap(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })])));
-  sheet.hidden = false; audio.sfx('open'); $('close').focus();
+  sheet.hidden = false; audio.sfx('open'); audio.focus(2); $('close').focus();
 }
-function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; sheetName = null; audio.sfx('close'); } }
+function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; sheetName = null; audio.sfx('close'); audio.focus(shown ? 1 : 0); } }
 
 // Where each milestone sits on the brochure map, in world pixels.
 const MAP = { x: 236, y: 204, w: 600, h: 372 };
@@ -188,7 +188,15 @@ function closePlain() { plain.hidden = true; }
 function toggleSound() { audio.start(); audio.setMuted(!audio.muted()); syncTop(); if (!audio.muted()) audio.sfx('select'); }
 function nextTrack() { audio.start(); if (audio.muted()) audio.setMuted(false); audio.setTrack(audio.track().index + 1); syncTop(); }
 function toggleDusk() { api.setTheme(api.theme() === 'dark' ? 'light' : 'dark'); syncTop(); audio.sfx('select'); if (api.theme() === 'dark') setTimeout(() => api.find('dusk'), 2500); try { localStorage.setItem('trailhead.theme', api.theme()); } catch { /* private window */ } }
-function syncTop() { $('b-track').querySelector('span').textContent = audio.track().name; $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? 'Sound off' : 'Sound on'; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = api.theme() === 'dark' ? 'Day' : 'Dusk'; }
+function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = audio.track().name; $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? 'Sound off' : 'Sound on'; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = api.theme() === 'dark' ? 'Day' : 'Dusk'; }
+
+// The pointer is drawn like everything else: an arrow in the sprites' ink, yellow over anything
+// that can be pressed.
+function cursors() {
+  const ROWS = ['#', '##', '#o#', '#oo#', '#ooo#', '#oooo#', '#ooooo#', '#oooooo#', '#ooooooo#', '#oooooooo#', '#ooooo#####', '#oo#oo#', '#o# #oo#', '##  #oo#', '#    #oo#', '     ###'];
+  const make = fill => { const k = 2, c = document.createElement('canvas'); c.width = 11 * k; c.height = 16 * k; const g = c.getContext('2d'); ROWS.forEach((r, y) => [...r].forEach((ch, x) => { if (ch === ' ') return; g.fillStyle = ch === '#' ? '#1a1424' : fill; g.fillRect(x * k, y * k, k, k); })); return c.toDataURL(); };
+  try { const st = document.createElement('style'); st.textContent = `body, canvas#c { cursor: url(${make('#f7f1dc')}) 1 1, auto; } button, a, #line, .dot, canvas#c[style*="pointer"] { cursor: url(${make('#f4d048')}) 1 1, pointer !important; }`; document.head.append(st); } catch { /* the plain pointer is fine */ }
+}
 
 // ------------------------------------------------------------------ start
 
@@ -211,7 +219,7 @@ try {
   const lengths = api.info().lengths;
   for (const d of DESTINATIONS) $('signs').append(el('li', {}, el('button', { class: 'plank choice', 'data-route': d.route, onclick: e => { e.currentTarget.blur(); travel(d.route); } }, el('i', { class: 'arrow ' + d.dir }), el('span', {}, el('span', { text: d.sign }), el('span', { class: 'where', text: d.about })), el('small', { text: d.route === 'lake' ? lengths.lake + ' km loop' : lengths[d.route] + ' km' }))));
   for (const id of ['top', 'bar']) $(id).hidden = false;
-  buildMarks(); syncTop();
+  buildMarks(); syncTop(); cursors();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(nudgeMarks);
   document.documentElement.style.setProperty('--px', api.scale() + 'px');
   addEventListener('resize', () => setTimeout(() => { document.documentElement.style.setProperty('--px', api.scale() + 'px'); nudgeMarks(); }, 0));

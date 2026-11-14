@@ -34,9 +34,12 @@
   --sign: 'Silkscreen', 'Courier New', monospace;
   color-scheme: light;
 }
+/* After dark the paper is read by lamplight and the wood goes the colour of the evening. */
+:root[data-theme="dark"] { --paper: #f1e1c8; --paper-2: #dcc6ac; --paper-ink: #2a1c34; --dim: #6c5868; --wood-1: #2a1826; --wood-2: #4a2c34; --wood-3: #6e4442; --wood-4: #94645a; --routed: #fbe2b4; --shade: rgba(18, 14, 28, .5); }
 [hidden] { display: none !important; }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
+* { scrollbar-width: thin; scrollbar-color: var(--wood-3) transparent; }
 body { background: #88aee6; color: var(--paper-ink); font-family: var(--read); font-size: 20px; line-height: 1.12; font-weight: 400; overflow: hidden; -webkit-font-smoothing: none; }
 canvas#c { position: fixed; left: 0; top: 0; display: block; image-rendering: pixelated; image-rendering: crisp-edges; touch-action: none; }
 button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; padding: 0; text-align: left; }
@@ -66,6 +69,10 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 .arrow.go { width: calc(var(--px) * 5); }
 .arrow.go { clip-path: polygon(0 0, 20% 0, 20% 20%, 60% 20%, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 80%, 20% 80%, 20% 100%, 0 100%); background: var(--sun); }
 .note { flex: none; width: calc(var(--px) * 5); height: calc(var(--px) * 5); background: var(--routed); clip-path: polygon(40% 0, 80% 0, 80% 20%, 100% 20%, 100% 40%, 80% 40%, 80% 20%, 60% 20%, 60% 100%, 0 100%, 0 60%, 40% 60%); }
+.choice .arrow { transition: translate .1s steps(2); }
+.choice:hover .arrow.left, .choice:focus-visible .arrow.left { translate: calc(var(--px) * -1) 0; }
+.choice:hover .arrow.right, .choice:focus-visible .arrow.right { translate: var(--px) 0; }
+.choice:hover .arrow.up, .choice:focus-visible .arrow.up { translate: 0 calc(var(--px) * -1); }
 .choice:hover .arrow, .choice:focus-visible .arrow { background: var(--sun); }
 
 /* Paper: a placard pinned at its corners. */
@@ -121,6 +128,20 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #card[data-kind="watch"] .tools li { background: none; border-color: var(--lcd); }
 .gauges { display: grid; grid-template-columns: auto 1fr auto; gap: calc(var(--px) * 1) calc(var(--px) * 3); align-items: center; font-family: var(--small); font-size: 15px; }
 .gauges i { display: block; height: calc(var(--px) * 3); background: repeating-linear-gradient(90deg, var(--lcd) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 3)); }
+/* The rack: each tool hangs like a cam, colour-coded by size the way a real rack is. */
+#card[data-kind="rack"] .tools { gap: calc(var(--px) * 4) calc(var(--px) * 3); padding-top: calc(var(--px) * 3); }
+#card[data-kind="rack"] .tools li { position: relative; padding-left: calc(var(--px) * 7); }
+#card[data-kind="rack"] .tools li::before { content: ""; position: absolute; left: calc(var(--px) * 2); top: 50%; width: calc(var(--px) * 3); height: calc(var(--px) * 3); margin-top: calc(var(--px) * -1.5); background: var(--cam, var(--blaze)); box-shadow: 0 0 0 var(--px) var(--ink); }
+#card[data-kind="rack"] .tools li::after { content: ""; position: absolute; left: calc(var(--px) * 3); bottom: 100%; width: calc(var(--px) * 4); height: calc(var(--px) * 2); border: var(--px) solid var(--ink); border-bottom: 0; background: var(--paper); }
+#card[data-kind="rack"] .tools li:nth-child(6n + 1) { --cam: #8566e0; }
+#card[data-kind="rack"] .tools li:nth-child(6n + 2) { --cam: #467a30; }
+#card[data-kind="rack"] .tools li:nth-child(6n + 3) { --cam: #de4e2c; }
+#card[data-kind="rack"] .tools li:nth-child(6n + 4) { --cam: #f4d048; }
+#card[data-kind="rack"] .tools li:nth-child(6n + 5) { --cam: #2770b0; }
+#card[data-kind="rack"] .tools li:nth-child(6n + 6) { --cam: #a0a0a4; }
+/* The summit and the projects: a flag in the corner of the card, the same one he plants. */
+#card[data-kind="summit"]::after, #card[data-kind="project"]::after { content: ""; position: absolute; right: calc(var(--px) * 7); top: calc(var(--px) * 5); width: calc(var(--px) * 9); height: calc(var(--px) * 12); background: linear-gradient(var(--ink), var(--ink)) 0 0 / var(--px) 100% no-repeat, linear-gradient(var(--blaze), var(--blaze)) var(--px) var(--px) / calc(var(--px) * 7) calc(var(--px) * 5) no-repeat; clip-path: polygon(0 0, 100% 0, 100% 8%, 78% 8%, 78% 16%, 100% 16%, 100% 50%, 78% 50%, 78% 42%, 56% 42%, 56% 50%, 11% 50%, 11% 100%, 0 100%); }
+#card[data-kind="summit"] h2, #card[data-kind="project"] h2, #card[data-kind="summit"] .from, #card[data-kind="project"] .from { padding-right: calc(var(--px) * 14); }
 #card[data-kind="guide"] { padding-right: calc(var(--px) * 26); }
 #card[data-kind="guide"]::after { content: ""; position: absolute; right: calc(var(--px) * 7); top: calc(var(--px) * 7); bottom: calc(var(--px) * 7); width: calc(var(--px) * 14); background: linear-gradient(var(--paper-ink), var(--paper-ink)) 50% 100% / var(--px) 100% no-repeat, radial-gradient(circle, var(--blaze) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2)) 50% 12% / calc(var(--px) * 6) calc(var(--px) * 6) no-repeat, radial-gradient(circle, var(--paper-ink) 0 calc(var(--px) * 1.5), transparent calc(var(--px) * 1.5)) 50% 40% / calc(var(--px) * 6) calc(var(--px) * 6) no-repeat, radial-gradient(circle, var(--paper-ink) 0 calc(var(--px) * 1.5), transparent calc(var(--px) * 1.5)) 50% 70% / calc(var(--px) * 6) calc(var(--px) * 6) no-repeat, linear-gradient(var(--paper-ink), var(--paper-ink)) 0 30% / 100% var(--px) no-repeat, var(--paper-2); border: var(--px) solid var(--paper-ink); }
 
@@ -213,6 +234,16 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   #b-help, #b-track { display: none; }
   .name { font-size: 10px; }
 }
+/* Signs drop into place in a few steps, the way a sprite moves, never a slide. */
+@keyframes drop { from { transform: translateY(calc(var(--px) * -5)); opacity: 0; } }
+@media (prefers-reduced-motion: no-preference) {
+  #card:not([hidden]), #sheet:not([hidden]) > section, #toast:not([hidden]), #fork:not([hidden]) .placard, #fork:not([hidden]) .plank { animation: drop .16s steps(4) both; }
+  #toast:not([hidden]) { animation-name: drop-c; }
+  #fork li:nth-child(1) .plank { animation-delay: .07s; }
+  #fork li:nth-child(2) .plank { animation-delay: .14s; }
+  #fork li:nth-child(3) .plank { animation-delay: .21s; }
+}
+@keyframes drop-c { from { transform: translate(-50%, calc(var(--px) * -5)); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 <canvas id="c" aria-label="A pixel-art mountain world: a runner at a trail junction in a wildflower meadow, with a lake, a granite wall and a glaciated massif beyond"></canvas>
