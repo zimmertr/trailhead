@@ -13,7 +13,7 @@ const MAKERS = {
   camp: () => import('./camp.js').then(m => m.makeCamp()),
   climb: () => import('./climb.js').then(m => m.makeClimb())
 };
-const READY = ['forest', 'lakeside', 'wall'];
+const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb'];
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
@@ -30,7 +30,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   const ROUTES = {
     lake: () => [['world', { path: 'lake', from: 0, to: world.lakeIn }], ['forest', {}], ['lakeside', {}], ['world', { path: 'lake', from: world.lakeOut, to: 1 }]],
     stack: () => [['world', { path: 'stack', from: 0, to: 1 }], ['wall', {}], ['world', { path: 'stack', from: 1, to: 0 }]],
-    spires: () => [['world', { path: 'spires', from: 0, to: 1 }]],
+    spires: () => [['world', { path: 'spires', from: 0, to: 1 }], ['camp', {}]],
     'spires-home': () => [['world', { path: 'spires', from: 1, to: 0 }]]
   };
   for (const id of SPIRES) ROUTES['spire:' + id] = () => [['climb', { id }]];
@@ -190,6 +190,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     done: () => ({ ...done }),
     forget() { for (const k in done) delete done[k]; saveDone(); },
     spires: () => SPIRES.slice(),
+    // Names to pin on the scene, in CSS pixels: the six summits at base camp.
+    labels() { const k = scr.S / (window.devicePixelRatio || 1); return drawn.scene.labels && !tr ? drawn.scene.labels().map(l => ({ ...l, x: l.x * k, y: l.y * k })) : []; },
+    // Puts him at a milestone by name, with its card open.
+    goto(id) { const s = stops.find(q => q.id === id); if (!s) return false; running = false; scrubbing = 0.16; p = s.at; shown = null; showStop(s); return true; },
     info: () => ({ lengths: world.lengths() }),
     dispose() { alive = false; removeEventListener('resize', onResize); }
   };
