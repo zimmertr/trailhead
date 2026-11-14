@@ -237,7 +237,7 @@ Map
 - [x] Zoom in whole steps on the world map only: wheel, pinch, plus and minus. The camera limits still hide the world's edge at every step.
 
 Scenes
-- [ ] Base camp: a camp on a huge glacier under enormous walls, filling the frame. Cold, craggy, Patagonian. No landmass floating in the sky. The six summits keep their name tags and clicks.
+- [x] Base camp: a camp on a huge glacier under enormous walls, filling the frame. Cold, craggy, Patagonian. No landmass floating in the sky. The six summits keep their name tags and clicks.
 - [ ] Kayti at base camp: long brown hair, painting with a small backpacking paint kit, her name on hover like the cats, no other text.
 - [ ] The Stack: two people at the foot, a man with short black hair and a woman with long red hair. One belays, picked at random each visit, the other sits on a rock with a snack. The lead rope runs visibly from belayer through the gear to him, and both it and the rappel rope get a dark outline and a bright core.
 - [ ] About Lake: the forest's last stretch thins and brightens and the lake scene opens with the forest edge on its left. Try a straight scroll between the two in place of the round window; keep it only if it is better.
@@ -289,3 +289,9 @@ Controls and the rest
 - A key held with Command, Control or Alt is now left to the browser (Command and plus is the browser's own zoom; Command and T used to flip Day and Dusk as well as open a tab).
 - Measured in the test container: 60 frames a second at the normal size, 60 zoomed out at the Trailhead, 50 zoomed out over the west forest.
 - For screenshots only: `wheel=x,y,dy` is a new step in `shot.mjs`.
+- Base camp is a painting that fills the frame now, not a slab in the sky: two dome tents on a moraine in the middle of a glacier, six granite towers on a jagged ridge behind them, and far ranges across the ice sheet on the horizon. `camp.js` paints it to the size of the screen and keeps the towers and the camp clear of the card.
+- On a wide screen two walls too big for the picture close it at the left and right edges, their tops out of frame. A phone has no room for them, so there the six towers fill the width.
+- The glacier has an icefall of lumped blocks under the towers, a line of ice cliffs, crevasses in broken arcs that widen toward the camp, two bands of rubble riding down from the walls, a meltwater pool, and the towers' long shadows across it. Snow blows off the three highest tops.
+- The six towers keep their name tags, their clicks and their flags, and the heights still rank the same way (Bluebird Forecast tallest). They are the map's Spires drawn the same way, only taller and narrower.
+- The tents are a new, larger dome drawn for this scene, so the goats no longer stand taller than them. The goats stay, at the west end of the moraine. The east end is left clear for Kayti.
+- Nothing floats or bobs any more, so the scene is still apart from cloud, birds, smoke, spindrift and the goats.
