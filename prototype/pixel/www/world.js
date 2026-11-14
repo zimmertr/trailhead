@@ -562,3 +562,5 @@ export function makeWorld() {
     }
   };
 }
+
+export { makeStack, makeMassif, makePeak };
