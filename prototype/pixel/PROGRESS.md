@@ -55,7 +55,7 @@ The working list for the overnight build of the pixel-art trailhead. Tick items 
 - [x] Trail map menu, `#name` addresses, plain page, 404 off-route, console message, kiosk board, joke-name signs.
 - [x] Register mock, unlocked after all three routes.
 - [x] Sound with mute.
-- [ ] Dusk in every scene, with the Dusk-only sky. Phone layout in every scene.
+- [x] Dusk in every scene, with the Dusk-only sky. Phone layout in every scene.
 - [x] Copy drafts: personal note, skill cards.
 
 ## Gotchas from building version 5
@@ -122,3 +122,5 @@ Each of these slowed or spoiled the low-poly prototype. Check the list before ev
 - On an upright phone the junction sign covers the lower half, so the home view sits lower (past the map's bottom edge, which is filled with mirrored meadow) and the cats keep to the meadow above the junction.
 - Sound: a different music track each visit (never the one before), a tag in the top bar to step through the five tracks, and three instrument sets (Console, Handheld, Music box) that replay the same notes and effects through different voices.
 - The trail map sheet has a text key under the map, so every milestone is reachable as a plain link as well as a dot.
+- The Dusk-only sky is drawn over whatever sky a scene leaves showing: twinkling stars, a thin moon, a shooting star every so often and an aurora that comes and goes. It needs no work per scene.
+- Day is always the starting light, whatever the device prefers; a visitor who switches to Dusk gets Dusk on the next visit (the PRD says both "always starts in Day" and "remembered").

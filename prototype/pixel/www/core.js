@@ -97,6 +97,9 @@ ramp('fur', ['#1c1418', '#34262a', '#523c38', '#7a5c4c']);
 ramp('jay', ['#141a30', '#1c3c8c', '#2c68cc', '#5c9ce8']);
 ramp('pool', ['#0a1a20', '#10292c', '#183c3a', '#24544a', '#3c7662', '#6ea68a', '#a8d0b0'], ['#0c0c22', '#141632', '#1e2244', '#2e3456', '#4a4a6c', '#7a6884', '#b890a0']);
 ramp('tarn', ['#0c3444', '#125266', '#1a7688', '#2c9ea8', '#5cc4c0', '#a4e6da'], ['#1a1840', '#2a2458', '#443a78', '#70508c', '#b47c98', '#f0b8a8']);
+// Things that only show in the Dusk sky. Their Day colours are sky blue, so they fade in with the light.
+ramp('star', ['#6a96dc', '#88aee6', '#a8c8f0'], ['#8c7cc0', '#e8d8f4', '#fffbe6']);
+ramp('aurora', ['#5f8ed8', '#6a96dc', '#88aee6'], ['#235c6c', '#2e9c86', '#86ecb0']);
 const INK = R.ink[0];
 const N = DAY.length;
 // One step darker or lighter within an entry's own ramp, for shadows drawn onto finished pixels.
@@ -106,6 +109,9 @@ for (const g of R.glint) SHADE[g] = R.water[1];
 const KIND = new Uint8Array(256);
 const KINDS = ['', 'grass', 'moss', 'dirt', 'water', 'ice', 'rock'];
 for (let i = 1; i < N; i++) KIND[i] = Math.max(0, KINDS.indexOf(RAMP_OF[i] === 'glac' ? 'ice' : RAMP_OF[i]));
+// The dark upper part of a sky, where stars can show.
+const SKY = new Uint8Array(256);
+for (let i = 1; i < N; i++) SKY[i] = (RAMP_OF[i] === 'sky' && STEP_OF[i] <= 1) || (RAMP_OF[i] === 'skyband' && STEP_OF[i] <= 6) ? 1 : 0;
 
 function pick(name, v, x, y, dith = 0.9) {
   const r = R[name], s = clamp(v, 0, 1) * (r.length - 1) + (bayer(x, y) - 0.5) * dith;
@@ -258,6 +264,40 @@ class Screen {
         const d2 = sq(x - cx) + dy2;
         if (d2 > rim || (d2 > r2 && ((x + y) & 1))) fb[row + x] = BLACK;
       }
+    }
+  }
+  // The Dusk-only sky, drawn onto whatever sky the scene left showing: stars that twinkle, a thin
+  // moon, a shooting star now and then, and a curtain of aurora that comes and goes.
+  night(t, mix) {
+    if (mix < 0.3) return;
+    const { VW, VH, fb } = this;
+    if (!this.stars || this.starsFor !== VW * 10000 + VH) {
+      this.starsFor = VW * 10000 + VH; this.stars = [];
+      const n = Math.round(VW * VH / 520);
+      for (let k = 0; k < n; k++) this.stars.push([Math.floor(hash(k, 1, 300) * VW), Math.floor(sq(hash(k, 2, 300)) * VH * 0.8), hash(k, 3, 300), hash(k, 4, 300) < 0.08]);
+    }
+    for (let k = 0; k < 2; k++) for (let x = 0; x < VW; x++) {
+      const on = smooth(0.42, 0.72, vnoise(x / 110 + t * 0.035, k * 7, 301)); if (on <= 0) continue;
+      const base = Math.round(VH * (0.2 + 0.11 * k) + 12 * Math.sin(x / 57 + t * 0.09 + k * 2.4) + 9 * vnoise(x / 31 + t * 0.06, k, 302)), len = 14 + 30 * vnoise(x / 6 + t * 0.22, k + 5, 303);
+      for (let y = Math.max(0, Math.round(base - len)); y <= base; y++) {
+        const i = y * VW + x; if (!SKY[fb[i]]) continue;
+        const v = on * (1 - (base - y) / len) * (0.6 + 0.4 * vnoise(x / 3, t * 0.8 + k, 304));
+        if (bayer(x, y) < v * 1.25) fb[i] = R.aurora[v > 0.62 ? 2 : v > 0.3 ? 1 : 0];
+      }
+    }
+    for (const [x, y, ph, big] of this.stars) {
+      const i = y * VW + x; if (!SKY[fb[i]]) continue;
+      const tw = Math.sin(t * (0.6 + ph * 1.8) + ph * 40);
+      if (tw < -0.75) continue;
+      fb[i] = R.star[big || tw > 0.5 ? 2 : ph > 0.5 ? 1 : 0];
+      if (big && tw > 0.2) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const j = (y + dy) * VW + x + dx; if (x + dx >= 0 && x + dx < VW && y + dy >= 0 && SKY[fb[j]]) fb[j] = R.star[0]; }
+    }
+    const mx = Math.round(VW * 0.8), my = Math.round(Math.min(VH * 0.16, 44));
+    for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) { if (dx * dx + dy * dy > 36 || sq(dx + 3.4) + sq(dy + 1.6) <= 33) continue; const x = mx + dx, y = my + dy; if (x >= 0 && y >= 0 && x < VW && y < VH && (SKY[fb[y * VW + x]] || RAMP_OF[fb[y * VW + x]] === 'aurora')) fb[y * VW + x] = R.star[dx > 3 ? 2 : 1]; }
+    const n = Math.floor(t / 9), u = (t - n * 9) / 0.7;
+    if (u < 1 && hash(n, 1, 305) < 0.7) {
+      const x0 = VW * (0.2 + 0.7 * hash(n, 2, 305)), y0 = VH * (0.04 + 0.2 * hash(n, 3, 305));
+      for (let k = 0; k < 12; k++) { const x = Math.round(x0 - (u * 60 - k) * 1.0), y = Math.round(y0 + (u * 60 - k) * 0.45); if (u * 60 - k < 0 || x < 0 || y < 0 || x >= VW || y >= VH || !SKY[fb[y * VW + x]]) continue; fb[y * VW + x] = R.star[k < 2 ? 2 : k < 6 ? 1 : 0]; }
     }
   }
   present(t, mix) {

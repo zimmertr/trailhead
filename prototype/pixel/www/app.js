@@ -184,7 +184,7 @@ function closePlain() { plain.hidden = true; }
 
 function toggleSound() { audio.start(); audio.setMuted(!audio.muted()); syncTop(); if (!audio.muted()) audio.sfx('select'); }
 function nextTrack() { audio.start(); if (audio.muted()) audio.setMuted(false); audio.setTrack(audio.track().index + 1); syncTop(); }
-function toggleDusk() { api.setTheme(api.theme() === 'dark' ? 'light' : 'dark'); syncTop(); audio.sfx('select'); }
+function toggleDusk() { api.setTheme(api.theme() === 'dark' ? 'light' : 'dark'); syncTop(); audio.sfx('select'); try { localStorage.setItem('trailhead.theme', api.theme()); } catch { /* private window */ } }
 function syncTop() { $('b-track').querySelector('span').textContent = audio.track().name; $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? 'Sound off' : 'Sound on'; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = api.theme() === 'dark' ? 'Day' : 'Dusk'; }
 
 // ------------------------------------------------------------------ start
@@ -217,7 +217,9 @@ try {
   if (q.get('route')) { await api.setRoute(q.get('route')); buildMarks(); }
   if (q.get('p')) api.scrub(+q.get('p'));
   if (q.get('stop')) for (let i = 0; i < +q.get('stop'); i++) api.key('ArrowRight');
-  if (q.get('dusk')) { api.setTheme('dark'); syncTop(); }
+  // It starts in Day whatever the device prefers; a visitor who chose Dusk gets Dusk next time.
+  let dusk = false; try { dusk = localStorage.getItem('trailhead.theme') === 'dark'; } catch { /* private window */ }
+  if (q.get('dusk') || dusk) { api.setTheme('dark'); syncTop(); }
   if (q.get('sheet')) openSheet(q.get('sheet'));
   if (location.hash.length > 1 && !q.get('route')) await navigate(location.hash);
   audio.ambience('world');

@@ -127,6 +127,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
     if (env.moving || tr) stillAt = t;
     env.still = t - Math.max(stillAt, lastAct);
     drawn.scene.draw(scr, env, drawn.arg, q);
+    scr.night(t, mix);
     if (tr) {
       const f = drawn.scene.focus(), e = tr.k * tr.k * (3 - 2 * tr.k), full = Math.hypot(Math.max(f.x, scr.VW - f.x), Math.max(f.y, scr.VH - f.y)) + 6;
       scr.iris(f.x, f.y, tr.phase === 'out' ? full * (1 - e) - 4 : full * e);
