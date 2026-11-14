@@ -326,3 +326,52 @@ Controls and the rest
 - Polish, animals: the elk on the map were the weakest drawing (a dark oval with a ball for a head). They are redrawn as elk: a buff body, a dark neck, head and legs, a pale rump, long thin legs, and on the bulls a thin rack. They stand a little taller than the goats and sheep now.
 - Polish, animals: the forest elk tears at the grass while he grazes and flicks an ear when his head is up. The kid goat at base camp bounces twice on the spot every few seconds and stands clear of its mother. A grazing kid on the map lowers its head part way, where it used to fold into a lump.
 - Polish, animals: sheet.html has a set with every animal in it (sheet.html?set=zoo), for looking at them side by side.
+- Polish, menus: on a phone the small marks in the sheets (the dots on the trail map, the squares beside each milestone, the checklist boxes and ticks) were one pixel wide and all but invisible. They now use a unit that is never smaller than two pixels. Desktop is unchanged.
+- Polish, menus: on a phone the dark heading band of a sheet wrapped onto two lines and stopped short of the Close button, in an L shape. The band now runs the full width under the button, with its note on a second line. The plain page keeps its heading and its button side by side.
+- Polish, menus: the "Debug" sign at the foot of the trail map is a small tag now, where it used to stretch the full width like the real buttons.
+
+## Round 2 report (2026-11-14)
+
+Round 2 is finished: every item on the checklist is ticked and the four polish passes are done. Nothing outside `prototype/` was changed, and `main`, `pixel-mvp`, `pixel-prototype`, the MVP artifact and the version 5 artifact were not touched.
+
+### What is done
+
+- The world map is the larger world from the block-in: every biome, the lake with its island, the river and log bridge, the forest loop with mist, the coast, the ranges and the volcano on the horizon, signs with the twelve new names, labels that send him to a place, and zoom in whole steps.
+- Animals move on the map: elk, a bear, squirrels, chipmunks, birds, goats, bighorn sheep, marmots, a whale that breaches, jellyfish and waves.
+- Base camp is a camp on a glacier under the walls. Kayti sits there painting, with her name on hover.
+- The Stack has the two climbers at its foot, one belaying and one eating, and a rope that runs from the belayer through the gear to him.
+- The forest thins toward the lake and the two scenes scroll into each other. The forest now reads left to right.
+- The cold plunge: he leaves vest, shirt and shoes in a pile, wades in, and dresses again.
+- The debug panel (backtick, or the "Debug" sign on the trail map), and what happens when a scene or the whole world fails.
+- Polish: the far ranges' feet, gear left on the rappel, flags behind name tags; the forest opening at the meadow edge and the walk into base camp from the west; the map elk redrawn, the forest elk and the kid goat given more movement; the sheets on a phone.
+
+### What is weak
+
+- Movement was judged from still frames only. The scroll between forest and lake, the plunge, the belay, the kid's bounce and the elk's ear were never watched as they play. Watch these first.
+- On the map he runs west into the forest, but the forest scene runs left to right. It did not bother me in stills; it may when played.
+- At Dusk the open sky behind the forest's first frame is a flat orange block between the trunks.
+- The belayer at The Stack is drawn larger than the climber who sits.
+- A flat blue-grey band still lies under the low ridges at the volcano's foot.
+- The cold plunge was not checked on a phone or at Dusk.
+- The page takes about two seconds to be ready, because the larger map is built at load.
+- The mist on the map does not move.
+- The picture on the trail map sheet was only shifted to fit the larger world. It shows the same middle part as before, none of the new edges.
+- On the trail map sheet the music button's label and its value nearly touch on desktop, and the list of sign names is a block of small text.
+- An elk on the map can wander in among a clump of trees, and one grazes right beside the trailhead sign.
+- All copy on the cards is still draft, marked as draft, waiting for TJ's wording.
+
+### What I changed my mind about
+
+- The round window between forest and lake. I expected to keep it and only try the scroll; the scroll was clearly better there, so those two scenes scroll now. Every other scene change still uses the round window.
+- The forest's direction. It was built right to left; to make the scroll into the lake work it is shown mirrored, so he runs left to right.
+- The first thinning of the forest began at the trail sign and looked like a clearing in the wrong place. It moved further along, and later the entry end was thinned too.
+- The walk into base camp came from the east; the map says west, so it was turned round.
+- The map elk. I had left them as good enough for their size. Side by side with the goats and sheep they were the worst drawing in the world, so they were redrawn.
+
+### Links
+
+- Round 2 artifact: https://claude.ai/artifact/GwCmCx8VKWRpSbnu9yXMtj
+- Map block-in artifact: https://claude.ai/artifact/PWbdHU4ADXtaoAjc8sv2qq
+- Branch: https://github.com/zimmertr/trailhead/tree/pixel-round2
+- To compare with, both unchanged: the overnight MVP https://claude.ai/artifact/76d6NraHh67ZTcMnMitrji and version 5 https://claude.ai/artifact/UgfBaAqoZCaJdKY8sBDUXF
+- Workbench pages in `www/`: `sheet.html?set=zoo` (every animal), `plan.html` (the whole map as one picture).

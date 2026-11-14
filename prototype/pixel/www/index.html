@@ -9,6 +9,8 @@
    world read as one drawing. */
 :root {
   --px: 3px;
+  /* The same unit for the small marks in the menus, which must not shrink to nothing on a phone. */
+  --u: max(var(--px), 2px);
   --ink: #1a1424;
   --paper: #f7f1dc;
   --paper-2: #e6dcbc;
@@ -164,7 +166,7 @@ button.name { pointer-events: auto; }
 #debug select { flex: 1; min-width: 0; font: inherit; font-family: var(--small); font-size: 15px; padding: calc(var(--px) * 1); background: var(--paper); color: var(--paper-ink); border: var(--px) solid var(--ink); }
 #debug .row .plank { width: auto; }
 .debug-sign { margin-top: calc(var(--px) * 4); opacity: .55; }
-.debug-sign.plank { display: inline-flex; min-height: 0; padding: 0 calc(var(--px) * 2); font-size: 12px; width: max-content; justify-self: start; align-self: start; }
+.side .debug-sign.plank { display: inline-flex; min-height: 0; padding: 0 calc(var(--px) * 2); font-size: 12px; width: max-content; align-self: flex-start; }
 button.name:hover, .name.done { background: var(--moss); }
 #toast { position: fixed; z-index: 4; left: 50%; top: calc(var(--px) * 16); transform: translateX(-50%); max-width: calc(100% - 32px); padding: calc(var(--px) * 1) calc(var(--px) * 4); font-size: 20px; background: var(--paper); border: var(--px) solid var(--ink); box-shadow: var(--px) var(--px) 0 var(--shade); text-align: center; }
 
@@ -189,16 +191,16 @@ button.name:hover, .name.done { background: var(--moss); }
 .cols { display: grid; grid-template-columns: minmax(0, 1fr) 250px; gap: calc(var(--px) * 6); align-items: start; }
 .mapbox { position: relative; border: var(--px) solid var(--ink); line-height: 0; background: #58993c; }
 .mapbox canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; }
-.dot { position: absolute; width: calc(var(--px) * 5); height: calc(var(--px) * 5); margin: calc(var(--px) * -2.5); background: var(--blaze); border: var(--px) solid var(--ink); box-shadow: 0 0 0 var(--px) var(--paper); }
+.dot { position: absolute; width: calc(var(--u) * 5); height: calc(var(--u) * 5); margin: calc(var(--u) * -2.5); background: var(--blaze); border: var(--u) solid var(--ink); box-shadow: 0 0 0 var(--u) var(--paper); }
 .dot:hover, .dot:focus-visible { background: var(--sun); z-index: 2; }
 .dot span { position: absolute; left: 50%; bottom: calc(100% + var(--px) * 2); transform: translateX(-50%); padding: 0 calc(var(--px) * 2); font-family: var(--small); font-size: 15px; line-height: 1.25; white-space: nowrap; background: var(--paper); border: var(--px) solid var(--ink); display: none; }
 .dot:hover span, .dot:focus-visible span, .dot.big span { display: block; }
-.dot.big { width: calc(var(--px) * 7); height: calc(var(--px) * 7); margin: calc(var(--px) * -3.5); background: var(--sun); }
+.dot.big { width: calc(var(--u) * 7); height: calc(var(--u) * 7); margin: calc(var(--u) * -3.5); background: var(--sun); }
 .key { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: calc(var(--px) * 5); margin-top: calc(var(--px) * 5); }
 .key h3 { font-size: 30px; line-height: 1; }
 .key small { display: block; font-family: var(--small); font-size: 15px; color: var(--dim); margin-bottom: calc(var(--px) * 2); }
-.key li { display: flex; align-items: baseline; gap: calc(var(--px) * 2); }
-.key li::before { content: ""; flex: none; width: calc(var(--px) * 2); height: calc(var(--px) * 2); background: var(--blaze); box-shadow: 0 0 0 var(--px) var(--ink); transform: translateY(calc(var(--px) * -1)); margin-left: var(--px); }
+.key li { display: flex; align-items: baseline; gap: calc(var(--u) * 2); }
+.key li::before { content: ""; flex: none; width: calc(var(--u) * 2); height: calc(var(--u) * 2); background: var(--blaze); box-shadow: 0 0 0 var(--u) var(--ink); transform: translateY(calc(var(--u) * -1)); margin-left: var(--u); }
 .key button { border-bottom: var(--px) solid transparent; }
 .key button:hover, .key button:focus-visible { border-bottom-color: var(--blaze); }
 .side { display: flex; flex-direction: column; gap: calc(var(--px) * 2); }
@@ -213,9 +215,9 @@ button.name:hover, .name.done { background: var(--moss); }
 .open { color: var(--moss); }
 .board + h3 { font-size: 30px; line-height: 1; margin: calc(var(--px) * 6) 0 calc(var(--px) * 3); }
 .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: calc(var(--px) * 3) calc(var(--px) * 5); }
-.checks li { position: relative; padding-left: calc(var(--px) * 9); color: var(--dim); }
-.checks li::before { content: ""; position: absolute; left: var(--px); top: calc(var(--px) * 1); width: calc(var(--px) * 5); height: calc(var(--px) * 5); border: var(--px) solid var(--paper-ink); background: #fffcee; }
-.checks li.got::after { content: ""; position: absolute; left: calc(var(--px) * 2); top: calc(var(--px) * 2); width: calc(var(--px) * 5); height: calc(var(--px) * 5); background: var(--moss); clip-path: polygon(0 40%, 20% 40%, 20% 60%, 40% 60%, 40% 40%, 60% 40%, 60% 20%, 80% 20%, 80% 0, 100% 0, 100% 40%, 80% 40%, 80% 60%, 60% 60%, 60% 80%, 40% 80%, 40% 100%, 20% 100%, 20% 80%, 0 80%); }
+.checks li { position: relative; padding-left: calc(var(--u) * 9); color: var(--dim); }
+.checks li::before { content: ""; position: absolute; left: var(--u); top: calc(var(--u) * 1); width: calc(var(--u) * 5); height: calc(var(--u) * 5); border: var(--u) solid var(--paper-ink); background: #fffcee; }
+.checks li.got::after { content: ""; position: absolute; left: calc(var(--u) * 2); top: calc(var(--u) * 2); width: calc(var(--u) * 5); height: calc(var(--u) * 5); background: var(--moss); clip-path: polygon(0 40%, 20% 40%, 20% 60%, 40% 60%, 40% 40%, 60% 40%, 60% 20%, 80% 20%, 80% 0, 100% 0, 100% 40%, 80% 40%, 80% 60%, 60% 60%, 60% 80%, 40% 80%, 40% 100%, 20% 100%, 20% 80%, 0 80%); }
 .checks b { display: block; font-family: var(--read); font-size: 20px; color: var(--paper-ink); }
 .checks li:not(.got) b { color: var(--dim); }
 .checks span { font-family: var(--small); font-size: 15px; }
@@ -243,6 +245,11 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   .mark { display: none; }
   .cols { grid-template-columns: 1fr; }
   .key { grid-template-columns: 1fr; }
+  /* The heading band runs the full width under the Close button, with its note on a line of its own. */
+  .band { display: block; }
+  .band h2 { font-size: 26px; }
+  .band p { text-align: left; }
+  #plain .band { display: flex; align-items: center; }
   #top .plank { padding: calc(var(--px) * 1) calc(var(--px) * 3); }
   #b-help, #b-track { display: none; }
   .name { font-size: 10px; }
