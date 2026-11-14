@@ -111,16 +111,26 @@ function pika(f) {
 // A mountain goat, white and shaggy, facing right. pose: 'stand', 'look' (head turned to watch).
 function goat(pose, kid) {
   const s = kid ? 0.7 : 1, b = new BM(26, 22); b.ox = 12; b.oy = 21;
-  const wool = (nx, ny, x, y) => R.snow[clamp(Math.round(3.4 - ny * 1.2 + (hash(x, y, 3) - 0.5)), 2, 4)];
-  for (const [lx, far] of [[7, 1], [9, 0], [15, 1], [17, 0]]) thick(b, lx * s + (kid ? 4 : 0), 14, lx * s + (kid ? 4 : 0), 20, 2, R.snow[far ? 1 : 2]);
+  // Cream, not snow white, so a goat shows up standing on a snowfield.
+  const wool = (nx, ny, x, y) => { const v = 3.4 - ny * 1.2 + (hash(x, y, 3) - 0.5); return v >= 3.1 ? R.white[1] : v >= 2.3 ? R.white[0] : R.gold[4]; };
+  for (const [lx, far] of [[7, 1], [9, 0], [15, 1], [17, 0]]) thick(b, lx * s + (kid ? 4 : 0), 14, lx * s + (kid ? 4 : 0), 20, 2, far ? R.gold[4] : R.white[0]);
   for (const lx of [7, 9, 15, 17]) b.set(lx * s + (kid ? 4 : 0), 21, INK);
   ell(b, 12 * s + (kid ? 4 : 0), 12, 7 * s, 4.2 * s, wool);
   ell(b, 9 * s + (kid ? 4 : 0), 9, 3 * s, 2.5 * s, wool);
   const hx = (pose === 'look' ? 17 : 19) * s + (kid ? 4 : 0), hy = pose === 'look' ? 6 : 7;
-  thick(b, 16 * s + (kid ? 4 : 0), 10, hx, hy + 1, 3, R.snow[3]);
-  ell(b, hx + 1, hy, 2.6 * s, 2 * s, wool); b.set(hx + 3, hy + 1, INK); b.set(hx + 1, hy - 1, INK);
-  if (!kid) { thick(b, hx, hy - 2, hx - 2, hy - 5, 1, INK); thick(b, hx + 1, hy + 2, hx + 1, hy + 4, 1, R.snow[2]); }
+  thick(b, 16 * s + (kid ? 4 : 0), 10, hx, hy + 1, 3, R.white[1]);
+  // The head is a long face in profile: a muzzle with a dark nose, an ear, and the shadow of the jaw
+  // to set it off from the white of the neck.
+  ell(b, hx + 1, hy, 2.6 * s, 2.2 * s, wool);
+  b.set(hx + 3, hy + 1, R.white[1]); b.set(hx + 4, hy + 1, R.white[0]); b.set(hx + 4, hy, R.white[1]); b.set(hx + 5, hy + 1, INK);
+  b.set(hx + 2, hy - 1, INK); b.set(hx - 1, hy - 2, R.white[0]); b.set(hx, hy + 2, R.gold[4]); b.set(hx + 1, hy + 2, R.gold[4]);
+  if (!kid) {
+    // A beard.
+    thick(b, hx + 3, hy + 2, hx + 3, hy + 4, 1, R.white[0]);
+  } else { b.set(hx + 1, hy - 3, INK); }
   outline(b, INK);
+  // The horns go on after the outline, so they stay two thin spikes.
+  if (!kid) for (const [dx, dy] of [[0, -3], [0, -4], [-1, -5], [-1, -6], [2, -3], [2, -4], [1, -5], [1, -6]]) b.set(hx + dx, hy + dy, INK);
   return b;
 }
 

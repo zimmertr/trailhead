@@ -483,7 +483,7 @@ export function makeWorld() {
         list.push(th);
       }
       if (!env.hideMe) list.push({ me: true, x: here.x, y: here.y });
-      kit.update(env, here, scr.narrow && !env.fixed);
+      kit.update(env, here, scr.narrow && !env.fixed, env.home && !env.fixed ? oy + (scr.narrow ? VH * 0.56 : VH - 38) : 0);
       for (const it of kit.items()) list.push(it);
       list.sort((a, b) => a.y - b.y);
       for (const th of list) {

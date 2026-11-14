@@ -134,8 +134,8 @@ export function makeLakeside() {
     pick(sx, sy) {
       const wx = sx + last.camX, wy = sy - last.base;
       if (Math.abs(wx - signX) < 8 && wy > g(signX) - 22 && wy < g(signX) - 2) return { label: 'Cold Start Cove', x: signX - last.camX, y: last.base + g(signX) - 24 };
+      if (Math.abs(wx - xMarmot) < 13 && wy > shore(xMarmot) - 32 && wy < shore(xMarmot) + 6) return { label: 'Hoary marmot', x: xMarmot - last.camX, y: last.base + shore(xMarmot) - 30, act: 'marmot' };
       if (wy > FAR + 2 && wy < shore(wx) - 1) return { label: 'Cold plunge', x: sx, y: sy - 6, act: 'plunge' };
-      if (Math.abs(wx - xMarmot) < 12 && wy > shore(xMarmot) - 22 && wy < shore(xMarmot) + 4) return { label: 'Hoary marmot', x: xMarmot - last.camX, y: last.base + shore(xMarmot) - 24, act: 'marmot' };
       return null;
     },
     act(id, env) {

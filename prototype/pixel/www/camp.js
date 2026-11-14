@@ -106,7 +106,7 @@ export function makeCamp() {
     pick(sx, sy) {
       if (!dio) return null;
       const x = sx - org.x, y = sy - org.y;
-      for (const g of [...dio.geo].sort((a, c) => c.by - a.by)) if (y > g.top - 3 && y < g.by && Math.abs(x - g.x) < 4 + (y - g.top) / g.h * g.w * 0.55) return { label: g.name, x: org.x + g.x, y: org.y + g.top - 6, act: 'spire:' + g.id };
+      for (const g of [...dio.geo].sort((a, c) => c.by - a.by)) if (y > g.top - 3 && y < g.by && Math.abs(x - g.x) < 4 + (y - g.top) / g.h * g.w * 0.55) return { label: g.name, named: true, x: org.x + g.x, y: org.y + g.top - 6, act: 'spire:' + g.id };
       return null;
     },
     draw(scr, env, arg, q) {

@@ -174,3 +174,33 @@ Every item on the checklist is ticked, and each polish pass in the brief has had
 - This file: https://github.com/zimmertr/trailhead/blob/pixel-mvp/prototype/pixel/PROGRESS.md
 - Ideas for later: https://github.com/zimmertr/trailhead/blob/pixel-mvp/prototype/pixel/IDEAS.md
 - Test addresses, added to the page's address: `?route=stack&stop=2`, `?route=spire:tks&stop=1`, `?dusk=1`, `?sheet=map`, `?done=lake,stack,spires`, `#plain`, `#anything-else` for the off-route page.
+
+## Feedback round (2026-11-14, after the overnight build)
+
+TJ went through the MVP and the low-poly design is now scrapped: pixel is the direction. Still a prototype, still only `prototype/`. He wants large changes shown to him before they are built.
+
+### Agreed
+
+- **World map** grows on every side as scenery only: snowy ranges north-west, an icefield and one volcano north, a larch and granite basin north-east, ponderosa then sage then scablands east, an old burn south-east, open meadow with a river and animals south (no road), a salt-water coast south-west, misty forest far west. The block-in for his mark-up is `www/plan.js`, published at https://claude.ai/artifact/PWbdHU4ADXtaoAjc8sv2qq.
+- **On the map:** an uneven lake with a small island, a forest loop that wanders deeper with mist the further in, the Stack trail turning talus grey, the Spires trail becoming a boot track in the snow, larches by the Spires, big-leaf maples in the run forest, joke signs standing on the terrain they name, clickable labels on the three destinations and the Trailhead.
+- **New joke names:** Rollback Basin, Feature Flag Tarns, Hotfix Burn, Postmortem Burn, Cron Job Coulee, Tech Debt Badlands, Off By One Peak, Dependency Range, Stack Trace Thicket, Monorepo Woods, Cache Miss Cove, Latency Bay.
+- **Base camp** becomes a camp on the edge of a huge ice sheet that fills the frame, not a diorama in the sky. Kayti (long brown hair, a name on hover, no text) goes there once it exists.
+- **The Stack** gets two people at its foot, a man with short black hair and a woman with long red hair. One belays, picked at random, the other sits on a rock with a snack. Both ropes get an outline so they show.
+- **About Lake:** the forest thins into the lake scene instead of cutting to it, and he strips to shorts for the cold plunge.
+- **Camera and controls:** a drag stays where it is left, springs back near the limits and returns to him when he starts or stops; zoom in whole steps on the map only; a hidden debug panel with layer toggles and outlines.
+- **Music** follows the place with cross-fades; a track picked by hand sticks until "Auto".
+
+### Done so far
+
+- [x] Block-in of the larger map published for mark-up.
+- [x] Summit name tags at base camp no longer get a second label stuck on top of them (the hover label stayed up when the pointer moved onto a tag).
+- [x] The cats roam mostly below the junction, left of the kiosk, and never under a panel; each click moves a cat to its next trick.
+- [x] The marmot itself answers a tap (the lake's cold plunge was catching it), and a touch that misses tries the ground close around it in every scene.
+- [x] The goat has a face, horns and cream wool that shows on snow.
+
+### Go-live list (not prototype work)
+
+- Check the `#name` URLs and the back button on the live site.
+- Kiosk reads the running version and deploy time from a `status.json` written by CI, and the pod's start time from the container's start script.
+- The debug panel exists only in preview and PR containers, never on main.
+- A bad URL lands on the off-route page, and so does a caught error; if the renderer itself is broken, fall back to the plain page.

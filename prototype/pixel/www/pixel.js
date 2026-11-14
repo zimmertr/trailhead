@@ -147,6 +147,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
   // whatever is under it.
   let lastPt = null, moved = 0, hover = null;
   const toView = e => { const k = (window.devicePixelRatio || 1) / scr.S; return [e.clientX * k, e.clientY * k]; };
+  // What is under a point. A fingertip is blunt, so a touch that misses also tries the ground close around it.
+  const probe = (x, y, blunt) => { if (!drawn.scene.pick) return null; let h = drawn.scene.pick(x, y); if (!h && blunt) for (const r of [5, 9]) for (let a = 0; a < 8 && !h; a++) h = drawn.scene.pick(x + r * Math.cos(a * Math.PI / 4), y + r * Math.sin(a * Math.PI / 4)); return h; };
   canvas.addEventListener('pointerdown', e => { dragging = 'look'; moved = 0; lastPt = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove', e => {
     if (dragging === 'look' && lastPt) {
@@ -157,16 +159,18 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light' } = {}
       return;
     }
     const [x, y] = toView(e), h = drawn.scene.pick ? drawn.scene.pick(x, y) : null;
-    if ((h && h.label) !== (hover && hover.label)) { hover = h; canvas.style.cursor = h ? 'pointer' : ''; const k = scr.S / (window.devicePixelRatio || 1); emit({ type: 'hover', label: h ? h.label : null, x: h ? h.x * k : 0, y: h ? h.y * k : 0 }); }
+    if ((h && h.label) !== (hover && hover.label)) { hover = h; canvas.style.cursor = h ? 'pointer' : ''; const k = scr.S / (window.devicePixelRatio || 1), tipped = h && !h.named; emit({ type: 'hover', label: tipped ? h.label : null, x: tipped ? h.x * k : 0, y: tipped ? h.y * k : 0 }); }
   });
   const endLook = e => {
     if (dragging === 'look' && moved < 5 && e.type === 'pointerup') {
-      const [x, y] = toView(e), h = drawn.scene.pick ? drawn.scene.pick(x, y) : null;
-      if (h) { const k = scr.S / (window.devicePixelRatio || 1); if (h.label) emit({ type: 'hover', label: h.label, x: h.x * k, y: h.y * k, tap: true }); if (h.act) { if (!drawn.scene.act || !drawn.scene.act(h.act, env)) emit({ type: 'act', id: h.act }); } }
+      const [x, y] = toView(e), h = probe(x, y, e.pointerType !== 'mouse');
+      if (h) { const k = scr.S / (window.devicePixelRatio || 1); if (h.label && !h.named) emit({ type: 'hover', label: h.label, x: h.x * k, y: h.y * k, tap: true }); if (h.act) { if (!drawn.scene.act || !drawn.scene.act(h.act, env)) emit({ type: 'act', id: h.act }); } }
     }
     if (dragging === 'look') dragging = null; lastPt = null;
   };
   canvas.addEventListener('pointerup', endLook); canvas.addEventListener('pointercancel', endLook);
+  // The pointer has left the world (onto a sign or a name tag, or off the page): drop the hover label.
+  canvas.addEventListener('pointerleave', () => { if (hover) { hover = null; canvas.style.cursor = ''; emit({ type: 'hover', label: null, x: 0, y: 0 }); } });
 
   const stopNear = q => stops.find(s => Math.abs(s.at - q) < 0.006);
   const api = {
