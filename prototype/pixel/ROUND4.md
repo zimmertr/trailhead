@@ -139,12 +139,55 @@ Gone for good: the Yosemite-style dome (The Stack), the tan Patagonian towers, t
 - Build order after the map: Proficiency Peak, then Reflection Lake, then Sideproject Spires, then the register and the page.
 - Effort: high for design and for judging pictures, medium for mechanical work.
 
-## 5. Open: settle with TJ before the step that needs it
+## 5. Settled after the first draft of this plan (2026-11-15), and what is still open
 
-1. **How the six Spires climbs differ** (needed before step K). TJ liked all three directions and asked for a deeper talk with smaller proposals and pros and cons. They are: (a) each climb mirrors what its project does; (b) six different kinds of terrain, no tie to the project; (c) one long traverse past all six summits. Recommendation to put to him: keep choosing a summit from base camp (a visitor wants one project, not a three-minute traverse), give each climb a different kind of mountaineering matched to its project, and put "carry on along the ridge to the next summit" in `IDEAS.md` as a later way to get the traverse. Draft pairings: Bluebird Forecast, a weather window (up through cloud and rime into a clear sky above an inversion); TJs-Kubernetes-Service, the icefall (ladders over crevasses, two ice steps, the server rack on top); hevy-garmin-sync, a long steep snow gully climbed in a steady rhythm with the slipping foot; trailhead, an exposed knife-edge of rock with the whole map below and the binoculars on top; yggdrasil, a rock tower with a chimney and the old tree on its summit; Kubernetes-Manifests, the whiteout followed wand by wand.
-2. **The trail register** (needed before step L). TJ's idea, 2026-11-15: a guestbook at the Trailhead that any visitor can read in one click, with a note that you may sign it once you have raised the three flags, so the site rewards being used as intended. It replaces the register that today hides in the trail map sheet. To ask: do the three flags mean the lake, the peak and any one summit (today's rule) or all six summits; and what the box shows before then (suggestion: three small flags on its post, filling in). In the prototype it stays a browser-only mock; the real service is https://github.com/zimmertr/trailhead/issues/3.
-3. **The West Ridge pitch list** (needed before step H). Read https://www.mountainproject.com/route/105808527/west-ridge and write the pitches into this file: which pitch is the offwidth or chimney, where the lead fall happens, which ledge holds which card. Show TJ at the stop after the larch scene.
-4. **The opening frame.** The skyline from the volcano to Proficiency Peak is about 1000 map pixels wide, more than a 1440 screen shows at a whole-number size of 2. Decide with pictures at the block-in stop: open at an in-between size that fits it all, or at size 2 with the edges cut.
+**The six Spires climbs (settled).** The visitor still picks a summit from base camp. Each climb is about 30 seconds, a different kind of mountaineering chosen to echo its project, and TJ wants every one "unique and intentional". None may reuse another's set piece.
+
+| Summit | The climb | On top (kept) |
+|---|---|---|
+| Bluebird Forecast | **A weather window.** He starts in cloud and rime on a snow ridge, climbs through the cloud deck, and breaks out into a clear blue sky above an inversion. The bluebird circles the summit and flies off the picture. | Weather station |
+| TJs-Kubernetes-Service | **The icefall with ladders.** Aluminium ladders across crevasses, a snow bridge, leaning seracs of fractured blue ice, two steps of steep ice climbed with tools (round 3's ice climbing). Many pieces that must all hold. | Server rack, the BANG |
+| hevy-garmin-sync | **A snow gully climbed like a workout.** A long steep gully kicked in sets: a burst of steps, a rest leaning on the axe, breath showing, the foot that slips and is kicked in twice more. His watch beeps on top. | Weight bench |
+| trailhead | **An exposed rock knife-edge.** A narrow crest with air on both sides and the whole map spread out below. He walks it, straddles it, walks again. | Coin-operated binoculars, the round view |
+| yggdrasil | **The via ferrata.** Dry rock, no snow: iron rungs, a ladder and a cable up a rock tower. He wears a via ferrata kit with **two lanyards and is seen using them the whole way**: at every anchor he unclips one, clips it past the anchor, then moves the other. TJ: the world tree looked wrong on a snowy peak; on dry rock it belongs. | The world tree |
+| Kubernetes-Manifests | **The crevasse maze in a whiteout.** The storm blows in by stages (round 3's storm) over a broken glacier. He finds his way wand to wand: a dead end, a jump, a sagging snow bridge. It clears slowly near the top. | Cairn |
+
+Not used, kept in `IDEAS.md`: the single great ice face, racing a storm, an alpine start by headlamp, running a ridge fast and light, a strength scramble, a trail all the way up, a rock tower by its chimney, and linking summits along the ridge.
+
+**The trail register (settled in outline; one point to confirm).**
+
+- A wooden register box on a post at the Trailhead, after TJ's reference photos (a hinged lid that folds down into a desk, a book on a clip, a pencil on a string).
+- One click on the box and the screen changes to a close-up, as its own small scene: the open box and the book filling most of the screen.
+- **The right-hand page** lists earlier visitors' entries. **The left-hand page** is blank, for this visitor to write on, free-form.
+- Writing: handwriting for everyone, **in several different hands and inks** (blue pen, black pen, pencil), chosen per entry so the page looks signed by many people. Only the form's printed lines and headings use the sign font. Handwriting fonts must stay readable at a phone's width.
+- **Reading is open to everyone at once. Signing is earned**: the book tells the visitor that to sign they must complete the site (TJ: it rewards using the website as intended, "gamifying learning about me"). Until then the left page shows what is still to do, and the box's post shows three small flags filling in.
+- To confirm with TJ before step L: "complete" means the lake, the peak and **any one** Spires summit (today's rule, about five minutes) or all six summits. Recommendation: any one summit, so the reward stays within reach.
+- In the prototype the book is a browser-only mock with sample entries; a new entry is kept in this browser and marked as waiting for TJ's approval. The real service is https://github.com/zimmertr/trailhead/issues/3 (plain text, no contact details asked for, every entry approved by TJ before it shows).
+- It replaces the register that hides in the trail map sheet today.
+
+**The West Ridge pitch list (draft, from the hand-drawn topo TJ shared; check against the sources below before step H).**
+
+Read these first, **including their photographs, which show the pitches**: https://www.mountainproject.com/route/105808527/west-ridge, https://www.shane.st/trip-reports/prusik/, https://www.summitpost.org/prusik-peak-west-ridge/206568, https://www.francisbaileyh.com/2022/09/29/prusik-peak/, https://stevensong.com/usa/washington/prusik-peak/. Der Sportsman (https://www.mountainproject.com/route/107641573/der-sportsman) is the hard south-face route TJ has **not** climbed; it is for the look of the wall only.
+
+| Pitch | What happens on it (from the topo) | In the scene |
+|---|---|---|
+| Approach | A scramble from Prusik Pass to a balanced rock, then to the start tree. | He walks in with the two friends; tie in at the tree, wait for Space, fist bump. |
+| 1 | From the start tree, a hand crack. | He leads. **Both followers climb at once on two ropes.** Belay: card 1 (Platform Engineering). |
+| 2 | Short: a big step, belay from a horn slung with a sling. | Quick pitch, no card. From here on **caterpillar**: he brings up the second, the second brings up the third. |
+| 3 | The slab pitch (an old piton, the "mercy hold"), then the "sidewalk", a down-climb with great exposure, belay from a flake. | **The lead fall happens on the slab**: he skates off, is held, hangs, goes again. Belay: card 2 (Site Reliability Engineering; the fall that was caught). |
+| 4 | Long: from the belay flake, "au cheval" (straddling the crest), stay north for a hidden foot ramp, belay from a ledge. | He straddles the crest in the wind. The inversion has formed below. Belay: card 3 (Software Engineering). |
+| 5 | A crack with a mantle, a lieback flake, the left chimney, then "through the hole to be birthed to the summit". | **The chimney pitch**: climbed with back and feet, then he squeezes up through the hole onto the summit. Summit: all three, high fives, the resume card. |
+| Descent | Rappels off the north face (five with one rope), past a flake that eats ropes, then a walk back west to the base. | All three zip down the first rappel one after another into the cloud; the round window closes to the map. |
+
+Which follower slips, and on which pitch, is the builder's call (not the same moment as anyone else). The goat watches from a ledge near the start; the raven hangs in the updraft beside pitch 4.
+
+**The opening frame (direction given).** TJ: it need not start all the way out; it can be cropped, with the rest of the world found later. Show two or three candidate framings in the block-in and let him pick with pictures.
+
+**Still open**
+
+1. The register's rule: any one summit, or all six (above).
+2. Whether the Legacy Range stays (decided at STOP 1).
+3. Which opening frame (decided at STOP 1).
 
 ## 6. Starting numbers for the block-in (tune them by eye)
 
@@ -195,7 +238,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [ ] B7. Block in the ground: sea corner, bluffs, rainforest with the fog edge, the bench with lake and parkland, waterfall step, Trailhead meadow, glacier headwall and shelf, two Enchantments benches, pines, burn, sage and scabland.
 - [ ] B8. Draw the three trails and the river as lines, with where each tier is climbed (switchbacks) and where each side-on scene takes over and hands back.
 - [ ] B9. Mark the Trailhead, the three destinations, base camp, the waterfall, the register box.
-- [ ] B10. Pictures: whole map; the opening wide view on a 1440 by 900 screen in both candidate framings (Open 4); the phone's opening slice; the close view at the Trailhead; round 3's map beside the new one.
+- [ ] B10. Pictures: whole map; the opening wide view on a 1440 by 900 screen in two or three candidate framings, some cropped (section 5); the phone's opening slice; the close view at the Trailhead; round 3's map beside the new one.
 - [ ] B11. Check the law: walk the map west to east and name every pair of neighbours; none is unbelievable. Check the four kinds of mountain: nothing else on the skyline.
 - [ ] B12. A page like `plan/skyline-pick.html` showing the pictures, with the weak points listed honestly.
 - [ ] **STOP 1.** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
@@ -279,7 +322,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [ ] G7. One thing to find (suggestion: the pika, moved here from The Stack's talus).
 - [ ] G8. Day and Dusk, desktop and phone, and the cuts in and out filmed: he never stands still or sprints at a change.
 - [ ] G9. Its tune and ambience in `audio.js` (`PLACES`).
-- [ ] G10. Write the West Ridge pitch list (Open 3) into section 5.
+- [ ] G10. Read the five West Ridge sources in section 5, photographs included, and correct the draft pitch list there.
 - [ ] **STOP 3.** Tag `pixel-r4-larches`, publish, show TJ the pitch list.
 
 ### H. The West Ridge climb (rebuild of `wall.js`)
@@ -315,7 +358,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [ ] I6. The lenticular cloud and the Dusk headlamps appear here too when they are on the map.
 - [ ] I7. Island, swim, marmot, cards and finds all still work.
 - [ ] I8. Day and Dusk (alpenglow), desktop and phone, cuts filmed.
-- [ ] **STOP 5.** Tag `pixel-r4-lake`, publish. Settle Open 1 here if it is not yet settled.
+- [ ] **STOP 5.** Tag `pixel-r4-lake`, publish.
 
 ### J. The walk to Spires base camp (new, side-on)
 
@@ -328,26 +371,33 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [ ] J7. Day and Dusk, desktop and phone, cuts filmed, tune and ambience.
 - [ ] **STOP 6.** Tag `pixel-r4-spireswalk`, publish.
 
-### K. The six climbs (needs Open 1 settled)
+### K. The six climbs (designs are in section 5)
 
-- [ ] K1. Write the six agreed designs into section 5, each as three or four named stretches.
-- [ ] K2 to K7. One item per summit, in `SPIRES` order: built, about 30 seconds, its summit object and find kept (weather station, server rack, weight bench, binoculars, world tree, cairn), filmed, Day and Dusk.
-- [ ] K8. No two climbs share a stretch drawn the same way. Lay one frame of every stretch on one sheet and check.
-- [ ] K9. The glissade back to camp still ends each one.
-- [ ] K10. Round 3's ice climbing, storm, rack and binoculars work carried over where they fit.
+- [ ] K1. Break each of the six designs into three or four named stretches with a length in seconds, and write them into section 9 before drawing.
+- [ ] K2. Bluebird Forecast, the weather window: cloud and rime at the start, the climb through the cloud deck, the break-out into blue sky above the inversion, the bluebird circling and leaving the picture, the weather station.
+- [ ] K3. TJs-Kubernetes-Service, the icefall: at least two ladder crossings with the crevasse seen beneath him, a snow bridge, leaning seracs, two ice steps with tools, the server rack and the BANG.
+- [ ] K4. hevy-garmin-sync, the gully: steps in sets with rests on the axe, breath showing, the slipping foot kicked in twice, the watch's beep, the weight bench.
+- [ ] K5. trailhead, the knife-edge: walking the crest, straddling it, the whole new map far below on both sides, the binoculars and their round view (redrawn for the new Trailhead).
+- [ ] K6. yggdrasil, the via ferrata: dry rock, rungs, a ladder, the cable; the kit's two lanyards drawn and moved one at a time past every anchor, never both off the cable; the world tree on bare rock.
+- [ ] K7. Kubernetes-Manifests, the crevasse maze: the storm by stages, wand to wand, a dead end and a turn back, a jump, a sagging snow bridge, the slow clearing, the cairn.
+- [ ] K8. Each climb runs about 30 seconds (time them), keeps its summit object and its find, and is filmed Day and Dusk, desktop and phone.
+- [ ] K9. No two climbs share a stretch drawn the same way. Lay one frame of every stretch of all six on one sheet and check.
+- [ ] K10. The glissade back to camp still ends each one. Round 3's ice climbing, storm, rack and binoculars work is carried over where it fits.
 - [ ] **STOP 7.** Tag `pixel-r4-spires`, publish.
 
-### L. The Trailhead, the page and the words (needs Open 2 settled)
+### L. The Trailhead, the page and the words (register design is in section 5)
 
-- [ ] L1. The register box on a post at the Trailhead; one click opens the register for reading.
-- [ ] L2. Its note says how to earn a signature; its post shows progress.
-- [ ] L3. Signing unlocks by the agreed rule; the mock keeps entries in the browser only and says they wait for TJ's approval.
-- [ ] L4. The register leaves the trail map sheet, or stays as a link to the same thing (ask at STOP 7).
-- [ ] L5. Every "About Lake" and "The Stack" in `content.js`, `app.js`, name tags, cards, finds, hints, addresses (`#name`) and the plain page renamed; old addresses still land somewhere sensible.
-- [ ] L6. The junction sign's three planks: new names, real distances.
-- [ ] L7. The trail map sheet: new map picture, dots on the new places (`DOTS` in `app.js`).
-- [ ] L8. The kiosk's lines (wildlife, finds, hints) match the new world.
-- [ ] L9. The list of things to find: every one still findable; new ones added; "Clear my flags" clears them.
+- [ ] L1. The register box on its post at the Trailhead, after the reference photos; a name tag on hover; three small flags on the post that fill in as destinations are finished.
+- [ ] L2. One click: he walks to it and folds the lid down, and the screen changes to the close-up of the box and the open book.
+- [ ] L3. The right-hand page: earlier entries in handwriting, several hands and inks chosen per entry, on printed form lines. Readable on a phone.
+- [ ] L4. The left-hand page: before the site is completed it says what is still to do; afterwards it is a blank page to write on, with the pencil on its string.
+- [ ] L5. Signing: the rule confirmed with TJ (section 5, still open 1). The mock keeps the entry in this browser only and marks it as waiting for TJ's approval.
+- [ ] L6. Closing the book returns to the Trailhead where he stood. The register leaves the trail map sheet (a link there opens the same close-up).
+- [ ] L7. Every "About Lake" and "The Stack" in `content.js`, `app.js`, name tags, cards, finds, hints, addresses (`#name`) and the plain page renamed; old addresses still land somewhere sensible.
+- [ ] L8. The junction sign's three planks: new names, real distances.
+- [ ] L9. The trail map sheet: new map picture, dots on the new places (`DOTS` in `app.js`).
+- [ ] L10. The kiosk's lines (wildlife, finds, hints) match the new world.
+- [ ] L11. The list of things to find: every one still findable; new ones added; "Clear my flags" clears them.
 
 ### M. Whole-site checks before the last stop
 

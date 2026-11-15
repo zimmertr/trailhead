@@ -100,3 +100,13 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 
 - **A photo mode.** One key hides every sign and card for a clean screenshot of the view.
 - **The opening view as the share picture.** The wide skyline frame is the natural image for link previews.
+
+### Climbs not used for the six summits
+
+- **The great ice face.** One long steep wall of blue ice with tools the whole way and one rest on a ledge. A candidate for a seventh project.
+- **Racing a storm.** A clear start, cloud building behind him, the summit reached as the first gusts hit.
+- **An alpine start.** Camp left in the dark by headlamp, the sky paling on the ridge, sunrise on top.
+- **Fast and light.** He runs a snow ridge in trail shoes with poles and a vest, the quickest climb of all. A nod to the running.
+- **A strength scramble.** Big blocks: mantles, pull-ups over lips, a chimney pressed with arms and legs.
+- **A trail all the way up.** Switchbacks, a signpost at each bend, a cable handrail near the top. The summit anyone could walk to.
+- **A rock tower by its chimney.** Free climbing with an old tree's roots hanging down the chimney as holds, two ravens, a squirrel on the trunk.
