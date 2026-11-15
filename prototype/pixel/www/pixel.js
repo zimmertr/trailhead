@@ -119,7 +119,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   }
 
   function step(dt) {
-    if (!running || (tr && tr.phase === 'out')) return;
+    if (!running || (tr && tr.phase === 'out' && !tr.to)) return;
     // A scene may keep him where he is while something plays out (he swims back before he runs on).
     if (!tr && drawn.scene.hold && drawn.scene.hold(env)) return;
     const before = p;
@@ -166,15 +166,24 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     if (scrubbing > 0) scrubbing -= dt;
 
     // The cut between scenes: a round window closes on him, the scene changes, it opens again.
+    // While he runs, the window starts to close a moment before a stretch ends and is shut just as he
+    // reaches the next one, so he never stands still at a scene change. `to` is the stretch it closes for.
+    if (running && !tr && scrubbing <= 0 && drawn === legAt(p)) {
+      const nx = legs[legs.indexOf(drawn) + 1], left = (drawn.t1 - p) * total;
+      if (legs.includes(drawn) && nx && nx !== broken && !(nx.s === 'world' && drawn.s === 'world') && left > 0.12 && left <= 0.3 && !stops.some(s => s.at > p && s.at <= drawn.t1 + 1e-6)) { tr = { phase: 'out', k: 0, to: nx, lead: left }; emit({ type: 'sfx', name: 'iris' }); }
+    }
     const want = legAt(p);
     if (want !== drawn && want !== broken && !tr) {
       if (want.s === 'world' && drawn.s === 'world') drawn = want;
       else { tr = { phase: 'out', k: 0, fast: scrubbing > 0 || !running }; emit({ type: 'sfx', name: 'iris' }); }
     }
     if (tr) {
-      tr.k += dt / (tr.fast ? 0.14 : tr.phase === 'out' ? 0.3 : 0.36);
+      tr.k += dt / (tr.fast ? 0.14 : tr.lead || (tr.phase === 'out' ? 0.3 : 0.36));
+      // He was stopped while the window was closing ahead of the change: it opens again from where it had got to.
+      if (tr.to && !running && legAt(p) !== tr.to) tr = { phase: 'in', k: 1 - Math.min(1, tr.k), fast: false };
       if (tr.k >= 1) {
         if (tr.phase === 'out') {
+          if (tr.to && legAt(p) !== tr.to) p = Math.min(1, tr.to.t0 + 1e-6);
           drawn = legAt(p);
           try { drawn.scene.enter(scr, drawn.arg, local(drawn, p)); } catch (err) { fail(drawn, err); return; }
           look.x = look.y = 0; tr = { phase: 'in', k: 0, fast: tr.fast }; emit({ type: 'scene', name: drawn.s });
