@@ -413,7 +413,10 @@ function whale(splash = true) {
 plant(firs[2], ISLE.x, ISLE.y + 1);
 // Where the things stand that the scene draws itself, because they move or can be clicked.
 const spots = {
-  tents: [[924, 564, 'tent'], [948, 574, 'red']], signpost: [T.x - 4, T.y - 8], kiosk: [872, 657], ferry: [44, 916], whale: [222, 934],
+  tents: [[924, 564, 'tent'], [948, 574, 'red']], signpost: [T.x - 4, T.y - 8],
+  kiosk: [872, 657],
+  // The ferry and the whale, out on the water.
+  ferry: [44, 916], whale: [222, 934],
   // Each sign stands on the ground it names; content.js has the words. Whatever would stand in front of one is cleared below.
   signs: [[972, 592, 'scope-creep'], [858, 557, 'segfault'], [886, 532, 'merge-conflict'], [800, 742, 'yak-shave'], [766, 631, 'about-lake'], [1160, 600, 'rollback'], [1300, 552, 'feature-flag'], [1226, 884, 'hotfix'], [1420, 966, 'postmortem'], [1474, 724, 'cron-job'], [1506, 806, 'tech-debt'], [258, 864, 'cache-miss'], [334, 612, 'stack-trace'], [262, 480, 'off-by-one'], [470, 480, 'dependency'], [668, 586, 'monorepo'], [404, 996, 'latency']],
   elk: [[760, 820, 0], [792, 836, 1], [738, 846, 1], [900, 900, 0], [640, 960, 1], [840, 1000, 1], [872, 1012, 0], [1010, 790, 1], [960, 760, 0], [700, 1030, 0], [776, 606, 1]],

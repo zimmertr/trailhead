@@ -157,6 +157,8 @@ export const UI = {
   fail: 'The world could not be drawn here. The trail map has everything as text.',
   // Said when a scene breaks and he is put on the off-route page instead.
   broken: 'That stretch of trail has washed out. He is off route.',
+  // Said while a scene holds him at a spot with no card. The key is what follows 'wait:' in the stop's id.
+  wait: { go: 'Press Space or Start to carry on.' },
   card: {
     summit: top => 'On the summit: ' + top.toLowerCase(),
     egg: top => 'Click ' + top.toLowerCase().replace(/^a /, 'the ') + ' up there.',

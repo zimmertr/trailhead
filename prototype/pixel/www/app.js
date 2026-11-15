@@ -13,6 +13,9 @@ const status = $('status'), fork = $('fork'), card = $('card'), line = $('line')
 const audio = makeAudio();
 const BUILT = new Date(), VERSION = 'v0.1.5, pixel build';
 let api, shown = null, sheetName = null, profile = [], toastT = 0;
+// A scene may hold him at a spot with no card (a stop whose id starts with 'wait:'), until Space or Start: one line says so.
+let waiting = false;
+const isWait = id => String(id).startsWith('wait:');
 // Set when the world cannot be drawn at all and the page of text has taken its place for good.
 let worldDown = false;
 
@@ -68,7 +71,7 @@ function say(text, ms = 4200) { toast.textContent = text; toast.hidden = false; 
 function buildMarks() {
   const marks = $('marks'); marks.replaceChildren();
   const r = api.route(), stops = api.stops();
-  const all = [{ at: 0, label: r === 'back' ? '' : r.startsWith('spire:') || r === 'spires-home' ? UI.marks.camp : UI.marks.trailhead }, ...stops.filter(s => s.at < 0.995).map(s => ({ at: s.at, label: LABELS[s.id] || (PROJECTS[s.id] ? UI.marks.summit : s.id) })), { at: 1, label: r.startsWith('spire:') ? UI.marks.camp : ENDS[r] || UI.marks.trailhead }];
+  const all = [{ at: 0, label: r === 'back' ? '' : r.startsWith('spire:') || r === 'spires-home' ? UI.marks.camp : UI.marks.trailhead }, ...stops.filter(s => s.at < 0.995 && !isWait(s.id)).map(s => ({ at: s.at, label: LABELS[s.id] || (PROJECTS[s.id] ? UI.marks.summit : s.id) })), { at: 1, label: r.startsWith('spire:') ? UI.marks.camp : ENDS[r] || UI.marks.trailhead }];
   for (const m of all) if (m.label) marks.append(el('span', { class: 'mark' + (m.at === 0 ? ' first' : m.at === 1 ? ' last' : ''), style: 'left:' + (m.at * 100) + '%', 'data-at': m.at, text: m.label }));
   profile = api.profile(160);
   nudgeMarks();
@@ -92,7 +95,7 @@ function drawProfile(p) {
     g.fillStyle = passed ? '#c8a266' : '#6e462c'; for (let yy = y + 2 + ((x * 7) % 3); yy < h; yy += 3) if ((x + yy) % 2 === 0) g.fillRect(x, yy, 1, 1);
     g.fillStyle = passed ? '#f4d048' : '#f8ebb8'; g.fillRect(x, y, 1, 1);
   }
-  for (const s of [{ at: 0 }, ...api.stops(), { at: 1 }]) { const x = Math.round(s.at * (w - 1)), y = yOf(x), on = s.at <= p + 0.001; g.fillStyle = '#d2a472'; g.fillRect(x, y - 5, 1, 5); g.fillStyle = on ? '#e05824' : '#f7f1dc'; g.fillRect(x + (s.at === 1 ? -3 : 1), y - 5, 3, 2); }
+  for (const s of [{ at: 0 }, ...api.stops().filter(q => !isWait(q.id)), { at: 1 }]) { const x = Math.round(s.at * (w - 1)), y = yOf(x), on = s.at <= p + 0.001; g.fillStyle = '#d2a472'; g.fillRect(x, y - 5, 1, 5); g.fillStyle = on ? '#e05824' : '#f7f1dc'; g.fillRect(x + (s.at === 1 ? -3 : 1), y - 5, 3, 2); }
   const mx = Math.round(p * (w - 1)), my = yOf(mx);
   g.fillStyle = '#1a1424'; g.fillRect(mx - 2, my - 5, 5, 6); g.fillStyle = '#f4d048'; g.fillRect(mx - 1, my - 4, 3, 4); g.fillStyle = '#e05824'; g.fillRect(mx - 1, my - 4, 3, 1);
 }
@@ -253,8 +256,8 @@ try {
     theme: 'light', breakAt,
     onEvent(e) {
       if (e.type === 'broken') washedOut(e);
-      else if (e.type === 'stop') showCard(e.id);
-      else if (e.type === 'leave') hideCard();
+      else if (e.type === 'stop') { if (isWait(e.id)) { waiting = true; say(UI.wait[e.id.slice(5)] || UI.wait.go, 600000); } else showCard(e.id); }
+      else if (e.type === 'leave') { hideCard(); if (waiting) { waiting = false; toast.hidden = true; } }
       else if (e.type === 'end') { if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
       else if (e.type === 'sfx') audio.sfx(e.name);
       else if (e.type === 'scene') { audio.ambience(e.name); audio.place(e.name === 'world' && lastScene !== 'world' ? 'out' : e.name); lastScene = e.name; syncTop(); }

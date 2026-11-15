@@ -375,3 +375,72 @@ Round 2 is finished: every item on the checklist is ticked and the four polish p
 - Branch: https://github.com/zimmertr/trailhead/tree/pixel-round2
 - To compare with, both unchanged: the overnight MVP https://claude.ai/artifact/76d6NraHh67ZTcMnMitrji and version 5 https://claude.ai/artifact/UgfBaAqoZCaJdKY8sBDUXF
 - Workbench pages in `www/`: `sheet.html?set=zoo` (every animal), `plan.html` (the whole map as one picture).
+
+## Round 3 (branch `pixel-round3`, from 2026-11-15)
+
+Round 3 answers TJ's feedback on the round 2 build. It lives on its own branch and its own artifact, so round 2 stays as it was to compare against. The bar is unchanged: every screen at least as good as the same screen in round 2, the overnight MVP and version 5.
+
+- Round 2 artifact (https://claude.ai/artifact/GwCmCx8VKWRpSbnu9yXMtj) and branch `pixel-round2` are frozen. Do not publish to that artifact or push to that branch again.
+- The work was split by file so several streams could run at once, each on its own branch (`pixel-round3-mountains`, `-ground`, `-life`, `-scenes`, `-climbs`), merged into `pixel-round3`.
+
+### TJ's feedback (2026-11-14), as a checklist
+
+The page
+- [ ] F1. Music starts with the first click, tap or key, not only once he moves.
+- [ ] F5. Space still starts and stops him; holding it makes him go faster.
+- [ ] F7. Zoom steps glide instead of jumping.
+- [ ] F13. The junction sign and the cards take less room and can be closed.
+- [ ] F15. The debug panel's Trees and Clouds switches hide all of them.
+- [ ] F32. The page is ready as fast as it used to be.
+- [ ] F36. The music does not wear thin: longer tunes, and Auto moves on after a tune has repeated a few times.
+
+Scene changes, forest, lake, camp
+- [ ] F2. He keeps his direction when the map hands over to the forest (right to left again).
+- [ ] F4. No sudden sprint at a scene change.
+- [ ] F3. The forest's far background has depth and does not read as wallpaper.
+- [ ] F6. The lake marmot sits on its rock and is brown.
+- [ ] F35. The island on the map is in the lake scene too. "Go for a swim": he swims out, stands on the island cheering, and swims back when asked.
+- [ ] F33. At base camp he sits beside Kayti and a heart floats up between them.
+- [ ] F24. The goats at base camp stand in the middle ground, away from the tents.
+
+The Stack and the summits
+- [ ] F16. At The Stack he walks to his friends and waits for Space before he climbs.
+- [ ] F17. Pitch 2 holds read as holds. The gold sparkles and red crosses by Rollback Roof are gone or explained. Leaving the top of pitch 3 his legs no longer hang below where he stood.
+- [ ] F18. After the rappel he high-fives both friends before he leaves.
+- [ ] F19. Ice climbing takes longer and is climbed: tool, foot, tool, foot, front points, an extra kick or two now and then.
+- [ ] F20. The storm on the way to Kubernetes-Manifests blows in: wind lines, a few flakes, heavy snow, white. It clears more slowly at the top.
+- [ ] F21. The Trailhead summit gets a new object and a new thing to find (the survey marker did not read).
+- [ ] F22. On the TJs-Kubernetes-Service climb: the same ice climbing, seracs that look like ice, and a server rack on top that takes a BANG, a shake and goes from red to green.
+- [ ] F23. The bluebird flies off the screen.
+
+The map: mountains and sky
+- [ ] F8, F30. The volcano stands alone at the top right, like Rainier, over foothills that fade into rolling yellow hills. Left of it the snowy peaks build toward Sideproject Spires.
+- [ ] F31. Sideproject Spires is one mountain with several summits, after the Cerro Torre group.
+- [ ] F26. The aurora belongs to the sky: it is seen when the view goes high enough, and does not slide out from under the sunset.
+
+The map: ground, water and plants
+- [ ] F9. The larch basin reads as the Enchantments: granite slabs, larches, sparse grass, a jagged granite peak, the tarns.
+- [ ] F10. No stray snow patches between the Spires and The Stack or the basin, and no half-hidden sign.
+- [ ] F12. Fireweed is stronger.
+- [ ] F14. The lake's outlet flows straight out of the lake. Logs read as logs. The river reaches the sea. No sign stands in water. Sea stacks rise out of the water. The river crossing is a bridge. Trail surfaces blend where they change. The boot track is as wide as the trail. Snow does not spill onto the meadow.
+- [ ] F25. The trail conditions board stands just north-east of the junction.
+- [ ] F27. South of the larches: aspen and ponderosa in place of green firs, and larch, aspen, ponderosa and burn blend into each other.
+
+The map: animals and motion
+- [ ] F11. Fewer animals and less motion: elk and bear are rare, fewer jellyfish, calmer trees.
+- [ ] F28. The whale jumps and rolls, slowly.
+- [ ] F29. The ferry sails a long course and is off the map for a while at each end.
+- [ ] F34. The mist over the forest moves and has no dotted grid.
+
+### Decided before starting
+
+- F2 and F4: the sprint was the forest-to-lake scroll, which crossed a whole screen in about two seconds. It also needed the forest mirrored, which is the direction bug. The lake loop turns back on itself inside the forest, so one scene change has to hide that turn. The forest runs right to left again and that change goes back to the round window.
+- F13: the junction sign stays, smaller and closable, because a first-time visitor needs the name and three plain choices.
+- F21: a pair of coin-operated binoculars on a post. He looks through and sees the Trailhead far below. (Kubernetes-Manifests already has the cairn.)
+- F22: the seracs and the hut are on the TJs-Kubernetes-Service climb.
+- F8, F30, F9: the volcano moves right to stand clear of the Spires. The granite needles and the extra snowy peaks on the horizon go. The larch basin gets one granite peak of its own as a landmark.
+- F1: a browser plays no sound before the first click or key, so "on launch" means the first interaction of any kind.
+- A scene can now hold him at a spot with no card: a stop whose id starts with `wait:` shows one line of text until Space or Start. `UI.wait` in `content.js` has the lines.
+
+### Calls made in round 3
+
