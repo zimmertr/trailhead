@@ -259,7 +259,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [x] B10. Pictures: whole map; the opening wide view on a 1440 by 900 screen in two or three candidate framings, some cropped (section 5); the phone's opening slice; the close view at the Trailhead; round 3's map beside the new one.
 - [x] B11. Check the law: walk the map west to east and name every pair of neighbours; none is unbelievable. Check the four kinds of mountain: nothing else on the skyline.
 - [x] B12. A page like `plan/skyline-pick.html` showing the pictures, with the weak points listed honestly.
-- [ ] **STOP 1.** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
+- [ ] **STOP 1 (reached 2026-11-15, waiting for TJ).** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
 
 ### C. The skyline, drawn for real
 
@@ -436,6 +436,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 | Stop | Tag | Artifact | Date |
 |---|---|---|---|
 | Round 3, for comparison | `pixel-r3-final` | https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1 | 2026-11-15 |
+| 1, the block-in (a page of pictures, not the game) | `pixel-r4-blockin` | https://claude.ai/artifact/LDB4ivAk4ZU2EVskcN7nHj | 2026-11-15 |
 
 ## 9. Calls made in round 4
 
