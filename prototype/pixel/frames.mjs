@@ -4,6 +4,7 @@
 // steps: wait=<ms>;key=<code>;tap=<x,y>;tapme=<dx,dy>;click=<selector>;scrub=<0..1>;film=<frames>x<ms>
 //   wait runs the page's clock on by that much; tapme clicks that many scene pixels from his middle; scrub puts him at that point of the route by pressing
 //   on the timeline; film takes that many frames, the clock running on by <ms> before each.
+//   time runs that many frames of 16 ms and prints how long each took to draw, to catch a slow scene.
 // clip: 'me:<w>x<h>' follows the runner, or 'x,y,w,h', all in scene pixels. Without it the whole page is filmed.
 import { chromium } from 'playwright';
 import http from 'node:http';
@@ -56,6 +57,7 @@ for (const st of steps.split(';').filter(Boolean)) {
   else if (k === 'scrub') { const r = await page.evaluate(() => { const b = document.getElementById('line').getBoundingClientRect(); return [b.left, b.top, b.width, b.height]; }); await page.mouse.click(r[0] + r[2] * +v, r[1] + r[3] / 2); await page.clock.runFor(400); }
   else if (k === 'film') { const [n, ms] = v.split('x').map(Number); for (let f = 0; f < n; f++) { await page.clock.runFor(ms); clock += ms; await frame((clock / 1000).toFixed(2) + ' s'); } }
   else if (k === 'eval') await page.evaluate(v);
+  else if (k === 'time') { const t0 = Date.now(); for (let f = 0; f < +v; f++) await page.clock.runFor(16); console.log('time: ' + ((Date.now() - t0) / +v).toFixed(1) + ' ms a frame over ' + v + ' frames'); }
 }
 console.log('frames: ' + shots.length + ', p from ' + (shots[0] ? shots[0].p.toFixed(4) : '-') + ' to ' + (shots.length ? shots[shots.length - 1].p.toFixed(4) : '-'));
 if (shots.length) {

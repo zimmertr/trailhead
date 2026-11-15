@@ -236,19 +236,29 @@ function makeSerac(seed, w, h) {
   return b;
 }
 
+// Two fields of drifting noise for the storms, worked out once a frame and only at every second column
+// (the shapes are long and low, so the missing columns cannot be seen): `n` says where cloud or blown snow
+// is, `m` how bright it is there. Streaks are the blown snow of the wanded route; banks are the cloud on the ridge.
+const drift = { n: new Uint8Array(0), m: new Uint8Array(0), w: 0 };
+function blow(scr, t, banks) {
+  const w = (scr.VW >> 1) + 1, h = scr.VH; if (drift.n.length !== w * h) { drift.n = new Uint8Array(w * h); drift.m = new Uint8Array(w * h); } drift.w = w;
+  for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) {
+    const x = i * 2;
+    drift.n[y * w + i] = 255 * (banks ? 0.6 * vnoise((x + t * 25) / 46, y / 13, 256) + 0.4 * vnoise((x + t * 40) / 23, y / 7, 253) : 0.62 * vnoise((x + t * 96) / 64, y / 7, 257) + 0.38 * vnoise((x + t * 170) / 30, y / 4, 258));
+    drift.m[y * w + i] = 255 * vnoise((x + t * 60) / (banks ? 110 : 120), y / (banks ? 17 : 13), 259);
+  }
+}
 // The storm's cloud and blown snow, laid over what has been drawn so far as long streaks that travel with
 // the wind. k is how much of the frame it hides; around (cx, cy) it thins so he can see his own feet. `keep` marks colours it leaves alone.
-function veil(scr, t, k, tones, cx, cy, keep) {
+function veil(scr, k, tones, cx, cy, keep) {
   if (k <= 0.01) return;
-  const { VW, VH, fb } = scr, near = cx != null;
+  const { VW, VH, fb } = scr, near = cx != null, w = drift.w;
   for (let y = 0; y < VH; y++) {
-    const row = y * VW;
+    const row = y * VW, at = y * w;
     for (let x = 0; x < VW; x++) {
       let th = k * 1.2 - 0.12;
       if (near) { const d = Math.hypot((x - cx) / 84, (y - cy) / 46); if (d < 1) th -= (1 - d) * 0.8; }
-      if (th <= 0.1) continue;
-      const n = 0.62 * vnoise((x + t * 96) / 64, y / 7, 257) + 0.38 * vnoise((x + t * 170) / 30, y / 4, 258);
-      if (n < th && !(keep && keep[fb[row + x]])) fb[row + x] = tones[vnoise((x + t * 60) / 120, y / 13, 259) > 0.5 ? 1 : 0];
+      if (th * 255 > drift.n[at + (x >> 1)] && !(keep && keep[fb[row + x]])) fb[row + x] = tones[drift.m[at + (x >> 1)] > 127 ? 1 : 0];
     }
   }
 }
@@ -402,15 +412,21 @@ export function makeClimb() {
       }
 
       // Sky: blue, or the grey of the storm it clears from.
-      const sb = R.skyband, front = VW * (1.2 - 1.6 * bank);
+      const sb = R.skyband, front = VW * (1.2 - 1.6 * bank), stormy = storm > 0 || bank > 0;
+      if (stormy) blow(scr, t, storm > 0);
       for (let y = 0; y < VH; y++) {
-        const f = clamp((y + 60 + cam.y * 0.3) / 320, 0, 1) * (sb.length - 1), b0 = Math.floor(f), e = f - b0, row = y * VW;
+        const f = clamp((y + 60 + cam.y * 0.3) / 320, 0, 1) * (sb.length - 1), b0 = Math.floor(f), e = f - b0, row = y * VW, at = y * drift.w;
+        const rag = bank > 0 ? front + 90 * (vnoise(y / 34 + t * 0.1, 7, 262) - 0.5) - 30 : 0, lid = storm * 1.5 - 0.2;
         for (let x = 0; x < VW; x++) {
           let c = sb[Math.min(sb.length - 1, b0 + (e > 0.72 && bayer(x, y) < (e - 0.72) / 0.28 ? 1 : 0))];
-          // On the ridge the storm is long banks of cloud driven sideways, dark above and paler toward the
-          // horizon, tearing open in patches as he gains height.
-          if (storm > 0 && fbm((x + t * 25) / 46, y / 13, 256, 3) < storm * 1.6 - 0.5 * fbm((x + t * 40) / 70, y / 30, 253, 3)) c = R.rock[clamp(Math.floor((0.16 + 0.6 * fbm((x + t * 60) / 110, y / 17, 254, 4) + 0.3 * y / VH) * 5), 0, 4)];
-          else if (bank > 0 && x > front + 90 * (fbm(y / 34 + t * 0.1, x / 150, 262, 3) - 0.5)) { const m = fbm((x + t * 30) / 120, y / 22, 263, 3); c = R.snow[m < 0.44 ? 0 : m < 0.56 ? 1 : 2]; }
+          if (stormy) {
+            const n = drift.n[at + (x >> 1)] / 255, m = drift.m[at + (x >> 1)] / 255;
+            // On the ridge the storm is long banks of cloud driven sideways, dark above and paler toward the
+            // horizon, tearing open in patches as he gains height. On the wanded route it is a grey bank
+            // that slides in from the right with a ragged front.
+            if (storm > 0) { if (n < lid) c = R.rock[clamp(Math.floor((0.1 + 0.7 * m + 0.3 * y / VH) * 5), 0, 4)]; }
+            else if (x > rag + 60 * n) c = R.snow[m < 0.4 ? 0 : m < 0.6 ? 1 : 2];
+          }
           fb[row + x] = c;
         }
       }
@@ -421,13 +437,13 @@ export function makeClimb() {
       // A sea of cloud below the summits.
       for (let y = Math.max(0, Math.round(base + cam.y * 0.8 + 60)); y < VH; y++) { const row = y * VW, d = clamp((y - (base + cam.y * 0.8 + 60)) / 80, 0, 1); for (let x = 0; x < VW; x++) { const n = fbm((x + camX * 0.3 + t * 4) / 60, y / 14, 243, 3); if (n > 0.6 - d * 0.3) fb[row + x] = n > 0.68 - d * 0.3 ? R.white[1] : R.sky[4]; } }
       // The far peaks go first: the cloud takes them before any snow reaches him.
-      veil(scr, t, smooth(0.25, 0.9, bank), [R.snow[1], R.snow[2]]);
+      veil(scr, smooth(0.25, 0.9, bank), [R.snow[1], R.snow[2]]);
       const X = x => Math.round(x + OFF - camX), Y = y => Math.round(base + y);
       // The icefall's seracs stand behind the route.
       if (kind === 'icefall' && me.ph === 'up') for (const s of seracs) scr.put(s.bm, X(s.x), Y(hOf(pts, s.x) + 7), false);
       drawStrip(scr, S, camX, base, false, R.snow[1]);
       // As the snow thickens, everything dark goes behind it (rock, the far wands, the edge of the slope) while the snow at his feet stays.
-      if (heavy > 0.02) veil(scr, t, heavy * 0.85, [R.snow[1], R.snow[2]], X(me.x), Y(me.y) - 12, pale);
+      if (heavy > 0.02) veil(scr, heavy * 0.85, [R.snow[1], R.snow[2]], X(me.x), Y(me.y) - 12, pale);
       // His tracks stay in the snow behind him: boot prints on the way up, one long groove on the way down.
       if (me.ph === 'up') { for (let x = -30; x < me.x - 3; x += 4) { if (cfg.gap && x > cfg.gap[0] - 6 && x < cfg.gap[1] + 6) continue; if (pl.walls.some(w => x > w.x0 + 2 && x < w.xc + 2)) continue; const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[1]); scr.set(X(x) + 1, Y(y) + 2, R.snow[2]); } }
       else if (me.mode === 'sit') for (let x = Math.ceil(me.x) + 4; x < 400; x++) { const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[2]); if (x & 1) scr.set(X(x), Y(y) + 3, R.snow[3]); }
@@ -475,7 +491,7 @@ export function makeClimb() {
       // The blown snow closes over the slope, thinnest around him, and the wands lead through it: the
       // nearest in full colour, the next only as shapes.
       if (kind === 'wands' && me.ph === 'up') {
-        veil(scr, t, white, [R.snow[3], R.snow[4]], sx, sy - 12);
+        veil(scr, white, [R.snow[3], R.snow[4]], sx, sy - 12);
         for (let wx = 20; wx < SX; wx += 38) {
           const away = Math.abs(wx - me.x), ghost = white > 0.35 && away > 60; if (white > 0.35 && away > 132) continue;
           const wy = hOf(pts, wx); for (let j = 1; j < 15; j++) scr.set(X(wx), Y(wy - j), ghost ? R.snow[2] : R.wood[3]);
