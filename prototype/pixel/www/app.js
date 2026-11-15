@@ -259,7 +259,7 @@ try {
     theme: 'light', breakAt,
     onEvent(e) {
       if (e.type === 'broken') washedOut(e);
-      else if (e.type === 'stop') { if (isWait(e.id)) { waiting = true; say(UI.wait[e.id.slice(5)] || UI.wait.go, 600000); } else showCard(e.id); }
+      else if (e.type === 'stop') { if (isWait(e.id)) { waiting = true; say(UI.wait[e.id.slice(5)] || UI.wait.go, 600000); } else { if (waiting) { waiting = false; toast.hidden = true; } showCard(e.id); } }
       else if (e.type === 'leave') { hideCard(); if (waiting) { waiting = false; toast.hidden = true; } }
       else if (e.type === 'end') { if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
       else if (e.type === 'sfx') audio.sfx(e.name);

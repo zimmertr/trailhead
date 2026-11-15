@@ -293,7 +293,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     if (dragging === 'pinch' || dragging === 'held') { dragging = touches.size ? 'held' : null; lastPt = null; return; }
     if (dragging === 'look' && moved < 5 && e.type === 'pointerup') {
       const [x, y] = toView(e), h = probe(x, y, e.pointerType !== 'mouse');
-      if (h) { const k = scr.S / (window.devicePixelRatio || 1); if (h.label && !h.named) emit({ type: 'hover', label: h.label, x: h.x * k, y: h.y * k, tap: true }); if (h.act) { if (!drawn.scene.act || !drawn.scene.act(h.act, env)) emit({ type: 'act', id: h.act }); } }
+      if (h) { const k = scr.S / (window.devicePixelRatio || 1); if (h.label && !h.named) emit({ type: 'hover', label: h.label, x: h.x * k, y: h.y * k, tap: true }); if (h.act) { if (!drawn.scene.act || !drawn.scene.act(h.act, env)) emit({ type: 'act', id: h.act }); else { hover = null; emit({ type: 'hover', label: null, x: 0, y: 0 }); } } }
     }
     if (dragging === 'look') dragging = null; lastPt = null;
   };
