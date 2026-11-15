@@ -437,7 +437,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 |---|---|---|---|
 | Round 3, for comparison | `pixel-r3-final` | https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1 | 2026-11-15 |
 | 1, the block-in (a page of pictures, not the game) | `pixel-r4-blockin` | https://claude.ai/artifact/LDB4ivAk4ZU2EVskcN7nHj | 2026-11-15 |
-| 1 again: three layouts with real height (pictures) | `pixel-r4-relief` | (link added after publishing) | 2026-11-15 |
+| 1 again: three layouts with real height (pictures) | `pixel-r4-relief` | https://claude.ai/artifact/HkLDn3zFk3fyYgagGVWQSA | 2026-11-15 |
 
 ## 9. Calls made in round 4
 
