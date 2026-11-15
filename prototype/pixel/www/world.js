@@ -175,7 +175,6 @@ export function makeWorld() {
   // The animals look after themselves: see critters.js.
   const crit = makeCritters(W);
   for (const it of crit.items) things.push(it);
-  put(W.make.ferry(), spots.ferry[0], spots.ferry[1]);
   const birds = [makeBird(0), makeBird(1)];
   const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 270 + 40, y: 120 + (i & 1) * 80 + i * 24, v: 3 + (i % 4) }));
   const runner = makeRunner('trail');

@@ -130,6 +130,9 @@ export function makeCritters(W, opts = {}) {
   const mar = { sun: marmot('sun'), up: marmot('up') };
   spots.marmots.forEach(([x, y], n) => items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1) }));
 
+  // For screenshots, sea=90 in the address starts the ferry's and the whale's clocks that many seconds on.
+  const ahead = typeof location !== 'undefined' ? +(/[?&]sea=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
+
   // ---- the whale -------------------------------------------------------------------------------
   // Every sixteen seconds it comes two thirds out of the water, hangs, and falls back in a ring of
   // spray. Half way between it rolls at the surface and blows.
@@ -166,6 +169,48 @@ export function makeCritters(W, opts = {}) {
       for (let i = -9; i <= 9; i += 2) scr.set(bx + i, by + 1, R.white[1]);
       if (v > 0.5 && v < 1.6) { const hgt = Math.round(9 * Math.min(1, (v - 0.5) / 0.3)), fade = v > 1.2; for (let j = 0; j < hgt; j++) { if (fade && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 4 ? Math.round((j - hgt + 4) * 0.8) : 0; scr.set(bx + 5 - sp, by - 5 - j, R.white[1]); scr.set(bx + 5 + sp, by - 5 - j, R.white[1]); } }
     }
+  }
+
+  // ---- the ferry -----------------------------------------------------------------------------
+  // It sails the length of the water outside the sea stacks, is gone past the edge of the map for the
+  // better part of a minute, and comes back the other way. It is drawn with the water, under everything
+  // that stands: its course keeps it clear of the stacks and the whale.
+  const ferryBM = W.make.ferry(), [FA, FB] = spots.ferry, FLEN = Math.hypot(FB[0] - FA[0], FB[1] - FA[1]);
+  const FERRY = { v: 7, away: [38, 50] }, CROSS = FLEN / FERRY.v, ROUND = 2 * CROSS + FERRY.away[0] + FERRY.away[1];
+  // How far along its course it is, 0 at the west end and 1 at the south, and which way it is heading;
+  // nothing while it is away. At time 0 it is part way across, so the block-in page has it.
+  const ferryAt = t => { const u = (t + 0.42 * CROSS) % ROUND, back = u - CROSS - FERRY.away[0]; return u < CROSS ? [u / CROSS, 1] : back >= 0 && back < CROSS ? [1 - back / CROSS, -1] : null; };
+  // The course bows out to sea a little in the middle.
+  const coursePt = s => { const b = 14 * Math.sin(Math.PI * clamp(s, 0, 1)); return [FA[0] + (FB[0] - FA[0]) * s - 0.56 * b, FA[1] + (FB[1] - FA[1]) * s + 0.83 * b]; };
+  function drawFerry(scr, ox, oy, t) {
+    const at = ferryAt(t + ahead); if (!at) return;
+    const [s, dir] = at, [fx, fy] = coursePt(s), { VW, VH } = scr;
+    if (fx - ox < -140 || fx - ox > VW + 140 || fy - oy < -120 || fy - oy > VH + 120) return;
+    // Nothing of it shows past the edge of the map, where a wide screen has only a plain fill.
+    const dot = (wx, wy, c) => { if (wx >= 0 && wy < NH) scr.set(wx - ox, wy - oy, c); };
+    // The wake. Each bit of foam stays where the boat left it and only fades: two lines open out from
+    // the bow and break into dashes, and the water churned up astern trails off between them.
+    const here = s * FLEN, white = R.white[1];
+    for (let n = 0; n < 240; n++) {
+      const k = n / 2, c = here + dir * (19 - k), [qx, qy] = coursePt(c / FLEN);   // k: how far astern of the bow's tip
+      if (k >= 5) {
+        const age = (k - 5) / 115, wide = 5.6 + (k - 5) * 0.24, cell = Math.floor(c / 5);
+        if (frac(c / 5) < 1 - age * 0.75) for (const side of [-1, 1]) {
+          if (hash(cell, side, 71) < age * 1.15 - 0.2) continue;
+          dot(Math.round(qx + side * 0.56 * wide), Math.round(qy - side * 0.83 * wide), age < 0.3 ? white : age < 0.65 ? R.sea[5] : R.sea[4]);
+        }
+      }
+      if (k > 36 && k < 104) {
+        const age = (k - 36) / 68, half = age < 0.18 ? 2.5 : 0.5 + 1.8 * (1 - age);
+        for (let off = -half; off <= half; off += 0.5) {
+          if (age > 0.18 && hash(Math.floor(c / 3), Math.round(off), 72) < age * 1.2 - 0.1) continue;
+          const x = Math.round(qx + 0.56 * off), y = Math.round(qy - 0.83 * off);
+          dot(x, y, age < 0.3 ? ((x + y) & 1 ? white : R.sea[5]) : age < 0.62 ? R.sea[5] : R.sea[4]);
+        }
+      }
+    }
+    const x0 = Math.round(fx) - ferryBM.ox, y0 = Math.round(fy) - ferryBM.oy;
+    for (let j = 0; j < ferryBM.h; j++) for (let i = 0; i < ferryBM.w; i++) { const c = ferryBM.d[j * ferryBM.w + i]; if (c) dot(x0 + i, y0 + j, c); }
   }
 
   // ---- mist -------------------------------------------------------------------------------------
@@ -250,6 +295,7 @@ export function makeCritters(W, opts = {}) {
           if (cs > -up && cs < out && (cs < -up + 1.3 || cs > out - 1.2 || ((wx + wy) & 1))) fb[i] = white;
         }
       }
+      drawFerry(scr, ox, oy, t);
       spots.jelly.forEach(([jx, jy, pale], k) => {
         const x = jx + Math.round(3 * Math.sin(t * 0.13 + k * 2)) - ox, y = jy + Math.round(1.5 * Math.sin(t * 0.5 + k)) - oy;
         if (x < -4 || y < -6 || x > VW + 4 || y > VH) return;

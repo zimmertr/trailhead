@@ -309,12 +309,26 @@ function seaStack(seed, H, W) {
   outline(b, INK);
   return b;
 }
+// The ferry, seen from the shore and a little above, lying along its course: bow down to the right.
+// Both ends are alike, as on the boats that cross the Sound, so it sails back without turning round.
 function ferry() {
-  const b = new BM(30, 13); b.ox = 15; b.oy = 12;
-  for (let x = 1; x < 29; x++) { b.set(x, 10, R.kit[0]); b.set(x, 9, R.white[1]); b.set(x, 8, R.white[1]); }
-  for (let x = 4; x < 26; x++) { b.set(x, 7, R.kit[1]); b.set(x, 6, R.white[1]); b.set(x, 5, x % 3 ? R.navy[1] : R.white[1]); b.set(x, 4, R.white[1]); }
-  for (let x = 9; x < 21; x++) b.set(x, 3, R.white[0]);
-  b.set(13, 2, R.kit[1]); b.set(14, 2, R.kit[1]); b.set(13, 1, R.kit[1]); b.set(14, 1, R.kit[1]);
+  const b = new BM(50, 48); b.ox = 25; b.oy = 30;
+  // u runs along the hull, v across it and z up. A deck is a slab with rounded ends: its far wall, its
+  // near wall, then its top over both, which hides whatever of the far wall could not be seen.
+  const dot = (u, v, z, c) => b.set(Math.round(b.ox + u * 0.83 + v * 0.56), Math.round(b.oy + u * 0.56 - v * 0.83 - z), c);
+  const deck = (u0, U, V, r, z0, z1, wall, top) => {
+    const half = u => { const e = Math.abs(u) - (U - r); return e <= 0 ? V : V * Math.sqrt(Math.max(0, 1 - e * e / (r * r))); };
+    for (const side of [1, -1]) for (let u = -U; u <= U; u += 0.25) for (let z = z0; z < z1; z++) dot(u0 + u, side * half(u), z, wall(u, z - z0));
+    for (let u = -U; u <= U; u += 0.25) { const h = half(u); for (let v = -h; v <= h; v += 0.25) dot(u0 + u, v, z1, top(u, v)); }
+  };
+  const W1 = R.white[1], W0 = R.white[0];
+  // The hull: green at the waterline, the car deck open and grey at both ends.
+  deck(0, 19, 5, 6, 0, 3, (u, z) => z < 1 ? R.kit[0] : W1, u => Math.abs(u) > 14.5 ? R.rock[3] : W0);
+  // The cabin: a green band, a row of windows, a pale roof.
+  deck(0, 14, 4, 3, 3, 8, (u, z) => z < 1 ? R.kit[1] : z === 2 && Math.round(u * 0.83 + 40) % 3 ? R.navy[1] : W1, () => W0);
+  // A wheelhouse toward each end and the funnel between them.
+  for (const u0 of [-10, 10]) deck(u0, 2, 2, 1, 8, 10, (u, z) => z === 1 ? R.navy[1] : W1, () => W1);
+  deck(0, 1.6, 1.2, 0.8, 8, 12, (u, z) => z > 2 ? R.kit[0] : R.kit[1], () => R.kit[0]);
   outline(b, INK);
   return b;
 }
@@ -381,7 +395,7 @@ for (let n = 0; n < 300; n++) {
   const x = 560 + rand() * 760, y = 480 + rand() * 590; if (!open(x, y) || nearTrail(x, y, 7) || Math.hypot(x - T.x, y - T.y) < 34 || forestAmt(x, y) > 0.3 || rand() < Math.max(burnAmt(x, y), dryAmt(x, y))) continue;
   if (rand() < 0.3) put(boulders[(rand() * 6) | 0], x, y); else put(bushes[(rand() * 8) | 0], x, y);
 }
-// The coast: sea stacks, driftwood along the beach, a ferry out by the fog, a humpback breaching,
+// The coast: sea stacks, driftwood along the beach, a ferry that crosses outside them, a humpback breaching,
 // and jellyfish drifting in the shallows.
 put(seaStack(1, 44, 20), 112, 852); put(seaStack(2, 30, 15), 192, 908); put(seaStack(3, 22, 11), 58, 802); put(seaStack(4, 50, 22), 332, 990); put(seaStack(5, 16, 9), 252, 958); put(seaStack(6, 26, 12), 420, 1050);
 for (let n = 0; n < 500; n++) {
@@ -417,8 +431,8 @@ plant(firs[2], ISLE.x, ISLE.y + 1);
 const spots = {
   tents: [[924, 564, 'tent'], [948, 574, 'red']], signpost: [T.x - 4, T.y - 8],
   kiosk: [872, 657],
-  // The ferry and the whale, out on the water.
-  ferry: [44, 916], whale: [222, 934],
+  // The two ends of the ferry's course, both past the edge of the map, and the whale's spot.
+  ferry: [[-30, 820], [394, 1108]], whale: [222, 934],
   // Each sign stands on the ground it names; content.js has the words. Whatever would stand in front of one is cleared below.
   signs: [[972, 592, 'scope-creep'], [858, 557, 'segfault'], [886, 532, 'merge-conflict'], [800, 742, 'yak-shave'], [766, 631, 'about-lake'], [1160, 600, 'rollback'], [1300, 552, 'feature-flag'], [1226, 884, 'hotfix'], [1420, 966, 'postmortem'], [1474, 724, 'cron-job'], [1506, 806, 'tech-debt'], [258, 864, 'cache-miss'], [334, 612, 'stack-trace'], [262, 480, 'off-by-one'], [470, 480, 'dependency'], [668, 586, 'monorepo'], [404, 996, 'latency']],
   // One small herd of elk, in a clearing of the south meadow well away from the junction. The first is the bull.

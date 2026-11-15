@@ -13,7 +13,7 @@ crit.sea(scr, 0, 0, 0);
 const things = W.things.concat(crit.items), put = (bm, x, y, lift = 0) => things.push({ bm, x, y, lift });
 put(peak, PEAK.x, PEAK.y); put(makeStack(), STACK.x, STACK.y); put(makeMassif(), SPIRES.x, SPIRES.y);
 for (const [x, y, c] of S.tents) put(makeTent(c), x, y);
-put(makeSignpost(), ...S.signpost); put(makeKiosk(), ...S.kiosk); put(make.ferry(), ...S.ferry);
+put(makeSignpost(), ...S.signpost); put(makeKiosk(), ...S.kiosk);
 for (const [x, y] of S.signs) put(makeSmallSign(), x, y);
 for (const [x, y] of S.birds) put(makeBird(x & 1), x, y + 400, 400);
 const blit = (bm, sx, sy) => scr.blit(bm, sx, sy);
