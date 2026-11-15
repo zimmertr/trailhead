@@ -145,7 +145,7 @@ Gone for good: the Yosemite-style dome (The Stack), the tan Patagonian towers, t
 
 | Summit | The climb | On top (kept) |
 |---|---|---|
-| Bluebird Forecast | **A weather window.** He starts in cloud and rime on a snow ridge, climbs through the cloud deck, and breaks out into a clear blue sky above an inversion. The bluebird circles the summit and flies off the picture. | Weather station |
+| Bluebird Forecast | **A weather window.** He starts in cloud on a snow ridge in **a lot of wind, with rime ice drawn on the rock and on him**, climbs through the cloud deck; the wind drops as the window opens, and breaks out into a clear blue sky above an inversion. The bluebird circles the summit and flies off the picture. | Weather station |
 | TJs-Kubernetes-Service | **The icefall with ladders.** Aluminium ladders across crevasses, a snow bridge, leaning seracs of fractured blue ice, two steps of steep ice climbed with tools (round 3's ice climbing). Many pieces that must all hold. | Server rack, the BANG |
 | hevy-garmin-sync | **A snow gully climbed like a workout.** A long steep gully kicked in sets: a burst of steps, a rest leaning on the axe, breath showing, the foot that slips and is kicked in twice more. His watch beeps on top. | Weight bench |
 | trailhead | **An exposed rock knife-edge.** A narrow crest with air on both sides and the whole map spread out below. He walks it, straddles it, walks again. | Coin-operated binoculars, the round view |
@@ -161,7 +161,7 @@ Not used, kept in `IDEAS.md`: the single great ice face, racing a storm, an alpi
 - **The right-hand page** lists earlier visitors' entries. **The left-hand page** is blank, for this visitor to write on, free-form.
 - Writing: handwriting for everyone, **in several different hands and inks** (blue pen, black pen, pencil), chosen per entry so the page looks signed by many people. Only the form's printed lines and headings use the sign font. Handwriting fonts must stay readable at a phone's width.
 - **Reading is open to everyone at once. Signing is earned**: the book tells the visitor that to sign they must complete the site (TJ: it rewards using the website as intended, "gamifying learning about me"). Until then the left page shows what is still to do, and the box's post shows three small flags filling in.
-- To confirm with TJ before step L: "complete" means the lake, the peak and **any one** Spires summit (today's rule, about five minutes) or all six summits. Recommendation: any one summit, so the reward stays within reach.
+- **Confirmed by TJ:** "complete" means the three challenges: the lake, the peak, and Sideproject Spires, where **one summit is enough**, not all six.
 - In the prototype the book is a browser-only mock with sample entries; a new entry is kept in this browser and marked as waiting for TJ's approval. The real service is https://github.com/zimmertr/trailhead/issues/3 (plain text, no contact details asked for, every entry approved by TJ before it shows).
 - It replaces the register that hides in the trail map sheet today.
 
@@ -185,7 +185,7 @@ Which follower slips, and on which pitch, is the builder's call (not the same mo
 
 **Still open**
 
-1. The register's rule: any one summit, or all six (above).
+1. The West Ridge pitch list: an Opus subagent read the five sources on 2026-11-15; its report is in the scratchpad at `r4-refs/west-ridge-beta.md` (copy its findings into the table above, then confirm with TJ before anything is built).
 2. Whether the Legacy Range stays (decided at STOP 1).
 3. Which opening frame (decided at STOP 1).
 
@@ -391,7 +391,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [ ] L2. One click: he walks to it and folds the lid down, and the screen changes to the close-up of the box and the open book.
 - [ ] L3. The right-hand page: earlier entries in handwriting, several hands and inks chosen per entry, on printed form lines. Readable on a phone.
 - [ ] L4. The left-hand page: before the site is completed it says what is still to do; afterwards it is a blank page to write on, with the pencil on its string.
-- [ ] L5. Signing: the rule confirmed with TJ (section 5, still open 1). The mock keeps the entry in this browser only and marks it as waiting for TJ's approval.
+- [ ] L5. Signing opens once the lake, the peak and one Spires summit are done (section 5). The mock keeps the entry in this browser only and marks it as waiting for TJ's approval.
 - [ ] L6. Closing the book returns to the Trailhead where he stood. The register leaves the trail map sheet (a link there opens the same close-up).
 - [ ] L7. Every "About Lake" and "The Stack" in `content.js`, `app.js`, name tags, cards, finds, hints, addresses (`#name`) and the plain page renamed; old addresses still land somewhere sensible.
 - [ ] L8. The junction sign's three planks: new names, real distances.
@@ -417,3 +417,53 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 ## 9. Calls made in round 4
 
 (One line each, newest last.)
+
+## 10. The reference pictures TJ shared, described
+
+The pictures themselves are other people's photographs and are not in the repo. Copies may survive in the session's image folder (`~/.claude/tmp/claude-501/-Users-tj-git-personal-trailhead/8d20dfc8-98bd-4ded-b290-e61cac2c390c/images/`, numbered files) but that folder can be cleared, so work from these descriptions and find fresh references by name.
+
+- **Prusik Peak, south face (route photo by Steph Abegg).** A broad wall of pale grey-white granite, darker grey where water streaks it, split by long vertical cracks and corners. A blunt central prow rises to a pointed summit block at the top centre. On the left a lower, separate tower with a flat-topped shoulder; the West Ridge is the left skyline. On the right the ridge falls away in a row of sharp teeth. Dark firs and a few larches at the foot on the right, a snow patch at the bottom right, slabby grey rock in front. A white mountain goat stands in the bottom-left corner looking at the camera.
+- **A hand-drawn watercolour topo of the West Ridge.** The peak from the south as a steep spire with the route up the left skyline, pitches 2 to 5 marked on the ridge, the "final chimney" just under the summit, a second lower spire to the right, larches in green at the foot. Its notes are the source of the draft pitch table in section 5.
+- **The Southern Pickets at sunset.** A long ridge of many dark rock summits of nearly equal height but all different: some blunt, some leaning, some split, none a clean needle. Red-brown where the last light hits, near black in shadow. Between the summits, steep snow gullies run down to a broken glacier shelf with pale blue crevassed ice. Layer on layer of fainter ranges behind, under a pink and violet sky. **This is the model for Sideproject Spires and for the crest's rock, snow and ice.**
+- **Mount Rainier over Reflection Lake.** The mountain is wide and lopsided with a nearly flat top, pink in morning light, bands of dark rock between the glaciers, a sharp lower peak on its right flank (Little Tahoma). A dark belt of pointed firs stands between lake and mountain, mist lies on the water, and the whole mountain is mirrored in the lake. White flowers and a boulder in the foreground.
+- **Glacier Peak over Image Lake.** An open grassy bowl holding a small still lake that mirrors a pink sky and a row of fir silhouettes. Clumps of narrow pointed subalpine firs on the meadow's rim. The volcano stands far away across a deep valley, broad, heavily glaciated, with rocky ribs. **TJ: this is closer to what the lake scene should become once it opens into parkland.**
+- **Turquoise lake seen through dark conifer trunks.** Tall straight trunks, nearly black, with bright turquoise water filling the gaps between them and a sunlit brown forest floor. **The model for the forest scene's last stretch: the lake shows between the trees before he reaches it.**
+- **Deer at night.** A doe among dark trunks, caught in a light, its two eyes shining pale green-white. **The model for the eyes at Dusk at the rainforest's west edge: eyeshine of an animal, calm, not a monster.**
+- **Pixel wind.** Pale blue horizontal streaks of different lengths that end in curls, with a few green leaves carried along. **The model for the wind lines on the West Ridge and in the Bluebird Forecast climb.**
+- **Trail registers.** (1) A hiker with a big pack writing at a small wooden box on a post, under a wooden notice board, golden larches behind, rocks piled round the post. (2) A brown wooden box lettered "PLEASE REGISTER" whose front folds down on two chains to make a desk, with a clipboard of ruled forms, a map behind glass and pencils. (3) A person writing in a book on a mossy wooden post box in an autumn forest. **The model for the register box and its close-up.**
+- **TJ's marked-up strip of round 3's skyline (letters A to H).** A, the snowy western range: "classic North Cascades which is good", could be improved. B, the lone snowy cone behind the lake: "feels a bit different". C, The Stack: "classic yosemite big wall dome and doesn't make sense". D, the Spires: "distinctly Patagonian", "unlike anything I think exists on earth". E, the pale triangles behind them: "entirely out of place". F, the basin's granite peak: becomes Prusik. G, the volcano: "huge and just not quite right". H, the yellow hills: "a good start", move to follow the biome.
+
+## 11. TJ's words, to get the details right
+
+- On the cause: "we started with a small world with three areas concentrated on the center. We have since grew the world map, and added unique biomes that those three areas could fit into. Yet they still sit in the middle." "Differnet georaphic regions usually only have a couple types of features."
+- On the kind of world: a "washigton inspired" fantasy map "of it's own design with Washington features that, while still naturally blending correctly, sit in their own landscape." "the lush forest cannot sit next to the desert area."
+- On the west edge: "Zelda Lost Woods or Harry Potter Forbidden Forest esque. Mysterious, secret, spooky. Ichabod Crane." Then: "Eerie, nothign scary."
+- On the Spires: "they are not daggers or a serrated knife blade. They are imperfect and uneven. And don't come to perfect points. Mountains are not perfect, they are broken. Fragmented. Dangerous." "we can really 'ham up' the sideproject spires and still make it feel epic like Patagonian stuff maybe."
+- On glaciers: "Glaciers are beautiful btw, so emphasis on those. Make them snowy, but in the high cirques below their buttresses should be bare glacier ice with crevasses."
+- On the volcano: "High parkland meadows too, if posisble. Tons of wildflowers. THis is where the elk and marmots would naturally be. And yes, seracs, glaciers, ice falls, glittering blue beaitufl ice." It must be in the lake scene's background: "Object permanence and all."
+- On the Enchantments: "Not just one jagged granite peak in an otherwise peak-less area." "less snowy. But maybe still holding blue ice glaciers high near the top."
+- On zoom: "it didn't *feel* bad to zoom, it looked bad because of teh step function. Imagine Zoom *click* zoom *click* zoom *click* where each click was teh world clicking in/our of a zoom level." "I want zooming in and out to be seamless and perfect, not stepped. This feels like a core requirement."
+- On names: the features are "tongue-in-cheek references": the lake is about him, the peak is his skills, the Spires are his side projects.
+- On map size and pace: "Things can get longer to feel more interesting and have more room to tranisition through and add detail to. This is especially true for the scenes on sideproject spires. They are too short and repetitive right now. Each should be al ot more unique and interesting."
+- On fireweed: "Real firewood is like waist/chest high, not small like the flowers in the meadows."
+- On timed events: "adding more of these 'timed' events is a good idea to make the world feel lived in."
+- On the river: "The river should have a waterfall and this is where they can jump." "The ground should be tiered, not a flat plane."
+- On the followers: "Followers should climb differently and have unique *personalities*, speed, etc. If one falls the other doesn't at the same time. They take slightly different lines."
+- On the West Ridge's air: "make it look windy and cold up there with cartoonish wind lines animating the scene and perhaps wind whoosh audio." "The background should look really far below like the scene is really high up." "As it gets higher, an inversion forms and they are above a sea of clouds."
+- On length: "People don't *have* to finish anything, the website is just supposed to be impressive an informative in the end. Not an actual video game people need to 100%."
+- On the via ferrata: "a via ferrata kit should be used with two lanyards throughout it that are actively used to protect it."
+- On the register: readable by everyone in one click; "it would tell the user in some form that, in order to sign, they had to complete the website."
+- On rolling back: "I want to be easily able to roll back to previous iterations at every step of the way." "I also want unique artifacts to be produced for each step so they are easily comparable." "We need to move fast right now with design before we actually land anything official."
+- On process: "we should be pushing commits to the new branch on github at every step/milestone."
+- His picks from round 3's three block-ins, now superseded but telling: the smaller, farther volcano, "But I would like to to try and reminisce Mt Rainier a bit more intentionally"; the stepped-tower Spires "closest to what I want, but I'm not sure it's 100% there yet"; the long-ridge basin peak, "it should resemble Prusik Peak"; the western range "Smaller than the volcano, and around the same size as the spires."
+
+## 12. Things learned the hard way in round 3
+
+- Publishing a file path that was published before in the same session goes to the **same artifact** unless a `url` is given. That once put a new build over a frozen one. Always export a tag to a fresh folder and publish from there (section 2).
+- `shot.sh` steps are separated by semicolons. With commas the screenshot is taken at load, mid-fade, and looks like a bug that is not there.
+- The mist, the aspens and the river mouth each came back wrong the first time because nobody looked at the picture critically before calling it done: mist as opaque white bars, aspens wall to wall, the river as a ruled blue stripe. Look, compare with round 3, and ask "would TJ wince".
+- Volcanoes drawn so far lean toward Fuji (smooth, even, pointed). Rainier is wide, lopsided and flat-topped.
+- Never heard by anyone yet: the seven tunes' second parts and the effects `tink`, `bang`, `slap`. Ask TJ to listen at a stop.
+- Not confirmed on the artifact host: that `ground.png` loads there (if not, the page is correct but takes two seconds to be ready).
+- Known weak spots carried in from round 3: the swimmer's head sits upright and the wade-to-swim change is abrupt; some mist banks are long thin bands; chalk and rope stay bright white at Dusk; with Trees off, tree shadows painted into the ground remain; the icefall climb and the hevy-garmin-sync climb ran 17 and 15 seconds, the others under 10.
+- Usage: five parallel copies used up TJ's limit in a few hours. One stream of work only.
