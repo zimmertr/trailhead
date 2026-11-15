@@ -161,7 +161,7 @@ Gone for good: the Yosemite-style dome (The Stack), the tan Patagonian towers, t
 3. **Water takes the lowest ground.** No stream is a smooth arc through chosen points. Each is routed downhill over the heights (the standard way: every spot drains to its lowest neighbour, hollows are filled so no stream dead-ends, and a river's width comes from how much land drains into it). On flat ground it wanders, and the meadow gets at least one oxbow. If a routed river looks wrong, change the land, not the line.
 4. **The crest is one connected mass.** The two free-standing cones beside the glacier are gone. The Spires' wall sends an arm down toward the camera on each side, and the glacier lies in the bowl between the arms. The west arm falls to a forested saddle that joins Mount Monolith's flank. The east arm runs into the rim of the granite basins. The meadow does not reach the foot of the wall.
 5. **The glacier belongs to its wall.** Snow gullies run up the wall to the notches between summits. There is a gap where the ice meets the rock. Lower down the ice breaks over a rock step in an icefall, then runs out as a crevassed tongue between two moraines to a milky tarn at its toe. Base camp sits on the moraine shelf beside that tarn.
-6. **The Spires' country shows what he will cross in the scenes.** From the map you can point to: the steep flower slope of the traverse (on the west arm, high above the meadow), the moraine crest of the walk, the icefall (TJs-Kubernetes-Service), a snow gully (hevy-garmin-sync), the crevassed tongue (Kubernetes-Manifests), a knife-edge between two summits (trailhead), a dry rock rib on the east arm (yggdrasil), and the highest summit standing clear for the weather window (Bluebird Forecast).
+6. **The Spires' country shows what he will cross in the scenes.** From the map you can point to: the steep flower slope of the traverse (on the west arm, high above the meadow), the moraine crest of the walk, the icefall (TJs-Kubernetes-Service), a snow gully (hevy-garmin-sync), the crevassed tongue (Kubernetes-Manifests), a knife-edge between two summits (trailhead), a dry rock rib on the east arm (yggdrasil), and the west end summit standing clear on the wet side for the weather window (Bluebird Forecast).
 7. **The Legacy Range stays and is larger.** It is a broad massif with several summits and glaciers (after Mount Olympus), never one clean pyramid, which read as a second volcano. Smaller peaks stand in front of it and around it. The rainforest runs up toward it through the valley between it and Mount Monolith, in ranks of forested foothills. The bare green hill of the second pass was a mistake and is gone. Nothing between the two mountains may look taller than Mount Monolith.
 8. **Nearly one rock along the whole crest.** The granite is the same grey family as the rest, one step paler and cleaner, and the change is gradual. The difference the eye reads is snow and ice, which thin out toward the dry east. The tan of the second pass is gone. The back row of snowy peaks is close to right (TJ: "finally starting to look good and Cascadian").
 9. **The granite country is three steps.** Larches grow only from the second step up (they are high-country trees). The first step has aspens and ponderosa pines. Proficiency Peak stands on the second step and must stand clear of the range behind it.
@@ -316,18 +316,18 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so the old game keeps running beside the new map.
 
 - [ ] C1. `www/land.js`, made from layout 1 of `relief.js`. It returns what `buildTerrain` in `terrain.js` returns (the ground picture, things, spots, trails, mist mask and the helpers the other modules call), plus the depth of every screen pixel and `hAt(u, v)`.
-- [ ] C2. The Trailhead's rise and a shallow valley on each side of it. Check with trees off.
-- [ ] C3. The connected crest: the two arms, the bowl between them, the saddle to Mount Monolith, the join to the granite rim. Check with trees off: no free-standing cone, no meadow at the foot of the wall.
-- [ ] C4. The glacier: gullies to the notches, the gap at the rock, the icefall over its rock step, the crevassed tongue, a moraine each side, the milky tarn, camp on the moraine shelf.
-- [ ] C5. The Spires: six summits at the heights in section 9, not daggers. The ground of each of the six climbs is placed and can be pointed to (4a, point 6). List the six places in section 9.
+- [x] C2. The Trailhead's rise and a shallow valley on each side of it. Check with trees off.
+- [x] C3. The connected crest: the two arms, the bowl between them, the saddle to Mount Monolith, the join to the granite rim. Check with trees off: no free-standing cone, no meadow at the foot of the wall.
+- [x] C4. The glacier: gullies to the notches, the gap at the rock, the icefall over its rock step, the crevassed tongue, a moraine each side, the milky tarn, camp on the moraine shelf.
+- [x] C5. The Spires: six summits at the heights in section 9, not daggers. The ground of each of the six climbs is placed and can be pointed to (4a, point 6). List the six places in section 9.
 - [ ] C6. The flower slope of the traverse and the moraine crest of the walk, with the trail drawn on them.
 - [ ] C7. Mount Monolith: lopsided dome, three bumps on a nearly flat top, a shoulder on the left, a dark tooth on the right, cleavers between glaciers, at least two icefalls. Its rock foot runs into forested foothills, not a cliff on a lawn.
 - [ ] C8. The Legacy Range: a several-summit massif with glaciers, smaller peaks round it, ranks of forested foothills in front, the rainforest's valley leading to it.
 - [ ] C9. The back row of the crest, each peak different. Rock nearly one colour from west to east, the snow thinning eastward with no seam.
-- [ ] C10. The three granite steps and their cliffs. Proficiency Peak on the second, standing clear of what is behind it.
-- [ ] C11. The dry corner and the coulee: basalt walls in steps, the creek in its floor, the way out of the map.
-- [ ] C12. Water routed over the heights: both river systems, wider below each joining, wandering on the flats, one oxbow in the meadow, falls where a stream leaves a step. No smooth arcs.
-- [ ] C13. Six to eight tarns on the granite steps, coloured by height.
+- [x] C10. The three granite steps and their cliffs. Proficiency Peak on the second, standing clear of what is behind it.
+- [x] C11. The dry corner and the coulee: basalt walls in steps, the creek in its floor, the way out of the map.
+- [x] C12. Water routed over the heights: both river systems, wider below each joining, wandering on the flats, one oxbow in the meadow, falls where a stream leaves a step. No smooth arcs.
+- [x] C13. Six to eight tarns on the granite steps, coloured by height.
 - [ ] C14. The coast: bluffs, the river's notch, beach, sea, fog over the water at the west edge.
 - [ ] C15. `world.js` runs on it. Things and the runner are drawn in order of depth and are hidden where nearer ground stands in front. The helpers other modules call with screen positions (`coast`, `lakeD`, `forestAmt`, `open`, `nearTrail`) answer through the depth picture.
 - [ ] C16. The mountain sprites in `world.js` (`makeStack`, `makeMassif`, `makePeak`) are retired: the mountains are in the ground picture. Summit flags and name tags take their places from `land.js` (`done=spires` puts the flag on the right summit).
@@ -495,6 +495,7 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 | 1, the block-in (a page of pictures, not the game) | `pixel-r4-blockin` | https://claude.ai/artifact/LDB4ivAk4ZU2EVskcN7nHj | 2026-11-15 |
 | 1 again: three layouts with real height (pictures) | `pixel-r4-relief` | https://claude.ai/artifact/HkLDn3zFk3fyYgagGVWQSA | 2026-11-15 |
 | 1 again: layout 1, second pass (pictures) | `pixel-r4-relief2` | https://claude.ai/artifact/SJGQUzqPa1i1RDd23pc56t | 2026-11-15 |
+| Progress, not a stop: the land of section 4a built (pictures) | `pixel-r4-landshape` | https://claude.ai/artifact/KJ2YvMaK4V8pLyoSSJxmGa | 2026-11-15 |
 
 ## 9. Calls made in round 4
 
@@ -518,6 +519,14 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 - Second pass (`plan/relief2-r4.html`): the dry country is one slanted corner with a wandering edge (`dryS`); the burn is a diagonal scar; the granite range runs to the east edge over a staircase of basins with a chain of tarns on one creek; Mount Monolith follows a drawn skyline; the Spires are 1.2 times wider; fog lies over the beach and sea at the west edge.
 - The fog cannot be finished by rule. The rule that plants trees on ridge crests was tuned four times and swings between a white sheet and a grey wall. The ranks of crowns have to be drawn ridge by ridge in the real drawing. Told TJ.
 - **Before any real drawing:** checklist sections C and D, and the parts of sections 3, 4 and 6 they lean on, were written for a flat ground with a skyline behind it. Rewrite them for the height-based map, and decide how the running game uses it (a baked ground picture, things with a depth, trails in screen space, what hides the runner). Get TJ's sign-off on that rewrite first.
+- **The land as built (2026-11-15, `www/relief.js`, picture `plan/land-r4.html`).** Calls made while building section 4a:
+  - Base camp is on the west moraine beside the tongue, at about `u` 1022, `v` 526, with the icefall above it; the milky tarn is at the toe, about 45 px below. Section 4a said "beside that tarn". Moved so the walk along the moraine has the icefall ahead of him, as section J asks.
+  - Where the six climbs happen, west to east in the order of `SPIRES` in `pixel.js`: Bluebird Forecast, the west end summit, which stands clear on the wet side (section 4a, point 6 wrongly called it the highest); TJs-Kubernetes-Service, the icefall (`v` 556 to 578) and the second summit; hevy-garmin-sync, the long gully to the highest, third summit; trailhead, the knife-edge between the third and fourth summits; yggdrasil, the dry rock of the east arm to the fifth summit; Kubernetes-Manifests, the crevassed tongue (`v` 505 to 555) and the east end summit.
+  - The picture is drawn 52 px lower than the world (`SY` in `relief.js`), because the ground at the near edge is no longer at height 0 and would show a cut face. The sky is taller for it. The opening view decides the crop.
+  - The Legacy Range's highest summit is drawn level with Mount Monolith's top on screen, never above it. The far west is kept low at the back so the range shows over the forest.
+  - Pieces that stand on the Spires' apron (the wall, the ice, its rims, the moraine, the camp shelf) take their heights from the ground under the apron, not from sea level (`lift` in `relief.js`).
+  - Rivers: valleys are cut along bent lines to an even grade first, because without that the rainforest's ridges dammed the meadow and the routed streams crossed it in ruled lines. Some straight reaches remain below the joins.
+  - The granite steps were raised (46 and 54, 84, 110) to keep their cliffs on the higher ground. Proficiency Peak is 132 high on a base of 84.
 
 ## 10. The reference pictures TJ shared, described
 
