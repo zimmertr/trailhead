@@ -96,6 +96,8 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **A second lake scene at Dusk**: alpenglow on the mountain and its mirror, the one postcard view of the site.
 - **The tide pools up close.** Tapping a pool at low tide could open a small close-up with its animals named.
 
+- Taking turns on the West Ridge: who leads each pitch, and which follower climbs second, drawn at random per visit. TJ's first wish; set aside in round 4 so only the black-haired man needs the leading and falling drawings.
+
 ### Page and feel
 
 - **A photo mode.** One key hides every sign and card for a clean screenshot of the view.
