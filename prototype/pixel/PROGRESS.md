@@ -381,7 +381,7 @@ Round 2 is finished: every item on the checklist is ticked and the four polish p
 Round 3 answers TJ's feedback on the round 2 build. It lives on its own branch and its own artifact, so round 2 stays as it was to compare against. The bar is unchanged: every screen at least as good as the same screen in round 2, the overnight MVP and version 5.
 
 - Round 2 artifact (https://claude.ai/artifact/GwCmCx8VKWRpSbnu9yXMtj) and branch `pixel-round2` are frozen. Do not publish to that artifact or push to that branch again.
-- The work was split by file so several streams could run at once, each on its own branch (`pixel-round3-mountains`, `-ground`, `-life`, `-scenes`, `-climbs`), merged into `pixel-round3`.
+- The work is split by file so five streams can run at once, each on its own branch (`pixel-round3-mountains`, `-ground`, `-life`, `-scenes`, `-climbs`), merged into `pixel-round3`.
 
 ### TJ's feedback (2026-11-14), as a checklist
 
@@ -432,14 +432,25 @@ The map: animals and motion
 - [ ] F29. The ferry sails a long course and is off the map for a while at each end.
 - [ ] F34. The mist over the forest moves and has no dotted grid.
 
-### Decided before starting
+### Decided with TJ (2026-11-15)
 
-- F2 and F4: the sprint was the forest-to-lake scroll, which crossed a whole screen in about two seconds. It also needed the forest mirrored, which is the direction bug. The lake loop turns back on itself inside the forest, so one scene change has to hide that turn. The forest runs right to left again and that change goes back to the round window.
-- F13: the junction sign stays, smaller and closable, because a first-time visitor needs the name and three plain choices.
-- F21: a pair of coin-operated binoculars on a post. He looks through and sees the Trailhead far below. (Kubernetes-Manifests already has the cairn.)
-- F22: the seracs and the hut are on the TJs-Kubernetes-Service climb.
-- F8, F30, F9: the volcano moves right to stand clear of the Spires. The granite needles and the extra snowy peaks on the horizon go. The larch basin gets one granite peak of its own as a landmark.
-- F1: a browser plays no sound before the first click or key, so "on launch" means the first interaction of any kind.
+He stopped the first start on this round: after a round of feedback he wants a report of findings and questions before anything is built. The answers below are his.
+
+- Skyline (F8, F30, F9): the volcano moves right, clear of the Spires, and stands alone over forested foothills that fade into yellow rolling hills. The snowy peaks build from the west up to the Spires. The larch basin gets one Prusik-style granite peak, far lower than the volcano.
+- Review order: a block-in first for the skyline, the basin and the Spires, as pictures to pick from (two or three versions side by side, not ASCII). Those three are only drawn for real once he has marked it up. Everything else is built meanwhile.
+- Forest to lake (F2, F4): the forest runs right to left again, and that change goes back to the round window. The sprint was the scroll between the two: a whole screen in 2.2 seconds, 2.8 times his running pace.
+- Junction sign (F13): kept, about a fifth smaller, with a close button. Closed, it leaves a small Trailhead tab; the tab or the Trailhead sign on the map opens it again. Cards get a close button too.
+- Trailhead summit (F21): a pair of coin-operated binoculars on a post. He looks through and a round view shows the Trailhead far below.
+- Music at launch (F1): no opening screen. Music starts on the first click, tap or key of any kind, and until then the Sound button shows it is waiting for one.
+- Music (F36): both fixes. Each tune gets a second part so one play lasts about a minute, and the music moves on after two plays, working through all seven. A tune picked by hand stays until he changes it.
+- Animals (F11): about half, elk and bear rare. 4 elk in one herd, the bear on some visits only, 4 goats, 4 sheep, 7 squirrels and chipmunks, 8 jellyfish, 3 butterflies. Trees stand still most of the time, with a light gust every ten seconds or so.
+- The Stack (F16): he walks up, picks up the rope, ties in and waits for Space. Then a fist bump with the belayer, and he climbs.
+- The Stack (F17): the glowing "suggested holds" and the red cross go. Holds that read as holds on all three pitches.
+- TJs-Kubernetes-Service climb (F22): the seracs become plain ice, and a server rack on the summit replaces the hut.
+- Base camp (F24): the goats move to the middle ground, away from the tents.
+- Load time (F32): the part of the map in view is built first and the rest in the background, on one condition: a visitor can never see an unbuilt part.
+- Colours: stay within the 254 the picture can hold (232 are used). If the new art runs out, stop and tell him before changing anything.
+- Work split: five parallel copies with one tight scope each, and the page done alongside them.
 - A scene can now hold him at a spot with no card: a stop whose id starts with `wait:` shows one line of text until Space or Start. `UI.wait` in `content.js` has the lines.
 
 ### Calls made in round 3
