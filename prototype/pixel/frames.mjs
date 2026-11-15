@@ -1,8 +1,8 @@
 // Films the prototype frame by frame on a clock the script owns, and lays the frames out as one sheet.
 // A single still cannot show whether something moves well; a row of frames a tenth of a second apart can.
 // usage: frames.mjs <out.png> '<query>' <width> <height> '<steps>' [dpr] [clip] [columns] [cell width]
-// steps: wait=<ms>;key=<code>;tap=<x,y>;click=<selector>;scrub=<0..1>;film=<frames>x<ms>
-//   wait runs the page's clock on by that much; scrub puts him at that point of the route by pressing
+// steps: wait=<ms>;key=<code>;tap=<x,y>;tapme=<dx,dy>;click=<selector>;scrub=<0..1>;film=<frames>x<ms>
+//   wait runs the page's clock on by that much; tapme clicks that many scene pixels from his middle; scrub puts him at that point of the route by pressing
 //   on the timeline; film takes that many frames, the clock running on by <ms> before each.
 // clip: 'me:<w>x<h>' follows the runner, or 'x,y,w,h', all in scene pixels. Without it the whole page is filmed.
 import { chromium } from 'playwright';
@@ -52,6 +52,7 @@ for (const st of steps.split(';').filter(Boolean)) {
   else if (k === 'key') await page.keyboard.press(v);
   else if (k === 'click') await page.click(v);
   else if (k === 'tap') { const [x, y] = v.split(',').map(Number); await page.mouse.click(x, y); }
+  else if (k === 'tapme') { const [dx, dy] = v.split(',').map(Number), i = await page.evaluate(() => window.__info), S = i.S / +dpr; await page.mouse.click((i.fx + dx) * S, (i.fy + dy) * S); }
   else if (k === 'scrub') { const r = await page.evaluate(() => { const b = document.getElementById('line').getBoundingClientRect(); return [b.left, b.top, b.width, b.height]; }); await page.mouse.click(r[0] + r[2] * +v, r[1] + r[3] / 2); await page.clock.runFor(400); }
   else if (k === 'film') { const [n, ms] = v.split('x').map(Number); for (let f = 0; f < n; f++) { await page.clock.runFor(ms); clock += ms; await frame((clock / 1000).toFixed(2) + ' s'); } }
   else if (k === 'eval') await page.evaluate(v);
