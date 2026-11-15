@@ -5,23 +5,36 @@ import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, INK, S
 import { Strip, drawStrip, baseline } from './side.js';
 import { makeFir, makeSpruce, makeBoulder, makeCloud, makeFlag, makeBush } from './sprites.js';
 import { pika, speck } from './fauna.js';
-import { makeRunner, frontFig, backFig } from './tj.js';
+import { makeRunner, sideFig, frontFig, backFig } from './tj.js';
 import { NAMES } from './content.js';
 import { makeCragPair } from './people.js';
 
 const W = 1340, RX = 760, UP = 500, DOWN = 250;
 const H1 = 110, H2 = 220, ROOF = 292, H3 = 326, HS = 360, C = 12;
-const DUR = 20.1;
-// Seconds into the scene, and how high his hips are by then.
-const KEYS = [[0, 0, 'walk'], [0.9, 0, 'climb'], [4.9, H1, 'climb'], [6.9, 170, 'fall'], [7.2, 148, 'hang'], [7.9, 148, 'climb'], [10.3, H2, 'climb'], [12.5, 286, 'roof'], [13.7, 308, 'climb'], [14.3, H3, 'climb'], [15.5, HS, 'rappel'], [19.3, 0, 'out'], [20.1, 0, 'out']];
-const STOPS = [['platform-engineering', 4.9], ['site-reliability-engineering', 10.3], ['software-engineering', 14.3], ['summit', 15.5]];
+// He stands on a ledge with his feet on it, so his hips are LEG above it; the top is the rim he stands on.
+const LEG = 12, TOP = HS + 4, LEDGES = [H1, H2, H3, TOP];
+// When the climbing starts, when the hold breaks, when he is on top, when the rappel lands, and the end.
+const T_GO = 3.7, T_BREAK = 9.7, T_TOP = 18.3, T_LAND = 22.1, DUR = 25.8;
+// Seconds into the scene, and how high his hips are by then. Before the climbing he walks up, picks up the
+// end of the rope, ties in, waits, and bumps fists with the belayer; after the rappel he slaps hands with
+// both friends on his way out.
+const KEYS = [[0, 0, 'walk'], [0.9, 0, 'pick'], [1.5, 0, 'tie'], [2.5, 0, 'bump'], [3.3, 0, 'step'], [T_GO, 0, 'climb'], [7.7, H1 + LEG, 'climb'], [T_BREAK, 170, 'fall'], [10, 148, 'hang'], [10.7, 148, 'climb'], [13.1, H2 + LEG, 'climb'], [15.3, 286, 'roof'], [16.5, 308, 'climb'], [17.1, H3 + LEG, 'climb'], [T_TOP, TOP + LEG, 'rappel'], [T_LAND, 0, 'land'], [22.45, 0, 'over'], [22.9, 0, 'five1'], [23.6, 0, 'back'], [24.2, 0, 'five2'], [24.9, 0, 'out'], [DUR, 0, 'out']];
+// The first stop has no card: he waits there, tied in, for Space or Start.
+const STOPS = [['wait:belay', 2.5], ['platform-engineering', 7.7], ['site-reliability-engineering', 13.1], ['software-engineering', 17.1], ['summit', T_TOP]];
 const PRO = [16, 36, 56, 76, 96, H1, 128, 146, 164, 186, 206, H2, 238, 256, 274, 300, 314, H3];
-const FLAKE = 176, DECOY = { x: -30, s: 262 };
+const FLAKE = 176;
 // The two at the foot: where the belayer's hips are, and where the other one's feet rest.
 const BX = RX - 23, BS = -3, SX = RX + 40, SS = -15;
+// On the ground: where he stands to tie in (beside the belayer), how far down the grass his feet are
+// there, where the end of the rope lies waiting, and where he stands to reach the one sitting down.
+const TIE = RX - 5, FEET = -12, END = [RX + 3, -13], BY = RX + 22;
+const GROUND = { walk: 1, pick: 1, tie: 1, bump: 1, step: 1, land: 1, over: 1, five1: 1, back: 1, five2: 1, out: 1 };
 
 const route = s => RX + (s < H1 ? 0 : 6 * Math.sin((s - H1) / 28) * smooth(H1, H1 + 20, s));
 const edge = s => RX + 124 + 9 * vnoise(s / 34, 1, 160) + 5 * Math.sin(s / 61) - 30 * smooth(HS - 60, HS + 4, s);
+// Where the hold at height hs is: the left (-1) or right (1) hand takes it, and two moves later the foot
+// of the same side stands on it. On the first pitch hands and feet go in the crack instead.
+const holdX = (side, hs) => route(hs) + side * (hs < H1 - 4 ? 1.4 : 4.5 + 3 * hash(Math.round(hs / C), side + 2, 191));
 const rim = x => HS + 4 + Math.round((9 * (vnoise(x / 19, 2, 161) - 0.5) + 4 * (vnoise(x / 5, 3, 161) - 0.5)) * smooth(14, 44, Math.abs(x - RX)) - 14 * smooth(RX - 140, RX - 420, x) - 7 * smooth(RX + 40, RX + 110, x));
 
 function paintWall(S) {
@@ -47,8 +60,6 @@ function paintWall(S) {
       if (x > edge(s) - 9) v += 0.16 - (edge(s) - x) * 0.012;
       if (top - s < 2) v += 0.2;
       const warm = fbm(x / 13, y / 34, 173, 3) > 0.64 && v > 0.42 && v < 0.86 && hash(x, s, 1) < 0.8;
-      // Small edges to climb on, near the line.
-      if (Math.abs(x - route(s)) < 13 && s > H1 && hash(x >> 1, s >> 1, 174) < 0.035) v = hash(x, s, 2) < 0.5 ? 0.25 : 0.95;
       // Lichen: pale sage where the rock stays damp, in drifts that run down the face.
       const lichen = v > 0.34 && v < 0.9 && fbm(x / 7, y / 19, 176, 3) > 0.66 && vnoise(x / 64, y / 110, 177) > 0.56 && hash(x, s, 3) < 0.7;
       S.set(x, y, lichen ? pick('mist', 0.42 + v * 0.5, x, y) : pick(warm ? 'ochre' : 'gold', v, x, y));
@@ -56,6 +67,26 @@ function paintWall(S) {
     if (x <= edge(top)) S.set(x, -top - 1, INK);
   }
   for (let s = HS + 6; s > -3; s--) { const e = Math.round(edge(s)); S.set(e + 1, -s, INK); }
+  // The holds, exactly where his hands and feet will go. Every one has a top the light catches and a
+  // shadow under it, and each pitch has its own kind: edges beside the crack on the first, big flakes and
+  // jugs on the second, pockets and thin edges on the third. Most carry a dab of chalk.
+  const lit = R.gold[6], dark = R.gold[0], dim = R.gold[1], mid = R.gold[2], put = (x, s, c) => S.set(Math.round(x), -Math.round(s), c);
+  const KINDS = {
+    edge: (x, s) => { for (let d = -2; d <= 2; d++) { put(x + d, s, lit); put(x + d, s - 1, dark); if (Math.abs(d) < 2) put(x + d, s - 2, dim); } },
+    thin: (x, s) => { for (let d = -1; d <= 1; d++) { put(x + d, s, lit); put(x + d, s - 1, dark); } },
+    jug: (x, s) => { for (let d = -3; d <= 3; d++) { put(x + d, s + (Math.abs(d) === 3 ? -1 : 0), lit); put(x + d, s - 1 - (Math.abs(d) === 3 ? 1 : 0), dark); if (Math.abs(d) < 3) { put(x + d, s - 2, dark); put(x + d, s - 3, mid); } } put(x - 1, s + 1, lit); put(x, s + 1, lit); },
+    flake: (x, s, side) => { for (let k = 0; k < 6; k++) { put(x + side * (k - 2), s - k, lit); put(x + side * (k - 3), s - k, dark); if (k > 1) put(x + side * (k - 4), s - k, dim); } },
+    pocket: (x, s) => { for (let d = -1; d <= 1; d++) { put(x + d, s, dark); put(x + d, s - 1, dark); put(x + d, s - 2, lit); } put(x - 2, s - 1, dim); put(x + 2, s - 1, dim); put(x, s + 1, dim); }
+  };
+  for (const side of [-1, 1]) for (let hs = side < 0 ? 21 : 22; hs < HS - 2; hs += C) {
+    if (LEDGES.some(h => Math.abs(hs - h) < 5) || (hs > ROOF - 14 && hs < ROOF + 4)) continue;
+    const r = hash(hs, side, 174), x = hs < H1 - 4 ? RX + side * (5 + Math.round(r * 3)) : holdX(side, hs);
+    // Beside the crack only now and then: the crack is the route there.
+    if (hs < H1 - 4 && r < 0.45) continue;
+    const kind = hs < H1 - 4 ? 'thin' : hs < H2 ? (r < 0.38 ? 'jug' : r < 0.74 ? 'flake' : 'edge') : hs < H3 ? (r < 0.5 ? 'pocket' : r < 0.8 ? 'thin' : 'edge') : 'edge';
+    KINDS[kind](Math.round(x), hs, side);
+    if (hash(hs, side, 175) < 0.62) { put(x + side, hs + 1, R.white[1]); if (r > 0.5) put(x, hs + 2, R.white[0]); }
+  }
   // Bushes on the ledges, trees along the rim.
   const rand = rng(8);
   for (let x = 6; x < RX + 60; x += 7 + rand() * 16) { if (Math.abs(x - RX) < 26) continue; const h = 5 + rand() * 9, t = rim(x); for (let j = 0; j < h; j++) for (let dx = -Math.floor(j / 2.4); dx <= Math.floor(j / 2.4); dx++) S.set(x + dx, -t - h + j, R.conifer[dx < 0 ? 3 : 1]); }
@@ -122,6 +153,21 @@ export function makeWall() {
   const stand = {};
   for (const id in prop) stand[id] = frontFig('wall', id === 'summit' ? { swing: -9 } : { swing: id === 'site-reliability-engineering' ? -3 : 0, held: prop[id] });
   stand.idle = frontFig('wall');
+  // On the ground with the rope. The knot at his waist: a turn of rope with a tail.
+  const knot = (b, cx, y) => { b.set(cx, y + 7, R.white[1]); b.set(cx - 1, y + 7, R.teal[2]); b.set(cx + 1, y + 7, R.teal[2]); b.set(cx + 1, y + 8, R.teal[1]); };
+  const tying = f => frontFig('wall', { held: (b, cx, y) => { knot(b, cx, y); for (const [dx, dy] of f ? [[-2, 6], [2, 7]] : [[-2, 7], [2, 6]]) { b.set(cx + dx, y + dy, R.skin[2]); b.set(cx + dx + (dx < 0 ? -1 : 1), y + dy, R.sun[1]); b.set(cx + dx + (dx < 0 ? -2 : 2), y + dy - 1, R.sun[1]); } } });
+  const act = {
+    reach: sideFig('wall', { crouch: 3, lean: 5, hands: [[5, 9], [1, 6]], look: 'down', feet: [[2, 8.5], [-3, 8.5]] }),
+    lift: sideFig('wall', { lean: 2, hands: [[4, 5], [-1, 6]], look: 'down' }),
+    tie: [tying(0), tying(1)], tied: frontFig('wall', { held: knot }),
+    side: sideFig('wall', { lean: 0, held: (b, sh, hands, hip) => { b.set(hip[0] + 2, hip[1] - 1, R.white[1]); b.set(hip[0] + 3, hip[1] - 1, R.teal[2]); } }), free: sideFig('wall', { lean: 0 }),
+    // A fist drawn back and put out, and a hand raised and brought forward for a high five.
+    bump: [sideFig('wall', { lean: 0, hands: [[1, 4], [-1, 6]] }), sideFig('wall', { lean: 1, hands: [[6, 4], [-1, 6]] })],
+    five: [sideFig('wall', { lean: 0, hands: [[1, -5], [-1, 6]], elbowFwd: true }), sideFig('wall', { lean: 1, hands: [[6, -2], [-1, 6]], elbowFwd: true })],
+    low: [sideFig('wall', { lean: 0, hands: [[1, -3], [-1, 6]], elbowFwd: true }), sideFig('wall', { lean: 2, hands: [[6, -1], [-1, 6]], look: 'down', elbowFwd: true })]
+  };
+  // Hands meeting: a small star where they touch.
+  const spark = (scr, x, y, a) => { if (a < 0 || a > 0.22) return; const r = a < 0.08 ? 2 : 3; scr.set(x, y, R.white[1]); for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { scr.set(x + dx, y + dy, R.white[1]); scr.set(x + dx * r, y + dy * r, R.yellow[1]); } for (const [dx, dy] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) scr.set(x + dx * (r - 1), y + dy * (r - 1), R.yellow[1]); };
 
   const pair = makeCragPair();
   const st = { who: 0 }, focus = { x: 0, y: 0 };
@@ -135,13 +181,24 @@ export function makeWall() {
     return { mode, u, s: mode === 'fall' ? lerp(s0, s1, u * u) : lerp(s0, s1, u), tau };
   }
   // The four limbs take turns: each stays on its hold while the body rises past, then reaches for the next.
-  function limbs(s, crack) {
+  // A foot takes the hold its hand had two moves before. Where a hold would lie just under a ledge and his
+  // hips are already above it, the foot is on the ledge instead, so he steps onto every ledge on the way
+  // up and stands on it until his hips have left; the same holds going down. Past the rim there is no
+  // rock to hold, so his hands come down to it and then to his sides.
+  function limbs(s) {
     const out = [];
-    for (const [off, side, lead] of [[0, -1, 9], [0.5, 1, 10], [0.25, 1, -14], [0.75, -1, -13]]) {
-      const ph = s / C - off, n = Math.floor(ph), m = ph - n;
-      const hold = k => { const hs = (k + 1) * C + lead; return [route(hs) - route(s) + side * (crack ? 1.4 + (lead < 0 ? 1.5 : 0) : 4.5 + 3 * hash(k, side + 2, 191)), hs]; };
+    for (const [off, side, lead] of [[0, -1, 9], [0.5, 1, 10], [0.25, 1, -14], [0.75, -1, -15]]) {
+      const ph = s / C - off, n = Math.floor(ph), m = ph - n, foot = lead < 0;
+      const hold = k => {
+        let hs = (k + 1) * C + lead; const x = holdX(side, hs) + (foot && hs < H1 - 4 ? side * 1.5 : 0) - route(s);
+        if (foot) for (const h of LEDGES) { if (hs > h - 14 && hs <= h + 3) hs = lerp(hs, h, smooth(h + 1 + side, h + 5 + side, s)); }
+        else hs = Math.min(hs, TOP - 1);
+        return [x, hs];
+      };
       const a = hold(n), b = hold(n + 1), u = m > 0.7 ? (m - 0.7) / 0.3 : 0;
-      out.push([Math.round(lerp(a[0], b[0], u) + side * Math.sin(u * Math.PI) * 2), -Math.round(lerp(a[1], b[1], u) - s)]);
+      let p = [lerp(a[0], b[0], u) + side * Math.sin(u * Math.PI) * 2, -(lerp(a[1], b[1], u) - s)];
+      if (!foot) { const k = smooth(TOP - 6, TOP + 8, s); p = [lerp(p[0], side * 6, k), lerp(p[1], -2, k)]; }
+      out.push([Math.round(p[0]), Math.round(p[1])]);
     }
     return { hands: [out[0], out[1]], feet: [out[3], out[2]] };
   }
@@ -153,8 +210,10 @@ export function makeWall() {
     elev: (arg, q) => at(q * DUR).s,
     // Gear goes in on the way up, the hold breaks, the rope catches, and the rappel hums.
     cues() {
-      const out = [{ at: 6.9 / DUR, name: 'crack' }, { at: 6.95 / DUR, name: 'fall' }, { at: 7.2 / DUR, name: 'catch' }, { at: 11.6 / DUR, name: 'glow' }, { at: 15.7 / DUR, name: 'glissade' }];
-      let k = 0; for (let tau = 0.9; tau < 15.5 && k < PRO.length; tau += 0.02) { const a = at(tau); if (a.mode !== 'fall' && a.s >= PRO[k]) { out.push({ at: tau / DUR, name: 'place' }); k++; } }
+      const out = [{ at: T_BREAK / DUR, name: 'crack' }, { at: (T_BREAK + 0.05) / DUR, name: 'fall' }, { at: 10 / DUR, name: 'catch' }, { at: (T_TOP + 0.2) / DUR, name: 'glissade' }];
+      // The rope coming off the ground, and the three times hands meet.
+      out.push({ at: 1.3 / DUR, name: 'step' }, { at: (2.5 + 0.8 * 0.5) / DUR, name: 'slap' }, { at: (22.9 + 0.7 * 0.45) / DUR, name: 'slap' }, { at: (24.2 + 0.7 * 0.45) / DUR, name: 'slap' });
+      let k = 0; for (let tau = T_GO; tau < T_TOP && k < PRO.length; tau += 0.02) { const a = at(tau); if (a.mode !== 'fall' && a.s >= PRO[k]) { out.push({ at: tau / DUR, name: 'place' }); k++; } }
       return out;
     },
     // Which of the two belays is a coin toss on every visit.
@@ -174,7 +233,8 @@ export function makeWall() {
       const tau = q * DUR, me = at(tau), s = me.s;
       camS += (s - camS) * Math.min(1, env.dt * 7);
       const anchor = scr.narrow ? 0.5 : 0.58, camX = Math.round(RX - VW * anchor + env.look.x * 0.4);
-      const base = baseline(scr, env.shown, st) + (scr.narrow ? 0 : -16), rowOf = h => Math.round(base + camS - h);
+      // While he waits to be told to climb there is no card open, so the picture sits where it does when he runs.
+      const base = baseline(scr, env.shown && !String(env.shown).startsWith('wait:'), st) + (scr.narrow ? 0 : -16), rowOf = h => Math.round(base + camS - h);
       last = { camX, base };
 
       // Sky, deeper the higher he gets, then the valley, then the wall itself.
@@ -190,39 +250,57 @@ export function makeWall() {
       drawStrip(scr, main, camX, base + camS, false, R.grass[1]);
 
       // The belayer pays rope out as he moves, locks off when he falls, and is lifted a little by the catch.
-      const cut = me.mode === 'rappel' || me.mode === 'out', walking = me.mode === 'walk';
-      const bel = pair.belay[st.who], bf = cut ? bel.rest : me.mode === 'fall' || me.mode === 'hang' ? bel.lock : env.moving && (Math.floor(tau * 3) & 1) ? bel.b : bel.a;
-      const bs = BS + (me.mode === 'hang' ? 2 : 0);
+      const cut = tau >= T_TOP, ground = !!GROUND[me.mode], u = me.u;
+      // On the ground, before and after the climb: where he is, how far down the grass his feet are, which
+      // way he faces and what he is doing.
+      let gx = TIE, gs = FEET, gbm = null, gflip = false;
+      const stride = (from, to) => env.moving ? run.side[Math.floor(Math.abs(to - from) * u / 4.2) % 6] : run.sideIdle[0];
+      if (me.mode === 'walk') { gx = lerp(RX - 62, TIE, u); gs = lerp(-8, FEET, u); gbm = stride(RX - 62, TIE); }
+      else if (me.mode === 'pick') gbm = u < 0.2 ? act.free : u < 0.6 ? act.reach : act.lift;
+      else if (me.mode === 'tie') gbm = u > 0.9 ? act.tied : act.tie[Math.floor(u * 7) & 1];
+      else if (me.mode === 'bump') { gflip = u >= 0.04; gbm = u < 0.04 ? act.tied : u < 0.25 || u > 0.85 ? act.side : act.bump[u > 0.45 && u < 0.7 ? 1 : 0]; }
+      else if (me.mode === 'step') { gx = lerp(TIE, RX, smooth(0, 0.7, u)); gbm = u < 0.7 ? stride(TIE, RX + 6) : null; }
+      else if (me.mode === 'land') { gx = RX + 1; gbm = stand.idle; }
+      else if (me.mode === 'over') { gx = lerp(RX + 1, BY, u); gs = FEET - u; gbm = stride(RX + 1, BY); }
+      else if (me.mode === 'five1') { gx = BY; gs = FEET - 1; gbm = u < 0.15 || u > 0.8 ? act.free : act.low[u > 0.4 && u < 0.65 ? 1 : 0]; }
+      else if (me.mode === 'back') { gx = lerp(BY, TIE, u); gs = FEET - 1 + u; gflip = true; gbm = stride(BY, TIE); }
+      else if (me.mode === 'five2') { gflip = true; gbm = u < 0.15 || u > 0.8 ? act.free : act.five[u > 0.4 && u < 0.65 ? 1 : 0]; }
+      else if (me.mode === 'out') { gx = lerp(TIE, RX - 62, u); gs = lerp(FEET, -8, u); gflip = true; gbm = stride(TIE, RX - 62); }
+      const bel = pair.belay[st.who], turned = pair.side[st.who];
+      const bf = cut || me.mode === 'walk' || me.mode === 'pick' ? bel.rest : me.mode === 'fall' || me.mode === 'hang' ? bel.lock : ground ? bel.ready : env.moving && (Math.floor(tau * 3) & 1) ? bel.b : bel.a;
+      // The belayer turns side-on to him for the fist bump before the climb and the high five after it.
+      let bside = null;
+      if (me.mode === 'bump' && u > 0.1 && u < 0.92) bside = u < 0.25 || u > 0.85 ? turned.stand : turned.bump[u > 0.45 && u < 0.7 ? 1 : 0];
+      if (me.mode === 'five2' && u > 0.05 && u < 0.9) bside = u < 0.15 || u > 0.8 ? turned.stand : turned.five[u > 0.4 && u < 0.65 ? 1 : 0];
+      const bs = BS + (me.mode === 'hang' ? 2 : 0), grip = bside ? [5, 4] : bf.grip, brake = bside ? [2, 5] : bf.brake;
       // The rope: from the pile through the belayer's hands, up through every piece he has placed or
       // clipped, to him. On the way down it hangs from the top instead. Dark edges, bright core.
       const pts = [], gear = [];
       const seg = (x0, h0, x1, h1, bow, sag) => { const n = Math.max(1, Math.abs(h1 - h0), Math.abs(x1 - x0)); for (let k = 0; k <= n; k++) { const u = k / n, w = Math.sin(u * Math.PI); pts.push(Math.round(lerp(x0, x1, u) + w * bow) - camX, rowOf(lerp(h0, h1, u) - w * sag)); } };
-      const high = tau >= 15.5 ? HS : tau >= 7.9 && tau < 10.3 ? Math.max(s, 170) : s;
+      const high = cut ? HS : tau >= 10.7 && tau < 13.1 ? Math.max(s, 170) : s;
       // On the way down he takes his gear out as he passes it, so nothing is left hanging on the wall.
       for (const h of PRO) {
-        if (h > high - 4 && !(tau >= 15.5)) break;
-        if (cut && h > s - 6) continue;
+        if (h > high - 4 && !cut) break;
+        if (cut && (ground || h > s - 6)) continue;
         gear.push([Math.round(route(h)) + (h < H1 ? 0 : 4), h]);
       }
       if (cut) seg(route(HS) + 1, HS + 2, route(HS) + 1, -2, 0, 0);
       else {
-        seg(BX + bf.brake[0], bs - bf.brake[1] - 1, BX - 10, BS - 13, 0, 0);
-        let px = BX + bf.grip[0], ph = bs - bf.grip[1] + 1;
-        if (walking) seg(px, ph, route(0) - 62 * (1 - me.u), 6, 0, 4);
+        seg(BX + brake[0], bs - brake[1] - 1, BX - 10, BS - 13, 0, 0);
+        let px = BX + grip[0], ph = bs - grip[1] + 1;
+        if (ground && gbm) {
+          // His end of the rope lies on the grass until he picks it up; then it is in his hand, then at his waist.
+          const waist = [gx + (gflip ? -2 : 2), gs + 8], k = me.mode === 'pick' ? smooth(0.4, 1, u) : me.mode === 'walk' ? 0 : 1;
+          if (k <= 0) { seg(px, ph, BX + 9, END[1], 0, 0); seg(BX + 9, END[1], END[0], END[1], 0, 0); }
+          else seg(px, ph, lerp(END[0], waist[0], k), lerp(END[1], waist[1], k), 0, 3);
+        }
         else { for (const [x, h] of gear) { seg(px, ph, x, h, 1.5, 0); px = x; ph = h; } seg(px, ph, route(s), s - 1, 1.5, 0); }
       }
       for (let i = 0; i < pts.length; i += 2) { const x = pts[i], y = pts[i + 1]; scr.set(x - 1, y, INK); scr.set(x + 1, y, INK); scr.set(x, y - 1, INK); scr.set(x, y + 1, INK); }
       for (let i = 0; i < pts.length; i += 2) scr.set(pts[i], pts[i + 1], (i >> 1) % 5 ? R.teal[2] : R.white[1]);
       for (const [x, h] of gear) if (h !== H1 && h !== H2 && h !== H3) { const y = rowOf(h); scr.set(x - camX, y, R.rock[4]); scr.set(x - camX, y + 1, h < H1 ? R.red[1] : R.rock[2]); scr.set(x - camX - 1, y, INK); scr.set(x - camX + 1, y + 1, INK); }
       // The hold that breaks on the second pitch: there before, a pale scar after, falling in between.
-      { const fx = Math.round(route(FLAKE)) + 6 - camX, fy = rowOf(FLAKE); if (tau < 6.9) { scr.set(fx, fy, R.gold[6]); scr.set(fx + 1, fy, R.gold[6]); scr.set(fx, fy + 1, R.gold[1]); scr.set(fx + 1, fy + 1, R.gold[1]); } else { scr.set(fx, fy, R.gold[6]); scr.set(fx + 1, fy + 1, R.gold[5]); const u = tau - 6.9; if (u < 1.2) { const yy = fy + Math.round(240 * u * u), xx = fx + Math.round(u * 14); scr.set(xx, yy, R.gold[3]); scr.set(xx + ((Math.floor(u * 20) & 1) ? 1 : 0), yy + ((Math.floor(u * 20) & 1) ? 0 : 1), R.gold[1]); } } }
-      // On the third pitch the next holds glow as suggestions; one off to the left goes nowhere.
-      if (tau > 10.3 && tau < 13.4) {
-        const glow = (x, y, on) => { const c = on ? R.yellow[1] : R.yellow[0]; scr.set(x, y, R.white[1]); scr.set(x - 1, y, c); scr.set(x + 1, y, c); scr.set(x, y - 1, c); scr.set(x, y + 1, c); if (on) { scr.set(x - 2, y, R.yellow[0]); scr.set(x + 2, y, R.yellow[0]); } };
-        for (let k = 1; k <= 3; k++) { const n = Math.floor(s / C) + k, hs = (n + 1) * C + 7; if (hs > ROOF + 10) continue; glow(Math.round(route(hs) + (n & 1 ? 5 : -5)) - camX, rowOf(hs), (Math.floor(t * 5) + k) & 1); }
-        if (s < DECOY.s + 4) { const x = Math.round(route(DECOY.s)) + DECOY.x - camX, y = rowOf(DECOY.s); glow(x, y, Math.floor(t * 5) & 1); for (let k = 1; k < 5; k++) scr.set(x + k * 5 + 2, y + k * 2, R.yellow[0]); }
-        else if (s < DECOY.s + 30) { const x = Math.round(route(DECOY.s)) + DECOY.x - camX, y = rowOf(DECOY.s); scr.set(x - 1, y - 1, R.red[1]); scr.set(x + 1, y + 1, R.red[1]); scr.set(x + 1, y - 1, R.red[1]); scr.set(x - 1, y + 1, R.red[1]); scr.set(x, y, R.red[1]); }
-      }
+      { const fx = Math.round(route(FLAKE)) + 6 - camX, fy = rowOf(FLAKE); if (tau < T_BREAK) { scr.set(fx, fy, R.gold[6]); scr.set(fx + 1, fy, R.gold[6]); scr.set(fx, fy + 1, R.gold[1]); scr.set(fx + 1, fy + 1, R.gold[1]); } else { scr.set(fx, fy, R.gold[6]); scr.set(fx + 1, fy + 1, R.gold[5]); const u = tau - T_BREAK; if (u < 1.2) { const yy = fy + Math.round(240 * u * u), xx = fx + Math.round(u * 14); scr.set(xx, yy, R.gold[3]); scr.set(xx + ((Math.floor(u * 20) & 1) ? 1 : 0), yy + ((Math.floor(u * 20) & 1) ? 0 : 1), R.gold[1]); } } }
 
       list.length = 0;
       for (const th of things) if (th.x + 40 > camX && th.x - 40 < camX + VW) list.push(th);
@@ -237,34 +315,38 @@ export function makeWall() {
       for (let k = 0; k < 4; k++) { const a = t * (0.7 + k * 0.13) + k * 2; scr.put(swift[(Math.floor(t * 7) + k) & 1], RX - 120 + k * 60 + Math.sin(a) * 90 - camX, rowOf(110 + k * 70 + Math.sin(a * 1.7) * 30), Math.cos(a) < 0); }
 
       // The two at the foot. He walks in and out behind the belayer, and climbs in front.
-      pair.snack(scr, 1 - st.who, SX - camX, rowOf(SS), t);
+      // The one sitting holds a hand up for him when he comes over after the rappel.
+      pair.snack(scr, 1 - st.who, SX - camX, rowOf(SS), t, me.mode === 'five1' && u > 0.15 && u < 0.8 ? (u > 0.4 && u < 0.65 ? 2 : 1) : 0);
       if (!cut) scr.put(pair.pile, BX - 10 - camX, rowOf(BS - 14), false);
-      const belayer = () => { scr.shadow(BX - camX, rowOf(BS - 13), 6, 1); scr.put(bf, BX - camX, rowOf(bs), false); };
-      if (!walking && me.mode !== 'out') belayer();
+      const belayer = () => { scr.shadow(BX - camX, rowOf(BS - 13), 6, 1); if (bside) scr.put(bside, BX + 3 - camX, rowOf(BS - 13), false); else scr.put(bf, BX - camX, rowOf(bs), false); };
+      const behind = ground && gbm;
+      if (!behind) belayer();
 
       // Himself.
       const mx = route(s) - camX, my = rowOf(s);
       let bm, by = my, bx = mx, flip = false;
-      const stopId = env.shown && !env.moving ? env.shown : null;
-      if (me.mode === 'walk' || me.mode === 'out') {
-        const u = me.mode === 'walk' ? me.u : 1 - me.u; bx = mx - 62 * (1 - u); by = rowOf(-6 - 2 * (1 - u));
-        bm = env.moving ? run.side[Math.floor(u * 62 / 4.2) % 6] : run.sideIdle[0]; flip = me.mode === 'out';
-      } else if (stopId && stand[stopId]) {
-        bm = stand[stopId]; by = rowOf(stopId === 'summit' ? HS + 4 : s) + 0;
+      const stopId = env.shown && !env.moving && stand[env.shown] ? env.shown : null;
+      if (behind) { bm = gbm; bx = Math.round(gx) - camX; by = rowOf(gs); flip = gflip; }
+      else if (stopId) {
+        // Standing on a ledge his feet are on it, which is where they were when he climbed onto it.
+        bm = stand[stopId]; by = rowOf(stopId === 'summit' ? TOP : s - LEG);
       } else if (me.mode === 'fall') bm = backFig('wall', { hands: [[-8, -13 - (Math.floor(t * 20) & 1)], [8, -14]], feet: [[-7, 9], [7, 8 + (Math.floor(t * 20) & 1)]], tilt: 1 });
       else if (me.mode === 'hang') { const sw = Math.round(Math.sin(me.u * 9) * 3 * (1 - me.u)); bx += sw; bm = backFig('wall', { hands: [[-1, -13], [1, -10]], feet: [[-4, 12], [4, 11]] }); by += Math.round(Math.sin(me.u * 12) * 2 * (1 - me.u)); }
       else if (me.mode === 'rappel') { const hop = frac(tau * 2.2); bm = backFig('wall', { hands: [[-1, -5], [2, 1]], feet: [[-7, hop < 0.5 ? 4 : 7], [7, hop < 0.5 ? 4 : 7]], headY: 1 }); bx += 1; }
       else {
-        const l = limbs(s, s < H1 - 4);
+        const l = limbs(s);
         if (me.mode === 'roof') { const sw = Math.round(Math.sin(tau * 9) * 3); l.feet = [[-3 + sw, 12], [3 + sw, 11]]; }
-        if (s >= HS - 8) { bm = stand.idle; by = rowOf(HS + 4); } else bm = backFig('wall', l);
+        bm = backFig('wall', l);
       }
-      if ((me.mode === 'climb' || me.mode === 'roof') && !stopId && s < HS - 8) { /* drawn above */ }
-      scr.put(bm, bx, by + (bm === stand.idle || (stopId && stand[stopId]) ? 0 : 0), flip);
-      if (walking || me.mode === 'out') belayer();
+      scr.put(bm, bx, by, flip);
+      if (behind) belayer();
+      // Where hands meet: the fist bump, the slap with the one sitting, the high five with the belayer.
+      if (me.mode === 'bump') spark(scr, TIE - 8 - camX, rowOf(-2), (u - 0.45) * 0.8);
+      if (me.mode === 'five1') spark(scr, RX + 30 - camX, rowOf(2), (u - 0.4) * 0.7);
+      if (me.mode === 'five2') spark(scr, TIE - 8 - camX, rowOf(4), (u - 0.4) * 0.7);
       focus.x = Math.round(bx); focus.y = Math.round(by) - 10;
       // The flag goes in on the summit and stays.
-      if (tau >= 15.5 || env.done.stack) scr.blit(flag[Math.floor(t * 5) & 1], Math.round(route(HS)) + 9 - camX, rowOf(HS + 4) - 15);
+      if (cut || env.done.stack) scr.blit(flag[Math.floor(t * 5) & 1], Math.round(route(HS)) + 9 - camX, rowOf(HS + 4) - 15);
     }
   };
 }

@@ -71,9 +71,9 @@ export const CARDS = {
 // The numbers were read from GitHub on 2026-11-14.
 export const PROJECTS = {
   bluebird: { name: 'Bluebird Forecast', top: 'A weather station', repo: 'zimmertr/bluebird', site: 'https://bluebirdforecast.com', stars: 2, release: 'v0.141.8', released: '2026-11-14', language: 'TypeScript', license: 'PolyForm Noncommercial 1.0.0', body: ['The weather window finder. It discovers hiking and mountaineering destinations and ranks them by wildfire activity, precipitation, temperature, wind and air quality, so you can find the bluebird day before it gets here.'] },
-  tks: { name: 'TJs-Kubernetes-Service', top: 'A hut with a rack in it', repo: 'zimmertr/TJs-Kubernetes-Service', stars: 557, release: 'v4.0.38', released: '2026-11-14', language: 'HCL', license: 'GPL-3.0', body: ['TKS is a collection of Terraform configurations that deploy Talos Linux Kubernetes clusters to Proxmox VE.', 'This site runs at home on one of them: Proxmox, Terraform, Talos Linux, Kubernetes, Istio and MetalLB.'], extra: [['The hardware', 'https://github.com/zimmertr/TJs-Kubernetes-Service']] },
+  tks: { name: 'TJs-Kubernetes-Service', top: 'A server rack', repo: 'zimmertr/TJs-Kubernetes-Service', stars: 557, release: 'v4.0.38', released: '2026-11-14', language: 'HCL', license: 'GPL-3.0', body: ['TKS is a collection of Terraform configurations that deploy Talos Linux Kubernetes clusters to Proxmox VE.', 'This site runs at home on one of them: Proxmox, Terraform, Talos Linux, Kubernetes, Istio and MetalLB.'], extra: [['The hardware', 'https://github.com/zimmertr/TJs-Kubernetes-Service']] },
   'hevy-garmin-sync': { name: 'hevy-garmin-sync', top: 'A weight bench', repo: 'zimmertr/hevy-garmin-sync', stars: 2, release: 'v0.13.0', released: '2026-11-14', language: 'Python', license: 'MIT', body: ['Turns Hevy routines (and Hevy Trainer workouts) into Garmin Connect strength workouts on your watch.'] },
-  trailhead: { name: 'trailhead', top: 'A brass survey marker', repo: 'zimmertr/trailhead', stars: 0, release: 'v0.1.5', released: '2026-11-14', language: 'TypeScript', license: 'PolyForm Noncommercial 1.0.0', body: ['This site. You are standing on it.'] },
+  trailhead: { name: 'trailhead', top: 'A pair of coin-operated binoculars', repo: 'zimmertr/trailhead', stars: 0, release: 'v0.1.5', released: '2026-11-14', language: 'TypeScript', license: 'PolyForm Noncommercial 1.0.0', body: ['This site. You are standing on it.'] },
   yggdrasil: { name: 'yggdrasil', top: 'The world tree', repo: 'zimmertr/yggdrasil', stars: 1, release: 'v2.0.0', released: '2026-11-14', language: 'HCL', license: 'GPL-3.0', body: ['Shared, versioned CI modules, and the Terraform that manages my GitHub repos and orgs. Every other project here hangs off it.'] },
   'kubernetes-manifests': { name: 'Kubernetes-Manifests', top: 'A cairn', repo: 'zimmertr/Kubernetes-Manifests', stars: 120, release: null, released: null, language: 'Shell', license: 'GPL-3.0', body: ['A collection of my Kubernetes manifests, managed by Kustomize and Argo CD.'] }
 };
@@ -102,9 +102,9 @@ export const FINDS = {
   dusk: ['The Dusk sky', 'Look up after the light goes'],
   offroute: ['Off route', 'An address that goes nowhere'],
   'egg:bluebird': ['The weather station', 'On top of Bluebird Forecast'],
-  'egg:tks': ['The hut', 'On top of TJs-Kubernetes-Service'],
+  'egg:tks': ['The server rack', 'On top of TJs-Kubernetes-Service'],
   'egg:hevy-garmin-sync': ['The weight bench', 'On top of hevy-garmin-sync'],
-  'egg:trailhead': ['The survey marker', 'On top of trailhead'],
+  'egg:trailhead': ['The binoculars', 'On top of trailhead'],
   'egg:yggdrasil': ['The world tree', 'On top of yggdrasil'],
   'egg:kubernetes-manifests': ['The cairn', 'On top of Kubernetes-Manifests']
 };
@@ -153,14 +153,15 @@ export const UI = {
   // On the Sound button until the first click, tap or key: a browser plays nothing before one. With a mouse, then with a finger.
   soundWaits: ['Click for sound', 'Tap for sound'],
   auto: name => 'Auto: ' + name,
-  pixels: (colours, w, h) => colours + ' colours, ' + w + ' x ' + h + ' pixels, every one drawn in code',
+  // The word in the burst when the server rack on TJs-Kubernetes-Service is hit. Drawn in pixels, capitals only.
+  bang: 'BANG!',
   found: (name, n, of) => 'Found: ' + name + '. ' + n + ' of ' + of + ' on the kiosk checklist.',
   allDone: 'All three destinations done. The summit register is open, on the trail map.',
   fail: 'The world could not be drawn here. The trail map has everything as text.',
   // Said when a scene breaks and he is put on the off-route page instead.
   broken: 'That stretch of trail has washed out. He is off route.',
   // Said while a scene holds him at a spot with no card. The key is what follows 'wait:' in the stop's id.
-  wait: { go: 'Press Space or Start to carry on.' },
+  wait: { go: 'Press Space or Start to carry on.', belay: 'Press Space or Start to climb.' },
   card: {
     summit: top => 'On the summit: ' + top.toLowerCase(),
     egg: top => 'Click ' + top.toLowerCase().replace(/^a /, 'the ') + ' up there.',

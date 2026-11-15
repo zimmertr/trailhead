@@ -62,24 +62,29 @@ export function makeCragPair() {
   const feet = [[-3, 13], [3, 13]];
   const belay = PAIR.map(k => {
     const f = (grip, brake, ft) => Object.assign(backFig(k, { hands: [brake, grip], feet: ft || feet, rack: false }), { grip, brake });
-    return { a: f([7, -12], [-6, 0]), b: f([7, -9], [-6, -3]), lock: f([6, -7], [-5, 3], [[-5, 12], [5, 12]]), rest: f([6, 2], [-6, 2]) };
+    // ready: both hands low on the rope, waiting for him to tie in.
+    return { a: f([7, -12], [-6, 0]), b: f([7, -9], [-6, -3]), lock: f([6, -7], [-5, 3], [[-5, 12], [5, 12]]), rest: f([6, 2], [-6, 2]), ready: f([5, -3], [-5, 1]) };
   });
   const sit = { lean: 0, crouch: 3, feet: [[5, 8.5], [4, 8.5]] };
   // A bar in a yellow wrapper, peeled back at one end.
   const snack = PAIR.map(k => {
     const f = (hands, look, at) => sideFig(k, { ...sit, hands, look, head: look === 'up' ? [0, -1] : [0, 0], held: (b, sh) => { const x = sh[0] + at[0], y = sh[1] + at[1]; b.set(x, y, R.skin[2]); b.set(x, y + 1, R.skin[1]); b.set(x - 1, y - 1, R.yellow[1]); b.set(x - 1, y, R.yellow[0]); b.set(x - 1, y - 2, R.wood[1]); } });
-    return { lap: f([[4, 3], [3, 4]], 'down', [5, 3]), bite: f([[5, -1], [3, 4]], null, [7, -1]), up: f([[4, 3], [3, 4]], 'up', [5, 3]) };
+    // ready and five: the free hand lifted, then held out and up for him to slap.
+    return { lap: f([[4, 3], [3, 4]], 'down', [5, 3]), bite: f([[5, -1], [3, 4]], null, [7, -1]), up: f([[4, 3], [3, 4]], 'up', [5, 3]), ready: f([[3, -5], [3, 4]], 'up', [4, 4]), five: f([[6, -7], [3, 4]], 'up', [4, 4]) };
   });
+  // Either of them side-on and standing, for when he comes over: a fist drawn back and put out, and a hand
+  // lifted and held up to be slapped.
+  const side = PAIR.map(k => ({ stand: sideFig(k, { lean: 0 }), bump: [sideFig(k, { lean: 0, hands: [[1, 2], [-1, 6]] }), sideFig(k, { lean: 1, hands: [[6, 0], [-1, 6]] })], five: [sideFig(k, { lean: 0, hands: [[1, -7], [-1, 6]], elbowFwd: true }), sideFig(k, { lean: 1, hands: [[6, -6], [-1, 6]], elbowFwd: true })] }));
   const rock = makeBoulder(533, 6);
   // The slack rope, flaked out in a pile at the belayer's feet.
   const pile = new BM(11, 6); pile.ox = 5; pile.oy = 5;
   for (const [x, y] of [[2, 4], [3, 4], [4, 4], [5, 4], [6, 4], [7, 4], [8, 4], [1, 3], [9, 3], [3, 3], [5, 3], [7, 3], [2, 2], [4, 2], [6, 2], [8, 2], [4, 1], [5, 1], [6, 1]]) pile.set(x, y, (x + y) % 3 ? R.teal[2] : R.white[1]);
   outline(pile, INK);
   return {
-    belay, pile,
+    belay, pile, side,
     // The one who is not belaying eats, chews, and looks up to see how it is going. x, y is where the feet rest.
-    snack(scr, who, x, y, t) {
-      const u = t % 6.2, f = snack[who][u > 4.6 ? 'up' : u > 2 && u < 2.7 ? 'bite' : 'lap'];
+    snack(scr, who, x, y, t, five) {
+      const u = t % 6.2, f = snack[who][five === 2 ? 'five' : five ? 'ready' : u > 4.6 ? 'up' : u > 2 && u < 2.7 ? 'bite' : 'lap'];
       scr.put(rock, x + 3, y + 1, false);
       scr.put(f, x - 2, y, true);
     }

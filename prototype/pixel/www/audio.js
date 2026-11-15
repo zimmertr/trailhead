@@ -200,6 +200,11 @@ export function makeAudio() {
     jay: t => { for (let i = 0; i < 3; i++) noise(fx, t + i * 0.12, 0.08, 0.12, 3000, 6, 'bandpass'); },
     bark: t => noise(fx, t, 0.2, 0.2, 300, 1, 'lowpass'),
     step: t => noise(fx, t, 0.02, 0.05, 1200, 1, 'bandpass'),
+    // An ice tool biting: a short bright tick. And the server rack being hit: a low thump, a crunch and a ring of sheet metal.
+    // Two hands meeting.
+    slap: t => { noise(fx, t, 0.035, 0.26, 2200, 1.1, 'bandpass'); noise(fx, t, 0.02, 0.1, 5200, 2, 'bandpass'); },
+    tink: t => { noise(fx, t, 0.02, 0.09, 6200, 3, 'bandpass'); tone(fx, 'square', 2400, t, 0.03, 0.05, 1900); },
+    bang: t => { tone(fx, 'triangle', 150, t, 0.3, 0.7, 42); noise(fx, t, 0.16, 0.4, 320, 0.8, 'lowpass'); noise(fx, t + 0.01, 0.07, 0.2, 2600, 2, 'bandpass'); tone(fx, 'square', 520, t + 0.03, 0.2, 0.08, 470); },
     locked: t => { tone(fx, 'square', 180, t, 0.08, 0.16); tone(fx, 'square', 150, t + 0.09, 0.12, 0.16); },
     unlock: t => [659, 784, 988, 1319].forEach((f, i) => tone(fx, 'triangle', f, t + i * 0.07, 0.14, 0.4))
   };
