@@ -2,7 +2,7 @@
 // coast, the layers of peaks along the north, and each tree, rock and bush. The world scene draws
 // from it and so does the plan page, so the two cannot drift apart.
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, KIND, pick, BM, outline, thick, catmull, INK } from './core.js';
-import { clump, makeMaple, makeSpruce, makeFir, makeConifer, makeBoulder, makeLog, makeSnag, makeBush, makeFern } from './sprites.js';
+import { clump, makeMaple, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeBoulder, makeLog, makeSnag, makeBush, makeFern } from './sprites.js';
 import { ell } from './fauna.js';
 
 // The map as it was until round 2 sits inside this one, moved right and down by OX, OY.
@@ -32,6 +32,8 @@ const forestAmt = (x, y) => smooth(forestEdge(y) + 12, forestEdge(y) - 12, x) * 
 const basinAmt = (x, y) => smooth(1020, 1210, x + 60 * (fbm(y / 60, 1, 7, 3) - 0.5)) * smooth(700, 580, y + 60 * (fbm(x / 70, 2, 8, 3) - 0.5));
 const dryAmt = (x, y) => smooth(1120, 1400, x + 110 * (fbm(y / 90, 3, 9, 3) - 0.5)) * smooth(560, 700, y + 60 * (fbm(x / 70, 2, 8, 3) - 0.5));
 const sageAmt = (x, y) => smooth(1330, 1490, x + 60 * (fbm(y / 60, 4, 10, 3) - 0.5));
+// East of here the firs of the meadow give way to aspen and ponderosa. The line wanders.
+const eastAmt = (x, y) => smooth(985, 1070, x + 60 * (fbm(y / 70, 7.7, 13, 3) - 0.5));
 const burnAmt = (x, y) => smooth(1000, 1300, x + 120 * (fbm(y / 90, 5, 11, 3) - 0.5)) * smooth(780, 950, y + 80 * (fbm(x / 90, 6, 12, 3) - 0.5));
 const MESAS = [[1496, 700, 52, 17], [1462, 772, 40, 14], [1526, 836, 44, 15], [1420, 708, 16, 7]];
 const mesa = (x, y) => MESAS.some(([cx, cy, rx, ry]) => Math.hypot((x - cx) / rx, (y - cy) / ry) < 1 + 0.25 * (vnoise(x / 9, y / 7, 141) - 0.5));
@@ -304,10 +306,14 @@ function ground(x, y) {
     return hash(x, y, 98) < 0.06 ? R.pink[1] : pick('grass', 0.42 + 0.5 * (fbm(x / 20, y / 20, 99, 3) - 0.5) + 0.2 * n1, x, y, 0.4);
   }
   if (bu > blot(182)) {
-    // The old burn: ash-grey ground, green coming back in patches, fireweed everywhere.
+    // The old burn: ash-grey ground, green coming back in patches, and fireweed.
     const green = fbm(x / 24, y / 16, 100, 3);
-    if (hash(x, y, 101) < 0.05 && hash(x, y - 1, 101) >= 0.05) return R.pink[1];
-    if (hash(x, y + 1, 101) < 0.05) return R.pink[2];
+    // Fireweed stands in drifts: spikes three to five pixels tall on a green stem, thick in some
+    // patches and thin between them. A spike is rooted k pixels below this one.
+    for (let k = 0; k < 5; k++) {
+      const tall = 3 + Math.floor(hash(x, y + k, 132) * 2.99);
+      if (k < tall && hash(x, y + k, 101) < 0.012 + 0.15 * smooth(0.5, 0.66, fbm(x / 30, (y + k) / 15, 131, 3))) return k === 0 ? R.grass[1] : k === tall - 1 ? R.fireweed[1] : hash(x, y, 133) < 0.18 ? R.pink[1] : R.fireweed[0];
+    }
     return green > 0.56 - (1 - bu) * 0.2 ? pick('grass', 0.3 + 0.5 * (green - 0.5) + 0.2 * n1, x, y, 0.5) : pick('ash', 0.4 + 0.5 * fbm(x / 14, y / 9, 102, 3) + 0.2 * n1, x, y);
   }
   if (da > blot(183)) {
@@ -385,7 +391,7 @@ for (const br of BRIDGES) {
 }
 function blobTree(seed, name, H, trunk, n, r0) {
   const rand = rng(seed), W = 30, b = new BM(W, H + 2); b.ox = W >> 1; b.oy = H;
-  for (let y = Math.round(H * 0.3); y <= H; y++) { b.set(b.ox - 1, y, R[trunk][2]); b.set(b.ox, y, R[trunk][1]); if (trunk === 'pbark' && y & 3) b.set(b.ox + 1, y, R[trunk][0]); }
+  for (let y = Math.round(H * 0.3); y <= H; y++) { b.set(b.ox - 1, y, R[trunk][2]); b.set(b.ox, y, R[trunk][1]); }
   const cs = []; for (let k = 0; k < n; k++) cs.push([b.ox + (rand() - 0.5) * (W - 16), H * 0.3 + (rand() - 0.5) * H * 0.3, r0 + rand() * 2]);
   cs.sort((a, c) => a[1] - c[1]);
   for (const [x, y, r] of cs) { const c = clump(r, name, rand, 0); for (let j = 0; j < c.h; j++) for (let i = 0; i < c.w; i++) { const v = c.d[j * c.w + i]; if (v) b.set(Math.round(x - c.cx) + i, Math.round(y - c.cy) + j, v); } }
@@ -431,7 +437,7 @@ const charred = seed => { const s = makeSnag(seed); for (let i = 0; i < s.d.leng
 const maples = Array.from({ length: 6 }, (_, i) => makeMaple(100 + i)), spruces = Array.from({ length: 6 }, (_, i) => makeSpruce(200 + i)), firs = Array.from({ length: 8 }, (_, i) => makeFir(300 + i));
 const bigleaf = Array.from({ length: 4 }, (_, i) => blobTree(800 + i, i & 1 ? 'larch' : 'sun', 36 + i * 2, 'bark', 5, 5.5));
 const larches = Array.from({ length: 6 }, (_, i) => { const r = rng(900 + i); return makeConifer(900 + i, 24 + (r() * 14 | 0), 10 + (r() * 4 | 0), 'larch', 6); });
-const pines = Array.from({ length: 5 }, (_, i) => blobTree(820 + i, 'pine', 40 + i * 3, 'pbark', 6, 5.5));
+const pines = Array.from({ length: 5 }, (_, i) => makePonderosa(820 + i)), aspens = Array.from({ length: 7 }, (_, i) => makeAspen(600 + i));
 const young = Array.from({ length: 4 }, (_, i) => makeConifer(940 + i, 9 + i * 2, 6, 'kit', 3));
 const snags = Array.from({ length: 5 }, (_, i) => makeSnag(730 + i)), burnt = Array.from({ length: 4 }, (_, i) => charred(740 + i));
 const logs = Array.from({ length: 6 }, (_, i) => makeLog(i)), silverLogs = Array.from({ length: 4 }, (_, i) => makeLog(10 + i, true));
@@ -481,7 +487,7 @@ for (let n = 0; n < 1700; n++) {
   const gl = glacier(x, y, TONGUES_WAS); if (gl.d < gl.w + 8 || (Math.abs(x - SPIRES.x) < 96 && y < SPIRES.y + 4) || !clearOf(x, y, 12, 30)) continue;
   const fir = firs[(rand() * 8) | 0];
   // The Spires may be drawn wider than they are, so their foot is kept clear to either side.
-  if (!free(x, y, 12, 30) || onIce(x, y, 8) || (Math.abs(x - SPIRES.x) < 122 && y < 528)) continue;
+  if (!free(x, y, 12, 30) || onIce(x, y, 8) || (Math.abs(x - SPIRES.x) < 122 && y < 528) || hash(n, 3, 78) < eastAmt(x, y)) continue;
   plant(fir, x, y);
 }
 // Larches: thick in the basin, thinning into the meadow and the pines, a few down by the Spires camp.
@@ -499,13 +505,40 @@ for (let n = 0; n < 760; n++) {
   const x = 1090 + rand() * 470, y = 560 + rand() * 380, da = dryAmt(x, y), sg = sageAmt(x, y);
   if (rand() > da || couleeAmt(x, y) || !openWas(x, y)) continue;
   if (rand() < burnAmt(x, y)) { if (rand() < 0.45) putTree(burnt[(rand() * 4) | 0], x, y); continue; }
-  if (rand() < (1 - sg) * 0.3 && fbm(x / 50, y / 40, 121, 3) > 0.42) putTree(pines[(rand() * 5) | 0], x, y); else if (rand() < 0.2 + sg * 0.6) put(sages[(rand() * 3) | 0], x, y);
+  if (rand() < (1 - sg) * 0.3 && fbm(x / 50, y / 40, 121, 3) > 0.42) plant(pines[(rand() * 5) | 0], x, y); else if (rand() < 0.2 + sg * 0.6) put(sages[(rand() * 3) | 0], x, y);
 }
 // The old burn: silver and charred snags standing over young trees, thinning out at its edges.
 rand = dice(40145);
 for (let n = 0; n < 760; n++) {
   const x = 980 + rand() * 580, y = 770 + rand() * 310; if (rand() > burnAmt(x, y) * 1.1 || !openWas(x, y)) continue;
   const r = rand(); if (r < 0.34) putTree(snags[(rand() * 5) | 0], x, y); else if (r < 0.52) putTree(burnt[(rand() * 4) | 0], x, y); else if (r < 0.7) plant(young[(rand() * 4) | 0], x, y); else if (r < 0.74) layLog(silverLogs[n % 4], x, y, n, 0.5);
+}
+// The east side between the larches and the burn: aspen in groves and ponderosa standing apart.
+// They have dice of their own, so nothing else on the map moves when they change. Each kind strays
+// into its neighbours, the larches a little way south and the snags a little way north, so the three
+// bands run into one another.
+{
+  const r2 = rng(2703), stood = [];
+  const band = (x, y) => eastAmt(x, y) * smooth(0.6, 0.15, basinAmt(x, y)) * smooth(0.85, 0.2, burnAmt(x, y)) * (1 - 0.8 * sageAmt(x, y));
+  const fits = (x, y, w, h, gapX, gapY) => x > 4 && x < NW - 4 && y < NH - 2 && free(x, y, w, h) && clearOf(x, y, w, h) && !couleeAmt(x, y) && !couleeAmt(x, y + 6) && !stood.some(([px, py]) => Math.abs(px - x) < gapX && Math.abs(py - y) < gapY);
+  for (let n = 0; n < 170; n++) {
+    const cx = 990 + r2() * 480, cy = 590 + r2() * 340, size = 4 + (r2() * 10 | 0), spread = 8 + r2() * 12, luck = r2();
+    const here = luck < band(cx, cy) * (0.16 + 0.9 * smooth(0.42, 0.62, fbm(cx / 70, cy / 50, 135, 3)));
+    for (let k = 0; k < size; k++) {
+      const a = r2() * TAU, d = Math.sqrt(r2()) * spread, x = cx + Math.cos(a) * d * 1.5, y = cy + Math.sin(a) * d * 0.8, t = aspens[(r2() * 7) | 0];
+      if (here && fits(x, y, 8, t.h, 5, 3)) { stood.push([x, y]); plant(t, x, y); }
+    }
+  }
+  for (let n = 0; n < 460; n++) {
+    const x = 1010 + r2() * 430, y = 600 + r2() * 310, luck = r2(), t = pines[(r2() * 5) | 0];
+    if (luck < band(x, y) * 0.13 && fits(x, y, 10, t.h, 13, 7)) { stood.push([x, y]); plant(t, x, y); }
+  }
+  for (let n = 0; n < 320; n++) {
+    const x = 1010 + r2() * 500, y = 640 + r2() * 250, luck = r2(), k = r2(), ba = basinAmt(x, y), bu = burnAmt(x, y);
+    if (!fits(x, y, 12, 30, 7, 4)) continue;
+    if (ba > 0.03 && ba < 0.5 && luck < ba * 0.4) { stood.push([x, y]); plant(larches[(k * 6) | 0], x, y); }
+    else if (bu > 0.04 && bu < 0.55 && luck < bu * 0.45) { stood.push([x, y]); putTree(k < 0.6 ? snags[(k * 8) | 0] : burnt[((k - 0.6) * 10) | 0], x, y); }
+  }
 }
 // Boulders, bushes and the odd snag in the open ground.
 rand = dice(43068);
