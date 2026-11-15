@@ -270,6 +270,8 @@ export function makeWorld() {
       cy = VH >= WH ? WH / 2 : clamp(cy, VH / 2, WH - VH / 2 + past);
       const ox = env.fixed ? env.fixed.x : Math.round(cx - VW / 2), oy = env.fixed ? env.fixed.y : Math.round(cy - VH / 2);
       last = { ox, oy, VW, VH };
+      // The night sky is pinned to the world's own sky, laid out over a height that keeps the aurora in its dark upper part.
+      scr.sky = { ox, oy, w: WW, h: 440, moon: [930, 70] };
 
       // Ground.
       for (let y = 0; y < VH; y++) {
