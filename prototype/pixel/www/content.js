@@ -96,7 +96,7 @@ export const FINDS = {
   kiosk: ['The kiosk', 'You are reading it'],
   sasquatch: ['Sasquatch', 'Keep an eye on the far trees'],
   marmot: ["The marmot's whistle", 'On a rock above the lake'],
-  plunge: ['The cold plunge', 'The lake looks inviting'],
+  swim: ['The swim to the island', 'The lake looks inviting'],
   snack: ['A snack break', 'Stand still for a minute by the lake or in the trees'],
   pika: ['The pika', 'In the talus under The Stack'],
   dusk: ['The Dusk sky', 'Look up after the light goes'],
@@ -134,7 +134,7 @@ export const NAMES = {
   kiosk: 'Trail conditions', kayti: 'Kayti',
   cats: { tortie: 'Doot Doot', nebel: 'Peevers' },
   forest: { sign: 'Legacy Grove', creek: 'Cache Miss Creek' },
-  lakeside: { sign: 'Cold Start Cove', marmot: 'Hoary marmot', plunge: 'Cold plunge' },
+  lakeside: { sign: 'Cold Start Cove', marmot: 'Hoary marmot', swim: 'Go for a swim', back: 'Swim back' },
   wall: { pika: 'Pika', ledge: 'Deadlock Ledge', roof: 'Rollback Roof', scree: 'Segfault Scree' },
   climb: { crevasse: 'Tech Debt Crevasse', ridge: 'Race Condition Ridge' },
   offroute: { wand: 'The only wand for miles' }

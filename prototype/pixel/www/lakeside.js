@@ -2,17 +2,24 @@
 // peak. He runs left to right along the near shore, stops for the view with the map out, and
 // again at the boulder where his journal lies open.
 import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, thick, windAt } from './core.js';
-import { Strip, drawStrip, blitTall, baseline, edgeTrunk } from './side.js';
+import { Strip, drawStrip, blitTall, baseline } from './side.js';
 import { makeTrunk, makeLimb, swordFern } from './forest.js';
 import { makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush, makeMaple } from './sprites.js';
 import { marmot, speck } from './fauna.js';
-import { makeRunner, sideFig } from './tj.js';
+import { makeRunner, sideFig, cheerFig, swimFig } from './tj.js';
 import { NAMES } from './content.js';
 
 const SW = 1640, X0 = 500, LEN = 624, DUR = 8;
 const D_MAP = 125, D_NOTE = 437, D_MARMOT = 276;
 const FAR = -50; // the far shore, measured up from the trail
-const PLUNGE = 8.9; // how long the cold plunge takes, from the first thing off to the last thing back on
+// The island out in the lake, the one the map shows a little left of the lake's middle: where it is
+// seen dead ahead, where its waterline is, and how fast it crosses the view. It lies between the
+// shores, so it moves slower than the near one and faster than the far one.
+const ISLE_X = 790, ISLE_Y = -28, ISLE_K = 0.66, FIR_DX = -8;
+// The swim out to it, in seconds from standing dressed on the trail: clothes off by T_OFF, up the
+// bank by T_BANK, waded in by T_WADE. The swim itself takes as long as it is far, and the climb
+// out T_CLIMB. Asked back, he goes through the same seconds backwards.
+const T_OFF = 0.45, T_BANK = 1.05, T_WADE = 1.85, T_CLIMB = 0.7;
 
 const shore = x => -9 + Math.round(2.5 * Math.sin(x / 37) + 3 * vnoise(x / 15, 3, 120));
 const g = x => Math.round(2 * Math.sin(x / 120 + 1));
@@ -116,11 +123,32 @@ export function makeLakeside() {
   for (let n = 0; n < 150; n++) { const x = rand() * SW, y = 8 + sq(rand()) * 220, k = rand(); things.push(k < 0.45 ? { bm: boulders[Math.min(6, (rand() * 4 + y / 60) | 0)], x: Math.round(x), y: Math.round(y) } : { bm: bushes[(rand() * 5) | 0], x: Math.round(x), y: Math.round(y) }); }
   for (let n = 0; n < 34; n++) { const x = rand() * SW, y = 84 + rand() * 150; things.push({ tree: rand() < 0.6 ? spruces[(rand() * 4) | 0] : firs[(rand() * 6) | 0], x: Math.round(x), y: Math.round(y) }); }
   const marmotRock = makeBoulder(161, 11); things.push({ bm: marmotRock, x: xMarmot, y: shore(xMarmot) + 5 });
+  // How far above its foot the rock's top is, so the marmot can lie on the rock itself: the picture of a rock has empty rows above it.
+  let rockTop = 0; while (rockTop < marmotRock.h && !marmotRock.d[rockTop * marmotRock.w + marmotRock.ox]) rockTop++;
+  rockTop = marmotRock.oy - rockTop;
   const noteRock = makeBoulder(162, 9);
   { const b = noteRock, x = b.ox - 1, y = b.oy - 13; for (let dx = 0; dx < 7; dx++) { b.set(x + dx, y, dx === 3 ? R.white[0] : R.white[1]); b.set(x + dx, y + 1, dx === 3 ? R.red[0] : R.white[0]); } b.set(x - 1, y + 1, R.red[1]); b.set(x + 7, y + 1, R.red[1]); b.set(x + 5, y - 1, R.navy[1]); }
   things.push({ bm: noteRock, x: xNote + 15, y: g(xNote) - 4 });
   const signX = X0 + 40; things.push({ bm: makeSmallSign(), x: signX, y: g(signX) - 5 });
   const clouds = [0, 1, 2, 3].map(i => ({ bm: makeCloud(610 + i), x: i * 210, y: 30 + (i & 1) * 34 + i * 9, v: 2.5 + i }));
+
+  // The island: a low grassy hump with stones at the water and one fir, as on the map.
+  const isle = new BM(64, 14); isle.ox = 32; isle.oy = 12;
+  for (let x = -28; x <= 28; x++) {
+    const top = Math.round(7.4 * Math.sqrt(1 - sq(x / 28.5)) * (0.75 + 0.4 * vnoise(x / 9, 5, 340)));
+    for (let h = 0; h <= top; h++) {
+      const y = isle.oy - h, stone = h < 1 + (hash(x >> 1, 3, 341) < 0.45 ? 1 : 0) + (Math.abs(x) > 22 ? 1 : 0);
+      isle.set(isle.ox + x, y, h === 0 ? R.rock[1] : stone ? pick('rock', 0.72 + 0.3 * (hash(x, h, 342) - 0.5), x, y) : pick('grass', 0.42 + 0.09 * h + 0.25 * (hash(x >> 1, h, 343) - 0.5), x, y, 0.3));
+    }
+  }
+  for (const [x, c] of [[-20, R.lupine[2]], [-15, R.white[1]], [4, R.red[2]], [17, R.pink[2]], [21, R.lupine[2]]]) isle.set(isle.ox + x, isle.oy - 4, c);
+  outline(isle, INK);
+  for (let x = 0; x < isle.w; x++) isle.d[(isle.oy + 1) * isle.w + x] = 0;
+  const isleFir = firs[2];
+  // The island and its fir in one picture, for their reflection.
+  const isleAll = new BM(64, 64); isleAll.ox = 32; isleAll.oy = 62;
+  for (let j = 0; j <= isle.oy; j++) for (let i = 0; i < isle.w; i++) { const c = isle.d[j * isle.w + i]; if (c) isleAll.set(i, isleAll.oy - isle.oy + j, c); }
+  for (const part of isleFir.parts) for (let j = 0; j < part.bm.h; j++) for (let i = 0; i < part.bm.w; i++) { const c = part.bm.d[j * part.bm.w + i]; if (c) isleAll.set(isleAll.ox + FIR_DX + part.x + i, isleAll.oy - 5 + part.y + j, c); }
 
   // The forest he has just come out of stands at the left: a wall of leaves closing off the lake
   // there, three of the giants with their limbs reaching out over the shore, maples and ferns under them.
@@ -149,6 +177,7 @@ export function makeLakeside() {
   things.push(...edge);
 
   const run = makeRunner('trail'), dip = makeRunner('plunge');
+  const crawl = [0, 1, 2, 3].map(f => swimFig('plunge', f)), cheer = [cheerFig('plunge'), cheerFig('plunge', { spread: 8 }), cheerFig('plunge', { bob: -2, lift: [2, 2] })];
   // What he leaves on the trail while he swims: the vest, the shirt folded on top of it, the shoes beside them.
   const pile = {};
   { const v = pile.vest = new BM(10, 5); v.ox = 4; v.oy = 4; for (let y = 1; y < 4; y++) for (let x = 1; x < 9; x++) v.set(x, y, y === 1 ? R.navy[2] : R.navy[1]); v.set(2, 2, R.shoe[2]); v.set(7, 2, R.shoe[2]); v.set(4, 3, R.navy[0]); v.set(5, 3, R.navy[0]); outline(v, INK); }
@@ -160,7 +189,9 @@ export function makeLakeside() {
   const marm = { sun: marmot('sun'), up: marmot('up') }, bird = [speck(0), speck(1)];
 
   const st = {}, focus = { x: 0, y: 0 };
-  let cam = 0, last = { camX: 0, base: 0 }, plunge = -99, whistled = false, splashed = false;
+  // swim is how far into the swim he is, in seconds (0 on the trail); dir is +1 on the way out and
+  // while he stays on the island, -1 on the way back; swimT is how long the swimming part takes.
+  let cam = 0, last = { camX: 0, base: 0, isle: [0, 0], me: [0, 0] }, swim = 0, dir = 0, swimT = 3, arrived = 0, whistled = false;
   const list = [];
   const xOf = q => X0 + q * LEN;
 
@@ -169,28 +200,59 @@ export function makeLakeside() {
     dur: () => DUR,
     stops: () => [{ id: 'mountains', at: D_MAP / LEN }, { id: 'note', at: D_NOTE / LEN }],
     elev: (arg, q) => -g(xOf(q)) * 1.5,
-    enter(scr, arg, q) { cam = xOf(q); st.y = null; plunge = -99; },
+    enter(scr, arg, q) { cam = xOf(q); st.y = null; swim = 0; dir = 0; },
     focus: () => focus,
     pick(sx, sy) {
       const wx = sx + last.camX, wy = sy - last.base;
       if (Math.abs(wx - signX) < 8 && wy > g(signX) - 22 && wy < g(signX) - 2) return { label: NAMES.lakeside.sign, x: signX - last.camX, y: last.base + g(signX) - 24 };
       if (Math.abs(wx - xMarmot) < 13 && wy > shore(xMarmot) - 32 && wy < shore(xMarmot) + 6) return { label: NAMES.lakeside.marmot, x: xMarmot - last.camX, y: last.base + shore(xMarmot) - 30, act: 'marmot' };
-      if (wy > FAR + 2 && wy < shore(wx) - 1) return { label: NAMES.lakeside.plunge, x: sx, y: sy - 6, act: 'plunge' };
+      const ax = Math.abs(sx - last.isle[0]), ay = sy - last.isle[1], onIsle = ay < 2 && (ay > -9 ? ax < 30 : ay > -42 && ax < 13);
+      // While he is out there, he and the island call him back. Otherwise the island and the water send him out.
+      if (swim > 0) return dir > 0 && (onIsle || (Math.abs(sx - last.me[0]) < 10 && sy > last.me[1] - 30 && sy < last.me[1] + 4)) ? { label: NAMES.lakeside.back, x: sx, y: sy - 6, act: 'back' } : null;
+      if (last.reach && (onIsle || (wy > FAR + 2 && wy < shore(wx) - 1))) return { label: NAMES.lakeside.swim, x: sx, y: sy - 6, act: 'swim' };
       return null;
     },
     act(id, env) {
-      if (id === 'plunge' && !env.running && env.t - plunge > PLUNGE + 0.3) { plunge = env.t; splashed = false; env.found('plunge'); return true; }
+      if (id === 'swim' && !env.running && swim === 0 && last.reach) { swim = 1e-3; dir = 1; env.found('swim'); return true; }
+      if (id === 'back' && swim > 0) { dir = -1; return true; }
       if (id === 'marmot') { whistled = env.t; env.sfx('whistle'); env.found('marmot'); return true; }
       return false;
     },
+    // Asked to run on while he is in the water or on the island, he swims back and dresses first.
+    hold: () => swim > 0,
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t, tq } = env;
       const mx = xOf(q), d = q * LEN, my = g(mx);
       const anchor = scr.narrow ? 0.5 : 0.56;
       cam += (mx - cam) * Math.min(1, env.dt * 8);
       const camX = Math.round(cam - VW * anchor + env.look.x * 0.5), base = baseline(scr, env.shown, st);
-      last = { camX, base };
-      if (env.running) plunge = -99;
+      const ix = Math.round(VW / 2 + (ISLE_X - camX - VW / 2) * ISLE_K), reach = ix > 30 && ix < VW - 30;
+      // Start or Space while he is away turns him round (hold() keeps him here until he is back).
+      // Dragged along the trail instead, he is simply back on it.
+      if (env.moving && !env.running) { swim = 0; dir = 0; }
+      if (env.running && swim > 0) dir = -1;
+      // Where he meets the water once he has waded in, and where he lands in front of the island.
+      const X = Math.round(mx - camX), bank = shore(mx), IN = [X, bank - 20], LAND = [ix + 9, ISLE_Y + 2];
+      if (dir > 0 && swim < T_WADE) swimT = clamp(Math.hypot(LAND[0] - IN[0], LAND[1] - IN[1]) / 36, 0.5, 5.5);
+      const END = T_WADE + swimT + T_CLIMB;
+      if (dir) {
+        const was = swim; swim = clamp(swim + dir * env.dt, 0, END);
+        const wet = dir > 0 ? T_BANK + 0.1 : END - T_CLIMB * 0.5;
+        if ((was < wet) !== (swim < wet)) env.sfx('splash');
+        if (swim >= END && was < END) arrived = t;
+        if (swim <= 0) dir = 0;
+      }
+      // at: his feet (or, swimming, where he meets the water), how deep he stands, and what he is doing.
+      let at = null;
+      if (swim > 0) {
+        if (swim < T_OFF) at = { x: X, y: my, k: 'strip' };
+        else if (swim < T_BANK) at = { x: X, y: lerp(my, bank + 1, (swim - T_OFF) / (T_BANK - T_OFF)), k: 'walk' };
+        else if (swim < T_WADE) { const k = (swim - T_BANK) / (T_WADE - T_BANK); at = { x: X, y: lerp(bank + 1, bank - 11, k), depth: k * 9, k: 'wade' }; }
+        else if (swim < T_WADE + swimT) { const k = (swim - T_WADE) / swimT; at = { x: lerp(IN[0], LAND[0], k), y: lerp(IN[1], LAND[1], k), k: 'swim' }; }
+        else if (swim < END) { const k = (swim - T_WADE - swimT) / T_CLIMB; at = { x: LAND[0], y: lerp(ISLE_Y + 9, ISLE_Y - 2, k), depth: (1 - k) * 7, k: 'wade' }; }
+        else at = { x: LAND[0], y: ISLE_Y - 2, k: 'cheer' };
+      }
+      last = { camX, base, reach, isle: [ix, base + ISLE_Y], me: at ? [Math.round(at.x), Math.round(base + at.y)] : [X, base + my] };
 
       // Sky, lightest at the horizon.
       const sb = R.skyband, hor = base + FAR;
@@ -238,6 +300,17 @@ export function makeLakeside() {
       }
       for (let k = 0; k < 3; k++) { const bx = ((t * 16 + k * 13) % (VW + 160)) - 80; scr.put(bird[(Math.floor(t * 4) + k) & 1], bx + [0, 9, -8][k], hor - 120 + [0, 5, 8][k] + 6 * Math.sin(t * 0.6), false); }
 
+      // The island, with itself and its fir upside down in the water under it.
+      {
+        const iy = base + ISLE_Y, w = isleAll.w;
+        for (let j = 1; j <= 16; j++) {
+          const y = iy + j, src = isleAll.oy - Math.round(j * 1.7); if (y < 0 || y >= VH || src < 0) continue;
+          const rip = Math.round(1.5 * Math.sin((y - hor) * 1.9 + t * 1.4));
+          for (let i = 0; i < w; i++) { const c = isleAll.d[src * w + i], x = ix - isleAll.ox + i + rip; if (!c || x < 0 || x >= VW) continue; const lum = (0.3 * DAY[c][0] + 0.59 * DAY[c][1] + 0.11 * DAY[c][2]) / 255; fb[y * VW + x] = tarn[clamp(Math.round((0.1 + lum * 0.8) * 5 + (bayer(x, y) - 0.5) * 0.8), 0, 5)]; }
+        }
+        scr.put(isle, ix, iy, false);
+        for (const part of isleFir.parts) { const [wx, wy] = windAt(ISLE_X + (part.lx || 0), ISLE_Y - 5 + part.y, tq, part.sway); scr.blit(part.bm, ix + FIR_DX + part.x + wx, iy - 5 + part.y + wy); }
+      }
       // The wall of the forest, over the water and the far shore.
       for (let x = Math.max(0, WX - camX), x1 = Math.min(VW, WX + WW - camX); x < x1; x++) {
         const col = camX + x - WX;
@@ -251,44 +324,54 @@ export function makeLakeside() {
       const alert = Math.abs(d - D_MARMOT) < 46 || t - whistled < 1.6;
       if (Math.abs(d - D_MARMOT) < 46 && !whistled && env.running) { whistled = t; env.sfx('whistle'); }
       if (Math.abs(d - D_MARMOT) > 120 && t - whistled > 2) whistled = false;
-      list.push({ bm: alert ? marm.up : marm.sun, x: xMarmot + 1, y: shore(xMarmot) + 5 - marmotRock.h + 5, z: shore(xMarmot) + 5.5, flip: d > D_MARMOT });
-      list.push({ me: true, x: mx, y: my + 0.5 });
+      list.push({ bm: alert ? marm.up : marm.sun, x: xMarmot + 1, y: shore(xMarmot) + 5 - rockTop + 3, z: shore(xMarmot) + 5.5, flip: d > D_MARMOT });
+      list.push({ me: true, x: mx, y: (at ? at.y : my) + 0.5 });
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
-      const snack = !env.running && env.still > 60 && t - plunge > PLUNGE + 2;
+      const snack = !env.running && env.still > 60 && swim === 0;
       if (snack) env.found('snack');
       for (const th of list) {
         const sx = th.x - camX, sy = base + th.y;
         if (th.me) {
-          const u = t - plunge;
-          focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
-          if (env.hideMe) continue;
-          if (u < PLUNGE) {
-            // The cold plunge. Vest, shirt and shoes come off in a pile on the trail, he walks up the
-            // bank and wades in wearing his tights, stands it for a few seconds, wades out, and dresses.
-            const X = Math.round(sx), land = base + my, edge = base + shore(mx), deep = edge - 13;
-            const items = u < 0.12 ? 0 : u < 0.28 ? 1 : u < 0.42 ? 2 : u < 8.45 ? 3 : u < 8.62 ? 2 : u < 8.78 ? 1 : 0;
+          if (at) {
+            // The swim. Vest, shirt and shoes come off in a pile on the trail, he walks up the bank and
+            // wades in wearing his tights, swims front crawl to the island, climbs out and cheers.
+            const ax = Math.round(at.x), ay = Math.round(base + at.y), land = Math.round(base + my), out = dir > 0;
+            focus.x = ax; focus.y = ay - 14;
+            const items = swim < 0.12 ? 0 : swim < 0.28 ? 1 : swim < 0.42 ? 2 : 3;
             if (items > 0) scr.put(pile.vest, X + 11, land + 1, false);
             if (items > 1) scr.put(pile.shirt, X + 11, land - 1, false);
             if (items > 2) scr.put(pile.shoes, X + 19, land + 1, false);
             // A figure standing in the water shows only down to where the water reaches on him.
-            const wade = (bm, fy, depth, dx) => {
-              const x0 = X - bm.ox + dx, y0 = Math.round(fy) - bm.oy, wl = Math.round(fy - depth);
+            const wade = (bm, depth) => {
+              const x0 = ax - bm.ox, y0 = ay - bm.oy, wl = Math.round(ay - depth);
               for (let j = 0; j < bm.h && (depth < 1 || y0 + j < wl); j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (c) scr.set(x0 + i, y0 + j, c); }
-              if (depth >= 1) for (let r = 0; r < 3; r++) { const rr = (u * 9 + r * 6) % 18; for (let k = 0; k < 20; k++) scr.set(Math.round(X + Math.cos(k / 20 * 6.283) * (5 + rr)), Math.round(wl + Math.sin(k / 20 * 6.283) * (1.5 + rr * 0.3)), tarn[5]); }
+              if (depth >= 1) for (let r = 0; r < 3; r++) { const rr = (t * 9 + r * 6) % 18; for (let k = 0; k < 20; k++) scr.set(Math.round(ax + Math.cos(k / 20 * 6.283) * (5 + rr)), Math.round(wl + Math.sin(k / 20 * 6.283) * (1.5 + rr * 0.3)), tarn[5]); }
             };
-            const drip = () => { for (let k = 0; k < 4; k++) scr.set(X - 6 + k * 4, Math.round(land - 6 + ((u * 20 + k * 5) % 8)), tarn[5]); };
-            if (u >= 1.2 && !splashed) { splashed = true; env.sfx('splash'); }
-            if (u < 0.5 || u >= 8.3) { scr.shadow(X, land, 5, 1); scr.put(run.down[Math.floor(u * 12) % 4], sx, land, false); }
-            else if (u < 1.1) { const fy = lerp(land, edge + 1, (u - 0.5) / 0.6); scr.shadow(X, Math.round(fy), 5, 1); scr.put(dip.up[Math.floor(u * 10) % 4], sx, fy, false); }
-            else if (u < 2.3) {
-              const k = (u - 1.1) / 1.2; wade(dip.up[Math.floor(u * 8) % 4], lerp(edge + 1, deep, k), k * 10, 0);
-              if (u > 1.2 && u < 1.7) for (let n = 0; n < 8; n++) { const e = (u - 1.2) / 0.5; scr.set(Math.round(X + (hash(n, 1, 152) - 0.5) * 22 * e), Math.round(edge - 2 - Math.sin(e * Math.PI) * (4 + hash(n, 2, 152) * 9)), R.white[1]); }
-            } else if (u < 5.6) wade(dip.downIdle[0], deep + Math.round(Math.sin(u * 5)), 10, u > 3.2 && (Math.floor(u * 14) & 1) ? 1 : 0);
-            else if (u < 6.8) { const k = (u - 5.6) / 1.2; wade(dip.down[Math.floor(u * 8) % 4], lerp(deep, edge + 1, k), (1 - k) * 10, 0); }
-            else if (u < 7.4) { const fy = lerp(edge + 1, land, (u - 6.8) / 0.6); scr.shadow(X, Math.round(fy), 5, 1); scr.put(dip.down[Math.floor(u * 10) % 4], sx, fy, false); drip(); }
-            else { scr.shadow(X, land, 5, 1); scr.put(dip.downIdle[0], sx + (Math.floor(u * 16) & 1), land, false); drip(); }
+            const drip = () => { for (let k = 0; k < 4; k++) scr.set(ax - 6 + k * 4, Math.round(ay - 6 + ((t * 20 + k * 5) % 8)), tarn[5]); };
+            // Water thrown up where he drops into the swim and where he finds his feet again.
+            const spray = (x, y, e) => { for (let n = 0; n < 9; n++) scr.set(Math.round(x + (hash(n, 1, 152) - 0.5) * 26 * e), Math.round(y - 1 - Math.sin(e * Math.PI) * (3 + hash(n, 2, 152) * 9)), R.white[1]); };
+            for (const [at0, p] of [[T_WADE, IN], [T_WADE + swimT, LAND]]) { const e = (swim - at0) * dir / 0.45; if (e > 0 && e < 1) spray(p[0], base + p[1], e); }
+            // He walks away from the camera on the way out and towards it on the way back.
+            const walk = out ? dip.up : dip.down;
+            if (at.k === 'strip') { scr.shadow(ax, ay, 5, 1); scr.put((swim < 0.25 ? run : dip).down[Math.floor(t * 12) % 4], ax, ay, false); if (!out) drip(); }
+            else if (at.k === 'walk') { scr.shadow(ax, ay, 5, 1); scr.put(walk[Math.floor(t * 10) % 4], ax, ay, false); if (!out) drip(); }
+            else if (at.k === 'wade') { if (at.depth < 1) scr.shadow(ax, ay, 5, 1); wade(walk[Math.floor(t * 8) % 4], at.depth); }
+            else if (at.k === 'swim') {
+              // Facing the way he is going, with a wake spreading behind him and his kick throwing up water.
+              const sg = (LAND[0] >= IN[0]) === out ? 1 : -1;
+              for (let k = 0; k < 13; k++) { const bx = ax - sg * (14 + k * 3), sp = 1 + k * 0.55, a = (Math.floor(t * 8) + k) & 1, c = k < 3 ? R.white[1] : tarn[5]; for (let i = 0; i < 2; i++) { if (a || k < 6) scr.set(bx - sg * i, Math.round(ay - sp), c); if (!a || k < 6) scr.set(bx - sg * i, Math.round(ay + 1 + sp * 0.7), c); } }
+              for (let i = -13; i < 19; i++) if ((i + Math.floor(t * 6)) % 4) scr.set(ax + sg * i, ay + 1, tarn[5]);
+              for (let n = 0; n < 3; n++) { const e = frac(t * 4 + n / 3); scr.set(Math.round(ax - sg * (15 + n * 2 + e * 4)), Math.round(ay - 1 - Math.sin(e * Math.PI) * (2 + n)), R.white[1]); }
+              scr.set(ax + sg * 20, ay, tarn[5]); scr.set(ax + sg * 21, ay + 1, tarn[5]);
+              scr.put(crawl[Math.floor(t * 6) % 4], ax, ay + (Math.floor(t * 3) & 1), sg < 0);
+            } else {
+              // Both arms up, facing the camera. A few jumps when he gets there, then one now and again for as long as he is left out there.
+              const c = t - arrived, hop = c < 1.7 ? Math.floor(c * 5) & 1 : frac(c / 3.1) < 0.06;
+              scr.shadow(ax, ay, 5, 1); scr.put(cheer[hop ? 2 : Math.floor(c * 2.2) & 1], ax, ay, false);
+            }
             continue;
           }
+          focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
           const bm = snack ? sit[Math.floor(t * 1.5) & 1] : env.moving ? run.side[Math.floor(d / 4.2) % 6] : env.shown === 'mountains' ? mapFig : env.shown === 'note' ? writeFig[Math.floor(t * 3) & 1] : run.sideIdle[0];
           scr.shadow(Math.round(sx), Math.round(base + my), 5, 1);
           scr.put(bm, sx, base + my + (snack ? 2 : 0), false);
@@ -297,8 +380,6 @@ export function makeLakeside() {
         } else if (th.tall) blitTall(scr, th.bm, sx - th.bm.ox, sy - th.bm.oy);
         else scr.put(th.bm, sx, sy, th.flip);
       }
-      // The forest's last tree, in front of everything, at the left edge of where the scene opens.
-      edgeTrunk(scr, Math.round(xOf(0) - VW * anchor) - camX);
     }
   };
 }

@@ -86,12 +86,14 @@ function slug(f) {
 // A hoary marmot. pose: 'sun' stretched flat on a rock, 'up' sitting to whistle.
 function marmot(pose) {
   const b = new BM(18, 14); b.ox = 9; b.oy = 13;
-  const fur = (nx, ny, x, y) => pick('rock', 0.7 - ny * 0.3 + 0.2 * (hash(x, y, 2) - 0.5), x, y, 0.5);
+  // Brown, with the pale grizzled cape over the shoulders that the hoary marmot is named for. Grey fur
+  // made it read as part of the rock it lies on.
+  const coat = cape => (nx, ny, x, y) => cape(nx, ny) && hash(x, y, 2) < 0.6 ? R.dirt[hash(x, y, 3) < 0.45 ? 4 : 3] : pick('dirt', 0.34 - ny * 0.28 + 0.2 * (hash(x, y, 2) - 0.5), x, y, 0.5);
   if (pose === 'sun') {
-    ell(b, 8, 10.5, 6.5, 2.6, fur); ell(b, 14, 10, 2.6, 2.2, (nx, ny, x, y) => R.bark[ny < 0 ? 2 : 1]); b.set(16, 10, INK); b.set(15, 9, INK); b.set(13, 8, R.bark[1]);
+    ell(b, 8, 10.5, 6.5, 2.6, coat((nx, ny) => nx > 0.12 && ny < 0.5)); ell(b, 14, 10, 2.6, 2.2, (nx, ny, x, y) => R.bark[ny < 0 ? 2 : 1]); b.set(16, 10, INK); b.set(15, 9, INK); b.set(13, 8, R.bark[1]);
     thick(b, 2, 11, 0, 12, 2, R.bark[1]); b.set(5, 13, R.bark[0]); b.set(11, 13, R.bark[0]);
   } else {
-    ell(b, 8, 9, 3.6, 4.4, fur); ell(b, 9, 3.5, 2.6, 2.3, (nx, ny) => R.bark[ny < 0 ? 2 : 1]); b.set(11, 3, INK); b.set(11, 4, R.white[0]); b.set(8, 1, R.bark[1]);
+    ell(b, 8, 9, 3.6, 4.4, coat((nx, ny) => ny < -0.05)); ell(b, 9, 3.5, 2.6, 2.3, (nx, ny) => R.bark[ny < 0 ? 2 : 1]); b.set(11, 3, INK); b.set(11, 4, R.white[0]); b.set(8, 1, R.bark[1]);
     thick(b, 10, 8, 12, 9, 1, R.bark[1]); thick(b, 4, 12, 1, 13, 2, R.bark[1]);
   }
   outline(b, INK);

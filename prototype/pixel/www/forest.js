@@ -1,9 +1,9 @@
 // About Lake, part one: the run through the rainforest, seen from the side. Giant mossy trunks
 // stand on the bank behind the trail, a dark stream mirrors them in front of it, and the light
-// comes down through the canopy in slanting shafts. The scene is built with him running right to left
-// and shown mirrored, so on screen he runs left to right and comes out at the lake's left edge.
+// comes down through the canopy in slanting shafts. He runs right to left, the way the map sends him
+// in: west, away from the Trailhead.
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, SHADE, LIGHT, pick, BM, outline, disc, thick, windAt } from './core.js';
-import { Strip, drawStrip, blitTall, baseline, edgeTrunk } from './side.js';
+import { Strip, drawStrip, blitTall, baseline } from './side.js';
 import { makeMaple, makeSpruce, makeBoulder } from './sprites.js';
 import { elk, bear, sasquatch, jay, slug } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
@@ -139,20 +139,82 @@ function makeTrailSign() {
 
 export { makeTrunk, makeLimb, swordFern };
 
+// Noise along a strip that joins up where the strip wraps round.
+const loopN = (x, W, s, seed) => { const a = x / W * TAU, r = W / (TAU * s); return fbm(Math.cos(a) * r + 40, Math.sin(a) * r + 40, seed, 3); };
+
+// One far layer of the forest. Trunks stand in uneven groups with gaps of light between the groups,
+// some of them broken off short. Each layer has its own ground, higher up the view the further off
+// it is, with undergrowth and young firs along it; limbs trail moss, boughs hang higher up, and the
+// canopy closes over the top with a ragged edge. o.c is [lit side, body] for its distance.
+function farLayer(S, seed, o) {
+  const rand = rng(seed), W = S.w, [lit, body] = o.c;
+  const put = (x, y, c) => S.set(((Math.round(x) % W) + W) % W, y, c);
+  const ground = x => o.ground - o.rise * loopN(x, W, 26, seed + 1);
+  for (let x = rand() * 20; x < W - o.w[1];) {
+    const w = o.w[0] + rand() * (o.w[1] - o.w[0]), lean = (rand() - 0.5) * 0.06, foot = Math.round(ground(x)) + 4, snag = rand() < 0.12, top = snag ? foot - 70 - rand() * 150 : -S.up;
+    const at = up => x + lean * up + 1.4 * Math.sin(up / 55 + x);
+    for (let y = Math.round(top); y <= foot; y++) {
+      // Wider at the foot, a little narrower high up, and never quite straight.
+      const up = foot - y, ww = w * (1 - 0.18 * Math.min(1, up / 380)) + w * 0.6 * Math.exp(-up / (w * 1.2)), cx = at(up);
+      const x0 = Math.round(cx - ww / 2), x1 = Math.round(cx + ww / 2);
+      if (snag && y - top < 5 && hash(x0, y, seed) < 0.6 - (y - top) * 0.1) continue;
+      for (let i = x0; i <= x1; i++) put(i, y, i === x0 && ww >= 4 ? lit : body);
+    }
+    // Limbs droop away from the trunk and trail moss.
+    for (let k = 0, n = snag ? 1 : Math.round(o.limbs * (0.4 + 1.2 * rand())); k < n; k++) {
+      const up = Math.min(foot - top - 8, 50 + rand() * 300), dir = rand() < 0.5 ? -1 : 1, len = 6 + w * (1.5 + rand() * 2.5);
+      for (let i = 0; i < len; i++) {
+        const yy = foot - up - Math.sin(i / len * 2) * len * 0.2 + i * i / len * 0.24, lx = at(up) + dir * (w / 2 + i);
+        put(lx, yy, body); if (i < len * 0.5 && w > 5) put(lx, yy + 1, body);
+        if (hash(i, k, Math.round(x)) < o.moss) for (let j = 1; j < 3 + hash(i, Math.round(x), 2) * w; j++) put(lx, yy + j, body);
+      }
+    }
+    // Boughs: flat sprays of needles, fringed underneath, more of them the higher up.
+    if (!snag) for (let k = 0; k < o.boughs; k++) {
+      const up = 120 + sq(rand()) * 320, dir = rand() < 0.5 ? -1 : 1, len = 8 + w * (2 + rand() * 3), th = 1.5 + w * 0.22;
+      for (let i = -1; i < len; i++) {
+        const u = i / len, yy = foot - up + u * u * len * 0.4, lx = at(up) + dir * (w / 2 + i);
+        for (let j = 0; j < th * (1 - u * 0.6) + (hash(i, k + 9, Math.round(x)) < 0.45 ? 1 + hash(i, k, 7) * 3 : 0); j++) put(lx, yy + j, body);
+      }
+    }
+    x += rand() < o.open ? o.gap[0] + rand() * (o.gap[1] - o.gap[0]) : o.step[0] + rand() * (o.step[1] - o.step[0]);
+  }
+  // The ground of this layer, catching the light along its top, with clumps of undergrowth on it.
+  for (let x = 0; x < W; x++) {
+    const top = Math.round(ground(x) - (hash(x, 1, seed) < 0.3 ? 1 + hash(x, 2, seed) * 2 : 0));
+    for (let y = top; y < S.h - S.up; y++) S.set(x, y, y === top ? lit : body);
+  }
+  for (let n = 0; n < W / 22; n++) {
+    const x = rand() * W, r = 2.5 + rand() * (2 + o.w[1] * 0.5), gy = ground(x);
+    for (let dy = -r; dy <= 1; dy++) for (let dx = -r * 1.5; dx <= r * 1.5; dx++) if (sq(dx / (r * 1.5)) + sq(dy / r) <= 1) put(x + dx, gy + dy, dy < -r * 0.55 && dx < r * 0.4 ? lit : body);
+  }
+  // Young firs here and there, each a stack of tiers.
+  for (let n = 0; n < W / o.firs; n++) {
+    const x = rand() * W, h = (9 + rand() * 16) * (0.6 + o.w[1] / 14), gy = ground(x) + 2;
+    for (let j = 0; j < h; j++) { const hw = (j + 1) * 0.3 * (j % 4 === 3 ? 0.6 : 1); for (let i = -Math.round(hw); i <= Math.round(hw); i++) put(x + i, gy - h + j, i === -Math.round(hw) && hw >= 2 ? lit : body); }
+  }
+  // The canopy: solid at the very top, full of holes towards its lower edge, with strands hanging from it.
+  for (let x = 0; x < W; x++) {
+    const edge = o.canopy - o.cvar * loopN(x, W, 44, seed + 3);
+    for (let y = -S.up; y < edge; y++) {
+      const f = xx => fbm(xx / 15, y / 12, seed + 4, 3), v = x > W - 64 ? lerp(f(x), f(x - W), (x - (W - 64)) / 64) : f(x);
+      if (v > 0.36 + 0.3 * smooth(edge - 60, edge, y)) S.set(x, y, body);
+    }
+    if (hash(x, 5, seed) < 0.07) for (let j = 0; j < 4 + hash(x, 6, seed) * 12; j++) S.set(x, edge - 8 + j, body);
+  }
+}
+
 export function makeForest() {
   const rand = rng(31);
 
-  // Far and middle trees: paler and plainer the further off they stand.
-  const far = new Strip(SW, UP, 24), mid = new Strip(SW, UP, 30);
-  for (let x = 4; x < SW; x += 13 + rand() * 24) {
-    const w = 3 + (rand() * 6 | 0), lean = (rand() - 0.5) * 0.03;
-    for (let y = -UP; y < 4; y++) for (let dx = 0; dx < w; dx++) far.set(x + dx + lean * -y, y, dx === 0 ? R.mist[5] : dx === w - 1 ? R.mist[3] : R.mist[4]);
-  }
-  for (let x = 0; x < SW; x++) {
-    const top = -9 - 7 * fbm(x / 21, 2, 84, 3) - (hash(x, 1, 85) < 0.3 ? 2 : 0);
-    for (let y = Math.round(top); y < 24; y++) far.set(x, y, y - top < 2 ? R.mist[4] : R.mist[3]);
-    for (let y = -UP; y < -250 - 70 * fbm(x / 40, 1, 86, 3); y++) if (fbm(x / 14, y / 12, 87, 3) > 0.42) far.set(x, y, R.mist[3]);
-  }
+  // Behind the giants the forest goes back in three layers, each paler, plainer and slower across
+  // the view than the one in front of it, with the light of the open sky behind them all.
+  const farA = new Strip(900, UP, 24), farB = new Strip(1180, UP, 24), mid = new Strip(SW, UP, 30);
+  farLayer(farA, 61, { c: [R.mist[4], R.mist[4]], w: [2, 5], step: [5, 15], gap: [34, 80], open: 0.24, ground: -66, rise: 8, limbs: 0.6, moss: 0.1, boughs: 2, firs: 54, canopy: -188, cvar: 70 });
+  farLayer(farB, 62, { c: [R.mist[4], R.mist[3]], w: [5, 11], step: [16, 38], gap: [70, 150], open: 0.3, ground: -54, rise: 9, limbs: 2, moss: 0.3, boughs: 3, firs: 100, canopy: -226, cvar: 80 });
+  // The far trees used to take their numbers from the same run of dice as everything below. The
+  // run is still wound on by as much as they took, so every trunk, fern and log stands where it did.
+  for (let x = 4; x < SW; x += 13 + rand() * 24) { rand(); rand(); }
   for (let x = 20; x < SW; x += 46 + rand() * 60) {
     const w = 9 + (rand() * 11 | 0), lean = (rand() - 0.5) * 0.04;
     for (let y = -UP; y < 6; y++) {
@@ -165,7 +227,8 @@ export function makeForest() {
     }
   }
   for (let x = 0; x < SW; x++) {
-    const top = -15 - 12 * fbm(x / 17, 4, 88, 3) - 5 * Math.max(0, Math.sin(x / 6.5) * vnoise(x / 30, 3, 89));
+    // High enough to show over the bank behind the trail, as the nearest of the three far ground lines.
+    const top = -41 - 12 * fbm(x / 17, 4, 88, 3) - 5 * Math.max(0, Math.sin(x / 6.5) * vnoise(x / 30, 3, 89));
     for (let y = Math.round(top); y < 30; y++) mid.set(x, y, y - top < 1.5 ? R.mist[3] : y - top < 5 ? R.mist[2] : R.mist[1]);
     for (let y = -UP; y < -200 - 110 * fbm(x / 50, 5, 90, 3); y++) if (fbm(x / 16, y / 13, 91, 3) > 0.46) mid.set(x, y, fbm(x / 16, (y - 3) / 13, 91, 3) > 0.46 ? R.mist[1] : R.mist[2]);
   }
@@ -271,7 +334,7 @@ export function makeForest() {
   const elkX = X0 - D_ELK, elkY = g(elkX) - 13;
 
   const st = {}, focus = { x: 0, y: 0 };
-  let cam = 0, last = { camX: 0, base: 0, VW: 0 };
+  let cam = 0, last = { camX: 0, base: 0 }, wells = new Float32Array(0);
   const list = [];
   const xOf = q => X0 - q * LEN;
 
@@ -284,29 +347,31 @@ export function makeForest() {
     enter(scr, arg, q) { cam = xOf(q); st.y = null; },
     focus: () => focus,
     pick(sx, sy) {
-      // The picture is mirrored, so a point on the screen is looked up from the other side.
-      const wx = last.VW - 1 - sx + last.camX, wy = sy - last.base;
-      if (Math.abs(wx - signX) < 12 && wy > g(signX) - 34 && wy < g(signX) - 4) return { label: NAMES.forest.sign, x: last.VW - 1 - (signX - last.camX), y: last.base + g(signX) - 36 };
+      const wx = sx + last.camX, wy = sy - last.base;
+      if (Math.abs(wx - signX) < 12 && wy > g(signX) - 34 && wy < g(signX) - 4) return { label: NAMES.forest.sign, x: signX - last.camX, y: last.base + g(signX) - 36 };
       if (wy > g(wx) + farBank(wx) && wy < g(wx) + nearBank(wx)) return { label: NAMES.forest.creek, x: sx, y: sy - 8 };
       return null;
     },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t, tq } = env;
       const mx = xOf(q), d = q * LEN, my = g(mx);
-      // Measured before the picture is turned round: on screen he stands right of the middle, clear of the card.
-      const anchor = scr.narrow ? 0.5 : 0.42;
+      // He stands right of the middle: clear of the card, and with more of the way ahead in view.
+      const anchor = scr.narrow ? 0.5 : 0.6;
       cam += (mx - cam) * Math.min(1, env.dt * 8);
-      const camX = Math.round(cam - VW * anchor - env.look.x * 0.5), base = baseline(scr, env.shown, st) - Math.round(my * 0.5);
-      last = { camX, base, VW };
+      const camX = Math.round(cam - VW * anchor + env.look.x * 0.5), base = baseline(scr, env.shown, st) - Math.round(my * 0.5);
+      last = { camX, base };
 
-      // The light between the trees: bright and misty at eye level, dark up in the canopy.
-      const mist = R.mist;
+      // The light behind the trees: pale mist, dimmer up under the canopy, and brightest in the wide
+      // gaps where the sky comes through. The gaps drift across slower than any tree.
+      const mist = R.mist, glow = R.glow[0];
+      if (wells.length !== VW) wells = new Float32Array(VW);
+      for (let x = 0; x < VW; x++) wells[x] = smooth(0.5, 0.68, fbm((camX * 0.07 + x) / 52, 3, 106, 2));
       for (let y = 0; y < VH; y++) {
-        const r = y - base, v = r > -30 ? 0.7 : r > -120 ? 0.82 : Math.max(0.1, 0.82 - (-120 - r) / 330), f = v * (mist.length - 1), b0 = Math.floor(f), e = f - b0, row = y * VW;
-        if (e < 0.6 || b0 >= mist.length - 1) fb.fill(mist[Math.min(mist.length - 1, b0)], row, row + VW);
-        else for (let x = 0; x < VW; x++) fb[row + x] = mist[b0 + (bayer(x, y) < (e - 0.6) / 0.4 ? 1 : 0)];
+        const r = y - base, row = y * VW, dim = clamp((-140 - r) / 170, 0, 1.999), b0 = Math.floor(dim), e = dim - b0, wy = smooth(-340, -200, r);
+        for (let x = 0; x < VW; x++) { const by = bayer(x, y); fb[row + x] = wells[x] * wy > 0.12 + 0.88 * by ? glow : mist[5 - b0 - (by < e ? 1 : 0)]; }
       }
-      drawStrip(scr, far, camX * 0.3 + 300, base - 3, true, R.mist[3]);
+      drawStrip(scr, farA, camX * 0.14 + 120, base - 2, true, R.mist[4]);
+      drawStrip(scr, farB, camX * 0.34 + 300, base - 2, true, R.mist[3]);
       drawStrip(scr, mid, camX * 0.6 + 200, base - 1, true, R.mist[1]);
       // Near the lake the far trees give way to open light, in clumps, paler and bluer the nearer the edge.
       for (let x = 0; x < VW; x++) {
@@ -355,8 +420,7 @@ export function makeForest() {
         const sx = th.x - camX, sy = base + th.y;
         if (th.me) {
           const bm = snack ? sit[Math.floor(t * 1.5) & 1] : env.moving ? (hop ? run.side[3] : run.side[Math.floor(d / 4.2) % 6]) : run.sideIdle[0];
-          focus.x = VW - 1 - Math.round(sx); focus.y = Math.round(base + my) - 14;
-          if (env.hideMe) continue;
+          focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
           scr.shadow(Math.round(sx), Math.round(base + my), 5, 1);
           scr.put(bm, sx, base + my - hop + (snack ? 2 : 0), true);
           if (snack) { const u = clamp((env.still - 63) / 1.2, 0, 1); scr.put(u < 1 ? (Math.floor(t * 9) & 1 ? gray.up : gray.down) : gray.sit, sx - 16 - (1 - u) * 60, base + my - (1 - u) * 50, false); }
@@ -379,10 +443,6 @@ export function makeForest() {
         if (env.mix < 0.5 ? !beamAt(wx - 0.6 * r) : frac(t * 0.4 + hash(k, 3, 104)) > 0.5) continue;
         scr.set(Math.round(wx - camX), Math.round(base + r), env.mix < 0.5 ? R.white[1] : R.yellow[1]);
       }
-      // Everything above is drawn with him heading left. Turn the picture round so he heads right,
-      // then stand the forest's last tree where the lake scene will take over.
-      for (let y = 0; y < VH; y++) fb.subarray(y * VW, y * VW + VW).reverse();
-      edgeTrunk(scr, VW + camX - Math.round(xOf(1) - VW * anchor));
     }
   };
 }

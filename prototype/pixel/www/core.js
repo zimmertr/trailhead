@@ -111,6 +111,9 @@ ramp('ash', ['#463c36', '#62564a', '#80725c', '#9c8e72']);
 ramp('fog', ['#a8bcb8', '#c8d6d0', '#e6eeea']);
 ramp('pine', ['#1c3a20', '#2c5a2c', '#48783a', '#6c9648', '#94b25c']);
 ramp('pbark', ['#5a2c14', '#8c4a20', '#c0702c']);
+// Round 3, scenes
+// The light in the gaps between the far trees of the rainforest, a step paler than the palest mist.
+ramp('glow', ['#e6f1d4'], ['#8fa29c']);
 const INK = R.ink[0];
 const N = DAY.length;
 // One step darker or lighter within an entry's own ramp, for shadows drawn onto finished pixels.
