@@ -1,5 +1,7 @@
 # Pixel MVP: overnight checklist
 
+**Round 4 (from 2026-11-15, branch `pixel-round4`) has its own file: `ROUND4.md`. Read that first.** Round 3 ended at the tag `pixel-r3-final`.
+
 The working list for the overnight build of the pixel-art trailhead. Tick items as they land, add one line per creative call under "Calls made", and keep it a checklist. It exists so a long run survives a context summary, nothing more.
 
 ## The bar

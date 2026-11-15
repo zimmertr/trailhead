@@ -1,6 +1,6 @@
 # Round 4: the map re-laid as its own Washington
 
-Status on 2026-11-15: **plan only. Nothing is built. TJ has not signed off. Do not start until he says so.**
+Status: **TJ said "begin" on 2026-11-15.** Work the checklist in section 7 from the first unticked item; stop at every STOP.
 
 This file is written so that someone with no memory of the conversation can do the work. Read all of it once, then work the checklist from the top.
 
@@ -240,10 +240,10 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 
 ### A. Setup
 
-- [ ] A1. TJ has said to begin.
-- [ ] A2. Tag round 3's end: `pixel-r3-final` on `0138c2e`, pushed.
-- [ ] A3. Save round 3 reference pictures into `out/r3/`: whole map (`@plan.html`), first screen desktop and phone, Day and Dusk, one frame of each scene and each climb.
-- [ ] A4. Add a "Round 4" pointer to this file at the top of `PROGRESS.md`.
+- [x] A1. TJ has said to begin.
+- [x] A2. Tag round 3's end: `pixel-r3-final` on `0138c2e`, pushed.
+- [x] A3. Save round 3 reference pictures into `out/r3/`: whole map (`@plan.html`), first screen desktop and phone, Day and Dusk, one frame of each scene and each climb.
+- [x] A4. Add a "Round 4" pointer to this file at the top of `PROGRESS.md`.
 
 ### B. Block-in (shapes, sizes and places only; flat colour is fine)
 
