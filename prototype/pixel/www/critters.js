@@ -1,6 +1,6 @@
 // The animals of the world map and the water that moves: herds that graze and wander, a bear, squirrels
-// and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, and
-// the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
+// and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, the
+// ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
 import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, INK, SHADE, KIND, BM, outline, thick, pick } from './core.js';
 import { makeElk, makeBird } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';

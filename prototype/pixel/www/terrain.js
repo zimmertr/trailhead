@@ -557,7 +557,7 @@ mist.gate = new Uint8Array(mist.w * mist.h);
   // seaward edge is not a straight cut. The shoreline is found on a coarser grid across, which is all it needs.
   for (let cy = 0; cy < mist.h; cy++) for (let cx = 0; cx < mist.w; cx += 2) { const y = Math.min(NH - 1, mist.y0 + cy * 2 + 1), cs = coast(cx * 2 + 2, y) + 16 * vnoise(y / 6, 5, 135), v = cs > -10 ? 2 : cs > -42 ? 1 : 0; if (v) { mist.gate[cy * mist.w + cx] = v; mist.gate[cy * mist.w + cx + 1] = v; } }
   for (let i = 0; i < trailPts.length; i += 2) { const p = trailPts[i]; if (p[0] < mist.x1 + 12) mark(Math.round(p[0]) - 7, Math.round(p[1]) - 8, Math.round(p[0]) + 7, Math.round(p[1]) + 6, 1, true); }
-  for (const [sx, sy] of spots.signs) mark(sx - 11, sy - 20, sx + 11, sy + 3, 2, false);
+  for (const [sx, sy] of spots.signs) mark(sx - 14, sy - 24, sx + 14, sy + 6, 2, true);
 }
 return { g, things, spots, mist, sea: SEA, trackPts, trails: TRAILS, forestAmt, lakeD, coast, groundLine, glacier, talus, open, nearTrail, make: { ferry, whale, sheep, squirrel } };
 }
