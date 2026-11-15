@@ -259,7 +259,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [x] B10. Pictures: whole map; the opening wide view on a 1440 by 900 screen in two or three candidate framings, some cropped (section 5); the phone's opening slice; the close view at the Trailhead; round 3's map beside the new one.
 - [x] B11. Check the law: walk the map west to east and name every pair of neighbours; none is unbelievable. Check the four kinds of mountain: nothing else on the skyline.
 - [x] B12. A page like `plan/skyline-pick.html` showing the pictures, with the weak points listed honestly.
-- [ ] **STOP 1 (reached 2026-11-15, waiting for TJ).** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
+- [ ] **STOP 1 (reached 2026-11-15; TJ's answers sent the block-in round again, see section 9; three layouts shown, waiting for his pick).** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
 
 ### C. The skyline, drawn for real
 
@@ -437,6 +437,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 |---|---|---|---|
 | Round 3, for comparison | `pixel-r3-final` | https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1 | 2026-11-15 |
 | 1, the block-in (a page of pictures, not the game) | `pixel-r4-blockin` | https://claude.ai/artifact/LDB4ivAk4ZU2EVskcN7nHj | 2026-11-15 |
+| 1 again: three layouts with real height (pictures) | `pixel-r4-relief` | (link added after publishing) | 2026-11-15 |
 
 ## 9. Calls made in round 4
 
@@ -450,6 +451,11 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - Proficiency Peak is 164 by 142 (the plan said 150 by 120) so its summit breaks the skyline; the granite row behind dips there. Told TJ at STOP 1.
 - Water: the lake trail crosses the river twice (above the fall and at the footbridge below it). Meltwater from the glacier's toe drops over the headwall, crosses the trail to Proficiency Peak, is joined by the cascade out of the upper basin, and leaves the map southward. Told TJ it is the strongest line on the map.
 - Phone opening drawn at 1.25 screen pixels to one map pixel; desktop candidates at 0.75, 1 and 1.5.
+- **TJ on the first block-in (2026-11-15):** "all of the mountains are in the background, on the horizon. Or just in front of it. The mountains should be *part* of the world/scenery. Not just sitting in the background like a puppet show backboard." He could not judge three directions from ASCII sketches and asked to see them blocked in. Proficiency Peak stays at the larger size. The Legacy Range is to be larger. The opening view is decided after the world is right.
+- **TJ on the fog:** the storm off the ocean was not what he meant. He meant fog inside the forest, after a photograph he shared: dark conifers on ridges, their crowns rising out of white fog that lies in the hollows, each rank paler than the one in front. It covers the whole rainforest: "It starts from essentially nothing and then builds to spooky." The sea and beach are clear weather.
+- **TJ on the water:** in nature creeks and springs gather into rivers that run through chains of lakes ("necklace lakes"); or the creeks join one river that "looks larger as it collects tributaries rather than a single size from top to bottom". How it is drawn follows the layout he picks.
+- The second block-in is drawn another way, in `www/relief.js` (`relief.html?v=1|2|3&labels=1&crop=x,y&scale=k`): every spot of the world has a height, and a spot is drawn at screen (u, 1080 - v - height), nearest first, so ground and mountains are one surface and near slopes hide far ones. Layout 1: the land climbs into the mountains (the builder's pick). Layout 2: flat ground, massifs standing at different depths. Layout 3: the crest runs toward the camera with the Trailhead at a pass. The Spires' wall and Proficiency Peak keep their designed outlines; the other ranges are rows of blunt pyramids.
+- Lessons from that drawing: a mountain made by multiplying a cone by noise comes out as needles, so ranges are built from a designed skyline times a cross-section; a lake must sit beyond a mountain's foot or it cuts a cave into the slope; fog reads as ranks only if trees keep to the ridge crests and the hollows are left white.
 
 ## 10. The reference pictures TJ shared, described
 
