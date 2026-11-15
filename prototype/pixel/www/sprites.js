@@ -101,12 +101,24 @@ function makeBoulder(seed, r) {
   outline(b, INK);
   return b;
 }
-function makeLog() {
-  const b = new BM(22, 8); b.ox = 11; b.oy = 7;
-  for (let x = 1; x < 20; x++) for (let y = 2; y < 7; y++) b.set(x, y, y < 3 ? R.moss[5] : y < 4 ? R.moss[4] : R.bark[y < 5 ? 2 : 1]);
-  for (let y = 2; y < 7; y++) b.set(20, y, R.wood[3]);
-  b.set(20, 4, R.wood[1]);
+// A fallen log, lying a little off the level: a round cut end showing its rings, furrowed bark,
+// moss in patches along the top and the stub of a branch. In the burn it lies bare and silver.
+function makeLog(seed = 0, bare = false) {
+  const rand = rng(960 + seed), len = 15 + (rand() * 8 | 0), tilt = (rand() < 0.5 ? -1 : 1) * (1 + rand() * 1.5), rad = 2.6;
+  const b = new BM(len + 9, 15); b.ox = b.w >> 1; b.oy = 12;
+  const bark = bare ? [R.rock[1], R.rock[2], R.rock[3], R.rock[4]] : R.bark, cut = bare ? [R.rock[2], R.rock[3], R.rock[4]] : [R.wood[2], R.wood[3], R.wood[4]];
+  const cy = t => 7.5 + tilt * (t / len - 0.5);
+  for (let t = 0; t < len; t++) {
+    const c = cy(t), top = Math.round(c - rad), groove = hash(t, seed, 63) < 0.3, moss = bare ? 0 : vnoise(t / 3, seed, 64);
+    for (let y = top; y <= Math.round(c + rad); y++) { const v = (y - c) / rad; b.set(3 + t, y, bark[v < -0.45 ? (groove ? 2 : 3) : v < 0.35 ? (groove ? 1 : 2) : groove ? 0 : 1]); }
+    if (moss > 0.45) { b.set(3 + t, top, R.moss[5]); if (moss > 0.6) b.set(3 + t, top + 1, R.moss[4]); }
+  }
+  const st = 2 + Math.round(len * (0.25 + 0.3 * rand())), sy = Math.round(cy(st) - rad);
+  b.set(3 + st, sy - 1, bark[2]); b.set(2 + st, sy - 2, bark[2]); b.set(2 + st, sy - 3, bark[3]);
+  const ex = 3 + len, ec = Math.round(cy(len));
+  for (let dy = -3; dy <= 3; dy++) for (let dx = -2; dx <= 2; dx++) { const e = Math.hypot(dx / 2.3, dy / 3.3); if (e <= 1) b.set(ex + dx, ec + dy, e > 0.7 ? cut[1] : e < 0.25 ? cut[0] : cut[2]); }
   outline(b, INK);
+  if (rand() < 0.5) { const d = b.d.slice(); for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) b.d[y * b.w + x] = d[y * b.w + b.w - 1 - x]; b.ox = b.w - 1 - b.ox; }
   return b;
 }
 function makeCloud(seed) {

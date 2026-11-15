@@ -3,7 +3,7 @@
 // again, so no two visits look the same. Clicking a cat gets an answer that depends on the cat
 // and on what she was doing.
 import { clamp, lerp, rng, hash, vnoise, R, INK, BM, outline, thick } from './core.js';
-import { OX, OY } from './terrain.js';
+import { OX, OY, KIOSK } from './terrain.js';
 import { NAMES } from './content.js';
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
@@ -83,10 +83,10 @@ const DO = {
   sit: [3, 7, 3, 3], groom: [3, 5.5, 2, 2], loaf: [6, 12, 2, 3], sleep: [10, 20, 1.2, 2], wander: [0, 0, 3, 3], stalk: [0, 0, 2.2, 1.4],
   roll: [2.4, 3.4, 1.4, 0.6], bat: [2, 3.2, 1.6, 1], chase: [0, 0, 1.2, 0.8], visit: [0, 0, 1, 1.6], perch: [8, 14, 1.2, 0]
 };
-// Where they roam: mostly the meadow below the junction, to the left of the kiosk, and now and
-// then further off, up to the trails and round the kiosk.
+// Where they roam: mostly the meadow below the junction, and now and then further off, up to the
+// trails and round the kiosk, which stands across the Spires trail from that meadow.
 const JX = 560 + OX, JY = 470 + OY;   // the junction, where he stands at the Trailhead
-const HOME = { x0: 508 + OX, x1: 642 + OX, y0: 440 + OY, y1: 528 + OY }, LEFT = { x0: 512 + OX, x1: 598 + OX, y0: 482 + OY, y1: 526 + OY }, ROOF = { x: 612 + OX, y: 498 + OY, h: 25 };
+const HOME = { x0: 508 + OX, x1: 642 + OX, y0: 440 + OY, y1: 528 + OY }, LEFT = { x0: 512 + OX, x1: 598 + OX, y0: 482 + OY, y1: 526 + OY }, ROOF = { x: KIOSK.x, y: KIOSK.y + 1, h: 25 };
 
 export const TRICKS = ['sit', 'groom', 'roll', 'bat', 'loaf', 'stretch', 'sleep'];
 
