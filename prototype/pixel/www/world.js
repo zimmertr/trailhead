@@ -6,13 +6,14 @@ import { SIGNS, NAMES, DEST_NAMES } from './content.js';
 import { makeCats } from './cats.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, NW as WW, NH as WH, T, PEAK as PEAK_AT, STACK as STACK_AT, SPIRES as SPIRES_AT } from './terrain.js';
+import { BK, makeMassifBK, makeBasinPeak } from './blockin.js';
 // ---------------------------------------------------------------------------------------------
 // The world. Pixel coordinates, x east, y south. North is up the screen, so the three
 // destinations stand along the top of the meadow: the forest and About Lake on the left,
 // The Stack in the middle, Sideproject Spires on the right. The ground itself, every biome and
 // everything rooted in it, comes from terrain.js; this file adds what moves and what is clicked.
 
-const STACK = { ...STACK_AT, w: 160, h: 120 }, SPIRES = { ...SPIRES_AT, w: 184, h: 140 }, PEAK = { ...PEAK_AT, w: 150, h: 112 };
+const STACK = { ...STACK_AT, w: 160, h: 120 }, SPIRES = { ...SPIRES_AT, w: BK ? BK.massif.w : 184, h: BK ? BK.massif.h : 140 }, PEAK = { ...PEAK_AT, w: 150, h: 112 };
 const KM = 0.008; // kilometres per pixel along a trail, for the sign's distances
 const RUN = 78; // pixels a second
 
@@ -65,7 +66,8 @@ function makeStack() {
 // Sideproject Spires: one jagged, glaciated massif with six summits, one per project. Each summit
 // is its own pyramid of fanned ridges, the tallest at the back, with glacier ice hanging between
 // them and pouring out of the middle onto the glacier on the ground.
-const SUMMITS = [
+// A block-in version of the map (see blockin.js) brings its own six summits, in this same order.
+const SUMMITS = BK ? BK.massif.summits : [
   { id: 'yggdrasil', cx: 26, top: 78, sl: 2.3, sr: 1.9 },
   { id: 'hevy-garmin-sync', cx: 52, top: 47, sl: 2.5, sr: 2.2 },
   { id: 'bluebird', cx: 80, top: 5, sl: 2.3, sr: 2.0 },
@@ -74,6 +76,7 @@ const SUMMITS = [
   { id: 'kubernetes-manifests', cx: 159, top: 82, sl: 2.0, sr: 2.3 }
 ];
 function makeMassif() {
+  if (BK) return makeMassifBK(BK.massif);
   const { w, h } = SPIRES, b = new BM(w + 2, h + 2); b.ox = (w >> 1) + 1; b.oy = h;
   const sky = (s, i, x) => {
     const dx = Math.abs(x - s.cx);
@@ -165,6 +168,7 @@ export function makeWorld() {
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
   const put = (bm, x, y, extra = {}) => things.push({ bm, x: Math.round(x), y: Math.round(y), ...extra });
   put(peakBM, PEAK.x, PEAK.y); put(makeStack(), STACK.x, STACK.y); put(makeMassif(), SPIRES.x, SPIRES.y);
+  if (BK) put(makeBasinPeak(BK.peak), BK.peak.x, BK.peak.y);
   put(makeSignpost(), spots.signpost[0], spots.signpost[1]);
   for (const s of spots.signs) put(makeSmallSign(), s[0], s[1]);
   put(makeJournal(), 712, 526); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
@@ -203,7 +207,7 @@ export function makeWorld() {
   const lakeOut = (() => { const P = paths.lake; let best = 0, bd = 1e9; for (let q = 0.5; q < 1; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - 716, a.y - 541); if (d < bd) { bd = d; best = q; } } return best; })();
 
   // Where each place's name is pinned: over the signpost, on the lake's near shore, on the wall's rim, on the ice under the summits.
-  const PLACES = [{ id: 'trailhead', x: T.x - 4, y: T.y - 31 }, { id: 'lake', x: 648, y: 525 }, { id: 'stack', x: STACK.x, y: STACK.y - STACK.h + 4 }, { id: 'spires', x: SPIRES.x + 10, y: SPIRES.y - 78 }];
+  const PLACES = [{ id: 'trailhead', x: T.x - 4, y: T.y - 31 }, { id: 'lake', x: 648, y: 525 }, { id: 'stack', x: STACK.x, y: STACK.y - STACK.h + 4 }, { id: 'spires', x: SPIRES.x + (BK ? BK.massif.label[0] : 10), y: SPIRES.y + (BK ? BK.massif.label[1] : -78) }];
   const cam = { x: T.x, y: 0 };
   let facing = 'down', flip = false, last = { ox: 0, oy: 0, VW: 1, VH: 1 }, focus = { x: 0, y: 0 };
   const list = [];

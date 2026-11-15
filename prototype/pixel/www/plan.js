@@ -5,6 +5,7 @@ import { makeSignpost, makeSmallSign, makeKiosk, makeTent, makeBird } from './sp
 import { makeStack, makeMassif, makePeak } from './world.js';
 import { makeCritters } from './critters.js';
 import { buildTerrain, NW, NH, PEAK, STACK, SPIRES } from './terrain.js';
+import { BK, makeBasinPeak } from './blockin.js';
 
 const peak = makePeak(), W = buildTerrain(peak), { g, spots: S, make } = W, at = (x, y) => y * NW + x;
 // The scene's own drawing code paints straight onto the map: a screen the size of the world.
@@ -12,6 +13,7 @@ const scr = Object.assign(Object.create(Screen.prototype), { VW: NW, VH: NH, fb:
 crit.sea(scr, 0, 0, 0);
 const things = W.things.concat(crit.items), put = (bm, x, y, lift = 0) => things.push({ bm, x, y, lift });
 put(peak, PEAK.x, PEAK.y); put(makeStack(), STACK.x, STACK.y); put(makeMassif(), SPIRES.x, SPIRES.y);
+if (BK) put(makeBasinPeak(BK.peak), BK.peak.x, BK.peak.y);
 for (const [x, y, c] of S.tents) put(makeTent(c), x, y);
 put(makeSignpost(), ...S.signpost); put(makeKiosk(), ...S.kiosk); put(make.ferry(), ...S.ferry);
 for (const [x, y] of S.signs) put(makeSmallSign(), x, y);

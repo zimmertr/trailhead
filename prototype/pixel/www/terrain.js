@@ -4,6 +4,7 @@
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, KIND, pick, BM, outline, thick, catmull, INK } from './core.js';
 import { clump, makeMaple, makeSpruce, makeFir, makeConifer, makeBoulder, makeLog, makeSnag, makeBush, makeFern } from './sprites.js';
 import { ell } from './fauna.js';
+import { BK, paintSkyline, basinGround, plantBasin } from './blockin.js';
 
 // The map as it was until round 2 sits inside this one, moved right and down by OX, OY.
 const OX = 260, OY = 160, NW = 1560, NH = 1080;
@@ -35,9 +36,12 @@ const MESAS = [[1496, 700, 52, 17], [1462, 772, 40, 14], [1526, 836, 44, 15], [1
 const mesa = (x, y) => MESAS.some(([cx, cy, rx, ry]) => Math.hypot((x - cx) / rx, (y - cy) / ry) < 1 + 0.25 * (vnoise(x / 9, y / 7, 141) - 0.5));
 const couleeAmt = (x, y) => mesa(x, y) || mesa(x, y - 15) || mesa(x, y - 22) ? 1 : 0;
 const talus = (x, y) => (y > 528 && y < 580) ? smooth(118, 64, Math.abs(x - STACK.x) + (y - 536) * 2.4) : 0;
-const moraine = (x, y) => (y > 510 && y < 540 && Math.abs(x - SPIRES.x) < 100) ? smooth(538, 520, y + 5 * vnoise(x / 6, 1, 15)) * smooth(100, 84, Math.abs(x - SPIRES.x)) * 0.8 : 0;
+// Half the width of the Spires, which the ground round their foot has to know.
+const SPH = BK ? BK.massif.w / 2 + 4 : 96;
+const moraine = (x, y) => (y > 510 && y < 540 && Math.abs(x - SPIRES.x) < SPH + 4) ? smooth(538, 520, y + 5 * vnoise(x / 6, 1, 15)) * smooth(SPH + 4, SPH - 12, Math.abs(x - SPIRES.x)) * 0.8 : 0;
 // The glacier out of the Spires, and two more that come down between the low peaks behind them.
-const TONGUES = [{ ...GL, w0: 64, w1: 11 }, { x0: 891, y0: 450, x1: 888, y1: 524, w0: 4, mid: [0.4, 11], w1: 6 }, { x0: 1060, y0: 386, x1: 1096, y1: 514, w0: 5, mid: [0.55, 22], w1: 8 }];
+// BK is a block-in version of the top right asked for in the address (see blockin.js); without one the map is as it was.
+const TONGUES = BK ? [{ ...GL, ...BK.glacier }] : [{ ...GL, w0: 64, w1: 11 }, { x0: 891, y0: 450, x1: 888, y1: 524, w0: 4, mid: [0.4, 11], w1: 6 }, { x0: 1060, y0: 386, x1: 1096, y1: 514, w0: 5, mid: [0.55, 22], w1: 8 }];
 function glacier(x, y, from = 0) {
   let best = null;
   for (let i = from; i < TONGUES.length; i++) {
@@ -80,7 +84,9 @@ function stamp(mask, pts, r0, r1, kindOf) {
 trailPts.push(...stamp(trail, TRAILS.lake, 1.9, 1.9, () => 0));
 trailPts.push(...stamp(trail, TRAILS.stack, 1.9, 1.9, f => f > 0.55 ? 1 : 0));
 trailPts.push(...stamp(trail, TRAILS.spires, 1.9, 1.9, f => f > 0.8 ? 1 : 0));
-const trackPts = catmull(TRAILS.track);
+// In a block-in version the glacier stops short of the meadow, so the first stretch of the boot track is talus trail.
+if (BK) trailPts.push(...stamp(trail, TRAILS.track.slice(0, 3), 1.9, 1.9, () => 1));
+const trackPts = catmull(BK ? TRAILS.track.slice(2) : TRAILS.track);
 stamp(river, RIVER, 2.2, 6, null); stamp(river, INLET, 1.2, 1.6, null);
 const nearTrail = (x, y, r) => { for (let i = 0; i < trailPts.length; i += 3) { const p = trailPts[i]; if (Math.abs(p[0] - x) < r && Math.abs(p[1] - y) < r) return true; } return false; };
 
@@ -161,7 +167,7 @@ function paintVolcano() {
 }
 function paintNorth() {
   for (let y = 0; y < 480; y++) for (let x = 0; x < NW; x++) if (y < groundLine(x)) g[at(x, y)] = skyAt(x, y);
-  paintVolcano();
+  if (BK) paintSkyline({ g, at, NW, NH, groundLine }); else paintVolcano();
   const r = rng(77);
   for (let L = 4; L >= 0; L--) {
     const row = [];
@@ -173,8 +179,8 @@ function paintNorth() {
       cx += w * (0.4 + 0.3 * r());
     }
     // The glaciers come down between the peaks of the second row, so the front row stands across them.
-    if (L === 0) for (let y = 380; y < 480; y++) for (let x = 840; x < 1140; x++) { if (y >= groundLine(x) || !pk[at(x, y)]) continue; const gl = glacier(x, y, 1); if (gl.t < 0.14 && bayer(x, y) >= gl.t / 0.14) continue; if (gl.d < gl.w) g[at(x, y)] = iceAt(gl, x, y); else if (gl.d < gl.w + 2 && gl.t > 0.14) g[at(x, y)] = R.rock[1]; }
-    for (const p of row.sort((a, b) => a.h - b.h)) paintPeak(p);
+    if (L === 0 && !BK) for (let y = 380; y < 480; y++) for (let x = 840; x < 1140; x++) { if (y >= groundLine(x) || !pk[at(x, y)]) continue; const gl = glacier(x, y, 1); if (gl.t < 0.14 && bayer(x, y) >= gl.t / 0.14) continue; if (gl.d < gl.w) g[at(x, y)] = iceAt(gl, x, y); else if (gl.d < gl.w + 2 && gl.t > 0.14) g[at(x, y)] = R.rock[1]; }
+    for (const p of row.sort((a, b) => a.h - b.h)) if (!BK || p.cx < BK.keepWest) paintPeak(p);
   }
 }
 
@@ -238,6 +244,7 @@ function ground(x, y) {
   // Each biome wins where its share beats a blotchy threshold, so its edge is a scatter of patches, not a line.
   const blot = s => 0.5 + 0.85 * (fbm(x / 32, y / 21, s, 3) - 0.5) + 0.2 * n1;
   if (ba > blot(181)) {
+    if (BK) return basinGround(x, y, ba, n1, td);
     // The larch basin: pale granite slabs with seams of grass and heather between them.
     const slab = fbm(x / 22, y / 11, 96, 3);
     if (slab > 0.5 + (1 - ba) * 0.12) return vnoise(x / 3, y / 9, 97) > 0.78 ? R.granite[2] : pick('granite', 0.62 + 0.5 * (slab - 0.5) + 0.2 * n1, x, y, 0.7);
@@ -351,17 +358,19 @@ for (let n = 0; n < 1700; n++) {
   const x = 700 + rand() * 700, y = 478 + rand() * 590;
   if (fbm((x - OX) / 60, (y - OY) / 60, 71, 3) < 0.56 || !open(x, y) || forestAmt(x, y) > 0.2 || Math.hypot(x - T.x, (y - T.y) * 1.4) < 70 || talus(x, y) > 0.05) continue;
   if (rand() < Math.max(basinAmt(x, y), dryAmt(x, y) * 1.2, burnAmt(x, y) * 1.1)) continue;
-  const gl = glacier(x, y); if (gl.d < gl.w + 8 || (Math.abs(x - SPIRES.x) < 96 && y < SPIRES.y + 4) || !clearOf(x, y, 12, 30)) continue;
+  const gl = glacier(x, y); if (gl.d < gl.w + 8 || (Math.abs(x - SPIRES.x) < SPH && y < SPIRES.y + 4) || !clearOf(x, y, 12, 30)) continue;
   plant(firs[(rand() * 8) | 0], x, y);
 }
 // Larches: thick in the basin, thinning into the meadow and the pines, a few down by the Spires camp.
 for (let n = 0; n < 1500; n++) {
-  const x = 860 + rand() * 690, y = 470 + rand() * 270, ba = basinAmt(x, y), nearCamp = Math.hypot(x - 930, (y - 585) * 1.5) < 70;
+  if (BK && n > 260) break;
+  const x = 860 + rand() * 690, y = 470 + rand() * 270, ba = BK ? 0 : basinAmt(x, y), nearCamp = Math.hypot(x - 930, (y - 585) * 1.5) < 70;
   if (!open(x, y) || !(rand() < ba * 0.8 && fbm(x / 40, y / 30, 120, 3) > 0.52 - (1 - ba) * 0.12 && rand() < 0.5 || nearCamp && rand() < 0.07)) continue;
-  const gl = glacier(x, y); if (gl.d < gl.w + 8 || !clearOf(x, y, 14, 34) || (Math.abs(x - SPIRES.x) < 96 && y < SPIRES.y + 4)) continue;
+  const gl = glacier(x, y); if (gl.d < gl.w + 8 || !clearOf(x, y, 14, 34) || (Math.abs(x - SPIRES.x) < SPH && y < SPIRES.y + 4)) continue;
   plant(larches[(rand() * 6) | 0], x, y);
 }
-for (let n = 0; n < 90; n++) { const x = 1030 + rand() * 500, y = 480 + rand() * 210; if (rand() < basinAmt(x, y) && open(x, y) && glacier(x, y).d > glacier(x, y).w + 6) put(slabs[(rand() * 4) | 0], x, y); }
+if (BK) plantBasin({ rand, basinAmt, ok: (x, y, w, h) => open(x, y) && glacier(x, y).d > glacier(x, y).w + 8 && (!w || clearOf(x, y, w, h)) && !(Math.abs(x - SPIRES.x) < SPH && y < SPIRES.y + 4), larch: (x, y) => plant(larches[(rand() * 6) | 0], x, y), slab: (x, y) => put(slabs[(rand() * 4) | 0], x, y) });
+for (let n = 0; n < (BK ? 0 : 90); n++) { const x = 1030 + rand() * 500, y = 480 + rand() * 210; if (rand() < basinAmt(x, y) && open(x, y) && glacier(x, y).d > glacier(x, y).w + 6) put(slabs[(rand() * 4) | 0], x, y); }
 // The dry side: open ponderosa, then sagebrush, then nothing but rock and grass. Where the burn
 // reached the pines it left them standing black.
 for (let n = 0; n < 760; n++) {

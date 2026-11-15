@@ -22,6 +22,9 @@ const sets = {
       s.makeElk(false), s.makeElk(true), s.makeElk(false, 1), s.makeElk(false, 2), s.makeElk(false, 0, false), s.makeElk(true, 0, false), s.makeElk(false, 1, false), m.sheep(false), m.sheep(true), m.sheep(false, 1), c.mapBear('look'), c.mapBear('sniff'), c.mapBear('look', 1),
       m.squirrel(false), m.squirrel(false, true), m.squirrel(true), m.squirrel(true, true), m.whale(false)]; },
   async elk() { const s = await import('./sprites.js'), f = await import('./fauna.js'), m = (await import('./terrain.js')).buildTerrain((await import('./world.js')).makePeak()).make; return [s.makeElk(false), s.makeElk(true), s.makeElk(false, 1), s.makeElk(false, 2), s.makeElk(false, 0, false), s.makeElk(true, 0, false), m.sheep(false), f.goat('stand')]; },
+  // Round 3 block-in: the three Spires and the three basin peaks side by side (see blockin.js).
+  async spires() { const m = await import('./blockin.js'); return ['a', 'b', 'c'].map(k => m.makeMassifBK(m.VERSIONS[k].massif)); },
+  async basinpeak() { const m = await import('./blockin.js'); return ['a', 'b', 'c'].map(k => m.makeBasinPeak(m.VERSIONS[k].peak)); },
   async climb() { const m = await import('./tj.js'); return m.climbSheet ? m.climbSheet() : []; }
 };
 const bms = await sets[q.get('set') || 'runner']();
