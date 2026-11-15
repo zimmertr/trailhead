@@ -268,7 +268,7 @@ function ground(x, y) {
   if (gl.d < gl.w) {
     // The boot track up the ice: a trench as wide as the trail with its floor in shade, down to
     // single prints where it gives out.
-    if (track[i] && !printGap(i)) return track[i] === 1 ? R.glac[3] : hash(x, y, 16) < 0.3 ? R.glac[1] : R.glac[2];
+    if (track[i] && !printGap(i)) return track[i] === 1 ? R.glac[3] : hash(x, y, 16) < 0.3 ? R.glac[2] : R.glac[1];
     return iceAt(gl, x, y);
   }
   // From the tents to the toe of the ice the way is a path trodden through the moraine.
@@ -547,7 +547,7 @@ for (let n = 0; n < 300; n++) {
   const x = 560 + rand() * 760, y = 480 + rand() * 590; if (!openWas(x, y) || nearTrail(x, y, 7) || Math.hypot(x - T.x, y - T.y) < 34 || forestAmt(x, y) > 0.3 || rand() < Math.max(burnAmt(x, y), dryAmt(x, y))) continue;
   // A boulder may ride the ice. A bush may not, and neither stands on the way to it.
   const rock = rand() < 0.3, bm = rock ? boulders[(rand() * 6) | 0] : bushes[(rand() * 8) | 0];
-  if (!free(x, y, bm.w, bm.h) || track[at(Math.round(x), Math.round(y))] || (!rock && onIce(x, y, 4))) continue;
+  if (!free(x, y, bm.w, bm.h) || track[at(Math.round(x), Math.round(y))] || (!rock && onIce(x, y, 4)) || (Math.abs(x - SPIRES.x) < 122 && y < 528)) continue;
   put(bm, x, y);
 }
 // The coast: sea stacks, driftwood along the beach, a ferry out by the fog, a humpback breaching,
