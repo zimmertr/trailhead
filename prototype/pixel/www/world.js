@@ -285,7 +285,7 @@ export function makeWorld() {
       list.length = 0;
       for (const th of things) {
         if (th.flag && !env.done[th.flag]) continue;
-        if ((th.kind === 'tree' && !DEBUG.trees) || (th.critter && !DEBUG.animals)) continue;
+        if (((th.kind === 'tree' || th.isTree) && !DEBUG.trees) || (th.critter && !DEBUG.animals)) continue;
         const w = th.kind === 'tree' ? th.t.tree.w + 8 : th.bm.w, h = (th.kind === 'tree' ? th.t.tree.h + 10 : th.bm.h) + (th.lift || 0);
         if (th.x + w < ox || th.x - w > ox + VW || th.y - h > oy + VH || th.y + 4 < oy) continue;
         list.push(th);
