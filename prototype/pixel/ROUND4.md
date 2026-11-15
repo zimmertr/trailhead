@@ -259,7 +259,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [x] B10. Pictures: whole map; the opening wide view on a 1440 by 900 screen in two or three candidate framings, some cropped (section 5); the phone's opening slice; the close view at the Trailhead; round 3's map beside the new one.
 - [x] B11. Check the law: walk the map west to east and name every pair of neighbours; none is unbelievable. Check the four kinds of mountain: nothing else on the skyline.
 - [x] B12. A page like `plan/skyline-pick.html` showing the pictures, with the weak points listed honestly.
-- [ ] **STOP 1 (reached 2026-11-15; TJ's answers sent the block-in round again, see section 9; three layouts shown, waiting for his pick).** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
+- [ ] **STOP 1 (reached 2026-11-15; TJ's answers sent the block-in round again, see section 9; three layouts shown and TJ picked layout 1, the land climbs; its second pass is shown and waits for his word that the layout is right).** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
 
 ### C. The skyline, drawn for real
 
@@ -438,6 +438,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 | Round 3, for comparison | `pixel-r3-final` | https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1 | 2026-11-15 |
 | 1, the block-in (a page of pictures, not the game) | `pixel-r4-blockin` | https://claude.ai/artifact/LDB4ivAk4ZU2EVskcN7nHj | 2026-11-15 |
 | 1 again: three layouts with real height (pictures) | `pixel-r4-relief` | https://claude.ai/artifact/HkLDn3zFk3fyYgagGVWQSA | 2026-11-15 |
+| 1 again: layout 1, second pass (pictures) | `pixel-r4-relief2` | https://claude.ai/artifact/SJGQUzqPa1i1RDd23pc56t | 2026-11-15 |
 
 ## 9. Calls made in round 4
 
@@ -456,6 +457,11 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - **TJ on the water:** in nature creeks and springs gather into rivers that run through chains of lakes ("necklace lakes"); or the creeks join one river that "looks larger as it collects tributaries rather than a single size from top to bottom". How it is drawn follows the layout he picks.
 - The second block-in is drawn another way, in `www/relief.js` (`relief.html?v=1|2|3&labels=1&crop=x,y&scale=k`): every spot of the world has a height, and a spot is drawn at screen (u, 1080 - v - height), nearest first, so ground and mountains are one surface and near slopes hide far ones. Layout 1: the land climbs into the mountains (the builder's pick). Layout 2: flat ground, massifs standing at different depths. Layout 3: the crest runs toward the camera with the Trailhead at a pass. The Spires' wall and Proficiency Peak keep their designed outlines; the other ranges are rows of blunt pyramids.
 - Lessons from that drawing: a mountain made by multiplying a cone by noise comes out as needles, so ranges are built from a designed skyline times a cross-section; a lake must sit beyond a mountain's foot or it cuts a cave into the slope; fog reads as ranks only if trees keep to the ridge crests and the hollows are left white.
+- **TJ picked layout 1 (the land climbs), 2026-11-15.** Layouts 2 and 3 stay in `www/relief.js` for reference only. The map is now the height-based one in `relief.js`, not `plan4.js` and not a flat ground with a skyline behind it.
+- His notes on it, in his words: "The fog is improving. I think we can fog some of the water on the far west edge too." And on the right side, which was burn, pines and sage in three bands: "We don't need to vertically stack the right side into three even sections. In fact, it makes the world look fake and computer gnerated. You know how the ocean bisects the left side at an angle? That is an example of something that looks more organic." He chose a slanted bottom-right corner for the dry country and gave the top right to the granite and the larches.
+- Second pass (`plan/relief2-r4.html`): the dry country is one slanted corner with a wandering edge (`dryS`); the burn is a diagonal scar; the granite range runs to the east edge over a staircase of basins with a chain of tarns on one creek; Mount Monolith follows a drawn skyline; the Spires are 1.2 times wider; fog lies over the beach and sea at the west edge.
+- The fog cannot be finished by rule. The rule that plants trees on ridge crests was tuned four times and swings between a white sheet and a grey wall. The ranks of crowns have to be drawn ridge by ridge in the real drawing. Told TJ.
+- **Before any real drawing:** checklist sections C and D, and the parts of sections 3, 4 and 6 they lean on, were written for a flat ground with a skyline behind it. Rewrite them for the height-based map, and decide how the running game uses it (a baked ground picture, things with a depth, trails in screen space, what hides the runner). Get TJ's sign-off on that rewrite first.
 
 ## 10. The reference pictures TJ shared, described
 
