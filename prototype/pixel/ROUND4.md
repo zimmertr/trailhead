@@ -169,27 +169,39 @@ Not used, kept in `IDEAS.md`: the single great ice face, racing a storm, an alpi
 - In the prototype the book is a browser-only mock with sample entries; a new entry is kept in this browser and marked as waiting for TJ's approval. The real service is https://github.com/zimmertr/trailhead/issues/3 (plain text, no contact details asked for, every entry approved by TJ before it shows).
 - It replaces the register that hides in the trail map sheet today.
 
-**The West Ridge pitch list (draft, from the hand-drawn topo TJ shared; check against the sources below before step H).**
+**The West Ridge pitch list (checked against the sources on 2026-11-15; TJ, who climbed it, has the last word before step H).**
 
-Read these first, **including their photographs, which show the pitches**: https://www.mountainproject.com/route/105808527/west-ridge, https://www.shane.st/trip-reports/prusik/, https://www.summitpost.org/prusik-peak-west-ridge/206568, https://www.francisbaileyh.com/2022/09/29/prusik-peak/, https://stevensong.com/usa/washington/prusik-peak/. Der Sportsman (https://www.mountainproject.com/route/107641573/der-sportsman) is the hard south-face route TJ has **not** climbed; it is for the look of the wall only.
+The sources: https://www.mountainproject.com/route/105808527/west-ridge, https://www.shane.st/trip-reports/prusik/, https://www.summitpost.org/prusik-peak-west-ridge/206568, https://www.francisbaileyh.com/2022/09/29/prusik-peak/, https://stevensong.com/usa/washington/prusik-peak/. Der Sportsman (https://www.mountainproject.com/route/107641573/der-sportsman) is the hard south-face route TJ has **not** climbed; it is for the look of the wall only.
 
-| Pitch | What happens on it (from the topo) | In the scene |
+An Opus subagent read four of the five (SummitPost refused the request; Mountain Project's comments and 25 of its 37 photographs could not be reached) and looked at about a hundred of their photographs. **Its full report is `plan/west-ridge-beta.md`: every fact there carries its source, and it describes each pitch's rock, belay and view. Read it before drawing a pitch.** Below, "(topo only)" marks a thing that is on TJ's hand-drawn topo and in no other source.
+
+The scene looks at the ridge from the south, so wherever the route goes to the north side of the crest the climbers pass out of sight behind it, and the rope is seen running over the crest until they come back.
+
+| Pitch | The real pitch | In the scene |
 |---|---|---|
-| Approach | A scramble from Prusik Pass to a balanced rock, then to the start tree. | He walks in with the two friends; tie in at the tree, wait for Space, fist bump. |
-| 1 | From the start tree, a hand crack. | The black-haired man leads, placing cams. **Both followers climb at once on two ropes.** A three-cam anchor. Belay: card 1 (Platform Engineering). |
-| 2 | Short: a big step, belay from a horn slung with a sling. | Quick pitch, no card. The anchor is the slung horn, backed up. From here on **caterpillar**: the leader brings up TJ, and TJ brings up the red-haired woman. |
-| 3 | The slab pitch (an old piton, the "mercy hold"), then the "sidewalk", a down-climb with great exposure, belay from a flake. | **The lead fall happens on the slab**: the black-haired man skates off, the rope comes tight on the last piece, he hangs, shakes out and goes again. Belay: card 2 (Site Reliability Engineering; the fall that was caught). |
-| 4 | Long: from the belay flake, "au cheval" (straddling the crest), stay north for a hidden foot ramp, belay from a ledge. | Each of them straddles the crest in the wind. The inversion has formed below. Belay: card 3 (Software Engineering). |
-| 5 | A crack with a mantle, a lieback flake, the left chimney, then "through the hole to be birthed to the summit". | **The chimney pitch**: climbed with back and feet, then each squeezes up through the hole onto the summit. Summit: all three, high fives, the resume card. |
-| Descent | Rappels off the north face (five with one rope), past a flake that eats ropes, then a walk back west to the base. | All three zip down the first rappel one after another into the cloud; the round window closes to the map. |
+| Approach | From Prusik Pass, round a bump on its north side, then a scramble up a low knob of lichen-black blocks and knee-high dwarf pine to an overhanging rock at the foot of the ridge, where parties leave their packs and change shoes. A balanced rock and a start tree (both topo only). | He walks in with the two friends past the balanced rock. The packs go under the overhanging rock. Tie in at the tree, wait for Space, fist bump. |
+| 1 | Long, nearly a full rope, 5.6. A crack in a band of unusually white rock, then blocky ground, then an awkward flaring off-width. It ends under a roof of stacked square blocks. | The black-haired man leads, placing cams, and fights the off-width (slower, an arm in the crack). **Both followers climb at once on two ropes** of different colours. Anchor: a block wrapped in old faded slings, backed up with two cams. Belay: card 1 (Platform Engineering). |
+| 2 | Short. Stem a corner between rounded blocks, pull a short roof, down-climb to a flat trail on the north side, climb back up to the south side, then a stride from one boulder onto a flat block that juts over the drop (the topo's "big step"). It ends on a broad flat platform at the foot of the slab. | Quick pitch, no card. The leader stems wide, pulls the roof, drops out of sight behind the crest and reappears for the step. Anchor: the two horns on the platform, slung and tied together (TJ's slung-horn photo). From here on **caterpillar**: the leader brings up TJ, and TJ brings up the red-haired woman. |
+| 3 | The slab, 5.7, the crux of the route: about 6 m of tilted pale face whose left edge is an arete. An old rusty piton at its foot, then nothing to place until a big hold at the top (the topo's "mercy hold"). Then the "sidewalk" and a down-climb with great exposure, to a belay at a flake (the flake is topo only; other parties run this pitch on into the next). | He clips the piton and backs it up with one tiny cam. **The lead fall happens here**: high on the slab the black-haired man skates off, slides, the rope comes tight on the piton and its backup, he hangs, shakes out and goes again. Anchor: three cams in the crack beside the flake, joined to one point (TJ's three-piece photo). Belay: card 2 (Site Reliability Engineering; the fall that was caught). |
+| 4 | Long and wandering, easy and very exposed. A huge egg-shaped boulder balanced on the crest, which climbers edge round hugging it. Knife-edge fins taken "au cheval" (astride). A slabby down-climb. Then a grassy walk to a big ledge. The topo's "hidden foot ramp" on the north side is in no source. | Each of them hugs their way round the egg boulder, then straddles the fins in the wind. Only two pieces go in; the rope draped over the fins is the rest of the protection. The inversion has formed below. Anchor: a slung horn, a cam and a nut. Belay: card 3 (Software Engineering). |
+| 5 | A short scramble to the headwall, where the rock turns pale cream. A thin finger crack (5.8) in an open-book corner capped by a square block, or an off-width beside it. A big hold at the lip, with one lone bolt. A lieback flake to a cramped perch. Then two chimneys: the topo takes the left one, "through the hole to be birthed to the summit". | The finger crack, the mantle at the lip, the flake, then **the chimney**: back and feet, then each squeezes up through the hole. Summit: a small pile of big blocks with deep slots between them. Two stand on the top boulder, one sits just below; high fives; the resume card. |
+| Descent | Rappels down the north face (three, four or five, depending on the ropes), the first down a chute. A flake that eats ropes (topo; one party's rope did stick on the first pull). A walk west along the north side back to the packs. | All three zip down the first rappel one after another into the cloud; the round window closes to the map. |
 
-Which follower slips, and on which pitch, is the builder's call (not the same moment as anyone else). The goat watches from a ledge near the start; the raven hangs in the updraft beside pitch 4.
+Which follower slips, and on which pitch, is the builder's call (not the same moment as anyone else). The goat watches from a ledge near the start; the raven hangs in the updraft beside pitch 4. Neither is on the route in any photograph: they are there because TJ asked for them.
+
+What the report adds to the look:
+
+- **Two kinds of rock.** The lower ridge (pitches 1 to 4) is dark grey granite blotched with black lichen, with lime-green and rust patches: rounded boulders, tilted slab panels, stacked square blocks, grass tufts and dwarf pine in the cracks. The upper tower is much paler, cream to light grey, with long vertical cracks and flat cap blocks. Pitch 1's crack sits in a band of almost white rock. Build these from ramps that exist (the colour limit).
+- **The profile from the south**, left to right: a low dark shrubby bump, a run of gendarmes and stacked boulders (the roof, the slab, the egg boulder, the fins), then the sharp pale summit spire. A darker jagged ridge carries on to the right.
+- **The season** in the best photographs is late September, golden larches on grey granite: the season already chosen for the basin.
+- **The people.** The builder's call, for TJ to veto: all three wear helmets on the climb, one colour each, with their hair still showing below so they can be told apart. The leader's rack hangs from his harness. The two ropes on pitch 1 are two colours (green and orange in the photographs).
+- **Parties of three in the sources** do it both ways: one party's followers climbed together on two ropes, another's came up one at a time. That matches the plan (together on pitch 1, one at a time after).
 
 **The opening frame (direction given).** TJ: it need not start all the way out; it can be cropped, with the rest of the world found later. Show two or three candidate framings in the block-in and let him pick with pictures.
 
 **Still open**
 
-1. The West Ridge pitch list: an Opus subagent read the five sources on 2026-11-15; its report is in the scratchpad at `r4-refs/west-ridge-beta.md` (copy its findings into the table above, then confirm with TJ before anything is built).
+1. The West Ridge pitch list above: TJ to confirm it, and to settle what only someone who climbed it can (how they split the pitches, which crack and which chimney on the last one, the things marked topo only).
 2. Whether the Legacy Range stays (decided at STOP 1).
 3. Which opening frame (decided at STOP 1).
 
@@ -326,23 +338,25 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [ ] G7. One thing to find (suggestion: the pika, moved here from The Stack's talus).
 - [ ] G8. Day and Dusk, desktop and phone, and the cuts in and out filmed: he never stands still or sprints at a change.
 - [ ] G9. Its tune and ambience in `audio.js` (`PLACES`).
-- [ ] G10. Read the five West Ridge sources in section 5, photographs included, and correct the draft pitch list there.
+- [x] G10. Read the five West Ridge sources in section 5, photographs included, and correct the draft pitch list there. (Done 2026-11-15, before the build, by an Opus subagent: four of the five, SummitPost refused. Report in `plan/west-ridge-beta.md`.)
 - [ ] **STOP 3.** Tag `pixel-r4-larches`, publish, show TJ the pitch list.
 
 ### H. The West Ridge climb (rebuild of `wall.js`)
 
-- [ ] H1. The ridge in profile: stepped granite rising up and right, the pitches and ledges from the agreed list.
+- [ ] H1. The ridge in profile, rising up and right, with every landmark from the agreed list: the white band and its crack, the roof of stacked blocks, the jutting step block, the platform, the slab with its arete, the flake, the egg boulder, the fins, the big ledge, the pale headwall with its corner, the summit blocks. Lower ridge dark and lichen-blotched, tower pale.
+- [ ] H1a. Where the route goes to the north side (pitch 2's trail, parts of pitch 4, the rappels) the climbers pass behind the crest and the rope runs over it; they are never lost for more than a few seconds.
 - [ ] H2. Arrival: he walks to the two friends, ties in, waits for Space (`wait:belay`), fist bump (round 3's work, kept).
 - [ ] H3. The black-haired man leads every pitch and has the leading, cam-placing, anchor-building, belaying and falling drawings; TJ has following and belaying drawings; the red-haired woman has following and cleaning drawings.
-- [ ] H3a. Protection: on every pitch the leader places at least three cams, each seen going into the crack, each with a sling and a carabiner that the rope is clipped through.
+- [ ] H3a. Protection: on pitches 1, 2 and 5 the leader places at least three cams, each seen going into the crack, each with a sling and a carabiner that the rope is clipped through. The slab has only the piton and one tiny cam at its foot (the bare stretch above is the point of it); pitch 4 has two pieces and the rope over the fins.
 - [ ] H3b. The rope: drawn piece to piece through every carabiner, sagging between them, slack after a clip, tight on a fall or a held follower. Never a straight line from belayer to climber.
+- [ ] H3d. Helmets on all three, one colour each, hair showing below; the rack on the leader's harness; two rope colours on pitch 1.
 - [ ] H3c. Cleaning: the last one up each pitch (the red-haired woman) removes the pieces; none are left on the rock behind the party.
-- [ ] H4. A multi-piece anchor at every belay, built before anyone is brought up: the slung horn on pitch 2, two or three cams elsewhere, joined to one master point and backed up. Check each one in a close-up. The card opens when he is tied in to it.
+- [ ] H4. A multi-piece anchor at every belay, built before anyone is brought up: pitch 1 the sling-wrapped block backed up with two cams, pitch 2 the two slung horns, pitch 3 three cams by the flake, pitch 4 a horn, a cam and a nut, the summit a block. Each joined to one master point and backed up. Check each one in a close-up. The card opens when he is tied in to it.
 - [ ] H5. Pitch 1: both followers climb at once on two ropes, a few moves apart.
 - [ ] H6. Later pitches: caterpillar. The black-haired man belays TJ up, then TJ belays the red-haired woman.
 - [ ] H7. The two followers differ: speed, line, rests; write each one's habits in section 9. One of them slips once and is held.
-- [ ] H8. The lead fall on the slab, by the black-haired man: he comes off, drops a short way, the rope comes tight on the last cam, he hangs, shakes out, goes again.
-- [ ] H9. The offwidth or chimney pitch, climbed as one (back and feet, or arm bars), slower.
+- [ ] H8. The lead fall on the slab, by the black-haired man: he comes off, slides, the rope comes tight on the piton and its backup, he hangs, shakes out, goes again.
+- [ ] H9. The summit chimney on pitch 5, climbed as one (back and feet), slower, ending in the squeeze through the hole. The off-width on pitch 1 needs only one arm-in-the-crack drawing for the leader.
 - [ ] H10. Holds are painted where hands and feet go; feet stay on ledges (round 3's fixes hold on every pitch).
 - [ ] H11. Wind: cartoon lines with curls sweep across; jackets, hair and rope flap; hoods up; a friend blows on their hands. A whoosh in the sound, louder higher up.
 - [ ] H12. Background far below: larches as gold dots, tarns, the basin's benches, other granite peaks; it sinks as he climbs.
