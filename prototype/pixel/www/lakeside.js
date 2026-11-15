@@ -116,6 +116,9 @@ export function makeLakeside() {
   for (let n = 0; n < 150; n++) { const x = rand() * SW, y = 8 + sq(rand()) * 220, k = rand(); things.push(k < 0.45 ? { bm: boulders[Math.min(6, (rand() * 4 + y / 60) | 0)], x: Math.round(x), y: Math.round(y) } : { bm: bushes[(rand() * 5) | 0], x: Math.round(x), y: Math.round(y) }); }
   for (let n = 0; n < 34; n++) { const x = rand() * SW, y = 84 + rand() * 150; things.push({ tree: rand() < 0.6 ? spruces[(rand() * 4) | 0] : firs[(rand() * 6) | 0], x: Math.round(x), y: Math.round(y) }); }
   const marmotRock = makeBoulder(161, 11); things.push({ bm: marmotRock, x: xMarmot, y: shore(xMarmot) + 5 });
+  // How far above its foot the rock's top is, so the marmot can lie on the rock itself: the picture of a rock has empty rows above it.
+  let rockTop = 0; while (rockTop < marmotRock.h && !marmotRock.d[rockTop * marmotRock.w + marmotRock.ox]) rockTop++;
+  rockTop = marmotRock.oy - rockTop;
   const noteRock = makeBoulder(162, 9);
   { const b = noteRock, x = b.ox - 1, y = b.oy - 13; for (let dx = 0; dx < 7; dx++) { b.set(x + dx, y, dx === 3 ? R.white[0] : R.white[1]); b.set(x + dx, y + 1, dx === 3 ? R.red[0] : R.white[0]); } b.set(x - 1, y + 1, R.red[1]); b.set(x + 7, y + 1, R.red[1]); b.set(x + 5, y - 1, R.navy[1]); }
   things.push({ bm: noteRock, x: xNote + 15, y: g(xNote) - 4 });
@@ -251,7 +254,7 @@ export function makeLakeside() {
       const alert = Math.abs(d - D_MARMOT) < 46 || t - whistled < 1.6;
       if (Math.abs(d - D_MARMOT) < 46 && !whistled && env.running) { whistled = t; env.sfx('whistle'); }
       if (Math.abs(d - D_MARMOT) > 120 && t - whistled > 2) whistled = false;
-      list.push({ bm: alert ? marm.up : marm.sun, x: xMarmot + 1, y: shore(xMarmot) + 5 - marmotRock.h + 5, z: shore(xMarmot) + 5.5, flip: d > D_MARMOT });
+      list.push({ bm: alert ? marm.up : marm.sun, x: xMarmot + 1, y: shore(xMarmot) + 5 - rockTop + 3, z: shore(xMarmot) + 5.5, flip: d > D_MARMOT });
       list.push({ me: true, x: mx, y: my + 0.5 });
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
       const snack = !env.running && env.still > 60 && t - plunge > PLUNGE + 2;
