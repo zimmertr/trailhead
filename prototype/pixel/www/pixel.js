@@ -58,20 +58,55 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   let route = 'lake', legs = [], stops = [], cues = [], total = 1;
   let p = 0, running = false, shown = null, mode = theme === 'dark' ? 1 : 0, mix = mode;
   let drawn = null, tr = null, scrubbing = 0, stillAt = performance.now() / 1000;
+  // Held down, Space or the Start button doubles his pace for as long as it is held.
+  const FAST = 2; let fast = false, pace = 1;
   const look = { x: 0, y: 0 }, FREE = { x0: -150, x1: 150, y0: -40, y1: 40 };
   let recentre = false, wasRunning = false;
   // Zoom, on the map only: whole steps of pixel size either side of the one that suits the window. It stops
   // short of a view wider or taller than the world, so the camera's limits still hide the world's edge.
-  let zoom = 0, anchor = null;
+  let zoom = 0, anchor = null, glideNext = false, glide = null;
+  const calm = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   const zoomRange = () => { const dpr = window.devicePixelRatio || 1, fit = Math.ceil(Math.max(innerWidth * dpr / (world.WW - 56), innerHeight * dpr / (world.WH - 56))); return [Math.min(scr.S0, Math.max(Math.ceil(scr.S0 / 2), fit)), scr.S0 * 2]; };
   // at: the point of the page, in CSS pixels, that should stay over the same spot of the map.
   function zoomBy(d, at) {
     if (drawn.s !== 'world' || tr) return false;
+    endGlide();
     const [lo, hi] = zoomRange(), s = clamp(scr.S0 + zoom + d, lo, hi); if (s === scr.S) return false;
     const dpr = window.devicePixelRatio || 1;
     if (at) { const w = world.at(at[0] * dpr / scr.S, at[1] * dpr / scr.S); anchor = { wx: w.x, wy: w.y, sx: at[0] * dpr / s, sy: at[1] * dpr / s }; }
-    zoom = s - scr.S0; emit({ type: 'sfx', name: 'step' });
+    zoom = s - scr.S0; glideNext = !calm.matches; emit({ type: 'sfx', name: 'step' });
     return true;
+  }
+  // A zoom step swaps to a new whole pixel size in one frame, which reads as a jump. So the picture glides
+  // from the old view to the new one for a moment and only rests on whole pixels. Zooming in, the last
+  // picture at the old size grows over the new one and then gives way to it. Zooming out, the new, wider
+  // picture starts enlarged to where the old one was and settles.
+  const GLIDE = 190;
+  function snapshot() {
+    const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height; c.getContext('2d').drawImage(canvas, 0, 0);
+    c.style.cssText = 'position:fixed;left:0;top:0;z-index:0;pointer-events:none;image-rendering:pixelated;transform-origin:0 0;width:' + canvas.style.width + ';height:' + canvas.style.height;
+    return c;
+  }
+  function startGlide(g) {
+    const dpr = window.devicePixelRatio || 1, o1 = world.at(0, 0), S1 = scr.S, opts = { duration: GLIDE, easing: 'cubic-bezier(.22,.8,.3,1)', fill: 'forwards' };
+    if (g.shot) {
+      const k = S1 / g.S, dx = (g.o.x - o1.x) * S1 / dpr, dy = (g.o.y - o1.y) * S1 / dpr;
+      canvas.after(g.shot);
+      glide = { el: g.shot, into: true, k, dx, dy, anim: g.shot.animate([{ transform: 'translate(0px, 0px) scale(1)' }, { transform: `translate(${dx}px, ${dy}px) scale(${k})` }], opts) };
+    } else {
+      const k = g.S / S1, dx = (o1.x - g.o.x) * g.S / dpr, dy = (o1.y - g.o.y) * g.S / dpr;
+      canvas.style.transformOrigin = '0 0';
+      glide = { el: null, into: false, k, dx, dy, anim: canvas.animate([{ transform: `translate(${dx}px, ${dy}px) scale(${k})` }, { transform: 'translate(0px, 0px) scale(1)' }], opts) };
+    }
+    glide.anim.onfinish = glide.anim.oncancel = endGlide;
+  }
+  function endGlide() { if (!glide) return; const g = glide; glide = null; try { g.anim.cancel(); } catch { /* already over */ } if (g.el) g.el.remove(); }
+  // Where a point of the settled view is on the page right now, in CSS pixels, so the name tags can ride along.
+  function glidePoint(x, y) {
+    if (!glide) return [x, y];
+    const tm = glide.anim.effect && glide.anim.effect.getComputedTiming(), e = tm && tm.progress != null ? tm.progress : 1, { k, dx, dy } = glide;
+    if (glide.into) { const ke = 1 + (k - 1) * e; return [(x - dx) / k * ke + dx * e, (y - dy) / k * ke + dy * e]; }
+    const ke = k + (1 - k) * e; return [x * ke + dx * (1 - e), y * ke + dy * (1 - e)];
   }
   let done = {};
   try { done = JSON.parse(localStorage.getItem('trailhead.done') || '{}') || {}; } catch { done = {}; }
@@ -127,7 +162,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // A scene may keep him where he is while something plays out (he swims back before he runs on).
     if (!tr && drawn.scene.hold && drawn.scene.hold(env)) return;
     const before = p;
-    let next = Math.min(1, p + dt / total);
+    pace += ((fast ? FAST : 1) - pace) * (1 - Math.exp(-dt * 9));
+    let next = Math.min(1, p + dt * pace / total);
     const hit = stops.find(s => s.at > before + 1e-6 && s.at <= next + 1e-6);
     if (hit) next = hit.at;
     for (const c of cues) if (c.at > before + 1e-6 && c.at <= next + 1e-6) emit({ type: 'sfx', name: c.name });
@@ -214,7 +250,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
         else tr = null;
       }
     }
-    { const [lo, hi] = zoomRange(), s = drawn.s === 'world' ? clamp(scr.S0 + zoom, lo, hi) : scr.S0; if (s !== scr.S) { scr.setScale(s); if (anchor) env.anchor = anchor; } anchor = null; }
+    let gliding = null;
+    { const [lo, hi] = zoomRange(), s = drawn.s === 'world' ? clamp(scr.S0 + zoom, lo, hi) : scr.S0; if (s !== scr.S) { if (glideNext && drawn.s === 'world' && !tr) gliding = { S: scr.S, o: world.at(0, 0), shot: s > scr.S ? snapshot() : null }; scr.setScale(s); if (anchor) env.anchor = anchor; } anchor = null; glideNext = false; }
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
     env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = dt; env.mix = mix;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
@@ -236,6 +273,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       scr.iris(f.x, f.y, tr.phase === 'out' ? full * (1 - e) - 4 : full * e);
     }
     scr.present(t, mix);
+    if (gliding) startGlide(gliding);
     const f = (tr && tr.phase === 'slide' ? tr.to : drawn).scene.focus();
     window.__info = { p, route, running, scene: drawn.s, VW: scr.VW, VH: scr.VH, S: scr.S, fx: f.x, fy: f.y };
   }
@@ -315,7 +353,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     theme: () => mode ? 'dark' : 'light',
     setTheme(th) { mode = th === 'dark' ? 1 : 0; },
     start() { if (p >= 1) p = 0; leave(); running = true; },
-    stop() { running = false; },
+    stop() { running = false; pace = 1; },
+    boost(on) { fast = !!on; },
     toggle() { if (running) running = false; else api.start(); },
     running: () => running,
     progress: () => p,
@@ -371,7 +410,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     },
     spires: () => SPIRES.slice(),
     // Names to pin on the scene, in CSS pixels: the six summits at base camp, the four places on the map.
-    labels() { const k = scr.S / (window.devicePixelRatio || 1); return drawn.scene.labels && !tr ? drawn.scene.labels().map(l => ({ ...l, x: l.x * k, y: l.y * k })) : []; },
+    labels() { const k = scr.S / (window.devicePixelRatio || 1); return drawn.scene.labels && !tr ? drawn.scene.labels().map(l => { const [x, y] = glidePoint(l.x * k, l.y * k); return { ...l, x, y }; }) : []; },
     // Puts him at a milestone by name, with its card open.
     goto(id) { const s = stops.find(q => q.id === id); if (!s) return false; running = false; scrubbing = 0.16; p = s.at; shown = null; showStop(s); return true; },
     info: () => ({ lengths: world.lengths() }),

@@ -109,7 +109,7 @@ export const FINDS = {
   'egg:kubernetes-manifests': ['The cairn', 'On top of Kubernetes-Manifests']
 };
 
-export const HELP = [['Space', 'start and stop'], ['Left / Right, A / D', 'jump between milestones'], ['Up / Down, W / S', 'start, stop'], ['M or Esc', 'the trail map'], ['T', 'day and dusk'], ['Drag', 'look around'], ['+ and -, wheel, pinch', 'zoom the map'], ['Click', 'signs, animals, summits, the lake']];
+export const HELP = [['Space', 'start and stop'], ['Hold Space', 'go faster'], ['Left / Right, A / D', 'jump between milestones'], ['Up / Down, W / S', 'start, stop'], ['M or Esc', 'the trail map'], ['T', 'day and dusk'], ['Drag', 'look around'], ['+ and -, wheel, pinch', 'zoom the map'], ['Click', 'signs, animals, summits, the lake']];
 
 export const CONSOLE = ["%c  /\\      trailhead\n /  \\  /\\   You found the trail register's back door.\n/    \\/  \\  Everything here is drawn in code, a pixel at a time.\n          The source: https://github.com/zimmertr/trailhead", 'font-family: monospace; color: #467a30'];
 
@@ -150,6 +150,8 @@ export const SET_NAMES = ['Console', 'Handheld', 'Music box'];
 export const UI = {
   name: 'TJ Zimmerman',
   run: ['Start', 'Stop'], home: ['Trailhead', 'Camp'], sound: ['Sound on', 'Sound off'], theme: ['Dusk', 'Day'],
+  // On the Sound button until the first click, tap or key: a browser plays nothing before one. With a mouse, then with a finger.
+  soundWaits: ['Click for sound', 'Tap for sound'],
   auto: name => 'Auto: ' + name,
   pixels: (colours, w, h) => colours + ' colours, ' + w + ' x ' + h + ' pixels, every one drawn in code',
   found: (name, n, of) => 'Found: ' + name + '. ' + n + ' of ' + of + ' on the kiosk checklist.',

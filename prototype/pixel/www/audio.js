@@ -7,43 +7,73 @@ const hz = n => { const m = /^([A-G]#?)(\d)$/.exec(n); return m ? 440 * Math.pow
 // A line of music is written a step at a time: a note name starts a note, a dot holds it, a dash is silence.
 const line = s => s.replace(/\|/g, ' ').trim().split(/\s+/);
 
-// Each track: tempo, steps per beat, and one line per voice. All lines are the same length and loop.
+// Each track: tempo, steps per beat, and one line per voice, all the same length. A tune has two parts:
+// the lines on the track itself, and a second part under `b`. One play is the first part, the second,
+// and the first again, which makes about a minute.
 export const TRACKS = [
   { bpm: 104, div: 2,
     lead: line('E5 - G5 - C6 . B5 A5 | G5 . . D5 G5 . B5 . | A5 . C6 . E6 . D6 C6 | A5 . . F5 A5 . C6 . | E5 - G5 - C6 . D6 E6 | D6 . B5 . G5 . . . | F5 . A5 . C6 . A5 . | G5 . . . . . - -'),
     arp: line('C4 E4 G4 E4 C4 E4 G4 E4 | B3 D4 G4 D4 B3 D4 G4 D4 | A3 C4 E4 C4 A3 C4 E4 C4 | A3 C4 F4 C4 A3 C4 F4 C4 | C4 E4 G4 E4 C4 E4 G4 E4 | B3 D4 G4 D4 B3 D4 G4 D4 | A3 C4 F4 C4 A3 C4 F4 C4 | B3 D4 G4 D4 B3 D4 G4 D4'),
     bass: line('C3 . . . G2 . . . | G2 . . . D3 . . . | A2 . . . E3 . . . | F2 . . . C3 . . . | C3 . . . G2 . . . | G2 . . . D3 . . . | F2 . . . C3 . . . | G2 . . . G2 . D3 .'),
-    drum: line('k - h - s - h - | k - h - s - h h | k - h - s - h - | k - h - s - h h | k - h - s - h - | k - h - s - h h | k - h - s - h - | k - h - s s h h') },
+    drum: line('k - h - s - h - | k - h - s - h h | k - h - s - h - | k - h - s - h h | k - h - s - h - | k - h - s - h h | k - h - s - h - | k - h - s s h h'),
+    b: { lead: line('A5 . . G5 F5 . A5 . | G5 . . . E5 . C5 . | F5 . . E5 D5 . F5 . | D5 . . . B4 . D5 . | C6 . . B5 A5 . E5 . | A5 . G5 . F5 . C5 . | D5 . F5 . A5 . C6 . | B5 . . . D6 . - -'),
+      arp: line('F3 A3 C4 A3 F3 A3 C4 A3 | C4 E4 G4 E4 C4 E4 G4 E4 | D4 F4 A4 F4 D4 F4 A4 F4 | B3 D4 G4 D4 B3 D4 G4 D4 | A3 C4 E4 C4 A3 C4 E4 C4 | A3 C4 F4 C4 A3 C4 F4 C4 | D4 F4 A4 F4 D4 F4 A4 F4 | B3 D4 G4 D4 B3 D4 G4 D4'),
+      bass: line('F2 . . . C3 . . . | C3 . . . G2 . . . | D3 . . . A2 . . . | G2 . . . D3 . . . | A2 . . . E3 . . . | F2 . . . C3 . . . | D3 . . . A2 . . . | G2 . . . G2 . B2 .'),
+      drum: line('k - h - h - h - | k - h - s - h - | k - h - h - h - | k - h - s - h h | k - h - s - h - | k - h - s - h h | k - h - s - h - | k - s - s s h h') } },
   { bpm: 80, div: 2,
     lead: line('A4 . . . C5 . E5 . | D5 . . . . . C5 . | E5 . . . G5 . E5 . | D5 . . . . . - - | A4 . . . C5 . E5 . | F5 . . . E5 . D5 . | C5 . . . B4 . G4 . | A4 . . . . . - -'),
     arp: line('A3 E4 A4 E4 A3 E4 A4 E4 | F3 C4 F4 C4 F3 C4 F4 C4 | C4 G4 C5 G4 C4 G4 C5 G4 | G3 D4 G4 D4 G3 D4 G4 D4 | A3 E4 A4 E4 A3 E4 A4 E4 | F3 C4 F4 C4 F3 C4 F4 C4 | E3 B3 E4 B3 G3 D4 G4 D4 | A3 E4 A4 E4 A3 E4 A4 E4'),
     bass: line('A2 . . . . . . . | F2 . . . . . . . | C3 . . . . . . . | G2 . . . . . . . | A2 . . . . . . . | F2 . . . . . . . | E2 . . . G2 . . . | A2 . . . . . . .'),
-    drum: line('- - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h - | - - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h -') },
+    drum: line('- - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h - | - - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h -'),
+    b: { lead: line('C5 . . . A4 . F5 . | E5 . . . . . G5 . | D5 . . . B4 . G5 . | E5 . . . . . - - | F5 . . . A5 . F5 . | E5 . . . C5 . A4 . | C5 . . . D5 . B4 . | B4 . . . . . - -'),
+      arp: line('F3 C4 F4 C4 F3 C4 F4 C4 | C4 G4 C5 G4 C4 G4 C5 G4 | G3 D4 G4 D4 G3 D4 G4 D4 | A3 E4 A4 E4 A3 E4 A4 E4 | D4 A4 D5 A4 D4 A4 D5 A4 | A3 E4 A4 E4 A3 E4 A4 E4 | F3 C4 F4 C4 G3 D4 G4 D4 | E3 B3 E4 B3 E3 B3 E4 B3'),
+      bass: line('F2 . . . . . . . | C3 . . . . . . . | G2 . . . . . . . | A2 . . . . . . . | D3 . . . . . . . | A2 . . . . . . . | F2 . . . G2 . . . | E2 . . . . . . .'),
+      drum: line('- - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h - | - - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h -') } },
   { bpm: 124, div: 2,
     lead: line('D5 - D5 F#5 A5 . F#5 A5 | B5 . A5 . F#5 . D5 . | C5 - C5 E5 G5 . E5 G5 | A5 . G5 . E5 . C5 . | D5 - D5 F#5 A5 . B5 D6 | C6 . B5 . A5 . G5 . | G5 . A5 . B5 . D6 . | A5 . . . . . - -'),
     arp: line('D4 A4 D4 A4 D4 A4 D4 A4 | D4 A4 D4 A4 D4 A4 D4 A4 | C4 G4 C4 G4 C4 G4 C4 G4 | C4 G4 C4 G4 C4 G4 C4 G4 | D4 A4 D4 A4 D4 A4 D4 A4 | C4 G4 C4 G4 C4 G4 C4 G4 | G3 D4 G3 D4 G3 D4 G3 D4 | A3 E4 A3 E4 A3 E4 A3 E4'),
     bass: line('D2 . D3 . D2 . D3 . | D2 . D3 . D2 . A2 . | C2 . C3 . C2 . C3 . | C2 . C3 . C2 . G2 . | D2 . D3 . D2 . D3 . | C2 . C3 . C2 . C3 . | G2 . G2 . G2 . B2 . | A2 . A2 . A2 . C#3 .'),
-    drum: line('k - h k s - h - | k - h k s - h h | k - h k s - h - | k - h k s - h h | k - h k s - h - | k - h k s - h h | k - h k s - h - | k k h k s s h h') },
+    drum: line('k - h k s - h - | k - h k s - h h | k - h k s - h - | k - h k s - h h | k - h k s - h - | k - h k s - h h | k - h k s - h - | k k h k s s h h'),
+    b: { lead: line('B5 . . . G5 . B5 D6 | D6 . B5 . G5 . . . | A5 . . . F#5 . A5 D6 | D6 . A5 . F#5 . . . | G5 - G5 B5 E6 . B5 G5 | D6 . B5 . G5 . B5 . | A5 . C#6 . E6 . C#6 . | A5 . . . . . - -'),
+      arp: line('G3 D4 G3 D4 G3 D4 G3 D4 | G3 D4 G3 D4 G3 D4 G3 D4 | D4 A4 D4 A4 D4 A4 D4 A4 | D4 A4 D4 A4 D4 A4 D4 A4 | E4 B4 E4 B4 E4 B4 E4 B4 | G3 D4 G3 D4 G3 D4 G3 D4 | A3 E4 A3 E4 A3 E4 A3 E4 | A3 E4 A3 E4 A3 E4 A3 E4'),
+      bass: line('G2 . G3 . G2 . G3 . | G2 . G3 . G2 . D3 . | D2 . D3 . D2 . D3 . | D2 . D3 . D2 . A2 . | E2 . E3 . E2 . E3 . | G2 . G3 . G2 . G3 . | A2 . A3 . A2 . A3 . | A2 . A3 . A2 . C#3 .'),
+      drum: line('k - h k s - h - | k - h k s - h h | k - h k s - h - | k - h k s - h h | k - h k s - h - | k - h k s - h h | k - h k s - h - | k k h k s s h h') } },
   { bpm: 92, div: 2,
     lead: line('B4 . . . E5 . . . | G5 . F#5 . E5 . . . | D5 . . . G5 . . . | B5 . A5 . G5 . . . | A5 . . . G5 . E5 . | F#5 . . . D5 . . . | E5 . G5 . B5 . A5 . | B5 . . . . . - -'),
     arp: line('E4 B4 E5 B4 G4 B4 E5 B4 | E4 B4 E5 B4 G4 B4 E5 B4 | G4 D5 G5 D5 B4 D5 G5 D5 | G4 D5 G5 D5 B4 D5 G5 D5 | A4 E5 A5 E5 C5 E5 A5 E5 | D4 A4 D5 A4 F#4 A4 D5 A4 | E4 B4 E5 B4 G4 B4 E5 B4 | B3 F#4 B4 F#4 D#4 F#4 B4 F#4'),
     bass: line('E2 . . . . . B2 . | E2 . . . . . . . | G2 . . . . . D3 . | G2 . . . . . . . | A2 . . . . . E3 . | D2 . . . . . A2 . | E2 . . . . . . . | B2 . . . . . . .'),
-    drum: line('k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - s - h -') },
+    drum: line('k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - s - h -'),
+    b: { lead: line('G5 . . . E5 . . . | F#5 . A5 . D5 . . . | E5 . . . B4 . . . | G5 . F#5 . E5 . . . | C6 . . . G5 . E5 . | A5 . . . F#5 . D5 . | B4 . D#5 . F#5 . B5 . | F#5 . . . . . - -'),
+      arp: line('C4 G4 C5 G4 E4 G4 C5 G4 | D4 A4 D5 A4 F#4 A4 D5 A4 | E4 B4 E5 B4 G4 B4 E5 B4 | E4 B4 E5 B4 G4 B4 E5 B4 | C4 G4 C5 G4 E4 G4 C5 G4 | D4 A4 D5 A4 F#4 A4 D5 A4 | B3 F#4 B4 F#4 D#4 F#4 B4 F#4 | B3 F#4 B4 F#4 D#4 F#4 B4 F#4'),
+      bass: line('C3 . . . . . G2 . | D3 . . . . . A2 . | E2 . . . . . B2 . | E2 . . . . . . . | C3 . . . . . G2 . | D3 . . . . . A2 . | B2 . . . . . F#2 . | B2 . . . . . . .'),
+      drum: line('k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - - - h - | k - - - h - - - | - - h - s - h -') } },
   { bpm: 132, div: 2,
     lead: line('G5 G5 - E5 G5 . A5 . | G5 . E5 . C5 . D5 . | E5 E5 - C5 E5 . F5 . | E5 . D5 . G4 . - - | G5 G5 - E5 G5 . A5 . | C6 . B5 . A5 . G5 . | F5 . E5 . D5 . B4 . | C5 . . . . . - -'),
     arp: line('C4 G4 E4 G4 C4 G4 E4 G4 | C4 G4 E4 G4 C4 G4 E4 G4 | A3 E4 C4 E4 A3 E4 C4 E4 | G3 D4 B3 D4 G3 D4 B3 D4 | C4 G4 E4 G4 C4 G4 E4 G4 | F3 C4 A3 C4 F3 C4 A3 C4 | D4 A4 F4 A4 G3 D4 B3 D4 | C4 G4 E4 G4 C4 G4 E4 G4'),
     bass: line('C3 . G2 . C3 . G2 . | C3 . G2 . C3 . G2 . | A2 . E2 . A2 . E2 . | G2 . D2 . G2 . D2 . | C3 . G2 . C3 . G2 . | F2 . C2 . F2 . C2 . | D2 . A2 . G2 . D2 . | C3 . G2 . C3 . . .'),
-    drum: line('k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - s s s -') },
+    drum: line('k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - s s s -'),
+    b: { lead: line('A5 A5 - F5 A5 . C6 . | G5 . E5 . C5 . E5 . | A5 A5 - F5 A5 . C6 . | B5 . G5 . D5 . - - | C6 C6 - A5 C6 . E6 . | C6 . A5 . F5 . A5 . | D5 . F5 . A5 . D6 . | B5 . . . G5 . - -'),
+      arp: line('F3 C4 A3 C4 F3 C4 A3 C4 | C4 G4 E4 G4 C4 G4 E4 G4 | F3 C4 A3 C4 F3 C4 A3 C4 | G3 D4 B3 D4 G3 D4 B3 D4 | A3 E4 C4 E4 A3 E4 C4 E4 | F3 C4 A3 C4 F3 C4 A3 C4 | D4 A4 F4 A4 D4 A4 F4 A4 | G3 D4 B3 D4 G3 D4 B3 D4'),
+      bass: line('F2 . C2 . F2 . C2 . | C3 . G2 . C3 . G2 . | F2 . C2 . F2 . C2 . | G2 . D2 . G2 . D2 . | A2 . E2 . A2 . E2 . | F2 . C2 . F2 . C2 . | D2 . A2 . D2 . A2 . | G2 . D2 . G2 . . .'),
+      drum: line('k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - k k s h | k - s - k k s - | k - s - s s s -') } },
   { bpm: 72, div: 2,
     lead: line('F#5 . . A5 . . D6 . | B5 . . . F#5 . D5 . | G5 . . B5 . . D6 . | C#6 . . . A5 . E5 . | F#5 . A5 . D6 . F#6 . | D6 . . . B5 . F#5 . | G5 . B5 . A5 . C#6 . | D6 . . . . . - -'),
     arp: line('D4 A4 F#4 A4 D4 A4 F#4 A4 | B3 F#4 D4 F#4 B3 F#4 D4 F#4 | G3 D4 B3 D4 G3 D4 B3 D4 | A3 E4 C#4 E4 A3 E4 C#4 E4 | D4 A4 F#4 A4 D4 A4 F#4 A4 | B3 F#4 D4 F#4 B3 F#4 D4 F#4 | G3 D4 B3 D4 A3 E4 C#4 E4 | D4 A4 F#4 A4 D4 A4 F#4 A4'),
     bass: line('D3 . . . . . A2 . | B2 . . . . . F#2 . | G2 . . . . . D3 . | A2 . . . . . E3 . | D3 . . . . . A2 . | B2 . . . . . F#2 . | G2 . . . A2 . . . | D3 . . . . . . .'),
-    drum: line('- - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h - | - - - - h - - - | - - - - h - - - | - - - - h - - - | h - - - h - h -') },
+    drum: line('- - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h - | - - - - h - - - | - - - - h - - - | - - - - h - - - | h - - - h - h -'),
+    b: { lead: line('B5 . . D6 . . G5 . | A5 . . . F#5 . D5 . | G5 . . B5 . . E5 . | C#6 . . . A5 . E5 . | D6 . B5 . F#5 . B5 . | G5 . . . B5 . D6 . | E6 . D6 . B5 . G5 . | A5 . . . . . - -'),
+      arp: line('G3 D4 B3 D4 G3 D4 B3 D4 | D4 A4 F#4 A4 D4 A4 F#4 A4 | E4 B4 G4 B4 E4 B4 G4 B4 | A3 E4 C#4 E4 A3 E4 C#4 E4 | B3 F#4 D4 F#4 B3 F#4 D4 F#4 | G3 D4 B3 D4 G3 D4 B3 D4 | E4 B4 G4 B4 E4 B4 G4 B4 | A3 E4 C#4 E4 A3 E4 C#4 E4'),
+      bass: line('G2 . . . . . D3 . | D3 . . . . . A2 . | E2 . . . . . B2 . | A2 . . . . . E3 . | B2 . . . . . F#2 . | G2 . . . . . D3 . | E2 . . . . . B2 . | A2 . . . . . . .'),
+      drum: line('- - - - h - - - | - - - - h - - - | - - - - h - - - | - - - - h - h - | - - - - h - - - | - - - - h - - - | - - - - h - - - | h - - - h - h -') } },
   { bpm: 140, div: 2,
     lead: line('A5 - C#6 - E6 . C#6 A5 | B5 . A5 . E5 . . . | F#5 - A5 - D6 . A5 F#5 | G#5 . B5 . E6 . . . | A5 - C#6 - E6 . A6 . | F#6 . E6 . C#6 . A5 . | D6 . F#6 . E6 . G#5 . | A5 . . . . . - -'),
     arp: line('A3 E4 A3 E4 A3 E4 A3 E4 | A3 E4 A3 E4 A3 E4 A3 E4 | D4 A4 D4 A4 D4 A4 D4 A4 | E4 B4 E4 B4 E4 B4 E4 B4 | A3 E4 A3 E4 A3 E4 A3 E4 | F#3 C#4 F#3 C#4 F#3 C#4 F#3 C#4 | D4 A4 D4 A4 E4 B4 E4 B4 | A3 E4 A3 E4 A3 E4 A3 E4'),
     bass: line('A2 . A3 . A2 . A3 . | A2 . A3 . A2 . A3 . | D2 . D3 . D2 . D3 . | E2 . E3 . E2 . E3 . | A2 . A3 . A2 . A3 . | F#2 . F#3 . F#2 . F#3 . | D2 . D3 . E2 . E3 . | A2 . A3 . A2 . . .'),
-    drum: line('k - h - s - h - | k - h h s - h - | k - h - s - h - | k - h h s - h h | k - h - s - h - | k - h h s - h - | k - h - s - h - | k - s - s s s -') }
+    drum: line('k - h - s - h - | k - h h s - h - | k - h - s - h - | k - h h s - h h | k - h - s - h - | k - h h s - h - | k - h - s - h - | k - s - s s s -'),
+    b: { lead: line('F#5 - A5 - D6 . A5 F#5 | A5 . F#5 . D5 . . . | E5 - A5 - C#6 . A5 E5 | C#6 . A5 . E5 . . . | D6 - F#6 - B5 . D6 . | A5 . F#5 . D6 . A5 . | G#5 . B5 . E6 . B5 . | E6 . . . . . - -'),
+      arp: line('D4 A4 D4 A4 D4 A4 D4 A4 | D4 A4 D4 A4 D4 A4 D4 A4 | A3 E4 A3 E4 A3 E4 A3 E4 | A3 E4 A3 E4 A3 E4 A3 E4 | B3 F#4 B3 F#4 B3 F#4 B3 F#4 | D4 A4 D4 A4 D4 A4 D4 A4 | E4 B4 E4 B4 E4 B4 E4 B4 | E4 B4 E4 B4 E4 B4 E4 B4'),
+      bass: line('D2 . D3 . D2 . D3 . | D2 . D3 . D2 . D3 . | A2 . A3 . A2 . A3 . | A2 . A3 . A2 . A3 . | B2 . B3 . B2 . B3 . | D2 . D3 . D2 . D3 . | E2 . E3 . E2 . E3 . | E2 . E3 . E2 . G#2 .'),
+      drum: line('k - h - s - h - | k - h h s - h - | k - h - s - h - | k - h h s - h h | k - h - s - h - | k - h h s - h - | k - h - s - h - | k - s - s s s -') } }
 ];
 
 // The same notes through three different instruments. A set names the wave each voice uses, how
@@ -69,6 +99,8 @@ export function makeAudio() {
     if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     ctx = new AC();
+    // The page shows whether sound is running yet, so it is told when that changes.
+    ctx.onstatechange = () => { if (out.onchange) out.onchange(); };
     // Everything meets at one gain, with a limiter after it so a pile-up of effects cannot clip.
     const limit = ctx.createDynamicsCompressor(); limit.threshold.value = -9; limit.ratio.value = 8; limit.attack.value = 0.003; limit.release.value = 0.2; limit.connect(ctx.destination);
     master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(limit);
@@ -118,19 +150,25 @@ export function makeAudio() {
     if (!ctx || ctx.state !== 'running') return;
     const tr = TRACKS[cur], dt = 60 / tr.bpm / tr.div, len = tr.lead.length;
     while (nextAt < ctx.currentTime + 0.25) {
+      // sec: which third of a play this is. pass: how many plays of this tune have gone by.
+      const sec = Math.floor(step / len) % 3, pass = Math.floor(step / (len * 3)), P = sec === 1 ? tr.b : tr;
       const i = step % len, hold = (l, k) => { let n = 1; while (l[(k + n) % len] === '.' && n < 16) n++; return n; };
       const V = SETS[set], up = V.octave || 1, dv = V.drums;
-      const a = tr.lead[i]; if (a !== '.' && a !== '-') {
-        const n = hold(tr.lead, i), o = tone(music, V.lead, hz(a) * up, nextAt, dt * n * 0.95, 0.16);
+      const a = P.lead[i]; if (a !== '.' && a !== '-') {
+        const n = hold(P.lead, i), o = tone(music, V.lead, hz(a) * up, nextAt, dt * n * 0.95, 0.16);
+        // When the first part comes back the melody is doubled an octave down, so the return sounds fuller than the start.
+        if (sec === 2) tone(music, V.lead, hz(a) * up / 2, nextAt, dt * n * 0.95, 0.06);
         // A held note gets a little vibrato once it has settled.
         if (o && n >= 3 && !V.pluck) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 5.6; lg.gain.setValueAtTime(0, nextAt + dt); lg.gain.linearRampToValueAtTime(hz(a) * up * 0.007, nextAt + dt * 2); l.connect(lg); lg.connect(o.frequency); l.start(nextAt); l.stop(nextAt + dt * n); }
       }
-      const b = tr.arp[i]; if (b !== '.' && b !== '-') tone(music, V.arp, hz(b) * up, nextAt, dt * 0.8, V.arp === 'square' ? 0.045 : 0.07);
-      const c = tr.bass[i]; if (c !== '.' && c !== '-') tone(music, V.bass, hz(c) * up, nextAt, dt * hold(tr.bass, i) * 0.9, V.bass === 'square' ? 0.1 : 0.3);
-      const dr = tr.drum[i]; if (!dv) { /* no drums in a music box */ } else if (dr === 'k') tone(music, 'triangle', 150, nextAt, 0.12, 0.4 * dv, 45); else if (dr === 's') noise(music, nextAt, 0.11, 0.16 * dv, 1800, 0.6, 'bandpass'); else if (dr === 'h') noise(music, nextAt, 0.035, 0.05 * dv, 7000);
+      const b = P.arp[i]; if (b !== '.' && b !== '-') tone(music, V.arp, hz(b) * up, nextAt, dt * 0.8, V.arp === 'square' ? 0.045 : 0.07);
+      const c = P.bass[i]; if (c !== '.' && c !== '-') tone(music, V.bass, hz(c) * up, nextAt, dt * hold(P.bass, i) * 0.9, V.bass === 'square' ? 0.1 : 0.3);
+      // On every second play the drums sit out the first four bars, so a tune does not come round the same way twice.
+      const dr = pass % 2 === 1 && sec === 0 && i < len / 2 ? '-' : P.drum[i]; if (!dv) { /* no drums in a music box */ } else if (dr === 'k') tone(music, 'triangle', 150, nextAt, 0.12, 0.4 * dv, 45); else if (dr === 's') noise(music, nextAt, 0.11, 0.16 * dv, 1800, 0.6, 'bandpass'); else if (dr === 'h') noise(music, nextAt, 0.035, 0.05 * dv, 7000);
       step++; nextAt += dt;
-      // After a few times round the same tune in the same place, move on to the place's next one.
-      if (step % len === 0 && auto && ++loops >= 4 && PLACES[place].length > 1) { turn++; fadeTo(PLACES[place][turn % PLACES[place].length]); }
+      // After two plays of a tune, Auto moves on: the place's own tunes first, then every other one, and round again.
+      // A tune picked by hand stays.
+      if (step % (len * 3) === 0 && auto && ++loops >= 2) { turn++; const order = [...PLACES[place], ...TRACKS.map((_, k) => k).filter(k => !PLACES[place].includes(k))]; fadeTo(order[turn % order.length]); }
     }
   }
 
@@ -185,6 +223,8 @@ export function makeAudio() {
     sfx(name) { if (!ctx || muted || !FX[name]) return; try { FX[name](ctx.currentTime + 0.005); } catch (e) { /* a sound is never worth an error */ } },
     ambience,
     muted: () => muted,
+    // Whether anything can be heard yet: a browser holds the sound back until the first click, tap or key.
+    live: () => !!ctx && ctx.state === 'running',
     setMuted(m) { muted = !!m; if (master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.05); try { localStorage.setItem('trailhead.muted', muted ? '1' : '0'); } catch { /* private window */ } },
     track: () => ({ index: swap == null ? cur : swap, name: TRACKS[swap == null ? cur : swap].name, count: TRACKS.length, auto }),
     // The scene has changed: in Auto the music changes with it.

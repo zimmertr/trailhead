@@ -1,4 +1,4 @@
-<title>Trailhead Pixel Round 2</title>
+<title>Trailhead Pixel Round 3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+15&family=Silkscreen&family=Tiny5&display=swap">
@@ -90,9 +90,22 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 .rule { height: var(--px); background: repeating-linear-gradient(90deg, var(--paper-ink) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 4)); opacity: .55; }
 
 #fork, #card { position: fixed; z-index: 2; left: max(18px, env(safe-area-inset-left, 0px)); bottom: calc(var(--px) * 38 + env(safe-area-inset-bottom, 0px)); width: min(456px, calc(100% - 36px)); display: flex; flex-direction: column; gap: calc(var(--px) * 3); }
+/* A placard closes with a small wooden square in its corner, a cross routed into it. */
+/* Never smaller than a fingertip can hit, however small the world's pixels are on a phone. */
+.x { position: absolute; z-index: 2; right: calc(var(--px) * 2); top: calc(var(--px) * 2); width: max(calc(var(--px) * 9), 30px); height: max(calc(var(--px) * 9), 30px); display: grid; place-items: center; background: var(--wood-3); border: var(--px) solid var(--ink); box-shadow: inset 0 var(--px) 0 var(--wood-4), inset 0 calc(var(--px) * -1) 0 var(--wood-2); }
+.x:hover { background: var(--wood-4); }
+.x svg { display: block; width: calc(var(--u) * 5); height: calc(var(--u) * 5); fill: var(--routed); shape-rendering: crispEdges; }
+/* A card can scroll, so its square stays in the corner of what is showing and takes no room of its own. */
+#card .x { position: sticky; flex: none; align-self: flex-end; top: calc(var(--px) * -3); margin: calc(var(--px) * -3) calc(var(--px) * -4) calc(var(--px) * -3 - max(var(--px) * 9, 30px)) 0; }
+#card .from, #card h2 { padding-right: max(calc(var(--px) * 8), 28px); }
+#fork h1 { padding-right: max(calc(var(--px) * 8), 28px); }
+/* What is left of a closed placard: a small tab at the bottom left that opens it again. */
+#tab { position: fixed; z-index: 2; left: max(18px, env(safe-area-inset-left, 0px)); bottom: calc(var(--px) * 38 + env(safe-area-inset-bottom, 0px)); min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); max-width: calc(100% - 36px); }
+#tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The junction sign: the placard on top, three planks under it on one post. */
-#fork { background: none; border: 0; box-shadow: none; padding: 0; gap: 0; }
-#fork .placard { display: flex; flex-direction: column; gap: calc(var(--px) * 2); z-index: 1; }
+#fork { background: none; border: 0; box-shadow: none; padding: 0; gap: 0; width: min(420px, calc(100% - 36px)); }
+#fork .placard { display: flex; flex-direction: column; gap: calc(var(--px) * 2); z-index: 1; padding: calc(var(--px) * 3) calc(var(--px) * 5) calc(var(--px) * 4); }
+#fork .plank { min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 4); }
 .post { position: relative; display: flex; flex-direction: column; gap: calc(var(--px) * 1); padding: calc(var(--px) * 2) 0 0; }
 .post::before { content: ""; position: absolute; left: calc(var(--px) * 8); top: calc(var(--px) * -2); bottom: 0; width: calc(var(--px) * 4); background: var(--wood-2); border: var(--px) solid var(--ink); border-top: 0; box-shadow: inset var(--px) 0 0 var(--wood-3); }
 .post .plank { width: 100%; }
@@ -142,8 +155,8 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #card[data-kind="rack"] .tools li:nth-child(6n + 5) { --cam: #2770b0; }
 #card[data-kind="rack"] .tools li:nth-child(6n + 6) { --cam: #a0a0a4; }
 /* The summit and the projects: a flag in the corner of the card, the same one he plants. */
-#card[data-kind="summit"]::after, #card[data-kind="project"]::after { content: ""; position: absolute; right: calc(var(--px) * 7); top: calc(var(--px) * 5); width: calc(var(--px) * 9); height: calc(var(--px) * 12); background: linear-gradient(var(--ink), var(--ink)) 0 0 / var(--px) 100% no-repeat, linear-gradient(var(--blaze), var(--blaze)) var(--px) var(--px) / calc(var(--px) * 7) calc(var(--px) * 5) no-repeat; clip-path: polygon(0 0, 100% 0, 100% 8%, 78% 8%, 78% 16%, 100% 16%, 100% 50%, 78% 50%, 78% 42%, 56% 42%, 56% 50%, 11% 50%, 11% 100%, 0 100%); }
-#card[data-kind="summit"] h2, #card[data-kind="project"] h2, #card[data-kind="summit"] .from, #card[data-kind="project"] .from { padding-right: calc(var(--px) * 14); }
+#card[data-kind="summit"]::after, #card[data-kind="project"]::after { content: ""; position: absolute; right: calc(var(--px) * 16); top: calc(var(--px) * 5); width: calc(var(--px) * 9); height: calc(var(--px) * 12); background: linear-gradient(var(--ink), var(--ink)) 0 0 / var(--px) 100% no-repeat, linear-gradient(var(--blaze), var(--blaze)) var(--px) var(--px) / calc(var(--px) * 7) calc(var(--px) * 5) no-repeat; clip-path: polygon(0 0, 100% 0, 100% 8%, 78% 8%, 78% 16%, 100% 16%, 100% 50%, 78% 50%, 78% 42%, 56% 42%, 56% 50%, 11% 50%, 11% 100%, 0 100%); }
+#card[data-kind="summit"] h2, #card[data-kind="project"] h2, #card[data-kind="summit"] .from, #card[data-kind="project"] .from { padding-right: calc(var(--px) * 23); }
 #card[data-kind="guide"] { padding-right: calc(var(--px) * 26); }
 #card[data-kind="guide"]::after { content: ""; position: absolute; right: calc(var(--px) * 7); top: calc(var(--px) * 7); bottom: calc(var(--px) * 7); width: calc(var(--px) * 14); background: linear-gradient(var(--paper-ink), var(--paper-ink)) 50% 100% / var(--px) 100% no-repeat, radial-gradient(circle, var(--blaze) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2)) 50% 12% / calc(var(--px) * 6) calc(var(--px) * 6) no-repeat, radial-gradient(circle, var(--paper-ink) 0 calc(var(--px) * 1.5), transparent calc(var(--px) * 1.5)) 50% 40% / calc(var(--px) * 6) calc(var(--px) * 6) no-repeat, radial-gradient(circle, var(--paper-ink) 0 calc(var(--px) * 1.5), transparent calc(var(--px) * 1.5)) 50% 70% / calc(var(--px) * 6) calc(var(--px) * 6) no-repeat, linear-gradient(var(--paper-ink), var(--paper-ink)) 0 30% / 100% var(--px) no-repeat, var(--paper-2); border: var(--px) solid var(--paper-ink); }
 
@@ -241,6 +254,7 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
 
 @media (max-width: 760px) {
   #fork, #card { left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); width: auto; }
+  #tab { left: max(12px, env(safe-area-inset-left, 0px)); }
   #card { max-height: 50%; }
   .mark { display: none; }
   .cols { grid-template-columns: 1fr; }
@@ -290,6 +304,7 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
 
 <section id="fork" hidden>
   <div class="placard">
+    <button class="x" id="fork-x" aria-label="Close"><svg viewBox="0 0 5 5" aria-hidden="true"><path d="M0 0h1v1H0zM4 0h1v1H4zM1 1h1v1H1zM3 1h1v1H3zM2 2h1v1H2zM1 3h1v1H1zM3 3h1v1H3zM0 4h1v1H0zM4 4h1v1H4z"/></svg></button>
     <h1>TJ Zimmerman</h1>
     <p id="intro"></p>
   </div>
@@ -297,6 +312,7 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
 </section>
 
 <section id="card" class="placard" hidden aria-live="polite">
+  <button class="x" id="card-x" aria-label="Close"><svg viewBox="0 0 5 5" aria-hidden="true"><path d="M0 0h1v1H0zM4 0h1v1H4zM1 1h1v1H1zM3 1h1v1H3zM2 2h1v1H2zM1 3h1v1H1zM3 3h1v1H3zM0 4h1v1H0zM4 4h1v1H4z"/></svg></button>
   <p class="from" id="card-from"></p>
   <h2 id="card-title"></h2>
   <div class="rule"></div>
@@ -311,6 +327,7 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   <button id="card-go" class="plank go"><i class="arrow go"></i><span></span></button>
 </section>
 
+<button id="tab" class="plank" hidden><i class="arrow up"></i><span></span></button>
 <div id="names"></div>
 <div id="tip" class="name" hidden></div>
 <div id="toast" role="status" hidden></div>

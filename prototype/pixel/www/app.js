@@ -2,20 +2,22 @@
 // sheets that open over it (trail map, kiosk, register, keys, plain page).
 import { mount } from './pixel.js';
 import { makeAudio } from './audio.js';
-import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, UI, NAMES, ago } from './content.js';
+import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, UI, NAMES, DEST_NAMES, ago } from './content.js';
 import { OX, OY } from './terrain.js';
 import { DEBUG } from './core.js';
 import { TRICKS } from './cats.js';
 
 const $ = id => document.getElementById(id);
 const el = (tag, attrs = {}, ...kids) => { const n = document.createElement(tag); for (const k in attrs) { if (k === 'class') n.className = attrs[k]; else if (k === 'text') n.textContent = attrs[k]; else if (k.startsWith('on')) n.addEventListener(k.slice(2), attrs[k]); else n.setAttribute(k, attrs[k]); } n.append(...kids.filter(k => k != null)); return n; };
-const status = $('status'), fork = $('fork'), card = $('card'), line = $('line'), sheet = $('sheet'), plain = $('plain'), tip = $('tip'), toast = $('toast');
+const status = $('status'), fork = $('fork'), card = $('card'), line = $('line'), sheet = $('sheet'), plain = $('plain'), tip = $('tip'), toast = $('toast'), tab = $('tab');
 const audio = makeAudio();
 const BUILT = new Date(), VERSION = 'v0.1.5, pixel build';
 let api, shown = null, sheetName = null, profile = [], toastT = 0;
 // A scene may hold him at a spot with no card (a stop whose id starts with 'wait:'), until Space or Start: one line says so.
 let waiting = false;
 const isWait = id => String(id).startsWith('wait:');
+// The junction sign and a card can each be closed with the square in their corner. A small tab is left to open them again.
+let forkShut = false, cardShut = false, tabText = '';
 // Set when the world cannot be drawn at all and the page of text has taken its place for good.
 let worldDown = false;
 
@@ -27,7 +29,7 @@ const slugOf = id => CARDS[id] ? CARDS[id].slug : PROJECTS[id] ? 'sideproject-sp
 
 function showCard(id) {
   const c = CARDS[id], pr = projectOf(id); if (!c && !pr) return;
-  shown = id;
+  shown = id; cardShut = false;
   card.dataset.kind = pr ? 'project' : c.kind;
   $('card-from').textContent = pr ? UI.card.summit(pr.top) : c.from;
   $('card-title').textContent = pr ? pr.name : c.title;
@@ -56,13 +58,13 @@ function showCard(id) {
   setAddress(slugOf(id));
   audio.sfx(id === 'summit' ? 'summit' : pr ? 'flag' : 'stop');
 }
-function hideCard() { shown = null; card.hidden = true; audio.focus(0); }
+function hideCard() { shown = null; cardShut = false; card.hidden = true; audio.focus(0); }
 async function home() { hideCard(); await api.setRoute('lake'); audio.place('world'); lastScene = 'world'; buildMarks(); setAddress(''); checkRegister(); }
 async function travel(route) { audio.start(); audio.sfx('select'); await api.setRoute(route); buildMarks(); api.start(); }
 async function climb(id) { audio.sfx('select'); hideCard(); await api.setRoute('spire:' + id); buildMarks(); api.start(); }
 async function walkOut() { audio.sfx('select'); hideCard(); await api.setRoute('spires-home'); buildMarks(); api.start(); }
 // A name on the map sends him there from wherever he is on it.
-async function send(dest) { audio.start(); const how = await api.go(dest); if (how === 'start') return travel(dest); if (how) { audio.sfx('select'); if (how === 'turn') buildMarks(); } }
+async function send(dest) { audio.start(); const how = await api.go(dest); if (how === 'start') return travel(dest); if (how === 'home') forkShut = false; if (how) { audio.sfx('select'); if (how === 'turn') buildMarks(); } }
 async function toCamp() { await api.setRoute('spires'); buildMarks(); api.goto('base-camp'); }
 function say(text, ms = 4200) { toast.textContent = text; toast.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { toast.hidden = true; }, ms); }
 
@@ -236,7 +238,8 @@ let lastScene = 'world';
 const trackName = () => { const k = audio.track(); return k.auto ? UI.auto(k.name) : k.name; };
 function nextTrack() { audio.start(); if (audio.muted()) audio.setMuted(false); audio.cycle(); syncTop(); }
 function toggleDusk() { api.setTheme(api.theme() === 'dark' ? 'light' : 'dark'); syncTop(); audio.sfx('select'); if (api.theme() === 'dark') setTimeout(() => api.find('dusk'), 2500); try { localStorage.setItem('trailhead.theme', api.theme()); } catch { /* private window */ } }
-function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = trackName(); $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = UI.sound[audio.muted() ? 1 : 0]; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = UI.theme[api.theme() === 'dark' ? 1 : 0]; }
+const coarse = window.matchMedia ? matchMedia('(pointer: coarse)') : { matches: false };
+function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = trackName(); $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? UI.sound[1] : audio.live() ? UI.sound[0] : UI.soundWaits[coarse.matches ? 1 : 0]; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = UI.theme[api.theme() === 'dark' ? 1 : 0]; }
 
 // The pointer is drawn like everything else: an arrow in the sprites' ink, yellow over anything
 // that can be pressed.
@@ -291,6 +294,8 @@ try {
   if (q.get('debug') != null) { for (const k of q.get('debug').split(',')) { const off = k.startsWith('-'), key = off ? k.slice(1) : k; if (key in DEBUG) DEBUG[key] = !off; } document.body.classList.toggle('no-labels', !DEBUG.labels); openDebug(true); }
   if (location.hash.length > 1 && !q.get('route')) await navigate(location.hash);
   audio.ambience('world'); audio.onchange = syncTop;
+  // Where a browser lets a page make sound unasked (Firefox says so), the music starts with the page.
+  try { if (navigator.getAutoplayPolicy && navigator.getAutoplayPolicy('audiocontext') === 'allowed') audio.start(); } catch { /* not every browser can say */ }
   status.hidden = true;
   window.__ready = true;
   try { console.log(...CONSOLE); } catch { /* no console */ }
@@ -300,9 +305,25 @@ try {
   throw err;
 }
 
-addEventListener('pointerdown', () => audio.start(), { once: false, passive: true });
+// The first click, tap or key of any kind starts the sound. Which of these a browser counts as a go-ahead differs (a
+// finger going down does not, a finger coming up does), so every one of them asks.
+for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click']) addEventListener(ev, () => audio.start(), { capture: true, passive: true });
 addEventListener('popstate', () => navigate(location.hash));
-$('run').addEventListener('click', e => { audio.start(); api.toggle(); e.currentTarget.blur(); });
+// Space and the Start button: a press starts or stops him. Held for more than a quarter of a second, he goes
+// faster for as long as it is held, and carries on at his own pace when it is let go.
+const press = { down: false, was: false, held: false, t: 0 };
+function pressDown() { if (press.down) return; press.down = true; press.held = false; press.was = api.running(); audio.start(); if (!press.was) api.start(); clearTimeout(press.t); press.t = setTimeout(() => { if (press.down) { press.held = true; api.boost(true); } }, 250); }
+function pressUp() { if (!press.down) return; press.down = false; clearTimeout(press.t); if (press.held) api.boost(false); else if (press.was) api.stop(); }
+addEventListener('blur', () => { if (press.down) { press.down = false; clearTimeout(press.t); api.boost(false); } });
+{ const run = $('run');
+  run.addEventListener('pointerdown', e => { if (e.button) return; try { run.setPointerCapture(e.pointerId); } catch { /* fine without */ } pressDown(); });
+  run.addEventListener('pointerup', () => { pressUp(); run.blur(); }); run.addEventListener('pointercancel', pressUp);
+  // Pressed from the keyboard there is no pointer: it is a plain start or stop.
+  run.addEventListener('click', e => { if (e.detail === 0) { audio.start(); api.toggle(); } });
+  run.addEventListener('contextmenu', e => e.preventDefault()); }
+$('fork-x').addEventListener('click', () => { forkShut = true; audio.sfx('close'); });
+$('card-x').addEventListener('click', () => { cardShut = true; card.hidden = true; audio.focus(0); audio.sfx('close'); });
+tab.addEventListener('click', e => { e.currentTarget.blur(); if (shown && cardShut) { cardShut = false; card.hidden = false; audio.focus(1); } else forkShut = false; audio.sfx('open'); });
 $('home').addEventListener('click', e => { e.currentTarget.blur(); if (api.route().startsWith('spire:')) toCamp(); else home(); audio.sfx('select'); });
 $('card-go').addEventListener('click', () => { const c = CARDS[shown]; audio.sfx('select'); if (c && c.home) home(); else api.start(); });
 $('b-map').addEventListener('click', e => { e.currentTarget.blur(); openSheet('map'); });
@@ -325,8 +346,10 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyM') { openSheet('map'); return; }
   if (e.code === 'KeyT') { toggleDusk(); return; }
   if (e.target.closest && e.target.closest('button, a') && (e.code === 'Space' || e.code === 'Enter')) return;
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) pressDown(); return; }
   if (api.key(e.code)) e.preventDefault();
 });
+addEventListener('keyup', e => { if (e.code === 'Space') pressUp(); });
 
 let dragging = false;
 const scrubTo = e => { const r = line.getBoundingClientRect(); api.scrub((e.clientX - r.left) / r.width); };
@@ -346,7 +369,10 @@ addEventListener('resize', () => { nameBox = null; });
   $('thumb').setAttribute('aria-valuenow', Math.round(p * 100));
   document.querySelectorAll('.mark').forEach(d => d.classList.toggle('passed', +d.dataset.at <= p + 0.001));
   $('run').textContent = UI.run[running ? 1 : 0];
-  fork.hidden = running || p > 0.002 || shown != null || api.route() !== 'lake';
+  const atFork = !(running || p > 0.002 || shown != null || api.route() !== 'lake');
+  fork.hidden = !atFork || forkShut;
+  { const text = shown && cardShut ? LABELS[shown] || (PROJECTS[shown] ? PROJECTS[shown].name : CARDS[shown].title) : atFork && forkShut ? DEST_NAMES.trailhead : '';
+    tab.hidden = !text || !sheet.hidden || !plain.hidden; if (text && text !== tabText) { tabText = text; tab.querySelector('span').textContent = text; } }
   // The six summits carry their names at base camp, and the four places carry theirs on the map. The tags
   // are made once and then only moved, so a press that starts on one still lands on it while the view pans.
   const labels = sheet.hidden && plain.hidden ? api.labels() : [], done = api.done(), key = labels.map(l => l.id + (done[l.id.startsWith('go:') ? l.id.slice(3) : 'spire:' + l.id] ? '+' : '')).join('|');
