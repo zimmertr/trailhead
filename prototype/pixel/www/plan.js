@@ -24,12 +24,8 @@ for (const th of things) {
   else blit(th.bm, th.x - (th.bm.ox || 0), th.y - (th.bm.oy || 0) - (th.lift || 0));
 }
 crit.over(scr, 0, 0, 0);
-// The boot track on the ice, and the mist over everything.
-W.trackPts.forEach(([px, py], n) => {
-  const f = n / (W.trackPts.length - 1), x = Math.round(px), y = Math.round(py);
-  if (f > 0.55 && n % (f > 0.8 ? 7 : 4) > 1) return;
-  g[at(x, y)] = R.glac[1]; if (f < 0.4) { g[at(x + 1, y)] = R.glac[1]; g[at(x, y + 1)] = R.glac[2]; g[at(x - 1, y)] = R.glac[3]; } else if (f < 0.7) g[at(x + 1, y)] = R.glac[2];
-});
+// The top of the boot track again, over the Spires, and the mist over everything.
+for (const [x, y, col] of W.trackPix) g[at(x, y)] = col;
 for (let i = 0; i < g.length; i++) if (W.mist[i]) g[i] = W.mist[i];
 
 const c = document.getElementById('c'), q = new URLSearchParams(location.search), sc = +(q.get('scale') || 1);

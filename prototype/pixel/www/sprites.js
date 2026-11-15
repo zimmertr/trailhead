@@ -9,7 +9,8 @@ function clump(r, name, rand, hang) {
   const S = Math.ceil(r * 2.6) + 4, b = new BM(S, S + hang), c = S / 2;
   const blobs = [[0, 0, r]];
   for (let k = 0; k < 3; k++) { const a = rand() * TAU; blobs.push([Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.5, r * (0.5 + rand() * 0.2)]); }
-  const ramp = R[name];
+  // name is a ramp's name, or a list of colours from dark to light where one ramp does not hold them all.
+  const ramp = Array.isArray(name) ? name : R[name];
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     const dx = x - c, dy = y - c;
     if (!blobs.some(([bx, by, br]) => sq(dx - bx) + sq(dy - by) <= br * br)) continue;
@@ -77,6 +78,48 @@ function makeConifer(seed, H, W, name, tiers) {
   }
   return { parts, h: H, w: W };
 }
+// The crown of a broadleaf or a pine: a dark copy of the canopy behind the clumps (so a lifted clump
+// shows shadowed leaves, not sky), then the clumps from the top down.
+function crown(parts, cs, colours, dark, W, H, bx, rand) {
+  const inside = new BM(W, H);
+  for (const [x, y, r] of cs) disc(inside, x, y, r - 0.5, () => dark);
+  parts.push({ bm: inside, x: -bx, y: -H, sway: 0 });
+  cs.sort((a, c) => a[1] - c[1]);
+  for (const [x, y, r] of cs) { const bm = clump(r, colours, rand, 0); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
+}
+// A quaking aspen in autumn: a thin white trunk with dark marks where limbs were, and a small round
+// crown of yellow leaves. They are planted in groves.
+function makeAspen(seed) {
+  const rand = rng(seed), H = 23 + (rand() * 14 | 0), W = 22, bx = W >> 1, lean = (rand() - 0.5) * 3;
+  const trunk = new BM(W, H + 2), tx = y => bx + Math.round(lean * (1 - y / H));
+  for (let y = Math.round(H * 0.25); y <= H; y++) { trunk.set(tx(y), y, R.white[1]); trunk.set(tx(y) + 1, y, R.white[0]); }
+  for (let y = H - 2 - (rand() * 3 | 0); y > H * 0.3; y -= 3 + (rand() * 4 | 0)) { const two = rand() < 0.35; trunk.set(tx(y) + (rand() < 0.5 || two ? 0 : 1), y, R.basalt[0]); if (two) trunk.set(tx(y) + 1, y, R.basalt[1]); }
+  outline(trunk, INK);
+  const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }], cs = [[tx(H * 0.25) + 0.5, H * 0.2, 3.6 + rand() * 1.2]];
+  for (let k = 2 + (rand() * 3 | 0); k > 0; k--) cs.push([tx(H * 0.3) + 0.5 + (rand() - 0.5) * 9, H * (0.2 + rand() * 0.26), 2.8 + rand() * 1.6]);
+  crown(parts, cs, [R.mustard[0], R.mustard[1], R.aspen[0], R.aspen[1]], R.mustard[0], W, H, bx, rand);
+  return { parts, h: H, w: 13 };
+}
+// A ponderosa pine: a tall straight trunk of orange-brown bark broken into plates, bare for half its
+// height, and an open crown of dark needle clumps at the ends of its limbs with sky between them.
+function makePonderosa(seed) {
+  const rand = rng(seed), H = 44 + (rand() * 14 | 0), W = 32, bx = W >> 1;
+  const trunk = new BM(W, H + 2);
+  for (let y = Math.round(H * 0.14); y <= H; y++) for (let dx = 0; dx < (y > H * 0.5 ? 3 : 2); dx++) trunk.set(bx - 1 + dx, y, (y + dx * 2 + seed) % 4 === 0 ? R.pbark[0] : dx === 0 ? R.pbark[2] : R.pbark[1]);
+  trunk.set(bx - 2, H, R.pbark[1]); trunk.set(bx + 2, H, R.pbark[0]);
+  const cs = [[bx, H * 0.1, 3.8 + rand()]];
+  let side = rand() < 0.5 ? -1 : 1;
+  for (let y = H * 0.17; y < H * 0.54; y += 4.5 + rand() * 3) {
+    const cx = bx + side * (4 + rand() * 3 + 5 * y / H), cy = y - 1 - rand() * 2;
+    thick(trunk, bx, y + 3, cx, cy + 1, 1, R.pbark[0]); cs.push([cx, cy, 3.3 + rand() * 1.5]); side = -side;
+  }
+  // A dead limb or two below the crown.
+  for (let k = 1 + (rand() * 2 | 0); k > 0; k--) { const y = H * (0.56 + rand() * 0.14), s = rand() < 0.5 ? -1 : 1; thick(trunk, bx, y, bx + s * (3 + rand() * 2), y - 1, 1, R.pbark[0]); }
+  outline(trunk, INK);
+  const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }];
+  crown(parts, cs, [R.conifer[0], R.pine[0], R.pine[1], R.pine[2], R.pine[3]], R.conifer[0], W, H, bx, rand);
+  return { parts, h: H, w: 20 };
+}
 const makeSpruce = seed => { const r = rng(seed); return makeConifer(seed, 52 + (r() * 16 | 0), 26 + (r() * 8 | 0), 'conifer', 9); };
 const makeFir = seed => { const r = rng(seed); return makeConifer(seed, 22 + (r() * 12 | 0), 9 + (r() * 4 | 0), 'conifer', 6); };
 
@@ -101,12 +144,24 @@ function makeBoulder(seed, r) {
   outline(b, INK);
   return b;
 }
-function makeLog() {
-  const b = new BM(22, 8); b.ox = 11; b.oy = 7;
-  for (let x = 1; x < 20; x++) for (let y = 2; y < 7; y++) b.set(x, y, y < 3 ? R.moss[5] : y < 4 ? R.moss[4] : R.bark[y < 5 ? 2 : 1]);
-  for (let y = 2; y < 7; y++) b.set(20, y, R.wood[3]);
-  b.set(20, 4, R.wood[1]);
+// A fallen log, lying a little off the level: a round cut end showing its rings, furrowed bark,
+// moss in patches along the top and the stub of a branch. In the burn it lies bare and silver.
+function makeLog(seed = 0, bare = false) {
+  const rand = rng(960 + seed), len = 15 + (rand() * 8 | 0), tilt = (rand() < 0.5 ? -1 : 1) * (1 + rand() * 1.5), rad = 2.6;
+  const b = new BM(len + 9, 15); b.ox = b.w >> 1; b.oy = 12;
+  const bark = bare ? [R.rock[1], R.rock[2], R.rock[3], R.rock[4]] : R.bark, cut = bare ? [R.rock[2], R.rock[3], R.rock[4]] : [R.wood[2], R.wood[3], R.wood[4]];
+  const cy = t => 7.5 + tilt * (t / len - 0.5);
+  for (let t = 0; t < len; t++) {
+    const c = cy(t), top = Math.round(c - rad), groove = hash(t, seed, 63) < 0.3, moss = bare ? 0 : vnoise(t / 3, seed, 64);
+    for (let y = top; y <= Math.round(c + rad); y++) { const v = (y - c) / rad; b.set(3 + t, y, bark[v < -0.45 ? (groove ? 2 : 3) : v < 0.35 ? (groove ? 1 : 2) : groove ? 0 : 1]); }
+    if (moss > 0.45) { b.set(3 + t, top, R.moss[5]); if (moss > 0.6) b.set(3 + t, top + 1, R.moss[4]); }
+  }
+  const st = 2 + Math.round(len * (0.25 + 0.3 * rand())), sy = Math.round(cy(st) - rad);
+  b.set(3 + st, sy - 1, bark[2]); b.set(2 + st, sy - 2, bark[2]); b.set(2 + st, sy - 3, bark[3]);
+  const ex = 3 + len, ec = Math.round(cy(len));
+  for (let dy = -3; dy <= 3; dy++) for (let dx = -2; dx <= 2; dx++) { const e = Math.hypot(dx / 2.3, dy / 3.3); if (e <= 1) b.set(ex + dx, ec + dy, e > 0.7 ? cut[1] : e < 0.25 ? cut[0] : cut[2]); }
   outline(b, INK);
+  if (rand() < 0.5) { const d = b.d.slice(); for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) b.d[y * b.w + x] = d[y * b.w + b.w - 1 - x]; b.ox = b.w - 1 - b.ox; }
   return b;
 }
 function makeCloud(seed) {
@@ -261,4 +316,4 @@ function makeFlag(f, ramp = R.red) {
   return b;
 }
 
-export { makeSnag, makeBush, makeFlag, clump, makeMaple, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeSnag, makeBush, makeFlag, clump, makeMaple, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };

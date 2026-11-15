@@ -183,13 +183,8 @@ export function makeWorld() {
   // A flag for each finished destination: at the lake shore, on the wall's rim, on the highest summit.
   const FLAGS = { lake: { x: 698, y: 546, lift: 0 }, stack: { x: STACK.x - 14, y: STACK.y + 1, lift: STACK.h - 9 }, spires: { x: SPIRES.x - (SPIRES.w >> 1) + SUMMITS[2].cx, y: SPIRES.y + 1, lift: SPIRES.h - SUMMITS[2].top - 2 } };
   for (const k in FLAGS) things.push({ flag: k, bm: flags[0], x: FLAGS[k].x, y: FLAGS[k].y, lift: FLAGS[k].lift });
-  // Past the tents the trail is a boot track in the snow: it thins to single prints and stops.
-  const trackPix = [];
-  W.trackPts.forEach(([px, py], n) => {
-    const f = n / (W.trackPts.length - 1), x = Math.round(px), y = Math.round(py);
-    if (f > 0.55 && n % (f > 0.8 ? 7 : 4) > 1) return;
-    trackPix.push([x, y, R.glac[1]]); if (f < 0.4) trackPix.push([x + 1, y, R.glac[1]], [x, y + 1, R.glac[2]], [x - 1, y, R.glac[3]]); else if (f < 0.7) trackPix.push([x + 1, y, R.glac[2]]);
-  });
+  // The top of the boot track lies behind the Spires on the map, so it is drawn again over them.
+  const trackPix = W.trackPix;
   // His footprints stay on a finished trail: a pair of dark dots every few steps.
   const prints = {};
   for (const k in paths) {
@@ -292,7 +287,7 @@ export function makeWorld() {
       list.length = 0;
       for (const th of things) {
         if (th.flag && !env.done[th.flag]) continue;
-        if ((th.kind === 'tree' && !DEBUG.trees) || (th.critter && !DEBUG.animals)) continue;
+        if (((th.kind === 'tree' || th.isTree) && !DEBUG.trees) || (th.critter && !DEBUG.animals)) continue;
         const w = th.kind === 'tree' ? th.t.tree.w + 8 : th.bm.w, h = (th.kind === 'tree' ? th.t.tree.h + 10 : th.bm.h) + (th.lift || 0);
         if (th.x + w < ox || th.x - w > ox + VW || th.y - h > oy + VH || th.y + 4 < oy) continue;
         list.push(th);

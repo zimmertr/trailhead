@@ -114,6 +114,9 @@ ramp('pbark', ['#5a2c14', '#8c4a20', '#c0702c']);
 // Round 3, scenes
 // The light in the gaps between the far trees of the rainforest, a step paler than the palest mist.
 ramp('glow', ['#e6f1d4'], ['#8fa29c']);
+// Round 3, ground
+ramp('aspen', ['#d4c22e', '#f4ea68']);
+ramp('fireweed', ['#cc2e96', '#f068c0']);
 const INK = R.ink[0];
 const N = DAY.length;
 // One step darker or lighter within an entry's own ramp, for shadows drawn onto finished pixels.
