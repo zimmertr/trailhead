@@ -247,18 +247,18 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 
 ### B. Block-in (shapes, sizes and places only; flat colour is fine)
 
-- [ ] B1. Study the references before drawing: Rainier from the south and from Reflection Lakes, Glacier Peak from Image Lake, the Southern Pickets, Prusik Peak's south face, the Olympics from the west. Write five lines per mountain in section 9 on what makes its outline recognisable.
-- [ ] B2. Make the map 1920 wide behind a switch (`?v=4`), leaving round 3's map untouched without it, the way round 3's block-in used `?v=a|b|c`.
-- [ ] B3. Block in the skyline: Legacy Range, gap, Mount Monolith, crest, Spires, Enchantments peaks, pine hills, Palouse.
-- [ ] B4. Mount Monolith's outline reads as Rainier, not Fuji: lopsided, flat-topped, shoulder left, tooth right. Check it alone at three times size.
-- [ ] B5. The Spires' outline: six uneven broken summits, none a clean point, joined to the crest on both sides.
-- [ ] B6. Proficiency Peak as a standing shape in the upper basin, after the reference photo.
-- [ ] B7. Block in the ground: sea corner, bluffs, rainforest with the fog edge, the bench with lake and parkland, waterfall step, Trailhead meadow, glacier headwall and shelf, two Enchantments benches, pines, burn, sage and scabland.
-- [ ] B8. Draw the three trails and the river as lines, with where each tier is climbed (switchbacks) and where each side-on scene takes over and hands back.
-- [ ] B9. Mark the Trailhead, the three destinations, base camp, the waterfall, the register box.
-- [ ] B10. Pictures: whole map; the opening wide view on a 1440 by 900 screen in two or three candidate framings, some cropped (section 5); the phone's opening slice; the close view at the Trailhead; round 3's map beside the new one.
-- [ ] B11. Check the law: walk the map west to east and name every pair of neighbours; none is unbelievable. Check the four kinds of mountain: nothing else on the skyline.
-- [ ] B12. A page like `plan/skyline-pick.html` showing the pictures, with the weak points listed honestly.
+- [x] B1. Study the references before drawing: Rainier from the south and from Reflection Lakes, Glacier Peak from Image Lake, the Southern Pickets, Prusik Peak's south face, the Olympics from the west. Write five lines per mountain in section 9 on what makes its outline recognisable.
+- [x] B2. Make the map 1920 wide, leaving round 3's map untouched. (Done another way, see section 9: the block-in is its own page, `www/plan4.html`, painted by `www/plan4.js` from the numbers in `www/layout4.js`.)
+- [x] B3. Block in the skyline: Legacy Range, gap, Mount Monolith, crest, Spires, Enchantments peaks, pine hills, Palouse.
+- [x] B4. Mount Monolith's outline reads as Rainier, not Fuji: lopsided, flat-topped, shoulder left, tooth right. Check it alone at three times size.
+- [x] B5. The Spires' outline: six uneven broken summits, none a clean point, joined to the crest on both sides.
+- [x] B6. Proficiency Peak as a standing shape in the upper basin, after the reference photo.
+- [x] B7. Block in the ground: sea corner, bluffs, rainforest with the fog edge, the bench with lake and parkland, waterfall step, Trailhead meadow, glacier headwall and shelf, two Enchantments benches, pines, burn, sage and scabland.
+- [x] B8. Draw the three trails and the river as lines, with where each tier is climbed (switchbacks) and where each side-on scene takes over and hands back.
+- [x] B9. Mark the Trailhead, the three destinations, base camp, the waterfall, the register box.
+- [x] B10. Pictures: whole map; the opening wide view on a 1440 by 900 screen in two or three candidate framings, some cropped (section 5); the phone's opening slice; the close view at the Trailhead; round 3's map beside the new one.
+- [x] B11. Check the law: walk the map west to east and name every pair of neighbours; none is unbelievable. Check the four kinds of mountain: nothing else on the skyline.
+- [x] B12. A page like `plan/skyline-pick.html` showing the pictures, with the weak points listed honestly.
 - [ ] **STOP 1.** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
 
 ### C. The skyline, drawn for real
@@ -435,11 +435,20 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 
 | Stop | Tag | Artifact | Date |
 |---|---|---|---|
-| Round 3, for comparison | `pixel-r3-final` (to be made, A2) | https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1 | 2026-11-15 |
+| Round 3, for comparison | `pixel-r3-final` | https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1 | 2026-11-15 |
 
 ## 9. Calls made in round 4
 
 (One line each, newest last.)
+
+- B2: the block-in is a page of its own (`plan4.html?labels=1&trees=0&crop=x,y&scale=k&sign=1`), not a `?v=4` switch inside the real map. Round 3's map cannot be disturbed that way, and a published artifact cannot take a `?v=` address anyway. **The real map (sections C and D) should import its numbers and shapes from `layout4.js`** so it cannot drift from what TJ approves.
+- STOP 1's artifact is the page of pictures (`plan/blockin-r4.html`), not the game, for the same reason.
+- B1, what makes each outline recognisable. **Rainier from the south:** wider than tall; a nearly flat summit with three low bumps; convex shoulders, never straight cone sides; a lower shoulder left of the top; a step (Gibraltar Rock) then a small dark tooth (Little Tahoma) low on the right; dark cleavers fanning down between glaciers. **Southern Pickets:** one continuous dark wall; many summits of unequal height; notches that stay high (about four fifths of the summits); broken tops, gendarmes; ice hanging below the wall and a glacier in the cirque. **Prusik Peak, south face:** a lower flat-topped tower on the left; a notch; a steep prow to a small summit block; a serrated ridge stepping down to the right; pale rock with dark vertical streaks. **Olympics from the west:** low, far, many similar snowy peaks, one a little higher in the middle, foothills and haze across the foot. **Glacier Peak from Image Lake** (for the lake scene): a broad white dome over dark forested ridges, mirrored.
+- Spires: summits west to east at 66, 84, 100, 86, 95 and 70 percent of full height, in the order of `SPIRES` in `pixel.js` (bluebird, tks, hevy-garmin-sync, trailhead, yggdrasil, kubernetes-manifests). First tries came out as six separate daggers, then as rounded fingers; what fixed it was keeping the wall between summits at about four fifths of their height and cutting the snow gullies short.
+- Mount Monolith: the first try was a cone. What fixed it was a summit plateau about 60 wide and convex flanks.
+- Proficiency Peak is 164 by 142 (the plan said 150 by 120) so its summit breaks the skyline; the granite row behind dips there. Told TJ at STOP 1.
+- Water: the lake trail crosses the river twice (above the fall and at the footbridge below it). Meltwater from the glacier's toe drops over the headwall, crosses the trail to Proficiency Peak, is joined by the cascade out of the upper basin, and leaves the map southward. Told TJ it is the strongest line on the map.
+- Phone opening drawn at 1.25 screen pixels to one map pixel; desktop candidates at 0.75, 1 and 1.5.
 
 ## 10. The reference pictures TJ shared, described
 
