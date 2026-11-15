@@ -381,6 +381,7 @@ Round 2 is finished: every item on the checklist is ticked and the four polish p
 Round 3 answers TJ's feedback on the round 2 build. It lives on its own branch and its own artifact, so round 2 stays as it was to compare against. The bar is unchanged: every screen at least as good as the same screen in round 2, the overnight MVP and version 5.
 
 - Round 2 artifact (https://claude.ai/artifact/GwCmCx8VKWRpSbnu9yXMtj) and branch `pixel-round2` are frozen. Do not publish to that artifact or push to that branch again.
+- Round 3 artifact: https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1. Publish to it by passing that link as `url` every time. In a session that has published `www/index.html` before, a publish without `url` goes to whichever artifact that path last went to. That put the round 3 build on the round 2 artifact once (2026-11-15); round 2 was republished from `1bdb244` within minutes and its files checked by size.
 - The work is split by file so five streams can run at once, each on its own branch (`pixel-round3-mountains`, `-ground`, `-life`, `-scenes`, `-climbs`), merged into `pixel-round3`.
 
 ### TJ's feedback (2026-11-14), as a checklist
