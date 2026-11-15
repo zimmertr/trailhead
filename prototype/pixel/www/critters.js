@@ -1,7 +1,7 @@
 // The animals of the world map and the water that moves: herds that graze and wander, a bear, squirrels
-// and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, and
-// the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
-import { TAU, clamp, frac, hash, rng, R, INK, SHADE, KIND, BM, outline, thick, pick } from './core.js';
+// and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, the
+// ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
+import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, INK, SHADE, KIND, BM, outline, thick, pick } from './core.js';
 import { makeElk, makeBird } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './terrain.js';
@@ -21,13 +21,49 @@ export function mapBear(pose, step = 0) {
 }
 const tint = (bm, c) => { const o = new BM(bm.w, bm.h); o.ox = bm.ox; o.oy = bm.oy; for (let i = 0; i < bm.d.length; i++) if (bm.d[i]) o.d[i] = c; return o; };
 
-export function makeCritters(W) {
+// What each colour looks like through mist: the palette entry nearest to it mixed toward fog by this
+// much. Nearest is judged in Day and in Dusk together, so a veil holds in either light. The neutral
+// greys are never picked (they turn a green forest dirty), nor the colours that cycle or only show at Dusk.
+const NO_VEIL = ['glint', 'star', 'aurora', 'rock', 'gold', 'granite', 'basalt', 'nebel', 'shoe', 'navy', 'far', 'ochre', 'ink', 'fur', 'tortie', 'hair', 'jay', 'skin'];
+function veilTable(amount) {
+  const out = new Uint8Array(256), fog = R.fog[2], skip = new Set(NO_VEIL.flatMap(k => R[k]));
+  for (let i = 1; i < N; i++) {
+    let best = i, bd = Infinity;
+    for (let j = 1; j < N; j++) {
+      if (skip.has(j)) continue;
+      let d = 0;
+      for (const P of [DAY, DUSK]) for (let k = 0; k < 3; k++) { const want = P[i][k] + (P[fog][k] - P[i][k]) * amount; d += (want - P[j][k]) * (want - P[j][k]) * [3, 4, 2][k]; }
+      if (d < bd) { bd = d; best = j; }
+    }
+    out[i] = best;
+  }
+  out[BLACK] = BLACK;
+  return out;
+}
+// The humpback's breach, twelve drawings to the second up to the moment it lands. It comes out steep
+// and fast and slows as it climbs, turns its belly up while it hangs, and tips over onto its back.
+// whale() in terrain.js says what each number means.
+const FPS = 12, IMPACT = 2.75;
+export const BREACH = Array.from({ length: Math.ceil(IMPACT * FPS) + 1 }, (_, i) => {
+  const u = i / FPS, rise = 1 - (1 - clamp(u / 1.3, 0, 1)) ** 2, hang = smooth(1.25, 1.8, u), fall = clamp((u - 1.75) / (IMPACT - 1.75), 0, 1) ** 2;
+  return {
+    out: 0.1 + 0.58 * rise + 0.02 * hang - 0.1 * fall, head: 66 - 6 * rise - 12 * hang - 44 * fall, tail: 66 - 6 * rise - 3 * hang - 41 * fall,
+    roll: 90 - 28 * smooth(0.3, 1.3, u) - 38 * smooth(1.2, 1.9, u) - 14 * smooth(1.9, IMPACT, u), sweep: 1.1 - 0.9 * smooth(0.5, 1.5, u) - 0.3 * smooth(1.6, 2.6, u)
+  };
+});
+// opts.bear: true or false puts the bear there or not, whatever the dice say (the block-in page asks for it).
+export function makeCritters(W, opts = {}) {
   const { spots, sea: SEA, g } = W, items = [];
-  // Where the trees stand, so a wandering animal goes round them.
-  const CELL = 8, GW = Math.ceil(NW / CELL), wood = new Uint8Array(GW * Math.ceil(NH / CELL));
-  for (const th of W.things) if (th.tree) wood[Math.floor(th.y / CELL) * GW + Math.floor(th.x / CELL)] = 1;
+  // Where the trees stand, so a wandering animal goes round them, and the ground just behind anything
+  // tall (a tree, a snag, a big rock), where it would stand hidden.
+  const CELL = 8, GW = Math.ceil(NW / CELL), GH = Math.ceil(NH / CELL), wood = new Uint8Array(GW * GH), hid = new Uint8Array(GW * GH);
+  for (const th of W.things) {
+    if (th.tree) wood[Math.floor(th.y / CELL) * GW + Math.floor(th.x / CELL)] = 1;
+    const w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h; if (h < 14) continue;
+    for (let y = th.y - Math.min(h, 34) + 5; y <= th.y + 1; y += CELL / 2) for (let x = th.x - w / 2 - 3; x <= th.x + w / 2 + 3; x += CELL / 2) { const cx = Math.floor(x / CELL), cy = Math.floor(y / CELL); if (cx >= 0 && cy >= 0 && cx < GW && cy < GH) hid[cy * GW + cx] = 1; }
+  }
   const kindAt = (x, y) => KIND[g[Math.round(y) * NW + Math.round(x)]];
-  const clear = (x, y) => x > 8 && y > 8 && x < NW - 8 && y < NH - 4 && W.open(x, y) && !wood[Math.floor(y / CELL) * GW + Math.floor(x / CELL)] && !wood[Math.floor((y - 5) / CELL) * GW + Math.floor(x / CELL)];
+  const clear = (x, y) => x > 8 && y > 8 && x < NW - 8 && y < NH - 4 && W.open(x, y) && !wood[Math.floor(y / CELL) * GW + Math.floor(x / CELL)] && !wood[Math.floor((y - 5) / CELL) * GW + Math.floor(x / CELL)] && !hid[Math.floor(y / CELL) * GW + Math.floor(x / CELL)];
   const meadow = (x, y) => clear(x, y) && kindAt(x, y) >= 1 && kindAt(x, y) <= 3 && W.forestAmt(x, y) < 0.45 && !W.nearTrail(x, y, 5);
   const way = (ok, x0, y0, x1, y1) => { for (let k = 1; k <= 5; k++) if (!ok(x0 + (x1 - x0) * k / 5, y0 + (y1 - y0) * k / 5)) return false; return true; };
 
@@ -40,26 +76,32 @@ export function makeCritters(W) {
   const bearF = { look: mapBear('look'), graze: mapBear('sniff'), walk: [mapBear('look', 1), mapBear('look', 2)] };
   const rand = rng(77);
   // faces: the way the drawing looks, -1 left or 1 right. r: how far it strays from where it was put.
-  const walker = (kind, f, x, y, o) => items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, st: o.start || 'graze', until: 1 + rand() * 9, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o });
-  spots.elk.forEach(([x, y, d], n) => walker('elk', n % 3 === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 44, v: 7, ok: meadow, start: d ? 'graze' : 'look' }));
+  // An animal is put where it was meant to stand, or on the nearest ground it may stand on if a tree has since been planted there.
+  const settle = (ok, x, y) => { if (ok(x, y)) return [x, y]; for (let r = 4; r <= 48; r += 4) for (let k = 0; k < 12; k++) { const an = k / 12 * TAU, px = Math.round(x + Math.cos(an) * r), py = Math.round(y + Math.sin(an) * r * 0.6); if (ok(px, py)) return [px, py]; } return [x, y]; };
+  const walker = (kind, f, x0, y0, o) => { const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
+  // The herd keeps together: each elk strays only a little from its own place in it.
+  spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look' }));
   spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null }));
   spots.sheep.forEach(([x, y, d]) => walker('sheep', ram, x, y, { faces: 1, r: 34, v: 6, ok: clear, start: d ? 'graze' : 'look' }));
-  walker('bear', bearF, spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 8, ok: meadow, roam: 0.6 });
+  // The bear is not always about: it is there on roughly one visit in three. For screenshots, bear=1 or
+  // bear=0 in the address settles it.
+  const asked = typeof location !== 'undefined' && /[?&]bear=([01])/.exec(location.search);
+  if (opts.bear != null ? opts.bear : asked ? asked[1] === '1' : Math.random() < 0.35) walker('bear', bearF, spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 7, ok: meadow, roam: 0.4 });
 
   function walk(a, dt, t) {
     if (a.st === 'walk') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
-      if (d < 0.6) { a.st = 'graze'; a.until = t + 3 + rand() * 7; }
+      if (d < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; }
       else { const s = Math.min(d, a.v * dt); a.fx += dx / d * s; a.fy += dy / d * s * 0.7; if (Math.abs(dx) > 0.5) a.flip = (dx > 0 ? 1 : -1) !== a.faces; }
       a.x = Math.round(a.fx); a.y = Math.round(a.fy);
       a.bm = a.f.walk[Math.floor(t * 4.5 + a.hx) & 1];
-      if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) { a.st = 'graze'; a.until = t + 3 + rand() * 7; }
+      if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; }
       return;
     }
     a.bm = a.st === 'graze' ? a.f.graze : a.f.stand && frac(t * 0.11 + a.hx * 0.37) < 0.5 ? a.f.stand : a.f.look;
     if (t < a.until) return;
     const roll = rand();
-    if (roll < (a.roam || 0.34)) {
+    if (roll < (a.roam || 0.25)) {
       // A kid keeps near its mother; everyone else keeps near home.
       const cx = a.mum ? a.mum.x : a.hx, cy = a.mum ? a.mum.y + 5 : a.hy;
       for (let k = 0; k < 6; k++) {
@@ -67,17 +109,17 @@ export function makeCritters(W) {
         if (a.ok(tx, ty) && way(a.ok, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; }
       }
     }
-    a.st = roll < 0.72 ? 'graze' : 'look'; a.until = t + (a.st === 'look' ? 1.5 + rand() * 3 : 3 + rand() * 8);
+    a.st = roll < 0.72 ? 'graze' : 'look'; a.until = t + (a.st === 'look' ? 2.5 + rand() * 4 : 5 + rand() * 11);
     if (a.st === 'look' && rand() < 0.3) a.flip = !a.flip;
   }
 
   // ---- squirrels and chipmunks: sit, then dart ----------------------------------------------
   const sq = [0, 1].map(chip => ({ sit: W.make.squirrel(!!chip), run: W.make.squirrel(!!chip, true) }));
-  for (const [x, y, chip] of spots.squirrels) items.push({ critter: 'squirrel', dart: true, f: sq[chip ? 1 : 0], bm: sq[0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: rand() * 5, flip: rand() < 0.5 });
+  for (const [x, y, chip] of spots.squirrels) items.push({ critter: 'squirrel', dart: true, f: sq[chip ? 1 : 0], bm: sq[chip ? 1 : 0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: 3 + rand() * 12, flip: rand() < 0.5 });
   function dart(a, dt, t, here) {
     if (a.st === 'run') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
-      if (d < 1) { a.st = 'sit'; a.until = t + 0.6 + rand() * 4.5; a.bm = a.f.sit; return; }
+      if (d < 1) { a.st = 'sit'; a.until = t + 5 + rand() * 11; a.bm = a.f.sit; return; }
       const s = Math.min(d, 46 * dt); a.fx += dx / d * s; a.fy += dy / d * s; a.x = Math.round(a.fx); a.y = Math.round(a.fy);
       if (Math.abs(dx) > 0.5) a.flip = dx < 0;
       a.bm = a.f.run; a.hop = Math.floor(t * 9) & 1;
@@ -92,59 +134,186 @@ export function makeCritters(W) {
       const tx = (near ? a.fx : a.hx) + Math.cos(an) * rr, ty = (near ? a.fy : a.hy) + Math.sin(an) * rr * 0.6;
       if (clear(tx, ty) && Math.hypot(tx - a.fx, ty - a.fy) > 4) { a.tx = tx; a.ty = ty; a.st = 'run'; return; }
     }
-    a.until = t + 1;
+    a.until = t + 3;
   }
 
   // ---- marmots: sunning on a rock, up on their haunches when he is near or now and then ----
   const mar = { sun: marmot('sun'), up: marmot('up') };
   spots.marmots.forEach(([x, y], n) => items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1) }));
 
+  // For screenshots, sea=90 in the address starts the ferry's and the whale's clocks that many seconds on.
+  const ahead = typeof location !== 'undefined' ? +(/[?&]sea=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
+
   // ---- the whale -------------------------------------------------------------------------------
-  // Every sixteen seconds it comes two thirds out of the water, hangs, and falls back in a ring of
-  // spray. Half way between it rolls at the surface and blows.
-  const whaleBM = W.make.whale(false), WHALE = 16;
+  // Once in every 40 to 60 seconds it breaches: out, over and down in under three seconds, then the
+  // spray comes down and its flukes lift and slide under after it. Twice in between it rolls at the
+  // surface and blows. At time 0 it hangs at the top of a breach, for the block-in page.
+  const whales = BREACH.map(p => W.make.whale(p)), flukes = [0, 0.33, 0.66, 1].map(f => W.make.whale({ fluke: f }));
+  const SLOT = 50, starts = n => 10 * hash(n, 5, 63), T0 = starts(0) + 1.55;
   const back = (() => { const b = new BM(20, 6); b.ox = 10; b.oy = 5; ell(b, 10, 6, 8.5, 4.2, (nx, ny) => R.navy[ny < -0.55 ? 2 : 1]); b.set(13, 1, R.navy[0]); b.set(14, 1, R.navy[0]); outline(b, INK); return b; })();
-  items.push({ critter: 'whale', bm: whaleBM, x: spots.whale[0], y: spots.whale[1] });
+  items.push({ critter: 'whale', bm: whales[0], x: spots.whale[0], y: spots.whale[1] });
+  // A drawing sunk some way into the water, with broken foam where it meets the surface.
+  function sunk(scr, bm, x, y, sink, t) {
+    for (let j = 0; j + sink <= bm.oy && j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (c) scr.set(x - bm.ox + i, y - bm.oy + sink + j, c); }
+    const row = (bm.oy - sink) * bm.w; let lo = -1, hi = -1;
+    if (sink <= bm.oy) for (let i = 0; i < bm.w; i++) if (bm.d[row + i]) { if (lo < 0) lo = i; hi = i; }
+    if (lo < 0) return;
+    const beat = Math.floor(t * 6);
+    for (let i = lo - 3; i <= hi + 3; i++) {
+      const px = x - bm.ox + i, edge = i < lo || i > hi;
+      if (hash(i, beat, 64) < (edge ? 0.7 : 0.85)) scr.set(px, y, R.white[1]);
+      if (hash(i, beat, 65) < 0.4) scr.set(px, y + 1, R.sea[5]);
+      if (edge && hash(i, beat, 66) < 0.45) scr.set(px, y - 1, R.white[1]);
+    }
+  }
   function drawWhale(scr, a, ox, oy, t) {
-    const u = (t + 0.62) % WHALE, wx = a.x - ox, wy = a.y - oy;
-    const ease = v => v * v * (3 - 2 * v);
-    if (u < 1.5) {
-      const sink = Math.round(u < 0.5 ? 44 * (1 - ease(u / 0.5)) : u < 0.85 ? 0 : 46 * ease((u - 0.85) / 0.65));
-      const sx = wx - whaleBM.ox - Math.round(sink * 0.8), sy = wy - whaleBM.oy + sink;
-      for (let j = 0; j < whaleBM.h && j + sink <= whaleBM.oy; j++) for (let i = 0; i < whaleBM.w; i++) { const c = whaleBM.d[j * whaleBM.w + i]; if (c) scr.set(sx + i, sy + j, c); }
+    const T = t + ahead + T0, n = Math.floor(T / SLOT), u = T - n * SLOT - starts(n), wx = a.x - ox, wy = a.y - oy;
+    const white = R.white[1], pale = R.sea[5], ease = v => v * v * (3 - 2 * v);
+    // The foam it leaves lies on the water, so it goes down first: a patch where it landed that thins
+    // out, and a ring that spreads from it and breaks up. A small ring marks where it came out.
+    const ring = (cx, age, len, rx, ry) => { if (age < 0 || age > len) return; const thin = age / len; for (let k = 0; k < 96; k++) { if (hash(k, Math.floor(t * 2.5), 62) < thin) continue; const an = k / 96 * TAU; scr.set(Math.round(wx + cx + Math.cos(an) * rx), Math.round(wy + Math.sin(an) * ry), k % 5 ? white : pale); } };
+    ring(-3, u - 0.1, 1.8, 8 + 8 * (u - 0.1), 2.4 + 2 * (u - 0.1));
+    const wet = u - IMPACT;
+    if (wet > 0.1 && wet < 4.2) {
+      const rx = 30 + 4 * wet, ry = 4 + 1.1 * wet;
+      for (let dy = -Math.ceil(ry); dy <= ry; dy++) for (let dx = -Math.ceil(rx); dx <= rx; dx++) {
+        const d = dx * dx / (rx * rx) + dy * dy / (ry * ry); if (d > 1) continue;
+        if (hash(a.x + dx, a.y + dy, 67) < 0.3 + 0.17 * wet + 0.25 * d) continue;
+        scr.set(wx - 22 + dx, wy + dy, wet < 1.4 && hash(a.x + dx, a.y + dy, 68) < 0.7 ? white : pale);
+      }
     }
-    // Spray: thrown up as it comes out, and a bigger sheet as it lands.
-    for (let k = 0; k < 26; k++) {
-      const late = k >= 10, age = u - (late ? 1.15 : 0.08) - hash(k, 1, 61) * 0.2; if (age < 0 || age > 1.3) continue;
-      const vx = (hash(k, 2, 61) - 0.5) * (late ? 44 : 26), vy = (late ? 30 : 22) + hash(k, 3, 61) * 24;
-      const px = Math.round(wx - 4 + vx * age), py = Math.round(wy - vy * age + 46 * age * age);
-      if (py > wy + 2) continue;
-      scr.set(px, py, R.white[1]); if (hash(k, 4, 61) < 0.5) scr.set(px + 1, py, R.white[1]); scr.set(px, py + 1, R.sea[5]);
+    ring(-22, wet, 4.6, 30 + 9 * wet, 4 + 2.4 * wet);
+    if (u >= 0 && u < IMPACT + 0.5) sunk(scr, whales[Math.min(whales.length - 1, Math.floor(u * FPS))], wx, wy, Math.round(7 * smooth(2.05, IMPACT, u) + 16 * smooth(IMPACT, IMPACT + 0.5, u)), t);
+    // The flukes: up, a moment standing, then tipping over and under.
+    const uf = wet - 0.6;
+    if (uf > 0 && uf < 1.75) {
+      const sink = Math.round(uf < 0.6 ? 25 * (1 - ease(uf / 0.6)) : uf < 0.95 ? 0 : 25 * ease((uf - 0.95) / 0.8));
+      sunk(scr, flukes[Math.round(3 * smooth(0.5, 1.5, uf))], wx - 9, wy, sink, t);
     }
-    // The ring of foam it leaves, spreading and breaking up.
-    for (const [from, len, cx] of [[0.1, 1.6, -5], [1.2, 3.4, -3]]) {
-      const age = u - from; if (age < 0 || age > len) continue;
-      const rx = 7 + 9 * age, ry = 2.2 + 2.4 * age, thin = age / len;
-      for (let k = 0; k < 64; k++) { if (hash(k, Math.floor(t * 3), 62) < thin) continue; const an = k / 64 * TAU; scr.set(Math.round(wx + cx + Math.cos(an) * rx), Math.round(wy + Math.sin(an) * ry), k % 5 ? R.white[1] : R.sea[5]); }
+    ring(-12, uf - 1.5, 1.6, 5 + 7 * (uf - 1.5), 1.8 + 1.6 * (uf - 1.5));
+    // Spray: a little thrown up as it comes out, and a wall of it as it lands, which falls back as drops.
+    const drop = (px, py, big) => { if (py > wy + 1) return; scr.set(px, py, white); if (big) scr.set(px + 1, py, white); scr.set(px, py + 1, pale); };
+    for (let k = 0; k < 16; k++) {
+      const age = u - 0.05 - hash(k, 1, 61) * 0.3; if (age < 0 || age > 1.6) continue;
+      drop(Math.round(wx - 3 + (hash(k, 2, 61) - 0.5) * 28 * age), Math.round(wy - (22 + hash(k, 3, 61) * 22) * age + 46 * age * age), hash(k, 4, 61) < 0.5);
     }
-    // The roll and the blow.
-    const v = u - 8.5;
-    if (v > 0 && v < 3) {
-      const bx = wx + 8 - Math.round(v * 4), by = wy + 20, up = Math.round(v < 0.6 ? 5 * (1 - ease(v / 0.6)) : v > 2.2 ? 5 * ease((v - 2.2) / 0.8) : 0);
+    if (wet > -0.1 && wet < 0.8) {
+      const up = Math.sin(Math.PI * clamp((wet + 0.1) / 0.9, 0, 1)) ** 0.6, beat = Math.floor(t * 10);
+      for (let dx = -56; dx <= 12; dx++) {
+        // Highest over the middle of the body, and ragged along the top.
+        const h = Math.round((6 + 17 * vnoise(dx / 6, 3, 69)) * (1 + 0.5 * Math.exp(-(((dx + 24) / 15) ** 2))) * up * smooth(-56, -42, dx) * smooth(12, 0, dx));
+        for (let j = 0; j < h; j++) { if (j > h * 0.5 && hash(dx, j + beat * 7, 70) < 0.25 + 0.5 * (j / h - 0.5)) continue; scr.set(wx + dx, wy - j, j > h * 0.78 ? pale : white); }
+      }
+    }
+    for (let k = 0; k < 84; k++) {
+      const age = wet - hash(k, 1, 74) * 0.35; if (age < 0 || age > 3) continue;
+      const x0 = -50 + 56 * hash(k, 2, 74), vx = (hash(k, 3, 74) - 0.5) * 36 + (x0 + 22) * 0.6, vy = 26 + 44 * hash(k, 4, 74);
+      drop(Math.round(wx + x0 + vx * age), Math.round(wy - vy * age + 46 * age * age), hash(k, 5, 74) < 0.5);
+    }
+    // The roll and the blow, at a different spot each time.
+    for (const [at, dx, dy] of [[17, -24, 2], [31, 8, -8]]) {
+      const v = u - at; if (v <= 0 || v >= 3) continue;
+      const bx = wx + dx + 6 - Math.round(v * 4), by = wy + dy, up = Math.round(v < 0.6 ? 5 * (1 - ease(v / 0.6)) : v > 2.2 ? 5 * ease((v - 2.2) / 0.8) : 0);
       for (let j = 0; j < back.h - up; j++) for (let i = 0; i < back.w; i++) { const c = back.d[j * back.w + i]; if (c) scr.set(bx - back.ox + i, by - back.oy + up + j, c); }
-      for (let i = -9; i <= 9; i += 2) scr.set(bx + i, by + 1, R.white[1]);
-      if (v > 0.5 && v < 1.6) { const hgt = Math.round(9 * Math.min(1, (v - 0.5) / 0.3)), fade = v > 1.2; for (let j = 0; j < hgt; j++) { if (fade && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 4 ? Math.round((j - hgt + 4) * 0.8) : 0; scr.set(bx + 5 - sp, by - 5 - j, R.white[1]); scr.set(bx + 5 + sp, by - 5 - j, R.white[1]); } }
+      for (let i = -9; i <= 9; i += 2) scr.set(bx + i, by + 1, white);
+      if (v > 0.5 && v < 1.6) { const hgt = Math.round(9 * Math.min(1, (v - 0.5) / 0.3)), fade = v > 1.2; for (let j = 0; j < hgt; j++) { if (fade && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 4 ? Math.round((j - hgt + 4) * 0.8) : 0; scr.set(bx + 5 - sp, by - 5 - j, white); scr.set(bx + 5 + sp, by - 5 - j, white); } }
+    }
+  }
+
+  // The sea stacks, found among the things that stand in the water, for the white water round their feet.
+  const stacks = W.things.filter(th => !th.tree && th.bm && th.bm.h >= 14 && th.x < SEA.w && W.coast(th.x, th.y) > 14).map(th => ({ x: th.x, y: th.y, half: th.bm.w / 2, cs: W.coast(th.x, th.y) }));
+
+  // ---- the ferry -----------------------------------------------------------------------------
+  // It sails the length of the water outside the sea stacks, is gone past the edge of the map for the
+  // better part of a minute, and comes back the other way. It is drawn with the water, under everything
+  // that stands: its course keeps it clear of the stacks and the whale.
+  const ferryBM = W.make.ferry(), [FA, FB] = spots.ferry, FLEN = Math.hypot(FB[0] - FA[0], FB[1] - FA[1]);
+  const FERRY = { v: 7, away: [38, 50] }, CROSS = FLEN / FERRY.v, ROUND = 2 * CROSS + FERRY.away[0] + FERRY.away[1];
+  // How far along its course it is, 0 at the west end and 1 at the south, and which way it is heading;
+  // nothing while it is away. At time 0 it is part way across, so the block-in page has it.
+  const ferryAt = t => { const u = (t + 0.6 * CROSS) % ROUND, back = u - CROSS - FERRY.away[0]; return u < CROSS ? [u / CROSS, 1] : back >= 0 && back < CROSS ? [1 - back / CROSS, -1] : null; };
+  // The course bows out to sea a little in the middle.
+  const coursePt = s => { const b = 14 * Math.sin(Math.PI * clamp(s, 0, 1)); return [FA[0] + (FB[0] - FA[0]) * s - 0.56 * b, FA[1] + (FB[1] - FA[1]) * s + 0.83 * b]; };
+  function drawFerry(scr, ox, oy, t) {
+    const at = ferryAt(t + ahead); if (!at) return;
+    const [s, dir] = at, [fx, fy] = coursePt(s), { VW, VH } = scr;
+    if (fx - ox < -140 || fx - ox > VW + 140 || fy - oy < -120 || fy - oy > VH + 120) return;
+    // Nothing of it shows past the edge of the map, where a wide screen has only a plain fill.
+    const dot = (wx, wy, c) => { if (wx >= 0 && wy < NH) scr.set(wx - ox, wy - oy, c); };
+    // The wake. Each bit of foam stays where the boat left it and only fades: two lines open out from
+    // the bow and break into dashes, and the water churned up astern trails off between them.
+    const here = s * FLEN, white = R.white[1];
+    for (let n = 0; n < 240; n++) {
+      const k = n / 2, c = here + dir * (19 - k), [qx, qy] = coursePt(c / FLEN);   // k: how far astern of the bow's tip
+      if (k >= 5) {
+        const age = (k - 5) / 115, wide = 5.6 + (k - 5) * 0.24, cell = Math.floor(c / 5);
+        if (frac(c / 5) < 1 - age * 0.75) for (const side of [-1, 1]) {
+          if (hash(cell, side, 71) < age * 1.15 - 0.2) continue;
+          dot(Math.round(qx + side * 0.56 * wide), Math.round(qy - side * 0.83 * wide), age < 0.3 ? white : age < 0.65 ? R.sea[5] : R.sea[4]);
+        }
+      }
+      if (k > 36 && k < 104) {
+        const age = (k - 36) / 68, half = age < 0.18 ? 2.5 : 0.5 + 1.8 * (1 - age);
+        for (let off = -half; off <= half; off += 0.5) {
+          if (age > 0.18 && hash(Math.floor(c / 3), Math.round(off), 72) < age * 1.2 - 0.1) continue;
+          const x = Math.round(qx + 0.56 * off), y = Math.round(qy - 0.83 * off);
+          dot(x, y, age < 0.3 ? ((x + y) & 1 ? white : R.sea[5]) : age < 0.62 ? R.sea[5] : R.sea[4]);
+        }
+      }
+    }
+    const x0 = Math.round(fx) - ferryBM.ox, y0 = Math.round(fy) - ferryBM.oy;
+    for (let j = 0; j < ferryBM.h; j++) for (let i = 0; i < ferryBM.w; i++) { const c = ferryBM.d[j * ferryBM.w + i]; if (c) dot(x0 + i, y0 + j, c); }
+  }
+
+  // ---- mist -------------------------------------------------------------------------------------
+  // Mist is not painted on. A pixel under it is swapped for the palette colour nearest to itself seen
+  // through fog, so the trees still show, only paler, and there is no pattern of dots to see. VEIL is the
+  // thin edge of a wisp, VEIL2 its body and VEIL3 the heart of a bank. Where wisps overlap the veils add up.
+  const M = W.mist, FOG = R.fog, VEIL = veilTable(0.3), VEIL2 = veilTable(0.58), VEIL3 = veilTable(0.84);
+  // It comes in off the sea as long lens-shaped wisps, each sliding east at its own pace. A wisp thins
+  // as it goes, is gone before the forest ends, and comes round again. Slower, heavier banks, each a few
+  // wisps moving as one, lie along the forest's western edge.
+  const wisps = [];
+  {
+    const r = rng(131);
+    const lens = (y, len, n, bank, at, v, dx) => {
+      const rows = [];
+      for (let i = 0; i < n; i++) {
+        // Longest through the middle, shorter and more ragged toward the top and bottom.
+        const f = n === 1 ? 0 : i / (n - 1) * 2 - 1, half = len / 2 * Math.sqrt(1 - f * f * (bank ? 0.7 : 0.86)) * (0.9 + 0.1 * r()), off = (r() - 0.5) * len * 0.1;
+        rows.push({ dy: i - (n >> 1), a: off - half, b: off + half, edge: i === 0 || i === n - 1, core: bank && Math.abs(f) < 0.45, need: Math.abs(f) * (bank ? 0.4 : 0.2) });
+      }
+      wisps.push({ y, len, rows, bank, span: bank ? 560 : 760, at, v, dx });
+    };
+    for (let k = 0; k < 30; k++) {
+      const y = Math.round(464 + r() * (NH - 472)), at = r() * 560, v = 0.5 + 0.9 * vnoise(y / 40, 3, 132);
+      for (let j = 0; j < 3; j++) lens(y + Math.round((r() - 0.5) * 16), 130 + r() * 130, 9 + (r() * 10 | 0), true, at, v, Math.round((r() - 0.5) * 110));
+    }
+    for (let k = 0; k < 110; k++) { const y = Math.round(458 + r() * (NH - 462)); lens(y, 40 + r() * 90, 3 + (r() * 5 | 0), false, r() * 760, 1.6 + 2.6 * vnoise(y / 40, 3, 132), 0); }
+    // A few fingers of the fog bank, out over the water in front of it.
+    for (let k = 0; k < 9; k++) { const y = Math.round(915 + r() * 160); lens(y, 50 + r() * 70, 4 + (r() * 5 | 0), false, r() * 400, 0.8 + 1.2 * r(), 0); wisps[wisps.length - 1].sea = true; }
+  }
+  // One row of a wisp: thin at both ends, its body in between.
+  function veilRow(scr, ox, oy, a, b, y, edge, core, here, sea) {
+    const { VW, fb } = scr, wy = y + oy, gy = ((wy - M.y0) >> 1) * M.w, row = y * VW;
+    for (let x = Math.max(a, 0); x <= Math.min(b, VW - 1); x++) {
+      const wx = x + ox; if (wx < 0 || wx >= M.x1) continue;
+      const g = sea ? 0 : M.gate[gy + (wx >> 1)]; if (g === 2) continue;
+      if (here && wx > here.x - 9 && wx < here.x + 9 && wy > here.y - 23 && wy < here.y + 3) continue;
+      const i = row + x;
+      const e = Math.min(x - a, b - x);
+      fb[i] = edge || g === 1 || e < 7 ? VEIL[fb[i]] : core && e > 24 ? VEIL3[fb[i]] : VEIL2[fb[i]];
     }
   }
 
   // ---- birds that circle, each with its shadow on the ground --------------------------------
   const ink = [makeBird(0), makeBird(1)], gull = ink.map(b => tint(b, R.white[1]));
   const FLOCKS = [
-    { cx: 800, cy: 900, rx: 130, ry: 44, n: 4, lift: 56, w: 0.2, bm: ink },
+    { cx: 800, cy: 900, rx: 130, ry: 44, n: 3, lift: 56, w: 0.14, bm: ink },
     { cx: 1490, cy: 770, rx: 90, ry: 36, n: 1, lift: 84, w: 0.11, bm: ink, glide: true },
     { cx: 1260, cy: 600, rx: 70, ry: 26, n: 1, lift: 70, w: -0.13, bm: ink, glide: true },
-    { cx: 210, cy: 905, rx: 80, ry: 30, n: 3, lift: 34, w: -0.24, bm: gull },
-    { cx: 70, cy: 930, rx: 34, ry: 14, n: 2, lift: 22, w: 0.4, bm: gull }
+    { cx: 210, cy: 905, rx: 80, ry: 30, n: 2, lift: 34, w: -0.16, bm: gull },
+    { cx: 70, cy: 930, rx: 34, ry: 14, n: 1, lift: 22, w: 0.25, bm: gull }
   ];
 
   return {
@@ -178,14 +347,61 @@ export function makeCritters(W) {
           if (cs > -up && cs < out && (cs < -up + 1.3 || cs > out - 1.2 || ((wx + wy) & 1))) fb[i] = white;
         }
       }
+      // White water round the foot of each sea stack: it swells out as a wave passes the rock and draws back in.
+      for (const s of stacks) {
+        const x = s.x - ox, y = s.y + 1 - oy; if (x < -30 || x > VW + 30 || y < -8 || y > VH + 8) continue;
+        const u = frac((s.cs + 7 * Math.sin(s.x / 37 + s.y / 61) + tw) / 24), surge = u < 0.2 ? u / 0.2 : 1 - (u - 0.2) / 0.8;
+        const rx = s.half + 0.5 + 1.6 * surge, ry = 1.5 + 1.3 * surge, n = Math.round(rx * 5);
+        for (let k = 0; k < n; k++) {
+          const an = k / n * TAU, sy = Math.sin(an); if (sy < -0.3 || hash(k, s.x, 75) < 0.3 - 0.3 * surge) continue;   // the far side is behind the rock
+          scr.set(Math.round(x + Math.cos(an) * rx), Math.round(y + sy * ry), surge > 0.3 || k % 3 ? white : nearC);
+        }
+      }
+      drawFerry(scr, ox, oy, t);
       spots.jelly.forEach(([jx, jy, pale], k) => {
         const x = jx + Math.round(3 * Math.sin(t * 0.13 + k * 2)) - ox, y = jy + Math.round(1.5 * Math.sin(t * 0.5 + k)) - oy;
         if (x < -4 || y < -6 || x > VW + 4 || y > VH) return;
-        const c = pale ? R.white[1] : R.pink[2], d = R.pink[1], shut = frac(t * 0.45 + k * 0.37) < 0.3;
+        const c = pale ? R.white[1] : R.pink[2], d = R.pink[1], shut = frac(t * 0.3 + k * 0.37) < 0.3;
         for (let dx = 0; dx < 3; dx++) scr.set(x + dx, y, c);
         if (shut) { for (let dx = 0; dx < 3; dx++) scr.set(x + dx, y + 1, dx === 1 ? c : d); for (const [dx, dy] of [[0, 2], [2, 2], [0, 3], [2, 3], [1, 4], [1, 5]]) scr.set(x + dx, y + dy, d); }
         else { for (let dx = -1; dx < 4; dx++) scr.set(x + dx, y + 1, dx === 0 ? c : d); for (const [dx, dy] of [[-1, 2], [1, 3], [3, 2], [0, 4], [2, 4]]) scr.set(x + dx, y + dy, d); }
       });
+    },
+    // The mist over the forest and the fog bank off the coast, laid over everything that stands. It parts
+    // round him as it does round a sign.
+    mist(scr, ox, oy, t, here) {
+      const { VW, VH, fb } = scr;
+      if (ox >= M.x1 + 120 || oy + VH <= M.y0) return;
+      for (const w of wisps) {
+        const sy = w.y - oy; if (sy < -9 || sy > VH + 9) continue;
+        let x, k;
+        if (w.sea) {
+          // Out from the bank toward the land, thinning as it leaves the bank behind.
+          const far = (w.y - 700) / 0.68; x = Math.round(far - 420 + (w.at + w.v * t) % 400); k = smooth(130, 210, w.y - 700 - x * 0.68) * smooth(far - 420, far - 380, x);
+        } else {
+          // The whole round trip starts out of sight beyond the map's west edge. The mist is thickest
+          // there and gone by the middle of the forest.
+          const at = Math.round((w.at + w.v * t) % w.span) - 160; x = at + w.dx;
+          k = (w.bank ? smooth(370, 130, at) : smooth(560, 70, at)) * smooth(-160, -110, at);
+        }
+        if (k < 0.03 || x - w.len > ox + VW || x + w.len < ox) continue;
+        // A wisp gets shorter as well as thinner as it fades, so what is left of it is a small puff and not a long hair.
+        const shrink = w.sea ? 1 : 0.3 + 0.7 * k;
+        for (const r of w.rows) {
+          const s = clamp((k - r.need) / 0.3, 0, 1) * shrink, y = sy + r.dy; if (s <= 0 || y < 0 || y >= VH) continue;
+          veilRow(scr, ox, oy, x + Math.round(r.a * s) - ox, x + Math.round(r.b * s) - ox, y, r.edge, r.core && k > 0.7, here, w.sea);
+        }
+      }
+      // The fog bank off the coast: solid far out and thinner in three steps toward the land. The edge
+      // of each step rolls slowly at its own pace, so the bank has no hard face.
+      for (let y = Math.max(0, 880 - oy); y < VH; y++) {
+        const wy = y + oy, row = y * VW, xs = [];
+        for (let j = 0; j < 4; j++) { const e = 9 * Math.sin(wy / 15 + t * 0.045 + j * 1.3) + 14 * (vnoise(wy / 1.6, j * 7 + Math.floor(t * 0.05), 134) - 0.5) + 12 * Math.abs(Math.sin(wy / 27 + t * 0.025 + j)); xs.push(Math.min(VW, Math.round((wy - 700 - [195, 235, 275, 320][j] - e) / 0.68) - ox)); }
+        for (let j = 2; j >= 0; j--) if (xs[j] < xs[j + 1]) xs[j] = xs[j + 1];
+        const x0 = Math.max(0, -ox); if (xs[0] <= x0) continue;
+        const lit = vnoise(wy / 2.6, Math.floor(t * 0.02), 133) > 0.56 ? FOG[2] : FOG[1];
+        for (let x = x0; x < xs[0]; x++) { const i = row + x; fb[i] = x < xs[3] ? lit : x < xs[2] ? VEIL3[fb[i]] : x < xs[1] ? VEIL2[fb[i]] : VEIL[fb[i]]; }
+      }
     },
     // Where each animal may wander and each flock circles, as ovals on the map, for the debug panel.
     areas: () => [...items.filter(a => a.walker).map(a => ({ x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...FLOCKS.map(F => ({ x: F.cx, y: F.cy, rx: F.rx, ry: F.ry }))],
@@ -197,7 +413,8 @@ export function makeCritters(W) {
         const x = Math.round(F.cx + Math.cos(an) * F.rx * wob - ox), y = Math.round(F.cy + Math.sin(an) * F.ry * wob - oy);
         if (x < -8 || x > VW + 8 || y < -8 || y - F.lift > VH + 8) continue;
         for (let dx = -2; dx <= 2; dx++) { const sx = x + dx; if (sx >= 0 && sx < VW && y >= 0 && y < VH) fb[y * VW + sx] = SHADE[fb[y * VW + sx]]; }
-        const f = F.glide ? (frac(t * 0.23 + k) < 0.12 ? Math.floor(t * 5) & 1 : 1) : (Math.floor(t * 4.5) + k) & 1;
+        // They mostly hold their wings out, and beat them in short bursts.
+        const f = F.glide ? (frac(t * 0.23 + k) < 0.12 ? Math.floor(t * 5) & 1 : 1) : frac(t * 0.17 + k * 0.37) < 0.4 ? (Math.floor(t * 3.5) + k) & 1 : 1;
         scr.blit(F.bm[f], x - 3, y - F.lift - 2);
       }
     }

@@ -8,12 +8,12 @@ import { buildTerrain, NW, NH, PEAK, STACK, SPIRES } from './terrain.js';
 
 const peak = makePeak(), W = buildTerrain(peak), { g, spots: S, make } = W, at = (x, y) => y * NW + x;
 // The scene's own drawing code paints straight onto the map: a screen the size of the world.
-const scr = Object.assign(Object.create(Screen.prototype), { VW: NW, VH: NH, fb: g }), crit = makeCritters(W);
+const scr = Object.assign(Object.create(Screen.prototype), { VW: NW, VH: NH, fb: g }), crit = makeCritters(W, { bear: true });
 crit.sea(scr, 0, 0, 0);
 const things = W.things.concat(crit.items), put = (bm, x, y, lift = 0) => things.push({ bm, x, y, lift });
 put(peak, PEAK.x, PEAK.y); put(makeStack(), STACK.x, STACK.y); put(makeMassif(), SPIRES.x, SPIRES.y);
 for (const [x, y, c] of S.tents) put(makeTent(c), x, y);
-put(makeSignpost(), ...S.signpost); put(makeKiosk(), ...S.kiosk); put(make.ferry(), ...S.ferry);
+put(makeSignpost(), ...S.signpost); put(makeKiosk(), ...S.kiosk);
 for (const [x, y] of S.signs) put(makeSmallSign(), x, y);
 for (const [x, y] of S.birds) put(makeBird(x & 1), x, y + 400, 400);
 const blit = (bm, sx, sy) => scr.blit(bm, sx, sy);
@@ -26,7 +26,7 @@ for (const th of things) {
 crit.over(scr, 0, 0, 0);
 // The top of the boot track again, over the Spires, and the mist over everything.
 for (const [x, y, col] of W.trackPix) g[at(x, y)] = col;
-for (let i = 0; i < g.length; i++) if (W.mist[i]) g[i] = W.mist[i];
+crit.mist(scr, 0, 0, 0, null);
 
 const c = document.getElementById('c'), q = new URLSearchParams(location.search), sc = +(q.get('scale') || 1);
 c.width = NW; c.height = NH; c.style.width = NW * sc + 'px'; c.style.height = NH * sc + 'px';

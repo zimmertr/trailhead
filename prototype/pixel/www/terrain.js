@@ -434,12 +434,26 @@ function seaStack(seed, H, W) {
   for (let x = -(W >> 1) - 2; x <= (W >> 1) + 2; x++) for (let y = foot(x); y < H + 2; y++) if (b.get(b.ox + x, y + 2) === INK) b.set(b.ox + x, y + 2, 0);
   return b;
 }
+// The ferry, seen from the shore and a little above, lying along its course: bow down to the right.
+// Both ends are alike, as on the boats that cross the Sound, so it sails back without turning round.
 function ferry() {
-  const b = new BM(30, 13); b.ox = 15; b.oy = 12;
-  for (let x = 1; x < 29; x++) { b.set(x, 10, R.kit[0]); b.set(x, 9, R.white[1]); b.set(x, 8, R.white[1]); }
-  for (let x = 4; x < 26; x++) { b.set(x, 7, R.kit[1]); b.set(x, 6, R.white[1]); b.set(x, 5, x % 3 ? R.navy[1] : R.white[1]); b.set(x, 4, R.white[1]); }
-  for (let x = 9; x < 21; x++) b.set(x, 3, R.white[0]);
-  b.set(13, 2, R.kit[1]); b.set(14, 2, R.kit[1]); b.set(13, 1, R.kit[1]); b.set(14, 1, R.kit[1]);
+  const b = new BM(50, 48); b.ox = 25; b.oy = 30;
+  // u runs along the hull, v across it and z up. A deck is a slab with rounded ends: its far wall, its
+  // near wall, then its top over both, which hides whatever of the far wall could not be seen.
+  const dot = (u, v, z, c) => b.set(Math.round(b.ox + u * 0.83 + v * 0.56), Math.round(b.oy + u * 0.56 - v * 0.83 - z), c);
+  const deck = (u0, U, V, r, z0, z1, wall, top) => {
+    const half = u => { const e = Math.abs(u) - (U - r); return e <= 0 ? V : V * Math.sqrt(Math.max(0, 1 - e * e / (r * r))); };
+    for (const side of [1, -1]) for (let u = -U; u <= U; u += 0.25) for (let z = z0; z < z1; z++) dot(u0 + u, side * half(u), z, wall(u, z - z0));
+    for (let u = -U; u <= U; u += 0.25) { const h = half(u); for (let v = -h; v <= h; v += 0.25) dot(u0 + u, v, z1, top(u, v)); }
+  };
+  const W1 = R.white[1], W0 = R.white[0];
+  // The hull: green at the waterline, the car deck open and grey at both ends.
+  deck(0, 19, 5, 6, 0, 3, (u, z) => z < 1 ? R.kit[0] : W1, u => Math.abs(u) > 14.5 ? R.rock[3] : W0);
+  // The cabin: a green band, a row of windows, a pale roof.
+  deck(0, 14, 4, 3, 3, 8, (u, z) => z < 1 ? R.kit[1] : z === 2 && Math.round(u * 0.83 + 40) % 3 ? R.navy[1] : W1, () => W0);
+  // A wheelhouse toward each end and the funnel between them.
+  for (const u0 of [-10, 10]) deck(u0, 2, 2, 1, 8, 10, (u, z) => z === 1 ? R.navy[1] : W1, () => W1);
+  deck(0, 1.6, 1.2, 0.8, 8, 12, (u, z) => z > 2 ? R.kit[0] : R.kit[1], () => R.kit[0]);
   outline(b, INK);
   return b;
 }
@@ -572,7 +586,7 @@ for (let n = 0; n < 300; n++) {
   if (!free(x, y, bm.w, bm.h) || track[at(Math.round(x), Math.round(y))] || (!rock && onIce(x, y, 4)) || (Math.abs(x - SPIRES.x) < 122 && y < 528)) continue;
   put(bm, x, y);
 }
-// The coast: sea stacks, driftwood along the beach, a ferry out by the fog, a humpback breaching,
+// The coast: sea stacks, driftwood along the beach, a ferry that crosses outside them, a humpback breaching,
 // and jellyfish drifting in the shallows.
 rand = dice(44390);
 // The sea round the foot of each stack is given a wash line of its own, which the scene moves in
@@ -594,25 +608,88 @@ for (let n = 0; n < 500; n++) {
   const len = 6 + rand() * 12, a = (rand() - 0.5) * 0.9 + 0.6;
   for (let k = 0; k < len; k++) { const px = Math.round(x + Math.cos(a) * k), py = Math.round(y + Math.sin(a) * k * 0.5); if (px > 0 && py > 0 && px < NW && py < NH - 1 && !river[at(px, py)] && !river[at(px, py + 1)]) { g[at(px, py)] = R.rock[4]; g[at(px, py + 1)] = R.rock[2]; } }
 }
+// Eight jellyfish. Eighteen spots are still drawn from the dice, so that everything placed after them
+// stands where it always did, and eight of those are kept.
 const jelly = [];
-for (let n = 0; n < 4000 && jelly.length < 18; n++) {
+for (let n = 0, found = 0; n < 4000 && found < 18; n++) {
   const x = Math.round(rand() * 560), y = Math.round(700 + rand() * 370), cs = coast(x, y); if (cs < 14 || cs > 80 || x < 6 || y > NH - 10) continue;
-  jelly.push([x, y, jelly.length % 3 ? 0 : 1]);
+  if (found++ * 4 % 9 < 4) jelly.push([x, y, jelly.length % 3 ? 0 : 1]);
 }
-function whale(splash = true) {
-  // A humpback two thirds out of the water: dark back, pale grooved belly, one long flipper flung out.
-  const b = new BM(56, 50); b.ox = 20; b.oy = 44;
-  for (let s = 0; s <= 1; s += 0.01) {
-    const cx = 14 + 26 * s + 5 * s * s, cy = 42 - 36 * s, rr = 2 + 8.5 * Math.sin(Math.PI * (0.12 + 0.8 * s));
-    for (let dy = -Math.ceil(rr); dy <= rr; dy++) for (let dx = -Math.ceil(rr); dx <= rr; dx++) {
-      if (dx * dx + dy * dy > rr * rr) continue;
-      const belly = dx * 0.75 - dy * 0.65 < -rr * 0.5 && s < 0.8, x = Math.round(cx + dx), y = Math.round(cy + dy);
-      b.set(x, y, belly ? ((x + y * 2) % 4 === 0 ? R.rock[3] : R.white[1]) : R.navy[dx + dy > rr * 0.5 ? 0 : dx + dy < -rr * 0.2 ? 2 : 1]);
+// One drawing of the humpback's breach, or of its flukes going under. The body is a tapered tube along
+// a spine that leaves the water at the bitmap's foot and leans to the left, the way it will fall.
+// p.out: how much of its length is out, from the snout. p.head, p.tail: how steeply the two ends of
+// that stand, in degrees. p.roll: where its belly is turned, 90 for away to the right, 0 for square to
+// us. p.sweep: how far back its flippers trail. p.fluke: the tail instead, 0 upright to 1 tipping under.
+// Nothing is drawn below the waterline and nothing outlines it there: the scene puts foam along it.
+function whale(p) {
+  p = p || { out: 0.68, head: 54, tail: 59, roll: 40, sweep: 0.2 };
+  const b = new BM(120, 72); b.ox = 84; b.oy = 68;
+  const D = Math.PI / 180, navy = R.navy, W1 = R.white[1], W0 = R.white[0], groove = R.rock[3];
+  const layer = () => { const l = new BM(b.w, b.h); l.put = (x, y, c) => { if (y <= 0) l.set(b.ox + x, b.oy + y, c); }; return l; };
+  // A part goes on over what is there. Its own outline is kept only where it crosses something already
+  // drawn, so a white flipper shows against a white belly; the outer edge is inked once at the end.
+  const lay = l => { const o = l.d.slice(); outline(l, INK); for (let i = 0; i < o.length; i++) { if (o[i]) b.d[i] = o[i]; else if (l.d[i] && b.d[i]) b.d[i] = INK; } };
+  const key = (K, q) => { for (let i = 1; i < K.length; i++) if (q <= K[i][0]) return K[i - 1][1] + (K[i][1] - K[i - 1][1]) * (q - K[i - 1][0]) / (K[i][0] - K[i - 1][0]); return K[K.length - 1][1]; };
+  if (p.fluke != null) {
+    // The tail from behind as it dives: the stock, and the two flukes with their white undersides.
+    const l = layer(), f = p.fluke, H = 15, squash = 1 - 0.7 * f, lean = -0.22;
+    for (let y = 0; y <= H; y += 0.5) { const hw = 3.3 - 1.7 * y / H; for (let x = -hw; x <= hw; x += 0.5) l.put(x + lean * y, -y, x < -hw * 0.3 ? navy[2] : x > hw * 0.5 ? navy[0] : navy[1]); }
+    const LEAD = [[0, -2], [0.3, -0.6], [0.6, 1.2], [0.85, 3], [1, 4.4]], TRAIL = [[0, 1.6], [0.15, 3.6], [0.4, 5.6], [0.7, 6], [0.9, 5.4], [1, 4.7]];
+    for (const side of [-1, 1]) for (let q = 0; q <= 1; q += 0.02) {
+      const lo = key(LEAD, q), hi = key(TRAIL, q), x = side * q * 14 + lean * H;
+      for (let v = lo; v <= hi; v += 0.25) {
+        const y = -H - v * squash + 3.2 * f * q, pale = q > 0.16 && q < 0.86 && v > lo + 1.3 && v < hi - 1.2 && (side < 0 || q < 0.7);
+        l.put(x, y, pale ? W1 : v > hi - 1.2 || side > 0 ? navy[1] : navy[2]);
+      }
     }
+    lay(l); outline(b, INK);
+    for (let i = (b.oy + 1) * b.w; i < b.d.length; i++) b.d[i] = 0;
+    return b;
   }
-  thick(b, 24, 24, 7, 15, 3, R.navy[1]); thick(b, 22, 24, 8, 17, 1, R.white[0]); b.set(42, 10, R.white[1]);
+  const L = 66, GIRTH = [[0, 0.44], [0.04, 0.62], [0.12, 0.83], [0.25, 0.98], [0.33, 1], [0.5, 0.86], [0.7, 0.52], [0.85, 0.26], [0.93, 0.16], [1, 0.12]];
+  // The spine, every half pixel: a stretch of it under the water, so the body is cut level at the
+  // waterline however far it leans, then from the waterline up to the snout.
+  const n = Math.max(2, Math.ceil(p.out * L * 2)), sp = [];
+  for (let i = 44; i > 0; i--) sp.push([Math.cos(p.tail * D) * 0.5 * i, Math.sin(p.tail * D) * 0.5 * i, p.tail * D, Math.min(1, p.out + i * 0.5 / L)]);
+  for (let i = 0, x = 0, y = 0; i <= n; i++) { const w = i / n, th = (p.tail + (p.head - p.tail) * w) * D; sp.push([x, y, th, p.out * (1 - w)]); x -= Math.cos(th) * 0.5; y -= Math.sin(th) * 0.5; }
+  const tip = sp.length - 1;
+  const body = layer();
+  for (let y = -70; y <= 0; y++) for (let x = -84; x < 36; x++) {
+    let bi = 0, bd = 1e9; for (let i = 0; i <= tip; i++) { const dx = x - sp[i][0], dy = y - sp[i][1], d = dx * dx + dy * dy; if (d < bd) { bd = d; bi = i; } }
+    const [px, py, th, s] = sp[bi], r = 8.5 * key(GIRTH, s), nx = Math.sin(th), ny = -Math.cos(th);
+    // Past the snout the tube ends in a round nose.
+    if (bd > (bi === tip ? r * 0.8 : r) * (bi === tip ? r * 0.8 : r) + 0.3) continue;
+    const d = bi === tip ? Math.sign((x - px) * nx + (y - py) * ny) * Math.sqrt(bd) : (x - px) * nx + (y - py) * ny, rr = Math.max(r, Math.abs(d));
+    // Where round the body this bit of skin is: 0 at the middle of the belly, 180 on the back.
+    const a = Math.asin(d / rr) / D, off = Math.abs(((a - p.roll + 540) % 360) - 180);
+    const lit = Math.sin(a * D) * (nx * -0.6 + ny * -0.75) + Math.cos(a * D) * 0.42;
+    if (off < (s < 0.6 ? 60 : s < 0.82 ? 60 - (s - 0.6) * 140 : 29)) {
+      // The belly: white, with the throat grooves running back from the chin as far as the navel.
+      let line = false; if (s > 0.02 && s < 0.56) for (let k = -3; k <= 3 && !line; k++) { const g = (p.roll + k * 20) * D; if (Math.cos(g) > 0.1 && Math.abs(d - r * Math.sin(g)) < 0.5) line = true; }
+      body.put(x, y, line ? groove : lit < -0.3 ? W0 : W1);
+    } else body.put(x, y, navy[lit > 0.5 ? 2 : lit > -0.05 ? 1 : 0]);
+  }
+  // The eye, low on the dark of the head just above the corner of the mouth.
+  for (const k of [-1, 1]) { const g = (p.roll + k * 86) * D; if (p.out > 0.2 && Math.cos(g) > 0.2) { const e = sp.find(q => q[3] <= 0.15), r = 8.5 * key(GIRTH, 0.15) * Math.sin(g); body.put(e[0] + Math.sin(e[2]) * r, e[1] - Math.cos(e[2]) * r, W1); } }
+  // The flippers, a third of its length each: flung wide where they stand out to the side, short where they point at us.
+  const flippers = [-1, 1].map(k => {
+    if (p.out < 0.36) return null;
+    const g = (p.roll + k * 62) * D, e = sp.find(q => q[3] <= 0.3), th = e[2], r = 8.5 * key(GIRTH, 0.3) * Math.sin(g);
+    let vx = Math.sin(g) * Math.sin(th) + p.sweep * Math.cos(th), vy = -Math.sin(g) * Math.cos(th) + Math.cos(g) * 0.3 + p.sweep * Math.sin(th);
+    const len = Math.hypot(vx, vy), reach = 22 * clamp(len, 0.5, 1) * smooth(0.36, 0.5, p.out); vx /= len; vy /= len;
+    const l = layer();
+    for (let q = 0; q <= 1; q += 0.5 / reach) {
+      const bow = 2.2 * Math.sin(Math.PI * q) * k, cx = e[0] + Math.sin(th) * r + vx * reach * q - vy * bow, cy = e[1] - Math.cos(th) * r + vy * reach * q + vx * bow;
+      const hw = (q < 0.12 ? 1.3 + 9 * q : 2.4 - 1.3 * q) + (Math.abs(frac(q * 4.2) - 0.5) < 0.14 ? 0.5 : 0);
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= hw * hw) l.put(Math.round(cx) + dx, Math.round(cy) + dy, (dx * vy - dy * vx) * k > hw * 0.45 ? W0 : W1);
+    }
+    return { l, front: Math.cos(g) > 0 };
+  });
+  for (const f of flippers) if (f && !f.front) lay(f.l);
+  lay(body);
+  for (const f of flippers) if (f && f.front) lay(f.l);
   outline(b, INK);
-  if (splash) for (const [x, y] of [[4, 44], [8, 41], [12, 45], [26, 44], [30, 41], [34, 45], [2, 40], [36, 40], [16, 47], [22, 47], [9, 36], [31, 36], [6, 47], [30, 47]]) { b.set(x, y, R.white[1]); b.set(x + 1, y, R.white[1]); b.set(x, y + 1, R.sea[5]); }
+  for (let i = (b.oy + 1) * b.w; i < b.d.length; i++) b.d[i] = 0;
   return b;
 }
 plant(firs[2], ISLE.x, ISLE.y + 1);
@@ -620,17 +697,19 @@ plant(firs[2], ISLE.x, ISLE.y + 1);
 const spots = {
   tents: [[924, 564, 'tent'], [948, 574, 'red']], signpost: [T.x - 4, T.y - 8],
   kiosk: [KIOSK.x, KIOSK.y],
-  // The ferry and the whale, out on the water.
-  ferry: [44, 916], whale: [222, 934],
+  // The two ends of the ferry's course, both past the edge of the map, and the whale's spot.
+  ferry: [[-30, 820], [394, 1108]], whale: [150, 912],
   // Each sign stands on the ground it names; content.js has the words. Whatever would stand in front of one is cleared below.
   signs: [[990, 561, 'scope-creep'], [858, 557, 'segfault'], [898, 540, 'merge-conflict'], [800, 742, 'yak-shave'], [766, 631, 'about-lake'], [1160, 600, 'rollback'], [1300, 552, 'feature-flag'], [1226, 884, 'hotfix'], [1420, 966, 'postmortem'], [1474, 724, 'cron-job'], [1506, 806, 'tech-debt'], [264, 857, 'cache-miss'], [334, 612, 'stack-trace'], [262, 480, 'off-by-one'], [470, 480, 'dependency'], [668, 586, 'monorepo'], [452, 1036, 'latency']],
-  elk: [[760, 820, 0], [792, 836, 1], [738, 846, 1], [900, 900, 0], [640, 960, 1], [840, 1000, 1], [872, 1012, 0], [1010, 790, 1], [960, 760, 0], [700, 1030, 0], [776, 606, 1]],
+  // One small herd of elk, in a clearing of the south meadow well away from the junction. The first is the bull.
+  elk: [[748, 814, 0], [782, 828, 1], [728, 840, 1], [764, 854, 0]],
   bear: [1010, 930], marmots: [[846, 574], [1340, 590], [700, 900]],
-  goats: [[1196, 556, 0], [1212, 562, 1], [1126, 528, 0], [1290, 598, 0], [1304, 603, 1], [1384, 548, 0], [1250, 500, 0]],
-  sheep: [[1484, 694, 0], [1512, 702, 1], [1470, 764, 0], [1530, 830, 1], [1402, 772, 1], [1420, 778, 0]],
+  goats: [[1196, 556, 0], [1212, 562, 1], [1290, 598, 0], [1384, 548, 0]],
+  sheep: [[1484, 694, 0], [1512, 702, 1], [1470, 764, 0], [1530, 830, 1]],
   squirrels: [], jelly, birds: [[860, 700], [872, 694], [884, 702], [980, 840], [600, 880], [1100, 700], [420, 300], [436, 292], [1240, 330]]
 };
-for (let n = 0; n < 14; n++) { const x = 720 + rand() * 420, y = 760 + rand() * 300; if (open(x, y)) spots.squirrels.push([Math.round(x), Math.round(y), n % 3 === 0 ? 1 : 0]); }
+// Seven squirrels and chipmunks: every other one of the fourteen spots the dice give.
+for (let n = 0; n < 14; n++) { const x = 720 + rand() * 420, y = 760 + rand() * 300; if (open(x, y) && n % 2) spots.squirrels.push([Math.round(x), Math.round(y), n % 3 === 0 ? 1 : 0]); }
 // Nothing stands in front of a sign: a tree, bush or boulder that would cover one is taken out.
 // The board at the junction is cleared the same way, and it is wider.
 const clearSigns = () => { for (const [sx, sy, , half = 7] of spots.signs.concat([[KIOSK.x, KIOSK.y, 'kiosk', 15]])) for (let i = things.length - 1; i >= 0; i--) {
@@ -679,17 +758,20 @@ for (let n = 0; n < 60; n++) {
   if (!riverPts.some(([px, py]) => Math.hypot(px - x, py - y) < 46)) layLog(logs[n % 6], x, y, n, cover < 2 ? 0.34 : 1);
 }
 clearSigns();
-// Mist: thin bands of it lie in the deep forest and thicken to the west; a fog bank stands off the
-// coast. It is kept apart from the ground so the scene can lay it over the trees.
-const mist = new Uint8Array(NW * NH);
-for (let y = 440; y < NH; y++) for (let x = 0; x < 620; x++) {
-  const cs = coast(x, y), sea = cs > 0;
-  let a = sea ? smooth(210, 390, cs) * 1.1 : smooth(520, 20, x) * smooth(groundLine(x) - 10, groundLine(x) + 40, y) * (0.12 + 0.95 * smooth(0.47, 0.6, fbm(x / 110, y / 13, 130, 3))) * (smooth(-4, -40, cs) * 0.9 + 0.1);
-  if (!sea && a > 0.1 && nearTrail(x, y, 9)) a *= 0.3;
-  if (a > 0 && bayer(x, y) < a * 0.85) mist[at(x, y)] = R.fog[a > 0.8 ? 2 : a > 0.45 ? 1 : (bayer(x + 2, y + 1) < 0.5 ? 1 : 0)];
+// Mist drifts through the deep forest, thickest in the west, and a fog bank stands off the coast. It
+// moves, so the scene draws it each frame (critters.js). Kept here is only where it may not lie, on a
+// grid of two pixels: 1 where it stays thin, along the trail and just in from the beach, and 2 where
+// there is none at all, over a sign's board (so the board can be read) and out past the beach.
+const mist = { x1: 640, y0: 440, w: 320, h: Math.ceil((NH - 440) / 2) };
+mist.gate = new Uint8Array(mist.w * mist.h);
+{
+  const mark = (x0, y0, x1, y1, v, round) => { const mx = (x0 + x1) / 2, my = (y0 + y1) / 2; for (let cy = Math.max(0, (y0 - mist.y0) >> 1); cy <= Math.min(mist.h - 1, (y1 - mist.y0) >> 1); cy++) for (let cx = Math.max(0, x0 >> 1); cx <= Math.min(mist.w - 1, x1 >> 1); cx++) if (mist.gate[cy * mist.w + cx] < v && (!round || sq((cx * 2 + 1 - mx) / (x1 - mx)) + sq((mist.y0 + cy * 2 + 1 - my) / (y1 - my)) <= 1)) mist.gate[cy * mist.w + cx] = v; };
+  // The mist stops short of the beach, a little further in on some rows than on others so that its
+  // seaward edge is not a straight cut. The shoreline is found on a coarser grid across, which is all it needs.
+  for (let cy = 0; cy < mist.h; cy++) for (let cx = 0; cx < mist.w; cx += 2) { const y = Math.min(NH - 1, mist.y0 + cy * 2 + 1), cs = coast(cx * 2 + 2, y) + 16 * vnoise(y / 6, 5, 135), v = cs > -10 ? 2 : cs > -42 ? 1 : 0; if (v) { mist.gate[cy * mist.w + cx] = v; mist.gate[cy * mist.w + cx + 1] = v; } }
+  for (let i = 0; i < trailPts.length; i += 2) { const p = trailPts[i]; if (p[0] < mist.x1 + 12) mark(Math.round(p[0]) - 7, Math.round(p[1]) - 8, Math.round(p[0]) + 7, Math.round(p[1]) + 6, 1, true); }
+  for (const [sx, sy] of spots.signs) mark(sx - 14, sy - 24, sx + 14, sy + 6, 2, true);
 }
-// The mist parts round a sign so its board can be read.
-for (const [sx, sy] of spots.signs) for (let y = sy - 19; y <= sy + 2; y++) for (let x = sx - 10; x <= sx + 10; x++) if (x >= 0 && y >= 0 && x < NW && y < NH && (Math.abs(x - sx) < 9 || bayer(x, y) < 0.5)) mist[at(x, y)] = 0;
 return { g, things, spots, mist, sea: SEA, trackPts, trackPix, trails: TRAILS, forestAmt, lakeD, coast, groundLine, glacier, talus, open, nearTrail, make: { ferry, whale, sheep, squirrel } };
 }
 export { OX, OY, NW, NH, T, PEAK, STACK, SPIRES, KIOSK };

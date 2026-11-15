@@ -189,7 +189,7 @@ export const UI = {
     title: 'Trail conditions', sub: 'Posted at the Trailhead kiosk', version: 'Running version', deployed: 'Deployed', uptime: 'Uptime',
     up: s => s < 90 ? s + ' seconds' : Math.round(s / 60) + ' minutes',
     status: ['Status', 'All trails open'], open: 'Open', lakeDone: 'Run. Flag flying.', stackDone: 'Climbed. Flag flying.', summits: n => n + ' of 6 summits',
-    wildlife: ['Wildlife', 'Elk, a bear, goats, bighorn sheep, a whale, two cats'],
+    wildlife: ['Wildlife', 'A few elk, goats, bighorn sheep, a whale, two cats, and some days a bear'],
     checklist: (n, of) => 'Field checklist: ' + n + ' of ' + of + ' found', notFound: 'Not found yet', got: 'Found'
   },
   register: {
