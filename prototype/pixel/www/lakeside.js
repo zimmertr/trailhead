@@ -2,7 +2,7 @@
 // peak. He runs left to right along the near shore, stops for the view with the map out, and
 // again at the boulder where his journal lies open.
 import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, thick, windAt } from './core.js';
-import { Strip, drawStrip, blitTall, baseline, edgeTrunk } from './side.js';
+import { Strip, drawStrip, blitTall, baseline } from './side.js';
 import { makeTrunk, makeLimb, swordFern } from './forest.js';
 import { makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush, makeMaple } from './sprites.js';
 import { marmot, speck } from './fauna.js';
@@ -261,7 +261,6 @@ export function makeLakeside() {
         if (th.me) {
           const u = t - plunge;
           focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
-          if (env.hideMe) continue;
           if (u < PLUNGE) {
             // The cold plunge. Vest, shirt and shoes come off in a pile on the trail, he walks up the
             // bank and wades in wearing his tights, stands it for a few seconds, wades out, and dresses.
@@ -297,8 +296,6 @@ export function makeLakeside() {
         } else if (th.tall) blitTall(scr, th.bm, sx - th.bm.ox, sy - th.bm.oy);
         else scr.put(th.bm, sx, sy, th.flip);
       }
-      // The forest's last tree, in front of everything, at the left edge of where the scene opens.
-      edgeTrunk(scr, Math.round(xOf(0) - VW * anchor) - camX);
     }
   };
 }

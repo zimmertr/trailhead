@@ -1,9 +1,9 @@
 // About Lake, part one: the run through the rainforest, seen from the side. Giant mossy trunks
 // stand on the bank behind the trail, a dark stream mirrors them in front of it, and the light
-// comes down through the canopy in slanting shafts. The scene is built with him running right to left
-// and shown mirrored, so on screen he runs left to right and comes out at the lake's left edge.
+// comes down through the canopy in slanting shafts. He runs right to left, the way the map sends him
+// in: west, away from the Trailhead.
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, SHADE, LIGHT, pick, BM, outline, disc, thick, windAt } from './core.js';
-import { Strip, drawStrip, blitTall, baseline, edgeTrunk } from './side.js';
+import { Strip, drawStrip, blitTall, baseline } from './side.js';
 import { makeMaple, makeSpruce, makeBoulder } from './sprites.js';
 import { elk, bear, sasquatch, jay, slug } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
@@ -271,7 +271,7 @@ export function makeForest() {
   const elkX = X0 - D_ELK, elkY = g(elkX) - 13;
 
   const st = {}, focus = { x: 0, y: 0 };
-  let cam = 0, last = { camX: 0, base: 0, VW: 0 };
+  let cam = 0, last = { camX: 0, base: 0 };
   const list = [];
   const xOf = q => X0 - q * LEN;
 
@@ -284,20 +284,19 @@ export function makeForest() {
     enter(scr, arg, q) { cam = xOf(q); st.y = null; },
     focus: () => focus,
     pick(sx, sy) {
-      // The picture is mirrored, so a point on the screen is looked up from the other side.
-      const wx = last.VW - 1 - sx + last.camX, wy = sy - last.base;
-      if (Math.abs(wx - signX) < 12 && wy > g(signX) - 34 && wy < g(signX) - 4) return { label: NAMES.forest.sign, x: last.VW - 1 - (signX - last.camX), y: last.base + g(signX) - 36 };
+      const wx = sx + last.camX, wy = sy - last.base;
+      if (Math.abs(wx - signX) < 12 && wy > g(signX) - 34 && wy < g(signX) - 4) return { label: NAMES.forest.sign, x: signX - last.camX, y: last.base + g(signX) - 36 };
       if (wy > g(wx) + farBank(wx) && wy < g(wx) + nearBank(wx)) return { label: NAMES.forest.creek, x: sx, y: sy - 8 };
       return null;
     },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t, tq } = env;
       const mx = xOf(q), d = q * LEN, my = g(mx);
-      // Measured before the picture is turned round: on screen he stands right of the middle, clear of the card.
-      const anchor = scr.narrow ? 0.5 : 0.42;
+      // He stands right of the middle: clear of the card, and with more of the way ahead in view.
+      const anchor = scr.narrow ? 0.5 : 0.6;
       cam += (mx - cam) * Math.min(1, env.dt * 8);
-      const camX = Math.round(cam - VW * anchor - env.look.x * 0.5), base = baseline(scr, env.shown, st) - Math.round(my * 0.5);
-      last = { camX, base, VW };
+      const camX = Math.round(cam - VW * anchor + env.look.x * 0.5), base = baseline(scr, env.shown, st) - Math.round(my * 0.5);
+      last = { camX, base };
 
       // The light between the trees: bright and misty at eye level, dark up in the canopy.
       const mist = R.mist;
@@ -355,8 +354,7 @@ export function makeForest() {
         const sx = th.x - camX, sy = base + th.y;
         if (th.me) {
           const bm = snack ? sit[Math.floor(t * 1.5) & 1] : env.moving ? (hop ? run.side[3] : run.side[Math.floor(d / 4.2) % 6]) : run.sideIdle[0];
-          focus.x = VW - 1 - Math.round(sx); focus.y = Math.round(base + my) - 14;
-          if (env.hideMe) continue;
+          focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
           scr.shadow(Math.round(sx), Math.round(base + my), 5, 1);
           scr.put(bm, sx, base + my - hop + (snack ? 2 : 0), true);
           if (snack) { const u = clamp((env.still - 63) / 1.2, 0, 1); scr.put(u < 1 ? (Math.floor(t * 9) & 1 ? gray.up : gray.down) : gray.sit, sx - 16 - (1 - u) * 60, base + my - (1 - u) * 50, false); }
@@ -379,10 +377,6 @@ export function makeForest() {
         if (env.mix < 0.5 ? !beamAt(wx - 0.6 * r) : frac(t * 0.4 + hash(k, 3, 104)) > 0.5) continue;
         scr.set(Math.round(wx - camX), Math.round(base + r), env.mix < 0.5 ? R.white[1] : R.yellow[1]);
       }
-      // Everything above is drawn with him heading left. Turn the picture round so he heads right,
-      // then stand the forest's last tree where the lake scene will take over.
-      for (let y = 0; y < VH; y++) fb.subarray(y * VW, y * VW + VW).reverse();
-      edgeTrunk(scr, VW + camX - Math.round(xOf(1) - VW * anchor));
     }
   };
 }

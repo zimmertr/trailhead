@@ -4,8 +4,6 @@
 
 import { clamp, lerp, Screen, DEBUG, R } from './core.js';
 import { makeWorld } from './world.js';
-import { edgeTrunk } from './side.js';
-import { makeRunner } from './tj.js';
 
 // Scenes beyond the world map are built the first time a route needs them.
 const MAKERS = {
@@ -17,8 +15,6 @@ const MAKERS = {
   offroute: () => import('./offroute.js').then(m => m.makeOffroute())
 };
 const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb', 'offroute'];
-// Scenes that stand side by side scroll into one another instead of cutting: 1 when the second lies to the right.
-const SLIDE = { 'forest>lakeside': 1, 'lakeside>forest': -1 };
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
@@ -123,7 +119,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   }
 
   function step(dt) {
-    if (!running || (tr && (tr.phase === 'out' || tr.phase === 'slide'))) return;
+    if (!running || (tr && tr.phase === 'out')) return;
     // A scene may keep him where he is while something plays out (he swims back before he runs on).
     if (!tr && drawn.scene.hold && drawn.scene.hold(env)) return;
     const before = p;
@@ -146,28 +142,6 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   const env = { t: 0, tq: 0, dt: 0, mix: 0, moving: false, running: false, home: false, idle: 0, look, lookBox: FREE, done, shown: null, sfx: name => emit({ type: 'sfx', name }), emit, found: find };
   // For a scene that shows the map from afar: paints the map over the whole frame, its top left corner at this spot of the world.
   env.mapStill = (x, y) => world.still(scr, x, y, env);
-
-  // The scroll from one scene into its neighbour: both are drawn, each at the end that touches the
-  // other, and shown side by side with the view panning across. He is drawn here, running from his
-  // place in the one to his place in the other, and the tree at the join passes in front of him.
-  let slideBuf = null; const runner = makeRunner('trail');
-  function slide(t) {
-    const { VW, VH, fb } = scr, e = tr.k * tr.k * (3 - 2 * tr.k), off = Math.round(e * VW), fwd = tr.dir > 0;
-    if (!slideBuf || slideBuf.length !== fb.length) slideBuf = new Uint8Array(fb.length);
-    look.x = look.y = 0; env.hideMe = true;
-    tr.from.scene.draw(scr, env, tr.from.arg, fwd ? 1 : 0); const a = { ...tr.from.scene.focus() };
-    slideBuf.set(fb);
-    tr.to.scene.draw(scr, env, tr.to.arg, fwd ? 0 : 1); const b = { ...tr.to.scene.focus() };
-    env.hideMe = false;
-    for (let y = 0; y < VH; y++) {
-      const row = y * VW;
-      if (fwd) { fb.copyWithin(row + VW - off, row, row + off); fb.set(slideBuf.subarray(row + off, row + VW), row); }
-      else { fb.copyWithin(row, row + VW - off, row + VW); fb.set(slideBuf.subarray(row, row + VW - off), row + off); }
-    }
-    const x = Math.round(fwd ? lerp(a.x, b.x + VW, e) - off : lerp(a.x, b.x - VW, e) + off), y = Math.round(lerp(a.y, b.y, e)) + 14;
-    scr.shadow(x, y, 5, 1); scr.put(runner.side[Math.floor(t * 11) % 6], x, y, false);
-    edgeTrunk(scr, fwd ? VW - off : off);
-  }
 
   function draw(now) {
     if (!alive) return;
@@ -195,15 +169,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     const want = legAt(p);
     if (want !== drawn && want !== broken && !tr) {
       if (want.s === 'world' && drawn.s === 'world') drawn = want;
-      else if (SLIDE[drawn.s + '>' + want.s]) {
-        const dir = SLIDE[drawn.s + '>' + want.s];
-        tr = { phase: 'slide', k: 0, from: drawn, to: want, dir, fast: scrubbing > 0 || !running };
-        try { want.scene.enter(scr, want.arg, dir > 0 ? 0 : 1); } catch (err) { fail(want, err); return; }
-        emit({ type: 'scene', name: want.s });
-      } else { tr = { phase: 'out', k: 0, fast: scrubbing > 0 || !running }; emit({ type: 'sfx', name: 'iris' }); }
+      else { tr = { phase: 'out', k: 0, fast: scrubbing > 0 || !running }; emit({ type: 'sfx', name: 'iris' }); }
     }
-    if (tr && tr.phase === 'slide') { tr.k += dt / (tr.fast ? 0.5 : 2.2); if (tr.k >= 1) { drawn = tr.to; tr = null; } }
-    else if (tr) {
+    if (tr) {
       tr.k += dt / (tr.fast ? 0.14 : tr.phase === 'out' ? 0.3 : 0.36);
       if (tr.k >= 1) {
         if (tr.phase === 'out') {
@@ -226,17 +194,17 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     if (drawn === broken) return;
     try {
       if (sabotage === drawn.s) throw new Error('Broken on purpose: ' + drawn.s);
-      if (tr && tr.phase === 'slide') slide(t); else drawn.scene.draw(scr, env, drawn.arg, q);
-    } catch (err) { fail(tr && tr.phase === 'slide' ? tr.to : drawn, err); return; }
+      drawn.scene.draw(scr, env, drawn.arg, q);
+    } catch (err) { fail(drawn, err); return; }
     // The debug panel's tap targets: every other pixel that answers a tap or a hover, in any scene, goes pink.
     if (DEBUG.taps && !tr && drawn.scene.pick) { const { VW, VH, fb } = scr; for (let y = 0; y < VH; y++) for (let x = y & 1; x < VW; x += 2) if (drawn.scene.pick(x, y)) fb[y * VW + x] = R.pink[1]; }
     scr.night(t, mix);
-    if (tr && tr.phase !== 'slide') {
+    if (tr) {
       const f = drawn.scene.focus(), e = tr.k * tr.k * (3 - 2 * tr.k), full = Math.hypot(Math.max(f.x, scr.VW - f.x), Math.max(f.y, scr.VH - f.y)) + 6;
       scr.iris(f.x, f.y, tr.phase === 'out' ? full * (1 - e) - 4 : full * e);
     }
     scr.present(t, mix);
-    const f = (tr && tr.phase === 'slide' ? tr.to : drawn).scene.focus();
+    const f = drawn.scene.focus();
     window.__info = { p, route, running, scene: drawn.s, VW: scr.VW, VH: scr.VH, S: scr.S, fx: f.x, fy: f.y };
   }
   drawn.scene.enter(scr, drawn.arg, 0);
