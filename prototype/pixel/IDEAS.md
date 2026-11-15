@@ -97,6 +97,7 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **The tide pools up close.** Tapping a pool at low tide could open a small close-up with its animals named.
 
 - Taking turns on the West Ridge: who leads each pitch, and which follower climbs second, drawn at random per visit. TJ's first wish; set aside in round 4 so only the black-haired man needs the leading and falling drawings.
+- A shivering belayer on the West Ridge: when the scene looks windy and cold, whoever is belaying visibly shivers while waiting for the climber (TJ, 2026-11-15; not part of the round 4 build).
 
 ### Page and feel
 
