@@ -124,7 +124,11 @@ Gone for good: the Yosemite-style dome (The Stack), the tan Patagonian towers, t
 
 - It is the West Ridge (5.7), which TJ climbed with the two friends already in the scene (the red-haired woman and the black-haired man). He is never shown on routes he has not climbed.
 - The map shows the south face; the scene follows the left skyline, side-on, up and to the right.
-- Multi-pitch with three: **the first pitch with both followers climbing at once on two ropes; later pitches caterpillar style** (he belays the second up, the second belays the third), as they really climbed it.
+- Multi-pitch with three: **the first pitch with both followers climbing at once on two ropes; later pitches caterpillar style** (the leader belays the second up, the second belays the third), as they really climbed it.
+- **He does not lead every pitch.** The three take turns leading and following, chosen at random for each pitch on each visit. So every one of the three needs the leading, following, belaying and falling drawings, and the lead fall happens to whoever is leading the slab. The builder's call, for TJ to veto: he leads at least one pitch on every visit, since it is his site. A card opens when he reaches the belay, whether he led or followed.
+- **Protection is drawn.** On every pitch the leader stops at several points, plugs a cam into the crack, and clips the rope to it. Tiny as they are, show the cam in the crack, the sling, and a carabiner round the rope at each piece. The followers take the pieces out as they pass (the last one up cleans the pitch).
+- **The rope behaves like a rope.** Never one straight line: it runs from the belayer up through each carabiner in turn, changes direction at every piece, hangs in a shallow curve under its own weight between pieces, hangs slack below a leader who has just clipped, and comes tight on a fall or when a follower is held.
+- **Every belay is a real multi-piece anchor**, built by the leader on arrival before anyone is brought up: a slung horn where the route has one (pitch 2), elsewhere two or three cams in a crack, the pieces joined to one master point and backed up to each other. Each climber at the stance is tied in to it.
 - **The two followers are different people**: different speeds, different lines up the same pitch, different habits. If one slips, the other does not at the same moment.
 - Each belay ledge is a card stop (the three skills, then the summit). Followers climb at their real pace while the card is read; holding Space doubles it. The visitor may have to wait for them.
 - On the checklist: a goat watching from a ledge, a raven riding the wind, cold and wind on the people (hoods up, jackets and rope flapping, hands blown on), **a lead fall, and an offwidth or chimney pitch**.
@@ -172,11 +176,11 @@ Read these first, **including their photographs, which show the pitches**: https
 | Pitch | What happens on it (from the topo) | In the scene |
 |---|---|---|
 | Approach | A scramble from Prusik Pass to a balanced rock, then to the start tree. | He walks in with the two friends; tie in at the tree, wait for Space, fist bump. |
-| 1 | From the start tree, a hand crack. | He leads. **Both followers climb at once on two ropes.** Belay: card 1 (Platform Engineering). |
-| 2 | Short: a big step, belay from a horn slung with a sling. | Quick pitch, no card. From here on **caterpillar**: he brings up the second, the second brings up the third. |
-| 3 | The slab pitch (an old piton, the "mercy hold"), then the "sidewalk", a down-climb with great exposure, belay from a flake. | **The lead fall happens on the slab**: he skates off, is held, hangs, goes again. Belay: card 2 (Site Reliability Engineering; the fall that was caught). |
-| 4 | Long: from the belay flake, "au cheval" (straddling the crest), stay north for a hidden foot ramp, belay from a ledge. | He straddles the crest in the wind. The inversion has formed below. Belay: card 3 (Software Engineering). |
-| 5 | A crack with a mantle, a lieback flake, the left chimney, then "through the hole to be birthed to the summit". | **The chimney pitch**: climbed with back and feet, then he squeezes up through the hole onto the summit. Summit: all three, high fives, the resume card. |
+| 1 | From the start tree, a hand crack. | One of the three leads, placing cams. **Both followers climb at once on two ropes.** A three-cam anchor. Belay: card 1 (Platform Engineering). |
+| 2 | Short: a big step, belay from a horn slung with a sling. | Quick pitch, no card. The anchor is the slung horn, backed up. From here on **caterpillar**: the leader brings up the second, the second brings up the third. |
+| 3 | The slab pitch (an old piton, the "mercy hold"), then the "sidewalk", a down-climb with great exposure, belay from a flake. | **The lead fall happens on the slab**: whoever is leading skates off, the rope comes tight on the last piece, they hang, shake out and go again. Belay: card 2 (Site Reliability Engineering; the fall that was caught). |
+| 4 | Long: from the belay flake, "au cheval" (straddling the crest), stay north for a hidden foot ramp, belay from a ledge. | Each of them straddles the crest in the wind. The inversion has formed below. Belay: card 3 (Software Engineering). |
+| 5 | A crack with a mantle, a lieback flake, the left chimney, then "through the hole to be birthed to the summit". | **The chimney pitch**: climbed with back and feet, then each squeezes up through the hole onto the summit. Summit: all three, high fives, the resume card. |
 | Descent | Rappels off the north face (five with one rope), past a flake that eats ropes, then a walk back west to the base. | All three zip down the first rappel one after another into the cloud; the round window closes to the map. |
 
 Which follower slips, and on which pitch, is the builder's call (not the same moment as anyone else). The goat watches from a ledge near the start; the raven hangs in the updraft beside pitch 4.
@@ -329,12 +333,15 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 
 - [ ] H1. The ridge in profile: stepped granite rising up and right, the pitches and ledges from the agreed list.
 - [ ] H2. Arrival: he walks to the two friends, ties in, waits for Space (`wait:belay`), fist bump (round 3's work, kept).
-- [ ] H3. Leading: he climbs each pitch placing protection, the rope running through it to the belayer.
-- [ ] H4. The anchor and belay at each ledge; the card opens when he is anchored.
+- [ ] H3. Who leads each pitch is drawn at random per visit (he leads at least one); all three have leading, following, belaying and falling drawings; an address switch fixes the order for screenshots.
+- [ ] H3a. Protection: on every pitch the leader places at least three cams, each seen going into the crack, each with a sling and a carabiner that the rope is clipped through.
+- [ ] H3b. The rope: drawn piece to piece through every carabiner, sagging between them, slack after a clip, tight on a fall or a held follower. Never a straight line from belayer to climber.
+- [ ] H3c. Cleaning: the last follower on each pitch removes the pieces; none are left on the rock behind the party.
+- [ ] H4. A multi-piece anchor at every belay, built before anyone is brought up: the slung horn on pitch 2, two or three cams elsewhere, joined to one master point and backed up. Check each one in a close-up. The card opens when he is tied in to it.
 - [ ] H5. Pitch 1: both followers climb at once on two ropes, a few moves apart.
-- [ ] H6. Later pitches: caterpillar. The second climbs, then belays the third.
+- [ ] H6. Later pitches: caterpillar. The leader belays the second up, then the second belays the third.
 - [ ] H7. The two followers differ: speed, line, rests; write each one's habits in section 9. One of them slips once and is held.
-- [ ] H8. The lead fall: he comes off, drops a short way onto his last piece, hangs, shakes out, goes again.
+- [ ] H8. The lead fall on the slab, by whoever leads it: they come off, drop a short way, the rope comes tight on the last cam, they hang, shake out, go again.
 - [ ] H9. The offwidth or chimney pitch, climbed as one (back and feet, or arm bars), slower.
 - [ ] H10. Holds are painted where hands and feet go; feet stay on ledges (round 3's fixes hold on every pitch).
 - [ ] H11. Wind: cartoon lines with curls sweep across; jackets, hair and rope flap; hoods up; a friend blows on their hands. A whoosh in the sound, louder higher up.
@@ -430,6 +437,8 @@ The pictures themselves are other people's photographs and are not in the repo. 
 - **Turquoise lake seen through dark conifer trunks.** Tall straight trunks, nearly black, with bright turquoise water filling the gaps between them and a sunlit brown forest floor. **The model for the forest scene's last stretch: the lake shows between the trees before he reaches it.**
 - **Deer at night.** A doe among dark trunks, caught in a light, its two eyes shining pale green-white. **The model for the eyes at Dusk at the rainforest's west edge: eyeshine of an animal, calm, not a monster.**
 - **Pixel wind.** Pale blue horizontal streaks of different lengths that end in curls, with a few green leaves carried along. **The model for the wind lines on the West Ridge and in the Bluebird Forecast climb.**
+- **A three-piece anchor.** Under a small roof, three pieces in a crack (a wired nut and two cams), each with its own carabiner. A blue cord with a knot comes down from the left piece and an orange rope from the other two; they meet in one big knot at the bottom with a locking carabiner through it. Three strands converging on one point. **The model for the belay anchors.**
+- **A slung horn.** A blunt rock horn standing out of a lichen-spotted wall, an orange rope passed round behind it and knotted in front into a loop, a locking carabiner and a belay device hanging from the knot. **The model for pitch 2's anchor.**
 - **Trail registers.** (1) A hiker with a big pack writing at a small wooden box on a post, under a wooden notice board, golden larches behind, rocks piled round the post. (2) A brown wooden box lettered "PLEASE REGISTER" whose front folds down on two chains to make a desk, with a clipboard of ruled forms, a map behind glass and pencils. (3) A person writing in a book on a mossy wooden post box in an autumn forest. **The model for the register box and its close-up.**
 - **TJ's marked-up strip of round 3's skyline (letters A to H).** A, the snowy western range: "classic North Cascades which is good", could be improved. B, the lone snowy cone behind the lake: "feels a bit different". C, The Stack: "classic yosemite big wall dome and doesn't make sense". D, the Spires: "distinctly Patagonian", "unlike anything I think exists on earth". E, the pale triangles behind them: "entirely out of place". F, the basin's granite peak: becomes Prusik. G, the volcano: "huge and just not quite right". H, the yellow hills: "a good start", move to follow the biome.
 
@@ -448,6 +457,7 @@ The pictures themselves are other people's photographs and are not in the repo. 
 - On fireweed: "Real firewood is like waist/chest high, not small like the flowers in the meadows."
 - On timed events: "adding more of these 'timed' events is a good idea to make the world feel lived in."
 - On the river: "The river should have a waterfall and this is where they can jump." "The ground should be tiered, not a flat plane."
+- On the gear: "Lets make sure that each pitch has points where the lead climber plugs cams to place protection. and the rope is 'clipped in' to it." "try and ensure tiny cams are shown, tiny carabiners around the rope, the rope isnt just a perfect straight up line, but wanders and weighs from gravity between carabiner attachenment points." "the belay stations should have multi-piece trad anchors. A slung horn, 2-3 plugged cams, etc. All backed up together." "I shouldn't lead every pitch. The characters hsould randomly take turns leading/following each pitch."
 - On the followers: "Followers should climb differently and have unique *personalities*, speed, etc. If one falls the other doesn't at the same time. They take slightly different lines."
 - On the West Ridge's air: "make it look windy and cold up there with cartoonish wind lines animating the scene and perhaps wind whoosh audio." "The background should look really far below like the scene is really high up." "As it gets higher, an inversion forms and they are above a sea of clouds."
 - On length: "People don't *have* to finish anything, the website is just supposed to be impressive an informative in the end. Not an actual video game people need to 100%."
