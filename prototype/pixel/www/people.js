@@ -32,7 +32,7 @@ export function makeKayti() {
     wave: [frame([[6, -2], [3, 5]], null, brush(0, -1, 2)), frame([[6, -3], [3, 5]], null, brush(1, -1, 2))]
   };
   const rock = makeBoulder(531, 5.5);
-  // The open tin: three pans of colour. And her pack, set down behind her.
+  // The open tin: three pans of colour. And her pack, set down a little way behind her, past where he sits.
   const tin = new BM(7, 4); for (let x = 1; x < 6; x++) { tin.set(x, 1, R.rock[4]); tin.set(x, 2, [R.red[1], R.red[1], R.yellow[1], R.glac[1], R.glac[1]][x - 1]); } outline(tin, INK);
   const pack = new BM(10, 11); pack.ox = 5; pack.oy = 10;
   for (let y = 1; y < 10; y++) for (let x = 1 + (y < 3 ? 1 : 0); x < 9 - (y < 3 ? 1 : 0); x++) pack.set(x, y, y === 4 ? R.teal[0] : x < 4 ? R.teal[2] : R.teal[1]);
@@ -41,7 +41,7 @@ export function makeKayti() {
     // She faces left, toward the towers. x, y is where her feet rest.
     draw(scr, x, y, t, waving) {
       const u = t % 7.5, f = waving ? frames.wave[Math.floor(t * 5) & 1] : u > 5.4 && u < 7 ? frames.look : frac(t * 1.4) < 0.5 ? frames.a : frames.b;
-      scr.put(pack, x + 17, y + 1, false);
+      scr.put(pack, x + 38, y + 2, false);
       scr.put(rock, x + 3, y + 1, false);
       scr.blit(tin, x + 7, y - 9);
       scr.put(f, x - 2, y, true);
