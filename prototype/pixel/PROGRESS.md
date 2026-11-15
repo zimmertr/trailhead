@@ -391,8 +391,8 @@ The page
 - [x] F5. Space still starts and stops him; holding it makes him go faster.
 - [x] F7. Zoom steps glide instead of jumping.
 - [x] F13. The junction sign and the cards take less room and can be closed.
-- [ ] F15. The debug panel's Trees and Clouds switches hide all of them.
-- [ ] F32. The page is ready as fast as it used to be.
+- [x] F15. The debug panel's Trees and Clouds switches hide all of them.
+- [x] F32. The page is ready as fast as it used to be.
 - [x] F36. The music does not wear thin: longer tunes, and Auto moves on after a tune has repeated a few times.
 
 Scene changes, forest, lake, camp
@@ -405,14 +405,14 @@ Scene changes, forest, lake, camp
 - [x] F24. The goats at base camp stand in the middle ground, away from the tents.
 
 The Stack and the summits
-- [ ] F16. At The Stack he walks to his friends and waits for Space before he climbs.
-- [ ] F17. Pitch 2 holds read as holds. The gold sparkles and red crosses by Rollback Roof are gone or explained. Leaving the top of pitch 3 his legs no longer hang below where he stood.
-- [ ] F18. After the rappel he high-fives both friends before he leaves.
-- [ ] F19. Ice climbing takes longer and is climbed: tool, foot, tool, foot, front points, an extra kick or two now and then.
-- [ ] F20. The storm on the way to Kubernetes-Manifests blows in: wind lines, a few flakes, heavy snow, white. It clears more slowly at the top.
-- [ ] F21. The Trailhead summit gets a new object and a new thing to find (the survey marker did not read).
-- [ ] F22. On the TJs-Kubernetes-Service climb: the same ice climbing, seracs that look like ice, and a server rack on top that takes a BANG, a shake and goes from red to green.
-- [ ] F23. The bluebird flies off the screen.
+- [x] F16. At The Stack he walks to his friends and waits for Space before he climbs.
+- [x] F17. Pitch 2 holds read as holds. The gold sparkles and red crosses by Rollback Roof are gone or explained. Leaving the top of pitch 3 his legs no longer hang below where he stood.
+- [x] F18. After the rappel he high-fives both friends before he leaves.
+- [x] F19. Ice climbing takes longer and is climbed: tool, foot, tool, foot, front points, an extra kick or two now and then.
+- [x] F20. The storm on the way to Kubernetes-Manifests blows in: wind lines, a few flakes, heavy snow, white. It clears more slowly at the top.
+- [x] F21. The Trailhead summit gets a new object and a new thing to find (the survey marker did not read).
+- [x] F22. On the TJs-Kubernetes-Service climb: the same ice climbing, seracs that look like ice, and a server rack on top that takes a BANG, a shake and goes from red to green.
+- [x] F23. The bluebird flies off the screen.
 
 The map: mountains and sky
 - [ ] F8, F30. The volcano stands alone at the top right, like Rainier, over foothills that fade into rolling yellow hills. Left of it the snowy peaks build toward Sideproject Spires.
@@ -421,17 +421,17 @@ The map: mountains and sky
 
 The map: ground, water and plants
 - [ ] F9. The larch basin reads as the Enchantments: granite slabs, larches, sparse grass, a jagged granite peak, the tarns.
-- [ ] F10. No stray snow patches between the Spires and The Stack or the basin, and no half-hidden sign.
-- [ ] F12. Fireweed is stronger.
-- [ ] F14. The lake's outlet flows straight out of the lake. Logs read as logs. The river reaches the sea. No sign stands in water. Sea stacks rise out of the water. The river crossing is a bridge. Trail surfaces blend where they change. The boot track is as wide as the trail. Snow does not spill onto the meadow.
-- [ ] F25. The trail conditions board stands just north-east of the junction.
-- [ ] F27. South of the larches: aspen and ponderosa in place of green firs, and larch, aspen, ponderosa and burn blend into each other.
+- [x] F10. No stray snow patches between the Spires and The Stack or the basin, and no half-hidden sign.
+- [x] F12. Fireweed is stronger.
+- [x] F14. The lake's outlet flows straight out of the lake. Logs read as logs. The river reaches the sea. No sign stands in water. Sea stacks rise out of the water. The river crossing is a bridge. Trail surfaces blend where they change. The boot track is as wide as the trail. Snow does not spill onto the meadow.
+- [x] F25. The trail conditions board stands just north-east of the junction.
+- [x] F27. South of the larches: aspen and ponderosa in place of green firs, and larch, aspen, ponderosa and burn blend into each other.
 
 The map: animals and motion
-- [ ] F11. Fewer animals and less motion: elk and bear are rare, fewer jellyfish, calmer trees.
-- [ ] F28. The whale jumps and rolls, slowly.
-- [ ] F29. The ferry sails a long course and is off the map for a while at each end.
-- [ ] F34. The mist over the forest moves and has no dotted grid.
+- [x] F11. Fewer animals and less motion: elk and bear are rare, fewer jellyfish, calmer trees.
+- [x] F28. The whale jumps and rolls, slowly.
+- [x] F29. The ferry sails a long course and is off the map for a while at each end.
+- [x] F34. The mist over the forest moves and has no dotted grid.
 
 ### Decided with TJ (2026-11-15)
 
@@ -470,4 +470,21 @@ He stopped the first start on this round: after a round of feedback he wants a r
 - Swim (F35): the map's island stands in the lake scene and crosses at 0.66 of the near shore's speed. "Go for a swim" is offered only while the island is in view. He undresses, wades, swims front crawl, climbs out and cheers until asked back: a click on him or the island brings him back to stand, Space or Start brings him back and he runs on. The find and name keys changed from `plunge` to `swim`, so a saved cold plunge find reads as not found. All three strings are draft copy.
 - Base camp (F33, F24): he walks in from the west at about 70 px/s, passes in front of Kayti, sits at her side facing the towers, and one heart rises. Her pack moved. Three goats (nanny, billy, kid) stand on a new rock knoll out on the ice, left of the tents.
 - Block-in: three versions of the volcano, the Spires and the basin live on branch `pixel-round3-mountains` behind `?v=a|b|c` and are not merged. TJ picks from https://claude.ai/artifact/D8uUSeB1pMam8EKT8anxjc (source `plan/skyline-pick.html`, pictures from that branch's `out/blockin/`).
+- Ground (F10, F14, F25): the two small glaciers between the peaks and the stray snow loop are gone. The river's first point lies in the lake. Logs are redrawn (cut end, bark, moss, shadow) and fewer: 22 in the forest, 7 bare ones in the burn. The river narrows through the last trees and crosses the beach as a bending channel into a pale fan. Signs moved onto dry ground (Cache Miss Cove, Latency Bay, Scope Creep Glacier, Merge Conflict Col). Sea stacks have a curved waterline, a wet band and their own foam. Two footbridges, because the lake trail crosses the river twice; he is never seen on one, since the forest scene covers both crossings. The glacier ends in a toe near y 550 with a grey boot track over the moraine. The board stands at (846, 608) and the cats' perch follows it.
+- Plants (F12, F27): fireweed is 3 to 5 pixel spikes in drifts in a brighter magenta. East of a wandering line near x 1000 the firs gave way to 154 aspens in separate groves and 27 spaced ponderosa (first try was 368 and 41, which read as a new dense forest and was sent back). Four new colours: `aspen` and `fireweed`, two each.
+- Placement dice: each placement loop now starts from its own place in the sequence, so changing one loop does not move what later loops plant.
+- Trees switch (F15): hides every tree, snag and sapling. Tree shadows painted into the ground stay.
+- Animals (F11): 4 elk in one herd round (757, 825), bear on about one visit in three, 4 goats, 4 sheep, 7 squirrels and chipmunks, 8 jellyfish, 3 butterflies. Map trees stand still between gusts; one gust about every 11 seconds crosses west to east. `bear=1|0` and `sea=<seconds>` are address switches for screenshots.
+- Whale (F28): 34 drawings at 12 a second. It rises, hangs belly up, tips onto its back and lands in spray, then the flukes go under; once every 40 to 60 seconds, with two blows in between. Its spot moved to (150, 912), off a sea stack.
+- Ferry (F29): redrawn at an angle along a 513 pixel course outside the stacks at 7 px/s, off the map for 50 s past the west edge and 38 s past the bottom. It is drawn with the water, so the Animals switch does not hide it.
+- Mist (F34): no dither. A pixel under mist takes the palette colour nearest to itself seen through fog, in three strengths, and the banks drift. First try came out as near-opaque white bars and was sent back (see the open list).
+- The Stack (F16, F17, F18): he ties in facing us with the rope end from the grass, stops at `wait:belay`, fist bumps the belayer on Space and climbs. The suggested-holds glow, its decoy and red cross are gone; holds are painted where his hands and feet go. At every ledge his feet stay on it until his hips have left. After the rappel he slaps hands with the seated friend, then the belayer. About 25.8 s plus the wait (was 20.1).
+- Ice (F19, F22): climbed in back view on a frozen fall, tool, foot, tool, foot, with chips at every placement; on hevy-garmin-sync one foot skates and is kicked twice more. TJs-Kubernetes-Service has two falls, seracs as stacks of fractured blocks, and a server rack that takes a fist, a "BANG!" burst, a shake and goes from red to green. Lengths: hevy-garmin-sync about 14.8 s, TJs-Kubernetes-Service about 17.2 s (both were 8.6).
+- Storm (F20): clear, wind strokes, a grey bank from the right, flakes, heavy snow, white with a pocket round him, then a slow clearing; 14.6 s. No dither. The ridge storm on bluebird lost its dotted cloud too.
+- Trailhead summit (F21): coin-operated binoculars. He leans in, the picture closes on the eyepiece and opens as a round view of the Trailhead for about three seconds.
+- Bluebird (F23): flies in from past the right edge, circles and leaves off the picture. 9.6 s.
+- New sounds, never heard: `tink`, `bang`, `slap`.
+- Load time (F32): about 0.8 s to ready in the test container, from 2.1. The ground is worked out ahead by `./bake.sh` into `www/ground.png` (232 KB) and read at start; the page checks it against `ground()` at one spot in every ten by ten pixels and works the ground out itself if they differ, and says so in the console on localhost. Run `./bake.sh` after any change to the ground or the palette, and publish `ground.png` with the other files. The forest's and the lake's pictures are made right after the map's first frame (`shell` in `side.js`). This replaced the plan of early-outs and background slices: the bake removes the whole second with no change to what is drawn. Not checked on the artifact host.
+- Page: the wait line clears when a card opens, and a tap label clears once a scene acts on the tap.
+- For filming: `./frames.sh` saves a sheet of frames (see its head for the steps).
 - For screenshots only: `down=<key>` and `up=<key>` are new steps in `shot.mjs`, for anything that depends on how long a key is held.
