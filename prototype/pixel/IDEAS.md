@@ -70,3 +70,33 @@ Things that would make the pixel trailhead look, feel, perform and behave better
 - A Steller's jay that steals from the snack break.
 - The gray jay landing on his hand.
 - A second off-route page for a server error: a rockfall across the trail.
+
+## Round 4 (from 2026-11-15)
+
+Kept current while round 4 is built: ideas are added as they come up and deleted once built or decided against. The plan itself is in `ROUND4.md`.
+
+### Timed events not chosen for the checklist
+
+- **A float plane.** A small seaplane crosses the sky now and then and lands out on the water.
+- **Other hikers.** A tiny party walks a trail or crosses the glacier roped up, and waves if he passes.
+- **Larch needles and tumbleweed on the map.** On a gust, gold needles blow off the larches; on the dry side a tumbleweed rolls and a dust devil spins up.
+- **Elk bugling at Dusk** in the parkland, heard before it is seen.
+- **A marine layer.** Some visits open with low cloud filling the west below the crest, burning off over a few minutes.
+- **A shooting star** on the Dusk sky, rarely.
+- **Tents that glow at Dusk** at base camp, and a thread of camp smoke by day.
+- **An otter in the river** below the waterfall, on its back.
+- **A combine on the Palouse hills**, a dot trailing dust, far off.
+
+### Places and scenes
+
+- **Carry on along the ridge.** After a Spires summit, offer the ridge to the next summit as well as the glissade to camp, so a keen visitor can link all six as one traverse.
+- **The work history as the larch approach.** Cairns or signs along the larch basin scene could name the places TJ has worked, oldest first (see "Work history as the approach" above, which was written for The Stack's walk-in).
+- **A fire lookout** on one forested foothill of Mount Monolith, with a light in its window at Dusk.
+- **The summit register on Proficiency Peak.** A small box on top that he signs, as a thing to find.
+- **A second lake scene at Dusk**: alpenglow on the mountain and its mirror, the one postcard view of the site.
+- **The tide pools up close.** Tapping a pool at low tide could open a small close-up with its animals named.
+
+### Page and feel
+
+- **A photo mode.** One key hides every sign and card for a clean screenshot of the view.
+- **The opening view as the share picture.** The wide skyline frame is the natural image for link previews.
