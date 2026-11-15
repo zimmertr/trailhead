@@ -1,7 +1,7 @@
 // The animals of the world map and the water that moves: herds that graze and wander, a bear, squirrels
 // and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, and
 // the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
-import { TAU, clamp, frac, hash, rng, R, INK, SHADE, KIND, BM, outline, thick, pick } from './core.js';
+import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, INK, SHADE, KIND, BM, outline, thick, pick } from './core.js';
 import { makeElk, makeBird } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './terrain.js';
@@ -21,13 +21,38 @@ export function mapBear(pose, step = 0) {
 }
 const tint = (bm, c) => { const o = new BM(bm.w, bm.h); o.ox = bm.ox; o.oy = bm.oy; for (let i = 0; i < bm.d.length; i++) if (bm.d[i]) o.d[i] = c; return o; };
 
-export function makeCritters(W) {
+// What each colour looks like through mist: the palette entry nearest to it mixed toward fog by this
+// much. Nearest is judged in Day and in Dusk together, so a veil holds in either light. The neutral
+// greys are never picked (they turn a green forest dirty), nor the colours that cycle or only show at Dusk.
+const NO_VEIL = ['glint', 'star', 'aurora', 'rock', 'gold', 'granite', 'basalt', 'nebel', 'shoe', 'navy', 'far', 'ochre', 'ink', 'fur', 'tortie', 'hair', 'jay', 'skin'];
+function veilTable(amount) {
+  const out = new Uint8Array(256), fog = R.fog[2], skip = new Set(NO_VEIL.flatMap(k => R[k]));
+  for (let i = 1; i < N; i++) {
+    let best = i, bd = Infinity;
+    for (let j = 1; j < N; j++) {
+      if (skip.has(j)) continue;
+      let d = 0;
+      for (const P of [DAY, DUSK]) for (let k = 0; k < 3; k++) { const want = P[i][k] + (P[fog][k] - P[i][k]) * amount; d += (want - P[j][k]) * (want - P[j][k]) * [3, 4, 2][k]; }
+      if (d < bd) { bd = d; best = j; }
+    }
+    out[i] = best;
+  }
+  out[BLACK] = BLACK;
+  return out;
+}
+// opts.bear: true or false puts the bear there or not, whatever the dice say (the block-in page asks for it).
+export function makeCritters(W, opts = {}) {
   const { spots, sea: SEA, g } = W, items = [];
-  // Where the trees stand, so a wandering animal goes round them.
-  const CELL = 8, GW = Math.ceil(NW / CELL), wood = new Uint8Array(GW * Math.ceil(NH / CELL));
-  for (const th of W.things) if (th.tree) wood[Math.floor(th.y / CELL) * GW + Math.floor(th.x / CELL)] = 1;
+  // Where the trees stand, so a wandering animal goes round them, and the ground just behind anything
+  // tall (a tree, a snag, a big rock), where it would stand hidden.
+  const CELL = 8, GW = Math.ceil(NW / CELL), GH = Math.ceil(NH / CELL), wood = new Uint8Array(GW * GH), hid = new Uint8Array(GW * GH);
+  for (const th of W.things) {
+    if (th.tree) wood[Math.floor(th.y / CELL) * GW + Math.floor(th.x / CELL)] = 1;
+    const w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h; if (h < 14) continue;
+    for (let y = th.y - Math.min(h, 34) + 5; y <= th.y + 1; y += CELL / 2) for (let x = th.x - w / 2 - 3; x <= th.x + w / 2 + 3; x += CELL / 2) { const cx = Math.floor(x / CELL), cy = Math.floor(y / CELL); if (cx >= 0 && cy >= 0 && cx < GW && cy < GH) hid[cy * GW + cx] = 1; }
+  }
   const kindAt = (x, y) => KIND[g[Math.round(y) * NW + Math.round(x)]];
-  const clear = (x, y) => x > 8 && y > 8 && x < NW - 8 && y < NH - 4 && W.open(x, y) && !wood[Math.floor(y / CELL) * GW + Math.floor(x / CELL)] && !wood[Math.floor((y - 5) / CELL) * GW + Math.floor(x / CELL)];
+  const clear = (x, y) => x > 8 && y > 8 && x < NW - 8 && y < NH - 4 && W.open(x, y) && !wood[Math.floor(y / CELL) * GW + Math.floor(x / CELL)] && !wood[Math.floor((y - 5) / CELL) * GW + Math.floor(x / CELL)] && !hid[Math.floor(y / CELL) * GW + Math.floor(x / CELL)];
   const meadow = (x, y) => clear(x, y) && kindAt(x, y) >= 1 && kindAt(x, y) <= 3 && W.forestAmt(x, y) < 0.45 && !W.nearTrail(x, y, 5);
   const way = (ok, x0, y0, x1, y1) => { for (let k = 1; k <= 5; k++) if (!ok(x0 + (x1 - x0) * k / 5, y0 + (y1 - y0) * k / 5)) return false; return true; };
 
@@ -40,26 +65,32 @@ export function makeCritters(W) {
   const bearF = { look: mapBear('look'), graze: mapBear('sniff'), walk: [mapBear('look', 1), mapBear('look', 2)] };
   const rand = rng(77);
   // faces: the way the drawing looks, -1 left or 1 right. r: how far it strays from where it was put.
-  const walker = (kind, f, x, y, o) => items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, st: o.start || 'graze', until: 1 + rand() * 9, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o });
-  spots.elk.forEach(([x, y, d], n) => walker('elk', n % 3 === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 44, v: 7, ok: meadow, start: d ? 'graze' : 'look' }));
+  // An animal is put where it was meant to stand, or on the nearest ground it may stand on if a tree has since been planted there.
+  const settle = (ok, x, y) => { if (ok(x, y)) return [x, y]; for (let r = 4; r <= 48; r += 4) for (let k = 0; k < 12; k++) { const an = k / 12 * TAU, px = Math.round(x + Math.cos(an) * r), py = Math.round(y + Math.sin(an) * r * 0.6); if (ok(px, py)) return [px, py]; } return [x, y]; };
+  const walker = (kind, f, x0, y0, o) => { const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
+  // The herd keeps together: each elk strays only a little from its own place in it.
+  spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look' }));
   spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null }));
   spots.sheep.forEach(([x, y, d]) => walker('sheep', ram, x, y, { faces: 1, r: 34, v: 6, ok: clear, start: d ? 'graze' : 'look' }));
-  walker('bear', bearF, spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 8, ok: meadow, roam: 0.6 });
+  // The bear is not always about: it is there on roughly one visit in three. For screenshots, bear=1 or
+  // bear=0 in the address settles it.
+  const asked = typeof location !== 'undefined' && /[?&]bear=([01])/.exec(location.search);
+  if (opts.bear != null ? opts.bear : asked ? asked[1] === '1' : Math.random() < 0.35) walker('bear', bearF, spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 7, ok: meadow, roam: 0.4 });
 
   function walk(a, dt, t) {
     if (a.st === 'walk') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
-      if (d < 0.6) { a.st = 'graze'; a.until = t + 3 + rand() * 7; }
+      if (d < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; }
       else { const s = Math.min(d, a.v * dt); a.fx += dx / d * s; a.fy += dy / d * s * 0.7; if (Math.abs(dx) > 0.5) a.flip = (dx > 0 ? 1 : -1) !== a.faces; }
       a.x = Math.round(a.fx); a.y = Math.round(a.fy);
       a.bm = a.f.walk[Math.floor(t * 4.5 + a.hx) & 1];
-      if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) { a.st = 'graze'; a.until = t + 3 + rand() * 7; }
+      if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; }
       return;
     }
     a.bm = a.st === 'graze' ? a.f.graze : a.f.stand && frac(t * 0.11 + a.hx * 0.37) < 0.5 ? a.f.stand : a.f.look;
     if (t < a.until) return;
     const roll = rand();
-    if (roll < (a.roam || 0.34)) {
+    if (roll < (a.roam || 0.25)) {
       // A kid keeps near its mother; everyone else keeps near home.
       const cx = a.mum ? a.mum.x : a.hx, cy = a.mum ? a.mum.y + 5 : a.hy;
       for (let k = 0; k < 6; k++) {
@@ -67,17 +98,17 @@ export function makeCritters(W) {
         if (a.ok(tx, ty) && way(a.ok, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; }
       }
     }
-    a.st = roll < 0.72 ? 'graze' : 'look'; a.until = t + (a.st === 'look' ? 1.5 + rand() * 3 : 3 + rand() * 8);
+    a.st = roll < 0.72 ? 'graze' : 'look'; a.until = t + (a.st === 'look' ? 2.5 + rand() * 4 : 5 + rand() * 11);
     if (a.st === 'look' && rand() < 0.3) a.flip = !a.flip;
   }
 
   // ---- squirrels and chipmunks: sit, then dart ----------------------------------------------
   const sq = [0, 1].map(chip => ({ sit: W.make.squirrel(!!chip), run: W.make.squirrel(!!chip, true) }));
-  for (const [x, y, chip] of spots.squirrels) items.push({ critter: 'squirrel', dart: true, f: sq[chip ? 1 : 0], bm: sq[0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: rand() * 5, flip: rand() < 0.5 });
+  for (const [x, y, chip] of spots.squirrels) items.push({ critter: 'squirrel', dart: true, f: sq[chip ? 1 : 0], bm: sq[chip ? 1 : 0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: 3 + rand() * 12, flip: rand() < 0.5 });
   function dart(a, dt, t, here) {
     if (a.st === 'run') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
-      if (d < 1) { a.st = 'sit'; a.until = t + 0.6 + rand() * 4.5; a.bm = a.f.sit; return; }
+      if (d < 1) { a.st = 'sit'; a.until = t + 5 + rand() * 11; a.bm = a.f.sit; return; }
       const s = Math.min(d, 46 * dt); a.fx += dx / d * s; a.fy += dy / d * s; a.x = Math.round(a.fx); a.y = Math.round(a.fy);
       if (Math.abs(dx) > 0.5) a.flip = dx < 0;
       a.bm = a.f.run; a.hop = Math.floor(t * 9) & 1;
@@ -92,7 +123,7 @@ export function makeCritters(W) {
       const tx = (near ? a.fx : a.hx) + Math.cos(an) * rr, ty = (near ? a.fy : a.hy) + Math.sin(an) * rr * 0.6;
       if (clear(tx, ty) && Math.hypot(tx - a.fx, ty - a.fy) > 4) { a.tx = tx; a.ty = ty; a.st = 'run'; return; }
     }
-    a.until = t + 1;
+    a.until = t + 3;
   }
 
   // ---- marmots: sunning on a rock, up on their haunches when he is near or now and then ----
@@ -137,14 +168,55 @@ export function makeCritters(W) {
     }
   }
 
+  // ---- mist -------------------------------------------------------------------------------------
+  // Mist is not painted on. A pixel under it is swapped for the palette colour nearest to itself seen
+  // through fog, so the trees still show, only paler, and there is no pattern of dots to see. VEIL is the
+  // thin edge of a wisp, VEIL2 its body and VEIL3 the heart of a bank. Where wisps overlap the veils add up.
+  const M = W.mist, FOG = R.fog, VEIL = veilTable(0.3), VEIL2 = veilTable(0.58), VEIL3 = veilTable(0.84);
+  // It comes in off the sea as long lens-shaped wisps, each sliding east at its own pace. A wisp thins
+  // as it goes, is gone before the forest ends, and comes round again. Slower, heavier banks, each a few
+  // wisps moving as one, lie along the forest's western edge.
+  const wisps = [];
+  {
+    const r = rng(131);
+    const lens = (y, len, n, bank, at, v, dx) => {
+      const rows = [];
+      for (let i = 0; i < n; i++) {
+        // Longest through the middle, shorter and more ragged toward the top and bottom.
+        const f = n === 1 ? 0 : i / (n - 1) * 2 - 1, half = len / 2 * Math.sqrt(1 - f * f * (bank ? 0.7 : 0.86)) * (0.9 + 0.1 * r()), off = (r() - 0.5) * len * 0.1;
+        rows.push({ dy: i - (n >> 1), a: off - half, b: off + half, edge: i === 0 || i === n - 1, core: bank && Math.abs(f) < 0.45, need: Math.abs(f) * (bank ? 0.4 : 0.35) });
+      }
+      wisps.push({ y, len, rows, bank, span: bank ? 560 : 760, at, v, dx });
+    };
+    for (let k = 0; k < 30; k++) {
+      const y = Math.round(464 + r() * (NH - 472)), at = r() * 560, v = 0.5 + 0.9 * vnoise(y / 40, 3, 132);
+      for (let j = 0; j < 3; j++) lens(y + Math.round((r() - 0.5) * 16), 130 + r() * 130, 9 + (r() * 10 | 0), true, at, v, Math.round((r() - 0.5) * 110));
+    }
+    for (let k = 0; k < 110; k++) { const y = Math.round(458 + r() * (NH - 462)); lens(y, 40 + r() * 90, 3 + (r() * 5 | 0), false, r() * 760, 1.6 + 2.6 * vnoise(y / 40, 3, 132), 0); }
+    // A few fingers of the fog bank, out over the water in front of it.
+    for (let k = 0; k < 9; k++) { const y = Math.round(915 + r() * 160); lens(y, 50 + r() * 70, 4 + (r() * 5 | 0), false, r() * 400, 0.8 + 1.2 * r(), 0); wisps[wisps.length - 1].sea = true; }
+  }
+  // One row of a wisp: thin at both ends, its body in between.
+  function veilRow(scr, ox, oy, a, b, y, edge, core, here, sea) {
+    const { VW, fb } = scr, wy = y + oy, gy = ((wy - M.y0) >> 1) * M.w, row = y * VW;
+    for (let x = Math.max(a, 0); x <= Math.min(b, VW - 1); x++) {
+      const wx = x + ox; if (wx < 0 || wx >= M.x1) continue;
+      const g = sea ? 0 : M.gate[gy + (wx >> 1)]; if (g === 2) continue;
+      if (here && wx > here.x - 9 && wx < here.x + 9 && wy > here.y - 23 && wy < here.y + 3) continue;
+      const i = row + x;
+      const e = Math.min(x - a, b - x);
+      fb[i] = edge || g === 1 || e < 7 ? VEIL[fb[i]] : core && e > 24 ? VEIL3[fb[i]] : VEIL2[fb[i]];
+    }
+  }
+
   // ---- birds that circle, each with its shadow on the ground --------------------------------
   const ink = [makeBird(0), makeBird(1)], gull = ink.map(b => tint(b, R.white[1]));
   const FLOCKS = [
-    { cx: 800, cy: 900, rx: 130, ry: 44, n: 4, lift: 56, w: 0.2, bm: ink },
+    { cx: 800, cy: 900, rx: 130, ry: 44, n: 3, lift: 56, w: 0.14, bm: ink },
     { cx: 1490, cy: 770, rx: 90, ry: 36, n: 1, lift: 84, w: 0.11, bm: ink, glide: true },
     { cx: 1260, cy: 600, rx: 70, ry: 26, n: 1, lift: 70, w: -0.13, bm: ink, glide: true },
-    { cx: 210, cy: 905, rx: 80, ry: 30, n: 3, lift: 34, w: -0.24, bm: gull },
-    { cx: 70, cy: 930, rx: 34, ry: 14, n: 2, lift: 22, w: 0.4, bm: gull }
+    { cx: 210, cy: 905, rx: 80, ry: 30, n: 2, lift: 34, w: -0.16, bm: gull },
+    { cx: 70, cy: 930, rx: 34, ry: 14, n: 1, lift: 22, w: 0.25, bm: gull }
   ];
 
   return {
@@ -181,11 +253,45 @@ export function makeCritters(W) {
       spots.jelly.forEach(([jx, jy, pale], k) => {
         const x = jx + Math.round(3 * Math.sin(t * 0.13 + k * 2)) - ox, y = jy + Math.round(1.5 * Math.sin(t * 0.5 + k)) - oy;
         if (x < -4 || y < -6 || x > VW + 4 || y > VH) return;
-        const c = pale ? R.white[1] : R.pink[2], d = R.pink[1], shut = frac(t * 0.45 + k * 0.37) < 0.3;
+        const c = pale ? R.white[1] : R.pink[2], d = R.pink[1], shut = frac(t * 0.3 + k * 0.37) < 0.3;
         for (let dx = 0; dx < 3; dx++) scr.set(x + dx, y, c);
         if (shut) { for (let dx = 0; dx < 3; dx++) scr.set(x + dx, y + 1, dx === 1 ? c : d); for (const [dx, dy] of [[0, 2], [2, 2], [0, 3], [2, 3], [1, 4], [1, 5]]) scr.set(x + dx, y + dy, d); }
         else { for (let dx = -1; dx < 4; dx++) scr.set(x + dx, y + 1, dx === 0 ? c : d); for (const [dx, dy] of [[-1, 2], [1, 3], [3, 2], [0, 4], [2, 4]]) scr.set(x + dx, y + dy, d); }
       });
+    },
+    // The mist over the forest and the fog bank off the coast, laid over everything that stands. It parts
+    // round him as it does round a sign.
+    mist(scr, ox, oy, t, here) {
+      const { VW, VH, fb } = scr;
+      if (ox >= M.x1 + 120 || oy + VH <= M.y0) return;
+      for (const w of wisps) {
+        const sy = w.y - oy; if (sy < -9 || sy > VH + 9) continue;
+        let x, k;
+        if (w.sea) {
+          // Out from the bank toward the land, thinning as it leaves the bank behind.
+          const far = (w.y - 700) / 0.68; x = Math.round(far - 420 + (w.at + w.v * t) % 400); k = smooth(130, 210, w.y - 700 - x * 0.68) * smooth(far - 420, far - 380, x);
+        } else {
+          // The whole round trip starts out of sight beyond the map's west edge. The mist is thickest
+          // there and gone by the middle of the forest.
+          const at = Math.round((w.at + w.v * t) % w.span) - 160; x = at + w.dx;
+          k = (w.bank ? smooth(370, 130, at) : smooth(560, 70, at)) * smooth(-160, -110, at);
+        }
+        if (k < 0.03 || x - w.len > ox + VW || x + w.len < ox) continue;
+        for (const r of w.rows) {
+          const s = clamp((k - r.need) / 0.3, 0, 1), y = sy + r.dy; if (s <= 0 || y < 0 || y >= VH) continue;
+          veilRow(scr, ox, oy, x + Math.round(r.a * s) - ox, x + Math.round(r.b * s) - ox, y, r.edge, r.core && k > 0.7, here, w.sea);
+        }
+      }
+      // The fog bank off the coast: solid far out and thinner in three steps toward the land. The edge
+      // of each step rolls slowly at its own pace, so the bank has no hard face.
+      for (let y = Math.max(0, 880 - oy); y < VH; y++) {
+        const wy = y + oy, row = y * VW, xs = [];
+        for (let j = 0; j < 4; j++) { const e = 9 * Math.sin(wy / 15 + t * 0.045 + j * 1.3) + 14 * (vnoise(wy / 1.6, j * 7 + Math.floor(t * 0.05), 134) - 0.5) + 12 * Math.abs(Math.sin(wy / 27 + t * 0.025 + j)); xs.push(Math.min(VW, Math.round((wy - 700 - [195, 235, 275, 320][j] - e) / 0.68) - ox)); }
+        for (let j = 2; j >= 0; j--) if (xs[j] < xs[j + 1]) xs[j] = xs[j + 1];
+        const x0 = Math.max(0, -ox); if (xs[0] <= x0) continue;
+        const lit = vnoise(wy / 2.6, Math.floor(t * 0.02), 133) > 0.56 ? FOG[2] : FOG[1];
+        for (let x = x0; x < xs[0]; x++) { const i = row + x; fb[i] = x < xs[3] ? lit : x < xs[2] ? VEIL3[fb[i]] : x < xs[1] ? VEIL2[fb[i]] : VEIL[fb[i]]; }
+      }
     },
     // Where each animal may wander and each flock circles, as ovals on the map, for the debug panel.
     areas: () => [...items.filter(a => a.walker).map(a => ({ x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...FLOCKS.map(F => ({ x: F.cx, y: F.cy, rx: F.rx, ry: F.ry }))],
@@ -197,7 +303,8 @@ export function makeCritters(W) {
         const x = Math.round(F.cx + Math.cos(an) * F.rx * wob - ox), y = Math.round(F.cy + Math.sin(an) * F.ry * wob - oy);
         if (x < -8 || x > VW + 8 || y < -8 || y - F.lift > VH + 8) continue;
         for (let dx = -2; dx <= 2; dx++) { const sx = x + dx; if (sx >= 0 && sx < VW && y >= 0 && y < VH) fb[y * VW + sx] = SHADE[fb[y * VW + sx]]; }
-        const f = F.glide ? (frac(t * 0.23 + k) < 0.12 ? Math.floor(t * 5) & 1 : 1) : (Math.floor(t * 4.5) + k) & 1;
+        // They mostly hold their wings out, and beat them in short bursts.
+        const f = F.glide ? (frac(t * 0.23 + k) < 0.12 ? Math.floor(t * 5) & 1 : 1) : frac(t * 0.17 + k * 0.37) < 0.4 ? (Math.floor(t * 3.5) + k) & 1 : 1;
         scr.blit(F.bm[f], x - 3, y - F.lift - 2);
       }
     }

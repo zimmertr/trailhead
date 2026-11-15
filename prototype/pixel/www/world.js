@@ -1,5 +1,6 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
 import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
+import { breeze } from './core.js';
 import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
 import { makeCritters } from './critters.js';
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
@@ -311,13 +312,13 @@ export function makeWorld() {
         } else if (th.kind === 'tree') {
           const { tree, x, y } = th.t;
           for (const part of tree.parts) {
-            const [wx, wy] = windAt(x + (part.lx || 0), y + part.y, tq, part.sway);
+            const [wx, wy] = breeze(x + (part.lx || 0), y + part.y, tq, part.sway);
             scr.blit(part.bm, x + part.x + wx - ox, y + part.y + wy - oy);
           }
         } else if (th.critter) {
           crit.draw(scr, th, ox, oy, t);
         } else if (th.fern) {
-          const [wx] = windAt(th.x, th.y, tq, 0.6);
+          const [wx] = breeze(th.x, th.y, tq, 0.6);
           scr.blit(th.bm, th.x - th.bm.ox + wx - ox, th.y - th.bm.oy - oy);
         } else if (th.flag) {
           scr.blit(flags[Math.floor(t * 5) & 1], th.x - 2 - ox, th.y - th.lift - 15 - oy);
@@ -338,7 +339,7 @@ export function makeWorld() {
       }
       // The boot track on the glacier, then the mist over the forest and the fog bank off the coast.
       for (const [x, y, c] of trackPix) scr.set(x - ox, y - oy, c);
-      if (ox < 620) for (let y = Math.max(0, 440 - oy); y < VH; y++) { const wy = oy + y; if (wy >= WH) break; const row = wy * WW, x1 = Math.min(VW, 620 - ox); for (let x = Math.max(0, -ox); x < x1; x++) { const m = mist[row + ox + x]; if (m) fb[y * VW + x] = m; } }
+      if (DEBUG.mist) crit.mist(scr, ox, oy, t, env.hideMe ? null : here);
       kit.drawOver(scr, ox, oy, t);
       // Smoke from the stove at base camp, drifting off with the wind.
       for (let k = 0; k < 6; k++) {
@@ -351,14 +352,14 @@ export function makeWorld() {
       // Birds cross the sky in a loose V, flapping a few times a second.
       for (let k = 0; DEBUG.animals && k < 4; k++) {
         const bx = ((t * 22 + k * 11) % (WW + 200)) - 100, by = 318 + 8 * Math.sin(t * 0.7) + [0, 5, 9, 4][k];
-        scr.blit(birds[(Math.floor(t * 4) + k) & 1], bx - [0, -9, 9, -17][k] - 3 - ox, by - 2 - oy);
+        scr.blit(birds[(Math.floor(t * 3) + k) & 1], bx - [0, -9, 9, -17][k] - 3 - ox, by - 2 - oy);
       }
       // Butterflies over the flowers by the Trailhead.
-      for (let k = 0; DEBUG.animals && k < 6; k++) {
-        const bx = Math.round(T.x - 120 + k * 52 + 14 * Math.sin(t * 0.9 + k * 2)), by = Math.round(T.y + 10 - (k % 3) * 22 + 6 * Math.sin(t * 1.7 + k));
+      for (let k = 0; DEBUG.animals && k < 3; k++) {
+        const bx = Math.round(T.x - 96 + k * 88 + 14 * Math.sin(t * 0.6 + k * 2)), by = Math.round(T.y + 10 - (k % 3) * 22 + 6 * Math.sin(t * 1.1 + k));
         const sx = bx - ox, sy = by - oy, col = k % 3 ? R.white[1] : R.yellow[1];
         if (sx < 1 || sy < 1 || sx >= VW - 1 || sy >= VH - 1) continue;
-        const open = (Math.floor(t * 8) + k) & 1;
+        const open = (Math.floor(t * 5) + k) & 1;
         fb[sy * VW + sx] = INK; fb[sy * VW + sx - 1] = col; fb[sy * VW + sx + 1] = col;
         if (open) { fb[(sy - 1) * VW + sx - 1] = col; fb[(sy - 1) * VW + sx + 1] = col; }
       }

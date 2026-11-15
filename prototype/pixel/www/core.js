@@ -108,7 +108,7 @@ ramp('basalt', ['#231f2a', '#37323c', '#4e4850', '#6a6266']);
 ramp('sand', ['#a89a7c', '#c8bc9a', '#e2d8b8']);
 ramp('sea', ['#143c50', '#1e586c', '#2c7888', '#4c9aa4', '#8cc4c4', '#d8f0ec']);
 ramp('ash', ['#463c36', '#62564a', '#80725c', '#9c8e72']);
-ramp('fog', ['#a8bcb8', '#c8d6d0', '#e6eeea']);
+ramp('fog', ['#a8bcb8', '#c8d6d0', '#e6eeea'], ['#5a5a88', '#7e7aa8', '#a8a0cc']);
 ramp('pine', ['#1c3a20', '#2c5a2c', '#48783a', '#6c9648', '#94b25c']);
 ramp('pbark', ['#5a2c14', '#8c4a20', '#c0702c']);
 const INK = R.ink[0];
@@ -211,6 +211,28 @@ function windAt(x, y, t, amt) {
   if (g < 0.15) return [0, 0];
   const ph = frac(t / 1.54 - along / 69), q = POSE[Math.floor(ph * 4) & 3], a = Math.round((g > 0.85 ? 2 : 1) * amt);
   return [q[0] * a, q[1] * a];
+}
+// The map's own air: still most of the time. About every eleven seconds one light gust comes in off
+// the sea and crosses to the east, and each tree leans once, and once more briefly, as its front goes
+// by. The forest and lake scenes keep windAt: there the trees are close and never quite stop.
+const STILL = [0, 0], LEAN = [1, 0], GUST = { every: 11, speed: 180, wide: 230 };
+let gustT = -1, gustNow = [];
+function breeze(x, y, t, amt) {
+  if (!amt) return STILL;
+  if (t !== gustT) {
+    // Two gusts can be on the map at once: the one that set off last and the one before it.
+    gustT = t; gustNow = [];
+    for (let k = 0; k < 2; k++) { const n = Math.floor(t / GUST.every) - k, t0 = n * GUST.every + 3 * hash(n, 7, 400); if (t >= t0) gustNow.push([(t - t0) * GUST.speed - 60, n, hash(n, 8, 400) < 0.45 ? 0.75 : 1]); }
+  }
+  const along = x + 0.25 * y;
+  for (const [front, n, strength] of gustNow) {
+    const d = front - along; if (d < -40 || d > GUST.wide + 40) continue;
+    const u = (d + 50 * (vnoise(y / 120, n, 401) - 0.5)) / GUST.wide;
+    // A weak gust only stirs the tops.
+    if (u < 0.08 || u >= 0.9 || Math.round(amt * strength) < 1) continue;
+    return u < 0.6 || u > 0.76 ? LEAN : STILL;
+  }
+  return STILL;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -340,5 +362,5 @@ const DEBUG = { trees: true, clouds: true, mist: true, labels: true, animals: tr
 export {
   DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
   DAY, DUSK, R, RAMP_OF, STEP_OF, INK, N, SHADE, LIGHT, KIND, BLACK, pick, ramp,
-  BM, outline, disc, thick, catmull, makePath, windAt, Screen
+  BM, outline, disc, thick, catmull, makePath, windAt, breeze, Screen
 };

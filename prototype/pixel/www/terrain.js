@@ -389,10 +389,12 @@ for (let n = 0; n < 500; n++) {
   const len = 6 + rand() * 12, a = (rand() - 0.5) * 0.9 + 0.6;
   for (let k = 0; k < len; k++) { const px = Math.round(x + Math.cos(a) * k), py = Math.round(y + Math.sin(a) * k * 0.5); if (px > 0 && py > 0 && px < NW && py < NH - 1) { g[at(px, py)] = R.rock[4]; g[at(px, py + 1)] = R.rock[2]; } }
 }
+// Eight jellyfish. Eighteen spots are still drawn from the dice, so that everything placed after them
+// stands where it always did, and eight of those are kept.
 const jelly = [];
-for (let n = 0; n < 4000 && jelly.length < 18; n++) {
+for (let n = 0, found = 0; n < 4000 && found < 18; n++) {
   const x = Math.round(rand() * 560), y = Math.round(700 + rand() * 370), cs = coast(x, y); if (cs < 14 || cs > 80 || x < 6 || y > NH - 10) continue;
-  jelly.push([x, y, jelly.length % 3 ? 0 : 1]);
+  if (found++ * 4 % 9 < 4) jelly.push([x, y, jelly.length % 3 ? 0 : 1]);
 }
 function whale(splash = true) {
   // A humpback two thirds out of the water: dark back, pale grooved belly, one long flipper flung out.
@@ -419,13 +421,15 @@ const spots = {
   ferry: [44, 916], whale: [222, 934],
   // Each sign stands on the ground it names; content.js has the words. Whatever would stand in front of one is cleared below.
   signs: [[972, 592, 'scope-creep'], [858, 557, 'segfault'], [886, 532, 'merge-conflict'], [800, 742, 'yak-shave'], [766, 631, 'about-lake'], [1160, 600, 'rollback'], [1300, 552, 'feature-flag'], [1226, 884, 'hotfix'], [1420, 966, 'postmortem'], [1474, 724, 'cron-job'], [1506, 806, 'tech-debt'], [258, 864, 'cache-miss'], [334, 612, 'stack-trace'], [262, 480, 'off-by-one'], [470, 480, 'dependency'], [668, 586, 'monorepo'], [404, 996, 'latency']],
-  elk: [[760, 820, 0], [792, 836, 1], [738, 846, 1], [900, 900, 0], [640, 960, 1], [840, 1000, 1], [872, 1012, 0], [1010, 790, 1], [960, 760, 0], [700, 1030, 0], [776, 606, 1]],
+  // One small herd of elk, in a clearing of the south meadow well away from the junction. The first is the bull.
+  elk: [[748, 814, 0], [782, 828, 1], [728, 840, 1], [764, 854, 0]],
   bear: [1010, 930], marmots: [[846, 574], [1340, 590], [700, 900]],
-  goats: [[1196, 556, 0], [1212, 562, 1], [1126, 528, 0], [1290, 598, 0], [1304, 603, 1], [1384, 548, 0], [1250, 500, 0]],
-  sheep: [[1484, 694, 0], [1512, 702, 1], [1470, 764, 0], [1530, 830, 1], [1402, 772, 1], [1420, 778, 0]],
+  goats: [[1196, 556, 0], [1212, 562, 1], [1290, 598, 0], [1384, 548, 0]],
+  sheep: [[1484, 694, 0], [1512, 702, 1], [1470, 764, 0], [1530, 830, 1]],
   squirrels: [], jelly, birds: [[860, 700], [872, 694], [884, 702], [980, 840], [600, 880], [1100, 700], [420, 300], [436, 292], [1240, 330]]
 };
-for (let n = 0; n < 14; n++) { const x = 720 + rand() * 420, y = 760 + rand() * 300; if (open(x, y)) spots.squirrels.push([Math.round(x), Math.round(y), n % 3 === 0 ? 1 : 0]); }
+// Seven squirrels and chipmunks: every other one of the fourteen spots the dice give.
+for (let n = 0; n < 14; n++) { const x = 720 + rand() * 420, y = 760 + rand() * 300; if (open(x, y) && n % 2) spots.squirrels.push([Math.round(x), Math.round(y), n % 3 === 0 ? 1 : 0]); }
 // Nothing stands in front of a sign: a tree, bush or boulder that would cover one is taken out.
 const clearSigns = () => { for (const [sx, sy] of spots.signs) for (let i = things.length - 1; i >= 0; i--) {
   const th = things[i], w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h;
@@ -466,17 +470,19 @@ const ferns = Array.from({ length: 6 }, (_, i) => makeFern(400 + i));
 for (let n = 0; n < 3400; n++) { const x = rand() * 790, y = 478 + rand() * 600; if (y >= NH || forestAmt(x, y) < 0.6 || !open(x, y) || nearTrail(x, y, 4)) continue; things.push({ bm: ferns[(rand() * 6) | 0], x: Math.round(x), y: Math.round(y), fern: true }); }
 for (let n = 0; n < 60; n++) { const x = rand() * 760, y = 490 + rand() * 560; if (forestAmt(x, y) > 0.7 && open(x, y) && !nearTrail(x, y, 9)) put(makeLog(), x, y); }
 clearSigns();
-// Mist: thin bands of it lie in the deep forest and thicken to the west; a fog bank stands off the
-// coast. It is kept apart from the ground so the scene can lay it over the trees.
-const mist = new Uint8Array(NW * NH);
-for (let y = 440; y < NH; y++) for (let x = 0; x < 620; x++) {
-  const cs = coast(x, y), sea = cs > 0;
-  let a = sea ? smooth(210, 390, cs) * 1.1 : smooth(520, 20, x) * smooth(groundLine(x) - 10, groundLine(x) + 40, y) * (0.12 + 0.95 * smooth(0.47, 0.6, fbm(x / 110, y / 13, 130, 3))) * (smooth(-4, -40, cs) * 0.9 + 0.1);
-  if (!sea && a > 0.1 && nearTrail(x, y, 9)) a *= 0.3;
-  if (a > 0 && bayer(x, y) < a * 0.85) mist[at(x, y)] = R.fog[a > 0.8 ? 2 : a > 0.45 ? 1 : (bayer(x + 2, y + 1) < 0.5 ? 1 : 0)];
+// Mist drifts through the deep forest, thickest in the west, and a fog bank stands off the coast. It
+// moves, so the scene draws it each frame (critters.js). Kept here is only where it may not lie, on a
+// grid of two pixels: 1 where it stays thin, along the trail and just in from the beach, and 2 where
+// there is none at all, over a sign's board (so the board can be read) and out past the beach.
+const mist = { x1: 640, y0: 440, w: 320, h: Math.ceil((NH - 440) / 2) };
+mist.gate = new Uint8Array(mist.w * mist.h);
+{
+  const mark = (x0, y0, x1, y1, v, round) => { const mx = (x0 + x1) / 2, my = (y0 + y1) / 2; for (let cy = Math.max(0, (y0 - mist.y0) >> 1); cy <= Math.min(mist.h - 1, (y1 - mist.y0) >> 1); cy++) for (let cx = Math.max(0, x0 >> 1); cx <= Math.min(mist.w - 1, x1 >> 1); cx++) if (mist.gate[cy * mist.w + cx] < v && (!round || sq((cx * 2 + 1 - mx) / (x1 - mx)) + sq((mist.y0 + cy * 2 + 1 - my) / (y1 - my)) <= 1)) mist.gate[cy * mist.w + cx] = v; };
+  // The shoreline is found on a coarser grid, which is all the mist needs of it.
+  for (let cy = 0; cy < mist.h; cy += 2) for (let cx = 0; cx < mist.w; cx += 2) { const cs = coast(cx * 2 + 2, Math.min(NH - 1, mist.y0 + cy * 2 + 2)), v = cs > -12 ? 2 : cs > -44 ? 1 : 0; if (v) for (const j of [0, 1]) for (const i of [0, 1]) if (cy + j < mist.h) mist.gate[(cy + j) * mist.w + cx + i] = v; }
+  for (let i = 0; i < trailPts.length; i += 2) { const p = trailPts[i]; if (p[0] < mist.x1 + 12) mark(Math.round(p[0]) - 7, Math.round(p[1]) - 8, Math.round(p[0]) + 7, Math.round(p[1]) + 6, 1, true); }
+  for (const [sx, sy] of spots.signs) mark(sx - 11, sy - 20, sx + 11, sy + 3, 2, false);
 }
-// The mist parts round a sign so its board can be read.
-for (const [sx, sy] of spots.signs) for (let y = sy - 19; y <= sy + 2; y++) for (let x = sx - 10; x <= sx + 10; x++) if (x >= 0 && y >= 0 && x < NW && y < NH && (Math.abs(x - sx) < 9 || bayer(x, y) < 0.5)) mist[at(x, y)] = 0;
 return { g, things, spots, mist, sea: SEA, trackPts, trails: TRAILS, forestAmt, lakeD, coast, groundLine, glacier, talus, open, nearTrail, make: { ferry, whale, sheep, squirrel } };
 }
 export { OX, OY, NW, NH, T, PEAK, STACK, SPIRES };
