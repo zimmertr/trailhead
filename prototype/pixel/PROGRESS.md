@@ -387,22 +387,22 @@ Round 3 answers TJ's feedback on the round 2 build. It lives on its own branch a
 ### TJ's feedback (2026-11-14), as a checklist
 
 The page
-- [ ] F1. Music starts with the first click, tap or key, not only once he moves.
-- [ ] F5. Space still starts and stops him; holding it makes him go faster.
-- [ ] F7. Zoom steps glide instead of jumping.
-- [ ] F13. The junction sign and the cards take less room and can be closed.
+- [x] F1. Music starts with the first click, tap or key, not only once he moves.
+- [x] F5. Space still starts and stops him; holding it makes him go faster.
+- [x] F7. Zoom steps glide instead of jumping.
+- [x] F13. The junction sign and the cards take less room and can be closed.
 - [ ] F15. The debug panel's Trees and Clouds switches hide all of them.
 - [ ] F32. The page is ready as fast as it used to be.
-- [ ] F36. The music does not wear thin: longer tunes, and Auto moves on after a tune has repeated a few times.
+- [x] F36. The music does not wear thin: longer tunes, and Auto moves on after a tune has repeated a few times.
 
 Scene changes, forest, lake, camp
-- [ ] F2. He keeps his direction when the map hands over to the forest (right to left again).
-- [ ] F4. No sudden sprint at a scene change.
-- [ ] F3. The forest's far background has depth and does not read as wallpaper.
-- [ ] F6. The lake marmot sits on its rock and is brown.
-- [ ] F35. The island on the map is in the lake scene too. "Go for a swim": he swims out, stands on the island cheering, and swims back when asked.
-- [ ] F33. At base camp he sits beside Kayti and a heart floats up between them.
-- [ ] F24. The goats at base camp stand in the middle ground, away from the tents.
+- [x] F2. He keeps his direction when the map hands over to the forest (right to left again).
+- [x] F4. No sudden sprint at a scene change.
+- [x] F3. The forest's far background has depth and does not read as wallpaper.
+- [x] F6. The lake marmot sits on its rock and is brown.
+- [x] F35. The island on the map is in the lake scene too. "Go for a swim": he swims out, stands on the island cheering, and swims back when asked.
+- [x] F33. At base camp he sits beside Kayti and a heart floats up between them.
+- [x] F24. The goats at base camp stand in the middle ground, away from the tents.
 
 The Stack and the summits
 - [ ] F16. At The Stack he walks to his friends and waits for Space before he climbs.
@@ -417,7 +417,7 @@ The Stack and the summits
 The map: mountains and sky
 - [ ] F8, F30. The volcano stands alone at the top right, like Rainier, over foothills that fade into rolling yellow hills. Left of it the snowy peaks build toward Sideproject Spires.
 - [ ] F31. Sideproject Spires is one mountain with several summits, after the Cerro Torre group.
-- [ ] F26. The aurora belongs to the sky: it is seen when the view goes high enough, and does not slide out from under the sunset.
+- [x] F26. The aurora belongs to the sky: it is seen when the view goes high enough, and does not slide out from under the sunset.
 
 The map: ground, water and plants
 - [ ] F9. The larch basin reads as the Enchantments: granite slabs, larches, sparse grass, a jagged granite peak, the tarns.
@@ -463,4 +463,11 @@ He stopped the first start on this round: after a round of feedback he wants a r
 - Pace (F5): held for more than a quarter of a second, Space or the Start button doubles his pace until it is let go, and he carries on at his own pace afterwards. A short press starts or stops him as before; a press that stops him now does so when the key comes up. The Keys sheet lists it.
 - Zoom (F7): a step glides for a fifth of a second and rests on whole pixels. Zooming in, the last picture at the old size grows over the new one and gives way to it; zooming out, the new picture starts enlarged where the old one was and settles. The name tags ride along. A visitor who asks for reduced motion gets the plain step.
 - Music (F36): each of the seven tunes has a second part. One play is the first part, the second, and the first again with the melody doubled an octave down, 41 to 80 seconds depending on the tune. On every second play the drums sit out the first four bars. Auto moves on after two plays: the place's own tunes first, then every other one. A tune picked by hand stays. Nobody has heard the new parts yet: they were written against each tune's chords and checked note by note, not by ear.
+- Night sky (F26): on the map the aurora, stars and moon have fixed places in the world's sky and come into view as the camera rises. Other scenes keep the old layout. The moon sits at world (930, 70), where it shows on a phone's first pan up.
+- Forest (F2, F4): right to left again, the slide between forest and lake is gone and the round window is back. The window now starts closing while he is still running, so he never stands still at a change (about 8 still frames per change before, none after).
+- Forest (F3): the one sheet of pale trunks became a lit backdrop and three far layers moving at 0.14, 0.34 and 0.6 of the near speed, each with uneven trunk groups, undergrowth and a ragged canopy. The backdrop is a step paler so the far layers read as silhouettes. One new colour, `glow`.
+- Marmot (F6): brown with a paler cape, lying on the rock. The map's marmots share the sprite, so they turned brown too.
+- Swim (F35): the map's island stands in the lake scene and crosses at 0.66 of the near shore's speed. "Go for a swim" is offered only while the island is in view. He undresses, wades, swims front crawl, climbs out and cheers until asked back: a click on him or the island brings him back to stand, Space or Start brings him back and he runs on. The find and name keys changed from `plunge` to `swim`, so a saved cold plunge find reads as not found. All three strings are draft copy.
+- Base camp (F33, F24): he walks in from the west at about 70 px/s, passes in front of Kayti, sits at her side facing the towers, and one heart rises. Her pack moved. Three goats (nanny, billy, kid) stand on a new rock knoll out on the ice, left of the tents.
+- Block-in: three versions of the volcano, the Spires and the basin live on branch `pixel-round3-mountains` behind `?v=a|b|c` and are not merged. TJ picks from https://claude.ai/artifact/D8uUSeB1pMam8EKT8anxjc (source `plan/skyline-pick.html`, pictures from that branch's `out/blockin/`).
 - For screenshots only: `down=<key>` and `up=<key>` are new steps in `shot.mjs`, for anything that depends on how long a key is held.
