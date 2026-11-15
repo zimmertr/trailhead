@@ -410,20 +410,81 @@ for (let n = 0, found = 0; n < 4000 && found < 18; n++) {
   const x = Math.round(rand() * 560), y = Math.round(700 + rand() * 370), cs = coast(x, y); if (cs < 14 || cs > 80 || x < 6 || y > NH - 10) continue;
   if (found++ * 4 % 9 < 4) jelly.push([x, y, jelly.length % 3 ? 0 : 1]);
 }
-function whale(splash = true) {
-  // A humpback two thirds out of the water: dark back, pale grooved belly, one long flipper flung out.
-  const b = new BM(56, 50); b.ox = 20; b.oy = 44;
-  for (let s = 0; s <= 1; s += 0.01) {
-    const cx = 14 + 26 * s + 5 * s * s, cy = 42 - 36 * s, rr = 2 + 8.5 * Math.sin(Math.PI * (0.12 + 0.8 * s));
-    for (let dy = -Math.ceil(rr); dy <= rr; dy++) for (let dx = -Math.ceil(rr); dx <= rr; dx++) {
-      if (dx * dx + dy * dy > rr * rr) continue;
-      const belly = dx * 0.75 - dy * 0.65 < -rr * 0.5 && s < 0.8, x = Math.round(cx + dx), y = Math.round(cy + dy);
-      b.set(x, y, belly ? ((x + y * 2) % 4 === 0 ? R.rock[3] : R.white[1]) : R.navy[dx + dy > rr * 0.5 ? 0 : dx + dy < -rr * 0.2 ? 2 : 1]);
+// One drawing of the humpback's breach, or of its flukes going under. The body is a tapered tube along
+// a spine that leaves the water at the bitmap's foot and leans to the left, the way it will fall.
+// p.out: how much of its length is out, from the snout. p.head, p.tail: how steeply the two ends of
+// that stand, in degrees. p.roll: where its belly is turned, 90 for away to the right, 0 for square to
+// us. p.sweep: how far back its flippers trail. p.fluke: the tail instead, 0 upright to 1 tipping under.
+// Nothing is drawn below the waterline and nothing outlines it there: the scene puts foam along it.
+function whale(p) {
+  p = p || { out: 0.68, head: 54, tail: 59, roll: 40, sweep: 0.2 };
+  const b = new BM(120, 72); b.ox = 84; b.oy = 68;
+  const D = Math.PI / 180, navy = R.navy, W1 = R.white[1], W0 = R.white[0], groove = R.rock[3];
+  const layer = () => { const l = new BM(b.w, b.h); l.put = (x, y, c) => { if (y <= 0) l.set(b.ox + x, b.oy + y, c); }; return l; };
+  // A part goes on over what is there. Its own outline is kept only where it crosses something already
+  // drawn, so a white flipper shows against a white belly; the outer edge is inked once at the end.
+  const lay = l => { const o = l.d.slice(); outline(l, INK); for (let i = 0; i < o.length; i++) { if (o[i]) b.d[i] = o[i]; else if (l.d[i] && b.d[i]) b.d[i] = INK; } };
+  const key = (K, q) => { for (let i = 1; i < K.length; i++) if (q <= K[i][0]) return K[i - 1][1] + (K[i][1] - K[i - 1][1]) * (q - K[i - 1][0]) / (K[i][0] - K[i - 1][0]); return K[K.length - 1][1]; };
+  if (p.fluke != null) {
+    // The tail from behind as it dives: the stock, and the two flukes with their white undersides.
+    const l = layer(), f = p.fluke, H = 15, squash = 1 - 0.7 * f, lean = -0.22;
+    for (let y = 0; y <= H; y += 0.5) { const hw = 3.3 - 1.7 * y / H; for (let x = -hw; x <= hw; x += 0.5) l.put(x + lean * y, -y, x < -hw * 0.3 ? navy[2] : x > hw * 0.5 ? navy[0] : navy[1]); }
+    const LEAD = [[0, -2], [0.3, -0.6], [0.6, 1.2], [0.85, 3], [1, 4.4]], TRAIL = [[0, 1.6], [0.15, 3.6], [0.4, 5.6], [0.7, 6], [0.9, 5.4], [1, 4.7]];
+    for (const side of [-1, 1]) for (let q = 0; q <= 1; q += 0.02) {
+      const lo = key(LEAD, q), hi = key(TRAIL, q), x = side * q * 14 + lean * H;
+      for (let v = lo; v <= hi; v += 0.25) {
+        const y = -H - v * squash + 3.2 * f * q, pale = q > 0.16 && q < 0.86 && v > lo + 1.3 && v < hi - 1.2 && (side < 0 || q < 0.7);
+        l.put(x, y, pale ? W1 : v > hi - 1.2 || side > 0 ? navy[1] : navy[2]);
+      }
     }
+    lay(l); outline(b, INK);
+    for (let i = (b.oy + 1) * b.w; i < b.d.length; i++) b.d[i] = 0;
+    return b;
   }
-  thick(b, 24, 24, 7, 15, 3, R.navy[1]); thick(b, 22, 24, 8, 17, 1, R.white[0]); b.set(42, 10, R.white[1]);
+  const L = 66, GIRTH = [[0, 0.44], [0.04, 0.62], [0.12, 0.83], [0.25, 0.98], [0.33, 1], [0.5, 0.86], [0.7, 0.52], [0.85, 0.26], [0.93, 0.16], [1, 0.12]];
+  // The spine, every half pixel: a stretch of it under the water, so the body is cut level at the
+  // waterline however far it leans, then from the waterline up to the snout.
+  const n = Math.max(2, Math.ceil(p.out * L * 2)), sp = [];
+  for (let i = 44; i > 0; i--) sp.push([Math.cos(p.tail * D) * 0.5 * i, Math.sin(p.tail * D) * 0.5 * i, p.tail * D, Math.min(1, p.out + i * 0.5 / L)]);
+  for (let i = 0, x = 0, y = 0; i <= n; i++) { const w = i / n, th = (p.tail + (p.head - p.tail) * w) * D; sp.push([x, y, th, p.out * (1 - w)]); x -= Math.cos(th) * 0.5; y -= Math.sin(th) * 0.5; }
+  const tip = sp.length - 1;
+  const body = layer();
+  for (let y = -70; y <= 0; y++) for (let x = -84; x < 36; x++) {
+    let bi = 0, bd = 1e9; for (let i = 0; i <= tip; i++) { const dx = x - sp[i][0], dy = y - sp[i][1], d = dx * dx + dy * dy; if (d < bd) { bd = d; bi = i; } }
+    const [px, py, th, s] = sp[bi], r = 8.5 * key(GIRTH, s), nx = Math.sin(th), ny = -Math.cos(th);
+    // Past the snout the tube ends in a round nose.
+    if (bd > (bi === tip ? r * 0.8 : r) * (bi === tip ? r * 0.8 : r) + 0.3) continue;
+    const d = bi === tip ? Math.sign((x - px) * nx + (y - py) * ny) * Math.sqrt(bd) : (x - px) * nx + (y - py) * ny, rr = Math.max(r, Math.abs(d));
+    // Where round the body this bit of skin is: 0 at the middle of the belly, 180 on the back.
+    const a = Math.asin(d / rr) / D, off = Math.abs(((a - p.roll + 540) % 360) - 180);
+    const lit = Math.sin(a * D) * (nx * -0.6 + ny * -0.75) + Math.cos(a * D) * 0.42;
+    if (off < (s < 0.6 ? 60 : s < 0.82 ? 60 - (s - 0.6) * 140 : 29)) {
+      // The belly: white, with the throat grooves running back from the chin as far as the navel.
+      let line = false; if (s > 0.02 && s < 0.56) for (let k = -3; k <= 3 && !line; k++) { const g = (p.roll + k * 20) * D; if (Math.cos(g) > 0.1 && Math.abs(d - r * Math.sin(g)) < 0.5) line = true; }
+      body.put(x, y, line ? groove : lit < -0.3 ? W0 : W1);
+    } else body.put(x, y, navy[lit > 0.5 ? 2 : lit > -0.05 ? 1 : 0]);
+  }
+  // The eye, low on the dark of the head just above the corner of the mouth.
+  for (const k of [-1, 1]) { const g = (p.roll + k * 86) * D; if (p.out > 0.2 && Math.cos(g) > 0.2) { const e = sp.find(q => q[3] <= 0.15), r = 8.5 * key(GIRTH, 0.15) * Math.sin(g); body.put(e[0] + Math.sin(e[2]) * r, e[1] - Math.cos(e[2]) * r, W1); } }
+  // The flippers, a third of its length each: flung wide where they stand out to the side, short where they point at us.
+  const flippers = [-1, 1].map(k => {
+    if (p.out < 0.36) return null;
+    const g = (p.roll + k * 62) * D, e = sp.find(q => q[3] <= 0.3), th = e[2], r = 8.5 * key(GIRTH, 0.3) * Math.sin(g);
+    let vx = Math.sin(g) * Math.sin(th) + p.sweep * Math.cos(th), vy = -Math.sin(g) * Math.cos(th) + Math.cos(g) * 0.3 + p.sweep * Math.sin(th);
+    const len = Math.hypot(vx, vy), reach = 22 * clamp(len, 0.5, 1) * smooth(0.36, 0.5, p.out); vx /= len; vy /= len;
+    const l = layer();
+    for (let q = 0; q <= 1; q += 0.5 / reach) {
+      const bow = 2.2 * Math.sin(Math.PI * q) * k, cx = e[0] + Math.sin(th) * r + vx * reach * q - vy * bow, cy = e[1] - Math.cos(th) * r + vy * reach * q + vx * bow;
+      const hw = (q < 0.12 ? 1.3 + 9 * q : 2.4 - 1.3 * q) + (Math.abs(frac(q * 4.2) - 0.5) < 0.14 ? 0.5 : 0);
+      for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= hw * hw) l.put(Math.round(cx) + dx, Math.round(cy) + dy, (dx * vy - dy * vx) * k > hw * 0.45 ? W0 : W1);
+    }
+    return { l, front: Math.cos(g) > 0 };
+  });
+  for (const f of flippers) if (f && !f.front) lay(f.l);
+  lay(body);
+  for (const f of flippers) if (f && f.front) lay(f.l);
   outline(b, INK);
-  if (splash) for (const [x, y] of [[4, 44], [8, 41], [12, 45], [26, 44], [30, 41], [34, 45], [2, 40], [36, 40], [16, 47], [22, 47], [9, 36], [31, 36], [6, 47], [30, 47]]) { b.set(x, y, R.white[1]); b.set(x + 1, y, R.white[1]); b.set(x, y + 1, R.sea[5]); }
+  for (let i = (b.oy + 1) * b.w; i < b.d.length; i++) b.d[i] = 0;
   return b;
 }
 plant(firs[2], ISLE.x, ISLE.y + 1);
@@ -432,7 +493,7 @@ const spots = {
   tents: [[924, 564, 'tent'], [948, 574, 'red']], signpost: [T.x - 4, T.y - 8],
   kiosk: [872, 657],
   // The two ends of the ferry's course, both past the edge of the map, and the whale's spot.
-  ferry: [[-30, 820], [394, 1108]], whale: [222, 934],
+  ferry: [[-30, 820], [394, 1108]], whale: [150, 912],
   // Each sign stands on the ground it names; content.js has the words. Whatever would stand in front of one is cleared below.
   signs: [[972, 592, 'scope-creep'], [858, 557, 'segfault'], [886, 532, 'merge-conflict'], [800, 742, 'yak-shave'], [766, 631, 'about-lake'], [1160, 600, 'rollback'], [1300, 552, 'feature-flag'], [1226, 884, 'hotfix'], [1420, 966, 'postmortem'], [1474, 724, 'cron-job'], [1506, 806, 'tech-debt'], [258, 864, 'cache-miss'], [334, 612, 'stack-trace'], [262, 480, 'off-by-one'], [470, 480, 'dependency'], [668, 586, 'monorepo'], [404, 996, 'latency']],
   // One small herd of elk, in a clearing of the south meadow well away from the junction. The first is the bull.

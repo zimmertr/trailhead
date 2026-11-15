@@ -40,6 +40,17 @@ function veilTable(amount) {
   out[BLACK] = BLACK;
   return out;
 }
+// The humpback's breach, twelve drawings to the second up to the moment it lands. It comes out steep
+// and fast and slows as it climbs, turns its belly up while it hangs, and tips over onto its back.
+// whale() in terrain.js says what each number means.
+const FPS = 12, IMPACT = 2.75;
+export const BREACH = Array.from({ length: Math.ceil(IMPACT * FPS) + 1 }, (_, i) => {
+  const u = i / FPS, rise = 1 - (1 - clamp(u / 1.3, 0, 1)) ** 2, hang = smooth(1.25, 1.8, u), fall = clamp((u - 1.75) / (IMPACT - 1.75), 0, 1) ** 2;
+  return {
+    out: 0.1 + 0.58 * rise + 0.02 * hang - 0.1 * fall, head: 66 - 6 * rise - 12 * hang - 44 * fall, tail: 66 - 6 * rise - 3 * hang - 41 * fall,
+    roll: 90 - 28 * smooth(0.3, 1.3, u) - 38 * smooth(1.2, 1.9, u) - 14 * smooth(1.9, IMPACT, u), sweep: 1.1 - 0.9 * smooth(0.5, 1.5, u) - 0.3 * smooth(1.6, 2.6, u)
+  };
+});
 // opts.bear: true or false puts the bear there or not, whatever the dice say (the block-in page asks for it).
 export function makeCritters(W, opts = {}) {
   const { spots, sea: SEA, g } = W, items = [];
@@ -134,40 +145,78 @@ export function makeCritters(W, opts = {}) {
   const ahead = typeof location !== 'undefined' ? +(/[?&]sea=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
 
   // ---- the whale -------------------------------------------------------------------------------
-  // Every sixteen seconds it comes two thirds out of the water, hangs, and falls back in a ring of
-  // spray. Half way between it rolls at the surface and blows.
-  const whaleBM = W.make.whale(false), WHALE = 16;
+  // Once in every 40 to 60 seconds it breaches: out, over and down in under three seconds, then the
+  // spray comes down and its flukes lift and slide under after it. Twice in between it rolls at the
+  // surface and blows. At time 0 it hangs at the top of a breach, for the block-in page.
+  const whales = BREACH.map(p => W.make.whale(p)), flukes = [0, 0.33, 0.66, 1].map(f => W.make.whale({ fluke: f }));
+  const SLOT = 50, starts = n => 10 * hash(n, 5, 63), T0 = starts(0) + 1.55;
   const back = (() => { const b = new BM(20, 6); b.ox = 10; b.oy = 5; ell(b, 10, 6, 8.5, 4.2, (nx, ny) => R.navy[ny < -0.55 ? 2 : 1]); b.set(13, 1, R.navy[0]); b.set(14, 1, R.navy[0]); outline(b, INK); return b; })();
-  items.push({ critter: 'whale', bm: whaleBM, x: spots.whale[0], y: spots.whale[1] });
+  items.push({ critter: 'whale', bm: whales[0], x: spots.whale[0], y: spots.whale[1] });
+  // A drawing sunk some way into the water, with broken foam where it meets the surface.
+  function sunk(scr, bm, x, y, sink, t) {
+    for (let j = 0; j + sink <= bm.oy && j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (c) scr.set(x - bm.ox + i, y - bm.oy + sink + j, c); }
+    const row = (bm.oy - sink) * bm.w; let lo = -1, hi = -1;
+    if (sink <= bm.oy) for (let i = 0; i < bm.w; i++) if (bm.d[row + i]) { if (lo < 0) lo = i; hi = i; }
+    if (lo < 0) return;
+    const beat = Math.floor(t * 6);
+    for (let i = lo - 3; i <= hi + 3; i++) {
+      const px = x - bm.ox + i, edge = i < lo || i > hi;
+      if (hash(i, beat, 64) < (edge ? 0.7 : 0.85)) scr.set(px, y, R.white[1]);
+      if (hash(i, beat, 65) < 0.4) scr.set(px, y + 1, R.sea[5]);
+      if (edge && hash(i, beat, 66) < 0.45) scr.set(px, y - 1, R.white[1]);
+    }
+  }
   function drawWhale(scr, a, ox, oy, t) {
-    const u = (t + 0.62) % WHALE, wx = a.x - ox, wy = a.y - oy;
-    const ease = v => v * v * (3 - 2 * v);
-    if (u < 1.5) {
-      const sink = Math.round(u < 0.5 ? 44 * (1 - ease(u / 0.5)) : u < 0.85 ? 0 : 46 * ease((u - 0.85) / 0.65));
-      const sx = wx - whaleBM.ox - Math.round(sink * 0.8), sy = wy - whaleBM.oy + sink;
-      for (let j = 0; j < whaleBM.h && j + sink <= whaleBM.oy; j++) for (let i = 0; i < whaleBM.w; i++) { const c = whaleBM.d[j * whaleBM.w + i]; if (c) scr.set(sx + i, sy + j, c); }
+    const T = t + ahead + T0, n = Math.floor(T / SLOT), u = T - n * SLOT - starts(n), wx = a.x - ox, wy = a.y - oy;
+    const white = R.white[1], pale = R.sea[5], ease = v => v * v * (3 - 2 * v);
+    // The foam it leaves lies on the water, so it goes down first: a patch where it landed that thins
+    // out, and a ring that spreads from it and breaks up. A small ring marks where it came out.
+    const ring = (cx, age, len, rx, ry) => { if (age < 0 || age > len) return; const thin = age / len; for (let k = 0; k < 96; k++) { if (hash(k, Math.floor(t * 2.5), 62) < thin) continue; const an = k / 96 * TAU; scr.set(Math.round(wx + cx + Math.cos(an) * rx), Math.round(wy + Math.sin(an) * ry), k % 5 ? white : pale); } };
+    ring(-3, u - 0.1, 1.8, 8 + 8 * (u - 0.1), 2.4 + 2 * (u - 0.1));
+    const wet = u - IMPACT;
+    if (wet > 0.1 && wet < 4.2) {
+      const rx = 30 + 4 * wet, ry = 4 + 1.1 * wet;
+      for (let dy = -Math.ceil(ry); dy <= ry; dy++) for (let dx = -Math.ceil(rx); dx <= rx; dx++) {
+        const d = dx * dx / (rx * rx) + dy * dy / (ry * ry); if (d > 1) continue;
+        if (hash(a.x + dx, a.y + dy, 67) < 0.3 + 0.17 * wet + 0.25 * d) continue;
+        scr.set(wx - 22 + dx, wy + dy, wet < 1.4 && hash(a.x + dx, a.y + dy, 68) < 0.7 ? white : pale);
+      }
     }
-    // Spray: thrown up as it comes out, and a bigger sheet as it lands.
-    for (let k = 0; k < 26; k++) {
-      const late = k >= 10, age = u - (late ? 1.15 : 0.08) - hash(k, 1, 61) * 0.2; if (age < 0 || age > 1.3) continue;
-      const vx = (hash(k, 2, 61) - 0.5) * (late ? 44 : 26), vy = (late ? 30 : 22) + hash(k, 3, 61) * 24;
-      const px = Math.round(wx - 4 + vx * age), py = Math.round(wy - vy * age + 46 * age * age);
-      if (py > wy + 2) continue;
-      scr.set(px, py, R.white[1]); if (hash(k, 4, 61) < 0.5) scr.set(px + 1, py, R.white[1]); scr.set(px, py + 1, R.sea[5]);
+    ring(-22, wet, 4.6, 30 + 9 * wet, 4 + 2.4 * wet);
+    if (u >= 0 && u < IMPACT + 0.5) sunk(scr, whales[Math.min(whales.length - 1, Math.floor(u * FPS))], wx, wy, Math.round(7 * smooth(2.05, IMPACT, u) + 16 * smooth(IMPACT, IMPACT + 0.5, u)), t);
+    // The flukes: up, a moment standing, then tipping over and under.
+    const uf = wet - 0.6;
+    if (uf > 0 && uf < 1.75) {
+      const sink = Math.round(uf < 0.6 ? 25 * (1 - ease(uf / 0.6)) : uf < 0.95 ? 0 : 25 * ease((uf - 0.95) / 0.8));
+      sunk(scr, flukes[Math.round(3 * smooth(0.5, 1.5, uf))], wx - 9, wy, sink, t);
     }
-    // The ring of foam it leaves, spreading and breaking up.
-    for (const [from, len, cx] of [[0.1, 1.6, -5], [1.2, 3.4, -3]]) {
-      const age = u - from; if (age < 0 || age > len) continue;
-      const rx = 7 + 9 * age, ry = 2.2 + 2.4 * age, thin = age / len;
-      for (let k = 0; k < 64; k++) { if (hash(k, Math.floor(t * 3), 62) < thin) continue; const an = k / 64 * TAU; scr.set(Math.round(wx + cx + Math.cos(an) * rx), Math.round(wy + Math.sin(an) * ry), k % 5 ? R.white[1] : R.sea[5]); }
+    ring(-12, uf - 1.5, 1.6, 5 + 7 * (uf - 1.5), 1.8 + 1.6 * (uf - 1.5));
+    // Spray: a little thrown up as it comes out, and a wall of it as it lands, which falls back as drops.
+    const drop = (px, py, big) => { if (py > wy + 1) return; scr.set(px, py, white); if (big) scr.set(px + 1, py, white); scr.set(px, py + 1, pale); };
+    for (let k = 0; k < 16; k++) {
+      const age = u - 0.05 - hash(k, 1, 61) * 0.3; if (age < 0 || age > 1.6) continue;
+      drop(Math.round(wx - 3 + (hash(k, 2, 61) - 0.5) * 28 * age), Math.round(wy - (22 + hash(k, 3, 61) * 22) * age + 46 * age * age), hash(k, 4, 61) < 0.5);
     }
-    // The roll and the blow.
-    const v = u - 8.5;
-    if (v > 0 && v < 3) {
-      const bx = wx + 8 - Math.round(v * 4), by = wy + 20, up = Math.round(v < 0.6 ? 5 * (1 - ease(v / 0.6)) : v > 2.2 ? 5 * ease((v - 2.2) / 0.8) : 0);
+    if (wet > -0.1 && wet < 0.8) {
+      const up = Math.sin(Math.PI * clamp((wet + 0.1) / 0.9, 0, 1)) ** 0.6, beat = Math.floor(t * 10);
+      for (let dx = -56; dx <= 12; dx++) {
+        // Highest over the middle of the body, and ragged along the top.
+        const h = Math.round((6 + 17 * vnoise(dx / 6, 3, 69)) * (1 + 0.5 * Math.exp(-(((dx + 24) / 15) ** 2))) * up * smooth(-56, -42, dx) * smooth(12, 0, dx));
+        for (let j = 0; j < h; j++) { if (j > h * 0.5 && hash(dx, j + beat * 7, 70) < 0.25 + 0.5 * (j / h - 0.5)) continue; scr.set(wx + dx, wy - j, j > h * 0.78 ? pale : white); }
+      }
+    }
+    for (let k = 0; k < 84; k++) {
+      const age = wet - hash(k, 1, 74) * 0.35; if (age < 0 || age > 3) continue;
+      const x0 = -50 + 56 * hash(k, 2, 74), vx = (hash(k, 3, 74) - 0.5) * 36 + (x0 + 22) * 0.6, vy = 26 + 44 * hash(k, 4, 74);
+      drop(Math.round(wx + x0 + vx * age), Math.round(wy - vy * age + 46 * age * age), hash(k, 5, 74) < 0.5);
+    }
+    // The roll and the blow, at a different spot each time.
+    for (const [at, dx, dy] of [[17, -24, 2], [31, 8, -8]]) {
+      const v = u - at; if (v <= 0 || v >= 3) continue;
+      const bx = wx + dx + 6 - Math.round(v * 4), by = wy + dy, up = Math.round(v < 0.6 ? 5 * (1 - ease(v / 0.6)) : v > 2.2 ? 5 * ease((v - 2.2) / 0.8) : 0);
       for (let j = 0; j < back.h - up; j++) for (let i = 0; i < back.w; i++) { const c = back.d[j * back.w + i]; if (c) scr.set(bx - back.ox + i, by - back.oy + up + j, c); }
-      for (let i = -9; i <= 9; i += 2) scr.set(bx + i, by + 1, R.white[1]);
-      if (v > 0.5 && v < 1.6) { const hgt = Math.round(9 * Math.min(1, (v - 0.5) / 0.3)), fade = v > 1.2; for (let j = 0; j < hgt; j++) { if (fade && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 4 ? Math.round((j - hgt + 4) * 0.8) : 0; scr.set(bx + 5 - sp, by - 5 - j, R.white[1]); scr.set(bx + 5 + sp, by - 5 - j, R.white[1]); } }
+      for (let i = -9; i <= 9; i += 2) scr.set(bx + i, by + 1, white);
+      if (v > 0.5 && v < 1.6) { const hgt = Math.round(9 * Math.min(1, (v - 0.5) / 0.3)), fade = v > 1.2; for (let j = 0; j < hgt; j++) { if (fade && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 4 ? Math.round((j - hgt + 4) * 0.8) : 0; scr.set(bx + 5 - sp, by - 5 - j, white); scr.set(bx + 5 + sp, by - 5 - j, white); } }
     }
   }
 
@@ -179,7 +228,7 @@ export function makeCritters(W, opts = {}) {
   const FERRY = { v: 7, away: [38, 50] }, CROSS = FLEN / FERRY.v, ROUND = 2 * CROSS + FERRY.away[0] + FERRY.away[1];
   // How far along its course it is, 0 at the west end and 1 at the south, and which way it is heading;
   // nothing while it is away. At time 0 it is part way across, so the block-in page has it.
-  const ferryAt = t => { const u = (t + 0.42 * CROSS) % ROUND, back = u - CROSS - FERRY.away[0]; return u < CROSS ? [u / CROSS, 1] : back >= 0 && back < CROSS ? [1 - back / CROSS, -1] : null; };
+  const ferryAt = t => { const u = (t + 0.6 * CROSS) % ROUND, back = u - CROSS - FERRY.away[0]; return u < CROSS ? [u / CROSS, 1] : back >= 0 && back < CROSS ? [1 - back / CROSS, -1] : null; };
   // The course bows out to sea a little in the middle.
   const coursePt = s => { const b = 14 * Math.sin(Math.PI * clamp(s, 0, 1)); return [FA[0] + (FB[0] - FA[0]) * s - 0.56 * b, FA[1] + (FB[1] - FA[1]) * s + 0.83 * b]; };
   function drawFerry(scr, ox, oy, t) {
