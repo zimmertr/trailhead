@@ -282,35 +282,41 @@ class Screen {
   }
   // The Dusk-only sky, drawn onto whatever sky the scene left showing: stars that twinkle, a thin
   // moon, a shooting star now and then, and a curtain of aurora that comes and goes.
+  // A scene whose sky scrolls (the map) sets `sky` each frame: where its world's top left corner is,
+  // and the size of the sky the stars are laid out over. Then all of it is pinned to that sky and
+  // comes into view when the camera rises. With no `sky` it fills the screen, as in every other scene.
   night(t, mix) {
+    const pin = this.sky; this.sky = null;
     if (mix < 0.3) return;
-    const { VW, VH, fb } = this;
-    if (!this.stars || this.starsFor !== VW * 10000 + VH) {
-      this.starsFor = VW * 10000 + VH; this.stars = [];
-      const n = Math.round(VW * VH / 520);
-      for (let k = 0; k < n; k++) this.stars.push([Math.floor(hash(k, 1, 300) * VW), Math.floor(sq(hash(k, 2, 300)) * VH * 0.8), hash(k, 3, 300), hash(k, 4, 300) < 0.08]);
+    const { VW, VH, fb } = this, W = pin ? pin.w : VW, H = pin ? pin.h : VH, ox = pin ? pin.ox : 0, oy = pin ? pin.oy : 0;
+    if (!this.stars || this.starsFor !== W * 10000 + H) {
+      this.starsFor = W * 10000 + H; this.stars = [];
+      const n = Math.round(W * H / 520);
+      for (let k = 0; k < n; k++) this.stars.push([Math.floor(hash(k, 1, 300) * W), Math.floor(sq(hash(k, 2, 300)) * H * 0.8), hash(k, 3, 300), hash(k, 4, 300) < 0.08]);
     }
     for (let k = 0; k < 2; k++) for (let x = 0; x < VW; x++) {
-      const on = smooth(0.42, 0.72, vnoise(x / 110 + t * 0.035, k * 7, 301)); if (on <= 0) continue;
-      const base = Math.round(VH * (0.2 + 0.11 * k) + 12 * Math.sin(x / 57 + t * 0.09 + k * 2.4) + 9 * vnoise(x / 31 + t * 0.06, k, 302)), len = 14 + 30 * vnoise(x / 6 + t * 0.22, k + 5, 303);
-      for (let y = Math.max(0, Math.round(base - len)); y <= base; y++) {
+      const wx = x + ox, on = smooth(0.42, 0.72, vnoise(wx / 110 + t * 0.035, k * 7, 301)); if (on <= 0) continue;
+      const base = Math.round(H * (0.2 + 0.11 * k) + 12 * Math.sin(wx / 57 + t * 0.09 + k * 2.4) + 9 * vnoise(wx / 31 + t * 0.06, k, 302)) - oy, len = 14 + 30 * vnoise(wx / 6 + t * 0.22, k + 5, 303);
+      for (let y = Math.max(0, Math.round(base - len)); y <= base && y < VH; y++) {
         const i = y * VW + x; if (!SKY[fb[i]]) continue;
-        const v = on * (1 - (base - y) / len) * (0.6 + 0.4 * vnoise(x / 3, t * 0.8 + k, 304));
-        if (bayer(x, y) < v * 1.25) fb[i] = R.aurora[v > 0.62 ? 2 : v > 0.3 ? 1 : 0];
+        const v = on * (1 - (base - y) / len) * (0.6 + 0.4 * vnoise(wx / 3, t * 0.8 + k, 304));
+        if (bayer(wx, y + oy) < v * 1.25) fb[i] = R.aurora[v > 0.62 ? 2 : v > 0.3 ? 1 : 0];
       }
     }
-    for (const [x, y, ph, big] of this.stars) {
+    for (const [sx, sy, ph, big] of this.stars) {
+      const x = sx - ox, y = sy - oy; if (x < 0 || y < 0 || x >= VW || y >= VH) continue;
       const i = y * VW + x; if (!SKY[fb[i]]) continue;
       const tw = Math.sin(t * (0.6 + ph * 1.8) + ph * 40);
       if (tw < -0.75) continue;
       fb[i] = R.star[big || tw > 0.5 ? 2 : ph > 0.5 ? 1 : 0];
-      if (big && tw > 0.2) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const j = (y + dy) * VW + x + dx; if (x + dx >= 0 && x + dx < VW && y + dy >= 0 && SKY[fb[j]]) fb[j] = R.star[0]; }
+      if (big && tw > 0.2) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const j = (y + dy) * VW + x + dx; if (x + dx >= 0 && x + dx < VW && y + dy >= 0 && y + dy < VH && SKY[fb[j]]) fb[j] = R.star[0]; }
     }
-    const mx = Math.round(VW * 0.8), my = Math.round(Math.min(VH * 0.16, 44));
+    const mx = Math.round(pin && pin.moon ? pin.moon[0] : W * 0.8) - ox, my = Math.round(pin && pin.moon ? pin.moon[1] : Math.min(H * 0.16, 44)) - oy;
     for (let dy = -6; dy <= 6; dy++) for (let dx = -6; dx <= 6; dx++) { if (dx * dx + dy * dy > 36 || sq(dx + 3.4) + sq(dy + 1.6) <= 33) continue; const x = mx + dx, y = my + dy; if (x >= 0 && y >= 0 && x < VW && y < VH && (SKY[fb[y * VW + x]] || RAMP_OF[fb[y * VW + x]] === 'aurora')) fb[y * VW + x] = R.star[dx > 3 ? 2 : 1]; }
+    // A shooting star falls wherever the view happens to be, at the height of the dark sky.
     const n = Math.floor(t / 9), u = (t - n * 9) / 0.7;
     if (u < 1 && hash(n, 1, 305) < 0.7) {
-      const x0 = VW * (0.2 + 0.7 * hash(n, 2, 305)), y0 = VH * (0.04 + 0.2 * hash(n, 3, 305));
+      const x0 = VW * (0.2 + 0.7 * hash(n, 2, 305)), y0 = H * (0.04 + 0.2 * hash(n, 3, 305)) - oy;
       for (let k = 0; k < 12; k++) { const x = Math.round(x0 - (u * 60 - k) * 1.0), y = Math.round(y0 + (u * 60 - k) * 0.45); if (u * 60 - k < 0 || x < 0 || y < 0 || x >= VW || y >= VH || !SKY[fb[y * VW + x]]) continue; fb[y * VW + x] = R.star[k < 2 ? 2 : k < 6 ? 1 : 0]; }
     }
   }
