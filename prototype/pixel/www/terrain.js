@@ -692,7 +692,9 @@ function whale(p) {
   for (let i = 0, x = 0, y = 0; i <= n; i++) { const w = i / n, th = (p.tail + (p.head - p.tail) * w) * D; sp.push([x, y, th, p.out * (1 - w)]); x -= Math.cos(th) * 0.5; y -= Math.sin(th) * 0.5; }
   const tip = sp.length - 1;
   const body = layer();
-  for (let y = -70; y <= 0; y++) for (let x = -84; x < 36; x++) {
+  // Only the box round the part of the spine that is out of the water, or just under it, needs looking at.
+  let x0 = 0, x1 = 0, y0 = 0; for (const q of sp) if (q[1] <= 10) { x0 = Math.min(x0, q[0]); x1 = Math.max(x1, q[0]); y0 = Math.min(y0, q[1]); }
+  for (let y = Math.max(-70, Math.floor(y0) - 10); y <= 0; y++) for (let x = Math.max(-84, Math.floor(x0) - 10); x <= Math.min(35, Math.ceil(x1) + 10); x++) {
     let bi = 0, bd = 1e9; for (let i = 0; i <= tip; i++) { const dx = x - sp[i][0], dy = y - sp[i][1], d = dx * dx + dy * dy; if (d < bd) { bd = d; bi = i; } }
     const [px, py, th, s] = sp[bi], r = 8.5 * key(GIRTH, s), nx = Math.sin(th), ny = -Math.cos(th);
     // Past the snout the tube ends in a round nose.
