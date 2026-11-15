@@ -73,8 +73,9 @@ const TRAILS = {
   // the snow, winding up the ice until it fades.
   track: [[936, 572], [939, 563], [948, 556], [958, 552], [965, 545], [960, 535], [969, 526], [965, 516], [974, 507], [981, 499]]
 };
-// The river runs straight out of the lake: its first point lies in the water.
-const RIVER = [[628, 543], [630, 556], [640, 590], [668, 625], [694, 660], [712, 700], [708, 750], [682, 800], [634, 842], [588, 880], [524, 906], [458, 932], [404, 978], [372, 1010]];
+// The river runs straight out of the lake: its first point lies in the water. At the coast it bends
+// along the back of the beach before it turns out to sea.
+const RIVER = [[628, 543], [630, 556], [640, 590], [668, 625], [694, 660], [712, 700], [708, 750], [682, 800], [634, 842], [588, 880], [524, 906], [458, 932], [419, 962], [412, 975], [404, 981], [396, 986], [391, 994], [386, 1003]];
 const INLET = [[742, 514], [728, 522], [712, 527], [702, 530]];
 // trail and track: 2 on the tread, 1 on its edge. tkind: how much of a trail's tread is rock there, 0 to
 // 255. trackF: how far along the way from the tents up the ice a spot is, 1 at the tents to 201 where it
@@ -85,7 +86,7 @@ const trailPts = [];
 function stamp(mask, pts, r0, r1, kindOf, kinds = tkind) {
   const all = catmull(pts);
   all.forEach(([px, py], n) => {
-    const f = n / (all.length - 1), rr = lerp(r0, r1, f), R2 = Math.ceil(rr + 1);
+    const f = n / (all.length - 1), rr = typeof r0 === 'function' ? r0(f, px, py) : lerp(r0, r1, f), R2 = Math.ceil(rr + 1);
     for (let dy = -R2; dy <= R2; dy++) for (let dx = -R2; dx <= R2; dx++) {
       const d = Math.hypot(dx, dy), x = Math.round(px + dx), y = Math.round(py + dy), v = d <= rr ? 2 : d <= rr + 1 ? 1 : 0;
       if (v && x >= 0 && y >= 0 && x < NW && y < NH && mask[at(x, y)] < v) { mask[at(x, y)] = v; if (kindOf) kinds[at(x, y)] = kindOf(f); }
@@ -102,8 +103,11 @@ trailPts.push(...stamp(trail, TRAILS.spires, 1.9, 1.9, f => Math.round(255 * smo
 // The track is as wide as the trail until it thins toward its end. It is kept out of trailPts so
 // that nothing which was placed by asking how near a trail is has to move.
 const trackPts = stamp(track, TRAILS.track, 1.9, 0.8, f => 1 + Math.round(f * 200), trackF);
-stamp(river, RIVER, 2.2, 6, null); stamp(river, INLET, 1.2, 1.6, null);
-stamp(riverWas, RIVER.slice(1), 2.2, 6, null); stamp(riverWas, INLET, 1.2, 1.6, null);
+// The river widens all the way down from the lake, then draws in through the last of the forest to
+// a narrow channel on the beach, and opens a little where it meets the surf.
+const riverR = (f, x, y) => { const cs = coast(x, y); return lerp(2.2, 6, f) * lerp(1, 0.47, smooth(-110, -22, cs)) * (1 + 0.3 * smooth(-5, 3, cs)); };
+stamp(river, RIVER, riverR, 0, null); stamp(river, INLET, 1.2, 1.6, null);
+stamp(riverWas, [[630, 556], [640, 590], [668, 625], [694, 660], [712, 700], [708, 750], [682, 800], [634, 842], [588, 880], [524, 906], [458, 932], [404, 978], [372, 1010]], 2.2, 6, null); stamp(riverWas, INLET, 1.2, 1.6, null);
 // The lake trail crosses the river twice, and a footbridge carries it over each time. A bridge is
 // the stretch of trail over the water and a few steps of bank at either end.
 const BRIDGES = [];
@@ -218,6 +222,12 @@ function paintNorth() {
 // Where the river meets the sea, and which way it is running there. mouthD is under 1 inside the
 // fan of river water that spreads from that spot, longer along the flow than across it.
 const riverPts = catmull(RIVER), MOUTH = (() => { for (let k = 1; k < riverPts.length; k++) { const [px, py] = riverPts[k]; if (coast(px, py) > 0) { const [qx, qy] = riverPts[Math.max(0, k - 12)], l = Math.hypot(px - qx, py - qy) || 1; return { x: px, y: py, dx: (px - qx) / l, dy: (py - qy) / l }; } } return null; })();
+// The river's last stretch with its width at each point, and how far outside the channel's bank a
+// spot on the beach is. The bank wobbles so it is not a ruled line.
+const mouthChan = riverPts.map(([px, py], n) => [px, py, riverR(n / (riverPts.length - 1), px, py)]).filter(([px, py], n) => n % 2 === 0 && coast(px, py) > -40);
+const bankD = (x, y) => { if (!MOUTH || Math.abs(x - MOUTH.x) > 60 || Math.abs(y - MOUTH.y) > 60) return 99; let best = 99; for (const [px, py, r] of mouthChan) { const d = Math.hypot(px - x, py - y) - r; if (d < best) best = d; } return best + 1.1 * (vnoise(x / 3.5, y / 3.5, 89) - 0.5); };
+// The river has spread a small flat of sand behind the beach where it comes out of the forest.
+const mouthFlat = (x, y) => MOUTH ? 9 * smooth(30, 10, Math.hypot(x - MOUTH.x - 9, y - MOUTH.y + 6)) : 0;
 const mouthD = (x, y) => { if (!MOUTH || Math.abs(x - MOUTH.x) > 34 || Math.abs(y - MOUTH.y) > 34) return 9; const ex = x - MOUTH.x, ey = y - MOUTH.y, u = ex * MOUTH.dx + ey * MOUTH.dy, v = ex * MOUTH.dy - ey * MOUTH.dx; return Math.hypot((u - 4) / 13, v / (7 + Math.max(0, u) * 0.35)) + 0.25 * (vnoise(x / 5, y / 5, 91) - 0.5); };
 // Near its end the boot track breaks up into single prints: this is true in the gaps between them.
 const printGap = i => { const tf = (trackF[i] - 1) / 200; return tf > 0.8 && Math.floor(tf * 70) % 3 === 0; };
@@ -239,11 +249,18 @@ function ground(x, y) {
     if (md < 1) return hash(x, y, 90) < 0.12 * (1 - md) ? R.sea[5] : pick('sea', v + 0.28 * smooth(1, 0.25, md), x, y, 0.8);
     return pick('sea', v, x, y);
   }
-  if (cs > -4 && x < SEA.w && y >= SEA.y0 && !river[i]) SEA.shore[(y - SEA.y0) * SEA.w + x] = 1 + Math.round((cs + 4) * 8);
-  if (cs > -15 - 6 * vnoise(x / 20, y / 20, 87)) {
-    // The river crosses the beach in a shallow channel that widens and braids round bars of sand.
-    if (river[i] === 2) return vnoise(x / 5, y / 3, 89) > 0.74 ? R.sand[1] : hash(x, y, 9) < 0.08 ? R.glint[(x + y) & 3] : R.water[y & 1 ? (cs > -6 ? 4 : 3) : (cs > -6 ? 5 : 4)];
-    if (river[i] === 1) return R.sand[0];
+  // On the beach the river is a shallow channel with soft banks. bd is how far outside its bank this
+  // spot is (under 0 is in the water), and the surf line is left open where the channel meets it.
+  const bd = cs > -34 ? bankD(x, y) : 99;
+  if (cs > -4 && x < SEA.w && y >= SEA.y0 && bd > 1) SEA.shore[(y - SEA.y0) * SEA.w + x] = 1 + Math.round((cs + 4) * 8);
+  if (cs > -15 - 6 * vnoise(x / 20, y / 20, 87) - mouthFlat(x, y)) {
+    if (bd < 0) {
+      // A few grains of the bank break the water's edge, and the water pales as it shallows toward the surf.
+      if (bd > -1.1 && hash(x, y, 93) < 0.22) return R.sand[1];
+      return hash(x, y, 9) < 0.04 ? R.glint[(x + y) & 3] : pick('water', 0.6 + 0.36 * smooth(-18, 1, cs) + 0.12 * (hash(x, y, 94) - 0.5), x, y, 0.9);
+    }
+    // Wet sand lies dark along both banks.
+    if (bd < 2.2) return R.sand[hash(x, y, 95) < 0.2 ? 1 : 0];
     return R.sand[cs > -4 ? 0 : hash(x, y, 88) < 0.25 ? 1 : 2];
   }
   if (isleD(x, y) < 1) return pick('grass', 0.55 + 0.3 * n1, x, y);
@@ -464,7 +481,7 @@ const mouthPts = riverPts.filter(([px, py]) => coast(px, py) > -44);
 // board at the junction, and does not hide the river where it reaches the beach.
 const free = (x, y, w, h) => open(x, y) && !BRIDGES.some(b => Math.abs(x - b.x) < b.w / 2 + w / 2 + 3 && y > b.y - 9 && y - h < b.y + 9)
   && !(Math.abs(x - KIOSK.x) < 15 + w / 2 && y > KIOSK.y - 30 && y - h < KIOSK.y + 3)
-  && !mouthPts.some(([px, py]) => Math.abs(px - x) < w / 2 + 2 && py < y + 2 && py > y - h);
+  && !mouthPts.some(([px, py]) => Math.abs(px - x) < w / 2 + 2 && py < y + 2 && py > y - h) && !(mouthFlat(x, y) > 0 && coast(x, y) > -32);
 const onIce = (x, y, by) => { const q = glacier(x, y); return q.d < q.w + by; };
 const clearOf = (x, y, w, h) => { for (let i = 0; i < trailPts.length; i += 2) { const p = trailPts[i]; if (Math.abs(p[0] - x) < w / 2 + 5 && p[1] > y - h - 3 && p[1] < y + 5) return false; } for (const [cx, cy, rx, ry] of LAKE) if (Math.abs(x - cx) < rx + w / 2 && y > cy - ry && y - h * 0.8 < cy + ry * 0.4) return false; return true; };
 // The rainforest, with big-leaf maples turning gold along its trail.
@@ -501,11 +518,13 @@ for (let n = 0; n < 90; n++) { const x = 1030 + rand() * 500, y = 480 + rand() *
 // The dry side: open ponderosa, then sagebrush, then nothing but rock and grass. Where the burn
 // reached the pines it left them standing black.
 rand = dice(36819);
+const pineAt = [], apart = (x, y) => !pineAt.some(([px, py]) => Math.abs(px - x) < 24 && Math.abs(py - y) < 20);
 for (let n = 0; n < 760; n++) {
   const x = 1090 + rand() * 470, y = 560 + rand() * 380, da = dryAmt(x, y), sg = sageAmt(x, y);
   if (rand() > da || couleeAmt(x, y) || !openWas(x, y)) continue;
   if (rand() < burnAmt(x, y)) { if (rand() < 0.45) putTree(burnt[(rand() * 4) | 0], x, y); continue; }
-  if (rand() < (1 - sg) * 0.3 && fbm(x / 50, y / 40, 121, 3) > 0.42) plant(pines[(rand() * 5) | 0], x, y); else if (rand() < 0.2 + sg * 0.6) put(sages[(rand() * 3) | 0], x, y);
+  // A ponderosa is planted only where its crown stays clear of the next one's, so they stand as singles and pairs.
+  if (rand() < (1 - sg) * 0.3 && fbm(x / 50, y / 40, 121, 3) > 0.42) { const t = pines[(rand() * 5) | 0]; if (apart(x, y)) { pineAt.push([x, y]); plant(t, x, y); } } else if (rand() < 0.2 + sg * 0.6) put(sages[(rand() * 3) | 0], x, y);
 }
 // The old burn: silver and charred snags standing over young trees, thinning out at its edges.
 rand = dice(40145);
@@ -513,28 +532,31 @@ for (let n = 0; n < 760; n++) {
   const x = 980 + rand() * 580, y = 770 + rand() * 310; if (rand() > burnAmt(x, y) * 1.1 || !openWas(x, y)) continue;
   const r = rand(); if (r < 0.34) putTree(snags[(rand() * 5) | 0], x, y); else if (r < 0.52) putTree(burnt[(rand() * 4) | 0], x, y); else if (r < 0.7) plant(young[(rand() * 4) | 0], x, y); else if (r < 0.74) layLog(silverLogs[n % 4], x, y, n, 0.5);
 }
-// The east side between the larches and the burn: aspen in groves and ponderosa standing apart.
-// They have dice of their own, so nothing else on the map moves when they change. Each kind strays
-// into its neighbours, the larches a little way south and the snags a little way north, so the three
-// bands run into one another.
+// The east side between the larches and the burn: aspen in separate groves with open ground between
+// them, and ponderosa standing apart on the dry grass. Each kind has dice of its own, so nothing else
+// on the map moves when one changes. Each strays into its neighbours, the larches a little way south
+// and the snags a little way north, so the three bands run into one another.
 {
-  const r2 = rng(2703), stood = [];
+  const r2 = rng(2703), r3 = rng(2704), r4 = rng(2705), stood = [], groves = [];
   const band = (x, y) => eastAmt(x, y) * smooth(0.6, 0.15, basinAmt(x, y)) * smooth(0.85, 0.2, burnAmt(x, y)) * (1 - 0.8 * sageAmt(x, y));
   const fits = (x, y, w, h, gapX, gapY) => x > 4 && x < NW - 4 && y < NH - 2 && free(x, y, w, h) && clearOf(x, y, w, h) && !couleeAmt(x, y) && !couleeAmt(x, y + 6) && !stood.some(([px, py]) => Math.abs(px - x) < gapX && Math.abs(py - y) < gapY);
-  for (let n = 0; n < 170; n++) {
-    const cx = 990 + r2() * 480, cy = 590 + r2() * 340, size = 4 + (r2() * 10 | 0), spread = 8 + r2() * 12, luck = r2();
-    const here = luck < band(cx, cy) * (0.16 + 0.9 * smooth(0.42, 0.62, fbm(cx / 70, cy / 50, 135, 3)));
+  for (let n = 0; n < 600; n++) {
+    const cx = 1000 + r2() * 470, cy = 600 + r2() * 330, size = 9 + (r2() * 7 | 0), spread = 6 + r2() * 5, luck = r2();
+    // Groves stand closest together under the larches and thin out toward the dry side and the burn.
+    const share = band(cx, cy) * (0.1 + 0.9 * smooth(830, 660, cy)) * (1 - 0.75 * smooth(0.15, 0.7, dryAmt(cx, cy))) * smooth(0.6, 0.1, burnAmt(cx, cy));
+    const here = luck < share && !groves.some(([gx, gy]) => Math.abs(gx - cx) < 48 && Math.abs(gy - cy) < 32);
+    if (here) groves.push([cx, cy]);
     for (let k = 0; k < size; k++) {
       const a = r2() * TAU, d = Math.sqrt(r2()) * spread, x = cx + Math.cos(a) * d * 1.5, y = cy + Math.sin(a) * d * 0.8, t = aspens[(r2() * 7) | 0];
       if (here && fits(x, y, 8, t.h, 5, 3)) { stood.push([x, y]); plant(t, x, y); }
     }
   }
   for (let n = 0; n < 460; n++) {
-    const x = 1010 + r2() * 430, y = 600 + r2() * 310, luck = r2(), t = pines[(r2() * 5) | 0];
-    if (luck < band(x, y) * 0.13 && fits(x, y, 10, t.h, 13, 7)) { stood.push([x, y]); plant(t, x, y); }
+    const x = 1010 + r3() * 430, y = 600 + r3() * 310, luck = r3(), t = pines[(r3() * 5) | 0];
+    if (luck < band(x, y) * (0.02 + 0.2 * dryAmt(x, y)) && apart(x, y) && fits(x, y, 10, t.h, 9, 6)) { stood.push([x, y]); pineAt.push([x, y]); plant(t, x, y); }
   }
   for (let n = 0; n < 320; n++) {
-    const x = 1010 + r2() * 500, y = 640 + r2() * 250, luck = r2(), k = r2(), ba = basinAmt(x, y), bu = burnAmt(x, y);
+    const x = 1010 + r4() * 500, y = 640 + r4() * 250, luck = r4(), k = r4(), ba = basinAmt(x, y), bu = burnAmt(x, y);
     if (!fits(x, y, 12, 30, 7, 4)) continue;
     if (ba > 0.03 && ba < 0.5 && luck < ba * 0.4) { stood.push([x, y]); plant(larches[(k * 6) | 0], x, y); }
     else if (bu > 0.04 && bu < 0.55 && luck < bu * 0.45) { stood.push([x, y]); putTree(k < 0.6 ? snags[(k * 8) | 0] : burnt[((k - 0.6) * 10) | 0], x, y); }
