@@ -6,7 +6,7 @@ import { makeCritters } from './critters.js';
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
 import { makeCats } from './cats.js';
 import { makeRunner } from './tj.js';
-import { buildTerrain, NW as WW, NH as WH, T, PEAK as PEAK_AT, STACK as STACK_AT, SPIRES as SPIRES_AT } from './terrain.js';
+import { buildTerrain, loadBake, NW as WW, NH as WH, T, PEAK as PEAK_AT, STACK as STACK_AT, SPIRES as SPIRES_AT } from './terrain.js';
 // ---------------------------------------------------------------------------------------------
 // The world. Pixel coordinates, x east, y south. North is up the screen, so the three
 // destinations stand along the top of the meadow: the forest and About Lake on the left,
@@ -150,8 +150,8 @@ function makePeak() {
 // ---------------------------------------------------------------------------------------------
 // The scene. Built once; drawn for whichever stretch of trail (a leg) he is on.
 
-export function makeWorld() {
-  const peakBM = makePeak(), W = buildTerrain(peakBM), { g: ground, spots, mist, forestAmt } = W;
+export function makeWorld(bake) {
+  const peakBM = makePeak(), W = buildTerrain(peakBM, { bake }), { g: ground, spots, mist, forestAmt } = W;
   const paths = {}; for (const k of ['lake', 'stack', 'spires']) paths[k] = makePath({ pts: W.trails[k], stops: [] });
   // Shafts of light slant through the forest, and give out where the mist takes over in the west.
   const shaftMask = new Uint8Array(WW * WH);
@@ -399,4 +399,4 @@ export function makeWorld() {
   };
 }
 
-export { makeStack, makeMassif, makePeak };
+export { makeStack, makeMassif, makePeak, loadBake };

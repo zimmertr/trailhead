@@ -11,9 +11,34 @@ const T = { x: 820, y: 630 }, PEAK = { x: 645, y: 514 }, STACK = { x: 805, y: 54
 const GL = { x0: 976, y0: 510, x1: 969, y1: 541 };
 // The trail conditions board stands just north-east of the junction. The cats keep to it (cats.js).
 const KIOSK = { x: 846, y: 608 };
-export function buildTerrain(peak) {
+// The sea's corner of the map, where the swells and the wash line are kept.
+const SEA_W = 680, SEA_H = NH - 630;
+// Reads ground.png: a grey picture as wide as the map whose first NH rows are the ground, one palette
+// entry to a pixel, followed by three strips the size of the sea's corner (wash line, which swells
+// show, the swell's phase). It is unpacked here by hand, not through a canvas, so every byte comes
+// back exactly as it was baked. Anything amiss gives null and the ground is worked out as before.
+export async function loadBake() {
+  try {
+    const res = await fetch(new URL('./ground.png', import.meta.url)); if (!res.ok) return null;
+    const b = new Uint8Array(await res.arrayBuffer()), dv = new DataView(b.buffer), parts = []; let w = 0, h = 0;
+    for (let p = 8; p + 12 <= b.length;) {
+      const n = dv.getUint32(p), type = String.fromCharCode(b[p + 4], b[p + 5], b[p + 6], b[p + 7]);
+      if (type === 'IHDR') { w = dv.getUint32(p + 8); h = dv.getUint32(p + 12); } else if (type === 'IDAT') parts.push(b.subarray(p + 8, p + 8 + n));
+      p += 12 + n;
+    }
+    if (w !== NW || h !== NH + 3 * SEA_H) return null;
+    const px = new Uint8Array(await new Response(new Blob(parts).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+    if (px.length !== (w + 1) * h) return null;
+    // Each row starts with one byte that says how it is packed; the bake packs none of them.
+    const row = y => px.subarray(y * (w + 1) + 1, (y + 1) * (w + 1));
+    const g = new Uint8Array(NW * NH); for (let y = 0; y < NH; y++) g.set(row(y), y * NW);
+    const strip = k => { const a = new Uint8Array(SEA_W * SEA_H); for (let y = 0; y < SEA_H; y++) a.set(row(NH + k * SEA_H + y).subarray(0, SEA_W), y * SEA_W); return a; };
+    return { g, shore: strip(0), gate: strip(1), ph: strip(2) };
+  } catch { return null; }
+}
+export function buildTerrain(peak, opt = {}) {
 const g = new Uint8Array(NW * NH);
-const SEA = { y0: 630, w: 680, h: NH - 630 }; for (const k of ['ph', 'gate', 'shore']) SEA[k] = new Uint8Array(SEA.w * SEA.h);
+const SEA = { y0: NH - SEA_H, w: SEA_W, h: SEA_H }; for (const k of ['ph', 'gate', 'shore']) SEA[k] = new Uint8Array(SEA.w * SEA.h);
 const at = (x, y) => y * NW + x;
 
 // ---- shapes -------------------------------------------------------------------------------
@@ -346,7 +371,20 @@ function ground(x, y) {
   if (ba > 0.1 && hash(x >> 1, y >> 1, 108) < ba * 0.3) return R.granite[3 + (hash(x, y, 109) < 0.5 ? 0 : 1)];
   return pick('grass', 0.56 + 0.55 * (fbm(x / 26, y / 26, 31, 3) - 0.5) + 0.14 * (hash(x >> 1, y >> 1, 32) - 0.5) - fa * 0.45 - smooth(462, 505, y) * 0.1 + da * 0.2, x, y, 0.3);
 }
-for (let y = 0; y < NH; y++) for (let x = 0; x < NW; x++) g[at(x, y)] = ground(x, y);
+// Working the ground out pixel by pixel takes about a second, most of the wait before the map shows.
+// So it is worked out ahead of time and kept in ground.png (bake.sh), with the three things ground()
+// leaves behind for the sea. A bake is trusted only if ground() still gives the same answer at one
+// spot in every ten by ten pixels; if the map has changed since, the ground is worked out here.
+let baked = opt.bake && opt.bake.g.length === g.length ? opt.bake : null;
+if (baked) check: for (let by = 0; by < NH; by += 10) for (let bx = 0; bx < NW; bx += 10) {
+  const x = Math.min(NW - 1, bx + Math.floor(hash(bx, by, 911) * 10)), y = Math.min(NH - 1, by + Math.floor(hash(bx, by, 912) * 10));
+  if (ground(x, y) !== baked.g[at(x, y)]) { baked = null; break check; }
+}
+if (baked) { g.set(baked.g); for (const k of ['ph', 'gate', 'shore']) SEA[k].set(baked[k]); }
+else for (let y = 0; y < NH; y++) for (let x = 0; x < NW; x++) g[at(x, y)] = ground(x, y);
+// Said only while working on the map, where it means the bake wants running again.
+if (opt.bake !== undefined && !baked && location.hostname === 'localhost') console.warn('ground.png is missing or no longer matches the map: run ./bake.sh');
+const raw = opt.raw ? { g: g.slice(), shore: SEA.shore.slice(), gate: SEA.gate.slice(), ph: SEA.ph.slice() } : null;
 paintNorth();
 // The top of the boot track lies behind the Spires, which stand in front of the ground. The scene
 // draws these pixels again over the mountain so the track is seen to climb onto it.
@@ -772,6 +810,6 @@ mist.gate = new Uint8Array(mist.w * mist.h);
   for (let i = 0; i < trailPts.length; i += 2) { const p = trailPts[i]; if (p[0] < mist.x1 + 12) mark(Math.round(p[0]) - 7, Math.round(p[1]) - 8, Math.round(p[0]) + 7, Math.round(p[1]) + 6, 1, true); }
   for (const [sx, sy] of spots.signs) mark(sx - 14, sy - 24, sx + 14, sy + 6, 2, true);
 }
-return { g, things, spots, mist, sea: SEA, trackPts, trackPix, trails: TRAILS, forestAmt, lakeD, coast, groundLine, glacier, talus, open, nearTrail, make: { ferry, whale, sheep, squirrel } };
+return { raw, baked: !!baked, g, things, spots, mist, sea: SEA, trackPts, trackPix, trails: TRAILS, forestAmt, lakeD, coast, groundLine, glacier, talus, open, nearTrail, make: { ferry, whale, sheep, squirrel } };
 }
 export { OX, OY, NW, NH, T, PEAK, STACK, SPIRES, KIOSK };

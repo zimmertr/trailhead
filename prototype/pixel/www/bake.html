@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Trailhead ground bake</title>
+<!-- Opened only by bake.sh: works the ground out in full and hands it over to be written to ground.png. -->
+<script type="module">
+import { buildTerrain, NW, NH } from './terrain.js';
+import { makePeak } from './world.js';
+const { raw } = buildTerrain(makePeak(), { raw: true }), SW = 680, SH = raw.shore.length / SW;
+const all = new Uint8Array(NW * (NH + 3 * SH)); all.set(raw.g);
+[raw.shore, raw.gate, raw.ph].forEach((a, k) => { for (let y = 0; y < SH; y++) all.set(a.subarray(y * SW, (y + 1) * SW), (NH + k * SH + y) * NW); });
+let s = ''; for (let i = 0; i < all.length; i += 32768) s += String.fromCharCode.apply(null, all.subarray(i, i + 32768));
+window.__bake = { w: NW, h: NH + 3 * SH, data: btoa(s) }; window.__ready = true;
+</script>

@@ -2,7 +2,7 @@
 // peak. He runs left to right along the near shore, stops for the view with the map out, and
 // again at the boulder where his journal lies open.
 import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, thick, windAt } from './core.js';
-import { Strip, drawStrip, blitTall, baseline } from './side.js';
+import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
 import { makeTrunk, makeLimb, swordFern } from './forest.js';
 import { makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush, makeMaple } from './sprites.js';
 import { marmot, speck } from './fauna.js';
@@ -63,7 +63,15 @@ function miniFir(S, x, y, h, c0) {
   for (let j = 0; j < h; j++) { const hw = Math.max(0, (j + 1) * 0.42 * (j % 3 === 2 ? 0.7 : 1)); for (let i = -Math.round(hw); i <= Math.round(hw); i++) S.set(x + i, y - h + j, R.conifer[clamp(c0 + (i < 0 ? 1 : 0) - (j % 3 === 2 ? 1 : 0), 0, 4)]); }
 }
 
-export function makeLakeside() {
+// What the timeline needs to know of the lake, which takes no pictures to answer.
+const META = {
+  name: 'lakeside',
+  dur: () => DUR,
+  stops: () => [{ id: 'mountains', at: D_MAP / LEN }, { id: 'note', at: D_NOTE / LEN }],
+  elev: (arg, q) => -g(X0 + q * LEN) * 1.5
+};
+export const makeLakeside = () => shell(META, buildLakeside, ['enter', 'focus', 'pick', 'act', 'hold', 'draw']);
+function buildLakeside() {
   const rand = rng(57);
 
   // Far ranges, the peak, and the far shore with its talus and trees.
@@ -196,10 +204,7 @@ export function makeLakeside() {
   const xOf = q => X0 + q * LEN;
 
   return {
-    name: 'lakeside',
-    dur: () => DUR,
-    stops: () => [{ id: 'mountains', at: D_MAP / LEN }, { id: 'note', at: D_NOTE / LEN }],
-    elev: (arg, q) => -g(xOf(q)) * 1.5,
+    ...META,
     enter(scr, arg, q) { cam = xOf(q); st.y = null; swim = 0; dir = 0; },
     focus: () => focus,
     pick(sx, sy) {

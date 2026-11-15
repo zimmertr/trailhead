@@ -3,7 +3,7 @@
 // comes down through the canopy in slanting shafts. He runs right to left, the way the map sends him
 // in: west, away from the Trailhead.
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, SHADE, LIGHT, pick, BM, outline, disc, thick, windAt } from './core.js';
-import { Strip, drawStrip, blitTall, baseline } from './side.js';
+import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
 import { makeMaple, makeSpruce, makeBoulder } from './sprites.js';
 import { elk, bear, sasquatch, jay, slug } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
@@ -204,7 +204,16 @@ function farLayer(S, seed, o) {
   }
 }
 
-export function makeForest() {
+// What the timeline needs to know of the forest, which takes no pictures to answer.
+const META = {
+  name: 'forest',
+  dur: () => DUR,
+  stops: () => [{ id: 'who', at: D_SIGN / LEN }],
+  elev: (arg, q) => -g(X0 - q * LEN) * 1.5,
+  cues: () => [{ at: (D_SLUG - 11) / LEN, name: 'hop' }, { at: (D_JAY - 20) / LEN, name: 'jay' }]
+};
+export const makeForest = () => shell(META, buildForest, ['enter', 'focus', 'pick', 'draw']);
+function buildForest() {
   const rand = rng(31);
 
   // Behind the giants the forest goes back in three layers, each paler, plainer and slower across
@@ -339,11 +348,7 @@ export function makeForest() {
   const xOf = q => X0 - q * LEN;
 
   return {
-    name: 'forest',
-    dur: () => DUR,
-    stops: () => [{ id: 'who', at: D_SIGN / LEN }],
-    elev: (arg, q) => -g(xOf(q)) * 1.5,
-    cues: () => [{ at: (D_SLUG - 11) / LEN, name: 'hop' }, { at: (D_JAY - 20) / LEN, name: 'jay' }],
+    ...META,
     enter(scr, arg, q) { cam = xOf(q); st.y = null; },
     focus: () => focus,
     pick(sx, sy) {

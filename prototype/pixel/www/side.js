@@ -49,4 +49,17 @@ function baseline(scr, card, state) {
   return Math.round(state.y);
 }
 
-export { Strip, drawStrip, blitTall, baseline };
+// A scene whose pictures are made the first time they are wanted. The page needs a scene's length,
+// its stops and its ups and downs at once, to lay out the timeline, but the forest's and the lake's
+// pictures take a sixth of a second each to make, and he cannot reach either for some seconds.
+// pixel.js calls warm() as soon as the map is on the screen. meta: what the timeline needs. what: the
+// names of everything else the scene can do. A scene that cannot be made throws when it is drawn,
+// which pixel.js handles like any other scene that throws.
+function shell(meta, make, what) {
+  let full = null;
+  const art = () => { if (!full) { try { full = make(); } catch (err) { full = { enter() {}, focus: () => ({ x: 0, y: 0 }), draw() { throw err; } }; } } return full; };
+  const s = { ...meta, warm: art };
+  for (const k of what) s[k] = (...a) => { const f = art()[k]; return f ? f(...a) : undefined; };
+  return s;
+}
+export { Strip, drawStrip, blitTall, baseline, shell };

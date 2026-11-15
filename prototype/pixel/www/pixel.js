@@ -3,7 +3,7 @@
 // in its own file and only has to draw itself for a given place along its stretch of the route.
 
 import { clamp, lerp, Screen, DEBUG, R } from './core.js';
-import { makeWorld } from './world.js';
+import { makeWorld, loadBake } from './world.js';
 
 // Scenes beyond the world map are built the first time a route needs them.
 const MAKERS = {
@@ -22,7 +22,7 @@ const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil',
 // the first time it is drawn, 'load:' and a name makes it fail to build, 'renderer' breaks the frame itself.
 export async function mount(canvas, { onEvent = () => {}, theme = 'light', breakAt = null } = {}) {
   const scr = new Screen(canvas);
-  const world = makeWorld();
+  const world = makeWorld(await loadBake());
   const scenes = { world };
   // broken: the stretch of route whose scene threw, left undrawn until he is somewhere else.
   let broken = null, sabotage = breakAt;
@@ -179,10 +179,15 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // For a scene that shows the map from afar: paints the map over the whole frame, its top left corner at this spot of the world.
   env.mapStill = (x, y) => world.still(scr, x, y, env);
 
+  // The forest's and the lake's pictures are made once the map has been on the screen for a frame,
+  // one scene to a turn so a click in between is not kept waiting for both.
+  let frames = 0;
+  const warm = names => { const s = scenes[names[0]]; if (s && s.warm) s.warm(); if (names.length > 1) setTimeout(warm, 0, names.slice(1)); };
   function draw(now) {
     if (!alive) return;
     requestAnimationFrame(draw);
     try { frame(now); } catch (err) { fail({ s: 'renderer' }, err); }
+    if (++frames === 2) setTimeout(warm, 0, ['forest', 'lakeside']);
   }
   function frame(now) {
     if (sabotage === 'renderer') throw new Error('Broken on purpose: the renderer');
