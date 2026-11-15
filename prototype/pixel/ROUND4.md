@@ -27,6 +27,7 @@ The world began as three landmarks huddled in the middle of a small map. The map
 - `pixel.js`: the scene manager: `ROUTES` (lists of legs), stops and cards, the round-window cut between scenes, zoom, pace, input.
 - `app.js`, `index.html`, `content.js`: the page round the canvas (signs, cards, timeline, trail map sheet, debug panel) and every word shown. `audio.js`: tunes and effects, all synthesised.
 - `plan.html` + `plan.js`: paints the whole map as one picture, for block-ins.
+- `relief.html` + `relief.js`: the round 4 map with a height at every spot (section 4a). `relief.html?v=1&labels=1&crop=x,y&scale=k`. `window.__dbg(x, y)` tells what is drawn at a screen pixel.
 
 **How to run and look** (everything in Docker; nothing is installed or run on the workstation)
 
@@ -143,6 +144,53 @@ Gone for good: the Yosemite-style dome (The Stack), the tan Patagonian towers, t
 - Build order after the map: Proficiency Peak, then Reflection Lake, then Sideproject Spires, then the register and the page.
 - Effort: high for design and for judging pictures, medium for mechanical work.
 
+## 4a. The map after the block-ins (2026-11-15)
+
+**Where this section differs from sections 4 and 6, this section wins.** TJ picked layout 1 of the second block-in, gave notes on its second pass (tag `pixel-r4-relief2`, picture `plan/relief2-r4.html`), and said to stop blocking in and build it for real.
+
+**How the map is made now**
+
+- The land has a height at every spot. `u` runs west to east (0 to 1920). `v` runs away from the camera (0 at the bottom of the picture, 740 at the back). `h` is the height. A spot is drawn at screen (`u`, `1080 - v - h`), nearest first, so a slope in front hides what is behind it.
+- The mountains are land that the ground climbs into. There is no flat ground with a skyline behind it any more. Everything in sections 4 and 6 about "the skyline" and "the ground line" now means the land at the back of the map.
+- The working code is layout 1 in `www/relief.js`. Layouts 2 and 3 in that file are dead.
+
+**Decided with TJ on the second pass**
+
+1. **The Trailhead moves down into the middle of the big meadow**, to about `u` 1075, `v` 310 (screen about 1075, 760), where the two streams joined in the second pass. It stands on a low, broad rise with a shallow valley on each side. The meadow is no longer one empty sheet.
+2. **Two river systems, and the Trailhead stands on the divide between them.** West: the lake's outflow and the glacier's meltwater join and run through the rainforest to the sea. East: the creek out of the granite basins runs south-east through the aspens and pines, then cuts down into the dry corner as a coulee and leaves the map. TJ: "a couluee through the desert as it exits the meadow. Like the COlombia river gorge."
+3. **Water takes the lowest ground.** No stream is a smooth arc through chosen points. Each is routed downhill over the heights (the standard way: every spot drains to its lowest neighbour, hollows are filled so no stream dead-ends, and a river's width comes from how much land drains into it). On flat ground it wanders, and the meadow gets at least one oxbow. If a routed river looks wrong, change the land, not the line.
+4. **The crest is one connected mass.** The two free-standing cones beside the glacier are gone. The Spires' wall sends an arm down toward the camera on each side, and the glacier lies in the bowl between the arms. The west arm falls to a forested saddle that joins Mount Monolith's flank. The east arm runs into the rim of the granite basins. The meadow does not reach the foot of the wall.
+5. **The glacier belongs to its wall.** Snow gullies run up the wall to the notches between summits. There is a gap where the ice meets the rock. Lower down the ice breaks over a rock step in an icefall, then runs out as a crevassed tongue between two moraines to a milky tarn at its toe. Base camp sits on the moraine shelf beside that tarn.
+6. **The Spires' country shows what he will cross in the scenes.** From the map you can point to: the steep flower slope of the traverse (on the west arm, high above the meadow), the moraine crest of the walk, the icefall (TJs-Kubernetes-Service), a snow gully (hevy-garmin-sync), the crevassed tongue (Kubernetes-Manifests), a knife-edge between two summits (trailhead), a dry rock rib on the east arm (yggdrasil), and the highest summit standing clear for the weather window (Bluebird Forecast).
+7. **The Legacy Range stays and is larger.** It is a broad massif with several summits and glaciers (after Mount Olympus), never one clean pyramid, which read as a second volcano. Smaller peaks stand in front of it and around it. The rainforest runs up toward it through the valley between it and Mount Monolith, in ranks of forested foothills. The bare green hill of the second pass was a mistake and is gone. Nothing between the two mountains may look taller than Mount Monolith.
+8. **Nearly one rock along the whole crest.** The granite is the same grey family as the rest, one step paler and cleaner, and the change is gradual. The difference the eye reads is snow and ice, which thin out toward the dry east. The tan of the second pass is gone. The back row of snowy peaks is close to right (TJ: "finally starting to look good and Cascadian").
+9. **The granite country is three steps.** Larches grow only from the second step up (they are high-country trees). The first step has aspens and ponderosa pines. Proficiency Peak stands on the second step and must stand clear of the range behind it.
+10. **More tarns, coloured by height.** Six to eight, most of them strung on the one creek, a few off it. The highest are milky teal and green, the middle ones turquoise, the lowest clear blue.
+11. **The burn moves to the east edge**, across the east end of the first step under the basin's cliff (about `u` 1770 to 1920, `v` 400 to 540), running off the edge of the map. Tall fireweed as before.
+12. **The dry country is one slanted corner at the bottom right** with a wandering edge. No country on this map is an even band or a rectangle. TJ: stacked sections make "the world look fake and computer gnerated".
+13. **The fog** covers all of the rainforest, from nothing in the east to only white in the west, and lies over the beach and sea at the west edge. Rules could not make its ranks of trees (tried four times). They are drawn ridge by ridge.
+14. **The opening view is not decided.** TJ could not choose until the world is right. Candidates are shown on the real map at STOP 2a.
+
+**Starting numbers** (world `u`, `v`; tune by eye)
+
+| What | Where |
+|---|---|
+| Sea | bottom-left corner, as in `relief.js` |
+| Legacy Range | back left, `u` 0 to 380 |
+| Rainforest valley toward it | `u` 300 to 480, `v` 450 and beyond |
+| Mount Monolith | centre `u` 640, `v` 600; about 600 wide at the foot, 262 high |
+| Reflection Lake, on its bench | `u` 640, `v` 440 |
+| Sideproject Spires | centre `u` 1070, `v` 648; highest summit about 210 high |
+| Glacier | `u` 1070, `v` 510 to 620; icefall near `v` 570 |
+| Base camp, milky tarn | `u` 1098, `v` 496 |
+| Trailhead, on its rise | `u` 1075, `v` 310 |
+| West river | from the lake's fall and the glacier's toe, joining west of the Trailhead's rise, to the sea |
+| East creek and coulee | from the top granite step, east of the Trailhead's rise, out through the dry corner |
+| Granite steps | top `u` 1745, `v` 598 (82 high); second `u` 1471, `v` 574 (58 high); first `u` 1446 to 1712, `v` 480 to 492 (about 30 high) |
+| Proficiency Peak | `u` 1430, `v` 594; 164 wide, 142 high |
+| The burn | `u` 1770 to 1920, `v` 400 to 540 |
+| Dry corner | bottom right, edge slanting from about (1380, 0) to (1920, 430) |
+
 ## 5. Settled after the first draft of this plan (2026-11-15), and what is still open
 
 **The six Spires climbs (settled).** The visitor still picks a summit from base camp. Each climb is about 30 seconds, a different kind of mountaineering chosen to echo its project, and TJ wants every one "unique and intentional". None may reuse another's set piece.
@@ -209,6 +257,8 @@ What the report adds to the look:
 
 ## 6. Starting numbers for the block-in (tune them by eye)
 
+**Superseded by the table in section 4a.** Kept as the record of the first, flat block-in.
+
 Map 1920 by 1080. The ground line (where land meets sky) stays near y 462. x runs west to east.
 
 | What | Where |
@@ -259,48 +309,54 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [x] B10. Pictures: whole map; the opening wide view on a 1440 by 900 screen in two or three candidate framings, some cropped (section 5); the phone's opening slice; the close view at the Trailhead; round 3's map beside the new one.
 - [x] B11. Check the law: walk the map west to east and name every pair of neighbours; none is unbelievable. Check the four kinds of mountain: nothing else on the skyline.
 - [x] B12. A page like `plan/skyline-pick.html` showing the pictures, with the weak points listed honestly.
-- [ ] **STOP 1 (reached 2026-11-15; TJ's answers sent the block-in round again, see section 9; three layouts shown and TJ picked layout 1, the land climbs; its second pass is shown and waits for his word that the layout is right).** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
+- [x] **STOP 1 (closed 2026-11-15: TJ said to move on from block-ins and signed off building layout 1 with the changes in section 4a; reached 2026-11-15; TJ's answers sent the block-in round again, see section 9; three layouts shown and TJ picked layout 1, the land climbs; its second pass is shown and waits for his word that the layout is right).** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
 
-### C. The skyline, drawn for real
+### C. The land and the water, in the game
 
-- [ ] C1. Crest rock, snow and ice treatment settled on one peak first: dark rock, snow on ledges, bare blue ice with crevasses in the cirque, a bergschrund line. Reuse `glac`, `snow` and rock ramps.
-- [ ] C2. The ordinary crest peaks, west of and east of the Spires, each different, building toward the Spires.
-- [ ] C3. Sideproject Spires: six summits, hanging ice between them, snow gullies, buttresses, the cirque.
-- [ ] C4. The Spires' valley glacier: blue ice, crevasse fields, an icefall, a moraine on each side, a milky stream from its toe.
-- [ ] C5. `makeMassif`, the summit flags and the name tag follow the new Spires (`done=spires` puts the flag on the right summit).
-- [ ] C6. Mount Monolith: glaciers named in the code by position, at least two icefalls with seracs, cleavers, the summit's three bumps, rock bands, a blue shadow side.
-- [ ] C7. Its forested foothills in three rows, darkest nearest, and the parkland's upper edge meeting them.
-- [ ] C8. The Legacy Range (if kept): pale, two or three ridges, mist across its foot.
-- [ ] C9. Enchantments peaks behind Proficiency Peak: three or four granite summits of different shapes, one small blue-ice glacier high up, a snow gully.
-- [ ] C10. Pine foothills thinning to the Palouse hills: rolling, yellow, soft shadow lines, no stripes.
-- [ ] C11. The crest fades east into granite without a seam; the snow line rises eastward.
-- [ ] C12. Dusk on the whole skyline: alpenglow on Mount Monolith and the Spires' tips, night sky above.
-- [ ] C13. Delete what is gone: The Stack's sprite and talus, the lone cone behind the lake, the old towers, the pale triangles, the granite needles.
+Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so the old game keeps running beside the new map.
 
-### D. The ground, tiers and plants
+- [ ] C1. `www/land.js`, made from layout 1 of `relief.js`. It returns what `buildTerrain` in `terrain.js` returns (the ground picture, things, spots, trails, mist mask and the helpers the other modules call), plus the depth of every screen pixel and `hAt(u, v)`.
+- [ ] C2. The Trailhead's rise and a shallow valley on each side of it. Check with trees off.
+- [ ] C3. The connected crest: the two arms, the bowl between them, the saddle to Mount Monolith, the join to the granite rim. Check with trees off: no free-standing cone, no meadow at the foot of the wall.
+- [ ] C4. The glacier: gullies to the notches, the gap at the rock, the icefall over its rock step, the crevassed tongue, a moraine each side, the milky tarn, camp on the moraine shelf.
+- [ ] C5. The Spires: six summits at the heights in section 9, not daggers. The ground of each of the six climbs is placed and can be pointed to (4a, point 6). List the six places in section 9.
+- [ ] C6. The flower slope of the traverse and the moraine crest of the walk, with the trail drawn on them.
+- [ ] C7. Mount Monolith: lopsided dome, three bumps on a nearly flat top, a shoulder on the left, a dark tooth on the right, cleavers between glaciers, at least two icefalls. Its rock foot runs into forested foothills, not a cliff on a lawn.
+- [ ] C8. The Legacy Range: a several-summit massif with glaciers, smaller peaks round it, ranks of forested foothills in front, the rainforest's valley leading to it.
+- [ ] C9. The back row of the crest, each peak different. Rock nearly one colour from west to east, the snow thinning eastward with no seam.
+- [ ] C10. The three granite steps and their cliffs. Proficiency Peak on the second, standing clear of what is behind it.
+- [ ] C11. The dry corner and the coulee: basalt walls in steps, the creek in its floor, the way out of the map.
+- [ ] C12. Water routed over the heights: both river systems, wider below each joining, wandering on the flats, one oxbow in the meadow, falls where a stream leaves a step. No smooth arcs.
+- [ ] C13. Six to eight tarns on the granite steps, coloured by height.
+- [ ] C14. The coast: bluffs, the river's notch, beach, sea, fog over the water at the west edge.
+- [ ] C15. `world.js` runs on it. Things and the runner are drawn in order of depth and are hidden where nearer ground stands in front. The helpers other modules call with screen positions (`coast`, `lakeD`, `forestAmt`, `open`, `nearTrail`) answer through the depth picture.
+- [ ] C16. The mountain sprites in `world.js` (`makeStack`, `makeMassif`, `makePeak`) are retired: the mountains are in the ground picture. Summit flags and name tags take their places from `land.js` (`done=spires` puts the flag on the right summit).
+- [ ] C17. Three trails from the new Trailhead, laid on the land: a footbridge wherever a trail crosses water, switchbacks up each step, and the points where each side-on scene takes over and hands back.
+- [ ] C18. `T`, `KIOSK`, the cats' boxes, the board and the register box at the new Trailhead.
+- [ ] C19. Delete what is gone: `terrain.js`, the first block-in (`plan4.js`, `layout4.js`, `plan4.html`), layouts 2 and 3, The Stack's sprite and talus.
+- [ ] C20. `./bake.sh` bakes the ground and the depth. No stale warning. Ready time written in section 9 (round 3: about 0.8 s).
+- [ ] C21. Pictures: the whole map Day and Dusk, trees off, each destination close, three candidate opening views on a 1440 by 900 screen and the phone's slice. Compare with `out/r4/w1.png` and list the weak points honestly.
+- [ ] **STOP 2a.** Tag `pixel-r4-land`, publish the game (the old wall, lake and camp scenes still run behind the new map). Ask TJ: is the land right, and which opening view.
 
-- [ ] D1. `ground()` re-laid for the new places of every biome, each thinning into the next across a wide uneven band.
-- [ ] D2. The upper bench: its rock step, shaded face, a lip of grass.
-- [ ] D3. Reflection Lake on the bench, with the island; a faint mirror of the volcano on its surface.
-- [ ] D4. The waterfall: white water over the step, a plunge pool, mist at its foot, moving.
-- [ ] D5. The river from the pool to the sea: the footbridge a few paces below the fall, the notch through the bluff, the channel across the beach (round 3's work, moved).
-- [ ] D6. Parkland: fir clumps, heather, dense flowers in drifts (lupine blue, paintbrush red, white), a few boulders.
-- [ ] D7. The Trailhead meadow and the headwall below the glacier: moraine, rock step, the shelf with base camp's tents.
-- [ ] D8. Enchantments lower basin: larches in groups, slabs, the trail.
-- [ ] D9. The granite headwall and its cascade between the two benches.
-- [ ] D10. Upper basin: bare slabs with few cracks, tarns, sparse turf with red and gold in the seams, larches at the edge, Proficiency Peak's foot with talus and a snow patch.
-- [ ] D11. Pines and aspen in a narrower band (round 3's groves, moved), then sage and the scabland benches at the edge.
-- [ ] D12. The burn at half size, bottom right, blending into the pines.
-- [ ] D13. Fireweed redrawn waist to chest high on him, in drifts.
-- [ ] D14. The coast: bluffs in two or three stretches, beach, sea stacks, driftwood.
-- [ ] D15. The rainforest's west edge: darker twisted trees, hanging moss, bare snags, fog thickening until nothing shows. No hard map edge is ever visible.
-- [ ] D16. Eerie details: an owl, crows, one faint drifting light. Dusk only: pairs of eyes far back, that blink out when looked at for long.
-- [ ] D17. Every sign in `spots.signs` re-homed; none in water, on ice, or hidden. List the moves in section 9.
-- [ ] D18. Trails: three routes re-laid, each climbing its tier by switchbacks; dirt to rock to boot track blends as in round 3; footprints after a finished route.
-- [ ] D19. `T`, `KIOSK`, the cats' boxes, the board and the register box at the new Trailhead.
-- [ ] D20. The placement dice: new loops get their own start so later edits do not move earlier things.
-- [ ] D21. Trees switch still hides every tree; Mist and Clouds switches still work.
-- [ ] D22. `./bake.sh`; no stale warning; ready time measured and written in section 9 (round 3: about 0.8 s).
+### D. What grows and stands on the land
+
+- [ ] D1. Every country re-laid on the new land, each thinning into the next across a wide, slanted, uneven edge. No bands.
+- [ ] D2. The rainforest and its fog: ranks of crowns drawn ridge by ridge, each rank greyer than the one in front, white in the hollows, bare snags against the white in the west. No hard map edge is ever visible.
+- [ ] D3. Eerie details: dark twisted maples hung with moss, an owl, crows, one faint drifting light. Dusk only: pairs of eyes far back, that blink out when looked at for long.
+- [ ] D4. Reflection Lake with its island and a faint mirror of the volcano. The waterfall: white water, a plunge pool, mist at its foot, moving. The footbridge a few paces below.
+- [ ] D5. Parkland: fir clumps, heather, dense flowers in drifts (lupine blue, paintbrush red, white), a few boulders.
+- [ ] D6. The meadow round the Trailhead: the river's bends, the oxbow, fir clumps, room for the elk.
+- [ ] D7. The first granite step: aspens and ponderosa pines, no larches. The burn at its east end, blending into the pines. Fireweed waist to chest high on him, in drifts.
+- [ ] D8. The second step and above: larches in groups, thick low down and sparse on the slab; bare slabs with few cracks; turf with red and gold in the seams.
+- [ ] D9. Proficiency Peak's foot: talus and a snow patch.
+- [ ] D10. The dry corner: pines thinning to sage, scabland benches, low yellow hills at the far edge with soft shadow lines and no stripes.
+- [ ] D11. The coast: sea stacks, driftwood, the river's channel across the beach.
+- [ ] D12. Every sign in `spots.signs` re-homed; none in water, on ice, or hidden. List the moves in section 9.
+- [ ] D13. Trail surfaces: dirt to rock to boot track blends as in round 3; footprints after a finished route.
+- [ ] D14. The placement dice: new loops get their own start so later edits do not move earlier things.
+- [ ] D15. Trees switch still hides every tree; Mist and Clouds switches still work.
+- [ ] D16. Dusk on the whole map: alpenglow on Mount Monolith and the Spires' tips, night sky above.
+- [ ] D17. `./bake.sh` again; no stale warning.
 
 ### E. Animals and timed events on the map
 
@@ -322,7 +378,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [ ] F2. While the size is between whole numbers the picture is drawn at the next whole size and scaled, so nothing is reallocated per frame; name tags and tap targets follow exactly.
 - [ ] F3. Debug switch: at rest, stay where let go, or ease to the nearest whole size. Both work.
 - [ ] F4. Film a slow zoom all the way out and in (`frames.sh`): no jump between any two frames.
-- [ ] F5. The opening wide view as agreed at STOP 1; the sign and planks do not cover the skyline's main peaks.
+- [ ] F5. The opening wide view as agreed at STOP 2a; the sign and planks do not cover the skyline's main peaks.
 - [ ] F6. First movement eases in over about 2 seconds while he is already running; returning to the junction eases out.
 - [ ] F7. `prefers-reduced-motion`: cuts, no eases.
 - [ ] F8. Phone upright: opens on the Trailhead with the Spires above; pinch works; the sign leaves the Spires visible.
@@ -504,6 +560,7 @@ The pictures themselves are other people's photographs and are not in the repo. 
 - On rolling back: "I want to be easily able to roll back to previous iterations at every step of the way." "I also want unique artifacts to be produced for each step so they are easily comparable." "We need to move fast right now with design before we actually land anything official."
 - On process: "we should be pushing commits to the new branch on github at every step/milestone."
 - His picks from round 3's three block-ins, now superseded but telling: the smaller, farther volcano, "But I would like to to try and reminisce Mt Rainier a bit more intentionally"; the stepped-tower Spires "closest to what I want, but I'm not sure it's 100% there yet"; the long-ridge basin peak, "it should resemble Prusik Peak"; the western range "Smaller than the volcano, and around the same size as the spires."
+- On the second pass of layout 1 (2026-11-15): "We might just need to move to implementation phase rather than block ins to really flesh out an idea again." On the burn and the larches: "larches naturally grow at higher elevations, so it makes sense to only have them growing on the second tier and higher of land mass for the enchantments basin. The first tier, here the burn scar is, probably shouldn'thave any. But the aspens can grow there alongside ponderosa pines and whatnot." On the two cones beside the glacier: "Doesn't it feel weird to you to have those protruding valley walls sticking up like narrow ripples in the land? ... Shouldn't this land naturally connect to the volcano and enchantments basin?" and "the way the glacier just *sits* at the bottom of the landmass looks a bit odd ... What terrain will the character be moving through in the sideproject sequences? Shouldn't that terrain be visible here on the world map from a differnet perspective". On the rivers: "Rivers don't do that. They wander, oxbow, etc. And take the path of least resistance along lowest-elevation." On the Legacy Range: "That possibly makes sense as long as the rainforest flows towards it through the \"valley\" between it and the volcano. Ans there probably need to be smaller mountains in front, and around, mount olympus as well." On the back row of peaks: "These peaks are finally starting to look good and Cascadian." On tarns: "the higher up the tarns are, the more milky/teal/green they should be". On the Trailhead: "we should bring the trailhead down a bit towards the middle of this area. Right around where the right-most river-fork from the sideproject spires tributary and enchantments basin tributary sits now. Then those rivers since should to flow through teh remaining west/east area of the map to try and give those spaces something of their own."
 
 ## 12. Things learned the hard way in round 3
 
