@@ -107,7 +107,7 @@ const trackPts = stamp(track, TRAILS.track, 1.9, 0.8, f => 1 + Math.round(f * 20
 // a narrow channel on the beach, and opens a little where it meets the surf.
 const riverR = (f, x, y) => { const cs = coast(x, y); return lerp(2.2, 6, f) * lerp(1, 0.47, smooth(-110, -22, cs)) * (1 + 0.3 * smooth(-5, 3, cs)); };
 stamp(river, RIVER, riverR, 0, null); stamp(river, INLET, 1.2, 1.6, null);
-stamp(riverWas, RIVER.slice(1), 2.2, 6, null); stamp(riverWas, INLET, 1.2, 1.6, null);
+stamp(riverWas, [[630, 556], [640, 590], [668, 625], [694, 660], [712, 700], [708, 750], [682, 800], [634, 842], [588, 880], [524, 906], [458, 932], [404, 978], [372, 1010]], 2.2, 6, null); stamp(riverWas, INLET, 1.2, 1.6, null);
 // The lake trail crosses the river twice, and a footbridge carries it over each time. A bridge is
 // the stretch of trail over the water and a few steps of bank at either end.
 const BRIDGES = [];
