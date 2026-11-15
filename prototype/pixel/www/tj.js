@@ -175,3 +175,37 @@ function makeRunner(kit = 'trail') {
 }
 
 export { KITS, ik, sideFig, frontFig, backFig, head, makeRunner, FEET, HANDS };
+
+// Round 3, scenes: two poses for the swim out to the island in the lake.
+
+// Facing the camera with both arms straight up. spread is how far out from his middle his hands are.
+export function cheerFig(kitName, o = {}) {
+  const k = KITS[kitName], spread = o.spread == null ? 9 : o.spread;
+  return frontFig(kitName, { bob: o.bob, lift: o.lift, held: (b, cx, sy) => {
+    // frontFig hangs his arms at his sides. Those come off and are drawn again, raised.
+    for (let y = sy; y <= sy + 9; y++) b.set(cx - 5, y, 0), b.set(cx + 5, y, 0);
+    for (let s = 0; s < 2; s++) { const sg = s ? 1 : -1; thick(b, cx + sg * 5, sy + 1, cx + sg * spread, sy - 9, 2, u => u > 0.7 ? k.hand[s ? 0 : 1] : k.top[s ? 0 : 1]); }
+  } });
+}
+
+// Front crawl seen from the side, facing right; f is the frame, 0 to 3. The picture ends at the
+// water: its foot row is the surface, and the scene draws the wake and the kick.
+export function swimFig(kitName, f) {
+  const k = KITS[kitName], b = new BM(40, 20), wl = 16, hx = 25, hy = wl - 2; b.ox = 18; b.oy = wl;
+  // One arm at each of the four moments of the stroke: reaching ahead along the water, pulling
+  // under it (out of sight), leaving the water behind him, swinging forward over his head.
+  const arm = (ph, c) => {
+    if (ph === 0) thick(b, 30, wl - 1.5, 36, wl - 1.5, 2, u => u > 0.6 ? c[0] : c[1]);
+    else if (ph === 2) { thick(b, 19, wl - 4, 15, wl - 9, 2, c[1]); thick(b, 14.5, wl - 9, 9, wl - 5, 1, u => u > 0.5 ? c[0] : c[1]); }
+    else if (ph === 3) { thick(b, 19, wl - 4, 21, wl - 10.5, 2, c[1]); thick(b, 21, wl - 10.5, 28, wl - 10.5, 2, u => u > 0.5 ? c[0] : c[1]); }
+  };
+  arm((f + 2) % 4, [k.hand[0], k.top[0]]);
+  // Hips in the tights, then his back and shoulders, low in the water. A heel breaks the surface on every other frame.
+  for (let x = 6; x <= 21; x++) for (let y = wl - (x > 12 ? 3 : 2) + (x < 8 ? 1 : 0); y <= wl; y++) b.set(x, y, x < 11 ? k.upper[y < wl - 1 ? 1 : 0] : k.top[y < wl - 2 ? 2 : 1]);
+  if (f & 1) { b.set(3, wl - 1, k.top[1]); b.set(4, wl - 1, k.top[2]); }
+  head(b, k, hx, hy, 'side');
+  arm(f, [k.hand[0], k.top[2]]);
+  outline(b, INK);
+  for (let y = wl + 1; y < b.h; y++) for (let x = 0; x < b.w; x++) b.set(x, y, 0);
+  return b;
+}
