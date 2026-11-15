@@ -334,7 +334,11 @@ const young = Array.from({ length: 4 }, (_, i) => makeConifer(940 + i, 9 + i * 2
 const snags = Array.from({ length: 5 }, (_, i) => makeSnag(730 + i)), burnt = Array.from({ length: 4 }, (_, i) => charred(740 + i));
 const sages = [0, 1, 2].map(i => sageBush(850 + i)), boulders = Array.from({ length: 6 }, (_, i) => makeBoulder(500 + i, 3 + i * 0.8));
 const slabs = Array.from({ length: 4 }, (_, i) => { const b = makeBoulder(520 + i, 5 + i * 1.5); for (let k = 0; k < b.d.length; k++) if (b.d[k] && b.d[k] !== INK) b.d[k] = R.granite[clamp(R.rock.indexOf(b.d[k]) + 1, 1, 5)]; return b; });
-const rand = rng(2026);
+// The dice for everything placed below. Each loop starts from its own place in the sequence (the
+// number of rolls that came before it when the map was first laid out), so changing what one loop
+// plants does not move what every later loop plants.
+const dice = k => rng((2026 + Math.imul(k, 0x6D2B79F5)) >>> 0);
+let rand = dice(0);
 const open = (x, y) => y > groundLine(x) + 6 && coast(x, y) < -18 && lakeD(x, y) > 1.3 && tarnD(x, y) > 1.4 && !river[at(Math.round(x), Math.round(y))];
 const clearOf = (x, y, w, h) => { for (let i = 0; i < trailPts.length; i += 2) { const p = trailPts[i]; if (Math.abs(p[0] - x) < w / 2 + 5 && p[1] > y - h - 3 && p[1] < y + 5) return false; } for (const [cx, cy, rx, ry] of LAKE) if (Math.abs(x - cx) < rx + w / 2 && y > cy - ry && y - h * 0.8 < cy + ry * 0.4) return false; return true; };
 // The rainforest, with big-leaf maples turning gold along its trail.
@@ -347,6 +351,7 @@ for (let gy = 474; gy < NH + 30; gy += 9) for (let gx = -10; gx < 800; gx += 9) 
   if (gold) put(bigleaf[(rand() * 4) | 0], x, y); else plant(tree, x, y);
 }
 // Firs in clumps across the meadows, thinning out where the next biome begins.
+rand = dice(27355);
 for (let n = 0; n < 1700; n++) {
   const x = 700 + rand() * 700, y = 478 + rand() * 590;
   if (fbm((x - OX) / 60, (y - OY) / 60, 71, 3) < 0.56 || !open(x, y) || forestAmt(x, y) > 0.2 || Math.hypot(x - T.x, (y - T.y) * 1.4) < 70 || talus(x, y) > 0.05) continue;
@@ -364,6 +369,7 @@ for (let n = 0; n < 1500; n++) {
 for (let n = 0; n < 90; n++) { const x = 1030 + rand() * 500, y = 480 + rand() * 210; if (rand() < basinAmt(x, y) && open(x, y) && glacier(x, y).d > glacier(x, y).w + 6) put(slabs[(rand() * 4) | 0], x, y); }
 // The dry side: open ponderosa, then sagebrush, then nothing but rock and grass. Where the burn
 // reached the pines it left them standing black.
+rand = dice(36819);
 for (let n = 0; n < 760; n++) {
   const x = 1090 + rand() * 470, y = 560 + rand() * 380, da = dryAmt(x, y), sg = sageAmt(x, y);
   if (rand() > da || couleeAmt(x, y) || !open(x, y)) continue;
@@ -371,11 +377,13 @@ for (let n = 0; n < 760; n++) {
   if (rand() < (1 - sg) * 0.3 && fbm(x / 50, y / 40, 121, 3) > 0.42) put(pines[(rand() * 5) | 0], x, y); else if (rand() < 0.2 + sg * 0.6) put(sages[(rand() * 3) | 0], x, y);
 }
 // The old burn: silver and charred snags standing over young trees, thinning out at its edges.
+rand = dice(40145);
 for (let n = 0; n < 760; n++) {
   const x = 980 + rand() * 580, y = 770 + rand() * 310; if (rand() > burnAmt(x, y) * 1.1 || !open(x, y)) continue;
   const r = rand(); if (r < 0.34) put(snags[(rand() * 5) | 0], x, y); else if (r < 0.52) put(burnt[(rand() * 4) | 0], x, y); else if (r < 0.7) plant(young[(rand() * 4) | 0], x, y); else if (r < 0.74) put(makeLog(), x, y);
 }
 // Boulders, bushes and the odd snag in the open ground.
+rand = dice(43068);
 const bushes = [0, 1, 2].map(i => makeBush(700 + i, 'huck')).concat([0, 1, 2].map(i => makeBush(710 + i, 'heather')), [0, 1].map(i => makeBush(720 + i, 'green')));
 for (let n = 0; n < 300; n++) {
   const x = 560 + rand() * 760, y = 480 + rand() * 590; if (!open(x, y) || nearTrail(x, y, 7) || Math.hypot(x - T.x, y - T.y) < 34 || forestAmt(x, y) > 0.3 || rand() < Math.max(burnAmt(x, y), dryAmt(x, y))) continue;
@@ -383,6 +391,7 @@ for (let n = 0; n < 300; n++) {
 }
 // The coast: sea stacks, driftwood along the beach, a ferry out by the fog, a humpback breaching,
 // and jellyfish drifting in the shallows.
+rand = dice(44390);
 put(seaStack(1, 44, 20), 112, 852); put(seaStack(2, 30, 15), 192, 908); put(seaStack(3, 22, 11), 58, 802); put(seaStack(4, 50, 22), 332, 990); put(seaStack(5, 16, 9), 252, 958); put(seaStack(6, 26, 12), 420, 1050);
 for (let n = 0; n < 500; n++) {
   const x = rand() * 600, y = 690 + rand() * 390, cs = coast(x, y); if (cs > -3 || cs < -13) continue;
@@ -462,8 +471,10 @@ for (const th of things) {
 }
 function shade(c) { for (const k in R) { const r = R[k], s = r.indexOf(c); if (s >= 0) return r[Math.max(0, s - 1)]; } return c; }
 // Ferns and fallen logs on the forest floor.
+rand = dice(45696);
 const ferns = Array.from({ length: 6 }, (_, i) => makeFern(400 + i));
 for (let n = 0; n < 3400; n++) { const x = rand() * 790, y = 478 + rand() * 600; if (y >= NH || forestAmt(x, y) < 0.6 || !open(x, y) || nearTrail(x, y, 4)) continue; things.push({ bm: ferns[(rand() * 6) | 0], x: Math.round(x), y: Math.round(y), fern: true }); }
+rand = dice(54247);
 for (let n = 0; n < 60; n++) { const x = rand() * 760, y = 490 + rand() * 560; if (forestAmt(x, y) > 0.7 && open(x, y) && !nearTrail(x, y, 9)) put(makeLog(), x, y); }
 clearSigns();
 // Mist: thin bands of it lie in the deep forest and thicken to the west; a fog bank stands off the
