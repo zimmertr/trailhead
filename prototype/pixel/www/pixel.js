@@ -124,6 +124,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
 
   function step(dt) {
     if (!running || (tr && (tr.phase === 'out' || tr.phase === 'slide'))) return;
+    // A scene may keep him where he is while something plays out (he swims back before he runs on).
+    if (!tr && drawn.scene.hold && drawn.scene.hold(env)) return;
     const before = p;
     let next = Math.min(1, p + dt / total);
     const hit = stops.find(s => s.at > before + 1e-6 && s.at <= next + 1e-6);
@@ -142,6 +144,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // A thing to find, the first time it is found.
   const find = id => { if (found[id]) return; found[id] = 1; try { localStorage.setItem('trailhead.found', JSON.stringify(found)); } catch { /* private window */ } emit({ type: 'found', id }); };
   const env = { t: 0, tq: 0, dt: 0, mix: 0, moving: false, running: false, home: false, idle: 0, look, lookBox: FREE, done, shown: null, sfx: name => emit({ type: 'sfx', name }), emit, found: find };
+  // For a scene that shows the map from afar: paints the map over the whole frame, its top left corner at this spot of the world.
+  env.mapStill = (x, y) => world.still(scr, x, y, env);
 
   // The scroll from one scene into its neighbour: both are drawn, each at the end that touches the
   // other, and shown side by side with the view panning across. He is drawn here, running from his

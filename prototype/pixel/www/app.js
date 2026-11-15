@@ -140,7 +140,7 @@ function openDebug(on) {
   const trick = el('select', { 'aria-label': D.set }, ...TRICKS.map(s => el('option', { value: s, text: s })));
   debug.replaceChildren(
     el('h2', {}, el('span', { text: D.title }), el('button', { class: 'plank', style: 'width:auto', onclick: () => openDebug(false) }, el('span', { text: D.close }))),
-    el('h3', { text: D.layers }), ...['trees', 'clouds', 'labels', 'animals'].map(toggle),
+    el('h3', { text: D.layers }), ...['trees', 'clouds', 'mist', 'labels', 'animals'].map(toggle),
     el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle),
     el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, performance.now() / 1000, { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
     el('button', { class: 'plank', onclick: () => navigate('#off-route') }, el('span', { text: D.offRoute })),

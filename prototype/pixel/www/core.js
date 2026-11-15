@@ -333,9 +333,9 @@ class Screen {
 }
 const BLACK = 255;
 
-// What the hidden debug panel has switched: the first four are layers that can be turned off, the
+// What the hidden debug panel has switched: the first five are layers that can be turned off, the
 // rest are outlines that can be turned on. The scenes read it as they draw.
-const DEBUG = { trees: true, clouds: true, labels: true, animals: true, roam: false, taps: false, trails: false, camera: false };
+const DEBUG = { trees: true, clouds: true, mist: true, labels: true, animals: true, roam: false, taps: false, trails: false, camera: false };
 
 export {
   DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
