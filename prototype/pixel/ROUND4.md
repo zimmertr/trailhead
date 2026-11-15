@@ -27,7 +27,7 @@ The world began as three landmarks huddled in the middle of a small map. The map
 - `pixel.js`: the scene manager: `ROUTES` (lists of legs), stops and cards, the round-window cut between scenes, zoom, pace, input.
 - `app.js`, `index.html`, `content.js`: the page round the canvas (signs, cards, timeline, trail map sheet, debug panel) and every word shown. `audio.js`: tunes and effects, all synthesised.
 - `plan.html` + `plan.js`: paints the whole map as one picture, for block-ins.
-- `relief.html` + `relief.js`: the round 4 map with a height at every spot (section 4a). `relief.html?v=1&labels=1&crop=x,y&scale=k`. `window.__dbg(x, y)` tells what is drawn at a screen pixel.
+- `land.js`: the round 4 map with a height at every spot (sections 4a and 8a). `relief.html` + `relief.js` show it whole: `relief.html?labels=1&trees=0&crop=x,y&scale=k`. `window.__dbg(x, y)` tells what is drawn at a screen pixel.
 
 **How to run and look** (everything in Docker; nothing is installed or run on the workstation)
 
@@ -152,7 +152,7 @@ Gone for good: the Yosemite-style dome (The Stack), the tan Patagonian towers, t
 
 - The land has a height at every spot. `u` runs west to east (0 to 1920). `v` runs away from the camera (0 at the bottom of the picture, 740 at the back). `h` is the height. A spot is drawn at screen (`u`, `1080 - v - h`), nearest first, so a slope in front hides what is behind it.
 - The mountains are land that the ground climbs into. There is no flat ground with a skyline behind it any more. Everything in sections 4 and 6 about "the skyline" and "the ground line" now means the land at the back of the map.
-- The working code is layout 1 in `www/relief.js`. Layouts 2 and 3 in that file are dead.
+- The working code is `www/land.js` (section 8a). Layouts 2 and 3 of the block-in are deleted; tag `pixel-r4-relief2` has them.
 
 **Decided with TJ on the second pass**
 
@@ -496,6 +496,27 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 | 1 again: three layouts with real height (pictures) | `pixel-r4-relief` | https://claude.ai/artifact/HkLDn3zFk3fyYgagGVWQSA | 2026-11-15 |
 | 1 again: layout 1, second pass (pictures) | `pixel-r4-relief2` | https://claude.ai/artifact/SJGQUzqPa1i1RDd23pc56t | 2026-11-15 |
 | Progress, not a stop: the land of section 4a built (pictures) | `pixel-r4-landshape` | https://claude.ai/artifact/KJ2YvMaK4V8pLyoSSJxmGa | 2026-11-15 |
+
+## 8a. Where the build stands (2026-11-15, commit after `204dc5b`)
+
+**Done.** The land of section 4a, in `www/land.js` (`buildLand()`), shown whole by `relief.html` (`?labels=1`, `?trees=0`, `?scale=k&crop=x,y`). It takes about 2.6 s to build in the Docker browser. It returns:
+
+- `g`: the ground picture, 1920 by 1080, one palette entry to a pixel, mountains included.
+- `depth`: for every screen pixel, how far from the camera the ground drawn there is (`v`). With the pixel's `x` this gives back the spot of the world under any screen position.
+- `things`: what the scene must draw each frame, with screen feet (`x`, `y`) and a depth (`v`): trees that sway, the signpost, the board, the tents. A thing that the fog turns grey, or that nearer ground partly hides, is not in this list: it is painted into `g`, clipped and paled.
+- `hAt(u, v)`, `toY(u, v)`, `C` (the layout: `T`, `camp`, `lakes`, `trails` in world coordinates), `volc`, `spires`, `peak`, `routes` (the rivers), the `water` and `trail` masks, `coast`, `forestAmt`, `fogAmt`, `dryAmt`, `lakeAt` (all in world coordinates).
+
+**Not done: the game still runs on round 3's `terrain.js`.** Checklist C1 is half done and C6 to C9 and C14 to C21 are open. What the port needs, found by reading the code:
+
+1. `land.js` must also export what the other modules import from `terrain.js` (`buildTerrain`, `loadBake`, `NW`, `NH`, `OX`, `OY`, `T`, `PEAK`, `STACK`, `SPIRES`, `KIOSK`), in screen coordinates, and return the same fields `buildTerrain` returns (see its last line). The scene works in screen space and sorts things by their feet's `y`; that can stay, because everything that needs clipping is already painted in.
+2. Whatever moves (he, the cats, the animals) needs a test against `depth` at its feet, so it goes out of sight behind nearer ground.
+3. The helpers the animals call with screen positions (`W.open`, `W.forestAmt`, `W.nearTrail`, `W.coast`) must answer through `depth`.
+4. The drawings for the ferry, the whale, the sheep and the squirrels are functions inside `buildTerrain` in `terrain.js` (near lines 477, 662, 760 and 772). They must move out before `terrain.js` can be deleted.
+5. Round 3 positions are written into the code as numbers and all need re-homing from `land.js`: in `world.js` the light shafts (rows from 462, columns 180 to 800), `PLACES`, `FLAGS`, the journal (712, 526), `lakeOut` (716, 541), the clouds, the sky's height (440), the mirrored rows below the map and the three mountain sprites; in `critters.js` the mist's box, the sea's corner (`SEA`), the surf, the sea stacks and every animal's spot; in `terrain.js` the signs, the ferns, the logs, the sea stacks and the swells, which have no counterpart in `land.js` yet; `KIOSK` in `cats.js`; `OX`, `OY` in `app.js`; the stops along the three paths in `pixel.js`.
+6. Trees in the rainforest that the fog touches are painted in, so the Trees switch will not hide them (checklist D15) unless a second ground picture without them is kept.
+7. The bake (`bake.sh`, `loadBake`) must hold the ground, the depth and enough of the heights to place things, or the page takes seconds to be ready.
+
+TJ's standing rule is planning on Fable and building on Opus. The land was built on Fable in the session that planned it. The port is building work.
 
 ## 9. Calls made in round 4
 
