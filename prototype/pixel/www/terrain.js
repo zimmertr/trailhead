@@ -553,8 +553,9 @@ const mist = { x1: 640, y0: 440, w: 320, h: Math.ceil((NH - 440) / 2) };
 mist.gate = new Uint8Array(mist.w * mist.h);
 {
   const mark = (x0, y0, x1, y1, v, round) => { const mx = (x0 + x1) / 2, my = (y0 + y1) / 2; for (let cy = Math.max(0, (y0 - mist.y0) >> 1); cy <= Math.min(mist.h - 1, (y1 - mist.y0) >> 1); cy++) for (let cx = Math.max(0, x0 >> 1); cx <= Math.min(mist.w - 1, x1 >> 1); cx++) if (mist.gate[cy * mist.w + cx] < v && (!round || sq((cx * 2 + 1 - mx) / (x1 - mx)) + sq((mist.y0 + cy * 2 + 1 - my) / (y1 - my)) <= 1)) mist.gate[cy * mist.w + cx] = v; };
-  // The shoreline is found on a coarser grid, which is all the mist needs of it.
-  for (let cy = 0; cy < mist.h; cy += 2) for (let cx = 0; cx < mist.w; cx += 2) { const cs = coast(cx * 2 + 2, Math.min(NH - 1, mist.y0 + cy * 2 + 2)), v = cs > -12 ? 2 : cs > -44 ? 1 : 0; if (v) for (const j of [0, 1]) for (const i of [0, 1]) if (cy + j < mist.h) mist.gate[(cy + j) * mist.w + cx + i] = v; }
+  // The mist stops short of the beach, a little further in on some rows than on others so that its
+  // seaward edge is not a straight cut. The shoreline is found on a coarser grid across, which is all it needs.
+  for (let cy = 0; cy < mist.h; cy++) for (let cx = 0; cx < mist.w; cx += 2) { const y = Math.min(NH - 1, mist.y0 + cy * 2 + 1), cs = coast(cx * 2 + 2, y) + 16 * vnoise(y / 6, 5, 135), v = cs > -10 ? 2 : cs > -42 ? 1 : 0; if (v) { mist.gate[cy * mist.w + cx] = v; mist.gate[cy * mist.w + cx + 1] = v; } }
   for (let i = 0; i < trailPts.length; i += 2) { const p = trailPts[i]; if (p[0] < mist.x1 + 12) mark(Math.round(p[0]) - 7, Math.round(p[1]) - 8, Math.round(p[0]) + 7, Math.round(p[1]) + 6, 1, true); }
   for (const [sx, sy] of spots.signs) mark(sx - 11, sy - 20, sx + 11, sy + 3, 2, false);
 }

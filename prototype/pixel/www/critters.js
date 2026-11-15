@@ -220,6 +220,9 @@ export function makeCritters(W, opts = {}) {
     }
   }
 
+  // The sea stacks, found among the things that stand in the water, for the white water round their feet.
+  const stacks = W.things.filter(th => !th.tree && th.bm && th.bm.h >= 14 && th.x < SEA.w && W.coast(th.x, th.y) > 14).map(th => ({ x: th.x, y: th.y, half: th.bm.w / 2, cs: W.coast(th.x, th.y) }));
+
   // ---- the ferry -----------------------------------------------------------------------------
   // It sails the length of the water outside the sea stacks, is gone past the edge of the map for the
   // better part of a minute, and comes back the other way. It is drawn with the water, under everything
@@ -278,7 +281,7 @@ export function makeCritters(W, opts = {}) {
       for (let i = 0; i < n; i++) {
         // Longest through the middle, shorter and more ragged toward the top and bottom.
         const f = n === 1 ? 0 : i / (n - 1) * 2 - 1, half = len / 2 * Math.sqrt(1 - f * f * (bank ? 0.7 : 0.86)) * (0.9 + 0.1 * r()), off = (r() - 0.5) * len * 0.1;
-        rows.push({ dy: i - (n >> 1), a: off - half, b: off + half, edge: i === 0 || i === n - 1, core: bank && Math.abs(f) < 0.45, need: Math.abs(f) * (bank ? 0.4 : 0.35) });
+        rows.push({ dy: i - (n >> 1), a: off - half, b: off + half, edge: i === 0 || i === n - 1, core: bank && Math.abs(f) < 0.45, need: Math.abs(f) * (bank ? 0.4 : 0.2) });
       }
       wisps.push({ y, len, rows, bank, span: bank ? 560 : 760, at, v, dx });
     };
@@ -344,6 +347,16 @@ export function makeCritters(W, opts = {}) {
           if (cs > -up && cs < out && (cs < -up + 1.3 || cs > out - 1.2 || ((wx + wy) & 1))) fb[i] = white;
         }
       }
+      // White water round the foot of each sea stack: it swells out as a wave passes the rock and draws back in.
+      for (const s of stacks) {
+        const x = s.x - ox, y = s.y + 1 - oy; if (x < -30 || x > VW + 30 || y < -8 || y > VH + 8) continue;
+        const u = frac((s.cs + 7 * Math.sin(s.x / 37 + s.y / 61) + tw) / 24), surge = u < 0.2 ? u / 0.2 : 1 - (u - 0.2) / 0.8;
+        const rx = s.half + 0.5 + 1.6 * surge, ry = 1.5 + 1.3 * surge, n = Math.round(rx * 5);
+        for (let k = 0; k < n; k++) {
+          const an = k / n * TAU, sy = Math.sin(an); if (sy < -0.3 || hash(k, s.x, 75) < 0.3 - 0.3 * surge) continue;   // the far side is behind the rock
+          scr.set(Math.round(x + Math.cos(an) * rx), Math.round(y + sy * ry), surge > 0.3 || k % 3 ? white : nearC);
+        }
+      }
       drawFerry(scr, ox, oy, t);
       spots.jelly.forEach(([jx, jy, pale], k) => {
         const x = jx + Math.round(3 * Math.sin(t * 0.13 + k * 2)) - ox, y = jy + Math.round(1.5 * Math.sin(t * 0.5 + k)) - oy;
@@ -372,8 +385,10 @@ export function makeCritters(W, opts = {}) {
           k = (w.bank ? smooth(370, 130, at) : smooth(560, 70, at)) * smooth(-160, -110, at);
         }
         if (k < 0.03 || x - w.len > ox + VW || x + w.len < ox) continue;
+        // A wisp gets shorter as well as thinner as it fades, so what is left of it is a small puff and not a long hair.
+        const shrink = w.sea ? 1 : 0.3 + 0.7 * k;
         for (const r of w.rows) {
-          const s = clamp((k - r.need) / 0.3, 0, 1), y = sy + r.dy; if (s <= 0 || y < 0 || y >= VH) continue;
+          const s = clamp((k - r.need) / 0.3, 0, 1) * shrink, y = sy + r.dy; if (s <= 0 || y < 0 || y >= VH) continue;
           veilRow(scr, ox, oy, x + Math.round(r.a * s) - ox, x + Math.round(r.b * s) - ox, y, r.edge, r.core && k > 0.7, here, w.sea);
         }
       }
