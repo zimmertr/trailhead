@@ -520,6 +520,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 | 1 again: layout 1, second pass (pictures) | `pixel-r4-relief2` | https://claude.ai/artifact/SJGQUzqPa1i1RDd23pc56t | 2026-11-15 |
 | Progress, not a stop: the land of section 4a built (pictures) | `pixel-r4-landshape` | https://claude.ai/artifact/KJ2YvMaK4V8pLyoSSJxmGa | 2026-11-15 |
 | Working build, republished after each item (not a stop) | `pixel-round4-opus` | https://claude.ai/artifact/QzAfYnTZGZr8L8wfh1EksH | 2026-11-15 |
+| Quality pass (section Q, Opus; not a stop): mist back, Mount Monolith and the ranges redrawn, zoom out, opening view B | `pixel-r4-opus-quality` | https://claude.ai/artifact/Lx1MmJoRyTzRERRHwWL28f | 2026-11-15 |
 | 2a: the game runs on the new land (and the opening view candidates, `plan/opening-r4.html`) | `pixel-r4-land` | https://claude.ai/artifact/WVKKSA9g8uC5PDePJhjXnk and https://claude.ai/artifact/XsZEi9AqXxgXo9FNgHm9LP | 2026-11-15 |
 
 ## 8a. Where the build stands (2026-11-15, commit after `204dc5b`)
