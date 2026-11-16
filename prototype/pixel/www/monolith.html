@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Mount Monolith, painted</title>
+<!-- Mount Monolith on its own, Day above and Dusk below: monolith.html?scale=2 -->
+<body style="margin:0;background:#1a1424">
+<canvas id="c" style="image-rendering:pixelated;display:block"></canvas>
+<script type="module">
+import { DAY, DUSK, R } from './core.js';
+import { paintMonolith } from './monolith.js';
+const q = new URLSearchParams(location.search), sc = +(q.get('scale') || 2), M = paintMonolith(), pad = 10, W = M.w + 2 * pad, H = M.h + pad;
+const c = document.getElementById('c'); c.width = W; c.height = H * 2; c.style.width = W * sc + 'px'; c.style.height = H * 2 * sc + 'px';
+const ctx = c.getContext('2d'), img = ctx.createImageData(W, H * 2), sb = R.skyband;
+[DAY, DUSK].forEach((P, k) => {
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const mx = x - pad, my = y - pad, m = mx >= 0 && my >= 0 && mx < M.w && my < M.h ? M.d[my * M.w + mx] : 0;
+    const p = P[m || sb[Math.min(sb.length - 1, Math.floor(y / H * sb.length * 0.8))]], o = ((y + k * H) * W + x) * 4;
+    img.data[o] = p[0]; img.data[o + 1] = p[1]; img.data[o + 2] = p[2]; img.data[o + 3] = 255;
+  }
+});
+ctx.putImageData(img, 0, 0);
+window.__info = { colours: DAY.length }; window.__ready = true;
+</script>

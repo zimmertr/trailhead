@@ -117,6 +117,10 @@ ramp('glow', ['#e6f1d4'], ['#8fa29c']);
 // Round 3, ground
 ramp('aspen', ['#d4c22e', '#f4ea68']);
 ramp('fireweed', ['#cc2e96', '#f068c0']);
+// Round 4: Mount Monolith, painted. Seracs and the ice in crevasses shine a stronger blue than the
+// glaciers' own ramp; the volcano's rock is a warm mauve grey, after TJ's reference.
+ramp('serac', ['#1b4a8c', '#2d6fc0', '#4c98e2', '#82c4f2', '#c2e8fc']);
+ramp('mauve', ['#3a2f40', '#55465a', '#75627a', '#957f96', '#b8a4b6']);
 const INK = R.ink[0];
 const N = DAY.length;
 // One step darker or lighter within an entry's own ramp, for shadows drawn onto finished pixels.
