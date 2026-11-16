@@ -297,7 +297,24 @@ if (!B) for (let i = 0; i < hg.length; i++) hg[i] = Math.round(hg[i] * 32) / 32;
 const FALLS = (() => { const [lu, lv] = LIP, top = hAt(lu, lv + 1); let v = lv; while (v > lv - 14 && hAt(lu, v - 1) < hAt(lu, v) - 0.4) v--; const bot = hAt(lu, v);
   return top - bot < 3 ? [] : [{ x: lu, y0: Math.round(SY - lv - top), y1: Math.round(SY - v - bot), v }]; })();
 function stamp(mask, pts, r0, r1) { pts.forEach(([pu, pv], n) => { const rr = lerp(r0, r1, n / (pts.length - 1)), R2 = Math.ceil(rr + 1); for (let dv = -R2; dv <= R2; dv++) for (let du = -R2; du <= R2; du++) { const d = Math.hypot(du, dv), u = Math.round(pu + du), v = Math.round(pv + dv), k = d <= rr ? 2 : d <= rr + 1 ? 1 : 0; if (k && u >= 0 && v >= 0 && u < NW && v < VD && mask[at(u, v)] < k) mask[at(u, v)] = k; } }); }
-const trailPts = []; for (const t of C.trails) { const all = catmull(t); stamp(trail, all, 1.9, 1.9); trailPts.push(...all); }
+// The Spires trail ends at base camp. Beyond it the way goes on as a boot track up the ice (D13), as in
+// round 3: it switches back and forth up the fall line, a trench as wide as the trail that narrows toward
+// the wall, and over its last fifth breaks up into single prints. track: 2 on its floor, 1 on its edge.
+// trackF: how far up it a spot is, 1 at camp to 201 at its end.
+const trailPts = [], track = new Uint8Array(NW * VD), trackF = new Uint8Array(NW * VD);
+C.trails.forEach((t, k) => {
+  const ci = k === 1 ? t.findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]) : -1;
+  const all = catmull(ci > 0 ? t.slice(0, ci + 1) : t); stamp(trail, all, 1.9, 1.9); trailPts.push(...all);
+  if (ci <= 0) return;
+  const up = catmull(t.slice(ci)), L = up.reduce((s, p, n) => n ? s + Math.hypot(p[0] - up[n - 1][0], p[1] - up[n - 1][1]) : 0, 0); let len = 0;
+  up.forEach(([pu, pv], n) => {
+    if (n) len += Math.hypot(pu - up[n - 1][0], pv - up[n - 1][1]);
+    const f = len / L, zz = 6 * (4 * Math.abs(frac(len / 26 + 0.25) - 0.5) - 1) * smooth(0, 0.15, f), rr = lerp(1.9, 0.8, f), R2 = Math.ceil(rr + 1);
+    for (let dv = -R2; dv <= R2; dv++) for (let du = -R2; du <= R2; du++) { const d = Math.hypot(du, dv), u = Math.round(pu + zz + du), v = Math.round(pv + dv), kk = d <= rr ? 2 : d <= rr + 1 ? 1 : 0; if (kk && u >= 0 && v >= 0 && u < NW && v < VD && track[at(u, v)] < kk) { track[at(u, v)] = kk; trackF[at(u, v)] = 1 + Math.round(f * 200); } }
+  });
+});
+// Near its end the boot track breaks up into single prints: true in the gaps between them.
+const printGap = i => { const tf = (trackF[i] - 1) / 200; return tf > 0.8 && Math.floor(tf * 70) % 3 === 0; };
 // Where a trail crosses running water there is a footbridge: the stretch of trail over the water and a
 // few steps of bank at either end, as round 3 had them (D4).
 const BRIDGES = [];
@@ -352,8 +369,19 @@ function colour(u, v, hh, x, y) {
   const wh = (a, b) => water[at(a, b)] ? hg[at(a, b)] : hg[at(uu, vv)], fall = water[i] ? Math.hypot(wh(uu + 1, vv) - wh(uu - 1, vv), wh(uu, vv + 1) - wh(uu, vv - 1)) / 2 : 0;
   if (water[i]) return fall > 0.55 ? (hash(x, y >> 1, 5) < 0.72 ? R.white[1] : R.water[4]) : water[i] === 2 ? (hash(x, y, 9) < 0.08 ? R.glint[(x + y) & 3] : R.water[y & 1 ? 3 : 4]) : R.water[1];
   const rim = lakeRim(u, v); if (rim) return rim === 'lake' ? R.dirt[hash(x, y, 3) < 0.3 ? 3 : 4] : R.rock[hash(x >> 1, y >> 1, 3) < 0.5 ? 2 : 3];
-  if (trail[i] === 2) return mat === 'ice' ? R.glac[1] : mat !== 'land' || steep > 0.8 ? R.rock[hash(u, v, 6) < 0.3 ? 4 : 3] : hash(u, v, 5) < 0.1 ? R.dirt[2] : R.dirt[3];
-  if (trail[i] === 1) return mat === 'ice' ? R.glac[3] : mat !== 'land' || steep > 0.8 ? R.rock[1] : R.dirt[1];
+  // The boot track up the ice: a trench with its floor in shade; where it crosses rock, a worn line.
+  if (track[i] && !trail[i] && !printGap(i)) return mat === 'ice' ? (track[i] === 1 ? R.glac[3] : hash(x, y, 16) < 0.3 ? R.glac[2] : R.glac[1]) : track[i] === 1 ? R.rock[1] : R.rock[hash(x, y, 6) < 0.3 ? 4 : 3];
+  // A trail goes from dirt to rock over a few paces, not at a line (D13): how much of its tread is rock
+  // comes from how much of the ground round it is not soil, how steep it is and how high, and each pixel
+  // picks dirt or rock by that share with a dither.
+  if (trail[i] && mat !== 'ice') {
+    let hard = 0; for (const [a, b] of [[-5, 0], [5, 0], [0, -5], [0, 5], [-4, -4], [4, 4], [-4, 4], [4, -4]]) { const m = MATS[mg[at(clamp(u + a, 0, NW - 1), clamp(v + b, 0, VD - 1))]]; if (m !== 'land' && m !== 'ice') hard++; }
+    const share = clamp((mat !== 'land' ? 0.5 : 0) + hard / 16 + smooth(0.5, 0.95, steep) + 0.5 * smooth(60, 100, hh), 0, 1), rock = bayer(x, y) < share * 1.1 - 0.05;
+    if (trail[i] === 2) return rock ? R.rock[hash(u, v, 6) < 0.3 ? 4 : 3] : hash(u, v, 5) < 0.1 ? R.dirt[2] : R.dirt[3];
+    return rock ? R.rock[1] : R.dirt[1];
+  }
+  if (trail[i] === 2) return R.glac[1];
+  if (trail[i] === 1) return R.glac[3];
   if (mat === 'ice') {
     // Under the wall the ice gapes away from the rock. Above the icefall it is snow with a few long
     // crevasses, the icefall is broken blocks, and the tongue below is bare blue ice crevassed across.
