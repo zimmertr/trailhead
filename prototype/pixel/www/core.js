@@ -376,3 +376,23 @@ export {
   DAY, DUSK, R, RAMP_OF, STEP_OF, INK, N, SHADE, LIGHT, KIND, BLACK, pick, ramp,
   BM, outline, disc, thick, catmull, makePath, windAt, breeze, Screen
 };
+
+// What each colour looks like through mist: the palette entry nearest to it mixed toward fog by this
+// much. Nearest is judged in Day and in Dusk together, so a veil holds in either light. The neutral
+// greys are never picked (they turn a green forest dirty), nor the colours that cycle or only show at Dusk.
+const NO_VEIL = ['glint', 'star', 'aurora', 'rock', 'gold', 'granite', 'basalt', 'nebel', 'shoe', 'navy', 'far', 'ochre', 'ink', 'fur', 'tortie', 'hair', 'jay', 'skin'];
+export function veilTable(amount) {
+  const out = new Uint8Array(256), fog = R.fog[2], skip = new Set(NO_VEIL.flatMap(k => R[k]));
+  for (let i = 1; i < N; i++) {
+    let best = i, bd = Infinity;
+    for (let j = 1; j < N; j++) {
+      if (skip.has(j)) continue;
+      let d = 0;
+      for (const P of [DAY, DUSK]) for (let k = 0; k < 3; k++) { const want = P[i][k] + (P[fog][k] - P[i][k]) * amount; d += (want - P[j][k]) * (want - P[j][k]) * [3, 4, 2][k]; }
+      if (d < bd) { bd = d; best = j; }
+    }
+    out[i] = best;
+  }
+  out[BLACK] = BLACK;
+  return out;
+}

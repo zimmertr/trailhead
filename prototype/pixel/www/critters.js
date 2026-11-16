@@ -1,7 +1,7 @@
 // The animals of the world map and the water that moves: herds that graze and wander, a bear, squirrels
 // and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
-import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, INK, SHADE, KIND, BM, outline, thick, pick } from './core.js';
+import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, INK, SHADE, KIND, BM, outline, thick, pick, veilTable } from './core.js';
 import { makeElk, makeBird } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './land.js';
@@ -21,25 +21,6 @@ export function mapBear(pose, step = 0) {
 }
 const tint = (bm, c) => { const o = new BM(bm.w, bm.h); o.ox = bm.ox; o.oy = bm.oy; for (let i = 0; i < bm.d.length; i++) if (bm.d[i]) o.d[i] = c; return o; };
 
-// What each colour looks like through mist: the palette entry nearest to it mixed toward fog by this
-// much. Nearest is judged in Day and in Dusk together, so a veil holds in either light. The neutral
-// greys are never picked (they turn a green forest dirty), nor the colours that cycle or only show at Dusk.
-const NO_VEIL = ['glint', 'star', 'aurora', 'rock', 'gold', 'granite', 'basalt', 'nebel', 'shoe', 'navy', 'far', 'ochre', 'ink', 'fur', 'tortie', 'hair', 'jay', 'skin'];
-function veilTable(amount) {
-  const out = new Uint8Array(256), fog = R.fog[2], skip = new Set(NO_VEIL.flatMap(k => R[k]));
-  for (let i = 1; i < N; i++) {
-    let best = i, bd = Infinity;
-    for (let j = 1; j < N; j++) {
-      if (skip.has(j)) continue;
-      let d = 0;
-      for (const P of [DAY, DUSK]) for (let k = 0; k < 3; k++) { const want = P[i][k] + (P[fog][k] - P[i][k]) * amount; d += (want - P[j][k]) * (want - P[j][k]) * [3, 4, 2][k]; }
-      if (d < bd) { bd = d; best = j; }
-    }
-    out[i] = best;
-  }
-  out[BLACK] = BLACK;
-  return out;
-}
 // The humpback's breach, twelve drawings to the second up to the moment it lands. It comes out steep
 // and fast and slows as it climbs, turns its belly up while it hangs, and tips over onto its back.
 // whale() in mapfauna.js says what each number means.

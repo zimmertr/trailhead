@@ -2,7 +2,7 @@
 // The world is a height for every spot (u east, v away from the camera). A spot is drawn at screen
 // (u, SY - v - height), nearest first, so ground and mountains are one surface and near slopes hide
 // far ones.
-import { R, INK, KIND, SHADE, RAMP_OF, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
+import { R, INK, KIND, SHADE, RAMP_OF, veilTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
 import { makeMaple, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog } from './sprites.js';
@@ -203,6 +203,7 @@ for (const { line, end } of C.dig) {
 { const all = catmull(C.coulee); all.forEach(([pu, pv], n) => { const floor = lerp(11, 2.5, n / (all.length - 1)); for (let dv = -44; dv <= 44; dv++) for (let du = -44; du <= 44; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const d = Math.hypot(du, dv) + 9 * (fbm(u / 23, v / 23, 440, 2) - 0.5), rise = d < 13 ? 0 : d < 18 ? 14 * (d - 13) / 5 : d < 33 ? 14 + (d - 18) * 0.07 : d < 39 ? 15 + 15 * (d - 33) / 6 : 1e9; if (hg[at(u, v)] > floor + rise) hg[at(u, v)] = floor + rise; } }); }
 // Still water is level, so a lake flattens the ground under it to the height of its shore.
 const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypot((u - ISLE[0]) / 7, (v - ISLE[1]) / 3.2);
+const lakeRim = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) { const d = Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); if (d >= 1 && d < 1 + 2.2 / Math.min(ru, 8 * rv)) return kind; } return null; };
 const lakeAt = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) if (Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5) < 1) return kind; return null; };
 for (const [cu, cv, ru, rv] of C.lakes) { const lv = hAt(cu, cv - rv); for (let v = Math.floor(cv - rv - 2); v <= cv + rv + 2; v++) for (let u = Math.floor(cu - ru - 2); u <= cu + ru + 2; u++) if (lakeAt(u, v)) hg[at(u, v)] = lv; }
 // ---- water finds its own way ----------------------------------------------------------------------
@@ -272,6 +273,7 @@ function colour(u, v, hh, x, y) {
   // Where a trail crosses water there is a footbridge: a deck of planks with a dark edge.
   if (water[i] && trail[i] && mat !== 'ice') return trail[i] === 2 ? ((u + 2 * v) % 3 === 0 ? R.dirt[1] : R.dirt[2]) : R.dirt[0];
   if (water[i]) return steep > 0.55 ? (hash(x, y >> 1, 5) < 0.72 ? R.white[1] : R.water[4]) : water[i] === 2 ? (hash(x, y, 9) < 0.08 ? R.glint[(x + y) & 3] : R.water[y & 1 ? 3 : 4]) : R.water[1];
+  const rim = lakeRim(u, v); if (rim) return rim === 'lake' ? R.dirt[hash(x, y, 3) < 0.3 ? 3 : 4] : R.rock[hash(x >> 1, y >> 1, 3) < 0.5 ? 2 : 3];
   if (trail[i] === 2) return mat === 'ice' ? R.glac[1] : mat !== 'land' || steep > 0.8 ? R.rock[hash(u, v, 6) < 0.3 ? 4 : 3] : hash(u, v, 5) < 0.1 ? R.dirt[2] : R.dirt[3];
   if (trail[i] === 1) return mat === 'ice' ? R.glac[3] : mat !== 'land' || steep > 0.8 ? R.rock[1] : R.dirt[1];
   if (mat === 'ice') {
@@ -440,9 +442,21 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
     for (let d = 0; top + d <= base + 2; d++) { ink(at(d), top + d, v, k); if (d > hgt * 0.45) ink(at(d) + 1, top + d, v, k); }
     for (let d = 3 + rr() * 3; d < hgt * 0.7; d += 3 + rr() * 6) { const side = rr() < 0.5 ? -1 : 1, len = 1 + Math.round(rr() * 2), y = top + Math.round(d); for (let j = 1; j <= len; j++) ink(at(d) + (side > 0 ? 1 : 0) + side * j, y - (j === len && rr() < 0.5 ? 1 : 0), v, k); }
   };
-  // One tree of a rank: a conifer of stacked tiers.
+  // One tree of a rank: one of the forest's own conifers, paled through the fog by how deep in it
+  // stands, the way round 3's mist paled the trees under it. It keeps its texture.
+  const VEILS = [0.1, 0.24, 0.38, 0.51, 0.63, 0.74, 0.84].map(veilTable);
+  const kinds = [...Array.from({ length: 6 }, (_, i) => makeSpruce(260 + i)), ...Array.from({ length: 4 }, (_, i) => makeFir(360 + i))];
   const tree = (x0, base, v, hgt, half, k, snag) => {
     if (snag) return snagAt(x0, base, v, hgt * 1.25, k - 0.6);
+    const t = kinds[(rr() * kinds.length) | 0];
+    for (const p of t.parts) for (let j = 0; j < p.bm.h; j++) for (let i = 0; i < p.bm.w; i++) {
+      const c = p.bm.d[j * p.bm.w + i]; if (!c) continue;
+      const x = x0 + p.x + i, y = base + p.y + j; if (x < 0 || y < 0 || x >= NW || y >= SH) continue;
+      const q = px(x, y); if (zb[q] < v - 2) continue;
+      g[q] = VEILS[clamp(Math.floor(k + 0.9 * (bayer(x + 3, y) - 0.5)), 0, 6)][c]; zb[q] = v; mb[q] = 0;
+    }
+  };
+  const flatTree = (x0, base, v, hgt, half, k) => {
     const top = base - Math.round(hgt), lean = (rr() - 0.5) * 0.14;
     for (let y = Math.max(0, top); y <= Math.min(SH - 1, base + 2); y++) {
       const d = y - top, hw = Math.min(half, 0.3 + (d % 4) * 0.42 + Math.floor(d / 4) * half * 3.4 / hgt);
@@ -458,7 +472,7 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
   // stand on the land, and below them the fog fills the hollow in front, hiding their feet.
   for (let c = VD + 170; c > -60; c -= 26 + rr() * 12) {
     const seed = Math.round(c), vOf = u => c - 0.25 * u + 10 * (vnoise(u / 60, seed, 232) - 0.5);
-    for (let u = 2 + rr() * 5; u < 660; u += 3 + rr() * 4) {
+    for (let u = 2 + rr() * 5; u < 660; u += 6 + rr() * 5) {
       const v = vOf(u); if (v < 2 || v >= VD - 1) continue;
       const w = foggy(u, v); if (w < 0.05) continue;
       const f = fogAmt(u, v);
