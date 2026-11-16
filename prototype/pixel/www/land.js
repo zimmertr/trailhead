@@ -931,7 +931,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { g, depth: zb, mat: mb, bare, dest, destBox, DEST, hg, mg, painted, falls: FALLS, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { g, depth: zb, mat: mb, bare, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -1111,6 +1111,17 @@ export function buildTerrain() {
   const flagOn = (x, v, kind) => { const y = LAND.toY(x, v); return { x: Math.round(x), y, lift: y - topOf(x, kind) }; };
   const spots = {
     signpost: sxy(C.T[0] - 4, C.T[1] + 8), kiosk: [KIOSK.x, KIOSK.y],
+    // Where a serac can break off (E4): the white top of a block in one of Mount Monolith's icefalls (its
+    // serac blue just under snow), or the upper lip of the Spires' icefall (its glacier in glFall's
+    // upper third), with ice or snow of the same ground for 40 pixels below to fall down. At least 46 apart; up to
+    // five on the volcano, which the opening view shows, and three on the Spires.
+    seracs: (() => { const VI = LAND.MATS.indexOf('volc'), ICE = LAND.MATS.indexOf('ice'), r = rng(4740), out = [];
+      const ICY = { snow: 1, serac: 1, glac: 1, ice: 1 }, below = (x, y, m) => { for (let d = 1; d <= 40; d++) { const j = (y + d) * NW + x; if (y + d >= SH || LAND.mat[j] !== m || !ICY[RAMP_OF[LAND.g[j]]]) return false; } return true; };
+      const onMono = (x, y) => { const i = y * NW + x; return LAND.mat[i] === VI && RAMP_OF[LAND.g[i]] === 'snow' && RAMP_OF[LAND.g[i + NW]] === 'serac' && RAMP_OF[LAND.g[i + 3 * NW]] === 'serac' && below(x, y, VI); };
+      const onSpires = (x, y) => { const i = y * NW + x, v = LAND.depth[i]; return LAND.mat[i] === ICE && v > LAND.glFall[1] - 8 && v <= LAND.glFall[1] && RAMP_OF[LAND.g[i]] === 'glac' && below(x, y, ICE); };
+      for (const [fit, most] of [[onMono, 5], [onSpires, 3]]) { const mine = [];
+        for (let n = 0; n < 60000 && mine.length < most; n++) { const x = 4 + (r() * (NW - 8)) | 0, y = 8 + (r() * (SH - 60)) | 0; if (fit(x, y) && !out.some(([a, b]) => Math.hypot(a - x, b - y) < 46)) { out.push([x, y]); mine.push(1); } } }
+      return out; })(),
     // Mount Monolith's summit: the highest pixel of the painted volcano, where the lenticular cloud sits (E3).
     summit: (() => { let best = [LAND.volc.cu, 1e9]; for (let x = Math.round(LAND.volc.cu - 160); x <= LAND.volc.cu + 160; x += 2) { const y = topOf(x, 'volc'); if (y > 0 && y < best[1]) best = [x, y]; } return best; })(),
     tents: [[...sxy(C.camp[0], C.camp[1]), 'tent'], [...sxy(C.camp[0] + 18, C.camp[1] - 6), 'red']],

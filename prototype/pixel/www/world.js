@@ -56,6 +56,26 @@ export function makeWorld(bake) {
           // Lit from above: white on top, the lower half dithered toward the sky's pale blue, the underside blue.
           const f = (y - (y0 - top)) / Math.max(1, top + bot); scr.fb[vy * scr.VW + vx] = y === y0 + bot && bot > 0 ? R.sky[3] : f > 0.45 && bayer(x + 1, y) < (f - 0.45) * 1.6 ? R.sky[4] : R.white[1]; } } }
   }
+  // The serac fall (E4): every minute or two a block of ice breaks off one of the icefalls (spots.seracs),
+  // tumbles down the slope under it with a puff of powder following and spreading, and a low rumble comes
+  // a moment later, as sound would from that far off. Never twice running from the same place.
+  // serac=<seconds> in the address starts the clock that far on, for screenshots.
+  const SER = spots.seracs, serAhead = typeof location !== 'undefined' ? +(/[?&]serac=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0, SLOT = 90;
+  const serAt = n => { let k = Math.floor(hash(0, 1, 4741) * SER.length); for (let m = 1; m <= n; m++) k = (k + 1 + Math.floor(hash(m, 2, 4741) * (SER.length - 1))) % SER.length; return k; };
+  let rumbled = -1;
+  function seracFall(scr, ox, oy, t, env) {
+    if (SER.length < 2) return;
+    const T = t + serAhead + 40, n = Math.floor(T / SLOT), a = T - n * SLOT - 30 * hash(n, 3, 4741); if (a < 0 || a > 4.5) return;
+    const [sx, sy] = SER[serAt(n)], fall = 40, path = q => [sx + Math.round(2 * Math.sin(q * 5 + n)), sy + Math.round(fall * Math.pow(q, 1.6))];
+    const on = sx - ox > -20 && sx - ox < scr.VW + 20 && sy - oy > -40 && sy - oy < scr.VH + 10;
+    if (on && a > 0.9 && rumbled !== n) { rumbled = n; env.sfx('rumble'); }
+    const dot = (x, y, c) => { const vx = x - ox, vy = y - oy; if (vx >= 0 && vy >= 0 && vx < scr.VW && vy < scr.VH) scr.fb[vy * scr.VW + vx] = c; };
+    // The puffs: one where each stretch of the fall was passed, growing and fading from when it was made.
+    for (let k = 0; k < 5; k++) { const age = a - 0.3 - k * 0.25; if (age < 0) continue; const [px, py] = path(Math.min(1, k / 4)), r = 2 + 8 * Math.min(1, age / 3), al = smooth(4.2, 0.6, age);
+      for (let dy = -Math.ceil(r); dy <= r * 0.6; dy++) for (let dx = -Math.ceil(r * 1.3); dx <= r * 1.3; dx++) { const d = Math.hypot(dx / 1.3, dy) / r; if (d > 1 || bayer(px + dx, py + dy - Math.round(age * 2)) >= al * (1.3 - d * d)) continue; dot(px + dx, py + dy - Math.round(age * 2), dy > r * 0.25 || d > 0.82 ? R.snow[1] : d < 0.5 ? R.white[1] : R.snow[3]); } }
+    // The block itself, until it is lost in its own powder.
+    if (a < 1.4) { const [bx, by] = path(a / 1.4); for (let i = -2; i <= 1; i++) { dot(bx + i, by - 1, R.white[1]); dot(bx + i, by, R.serac[i < 1 ? 2 : 1]); dot(bx + i, by + 1, R.serac[0]); } }
+  }
   const things = [];
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
   const put = (bm, x, y, extra = {}) => things.push({ bm, x: Math.round(x), y: Math.round(y), ...extra });
@@ -208,6 +228,7 @@ export function makeWorld(bake) {
       crit.update(dt, t, env.hideMe ? null : here);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
       if (DEBUG.clouds) lenticular(scr, ox, oy, t);
+      seracFall(scr, ox, oy, t, env);
       for (const k in prints) if (env.done[k]) for (const [x, y] of prints[k]) { const sx = x - ox, sy = y - oy; if (sx >= 0 && sy >= 0 && sx < VW && sy < VH && KIND[fb[sy * VW + sx]] >= 3 && KIND[fb[sy * VW + sx]] !== 4) { const i = sy * VW + sx; fb[i] = KIND[fb[i]] === 3 ? R.dirt[0] : SHADE[fb[i]]; } }
       { const over = env.ptr && !env.fixed ? destUnder(env.ptr[0] + ox, env.ptr[1] + oy) : 0, want = over || (t < tapUntil ? tapped : 0);
         for (let k = 1; k < 4; k++) { lifted[k] += ((k === want ? 1 : 0) - lifted[k]) * Math.min(1, dt * 9); const d = Math.round(2 * lifted[k]); if (d > 0) liftDest(scr, k, d, ox, oy); } }

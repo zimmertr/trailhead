@@ -205,6 +205,8 @@ export function makeAudio() {
     slap: t => { noise(fx, t, 0.035, 0.26, 2200, 1.1, 'bandpass'); noise(fx, t, 0.02, 0.1, 5200, 2, 'bandpass'); },
     tink: t => { noise(fx, t, 0.02, 0.09, 6200, 3, 'bandpass'); tone(fx, 'square', 2400, t, 0.03, 0.05, 1900); },
     bang: t => { tone(fx, 'triangle', 150, t, 0.3, 0.7, 42); noise(fx, t, 0.16, 0.4, 320, 0.8, 'lowpass'); noise(fx, t + 0.01, 0.07, 0.2, 2600, 2, 'bandpass'); tone(fx, 'square', 520, t + 0.03, 0.2, 0.08, 470); },
+    // Ice breaking far off: a long low roll, a second wave of it, and a deep note under both (E4).
+    rumble: t => { noise(fx, t, 1.8, 0.22, 150, 0.7, 'lowpass'); noise(fx, t + 0.25, 1.2, 0.12, 420, 0.8, 'lowpass'); tone(fx, 'triangle', 58, t, 1.4, 0.16, 36); },
     locked: t => { tone(fx, 'square', 180, t, 0.08, 0.16); tone(fx, 'square', 150, t + 0.09, 0.12, 0.16); },
     unlock: t => [659, 784, 988, 1319].forEach((f, i) => tone(fx, 'triangle', f, t + i * 0.07, 0.14, 0.4))
   };
