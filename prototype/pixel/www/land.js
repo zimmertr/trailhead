@@ -528,6 +528,8 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
   const i = px(x, y), m = MATS[mb[i]]; if (m !== 'fin' && m !== 'wall') continue;
   if (zb[i - NW] > zb[i] + 14 || zb[i - 1] > zb[i] + 14 || zb[i + 1] > zb[i] + 14) g[i] = INK;
 }
+}
+const FOGTREES = [];
 // ---- the fog in the rainforest --------------------------------------------------------------------
 // Drawn ridge by ridge, after TJ's photograph: ranks of conifers stand one behind another along the
 // forest's ridges, white fog lies in the hollows between them, and each rank is paler than the one in
@@ -538,12 +540,12 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
   const foggy = (u, v) => coast(u, v) < -18 ? smooth(0.16, 0.6, fogAmt(u, v) + 0.12 * (fbm(u / 40, v / 30, 235, 2) - 0.5)) * smooth(0.3, 0.5, forestAmt(u, v)) : 0;
   const white = (x, y) => vnoise(x / 34, y / 5, 231) > 0.74 ? R.fog[1] : R.fog[2];
   // The white first: the forest floor under the fog.
-  for (let y = 0; y < SH; y++) for (let x = 0; x < 660; x++) {
+  if (!B) for (let y = 0; y < SH; y++) for (let x = 0; x < 660; x++) {
     const i = px(x, y), v = zb[i]; if (v >= VD || mb[i] !== 0) continue;
     const w = foggy(x, v); if (w > 0 && bayer(x, y) < w) g[i] = white(x, y);
   }
   const rr = rng(2311);
-  const ink = (x, y, v, k) => { if (x < 0 || y < 0 || x >= NW || y >= SH) return; const i = px(x, y); if (zb[i] < v - 2) return; g[i] = RANK[clamp(Math.floor(k + 0.9 * (bayer(x + 3, y) - 0.5)), 0, 7)]; zb[i] = v; mb[i] = 0; };
+  const ink = (x, y, v, k) => { if (B || x < 0 || y < 0 || x >= NW || y >= SH) return; const i = px(x, y); if (zb[i] < v - 2) return; g[i] = RANK[clamp(Math.floor(k + 0.9 * (bayer(x + 3, y) - 0.5)), 0, 7)]; zb[i] = v; mb[i] = 0; };
   // A bare snag: a trunk that thickens low down, a broken top, and a few stubs that stick out unevenly.
   const snagAt = (x0, base, v, hgt, k) => {
     const top = base - Math.round(hgt), lean = (rr() - 0.5) * 0.22, at = d => Math.round(x0 + lean * d);
@@ -553,16 +555,13 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
   // One tree of a rank: one of the forest's own conifers, paled through the fog by how deep in it
   // stands, the way round 3's mist paled the trees under it. It keeps its texture.
   const VEILS = [0.1, 0.24, 0.38, 0.51, 0.63, 0.74, 0.84].map(veilTable);
-  const kinds = [...Array.from({ length: 6 }, (_, i) => makeSpruce(260 + i)), ...Array.from({ length: 4 }, (_, i) => makeFir(360 + i))];
+  // Its trees are the forest's own conifers, drawn live so they sway (D6a): tall in the nearest ranks,
+  // smaller and with fewer tiers of branches the farther back they stand, and paled through the fog.
+  const SIZES = [24, 28, 33, 38, 44, 50, 57, 64], kinds = SIZES.map((H, n) => Array.from({ length: 3 }, (_, i) => makeConifer(360 + n * 7 + i, H, Math.round(H * 0.5), 'conifer', Math.max(5, Math.round(H / 7)))));
   const tree = (x0, base, v, hgt, half, k, snag) => {
     if (snag) return snagAt(x0, base, v, hgt * 1.25, k - 0.6);
-    const t = kinds[(rr() * kinds.length) | 0];
-    for (const p of t.parts) for (let j = 0; j < p.bm.h; j++) for (let i = 0; i < p.bm.w; i++) {
-      const c = p.bm.d[j * p.bm.w + i]; if (!c) continue;
-      const x = x0 + p.x + i, y = base + p.y + j; if (x < 0 || y < 0 || x >= NW || y >= SH) continue;
-      const q = px(x, y); if (zb[q] < v - 2) continue;
-      g[q] = VEILS[clamp(Math.floor(k + 0.9 * (bayer(x + 3, y) - 0.5)), 0, 6)][c]; zb[q] = v; mb[q] = 0;
-    }
+    const want = (64 - 34 * smooth(0, VD, v)) * (0.8 + 0.4 * vnoise(x0 / 23, v / 17, 237)), n = SIZES.reduce((b, H, j) => Math.abs(H - want) < Math.abs(SIZES[b] - want) ? j : b, 0), set = kinds[n];
+    FOGTREES.push({ t: set[(rr() * set.length) | 0], x: x0, y: base, v, k });
   };
   const flatTree = (x0, base, v, hgt, half, k) => {
     const top = base - Math.round(hgt), lean = (rr() - 0.5) * 0.14;
@@ -589,17 +588,16 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
       const k = 0.3 + 3.6 * smooth(0.3, 1, f) + 2.6 * v / VD + 0.6 * (rr() - 0.5), snag = f > 0.72 && rr() < 0.35 * (f - 0.72) / 0.28;
       tree(Math.round(u), Math.round(SY - v - hAt(u, v)), v, (12 + 15 * rr()) * (0.65 + 0.35 * vnoise(u / 40, seed, 234)), 3.5 + 2.5 * rr(), k, snag);
     }
-    for (let x = 0; x < 660; x++) {
+    if (!B) for (let x = 0; x < 660; x++) {
       const v = vOf(x); if (v < 2 || v >= VD - 1) continue;
       const w = foggy(x, v); if (w < 0.05) continue;
       const base = Math.round(SY - v - hAt(x, v));
       for (let y = Math.max(0, base - 7); y <= Math.min(SH - 1, base + 12); y++) {
         const i = px(x, y); if (zb[i] < v - 2) continue;
-        if (bayer(x, y) < smooth(base - 7, base + 1, y) * w) { g[i] = white(x, y); zb[i] = v; mb[i] = 0; }
+        if (bayer(x, y) < smooth(base - 7, base + 1, y) * w) { g[i] = white(x, y); zb[i] = v - 4; mb[i] = 0; }
       }
     }
   }
-}
 }
 // ---- things that stand up -------------------------------------------------------------------------
 const things = [], put = (bm, u, v, f, tree) => things.push({ bm, u: Math.round(u), v: Math.round(v), fog: f, isTree: tree }), plant = (tree, u, v, f) => things.push({ tree, u: Math.round(u), v: Math.round(v), fog: f });
@@ -610,6 +608,14 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   const rand = rng(2026), any = a => a[(rand() * a.length) | 0], land = (u, v) => MATS[mg[at(Math.round(u), Math.round(v))]] === 'land';
   const wooded = (u, v) => { const i = at(Math.round(u), Math.round(v)), m = MATS[mg[i]], h = hg[i]; return m === 'land' ? h < 100 && !(u > 760 && v > 684) : m === 'volc' ? VP(Math.min(1, vrelief(u, v).d)) < 0.17 + 0.05 * vnoise(u / 30, v / 30, 588) : m === 'crest' ? h < 48 : false; };
   const twisted = Array.from({ length: 5 }, (_, i) => makeTwisted(1200 + i));
+  // Distance and height (D6a). The map has no perspective, so a tree far back or high up is drawn as a
+  // smaller, plainer conifer, paled a little by the haze: at the back of the map about half size, and
+  // shrinking further toward the treeline. Picked by where it stands, never by the dice, so nothing else moves.
+  const shrinkAt = (u, v) => clamp(0.62 * smooth(520, 735, v) + 0.35 * smooth(70, 115, hAt(u, v)), 0, 0.72);
+  const SMALL = [10, 13, 16, 20, 24, 29, 35, 42], smallOf = {};
+  const sized = (t, u, v, ramp = 'conifer') => { const k = shrinkAt(u, v); if (k < 0.12) return t; const lib = smallOf[ramp] || (smallOf[ramp] = SMALL.map((H, n) => Array.from({ length: 3 }, (_, i) => makeConifer(1400 + n * 5 + i + ramp.length * 100, H, Math.round(H * 0.48) + 1, ramp, Math.max(3, Math.round(H / 7)))))); const want = (t.h || 40) * (1 - k), n = SMALL.reduce((b, H, j) => Math.abs(H - want) < Math.abs(SMALL[b] - want) ? j : b, 0), set = lib[n]; return { ...set[(hash(u | 0, v | 0, 5931) * set.length) | 0], haze: k }; };
+  // Glades: the near rainforest opens into clearings here and there, so it reads as stands of trees.
+  const glade = (u, v) => fogAmt(u, v) < 0.3 && fbm(u / 40, v / 30, 78, 3) < 0.34;
   const maples = Array.from({ length: 6 }, (_, i) => makeMaple(100 + i)), spruces = Array.from({ length: 6 }, (_, i) => makeSpruce(200 + i)), firs = Array.from({ length: 8 }, (_, i) => makeFir(300 + i));
   const bigleaf = Array.from({ length: 4 }, (_, i) => blobTree(800 + i, i & 1 ? 'larch' : 'sun', 36 + i * 2, 'bark', 5, 5.5));
   const larches = Array.from({ length: 6 }, (_, i) => { const r = rng(900 + i); return makeConifer(900 + i, 24 + (r() * 14 | 0), 10 + (r() * 4 | 0), 'larch', 6); });
@@ -620,8 +626,8 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     if (rand() > fa * 0.78 || !open(u, v, 1.3) || !wooded(u, v)) continue;
     // Deeper in, the fog's own ranks take over (drawn above), so the planted forest thins out.
     if (f > 0.12 && rand() < smooth(0.12, 0.55, f)) continue;
-    if (f < 0.2 && (nearTrail(u, v, 46) && rand() < 0.3 || rand() < 0.04)) { put(any(bigleaf), u, v, f, true); continue; }
-    if (rand() < f * f * 0.5) put(any(snags), u, v, f, true); else plant(r < 0.45 ? ((m) => f > 0.2 && hash(u | 0, v | 0, 5911) < 0.65 ? twisted[(hash(u | 0, v | 0, 5912) * twisted.length) | 0] : m)(any(maples)) : r < 0.88 ? any(spruces) : any(firs), u, v, f);
+    if (f < 0.2 && (nearTrail(u, v, 46) && rand() < 0.3 || rand() < 0.04)) { const b = any(bigleaf); if (glade(u, v)) continue; if (shrinkAt(u, v) >= 0.12) plant(sized({ h: 40 }, u, v), u, v, f); else put(b, u, v, f, true); continue; }
+    if (rand() < f * f * 0.5) { const sn = any(snags); if (shrinkAt(u, v) < 0.3) put(sn, u, v, f, true); } else { const t = r < 0.45 ? ((m) => f > 0.2 && hash(u | 0, v | 0, 5911) < 0.65 ? twisted[(hash(u | 0, v | 0, 5912) * twisted.length) | 0] : m)(any(maples)) : r < 0.88 ? any(spruces) : any(firs); if (glade(u, v)) continue; plant(sized(t, u, v), u, v, f); }
   }
   // Firs in clumps over the parkland, the meadows and the lower slopes of the crest.
   for (let n = 0; n < 5200; n++) {
@@ -633,20 +639,20 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     // thickest clumps, with open ground between them. Checked after the dice so nothing else moves.
     const fir = any(firs), dT = Math.hypot(u - TU, (v - TV) * 1.4);
     if (dT < 70 || fbm(u / 46, v / 40, 71, 3) < (pa > 0.4 || h > 20 ? 0.55 : 0.61) + 0.09 * smooth(300, 110, dT)) continue;
-    plant(fir, u, v);
+    plant(sized(fir, u, v), u, v);
   }
   // Mount Monolith's lower flanks: firs in clumps up to the meadows under the ice, spruce where the
   // rainforest reaches round its west side.
   for (let n = 0; n < 2600; n++) {
     const u = VOLC.cu + (rand() * 2 - 1) * VOLC.ru, v = VOLC.cv + (rand() * 2 - 1) * VOLC.rv;
     if (MATS[mg[at(Math.round(u), Math.round(v))]] !== 'volc' || !wooded(u, v) || fbm(u / 34, v / 26, 589, 3) < 0.5 || !open(u, v, 1.6)) continue;
-    plant(forestAmt(u, v) > 0.3 && rand() < 0.6 ? any(spruces) : any(firs), u, v, fogAmt(u, v));
+    plant(sized(forestAmt(u, v) > 0.3 && rand() < 0.6 ? any(spruces) : any(firs), u, v), u, v, fogAmt(u, v));
   }
   for (let n = 0; n < 5200; n++) {
     const u = C.LB[0] - C.LB[2] - 50 + rand() * (C.LB[2] * 2 + 100), v = C.LB[1] - C.LB[3] - 40 + rand() * (C.LB[3] * 2 + 80), m = MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]], hi = m === 'gran';
     if (m === 'fin' || m === 'crest' || rand() > larchAmt(u, v) * (hi ? (hAt(u, v) > 98 ? 0.16 : 0.5) : 0.8) || fbm(u / 40, v / 30, 120, 3) < (hi ? 0.5 : 0.52) || !open(u, v, 0.7)) continue;
     if (rand() < burnAmt(u, v) * 1.2) { if (rand() < 0.4) put(any(snags), u, v); continue; }
-    plant(any(larches), u, v);
+    plant(sized(any(larches), u, v, 'larch'), u, v);
   }
   const step1 = (u, v) => { const h = hAt(u, v); return u > 1215 && v > 424 && v < 540 ? smooth(36, 42, h) * smooth(66, 58, h) : 0; };
   const band = (u, v) => Math.max(eastAmt(u, v), step1(u, v)) * (1 - larchAmt(u, v)) * (1 - burnAmt(u, v)) * (1 - 0.85 * sageAmt(u, v));
@@ -707,7 +713,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
 // more so the deeper into the fog it stands. Every other thing is handed to the scene whole, to be
 // drawn each frame.
 things.sort((a, b) => b.v - a.v);
-const live = [];
+const live = [], HAZE = [0.1, 0.18, 0.27, 0.36].map(veilTable);
 for (const th of things) {
   const h = hAt(th.u, th.v), fy = Math.round(SY - th.v - h), ft = th.fog ? fogTop(th.u, th.v) : -1;
   if (fy >= 0 && fy < SH && painted[px(Math.round(th.u), fy)]) continue;
@@ -715,9 +721,20 @@ for (const th of things) {
   const each = fn => { if (th.tree) for (const p of th.tree.parts) fn(p.bm, th.u + p.x, fy + p.y); else fn(th.bm, th.u - (th.bm.ox || 0), fy - (th.bm.oy || 0)); };
   let n = 0, seen = 0;
   each((bm, sx, sy) => { for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { if (!bm.d[j * bm.w + i]) continue; n++; const x = sx + i, y = sy + j; if (x >= 0 && y >= 0 && x < NW && y < SH && zb[px(x, y)] >= th.v - 3) seen++; } });
+  if (th.tree || th.isTree) {
+    if (seen < n * 0.12) continue;
+    const fogged = th.fog > 0.02 && ft > -1, hz = th.tree && th.tree.haze ? HAZE[clamp(Math.floor(th.tree.haze * 5.5) - 1, 0, 3)] : null, veil = (bm, sx, sy) => { if (!fogged && !hz) return bm; const o = new BM(bm.w, bm.h); o.ox = bm.ox; o.oy = bm.oy; for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { let c = bm.d[j * bm.w + i]; if (!c) continue; if (hz) c = hz[c]; if (!fogged) { o.d[j * bm.w + i] = c; continue; } const x = sx + i, y = sy + j, up = h + fy - y; o.d[j * bm.w + i] = bayer(x, y) < (ft - up) / 5 + 0.15 ? fogInk(x, y, ft - up) : c; } return o; };
+    const clip = seen < n;
+    if (th.tree) live.push({ tree: fogged || hz ? { ...th.tree, parts: th.tree.parts.map(p => ({ ...p, bm: veil(p.bm, th.u + p.x, fy + p.y) })) } : th.tree, x: th.u, y: fy, v: th.v, clip });
+    else live.push({ bm: veil(th.bm, th.u - (th.bm.ox || 0), fy - (th.bm.oy || 0)), x: th.u, y: fy, v: th.v, isTree: true, clip });
+    continue;
+  }
   if (!(th.fog > 0.22) && seen >= n * 0.97) { live.push(th.tree ? { tree: th.tree, x: th.u, y: fy, v: th.v } : { bm: th.bm, x: th.u, y: fy, v: th.v, fern: th.fern, isTree: th.isTree }); continue; }
   if (!B && seen >= n * 0.12) each(blit);
 }
+{ const VEILS = [0.1, 0.24, 0.38, 0.51, 0.63, 0.74, 0.84].map(veilTable);
+  for (const F of FOGTREES) { let n = 0, seen = 0; const parts = F.t.parts.map(p => { const o = new BM(p.bm.w, p.bm.h); for (let j = 0; j < p.bm.h; j++) for (let i = 0; i < p.bm.w; i++) { const c = p.bm.d[j * p.bm.w + i]; if (!c) continue; const x = F.x + p.x + i, y = F.y + p.y + j; n++; if (x >= 0 && y >= 0 && x < NW && y < SH && zb[px(x, y)] >= F.v - 3) seen++; o.d[j * p.bm.w + i] = VEILS[clamp(Math.floor(F.k + 0.9 * (bayer(x + 3, y) - 0.5)), 0, 6)][c]; } return { ...p, bm: o }; });
+    if (seen >= n * 0.12) live.push({ tree: { ...F.t, parts }, x: F.x, y: F.y, v: F.v, clip: true }); } }
 
 if (!B) for (const th of live) {
   if (!th.tree && !th.isTree) continue;
@@ -951,7 +968,7 @@ export function buildTerrain() {
   const open = (x, y) => { const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
   const nearTrail = (x, y, r) => { const v = vAt(x, y); return v < VD && H.tdist[Math.round(v) * NW + Math.round(x)] < r; };
   const flat = l => l.map(p => [p[0], p[1]]);
-  return { g: LAND.g, vAt, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  return { g: LAND.g, vAt, depth: LAND.depth, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the

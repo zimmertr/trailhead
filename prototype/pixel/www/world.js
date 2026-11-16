@@ -166,6 +166,9 @@ export function makeWorld(bake) {
       kit.update(env, here, scr.narrow && !env.fixed, env.home && !env.fixed ? oy + (scr.narrow ? VH * 0.56 : VH - 38) : 0);
       for (const it of kit.items()) list.push(it);
       list.sort((a, b) => a.y - b.y);
+      // A tree that nearer ground partly hides is drawn only where the land under each pixel is no
+      // nearer than the tree itself (D6a), so it can sway and still stand behind the slope in front.
+      const DEP = W.depth, clipBlit = (bm, sx, sy, v) => { sx = Math.round(sx); sy = Math.round(sy); const lim = v - 3; for (let j = 0; j < bm.h; j++) { const y = sy + j, vy = y - oy; if (vy < 0 || vy >= VH || y < 0 || y >= WH) continue; for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (!c) continue; const x = sx + i, vx = x - ox; if (vx < 0 || vx >= VW || x < 0 || x >= WW || DEP[y * WW + x] < lim) continue; fb[vy * VW + vx] = c; } } };
       for (const th of list) {
         if (th.me) {
           const set = env.moving ? (facing === 'side' ? runner.side : facing === 'up' ? runner.up : runner.down) : (facing === 'side' ? runner.sideIdle : facing === 'up' ? runner.upIdle : runner.downIdle);
@@ -180,10 +183,10 @@ export function makeWorld(bake) {
         } else if (th.cat) {
           kit.drawOne(scr, th.cat, ox, oy, t);
         } else if (th.kind === 'tree') {
-          const { tree, x, y } = th.t;
+          const { tree, x, y, clip, v } = th.t;
           for (const part of tree.parts) {
             const [wx, wy] = breeze(x + (part.lx || 0), y + part.y, tq, part.sway);
-            scr.blit(part.bm, x + part.x + wx - ox, y + part.y + wy - oy);
+            if (clip) clipBlit(part.bm, x + part.x + wx, y + part.y + wy, v); else scr.blit(part.bm, x + part.x + wx - ox, y + part.y + wy - oy);
           }
         } else if (th.critter) {
           crit.draw(scr, th, ox, oy, t);
@@ -195,7 +198,7 @@ export function makeWorld(bake) {
         } else if (th.lift) {
           scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.lift - th.bm.oy - oy);
           if (th.rope) for (let j = 1; j < 12; j++) scr.set(th.x + Math.round(j * 0.25) - ox, th.y - 70 + j - oy, R.yellow[0]);
-        } else scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.bm.oy - oy);
+        } else if (th.clip) clipBlit(th.bm, th.x - th.bm.ox, th.y - th.bm.oy, th.v); else scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.bm.oy - oy);
       }
 
       // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge.
