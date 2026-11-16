@@ -281,6 +281,9 @@ const wob = (u, v, s, a) => a * (fbm(u / 70, v / 60, s, 3) - 0.5);
 const forestEdge = v => edgeE - 96 * (fbm(v / 110, 2.3, 3, 3) - 0.5) + 30 * (fbm(v / 24, 7.1, 5, 2) - 0.5) + 44 * smooth(440, 260, v);
 const ell = ([cu, cv, ru, rv], u, v) => Math.hypot((u - cu) / ru, (v - cv) / rv);
 const parkAmt = (u, v) => Math.max(smooth(1.25, 0.8, ell(C.PK, u, v) + wob(u, v, 202, 0.4)), smooth(1.2, 0.8, ell(C.PK2, u, v) + wob(u, v, 203, 0.4)));
+// The parkland's drifts: a slow field over it picks lupine, paintbrush, white, or heather and plain turf.
+// null outside the parkland, where the flowers are scattered by the dice as before.
+const DRIFT = (u, v) => { if (parkAmt(u, v) < 0.45) return null; const k = vnoise(u / 58, v / 34, 470) + 0.08 * (vnoise(u / 9, v / 6, 471) - 0.5); return k < 0.36 ? 'lupine' : k < 0.5 ? 'heather' : k < 0.68 ? 'red' : 'white'; };
 const forestAmt = (u, v) => smooth(forestEdge(v) + 40, forestEdge(v) - 24, u + 30 * (fbm(u / 30, v / 30, 8, 2) - 0.5)) * smooth(-6, -30, coast(u, v)) * (1 - 0.9 * smooth(1.1, 0.7, ell(C.PK, u, v)));
 // Larches are trees of the high country: none below the second granite step.
 const larchAmt = (u, v) => smooth(1.2, 0.85, ell(C.LB, u, v) + wob(u, v, 204, 0.35)) * smooth(62, 74, hAt(u, v));
@@ -342,9 +345,11 @@ function colour(u, v, hh, x, y) {
     // The ice, the ribs, Little Tahoma and the crater are painted (monolith.js) and laid over this ground
     // afterwards. What shows below the painting is the mountain's lower slopes: scree here and there
     // in the meadow, then the forest.
-    if (vnoise(x / 5, hh / 4, 584) > 0.82 - 0.08 * smooth(0.2, 0.4, VP(Math.min(1, Q.d)))) return rock(vnoise(x / 3, hh / 3, 583) > 0.6 ? 1 : 0);
+    if (vnoise(u / 7, v / 5, 584) > 0.86 - 0.08 * smooth(0.2, 0.4, VP(Math.min(1, Q.d)))) return rock(vnoise(x / 3, hh / 3, 583) > 0.6 ? 1 : 0);
     if (forestAmt(u, v) > 0.4) return pick('moss', 0.2 + 0.35 * lit, x, y);
-    return hash(u, v, 586) < 0.05 ? R.red[1] : pick('grass', 0.4 + 0.35 * lit + 0.15 * n1, x, y, 0.4);
+    // Its meadow keeps the parkland's drifts: blooms of the drift's own kind, thick, and a few red elsewhere.
+    const dk = DRIFT(u, v), bloom = dk === 'lupine' ? R.lupine[1] : dk === 'red' ? R.red[1] : dk === 'white' ? R.white[1] : dk === 'heather' ? R.pink[0] : R.red[1];
+    return hash(u, v, 586) < (dk ? (dk === 'heather' ? 0.05 : 0.1) : 0.025) ? bloom : pick('grass', 0.4 + 0.35 * lit + 0.15 * n1, x, y, 0.4);
   }
   if (mat === 'gran' || mat === 'fin') {
     if (steep > 0.75 || mat === 'fin') { const crack = vnoise(x / 2.2, hh / 26, 902), streak = vnoise(x / 5, hh / 40, 903); const k = clamp(Math.round(1.5 + 2.9 * L + (streak > 0.62 ? -1.1 : 0) + (crack > 0.74 ? -1.4 : crack < 0.2 ? 0.5 : 0) + (b2(x, y) - 0.5) * 0.9), 0, 5); return k === 5 ? R.gold[6] : R.rock[k]; }
@@ -491,17 +496,21 @@ for (const br of BRIDGES) {
   }
 }
 // Wildflowers in clumps, each flower a bloom on a stem: thick in the parkland, scattered through the meadow.
+// In the parkland they grow in drifts (D5): a wide patch of lupine, then one of paintbrush, then white,
+// with heather and plain turf between. Which flower grows where is read from the spot, not the dice.
 {
   const rand = rng(11), isGrass = i => g[i] >= R.grass[0] && g[i] <= R.grass[4];
   for (let n = 0; n < 9000; n++) {
     const cx = (rand() * NW) | 0, cy = 300 + ((rand() * (SH - 302)) | 0), v = zb[px(cx, cy)], type = rand(), count = 6 + (rand() * 12 | 0);
     if (v >= VD || !isGrass(px(cx, cy))) continue;
-    const want = 0.9 * parkAmt(cx, v) + (forestAmt(cx, v) < 0.2 && dryAmt(cx, v) < 0.2 && larchAmt(cx, v) < 0.2 && burnAmt(cx, v) < 0.2 ? 0.07 : 0);
+    const dw = DRIFT(cx, v), want = (dw === 'heather' ? 0.25 : dw ? 1.2 : 0.9) * parkAmt(cx, v) + (forestAmt(cx, v) < 0.2 && dryAmt(cx, v) < 0.2 && larchAmt(cx, v) < 0.2 && burnAmt(cx, v) < 0.2 ? 0.07 : 0);
     if (rand() > want) continue;
     for (let k = 0; k < count; k++) {
       const x = Math.round(cx + (rand() - 0.5) * 18), y = Math.round(cy + (rand() - 0.5) * 10); if (x < 2 || y < 2 || x >= NW - 2 || y >= SH - 2) continue;
       const i = px(x, y); if (!isGrass(i) || !isGrass(i - NW) || !sameGround(i, i - NW)) continue;
-      if (type < 0.5) { g[i - NW] = R.lupine[2]; g[i] = R.lupine[1]; } else if (type < 0.75) { g[i - NW] = R.red[2]; g[i] = R.red[1]; } else if (type < 0.9) g[i] = R.white[1]; else g[i] = R.yellow[1];
+      const kind = DRIFT(x, zb[i]) || (type < 0.5 ? 'lupine' : type < 0.75 ? 'red' : type < 0.9 ? 'white' : 'yellow');
+      if (kind === 'heather') continue;
+      if (kind === 'lupine') { g[i - NW] = R.lupine[2]; g[i] = R.lupine[1]; } else if (kind === 'red') { g[i - NW] = R.red[2]; g[i] = R.red[1]; } else if (kind === 'white') g[i] = R.white[1]; else g[i] = R.yellow[1];
     }
   }
 }
@@ -659,6 +668,11 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   const ferns = Array.from({ length: 6 }, (_, i) => makeFern(400 + i)), logs = Array.from({ length: 6 }, (_, i) => makeLog(i));
   const meadowy = (u, v) => forestAmt(u, v) < 0.3 && burnAmt(u, v) < 0.3 && dryAmt(u, v) < 0.3 && Math.hypot(u - TU, (v - TV) * 1.4) > 40;
   for (let n = 0; n < 700; n++) { const u = 420 + rand() * 1200, v = rand() * 640; if (!open(u, v) || !meadowy(u, v)) continue; const m = MATS[mg[at(Math.round(u), Math.round(v))]]; if (m !== 'land' && m !== 'moraine') continue; const rock = m === 'moraine' || rand() < 0.3; put(rock ? any(boulders) : any(bushes), u, v); }
+  // The parkland's heather grows in clumps where the drifts leave room for it, and a few boulders lie
+  // about (D5). Their own dice, so nothing planted before them moves.
+  { const hr = rng(4711), heath = bushes.slice(3, 6), anyH = a => a[(hr() * a.length) | 0];
+    for (let n = 0; n < 2400; n++) { const u = C.PK[0] + (hr() * 2 - 1) * C.PK[2] * 1.3, v = C.PK[1] + (hr() * 2 - 1) * C.PK[3] * 1.3; if (DRIFT(u, v) !== 'heather' || hr() > 0.55 || !open(u, v) || !meadowy(u, v)) continue; put(anyH(heath), u, v); }
+    for (let n = 0; n < 400; n++) { const u = C.PK[0] + (hr() * 2 - 1) * C.PK[2], v = C.PK[1] + (hr() * 2 - 1) * C.PK[3]; if (parkAmt(u, v) < 0.6 || hr() > 0.12 || !open(u, v, 1) || !meadowy(u, v)) continue; put(anyH(boulders), u, v); } }
   for (let n = 0; n < 300; n++) { const u = 1240 + rand() * 680, v = 380 + rand() * 320; if (MATS[mg[at(Math.round(u), Math.round(v))]] === 'gran' && open(u, v, 0.7) && rand() < 0.5) put(any(slabs), u, v); }
   for (let n = 0; n < 900; n++) { const u = 1300 + rand() * 620, v = rand() * 480; if (rand() < sageAmt(u, v) * 0.5 && open(u, v) && land(u, v)) put(any(sages), u, v); }
   for (let n = 0; n < 400; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) { if (rand() < 0.5) put(any(burnt), u, v, 0, true); else plant(any(young), u, v); } }
