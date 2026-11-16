@@ -309,8 +309,11 @@ function gearOn(p) {
   if (p === 5) out.push({ d: MARK.bolt, kind: 'bolt', fixed: true });
   return out.sort((a, b) => a.d - b.d);
 }
+// What each belay is built from (TJ, section 5): the sling-wrapped block backed up with two cams, the two
+// slung horns, three cams by the flake, a horn, a cam and a nut, and the summit block.
+const ANCHOR_KIT = { a1: ['block', 'cam', 'cam'], a2: ['horn', 'horn'], a3: ['cam', 'cam', 'cam'], a4: ['horn', 'cam', 'nut'], top: ['block'] };
 function makeScript() {
-  const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [];
+  const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [], anc = [];
   const pos = { tj: 0, lead: MARK.tie, red: dAtX(183) }, pose = { tj: 'walk', lead: 'rack', red: 'sit' }, clock = { tj: 0, lead: 0, red: 0 };
   const go = (k, to, p, dur, after) => { tr[k].push({ t0: clock[k], t1: clock[k] + dur, d0: pos[k], d1: to, pose: p }); clock[k] += dur; pos[k] = to; pose[k] = after || p; };
   const move = (k, to, p, v, after) => go(k, to, p, Math.max(0.8, Math.abs(to - pos[k]) / v), after);
@@ -334,27 +337,32 @@ function makeScript() {
       move('lead', Math.max(pos.lead, g.d - 15), 'lead', SPEED.lead); const s = clock.lead;
       go('lead', pos.lead, 'place', g.fixed ? 0.6 : 1.2); pro.push({ ...g, p, t0: s, t: s + (g.fixed ? 0 : 0.7), clip: s + (g.fixed ? 0.35 : 0.95), gone: Infinity });
     }
-    move('lead', a, 'lead', SPEED.lead); go('lead', a, 'anchor', 2.5, 'tbelay');
+    // The anchor: each piece in turn, then the slings brought to one locking carabiner (te), then he
+    // ties in to it and takes the followers in.
+    move('lead', a, 'lead', SPEED.lead);
+    { const kinds = ANCHOR_KIT[PITCH[p]], s0 = clock.lead; go('lead', a, 'anchor', 0.7 * kinds.length + 1.3, 'tbelay'); anc.push({ m: PITCH[p], kinds, t0: s0, te: s0 + 0.5 + 0.7 * kinds.length, gone: Infinity }); }
     pose.tj = 'belay'; hold('tj', clock.lead); ropes.push({ a: 'tj', b: 'lead', t0, t1: clock.lead });
     const t1 = sync(), mine = pro.filter(g => g.p === p);
     // The woman comes last and takes the gear out as she reaches it; at the piton and the bolt she
     // only unclips the carabiner, and they stay in the rock.
-    const clean = () => { for (const g of mine) { move('red', Math.max(pos.red, g.d - 6), 'climb', SPEED.follow); go('red', pos.red, 'clean', g.fixed ? 0.6 : 1.0); g.gone = clock.red - 0.3; } move('red', a + AT.red, 'climb', SPEED.follow, 'stand'); };
+    // Before she leaves the anchor below (not the ground), she takes it apart; at the top she clips in.
+    const clean = () => { if (p > 1) { go('red', pos.red, 'anchor', 1.4); anc[p - 2].gone = clock.red - 0.2; } for (const g of mine) { move('red', Math.max(pos.red, g.d - 6), 'climb', SPEED.follow); go('red', pos.red, 'clean', g.fixed ? 0.6 : 1.0); g.gone = clock.red - 0.3; } move('red', a + AT.red, 'climb', SPEED.follow, 'stand'); go('red', pos.red, 'anchor', 0.8, 'stand'); };
     if (p === 1) {
       // Pitch 1: both followers at once on two ropes, the woman a few moves behind.
-      move('tj', a + AT.tj, 'climb', SPEED.follow, 'stand'); stops.push({ id: CARD.a1, t: clock.tj });
+      // He clips in to the anchor, and then the card opens.
+      move('tj', a + AT.tj, 'climb', SPEED.follow, 'stand'); go('tj', pos.tj, 'anchor', 1.0, 'stand'); stops.push({ id: CARD.a1, t: clock.tj });
       hold('red', t1 + 1.2); clean();
       ropes.push({ a: 'lead', b: 'tj', t0: t1, t1: clock.tj }, { a: 'lead', b: 'red', t0: t1, t1: clock.red, two: true });
     } else {
       // Then caterpillar: the leader brings TJ up, then TJ brings the woman up.
-      move('tj', a + AT.tj, 'climb', SPEED.follow, 'tbelay'); ropes.push({ a: 'lead', b: 'tj', t0: t1, t1: clock.tj });
+      move('tj', a + AT.tj, 'climb', SPEED.follow, 'tbelay'); go('tj', pos.tj, 'anchor', 1.0, 'tbelay'); ropes.push({ a: 'lead', b: 'tj', t0: t1, t1: clock.tj });
       if (CARD[PITCH[p]]) stops.push({ id: CARD[PITCH[p]], t: clock.tj });
       hold('red', clock.tj); const t2 = clock.red; clean(); ropes.push({ a: 'tj', b: 'red', t0: t2, t1: clock.red });
       if (p === 5) stops.push({ id: 'summit', t: clock.red });
     }
   }
   pose.tj = pose.lead = pose.red = 'stand'; sync(); for (const k of WHO) go(k, pos[k], 'stand', 4);
-  return { tr, ropes, stops, pro, bumpAt, dropAt: tr.tj[1].t0 + 0.5, dur: clock.tj };
+  return { tr, ropes, stops, pro, anc, bumpAt, dropAt: tr.tj[1].t0 + 0.5, dur: clock.tj };
 }
 const SCRIPT = makeScript(), DUR = SCRIPT.dur;
 // Each of them at a moment: where along the line, in what pose, how far through it, whether moving;
@@ -418,6 +426,25 @@ function drawPiece(scr, x, y, kind, open = 1) {
 }
 // The carabiner: a small ring the rope passes through, at x, y (its middle).
 function drawBiner(scr, x, y) { scr.set(x, y - 1, R.shoe[2]); scr.set(x + 1, y, R.shoe[1]); scr.set(x, y + 1, R.shoe[2]); scr.set(x - 1, y, INK); }
+// Anchor slings in four colours, so each piece's sling can be followed to the master point.
+const SLING = [R.kit, R.jay.slice(1), R.yellow.concat([R.yellow[1]]), R.red];
+// One piece of an anchor (q, in the world): a cam, a nut (a small brass wedge on its wire), or a white
+// sling round a horn or a block, lying along the rock's top (q.loop) and down both sides to a point
+// below it (wider for a block). Returns the screen row its sling leaves from.
+function anchorPiece(scr, q, kind, cx, rowOf) {
+  const x = q.x - cx, y = rowOf(q.h);
+  if (kind === 'cam') { drawPiece(scr, x, y, 'cam'); return y + 4; }
+  if (kind === 'nut') { for (let i = -1; i <= 1; i++) scr.set(x + i, y - 1, INK); scr.set(x - 1, y, INK); scr.set(x, y, R.yellow[1]); scr.set(x + 1, y, INK); scr.set(x, y + 1, R.shoe[2]); scr.set(x, y + 2, R.shoe[1]); return y + 2; }
+  for (const [lx, lh] of q.loop) scr.set(lx - cx, rowOf(lh), R.white[1]);
+  const [l, r] = [q.loop[0], q.loop[q.loop.length - 1]], by = rowOf(q.bot);
+  for (const [ex, eh] of [l, r]) { const n = Math.max(1, by - rowOf(eh)); for (let k = 1; k <= n; k++) scr.set(Math.round(lerp(ex, q.x, k / n)) - cx, rowOf(eh) + k, R.white[0]); }
+  return by;
+}
+// A sling or tether: a one-pixel line in the light shade with the dark shade under it.
+function strap(scr, x0, y0, x1, y1, ramp) {
+  const n = Math.max(1, Math.abs(x1 - x0), Math.abs(y1 - y0));
+  for (let k = 0; k <= n; k++) { const x = Math.round(lerp(x0, x1, k / n)), y = Math.round(lerp(y0, y1, k / n)); scr.set(x, y + 1, ramp[0]); scr.set(x, y, ramp[ramp.length - 1]); }
+}
 // A pack lying on its side under the overhang, in its owner's colour.
 function makePack(ramp) {
   const b = new BM(10, 7); b.ox = 5; b.oy = 6;
@@ -437,6 +464,36 @@ function buildRidge() {
   // sides, so never the outline against the sky) within reach of the spot above and beside his feet,
   // so every cam is seen in a real crack; failing that, on the rock below the spot. bi is the
   // carabiner's height.
+  // Each anchor's pieces, by rule: spread across the rock beside the stance on the side the ridge rises
+  // (so the leader, facing the rock, does not hide them), above it on the face, at the crest's top where
+  // the belay is on the crest (measured from the stance, not the top of whatever block stands there); a cam or a nut in the nearest crack, a horn or a block slung at the
+  // nearest high point of the rock's top. M is where their slings meet: below them on the face, at the
+  // leader's waist on the crest.
+  const isCrack = (x, y) => main.get(x, y) === INK && main.get(x, y - 2) && main.get(x - 2, y) && main.get(x + 2, y);
+  const isTop = (x, y) => main.get(x, y) && !main.get(x, y - 1) && !main.get(x, y - 2);
+  const ASPOT = SCRIPT.anc.map(A => {
+    const a = posAt(MARK[A.m]), face = a.where === 's', n = A.kinds.length, used = [];
+    const p = A.kinds.map((kd, i) => {
+      const tx = Math.round(a.x) + 14 + Math.round((i - (n - 1) / 2) * (n > 2 ? 8 : 10)), th = Math.round(face ? a.h + 24 : a.h + 3);
+      const test = kd === 'horn' || kd === 'block' ? isTop : isCrack;
+      let best = null, bs = 1e9;
+      for (let dh = -12; dh <= 9; dh++) for (let dx = -9; dx <= 9; dx++) {
+        const x = tx + dx, y = -(th + dh);
+        if (!test(x, y) || used.some(u => Math.abs(u - x) < 4)) continue;
+        const sc = Math.hypot(dx, dh) - (test === isTop ? 2 * (CREST[x] - Math.min(CREST[x - 4], CREST[x + 4])) : 0);
+        if (sc < bs) { bs = sc; best = { x, h: th + dh }; }
+      }
+      best = best || { x: tx, h: th }; used.push(best.x);
+      if (test === isTop) {
+        const w = kd === 'block' ? 4 : 2, top = x => { for (let d = 0; d <= 5; d++) for (const e of [d, -d]) if (isTop(x, -(best.h + e))) return best.h + e; return best.h; };
+        best.loop = []; for (let i = -w; i <= w; i++) best.loop.push([best.x + i, top(best.x + i)]);
+        best.bot = Math.min(best.loop[0][1], best.loop[2 * w][1]) - w;
+      }
+      return best;
+    });
+    const mx = Math.round(p.reduce((s2, q) => s2 + q.x, 0) / n);
+    return { p, M: { x: mx, h: face ? Math.min(...p.map(q => q.h)) - 9 : Math.round(a.h + 10) } };
+  });
   const SPOT = SCRIPT.pro.map(g => {
     const p = posAt(g.d), x0 = Math.round(p.x) + 4, h0 = Math.round(p.h + 14), dz = g.fixed ? 3 : 6;
     for (let r = 0; r < 8; r++) for (const dx of r ? [-r, r] : [0]) for (const dh of [0, 1, -1, 2, -2]) { const x = x0 + dx, y = -(h0 + dh); if (main.get(x, y) === INK && main.get(x, y - 2) && main.get(x - 2, y) && main.get(x + 2, y)) return { x: x0 + dx, h: h0 + dh, bi: h0 + dh - dz }; }
@@ -544,6 +601,25 @@ function buildRidge() {
         if (g.fixed || (tau >= g.t && tau < g.gone)) drawPiece(scr, sp.x - cx, rowOf(sp.h), g.kind);
         if (g.fixed ? lit(i) : tau >= g.t && tau < g.gone) drawBiner(scr, sp.x - cx, rowOf(sp.bi));
       }
+      // The anchors: each piece as it goes in, then its sling to the locking carabiner, until the woman
+      // strips it; and a tether from the waist of whoever stands at a built anchor to that carabiner.
+      SCRIPT.anc.forEach((A, k) => {
+        if (tau < A.t0 + 0.5 || tau >= A.gone) return;
+        const sp = ASPOT[k], mx = sp.M.x - cx, my = rowOf(sp.M.h);
+        A.kinds.forEach((kd, i) => {
+          if (tau < A.t0 + 0.5 + 0.7 * i) return;
+          const q = sp.p[i], bot = anchorPiece(scr, q, kd, cx, rowOf);
+          if (tau >= A.te) strap(scr, q.x - cx, bot, mx, my, SLING[i % SLING.length]);
+        });
+        if (tau < A.te) return;
+        for (const w of WHO) {
+          const s2 = P[w];
+          if (s2.moving || Math.abs(s2.d - (MARK[A.m] + AT[w])) > 1.5) continue;
+          const back = s2.pose === 'anchor' || s2.pose === 'clean';
+          strap(scr, Math.round(s2.x) - cx + 1, rowOf(s2.h + (back ? 12 : 9)), mx, my, w === 'red' ? R.blaze : R.teal);
+        }
+        drawBiner(scr, mx, my); scr.set(mx, my, R.white[1]);
+      });
       for (const w of WHO) if (P[w].where !== 'n') draw1(w);
       // While he places a cam: in his raised hand, lobes shut, then pushed up into the crack.
       for (let i = 0; i < pro.length; i++) {
