@@ -135,7 +135,8 @@ volcano(640, 600, 300, 150, 290);
 for (const [cu, cv, ru, rv, H] of [[500, 478, 96, 44, 42], [770, 474, 84, 40, 38], [858, 530, 70, 52, 46], [420, 540, 80, 52, 44]]) horn('land', cu, cv, ru, rv, H, { pow: 1.15 });
 plateau('land', 640, 436, 112, 34, 30, 0.1);
 C.lakes.push([640, 440, 46, 14, 'lake']);
-range('crest', 770, NW + 60, 716, u => 112 + 20 * vnoise(u / 70, 1, 64), 64, { front: 40, back: 18 });
+// Its west end rises gently from behind Little Tahoma, so no peak of it stands alone beside the tooth.
+range('crest', 800, NW + 60, 716, u => (112 + 20 * vnoise(u / 70, 1, 64)) * lerp(0.35, 1, smooth(820, 930, u)), 64, { front: 40, back: 18 });
 range('crest', 800, 930, 660, crestH(1070, 120, 60), 61);
 lift = under; spires(1070, 648, 70, 115, 1, 1.2); lift = null;
 range('crest', 1232, 1300, 664, crestH(1070, 120, 60), 62);
@@ -401,7 +402,9 @@ for (let u = 0; u < NW; u++) {
 // Mount Monolith is painted (monolith.js) and laid over its own ground, one map pixel to one picture
 // pixel. Where the painted outline stands a little above the ground it is drawn over the sky behind,
 // at the mountain's depth, so anything nearer still stands in front. Its stand-in meadow is left out:
-// the land's own meadow, trees and flowers are drawn there.
+// the land's own meadow, trees and flowers are drawn there. The whole painting stands at the mountain's
+// depth, so nothing behind the mountain can be drawn over it, and nothing is planted on it (painted).
+const painted = new Uint8Array(NW * SH);
 {
   const P = paintMonolith(), { cu, cv, H } = VOLC, VI = MATS.indexOf('volc'), ox = cu - PMCX;
   // Line the picture up with the ground: the row of the picture's summit goes where the ground's top is.
@@ -414,8 +417,8 @@ for (let u = 0; u < NW; u++) {
     // Above the painted outline the mountain's own ground would poke out: the sky goes back there.
     if (!c) { if (mb[i] === VI && py < PMH - 40) { g[i] = skyAt(x, y); mb[i] = 255; zb[i] = 1e9; } continue; }
     if (!P.own[k]) continue;
-    if (mb[i] === VI) g[i] = c;
-    else if (zb[i] > cv) { g[i] = c; zb[i] = cv; mb[i] = VI; }
+    if (mb[i] === VI) { g[i] = c; zb[i] = Math.min(zb[i], cv); painted[i] = 1; }
+    else if (zb[i] > cv) { g[i] = c; zb[i] = cv; mb[i] = VI; painted[i] = 1; }
   }
 }
 
@@ -628,6 +631,7 @@ things.sort((a, b) => b.v - a.v);
 const live = [];
 for (const th of things) {
   const h = hAt(th.u, th.v), fy = Math.round(SY - th.v - h), ft = th.fog ? fogTop(th.u, th.v) : -1;
+  if (fy >= 0 && fy < SH && painted[px(Math.round(th.u), fy)]) continue;
   const blit = (bm, sx, sy) => { for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i], x = sx + i, y = sy + j; if (!c || x < 0 || y < 0 || x >= NW || y >= SH || zb[px(x, y)] < th.v - 3) continue; const up = h + fy - y; g[px(x, y)] = th.fog > 0.02 && bayer(x, y) < (ft - up) / 5 + 0.15 ? fogInk(x, y, ft - up) : c; } };
   const each = fn => { if (th.tree) for (const p of th.tree.parts) fn(p.bm, th.u + p.x, fy + p.y); else fn(th.bm, th.u - (th.bm.ox || 0), fy - (th.bm.oy || 0)); };
   let n = 0, seen = 0;
