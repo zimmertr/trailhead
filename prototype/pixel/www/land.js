@@ -242,11 +242,18 @@ if (B) water.set(B.water); else {
   while (hk.length) { const c = pop(), cu = c % RW, cv = (c / RW) | 0; for (let dv = -1; dv <= 1; dv++) for (let du = -1; du <= 1; du++) { const nu = cu + du, nv = cv + dv; if ((!du && !dv) || nu < 0 || nv < 0 || nu >= RW || nv >= RH) continue; const n = nv * RW + nu; if (down[n] !== -2) continue; fill[n] = Math.max(rh(n), fill[c] + (du && dv ? 0.0028 : 0.002)); down[n] = c; push(fill[n], n); } }
   // Follow each source down to an outlet, adding its water to every spot it passes.
   for (const s of C.src) { const lead = catmull(s.lead), [lu, lv] = lead[lead.length - 1], cells = []; let i = (Math.round(lv) >> 1) * RW + (Math.round(lu) >> 1), guard = 0; while (i >= 0 && guard++ < 8000) { cells.push(i); flow[i] += s.w; if (down[i] < 0) break; i = down[i]; } routes.push({ s, lead, cells }); }
+  // Read from the land as it was before any stream cut its bed, so every stream sees the same ground.
+  const hg0 = hg.slice(), h0 = (u, v) => hg0[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))];
+  const flatFor = (u, v) => { let m = 0; for (const [du, dv] of [[0, 0], [12, 0], [-12, 0], [0, 10], [0, -10]]) m = Math.max(m, Math.hypot(h0(u + du + 3, v + dv) - h0(u + du - 3, v + dv), h0(u + du, v + dv + 3) - h0(u + du, v + dv - 3)) / 6); return m; };
+  const wander = (u, v) => { const i = at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1)); if (MATS[mg[i]] !== 'land' || hg0[i] > 40 || coast(u, v) > -24) return 0; const k = smooth(0.5, 0.18, flatFor(u, v)); return k && 13 * k * (2 * fbm(u / 34, v / 26, 455, 2) - 1); };
   const wide = f => 0.5 + 0.8 * Math.sqrt(f), flowAt = (u, v) => { let f = 0; const ru = Math.round(u) >> 1, rv = Math.round(v) >> 1; for (let dv = -1; dv <= 1; dv++) for (let du = -1; du <= 1; du++) { const nu = ru + du, nv = rv + dv; if (nu >= 0 && nv >= 0 && nu < RW && nv < RH) f = Math.max(f, flow[nv * RW + nu]); } return f; };
   for (const r of routes) {
     const sparse = r.cells.filter((_, n) => n % 4 === 0 || n === r.cells.length - 1).map(i => [(i % RW) * 2, ((i / RW) | 0) * 2]);
     const run = sparse.length > 2 ? catmull([r.lead[r.lead.length - 1], ...sparse.slice(1)]) : [];
     r.pts = [...r.lead.map(([u, v]) => [u, v, wide(r.s.w)]), ...run.map(([u, v]) => [u, v, wide(Math.max(r.s.w, flowAt(u, v)))])];
+    // On ground that stays flat for some way round, a river wanders from side to side (D6). The swing
+    // is read from where the water is, not how far it has run, so two streams sharing a bed swing as one.
+    r.pts = r.pts.map((p, n) => { if (n < r.lead.length || n < 4 || n > r.pts.length - 5) return p; const [u, v] = p, a = r.pts[n - 4], b = r.pts[n + 4], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, s = wander(u, v); return s ? [u - dy / L * s, v + dx / L * s * 0.7, p[2]] : p; });
     // Its bed never climbs: where the way out of a hollow crosses higher ground the stream cuts a
     // notch through it, with banks that open out.
     let bed = 1e9;
@@ -255,8 +262,14 @@ if (B) water.set(B.water); else {
       for (let dv = -W; dv <= W; dv++) for (let du = -W; du <= W; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v), m = MATS[mg[i]], d = Math.hypot(du, dv); if (d > W || lipKeep[i] || (m !== 'land' && m !== 'moraine' && m !== 'gran')) continue; const t = Math.max(0.4, bed + Math.max(0, d - pr) * 0.9); if (hg[i] > t) hg[i] = t; if (d <= pr + 1 && hg[i] > 0) water[i] = Math.max(water[i], d <= pr ? 2 : 1); }
     }
   }
-  // An oxbow: a bend the west river left behind, in the flat of the meadow.
-  { const p = routes[1].pts, k = p.findIndex(([u, v]) => u < 900 && v < 300), q = p[k], q2 = p[Math.min(p.length - 1, k + 12)]; if (k > 0) { const a = Math.atan2(q2[1] - q[1], q2[0] - q[0]), cx = q[0] + Math.cos(a + 1.4) * 22, cy = q[1] + Math.sin(a + 1.4) * 22 * 0.6; for (let t = 0; t < 60; t++) { const b = a + 1.4 + 1.0 + t / 60 * 4.3, u = Math.round(cx + Math.cos(b) * 15), v = Math.round(cy + Math.sin(b) * 9); for (let dv = -1; dv <= 1; dv++) for (let du = -2; du <= 2; du++) if (hg[at(u + du, v + dv)] > 0 && !water[at(u + du, v + dv)]) water[at(u + du, v + dv)] = Math.abs(du) < 2 ? 2 : 1; } } }
+  // An oxbow: a loop the river left behind, a crescent of still water just outside its widest swing in
+  // the flat of the meadow, the swing nearest the Trailhead (D6).
+  { let best = null, bs = 0; for (const r of routes) r.pts.forEach(([u, v], n) => { if (n < r.lead.length) return; const s = Math.abs(wander(u, v)) * smooth(330, 130, Math.hypot(u - TU, (v - TV) * 1.4)) * smooth(TV - 120, TV - 40, v); if (s > bs) { bs = s; best = [r, n]; } });
+    if (best && bs > 4) { const [r, n] = best, P = r.pts, [u0, v0] = P[n], a = P[Math.max(0, n - 6)], b = P[Math.min(P.length - 1, n + 6)], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, sg = Math.sign(wander(u0, v0)), nu = -(b[1] - a[1]) / L * sg, nv = (b[0] - a[0]) / L * sg, out = Math.atan2(nv, nu), cu = u0 + nu * 32, cv = v0 + nv * 32 * 0.7;
+      // Still water: it keeps clear of the running river, and its surface is one level, so it reads calm.
+      const near = (u, v) => { for (let dv = -4; dv <= 4; dv++) for (let du = -6; du <= 6; du++) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) return true; return false; }, ox = new Map();
+      for (let t = 0; t <= 80; t++) { const e = (t / 80) * 2 - 1, ang = out + e * 2.0, w = 2.4 * (1 - e * e) + 0.6, u = cu + Math.cos(ang) * 16, v = cv + Math.sin(ang) * 10; for (let dv = -3; dv <= 3; dv++) for (let du = -4; du <= 4; du++) { const d = Math.hypot(du, dv * 1.4), uu = Math.round(u + du), vv = Math.round(v + dv), i = at(clamp(uu, 0, NW - 1), clamp(vv, 0, VD - 1)); if (d > w + 1 || hg[i] <= 0 || near(uu, vv)) continue; ox.set(i, Math.max(ox.get(i) || 0, d <= w ? 2 : 1)); } }
+      const hs = [...ox.keys()].map(i => hg[i]).sort((a, b) => a - b), lvl = hs[hs.length >> 1]; for (const [i, k] of ox) { water[i] = k === 2 ? 3 : 1; hg[i] = Math.min(hg[i], lvl); } } }
 }
 // The heights are kept to 32nds of a pixel, baked or not, so the map read from a bake is the same map.
 if (!B) for (let i = 0; i < hg.length; i++) hg[i] = Math.round(hg[i] * 32) / 32;
@@ -311,6 +324,8 @@ function colour(u, v, hh, x, y) {
   if (lk) return lk === 'tarn' ? pick('tarn', 0.3 + 0.4 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
   // Where a trail crosses water there is a footbridge: a deck of planks with a dark edge.
   if (water[i] && trail[i] && mat !== 'ice') return trail[i] === 2 ? ((u + 2 * v) % 3 === 0 ? R.dirt[1] : R.dirt[2]) : R.dirt[0];
+  // 3 is still water (the oxbow): never white, whatever the bank does round it.
+  if (water[i] === 3) return hash(x, y, 9) < 0.05 ? R.glint[(x + y) & 3] : R.water[y & 1 ? 2 : 3];
   if (water[i]) return steep > 0.55 ? (hash(x, y >> 1, 5) < 0.72 ? R.white[1] : R.water[4]) : water[i] === 2 ? (hash(x, y, 9) < 0.08 ? R.glint[(x + y) & 3] : R.water[y & 1 ? 3 : 4]) : R.water[1];
   const rim = lakeRim(u, v); if (rim) return rim === 'lake' ? R.dirt[hash(x, y, 3) < 0.3 ? 3 : 4] : R.rock[hash(x >> 1, y >> 1, 3) < 0.5 ? 2 : 3];
   if (trail[i] === 2) return mat === 'ice' ? R.glac[1] : mat !== 'land' || steep > 0.8 ? R.rock[hash(u, v, 6) < 0.3 ? 4 : 3] : hash(u, v, 5) < 0.1 ? R.dirt[2] : R.dirt[3];
@@ -614,7 +629,11 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     if (fbm(u / 46, v / 40, 71, 3) < (pa > 0.4 || h > 20 ? 0.55 : 0.61) || forestAmt(u, v) > 0.2 || !open(u, v, 1.1) || h > 80) continue;
     if (!wooded(u, v)) continue;
     if (rand() < Math.max(larchAmt(u, v), dryAmt(u, v) * 1.2, burnAmt(u, v), eastAmt(u, v) * 0.8)) continue;
-    plant(any(firs), u, v);
+    // Round the Trailhead the meadow opens out (D6): clear grass near it, and further off only the
+    // thickest clumps, with open ground between them. Checked after the dice so nothing else moves.
+    const fir = any(firs), dT = Math.hypot(u - TU, (v - TV) * 1.4);
+    if (dT < 70 || fbm(u / 46, v / 40, 71, 3) < (pa > 0.4 || h > 20 ? 0.55 : 0.61) + 0.09 * smooth(300, 110, dT)) continue;
+    plant(fir, u, v);
   }
   // Mount Monolith's lower flanks: firs in clumps up to the meadows under the ice, spruce where the
   // rainforest reaches round its west side.
@@ -665,7 +684,8 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     for (let n = 0; n < 9000; n++) {
       const cu = fr() * NW, cv = fr() * VD, type = fr(), dw = DRIFT(cu, cv), count = (dw ? 3 : 2) + (fr() * (dw ? 6 : 4) | 0), m = MATS[mg[at(Math.round(cu), Math.round(cv))]];
       if ((m !== 'land' && m !== 'volc') || !bloomy(cu, cv) || forestAmt(cu, cv) > 0.25) continue;
-      const want = (dw === 'heather' ? 0.25 : dw ? 1.2 : 0.9) * parkAmt(cu, cv) + (forestAmt(cu, cv) < 0.2 && dryAmt(cu, cv) < 0.2 && larchAmt(cu, cv) < 0.2 && burnAmt(cu, cv) < 0.2 ? 0.07 : 0);
+      // Thicker in the open meadow round the Trailhead, as round 3's was (D6).
+      const want = (dw === 'heather' ? 0.25 : dw ? 1.2 : 0.9) * parkAmt(cu, cv) + (forestAmt(cu, cv) < 0.2 && dryAmt(cu, cv) < 0.2 && larchAmt(cu, cv) < 0.2 && burnAmt(cu, cv) < 0.2 ? 0.07 + 0.4 * smooth(260, 90, Math.hypot(cu - TU, (cv - TV) * 1.4)) : 0);
       if (fr() > want) continue;
       for (let k = 0; k < count; k++) {
         const u = cu + (fr() - 0.5) * 18, v = cv + (fr() - 0.5) * 10; if (!bloomy(u, v)) continue;

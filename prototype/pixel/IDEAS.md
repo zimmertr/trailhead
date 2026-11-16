@@ -94,6 +94,7 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **A fire lookout** on one forested foothill of Mount Monolith, with a light in its window at Dusk.
 - **The summit register on Proficiency Peak.** A small box on top that he signs, as a thing to find.
 - **A second lake scene at Dusk**: alpenglow on the mountain and its mirror, the one postcard view of the site.
+- **A heron in the oxbow.** A great blue heron standing still in the meadow's oxbow, which lifts off slowly when he runs past on the way to About Lake.
 - **The tide pools up close.** Tapping a pool at low tide could open a small close-up with its animals named.
 
 - Taking turns on the West Ridge: who leads each pitch, and which follower climbs second, drawn at random per visit. TJ's first wish; set aside in round 4 so only the black-haired man needs the leading and falling drawings.
