@@ -89,6 +89,43 @@ function crown(parts, cs, colours, dark, W, H, bx, rand) {
 }
 // A quaking aspen in autumn: a thin white trunk with dark marks where limbs were, and a small round
 // crown of yellow leaves. They are planted in groves.
+// A dark, crooked maple of the deep rainforest, where the fog begins: the trunk bends over and back,
+// low limbs reach out with a kink in each, the leaves are few and dark, and long beards of moss hang
+// from the limbs.
+function makeTwisted(seed) {
+  const rand = rng(seed), H = 30 + (rand() * 8 | 0), W = 36, bx = W / 2, lean = rand() < 0.5 ? -1 : 1;
+  const trunk = new BM(W, H + 2);
+  const pts = [[bx, H], [bx + lean * (3 + rand() * 3), H * 0.68], [bx - lean * (2 + rand() * 2), H * 0.44], [bx + lean * (3 + rand() * 3), H * 0.24]];
+  const col = (x, y) => hash(x, y, 7) < 0.4 ? R.moss[hash(x, y, 8) < 0.5 ? 2 : 1] : R.bark[hash(x, y, 9) < 0.6 ? 0 : 1];
+  for (let k = 1; k < pts.length; k++) for (let t = 0; t <= 1; t += 0.04) {
+    const x = lerp(pts[k - 1][0], pts[k][0], t), y = lerp(pts[k - 1][1], pts[k][1], t), w = k === 1 ? (t < 0.2 ? 5 : 4) : k === 2 ? 3 : 2;
+    for (let dx = 0; dx < w; dx++) { const px = Math.round(x - w / 2 + dx), py = Math.round(y); trunk.set(px, py, col(px, py)); }
+  }
+  const ends = [];
+  for (let k = 1; k < pts.length; k++) {
+    const side = k & 1 ? -lean : lean, [x0, y0] = pts[k], kx = x0 + side * (4 + rand() * 4), ky = y0 - 1 - rand() * 3, ex = kx + side * (3 + rand() * 4), ey = ky + 1 + rand() * 3;
+    thick(trunk, x0, y0, kx, ky, k === 1 ? 2 : 1, R.bark[0]); thick(trunk, kx, ky, ex, ey, 1, R.bark[0]); ends.push([kx, ky], [ex, ey]);
+  }
+  // Beards of moss, from the kinks and the ends of the limbs.
+  for (const [x, y] of ends) { const len = 3 + (rand() * 7 | 0); for (let j = 1; j <= len; j++) trunk.set(Math.round(x + (j > 4 ? (j & 1) : 0)), Math.round(y) + j, j === len ? R.moss[2] : R.moss[j & 1 ? 3 : 4]); }
+  outline(trunk, INK);
+  const parts = [{ bm: trunk, x: -Math.round(bx), y: -H, sway: 0 }], dark = [R.moss[0], R.moss[1], R.moss[2], R.moss[3]];
+  const cs = [pts[3], ...ends.filter((_, n) => n & 1)].slice(0, 4).map(([x, y]) => [x + (rand() - 0.5) * 4, y - 2 - rand() * 3, 3 + rand() * 1.5]);
+  for (const [x, y, r] of cs) { const bm = clump(r, dark, rand, 5); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
+  return { parts, h: H, w: W };
+}
+// The owl in the rainforest, on a broken stub: pose 'open', 'blink' or 'turn' (its head round to one side).
+function makeOwl(pose) {
+  const b = new BM(5, 15), F = R.fur, eye = pose === 'blink' ? F[1] : R.yellow[1];
+  for (let y = 6; y < 15; y++) for (let x = 1; x <= 2; x++) b.set(x, y, hash(x, y, 31) < 0.3 ? R.moss[2] : R.bark[x === 1 ? 0 : 1]);
+  b.set(2, 5, R.bark[1]);
+  b.set(1, 0, F[2]); b.set(3, 0, F[2]);
+  for (let x = 0; x <= 4; x++) { b.set(x, 1, F[2]); b.set(x, 2, x === 2 ? R.yellow[0] : F[3]); b.set(x, 3, x === 0 || x === 4 ? F[1] : F[2]); }
+  for (let x = 1; x <= 3; x++) b.set(x, 4, F[x === 2 ? 2 : 1]);
+  if (pose === 'turn') { b.set(3, 1, eye); b.set(4, 2, R.yellow[0]); b.set(2, 2, F[3]); } else { b.set(1, 1, eye); b.set(3, 1, eye); }
+  b.ox = 2; b.oy = 14;
+  return b;
+}
 function makeAspen(seed) {
   const rand = rng(seed), H = 23 + (rand() * 14 | 0), W = 22, bx = W >> 1, lean = (rand() - 0.5) * 3;
   const trunk = new BM(W, H + 2), tx = y => bx + Math.round(lean * (1 - y / H));
@@ -316,4 +353,4 @@ function makeFlag(f, ramp = R.red) {
   return b;
 }
 
-export { makeSnag, makeBush, makeFlag, clump, makeMaple, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeSnag, makeBush, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };

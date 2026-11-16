@@ -218,7 +218,7 @@ export function makeWorld(bake) {
         const c = age < 0.5 ? R.white[1] : R.white[0];
         fb[y * VW + x] = c; if (age > 0.3) fb[y * VW + x + 1] = c;
       }
-      if (DEBUG.animals) crit.over(scr, ox, oy, t);
+      if (DEBUG.animals) crit.over(scr, ox, oy, t, env);
       // Birds cross the sky in a loose V, flapping a few times a second.
       for (let k = 0; DEBUG.animals && k < 4; k++) {
         const bx = ((t * 22 + k * 11) % (WW + 200)) - 100, by = 250 + 8 * Math.sin(t * 0.7) + [0, 5, 9, 4][k];

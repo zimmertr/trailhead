@@ -287,6 +287,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   canvas.addEventListener('wheel', e => { if (drawn.s !== 'world') return; e.preventDefault(); acted(); const dy = clamp(e.deltaY * (e.deltaMode === 1 ? 30 : 1), -240, 240); zoomTo((zT || scr.S) * Math.exp(-dy * 0.0016), [e.clientX, e.clientY]); }, { passive: false });
   canvas.addEventListener('pointerdown', e => { touches.set(e.pointerId, [e.clientX, e.clientY]); if (touches.size > 1) { if (touches.size === 2) { dragging = 'pinch'; pinch0 = spread()[0]; pinchZ = zT || scr.S; lastPt = null; } try { canvas.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer knows */ } return; } dragging = 'look'; recentre = false; moved = 0; lastPt = [e.clientX, e.clientY]; try { canvas.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer knows */ } });
   canvas.addEventListener('pointermove', e => {
+    // Where a mouse rests, in pixels of the picture, for things that notice being looked at (critters.js).
+    if (e.pointerType === 'mouse') env.ptr = toView(e);
     if (touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
     if (dragging === 'pinch' || dragging === 'held') { if (dragging === 'pinch' && touches.size === 2) { const [d, mid] = spread(); if (pinch0 > 0) zoomTo(pinchZ * d / pinch0, mid); } return; }
     if (dragging === 'look' && lastPt) {
@@ -312,7 +314,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   };
   canvas.addEventListener('pointerup', endLook); canvas.addEventListener('pointercancel', endLook);
   // The pointer has left the world (onto a sign or a name tag, or off the page): drop the hover label.
-  canvas.addEventListener('pointerleave', () => { if (hover) { hover = null; canvas.style.cursor = ''; emit({ type: 'hover', label: null, x: 0, y: 0 }); } });
+  canvas.addEventListener('pointerleave', () => { env.ptr = null; if (hover) { hover = null; canvas.style.cursor = ''; emit({ type: 'hover', label: null, x: 0, y: 0 }); } });
 
   const stopNear = q => stops.find(s => Math.abs(s.at - q) < 0.006);
   const api = {

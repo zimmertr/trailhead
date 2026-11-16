@@ -2,7 +2,7 @@
 // and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
 import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, INK, SHADE, KIND, BM, outline, thick, pick, veilTable } from './core.js';
-import { makeElk, makeBird } from './sprites.js';
+import { makeElk, makeBird, makeOwl } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './land.js';
 
@@ -121,6 +121,12 @@ export function makeCritters(W, opts = {}) {
   // ---- marmots: sunning on a rock, up on their haunches when he is near or now and then ----
   const mar = { sun: marmot('sun'), up: marmot('up') };
   spots.marmots.forEach(([x, y], n) => items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1) }));
+
+  // ---- the owl in the rainforest: it blinks now and then, and once in a while turns its head ----
+  const owlB = { open: makeOwl('open'), blink: makeOwl('blink'), turn: makeOwl('turn') };
+  if (spots.owl) items.push({ critter: 'owl', bm: owlB.open, x: spots.owl[0], y: spots.owl[1] });
+  // Each pair of eyes in the fog, and how long it has been looked at.
+  const eyeState = (spots.eyes || []).map(() => ({ look: 0, until: 0 }));
 
   // For screenshots, sea=90 in the address starts the ferry's and the whale's clocks that many seconds on.
   const ahead = typeof location !== 'undefined' ? +(/[?&]sea=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
@@ -332,6 +338,7 @@ export function makeCritters(W, opts = {}) {
       for (const a of items) {
         if (a.walker) walk(a, dt, t);
         else if (a.dart) dart(a, dt, t, here);
+        else if (a.critter === 'owl') a.bm = frac(t / 17) > 0.55 && frac(t / 17) < 0.66 ? owlB.turn : frac(t / 4.3) < 0.035 ? owlB.blink : owlB.open;
         else if (a.critter === 'marmot') a.bm = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / 11 + a.n * 0.37) < 0.2 ? mar.up : mar.sun;
       }
     },
@@ -440,8 +447,30 @@ export function makeCritters(W, opts = {}) {
     // Where each animal may wander and each flock circles, as ovals on the map, for the debug panel.
     areas: () => [...items.filter(a => a.walker).map(a => ({ x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...FLOCKS.map(F => ({ x: F.cx, y: F.cy, rx: F.rx, ry: F.ry }))],
     // What flies over everything else.
-    over(scr, ox, oy, t) {
-      const { VW, VH, fb } = scr;
+    over(scr, ox, oy, t, env = {}) {
+      const { VW, VH, fb } = scr, dusk = (env.mix || 0) > 0.5;
+      // The faint light deep in the fog: it wanders slowly round its spot, brightens and fades, and is
+      // gone for a while before it comes back.
+      if (spots.wisp) {
+        const c = frac(t / 31 + 0.3), k = smooth(0, 0.15, c) * smooth(0.62, 0.48, c);
+        const x = Math.round(spots.wisp[0] + 34 * Math.sin(t * 0.07) + 8 * Math.sin(t * 0.23) - ox), y = Math.round(spots.wisp[1] - 6 + 5 * Math.sin(t * 0.11) + 2 * Math.sin(t * 0.37) - oy);
+        if (k > 0.05 && x > 1 && y > 1 && x < VW - 2 && y < VH - 2) {
+          const core = dusk ? R.star[2] : R.glow[0], halo = dusk ? R.star[1] : R.fog[2];
+          scr.set(x, y, k > 0.35 ? core : halo);
+          if (k > 0.55) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if ((dx + dy + Math.floor(t * 3)) & 1 || k > 0.8) scr.set(x + dx, y + dy, halo);
+        }
+      }
+      // At Dusk, pairs of eyes far back in the fog. They blink, and a pair that is looked at for long
+      // (the pointer resting near it, or with no pointer, sitting in the middle of the screen) blinks out
+      // and stays gone for a while.
+      if (dusk) (spots.eyes || []).forEach(([ex, ey], k) => {
+        const st = eyeState[k], x = ex - ox, y = ey - 4 - oy; if (x < 2 || y < 1 || x >= VW - 3 || y >= VH - 1) return;
+        const p = env.ptr, near = p ? Math.hypot(p[0] - x, p[1] - y) < 40 : Math.abs(x - VW / 2) < VW * 0.18 && Math.abs(y - VH / 2) < VH * 0.18;
+        st.look = near ? st.look + (env.dt || 0) : Math.max(0, st.look - (env.dt || 0));
+        if (st.look > 1.6) { st.until = t + 25; st.look = 0; }
+        if (t < st.until || frac(t / (4 + k * 1.3) + k * 0.31) < 0.05) return;
+        scr.set(x, y, R.aurora[2]); scr.set(x + 2, y, R.aurora[2]);
+      });
       for (const F of FLOCKS) for (let k = 0; k < F.n; k++) {
         const an = t * F.w + k * TAU / F.n + 0.5 * Math.sin(t * 0.3 + k * 2), wob = 1 + 0.14 * Math.sin(t * 0.21 + k * 3);
         const x = Math.round(F.cx + Math.cos(an) * F.rx * wob - ox), y = Math.round(F.cy + Math.sin(an) * F.ry * wob - oy);

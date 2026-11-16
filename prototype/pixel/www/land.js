@@ -6,7 +6,7 @@ import { R, INK, KIND, SHADE, RAMP_OF, veilTable, TAU, clamp, lerp, smooth, frac
 import { paintMonolith, monolithSky, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
-import { makeMaple, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog } from './sprites.js';
+import { makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog } from './sprites.js';
 
 const NW = 1920, SH = 1080, VD = 740, SY = SH + 52;
 const rdg = n => 1 - Math.abs(2 * n - 1);
@@ -566,6 +566,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
 {
   const rand = rng(2026), any = a => a[(rand() * a.length) | 0], land = (u, v) => MATS[mg[at(Math.round(u), Math.round(v))]] === 'land';
   const wooded = (u, v) => { const i = at(Math.round(u), Math.round(v)), m = MATS[mg[i]], h = hg[i]; return m === 'land' ? h < 100 && !(u > 760 && v > 684) : m === 'volc' ? VP(Math.min(1, vrelief(u, v).d)) < 0.17 + 0.05 * vnoise(u / 30, v / 30, 588) : m === 'crest' ? h < 48 : false; };
+  const twisted = Array.from({ length: 5 }, (_, i) => makeTwisted(1200 + i));
   const maples = Array.from({ length: 6 }, (_, i) => makeMaple(100 + i)), spruces = Array.from({ length: 6 }, (_, i) => makeSpruce(200 + i)), firs = Array.from({ length: 8 }, (_, i) => makeFir(300 + i));
   const bigleaf = Array.from({ length: 4 }, (_, i) => blobTree(800 + i, i & 1 ? 'larch' : 'sun', 36 + i * 2, 'bark', 5, 5.5));
   const larches = Array.from({ length: 6 }, (_, i) => { const r = rng(900 + i); return makeConifer(900 + i, 24 + (r() * 14 | 0), 10 + (r() * 4 | 0), 'larch', 6); });
@@ -577,7 +578,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     // Deeper in, the fog's own ranks take over (drawn above), so the planted forest thins out.
     if (f > 0.12 && rand() < smooth(0.12, 0.55, f)) continue;
     if (f < 0.2 && (nearTrail(u, v, 46) && rand() < 0.3 || rand() < 0.04)) { put(any(bigleaf), u, v, f, true); continue; }
-    if (rand() < f * f * 0.5) put(any(snags), u, v, f, true); else plant(r < 0.45 ? any(maples) : r < 0.88 ? any(spruces) : any(firs), u, v, f);
+    if (rand() < f * f * 0.5) put(any(snags), u, v, f, true); else plant(r < 0.45 ? ((m) => f > 0.2 && hash(u | 0, v | 0, 5911) < 0.65 ? twisted[(hash(u | 0, v | 0, 5912) * twisted.length) | 0] : m)(any(maples)) : r < 0.88 ? any(spruces) : any(firs), u, v, f);
   }
   // Firs in clumps over the parkland, the meadows and the lower slopes of the crest.
   for (let n = 0; n < 5200; n++) {
@@ -786,6 +787,14 @@ function habitat() {
   const clearSea = new Set(R.sea), sea = (lo, hi) => (u, v) => { const c = S.coast(u, v); return c > lo && c < hi && S.toY(u, v) < SH - 50 && shows(u, v, 4) && clearSea.has(S.g[S.toY(u, v) * NW + Math.round(u)]) && clearSea.has(S.g[(S.toY(u, v) - 6) * NW + Math.round(u)]); };
   const jelly = find(8, sea(14, 80), 26), whale = best(sea(90, 150), (u, v) => -Math.abs(S.coast(u, v) - 115) + 6 * rnd());
   const out = (u, v) => [Math.round(u), S.toY(u, v)];
+  // The rainforest's eerie corner (D3). An owl on a stub where the fog begins; one faint light that
+  // drifts deeper in; three pairs of eyes far back in the thickest fog, seen only at Dusk; crows over
+  // the forest's sunny edge.
+  const owl = find(1, (u, v) => firm(u, v, 0.9) && S.forestAmt(u, v) > 0.8 && S.fogAmt(u, v) > 0.22 && S.fogAmt(u, v) < 0.45 && trailFar(u, v) > 8 && shows(u, v, 16), 0)[0];
+  const wisp = find(1, (u, v) => S.forestAmt(u, v) > 0.6 && S.fogAmt(u, v) > 0.45 && S.fogAmt(u, v) < 0.7 && shows(u, v, 4), 0)[0];
+  const eyes = find(3, (u, v) => S.forestAmt(u, v) > 0.5 && S.fogAmt(u, v) > 0.55 && S.coast(u, v) < -40 && shows(u, v, 6), 60);
+  // The crows keep to low forest on plain ground, so they circle against trees and not the mountain's ice.
+  const crows = find(1, (u, v) => S.forestAmt(u, v) > 0.6 && S.forestAmt(u, v) < 0.9 && S.fogAmt(u, v) < 0.15 && S.matAt(u, v) === 'land' && S.hAt(u, v) < 30 && shows(u, v, 4), 0)[0];
   // The ferry's course runs where the sea is 60 out from the shore, from past the west edge of the map to past its foot.
   const seaV = u => { for (let v = 0; v < VD; v++) if (S.coast(u, v) < 60) return v; return VD; }, seaU = v => { for (let u = 0; u < NW; u++) if (S.coast(u, v) < 60) return u; return 0; };
   const footV = S.toY(0, 0) - SH - 28, ferry = [[-30, S.toY(-30, seaV(-30))], [seaU(footV), SH + 28]];
@@ -803,7 +812,9 @@ function habitat() {
     whale: whale ? out(...whale) : [0, 0],
     ferry,
     // Birds circle over the elk's parkland, the dry corner and the granite; gulls over the sea by the beach.
+    owl: owl ? out(...owl) : null, wisp: wisp ? out(...wisp) : null, eyes: eyes.map(p => out(...p)),
     flocks: [
+      crows && { cx: out(...crows)[0], cy: out(...crows)[1], rx: 40, ry: 14, n: 4, lift: 26, w: 0.33 },
       herdAt && { cx: herdAt[0], cy: herdAt[1] + 40, rx: 130, ry: 44, n: 3, lift: 56, w: 0.14 },
       ...find(1, (u, v) => S.sageAmt(u, v) > 0.6 && shows(u, v, 4), 0).map(p => ({ cx: out(...p)[0], cy: out(...p)[1], rx: 90, ry: 36, n: 1, lift: 84, w: 0.11, glide: true })),
       goats.length && { cx: out(...goats[0])[0], cy: out(...goats[0])[1], rx: 70, ry: 26, n: 1, lift: 70, w: -0.13, glide: true },
@@ -830,7 +841,7 @@ export function buildTerrain() {
     // A flag for each finished destination: at the lake shore, on Proficiency Peak, on the Spires' highest summit.
     flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
     // Signs and animals, each placed by its rule (habitat, above).
-    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, jelly: H.jelly, whale: H.whale, ferry: H.ferry
+    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, jelly: H.jelly, whale: H.whale, ferry: H.ferry, owl: H.owl, wisp: H.wisp, eyes: H.eyes
   };
   const forestAmt = (x, y) => { const v = vAt(x, y); return v > VD ? 0 : LAND.forestAmt(x, v); };
   const coast = (x, y) => { const v = vAt(x, y); return v > VD ? -999 : LAND.coast(x, v); };
