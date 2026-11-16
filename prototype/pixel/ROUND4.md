@@ -336,7 +336,7 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 - [ ] C19. Delete what is gone: `terrain.js`, the first block-in (`plan4.js`, `layout4.js`, `plan4.html`), layouts 2 and 3, The Stack's sprite and talus.
 - [ ] C20. `./bake.sh` bakes the ground and the depth. No stale warning. Ready time written in section 9 (round 3: about 0.8 s).
 - [ ] C21. Pictures: the whole map Day and Dusk, trees off, each destination close, three candidate opening views on a 1440 by 900 screen and the phone's slice. Compare with `out/r4/w1.png` and list the weak points honestly.
-- [ ] **STOP 2a (reached 2026-11-15 with C7 to C9, C19 and C20 still open, see section 8a).** Tag `pixel-r4-land`, publish the game (the old wall, lake and camp scenes still run behind the new map). Ask TJ: is the land right, and which opening view.
+- [x] **STOP 2a (reached 2026-11-15 with C7 to C9, C19 and C20 still open, see section 8a; TJ: the land is right, carry on; opening view B, one screen pixel to one map pixel with the three destinations in frame, `out/r4/o-b.png` is `relief.html?crop=330,180` at 1440 by 900).** Tag `pixel-r4-land`, publish the game (the old wall, lake and camp scenes still run behind the new map). Ask TJ: is the land right, and which opening view.
 
 ### D. What grows and stands on the land
 
