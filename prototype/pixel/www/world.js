@@ -288,7 +288,9 @@ export function makeWorld(bake) {
   // the view sits lower to keep him above it, past the bottom edge of the map if it has to.
   // A wide view taller than about 600 pixels (the opening view) rests lower, down to the near edge of the
   // map, so the meadow, the lake and all three destinations are in frame under the skyline.
-  const vista = scr => scr.narrow ? { x: T.x, y: T.y + scr.VH * 0.06 } : { x: T.x, y: T.y + Math.min(46, scr.VH * 0.17) + 14 - scr.VH / 2 + Math.max(0, scr.VH - 300) * 0.25 + Math.max(0, scr.VH - 600) * 0.45 };
+  // Since E5h the Trailhead stands low in the meadow, so a wide view sets him just above the timeline bar
+  // (about a fifth of the view up from its bottom), which leaves the skyline in frame above the destinations.
+  const vista = scr => scr.narrow ? { x: T.x, y: T.y + scr.VH * 0.06 } : { x: T.x, y: T.y - scr.VH / 2 + Math.min(176, scr.VH * 0.24) };
   let past = 0;
   const where = (leg, q) => { const P = paths[leg.path], a = P.at(lerp(leg.from, leg.to, q)), s = leg.to < leg.from ? -1 : 1; return { x: a.x, y: a.y, dx: a.dx * s, dy: a.dy * s, P }; };
   const target = (scr, here) => {

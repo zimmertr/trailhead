@@ -167,7 +167,9 @@ const hills = (u, v) => { let best = 0; for (const { cu, cv, ru, rv, H, back } o
 const offVolc = (u, v) => VOLC ? smooth(0.8, 1.02, Math.hypot((u - VOLC.cu) / VOLC.ru, (v - VOLC.cv) / VOLC.rv)) : 1;
 // How far up its hill a spot stands, 0 at the foot and 1 on the summit, for the trees (E5b2).
 const hillUp = (u, v) => { let best = 0; for (const { cu, cv, ru, rv, back } of hillList()) { const d2 = sq((u - cu) / ru) + sq((v - cv) / (v > cv ? rv * back : rv)); if (d2 < 1) best = Math.max(best, sq(1 - d2)); } return best; };
-Object.assign(C, { T: [1075, 310], PK: [660, 440, 210, 110], PK2: [985, 482, 78, 52], LB: [1610, 566, 330, 110], camp: [1022, 526] });
+// The Trailhead (E5h): in the open meadow below the old spot, TJ's orange box of 2026-11-16 traced
+// into map coordinates the same way as his coast line and his border.
+Object.assign(C, { T: [1098, 186], PK: [660, 440, 210, 110], PK2: [985, 482, 78, 52], LB: [1610, 566, 330, 110], camp: [1022, 526] });
 // The Trailhead stands on a low, broad rise: the divide between the water that runs west to the sea
 // and the water that runs east into the dry country. The whole land tilts gently toward the camera.
 const divU = v => 1075 + (310 - v) * 0.22;
@@ -246,9 +248,9 @@ C.dig = [
 ];
 C.coulee = [[1500, 232], [1556, 204], [1612, 176], [1662, 130], [1726, 106], [1782, 64], [1852, 40], [1926, 8]];
 C.trails = [
-  [[1075, 310], [1030, 326], [985, 346], [940, 366], [905, 384], [880, 392], [830, 388], [770, 386], [725, 384], [700, 384], [668, 380], [630, 376], [590, 378], [540, 390], [490, 384], [440, 360], [390, 354], [340, 370], [300, 410], [270, 450], [262, 490], [290, 520], [330, 530], [380, 515], [420, 500], [460, 492], [496, 470], [530, 448], [560, 436], [590, 434], [640, 424], [676, 420], [712, 424], [748, 426], [772, 414], [800, 402], [840, 394], [880, 392]],
-  [[1075, 310], [1062, 344], [1038, 378], [1004, 410], [978, 438], [962, 462], [984, 482], [1004, 498], [1018, 512], [1022, 526], [1040, 534], [1056, 546], [1066, 560], [1070, 578], [1068, 600]],
-  [[1075, 310], [1132, 318], [1192, 332], [1250, 352], [1300, 378], [1340, 410], [1372, 436], [1392, 450], [1378, 462], [1402, 474], [1422, 500], [1436, 518], [1420, 528], [1440, 538], [1424, 548], [1436, 578]]
+  [[880, 392], [830, 388], [770, 386], [725, 384], [700, 384], [668, 380], [630, 376], [590, 378], [540, 390], [490, 384], [440, 360], [390, 354], [340, 370], [300, 410], [270, 450], [262, 490], [290, 520], [330, 530], [380, 515], [420, 500], [460, 492], [496, 470], [530, 448], [560, 436], [590, 434], [640, 424], [676, 420], [712, 424], [748, 426], [772, 414], [800, 402], [840, 394], [880, 392]],
+  [[978, 438], [962, 462], [984, 482], [1004, 498], [1018, 512], [1022, 526], [1040, 534], [1056, 546], [1066, 560], [1070, 578], [1068, 600]],
+  [[1340, 410], [1372, 436], [1392, 450], [1378, 462], [1402, 474], [1422, 500], [1436, 518], [1420, 528], [1440, 538], [1424, 548], [1436, 578]]
 ];
 const [TU, TV] = C.T;
 
@@ -362,6 +364,35 @@ if (!B) for (let i = 0; i < hg.length; i++) hg[i] = Math.round(hg[i] * 32) / 32;
 const FALLS = (() => { const [lu, lv] = LIP, top = hAt(lu, lv + 1); let v = lv; while (v > lv - 14 && hAt(lu, v - 1) < hAt(lu, v) - 0.4) v--; const bot = hAt(lu, v);
   return top - bot < 3 ? [] : [{ x: lu, y0: Math.round(SY - lv - top), y1: Math.round(SY - v - bot), v }]; })();
 function stamp(mask, pts, r0, r1) { pts.forEach(([pu, pv], n) => { const rr = lerp(r0, r1, n / (pts.length - 1)), R2 = Math.ceil(rr + 1); for (let dv = -R2; dv <= R2; dv++) for (let du = -R2; du <= R2; du++) { const d = Math.hypot(du, dv), u = Math.round(pu + du), v = Math.round(pv + dv), k = d <= rr ? 2 : d <= rr + 1 ? 1 : 0; if (k && u >= 0 && v >= 0 && u < NW && v < VD && mask[at(u, v)] < k) mask[at(u, v)] = k; } }); }
+// The way from the Trailhead to each trail's own country (E5h; TJ chose to lay all three out again when
+// the Trailhead moved): the easiest way over the land, worked out on a grid of 4 by 4. Steep ground costs
+// far more than flat, running water more again (it is crossed at a footbridge), and ground another trail
+// already takes costs less, so the three share a path out of the Trailhead and then fork. Each ends where
+// its own country begins: the lake loop's junction, the climb to base camp, the foot of the Stack's
+// switchbacks. C.lead holds how many points of each trail are this new approach.
+C.lead = [];
+{ const G = 4, GW = Math.ceil(NW / G), GH = Math.ceil(VD / G), N = GW * GH, used = new Uint8Array(N), cost = new Float64Array(N), from = new Int32Array(N);
+  const cell = (u, v) => clamp(Math.round(v / G), 0, GH - 1) * GW + clamp(Math.round(u / G), 0, GW - 1);
+  // Small rises, boggy spots and rocks the eye does not see: an uneven cost over the ground, so on the
+  // flat a trail bends the way a worn path does instead of running ruled straight.
+  const ok = new Uint8Array(N), wetC = new Uint8Array(N), hC = new Float32Array(N), rough = new Float32Array(N);
+  for (let k = 0; k < N; k++) { const u = Math.min(NW - 1, (k % GW) * G), v = Math.min(VD - 1, ((k / GW) | 0) * G), i = at(u, v), m = MATS[mg[i]]; hC[k] = hg[i]; wetC[k] = water[i] ? 1 : 0; rough[k] = 1.6 * sq(smooth(0.42, 0.72, fbm(u / 70, v / 46, 216, 3))); ok[k] = (m === 'land' || m === 'moraine' || m === 'volc' || m === 'gran') && !lakeAt(u, v) && coast(u, v) < -24 ? (m === 'gran' ? 2 : 1) : 0; }
+  const STEPS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1], [2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]];
+  const route = (a, b) => {
+    const s0 = cell(...a), goal = cell(...b); cost.fill(Infinity); from.fill(-1); cost[s0] = 0;
+    const hk = [], hv = []; const push = (k, c) => { let n = hk.length; hk.push(k); hv.push(c); while (n) { const p = (n - 1) >> 1; if (hv[p] <= hv[n]) break; [hk[p], hk[n]] = [hk[n], hk[p]]; [hv[p], hv[n]] = [hv[n], hv[p]]; n = p; } };
+    const pop = () => { const k = hk[0], last = hk.length - 1; hk[0] = hk[last]; hv[0] = hv[last]; hk.pop(); hv.pop(); let n = 0; for (;;) { const l = 2 * n + 1, r = l + 1; let m = n; if (l < hk.length && hv[l] < hv[m]) m = l; if (r < hk.length && hv[r] < hv[m]) m = r; if (m === n) break; [hk[m], hk[n]] = [hk[n], hk[m]]; [hv[m], hv[n]] = [hv[n], hv[m]]; n = m; } return k; };
+    push(s0, 0);
+    while (hk.length) { const k = pop(); if (k === goal) break; const c0 = cost[k], x = k % GW, y = (k / GW) | 0;
+      for (const [dx, dy] of STEPS) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue; const j = ny * GW + nx; if (!ok[j] && j !== goal) continue;
+        const d = Math.hypot(dx, dy) * G, sl = Math.abs(hC[j] - hC[k]) / d, c = c0 + d * (1 + rough[j] + 14 * sl * sl + (sl > 0.7 ? 30 : 0) + (ok[j] === 2 ? 1 : 0)) * (used[j] ? 0.5 : 1) + (wetC[j] && !wetC[k] ? 60 : 0);
+        if (c < cost[j]) { cost[j] = c; from[j] = k; push(j, c); } } }
+    const path = []; for (let k = goal; k >= 0; k = from[k]) path.push(k); path.reverse();
+    for (const k of path) used[k] = 1;
+    // Every fourth cell, the ends exact; the trail's curve smooths the rest.
+    const pts = path.filter((_, n) => n % 4 === 0).map(k => [(k % GW) * G, ((k / GW) | 0) * G]); pts[0] = [...a]; pts.push([...b]); return pts;
+  };
+  for (const k of [0, 1, 2]) { const lead = route(C.T, C.trails[k][0]); C.lead[k] = lead.length - 1; C.trails[k] = [...lead.slice(0, -1), ...C.trails[k]]; } }
 // The Spires trail ends at base camp. Beyond it the way goes on as a boot track up the ice (D13), as in
 // round 3: it switches back and forth up the fall line, a trench as wide as the trail that narrows toward
 // the wall, and over its last fifth breaks up into single prints. track: 2 on its floor, 1 on its edge.
@@ -1178,7 +1209,7 @@ export function buildTerrain() {
   const line = pts => catmull(pts).filter((_, n, a) => n % 6 === 0 || n === a.length - 1).map(([u, v]) => [u, LAND.toY(u, v), v]);
   // The lake loop ends where it began: back along its first stretch to the junction. The Spires trail
   // ends at base camp; what lies beyond is the boot track on the ice.
-  const home = C.trails[0].slice(0, 6).reverse().slice(1), camp = C.trails[1].findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]) + 1;
+  const home = C.trails[0].slice(0, C.lead[0] + 1).reverse().slice(1), camp = C.trails[1].findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]) + 1;
   const lines = { lake: line([...C.trails[0], ...home]), stack: line(C.trails[2]), spires: line(C.trails[1].slice(0, camp)) };
   const H = habitat(), lake = C.lakes[0], peak = LAND.peak, sp = LAND.spires, shore = sxy(lake[0] + lake[2] + 8, lake[1] + 2);
   const flagOn = (x, v, kind) => { const y = LAND.toY(x, v); return { x: Math.round(x), y, lift: y - topOf(x, kind) }; };

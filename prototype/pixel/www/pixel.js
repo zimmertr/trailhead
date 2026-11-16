@@ -62,7 +62,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // the point under the pointer. It goes out until the map fills the window one way (the whole map shows
   // along that edge) and in to twice the size that suits the window. Left alone, it settles on a whole
   // pixel size so the pixels are crisp again (debug: snap).
-  let zT = 0, zC = 0, zAt = null, zLast = 0, zDir = 0, glide = null;
+  // zSet: the first change of size (from the page's own to the opening's) has happened. That one is not
+  // anchored to the middle of the screen, so the opening view rests where the world frames it (E5h).
+  let zT = 0, zC = 0, zAt = null, zLast = 0, zDir = 0, glide = null, zSet = false;
   const calm = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   const zoomRange = () => { const dpr = window.devicePixelRatio || 1, fit = Math.max(innerWidth * dpr / world.WW, innerHeight * dpr / world.WH); return [Math.min(scr.S0, fit), scr.S0 * 2]; };
   function zoomTo(z, at) {
@@ -244,6 +246,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     }
     let gliding = null;
     if (drawn.s === 'world') {
+      if (zC && zC === zT) zSet = true;
       // It opens wide on a window wider than tall, one screen pixel to one pixel of the map (the opening
       // view TJ chose at STOP 2a); on a phone held upright, at the size that suits it.
       const [lo, hi] = zoomRange(); zT = clamp(zT || (scr.narrow ? scr.S0 : (window.devicePixelRatio || 1)), lo, hi); if (!zC) zC = calm.matches ? zT : scr.S;
@@ -251,7 +254,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       zC = calm.matches ? zT : zC + (zT - zC) * (1 - Math.exp(-dt * 14)); if (Math.abs(zC - zT) < 0.003) zC = zT;
       if (zC !== scr.S) {
         const dpr = window.devicePixelRatio || 1, at = zAt || [innerWidth / 2, innerHeight / 2], w = world.at(at[0] * dpr / scr.S, at[1] * dpr / scr.S);
-        scr.setScale(zC); if (!tr) env.anchor = { wx: w.x, wy: w.y, sx: at[0] * dpr / zC, sy: at[1] * dpr / zC };
+        scr.setScale(zC); if (!tr && zSet) env.anchor = { wx: w.x, wy: w.y, sx: at[0] * dpr / zC, sy: at[1] * dpr / zC };
       }
     } else if (scr.S !== scr.S0) scr.setScale(scr.S0);
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
