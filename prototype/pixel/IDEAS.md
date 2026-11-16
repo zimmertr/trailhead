@@ -11,6 +11,7 @@ Things that would make the pixel trailhead look, feel, perform and behave better
 - **Certifications as gear.** The wilderness first aid card and any cloud or Kubernetes certificates could hang on the pack at base camp, each one clickable.
 - **Projects that stay current.** The project numbers were typed in on 2026-11-14. A nightly job that rewrites `content.js` from the GitHub API keeps stars and releases honest, and a new repository gets a seventh summit without anyone drawing one by hand.
 - **The site's own status, for real.** The kiosk shows a version and an uptime that are made up in the browser. The real values (the running image tag, the Argo Rollouts step, the last deploy) are the best proof of the platform work the cards describe.
+- **The lookout watches the site (E5j).** Observability Lookout only names itself on hover today. A click could open a card on TJ's observability work, with the site's own live dashboards behind it (request rate, error budget, the last deploy), so the joke name leads somewhere real.
 - **A one-page resume from the same content.** The plain page already holds every card as text. A print stylesheet would make it a resume that prints on one sheet, always in step with the site.
 
 ## Looks better

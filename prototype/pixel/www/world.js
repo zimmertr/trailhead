@@ -1,7 +1,7 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
 import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
 import { breeze, veilTable } from './core.js';
-import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
+import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
@@ -43,6 +43,17 @@ function drawStill(scr, th, tq, ox, oy, dl, clipBlit, flags, t) {
     if (th.rope) for (let j = 1; j < 12; j++) scr.set(th.x + Math.round(j * 0.25) - ox, th.y - 70 + j - oy, R.yellow[0]);
   } else if (th.clip) clipBlit(th.bm, th.x - th.bm.ox, th.y - th.bm.oy, th.v, dl); else scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.bm.oy - oy);
 }
+// The last light on the foothills at Dusk (E5j), laid over the finished picture: warm on the hills' upper
+// west faces and on the tree tops along their crests, while the valleys round them go a step darker
+// first (the valleys are in the Dusk copy of the ground, below). H holds the rest of land.js's hillLight
+// as a list: for each row of the map, its marked pixels' columns and values, so a frame visits only those.
+function duskHills(fb, VW, VH, ox, oy, H, ground, mix, WARM) {
+  const y0 = Math.max(0, -oy), y1 = Math.min(VH, WH - oy), { rows, xs, vals } = H;
+  for (let y = y0; y < y1; y++) { const wy = y + oy, row = y * VW, wrow = wy * WW;
+    for (let k = rows[wy], e = rows[wy + 1]; k < e; k++) { const x = xs[k] - ox; if (x < 0) continue; if (x >= VW) break; const m = vals[k], wi = wrow + xs[k], b = bayer(xs[k], wy), i = row + x;
+      if (m < 16) { if (b < mix * m * 0.08) fb[i] = WARM[fb[i]]; }
+      else if (fb[i] !== ground[wi] && b < mix * (m - 32) * 0.1) fb[i] = WARM[fb[i]]; } }
+}
 
 export function makeWorld(bake) {
   const W = buildTerrain(), { g: ground, spots, forestAmt } = W;
@@ -61,6 +72,19 @@ export function makeWorld(bake) {
   // band below it is lit with the snow's dusk colours, one step lighter than the rock's own, thinning
   // downward through a dither. GLOW maps a colour to the snow step of the same lightness.
   const tipTop = [6, 7].map(k => { const top = new Int16Array(WW).fill(-1); for (let x = 0; x < WW; x++) for (let y = 0; y < WH; y++) if (W.dest[y * WW + x] === k) { top[x] = y; break; } return top; });
+  // The warm light on the hills: only the lit half of each colour (the sunny side of a crown, the lit
+  // tips of the canopy) turns to ochre, so by Dusk the faces glint rust while the shade between stays
+  // blue and the trees keep their shapes. Ink, water, sky and lit glass keep theirs.
+  const WARM = new Uint8Array(256).map((_, c) => { const r = c && R[RAMP_OF[c]], k = RAMP_OF[c]; if (!r || c === INK || KIND[c] === 4 || k === 'sky' || k === 'lamp' || k === 'water') return c; const f = STEP_OF[c] / Math.max(1, r.length - 1); return f < 0.5 ? c : R.ochre[f < 0.8 ? 2 : 3]; });
+  // The valleys round the hills go a step darker at Dusk, through a dither. That never changes, so it is
+  // done once, in a copy of the ground drawn instead of it once the light is half gone; done each frame
+  // it cost 2 ms.
+  const groundDusk = ground.slice(); for (let i = 0; i < ground.length; i++) { const m = W.hillLight[i]; if (m >= 16 && m < 32 && bayer(i % WW, (i / WW) | 0) < (m - 16) * 0.05) groundDusk[i] = SHADE[ground[i]]; }
+  let gNow = ground;
+  const keep = m => m && (m < 16 || m >= 32);
+  const HLIT = (() => { const M = W.hillLight, rows = new Int32Array(WH + 1); let n = 0; for (let i = 0; i < M.length; i++) if (keep(M[i])) n++;
+    const xs = new Int16Array(n), vals = new Uint8Array(n); n = 0;
+    for (let y = 0; y < WH; y++) { rows[y] = n; for (let x = 0; x < WW; x++) { const m = M[y * WW + x]; if (keep(m)) { xs[n] = x; vals[n++] = m; } } } rows[WH] = n; return { rows, xs, vals }; })();
   const TIP_H = [26, 34], GLOW = new Uint8Array(256).map((_, c) => { const r = c && R[RAMP_OF[c]]; if (!r) return c; const k = Math.min(R.snow.length - 1, Math.round((STEP_OF[c] + 1) / r.length * (R.snow.length - 1)) + 1); return R.snow[k]; });
   // The lenticular cloud (E3): a stack of smooth lenses standing still over Mount Monolith's summit, the
   // sign of a strong wind up high. It forms over fifteen seconds, sits half a minute, thins and is gone,
@@ -150,7 +174,7 @@ export function makeWorld(bake) {
       for (let x = Math.max(0, -ox); x < lim; x++) {
         const wx = x + ox, f = F[wrow + wx]; if (!f || (his && wx > here.x - 9 && wx < here.x + 9)) continue;
         const i = row + x, gate = fr + 70 - wx;
-        let l = Math.floor(f * k8 * (gate >= 90 ? 1 : gate / 90) + BAY[by + (wx & 3)] - 0.5) - (fb[i] !== ground[wrow + wx] ? 2 : 0); if (l <= 0) continue; if (l >= 8 && f < 230) l = 7;
+        let l = Math.floor(f * k8 * (gate >= 90 ? 1 : gate / 90) + BAY[by + (wx & 3)] - 0.5) - (fb[i] !== gNow[wrow + wx] ? 2 : 0); if (l <= 0) continue; if (l >= 8 && f < 230) l = 7;
         fb[i] = l >= 8 ? (hash(wx >> 4, wy >> 2, 231) > 0.74 ? R.fog[1] : R.fog[2]) : FOGV[l - 1][fb[i]];
       }
     }
@@ -229,6 +253,7 @@ export function makeWorld(bake) {
   put(makeSignpost(), spots.signpost[0], spots.signpost[1]);
   for (const s of spots.signs) put(makeSmallSign(), s[0], s[1]);
   put(makeJournal(), spots.journal[0], spots.journal[1]); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
+  if (spots.lookout) put(makeLookout(), spots.lookout[0], spots.lookout[1]);
   for (const [x, y, c] of spots.tents) put(makeTent(c), x, y);
   // The animals look after themselves: see critters.js. Where each one lives comes from land.js.
   const crit = makeCritters(W);
@@ -317,12 +342,14 @@ export function makeWorld(bake) {
     at: (sx, sy) => ({ x: sx + last.ox, y: sy + last.oy }),
     // The four places he can be sent to, for the page to pin a name on. The page keeps a name on screen
     // when its place is out of view.
-    labels() { return PLACES.map(d => ({ id: 'go:' + d.id, name: DEST_NAMES[d.id], x: d.x - last.ox, y: d.y - last.oy })); },
+    // A place's tag rises and brightens with it when it lifts (E5j): lift is how far up it is, 0 to 1.
+    labels() { return PLACES.map(d => { const k = W.DEST.indexOf(d.id), l = k > 0 ? lifted[k] : 0; return { id: 'go:' + d.id, name: DEST_NAMES[d.id], x: d.x - last.ox, y: d.y - last.oy - 2 * l, lift: l }; }); },
     // What is under a point of the screen: a sign with a name, the kiosk, a cat.
     pick(sx, sy) {
       const wx = sx + last.ox, wy = sy + last.oy;
       for (const s of spots.signs) if (Math.abs(wx - s[0]) < 8 && wy > s[1] - 17 && wy < s[1] + 3) return { label: SIGNS[s[2]], x: s[0] - last.ox, y: s[1] - 18 - last.oy };
       const c = kit.pick(wx, wy); if (c) return { label: c.label, x: c.wx - last.ox, y: c.wy - last.oy, act: c.act };
+      if (spots.lookout) { const [lx, ly] = spots.lookout; if (Math.abs(wx - lx) < 9 && wy > ly - 30 && wy < ly + 2) return { label: NAMES.lookout, x: lx - last.ox, y: ly - 31 - last.oy }; }
       { const [kx, ky] = spots.kiosk; if (Math.abs(wx - kx) < 14 && wy > ky - 27 && wy < ky + 3) return { label: NAMES.kiosk, x: kx - last.ox, y: ky - 27 - last.oy, act: 'kiosk' }; }
       { const k = destUnder(wx, wy); if (k) return { label: DEST_NAMES[W.DEST[k]], named: true, x: sx, y: sy, act: 'dest:' + W.DEST[k] }; }
       return null;
@@ -367,14 +394,15 @@ export function makeWorld(bake) {
       scr.sky = { ox, oy, w: WW, h: 330, moon: [1180, 60] };
 
       // Ground.
+      gNow = env.mix > 0.5 ? groundDusk : ground;
       for (let y = 0; y < VH; y++) {
         const wy = oy + y, row = y * VW;
         if (wy < 0) { fb.fill(R.skyband[0], row, row + VW); continue; }
-        if (wy >= WH) { const my = 2 * WH - 1 - wy, a = Math.max(0, ox), b = Math.min(WW, ox + VW); fb.fill(R.grass[2], row, row + VW); if (my >= 470 && b > a) fb.set(ground.subarray(my * WW + a, my * WW + b), row + (a - ox)); continue; }
+        if (wy >= WH) { const my = 2 * WH - 1 - wy, a = Math.max(0, ox), b = Math.min(WW, ox + VW); fb.fill(R.grass[2], row, row + VW); if (my >= 470 && b > a) fb.set(gNow.subarray(my * WW + a, my * WW + b), row + (a - ox)); continue; }
         const a = Math.max(0, ox), b = Math.min(WW, ox + VW);
         if (a > ox) fb.fill(wy < 330 ? R.sky[2] : R.grass[2], row, row + (a - ox));
         if (b < ox + VW) fb.fill(wy < 330 ? R.sky[2] : R.grass[2], row + (b - ox), row + VW);
-        if (b > a) fb.set(ground.subarray(wy * WW + a, wy * WW + b), row + (a - ox));
+        if (b > a) fb.set(gNow.subarray(wy * WW + a, wy * WW + b), row + (a - ox));
       }
       // With the Trees switch off, the snags and shadows painted into the ground give way to what lay under them.
       if (!DEBUG.trees) for (let y = Math.max(0, -oy); y < Math.min(VH, WH - oy); y++) { const wy = y + oy, row = y * VW; for (let x = Math.max(0, -ox); x < Math.min(VW, WW - ox); x++) { const c = W.bare[wy * WW + x + ox]; if (c) fb[row + x] = c; } }
@@ -432,6 +460,7 @@ export function makeWorld(bake) {
         else drawStill(scr, th, tq, ox, oy, dl, clipBlit, flags, t);
       }
 
+      if (env.mix > 0.02) duskHills(fb, VW, VH, ox, oy, HLIT, gNow, env.mix, WARM);
       // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge. Each is
       // cast by a small fair-weather cloud drifting above it (E5a), drawn after the mist.
       if (DEBUG.clouds) rainShadows(scr, ox, oy, sky);

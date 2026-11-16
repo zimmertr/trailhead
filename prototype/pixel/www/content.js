@@ -131,7 +131,7 @@ export const SIGNS = {
 };
 // The names of things you can point at inside a scene.
 export const NAMES = {
-  kiosk: 'Trail conditions', kayti: 'Kayti',
+  kiosk: 'Trail conditions', kayti: 'Kayti', lookout: 'Observability Lookout',
   cats: { tortie: 'Doot Doot', nebel: 'Peevers' },
   forest: { sign: 'Legacy Grove', creek: 'Cache Miss Creek' },
   lakeside: { sign: 'Cold Start Cove', marmot: 'Hoary marmot', swim: 'Go for a swim', back: 'Swim back' },
@@ -140,7 +140,7 @@ export const NAMES = {
   offroute: { wand: 'The only wand for miles' }
 };
 // Every joke place name, for the legend on the trail map.
-const PLACE_NAMES = [...Object.values(SIGNS).filter(n => !n.includes(',')), NAMES.forest.sign, NAMES.forest.creek, NAMES.lakeside.sign, NAMES.wall.ledge, NAMES.wall.roof, NAMES.climb.crevasse, NAMES.climb.ridge].filter((n, i, a) => a.indexOf(n) === i);
+const PLACE_NAMES = [...Object.values(SIGNS).filter(n => !n.includes(',')), NAMES.forest.sign, NAMES.forest.creek, NAMES.lakeside.sign, NAMES.wall.ledge, NAMES.wall.roof, NAMES.climb.crevasse, NAMES.climb.ridge, NAMES.lookout].filter((n, i, a) => a.indexOf(n) === i);
 
 // The music, in the order audio.js holds the tunes, and the three sets of instruments.
 export const TRACK_NAMES = ['Wildflower Meadow', 'Hall of Mosses', 'Granite Hours', 'Above the Icefall', 'Larch March', 'Tarn at Noon', 'Glissade'];
@@ -177,7 +177,7 @@ export const UI = {
     toggles: { trees: 'Trees', clouds: 'Clouds', mist: 'Mist', labels: 'Labels', animals: 'Animals', roam: 'Roam areas', taps: 'Tap targets', trails: 'Trail lines', camera: 'Camera limits' },
     speed: 'Time', speeds: ['Pause', '0.5\u00d7', '1\u00d7', '2\u00d7', '4\u00d7', '8\u00d7'],
     startMap: 'Start now, on the map', startForest: 'Start now, in the forest run',
-    events: { shower: 'Shower', breach: 'Humpback breach', blow: 'Humpback blow', ferry: 'Ferry sets out', serac: 'Serac fall', lens: 'Lenticular cloud', jay: "Steller's jay", bear: 'Bear', sasquatch: 'Sasquatch' },
+    events: { shower: 'Shower', breach: 'Humpback breach', blow: 'Humpback blow', ferry: 'Ferry sets out', serac: 'Serac fall', lens: 'Lenticular cloud', heron: 'Heron lifts off', jay: "Steller's jay", bear: 'Bear', sasquatch: 'Sasquatch' },
     note: 'Roam areas, trail lines and camera limits show on the map. Tap targets show in every scene. A start button works only in its own scene.'
   },
   map: {

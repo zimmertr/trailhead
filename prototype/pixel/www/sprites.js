@@ -312,6 +312,30 @@ function makeKiosk() {
   outline(b, INK);
   return b;
 }
+// The fire lookout (E5j): a cab on a short timber tower, after the lookouts of the Cascades. A catwalk
+// with a rail runs round the cab, windows go all the way round under a hipped roof, and a lightning rod
+// stands on top. The glass is the lamp ramp, so it shows the sky by day and glows at Dusk.
+function makeLookout() {
+  const W = 17, H = 31, c = 8, foot = H - 1, deck = H - 13, b = new BM(W, H); b.ox = c; b.oy = foot;
+  // The roof: hipped, lit on the west, its eaves a dark line; the rod after the outline.
+  for (let r = 0; r < 5; r++) { const y = deck - 14 + r, hw = Math.round(0.5 + r * 1.5); for (let x = c - hw; x <= c + hw; x++) b.set(x, y, r === 4 ? R.navy[0] : x < c ? R.navy[2] : x === c ? R.navy[1] : R.navy[1]); }
+  // The cab: a frame, a band of windows with mullions, a low wall under them.
+  for (let y = deck - 9; y <= deck - 1; y++) for (let x = c - 5; x <= c + 5; x++) {
+    const win = y >= deck - 8 && y <= deck - 4 && x > c - 5 && x < c + 5 && (x - c + 6) % 3 !== 0;
+    b.set(x, y, win ? (y === deck - 8 || x === c - 3 && y < deck - 5 ? R.lamp[1] : R.lamp[0]) : y === deck - 9 ? R.wood[1] : x < c ? R.wood[3] : R.wood[2]);
+  }
+  // The catwalk and its rail, standing out past the cab.
+  for (let x = c - 7; x <= c + 7; x++) { b.set(x, deck, R.wood[3]); b.set(x, deck - 3, R.wood[x < c ? 4 : 3]); }
+  for (const x of [c - 7, c - 4, c + 4, c + 7]) { b.set(x, deck - 1, R.wood[2]); b.set(x, deck - 2, R.wood[2]); }
+  outline(b, INK);
+  b.set(c, deck - 15, R.rock[3]); b.set(c, deck - 16, R.rock[2]);
+  // The tower: four legs splayed toward the foot, the near pair lit on the west, the far pair inside them
+  // in shade, two stages of cross braces. Drawn after the outline so the gaps stay open.
+  for (let y = deck + 1; y <= foot; y++) { const s = Math.round(3 + 3 * (y - deck) / (foot - deck)); b.set(c - s + 2, y, R.wood[0]); b.set(c + s - 2, y, R.wood[0]); b.set(c - s, y, R.wood[3]); b.set(c + s, y, R.wood[1]); b.set(c + s + 1, y, INK); }
+  for (const [y0, y1] of [[deck + 1, deck + 6], [deck + 6, foot - 1]]) { const sp = y => 3 + 3 * (y - deck) / (foot - deck); thick(b, c - sp(y0), y0, c + sp(y1), y1, 1, R.wood[1]); thick(b, c + sp(y0), y0, c - sp(y1), y1, 1, R.wood[1]); }
+  for (let x = c - 5; x <= c + 5; x++) b.set(x, deck + 1, R.wood[0]);
+  return b;
+}
 function makeTent(c) {
   const b = new BM(16, 11); b.ox = 8; b.oy = 10;
   for (let y = 0; y < 10; y++) for (let x = 8 - y * 0.75; x <= 8 + y * 0.75; x++) b.set(x, y + 1, x < 8 ? R[c][2] : R[c][1]);
@@ -420,4 +444,4 @@ function makeFlag(f, ramp = R.red) {
   return b;
 }
 
-export { makeSnag, makeBush, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeSnag, makeBush, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };

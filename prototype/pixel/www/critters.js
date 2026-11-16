@@ -3,7 +3,7 @@
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
 import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, INK, SHADE, KIND, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
 import { makeElk, makeBird } from './sprites.js';
-import { ell, goat, marmot } from './fauna.js';
+import { ell, goat, marmot, heron } from './fauna.js';
 import { NW, NH } from './land.js';
 
 // A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass.
@@ -134,6 +134,30 @@ export function makeCritters(W, opts = {}) {
     if (up || t < a.until) return;
     for (let k = 0; k < 6; k++) { const an = rand() * TAU, rr = a.r * (0.3 + 0.7 * rand()), tx = a.hx + Math.cos(an) * rr, ty = a.hy + Math.sin(an) * rr * 0.6; if (W.open(tx, ty) && way((x, y) => W.open(x, y), a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'run'; return; } }
     a.until = t + 5;
+  }
+
+  // ---- the heron: still in the oxbow until he runs close by (E5j) ----------------------------------
+  // It stands and now and then turns. When he comes within 60 on the move it lifts off slowly, away from
+  // him, climbing low over the meadow on slow wingbeats, and is gone; 35 s later it glides back the
+  // same way and stands again. The debug panel can send it off at any time.
+  const her = { stand: heron('stand'), fly: [heron('fly0'), heron('fly1')] }, HER = { out: 9, back: 44, home: 53 };
+  if (spots.heron) items.push({ critter: 'heron', bm: her.stand, x: spots.heron[0], y: spots.heron[1], hx: spots.heron[0], hy: spots.heron[1], st: 'stand', t0: 0, dir: -1, last: null });
+  const herItem = items.find(a => a.critter === 'heron');
+  const takeOff = (a, t, from) => { a.st = 'fly'; a.t0 = t; a.dir = from && from.x > a.hx ? -1 : from ? 1 : -1; };
+  function wade(a, dt, t, here) {
+    const moved = here && a.last && Math.hypot(here.x - a.last.x, here.y - a.last.y) > 0.05;
+    a.last = here ? { x: here.x, y: here.y } : null;
+    if (a.st === 'stand') {
+      a.bm = her.stand; a.hop = 0; a.x = a.hx; a.y = a.hy; a.flip = frac(t / 23 + 0.3) < 0.35;
+      if (moved && Math.hypot(here.x - a.hx, (here.y - a.hy) * 1.4) < 60) takeOff(a, t, here);
+      return;
+    }
+    const s = t - a.t0; if (s >= HER.home) { a.st = 'stand'; return; }
+    // Out along a slow climb, then back along the same line, gliding in on fewer beats.
+    const out = s < HER.out, back = s >= HER.back, k = out ? s : back ? HER.home - s : 0;
+    if (!out && !back) { a.x = -999; return; }
+    a.x = Math.round(a.hx + a.dir * (9 * k + 2.2 * k * k)); a.y = a.hy; a.hop = Math.round(16 * smooth(0, 2.5, k) + 2.4 * k);
+    a.flip = out ? a.dir < 0 : a.dir > 0; a.bm = back && k < 2.5 ? her.stand : her.fly[Math.floor(s * (back ? 1.2 : 2.2)) & 1];
   }
 
   // For screenshots, sea=90 in the address starts the ferry's and the whale's clocks that many seconds on.
@@ -368,6 +392,7 @@ export function makeCritters(W, opts = {}) {
         if (a.walker) walk(a, dt, t);
         else if (a.dart) dart(a, dt, t, here);
         else if (a.critter === 'marmot') scurry(a, dt, t, here);
+        else if (a.critter === 'heron') wade(a, dt, t, here);
       }
     },
     draw(scr, a, ox, oy, t) {
@@ -432,6 +457,7 @@ export function makeCritters(W, opts = {}) {
     // blow after a breach), or the ferry sets out from the west end now.
     trigger(name, t) {
       if (name === 'breach' || name === 'blow') { const n = Math.floor((t + whaleAhead + T0) / SLOT) + (name === 'breach' ? 1 : 0); whaleAhead = n * SLOT + starts(n) + (name === 'blow' ? 16.6 : 0) - t - T0; return true; }
+      if (name === 'heron') { if (!herItem || herItem.st !== 'stand') return false; takeOff(herItem, t, null); return true; }
       if (name === 'ferry') { ferryAhead = (((-(t + 0.12 * CROSS)) % ROUND) + ROUND) % ROUND; return true; }
       return false;
     },

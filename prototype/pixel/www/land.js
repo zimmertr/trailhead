@@ -350,9 +350,10 @@ if (B) water.set(B.water); else {
     }
   }
   // An oxbow: a loop the river left behind, a crescent of still water just outside its widest swing in
-  // the flat of the meadow, the swing nearest the Trailhead (D6).
-  { let best = null, bs = 0; for (const r of routes) r.pts.forEach(([u, v], n) => { if (n < r.lead.length) return; const s = Math.abs(wander(u, v)) * smooth(330, 130, Math.hypot(u - TU, (v - TV) * 1.4)) * smooth(TV - 120, TV - 40, v); if (s > bs) { bs = s; best = [r, n]; } });
-    if (best && bs > 4) { const [r, n] = best, P = r.pts, [u0, v0] = P[n], a = P[Math.max(0, n - 6)], b = P[Math.min(P.length - 1, n + 6)], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, sg = Math.sign(wander(u0, v0)), nu = -(b[1] - a[1]) / L * sg, nv = (b[0] - a[0]) / L * sg, out = Math.atan2(nv, nu), cu = u0 + nu * 32, cv = v0 + nv * 32 * 0.7;
+  // the flat of the meadow, the swing nearest the Trailhead (D6). A swing counts if it is a real one (over
+  // 4 pixels); E5j dropped the old score's cut-off, which found none once the Trailhead moved in E5h.
+  { let best = null, bs = 0; for (const r of routes) r.pts.forEach(([u, v], n) => { if (n < r.lead.length) return; const wv = Math.abs(wander(u, v)); if (wv < 4) return; const s = wv * smooth(520, 120, Math.hypot(u - TU, (v - TV) * 1.4)) * smooth(TV - 120, TV - 40, v); if (s > bs) { bs = s; best = [r, n]; } });
+    if (best && bs > 0.4) { const [r, n] = best, P = r.pts, [u0, v0] = P[n], a = P[Math.max(0, n - 6)], b = P[Math.min(P.length - 1, n + 6)], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, sg = Math.sign(wander(u0, v0)), nu = -(b[1] - a[1]) / L * sg, nv = (b[0] - a[0]) / L * sg, out = Math.atan2(nv, nu), cu = u0 + nu * 32, cv = v0 + nv * 32 * 0.7;
       // Still water: it keeps clear of the running river, and its surface is one level, so it reads calm.
       const near = (u, v) => { for (let dv = -4; dv <= 4; dv++) for (let du = -6; du <= 6; du++) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) return true; return false; }, ox = new Map();
       for (let t = 0; t <= 80; t++) { const e = (t / 80) * 2 - 1, ang = out + e * 2.0, w = 2.4 * (1 - e * e) + 0.6, u = cu + Math.cos(ang) * 16, v = cv + Math.sin(ang) * 10; for (let dv = -3; dv <= 3; dv++) for (let du = -4; du <= 4; du++) { const d = Math.hypot(du, dv * 1.4), uu = Math.round(u + du), vv = Math.round(v + dv), i = at(clamp(uu, 0, NW - 1), clamp(vv, 0, VD - 1)); if (d > w + 1 || hg[i] <= 0 || near(uu, vv)) continue; ox.set(i, Math.max(ox.get(i) || 0, d <= w ? 2 : 1)); } }
@@ -421,6 +422,21 @@ for (const t of C.trails) {
   end();
 }
 const nearTrail = (u, v, r) => { for (let i = 0; i < trailPts.length; i += 3) { const p = trailPts[i]; if (Math.abs(p[0] - u) < r && Math.abs(p[1] - v) < r) return true; } return false; };
+// The fire lookout (E5j, TJ: on a small summit cleared of trees): the top of the smallest foothill whose
+// summit the camera sees and no trail crosses. Seen means no nearer ground on its column stands higher
+// on the picture. Its top is cleared: grass and a little rock, and nothing that grows stands on it.
+const LOOK = (() => {
+  for (const h of [...hillList()].sort((a, b) => a.H - b.H)) {
+    let top = null, hi = -1;
+    for (let v = Math.round(h.cv - h.rv * 0.6); v <= h.cv + h.rv * 0.6; v += 2) for (let u = Math.round(h.cu - h.ru * 0.6); u <= h.cu + h.ru * 0.6; u += 2) {
+      if (u < 8 || v < 8 || u >= NW - 8 || v >= VD - 8 || water[at(u, v)] || nearTrail(u, v, 16)) continue; const y = hAt(u, v); if (y > hi) { hi = y; top = [u, v]; } }
+    if (!top) continue;
+    const [u, v] = top; let seen = true; for (let w = 0; w < v - 2 && seen; w++) if (w + hAt(u, w) >= v + hi) seen = false;
+    if (seen) return top;
+  }
+  return null;
+})();
+const lookAmt = (u, v) => LOOK ? smooth(1.05, 0.65, Math.hypot((u - LOOK[0]) / 21, (v - LOOK[1]) / 14)) : 0;
 
 // ---- what the ground is made of -------------------------------------------------------------------
 const wob = (u, v, s, a) => a * (fbm(u / 70, v / 60, s, 3) - 0.5);
@@ -530,6 +546,8 @@ function colour(u, v, hh, x, y) {
   if (u > 760 && v > 684) return hh > 128 && vnoise(x / 3, hh / 12, 829) > 0.45 + 0.3 * smooth(1240, 1700, u) ? R.snow[L > 0.5 ? 4 : 3] : pick('rock', 0.3 + 0.45 * L + 0.15 * vnoise(x / 3, hh / 10, 97), x, y, 0.7);
   // On the foothills (E5b) no forest floor shows: between the trees lies more canopy, lit by the slope
   // with the sun in the west, so each hill's shape shows through its forest as in TJ's photographs.
+  // The lookout's summit (E5j): short grass with rock breaking through, the clearing's edge ragged.
+  if (lookAmt(u, v) > 0.5 + 0.5 * (bayer(x, y) - 0.5)) return vnoise(u / 4, v / 3, 251) > 0.64 ? pick('rock', 0.35 + 0.45 * L, x, y, 0.7) : pick('grass', 0.3 + 0.45 * L + 0.1 * n1, x, y, 0.4);
   const fa = forestAmt(u, v), hl = u < 760 && fa > 0.45 ? hills(u, v) : 0;
   // The canopy is the pointed tops of conifers, row behind row: each lit on its west side, dark gaps
   // between them. The slope's light is made stronger than on open ground so the hills' faces part, and
@@ -993,6 +1011,9 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
 if (!B) for (const [su, sv] of STACKS) { const fy = Math.round(SY - sv - hAt(su, sv)); for (let a = 0; a < 6.283; a += 0.05) { const x = Math.round(su + Math.cos(a) * 9), y = Math.round(fy + 1 + Math.sin(a) * 3); if (x < 0 || y < 0 || x >= NW || y >= SH || hash(Math.round(a * 9), 0, 4731) < 0.25) continue; const i = px(x, y); if (coast(x, zb[i]) > 0) g[i] = Math.sin(a) > 0 ? R.white[1] : R.white[0]; } }
 // Far first. A thing that nearer ground partly hides is painted into the ground picture for good,
 // clipped where it is hidden. Every other thing is handed to the scene whole, to be drawn each frame.
+// Nothing grows on the lookout's cleared summit (E5j). Taken out after every roll of the dice, so
+// nothing else moves.
+for (const list of [things, RANKTREES]) for (let k = list.length - 1; k >= 0; k--) { const th = list[k], u = th.u ?? th.x; if (lookAmt(u, th.v) > 0.2) list.splice(k, 1); }
 things.sort((a, b) => b.v - a.v);
 const live = [], HAZE = [0.1, 0.18, 0.27, 0.36].map(veilTable);
 for (const th of things) {
@@ -1038,7 +1059,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { g, depth: zb, mat: mb, bare, fogField, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { g, depth: zb, mat: mb, bare, fogField, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -1235,12 +1256,38 @@ export function buildTerrain() {
     // A flag for each finished destination: at the lake shore, on Proficiency Peak, on the Spires' highest summit.
     flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
     // Signs and animals, each placed by its rule (habitat, above).
-    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, jelly: H.jelly, whale: H.whale, ferry: H.ferry
+    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, jelly: H.jelly, whale: H.whale, ferry: H.ferry,
+    // The fire lookout on its cleared summit (E5j), and the heron in the oxbow: the still water's pixel
+    // nearest the oxbow's middle.
+    lookout: LAND.lookout ? sxy(...LAND.lookout) : null,
+    heron: (() => { const Wt = LAND.water, ox = []; for (let i = 0; i < Wt.length; i++) if (Wt[i] === 3) ox.push([i % NW, (i / NW) | 0]); if (!ox.length) return null;
+      const mu = ox.reduce((s, p) => s + p[0], 0) / ox.length, mv = ox.reduce((s, p) => s + p[1], 0) / ox.length, [bu, bv] = ox.reduce((b, p) => Math.hypot(p[0] - mu, p[1] - mv) < Math.hypot(b[0] - mu, b[1] - mv) ? p : b);
+      return sxy(bu, bv); })()
   };
+  // The light on the foothills at Dusk (E5j), after the evening light in TJ's photographs: the sun is low
+  // in the west, so a hill's crest and the west end of its skyline catch it and the rest is in shade.
+  // For each pixel of the picture: how much of that warm rim it catches (1 to 15: the few pixels below a
+  // hill's skyline on the picture, more toward its west end), how soon it goes dark (16 to 31: the
+  // valleys round and between the hills), or how much light the tree tops standing up to 16 pixels past the skyline
+  // catch (32 to 47; world.js lights only what stands there, not the farther ground behind).
+  const hillLight = (() => { const M = new Uint8Array(NW * SH), HL = LAND.hillList(); if (!HL.length) return M;
+    const X1 = Math.min(NW, Math.round(Math.max(...HL.map(h => h.cu + h.ru))) + 60), FE = Float32Array.from({ length: VD }, (_, v) => LAND.forestEdge(v));
+    for (let y = 0; y < SH; y++) for (let x = 0; x < X1; x++) { const i = y * NW + x, v = LAND.depth[i]; if (v >= VD || LAND.coast(x, v) > -24) continue;
+      const up = LAND.hillUp(x, v); let d2 = 9; for (const h of HL) d2 = Math.min(d2, sq((x - h.cu) / h.ru) + sq((v - h.cv) / h.rv));
+      const e = FE[Math.min(VD - 1, Math.round(v))], dark = smooth(0.3, 0.02, up) * smooth(3.2, 1.4, d2) * smooth(e + 40, e - 30, x); if (dark > 0.04) M[i] = 16 + Math.round(dark * 15);
+    }
+    // The skyline of each hill on the picture: a hill pixel with farther ground (or sky) straight above it.
+    for (let x = 0; x < X1; x++) for (let y = 13; y < SH - 12; y++) { const i = y * NW + x, v = LAND.depth[i]; if (v >= VD || LAND.depth[i - NW] < v + 8 || LAND.hills(x, v) < 6) continue;
+      let h = HL[0]; for (const q of HL) if (sq((x - q.cu) / q.ru) + sq((v - q.cv) / q.rv) < sq((x - h.cu) / h.ru) + sq((v - h.cv) / h.rv)) h = q;
+      const west = smooth(h.cu + h.ru * 0.45, h.cu - h.ru * 0.35, x) * smooth(0.12, 0.45, LAND.hillUp(x, v)); if (west < 0.05) continue;
+      for (let k = 0; k <= 9; k++) { const j = i + k * NW; if (Math.abs(LAND.depth[j] - v) > 14 + k * 3) break; const r = west * (1 - k / 10); if (r > 0.05) M[j] = Math.max(M[j] < 16 ? M[j] : 0, 1 + Math.round(r * 14)); }
+      for (let k = 1; k <= 16 && y - k > 0; k++) { const j = i - k * NW; if (M[j] < 32 || M[j] > 47) M[j] = 32 + Math.round(west * 14 * (1 - k / 20)); }
+    }
+    return M; })();
   const forestAmt = (x, y) => { const v = vAt(x, y); return v > VD ? 0 : LAND.forestAmt(x, v); };
   const coast = (x, y) => { const v = vAt(x, y); return v > VD ? -999 : LAND.coast(x, v); };
   // Nothing nearer stands in front of a sign's board or the trail conditions board.
-  for (const [sx, sy, , half = 7] of [...spots.signs, [KIOSK.x, KIOSK.y, 'kiosk', 15]]) for (let i = LAND.things.length - 1; i >= 0; i--) {
+  for (const [sx, sy, , half = 7] of [...spots.signs, [KIOSK.x, KIOSK.y, 'kiosk', 15], ...(spots.lookout ? [[...spots.lookout, 'lookout', 9]] : [])]) for (let i = LAND.things.length - 1; i >= 0; i--) {
     const th = LAND.things[i], w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h;
     if (th.y > sy - 3 && th.y - h < sy + 1 && Math.abs(th.x - sx) < w / 2 + half) LAND.things.splice(i, 1);
   }
@@ -1260,7 +1307,7 @@ export function buildTerrain() {
   const open = (x, y) => { const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
   const nearTrail = (x, y, r) => { const v = vAt(x, y); return v < VD && H.tdist[Math.round(v) * NW + Math.round(x)] < r; };
   const flat = l => l.map(p => [p[0], p[1]]);
-  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the
