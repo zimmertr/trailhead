@@ -13,46 +13,46 @@ export const LINKS = {
 export const INTRO = "is a principal platform engineer based out of Seattle, WA. When he's not playing in the mountains, he's usually hacking on computers. Choose a destination to learn more!";
 
 export const DESTINATIONS = [
-  { route: 'lake', sign: 'Run to About Lake', about: 'to learn more about TJ', dir: 'left', slug: 'about-lake' },
-  { route: 'stack', sign: 'Climb The Stack', about: 'to learn more about his skills', dir: 'up', slug: 'the-stack' },
+  { route: 'lake', sign: 'Run to Reflection Lake', about: 'to learn more about TJ', dir: 'left', slug: 'reflection-lake' },
+  { route: 'stack', sign: 'Climb Proficiency Peak', about: 'to learn more about his skills', dir: 'up', slug: 'proficiency-peak' },
   { route: 'spires', sign: 'Climb the Sideproject Spires', about: 'to see some of his personal projects', dir: 'right', slug: 'sideproject-spires' }
 ];
 
 // kind is the thing the card comes out of, which decides how it is drawn.
 export const CARDS = {
   who: {
-    route: 'lake', slug: 'about-lake/who', kind: 'sign', from: 'Trail sign', title: 'Who TJ is',
+    route: 'lake', slug: 'reflection-lake/who', kind: 'sign', from: 'Trail sign', title: 'Who TJ is',
     body: ["TJ Zimmerman is a principal platform engineer based out of Seattle, WA. When he's not playing in the mountains, he's usually hacking on computers."],
     aside: 'Mountains, cats, and computers.',
     links: ['linkedin', 'github', 'resume'], go: 'Keep running'
   },
   mountains: {
-    route: 'lake', slug: 'about-lake/in-the-mountains', kind: 'map', from: 'The map from his pocket', title: 'In the mountains', draft: true,
+    route: 'lake', slug: 'reflection-lake/in-the-mountains', kind: 'map', from: 'The map from his pocket', title: 'In the mountains', draft: true,
     body: ['TJ is a peakbagger, a lakebagger and a trail runner, and most weekends he is somewhere in the Cascades doing one of the three. He climbs rock and glaciers as well, and keeps a wilderness first aid card current for the days that go sideways.', 'His tracks, summits and ticks are all public, so feel free to follow along.'],
     links: ['strava', 'peakbagger', 'mountainproject'], go: 'Keep running'
   },
   note: {
-    route: 'lake', slug: 'about-lake/a-personal-note', kind: 'journal', from: 'His trail journal', title: 'A personal note', draft: true,
+    route: 'lake', slug: 'reflection-lake/a-personal-note', kind: 'journal', from: 'His trail journal', title: 'A personal note', draft: true,
     body: ["I started out in Michigan, studied computers there, and then moved to Seattle for the mountains. So for about ten years now I have built platforms during the week and disappeared into the hills on the weekend.", "However, the two have more in common than you would think. Both reward patience, both punish shortcuts, and both go better with good partners. Therefore I built this site to show you both at once, instead of another page of bullet points.", "Feel free to wander. And say hi to Doot Doot and Peevers on your way out (they run the place)."],
     links: ['linkedin', 'github', 'strava', 'peakbagger', 'mountainproject'], go: 'Run home'
   },
   'platform-engineering': {
-    route: 'stack', slug: 'the-stack/platform-engineering', kind: 'rack', from: 'The rack on his harness', title: 'Platform Engineering', draft: true,
+    route: 'stack', slug: 'proficiency-peak/platform-engineering', kind: 'rack', from: 'The rack on his harness', title: 'Platform Engineering', draft: true,
     body: ['TJ builds the paved road that other engineers ship on. He has led moves from hand-rolled pipelines to GitOps platforms that developers own themselves, and rebuilt fragile automation as versioned infrastructure as code.', 'The goal is always the same: make the right way the easy way.'],
     tools: ['Kubernetes', 'Argo CD', 'Argo Rollouts', 'Helm', 'Terraform', 'GitLab CI', 'GitHub Actions'], links: [], go: 'Climb on'
   },
   'site-reliability-engineering': {
-    route: 'stack', slug: 'the-stack/site-reliability-engineering', kind: 'watch', from: 'His watch', title: 'Site Reliability Engineering', draft: true,
+    route: 'stack', slug: 'proficiency-peak/site-reliability-engineering', kind: 'watch', from: 'His watch', title: 'Site Reliability Engineering', draft: true,
     body: ['Things break, so TJ plans for the fall. He made canary releases the default way to ship, built the dashboards and monitors that catch trouble early, and wrote the post-mortems and runbooks that stop it coming back.', 'He has carried the pager too.'],
     tools: ['Istio', 'Datadog', 'Prometheus', 'Grafana', 'PagerDuty', 'SLOs'], links: [], go: 'Climb on'
   },
   'software-engineering': {
-    route: 'stack', slug: 'the-stack/software-engineering', kind: 'guide', from: 'The guidebook', title: 'Software Engineering', draft: true,
+    route: 'stack', slug: 'proficiency-peak/software-engineering', kind: 'guide', from: 'The guidebook', title: 'Software Engineering', draft: true,
     body: ['TJ writes software to remove toil, from command line tools and automation up to whole web applications like Bluebird Forecast.', 'These days he works with AI coding agents the way a climber uses beta: he follows most of the suggestions and skips the ones that lead nowhere.'],
     tools: ['Python', 'TypeScript', 'Bash', 'Java', 'HCL', 'Claude Code'], links: [], go: 'To the summit'
   },
   summit: {
-    route: 'stack', slug: 'the-stack/summit', kind: 'summit', from: 'The summit', title: 'The top of The Stack', draft: true,
+    route: 'stack', slug: 'proficiency-peak/summit', kind: 'summit', from: 'The summit', title: 'The top of Proficiency Peak', draft: true,
     body: ['Five pitches, one flag. The whole route is written down in the two places below.'],
     links: ['resume', 'linkedin'], go: 'Rappel'
   },
@@ -122,11 +122,11 @@ export function ago(iso, now = new Date()) {
 }
 
 // The four places he can be sent to. Their names are pinned on the map and head the trail map's lists.
-export const DEST_NAMES = { trailhead: 'Trailhead', lake: 'About Lake', stack: 'The Stack', spires: 'Sideproject Spires' };
+export const DEST_NAMES = { trailhead: 'Trailhead', lake: 'Reflection Lake', stack: 'Proficiency Peak', spires: 'Sideproject Spires' };
 
 // The joke place names that stand as signs on the world map. habitat() in land.js finds where each one stands.
 export const SIGNS = {
-  'scope-creep': 'Scope Creep Glacier', segfault: 'Segfault Scree', 'merge-conflict': 'Merge Conflict Col', 'yak-shave': 'Yak Shave Meadow', 'about-lake': 'About Lake, 2.4 km',
+  'scope-creep': 'Scope Creep Glacier', segfault: 'Segfault Scree', 'merge-conflict': 'Merge Conflict Col', 'yak-shave': 'Yak Shave Meadow', 'reflection-lake': 'Reflection Lake, 2.4 km',
   rollback: 'Rollback Basin', 'feature-flag': 'Feature Flag Tarns', hotfix: 'Hotfix Burn', postmortem: 'Postmortem Burn', 'cron-job': 'Cron Job Coulee', 'tech-debt': 'Tech Debt Badlands',
   'off-by-one': 'Off By One Peak', dependency: 'Dependency Range', 'stack-trace': 'Stack Trace Thicket', monorepo: 'Monorepo Woods', 'cache-miss': 'Cache Miss Cove', latency: 'Latency Bay'
 };

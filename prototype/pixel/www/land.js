@@ -796,7 +796,7 @@ const MONO_COVER = (() => {
 })();
 // Each destination and its country (D12a, D12b), worked out from the heights, materials and depth the
 // bake already holds, so it costs nothing to keep. First on the map, by rules from the land:
-// 1 About Lake: the lake, the bench it lies on (where the bench is the ground), and the lake loop's last
+// 1 Reflection Lake: the lake, the bench it lies on (where the bench is the ground), and the lake loop's last
 //   300 or so through the trees on its way in and out, with the ground between its two stretches.
 // 2 Proficiency Peak: the fin and the second granite step it stands on (where the step is the ground; the
 //   higher step behind is not). Its cliff is added on the picture, below.
@@ -1228,7 +1228,7 @@ function habitat() {
   // The col: the lowest point on the line from Mount Monolith's summit to the west end of the Spires.
   let col = null; for (let t = 0.25, lo = 1e9; t < 0.95; t += 0.01) { const u = lerp(vo.cu, wsum[0], t), v = lerp(vo.cv, wsum[1], t) - 60, h = S.hAt(u, v); if (h < lo) { lo = h; col = [u, v]; } }
   const SIGNS = {
-    'about-lake': find(1, signable, 0, beside(0, 0.03, 0.12)),
+    'reflection-lake': find(1, signable, 0, beside(0, 0.03, 0.12)),
     'yak-shave': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) < 0.1 && S.parkAmt(u, v) < 0.3, 0, beside(0, 0.12, 0.35)),
     'stack-trace': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.45 && S.forestAmt(u, v) < 0.8, 0, beside(0, 0.2, 0.8)),
     monorepo: find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && S.fogAmt(u, v) < 0.3, 60, beside(0, 0.2, 0.9)),
@@ -1266,7 +1266,7 @@ function habitat() {
   const clearSea = new Set(R.sea), sea = (lo, hi) => (u, v) => { const c = S.coast(u, v); return c > lo && c < hi && S.toY(u, v) < SH - 50 && shows(u, v, 4) && clearSea.has(S.g[S.toY(u, v) * NW + Math.round(u)]) && clearSea.has(S.g[(S.toY(u, v) - 6) * NW + Math.round(u)]); };
   const jelly = find(8, sea(14, 80), 26), whale = best(sea(90, 150), (u, v) => -Math.abs(S.coast(u, v) - 115) + 6 * rnd());
   // The timed events of E5k. Tumbleweeds start in open sage with 120 of firm ground east of them, the way
-  // the wind rolls them; dust devils spin up on bare dry flats. The float plane lands on About Lake
+  // the wind rolls them; dust devils spin up on bare dry flats. The float plane lands on Reflection Lake
   // (events.js).
   const tumbles = find(3, (u, v) => S.sageAmt(u, v) > 0.6 && firm(u, v, 0.5) && shows(u, v, 6) && [30, 60, 90, 120].every(d => firm(u + d, v, 0.9)), 60);
   const devils = find(2, (u, v) => S.dryAmt(u, v) > 0.6 && S.sageAmt(u, v) > 0.3 && firm(u, v, 0.4) && shows(u, v, 26), 120);

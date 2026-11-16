@@ -1,4 +1,4 @@
-// About Lake, part two: out of the trees at the lake itself, turquoise under a huge sweeping
+// Reflection Lake, part two: out of the trees at the lake itself, turquoise under a huge sweeping
 // peak. He runs left to right along the near shore, stops for the view with the map out, and
 // again at the boulder where his journal lies open.
 import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, thick, windAt, veilTable, SHADE } from './core.js';

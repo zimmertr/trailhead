@@ -171,9 +171,12 @@ function drawProfile(p) {
 // ------------------------------------------------------------------ addresses
 
 function setAddress(slug) { try { if (decodeURIComponent(location.hash.slice(1)) !== slug) history.pushState(null, '', slug ? '#' + slug : location.pathname + location.search); } catch { /* sandboxed frames may refuse */ } }
+const OLD_SLUGS = [['about-lake', 'reflection-lake'], ['the-stack', 'proficiency-peak']];
 async function navigate(hash) {
   if (worldDown) return;
-  const slug = decodeURIComponent((hash || '').replace(/^#\/?/, ''));
+  let slug = decodeURIComponent((hash || '').replace(/^#\/?/, ''));
+  // Round 3's addresses (L7): the lake and the peak were About Lake and The Stack.
+  for (const [was, now] of OLD_SLUGS) if (slug === was || slug.startsWith(was + '/')) { slug = now + slug.slice(was.length); try { history.replaceState(null, '', '#' + slug); } catch { /* sandboxed */ } }
   closeSheet(); closePlain();
   if (!slug) return home();
   if (slug === 'register') return openBook();

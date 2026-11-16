@@ -1,6 +1,6 @@
 // Timed events on the map that are not animals (E5k): tumbleweeds rolling across the sage on a gust, dust
 // devils spinning up on the dry flats, a shooting star on the Dusk sky, and the float plane that comes in
-// over the map and lands on About Lake (on the sea it came down under the page's menus, out of sight). Where each happens comes from land.js (habitat); each runs on the
+// over the map and lands on Reflection Lake (on the sea it came down under the page's menus, out of sight). Where each happens comes from land.js (habitat); each runs on the
 // scenes' clock, so the speed buttons work on it, and each can be started now from the debug panel.
 import { TAU, clamp, smooth, hash, bayer, R, INK, BM, outline, thick } from './core.js';
 import { NW } from './land.js';
@@ -58,7 +58,7 @@ export function drawLens(scr, sx, sy, t, k = 1, ox = 0, oy = 0) {
 export function makeEvents(W) {
   const { spots } = W, D = W.depth;
   const weeds = [0, 1, 2, 3].map(weed), planes = [plane(0), plane(1)];
-  // About Lake's open water (W.dest 5): the widest row in its nearer half is the plane's runway, clear of
+  // Reflection Lake's open water (W.dest 5): the widest row in its nearer half is the plane's runway, clear of
   // the lake's name tag, which hangs over its far half.
   const LAKE = (() => { const rows = new Map(); for (let i = 0; i < W.dest.length; i++) if (W.dest[i] === 5) { const y = (i / NW) | 0, x = i % NW, r = rows.get(y) || [x, x]; rows.set(y, [Math.min(r[0], x), Math.max(r[1], x)]); }
     const ys = [...rows.keys()], mid = (Math.min(...ys) + Math.max(...ys)) / 2 + 2;

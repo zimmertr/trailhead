@@ -9,7 +9,7 @@ import { makeWorld, loadBake } from './world.js';
 const MAKERS = {
   forest: () => import('./forest.js').then(m => m.makeForest()),
   lakeside: () => import('./lakeside.js').then(m => m.makeLakeside()),
-  // The Stack is climbed by the West Ridge (section H); ?wall brings back round 3's wall to compare.
+  // Proficiency Peak is climbed by the West Ridge (section H); ?wall brings back round 3's wall to compare.
   wall: () => new URLSearchParams(location.search).has('wall') ? import('./wall.js').then(m => m.makeWall()) : import('./ridge.js').then(m => m.makeRidge()),
   camp: () => import('./camp.js').then(m => m.makeCamp()),
   climb: () => import('./climb.js').then(m => m.makeClimb()),

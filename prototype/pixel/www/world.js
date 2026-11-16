@@ -40,8 +40,8 @@ function openFrame(T, boxes, names, VW, VH, WW, WH, bar, sign) {
 }
 // ---------------------------------------------------------------------------------------------
 // The world. Pixel coordinates, x east, y south. North is up the screen, so the three
-// destinations stand along the top of the meadow: the forest and About Lake on the left,
-// The Stack in the middle, Sideproject Spires on the right. The ground itself, every biome and
+// destinations stand along the top of the meadow: the forest and Reflection Lake on the left,
+// Proficiency Peak in the middle, Sideproject Spires on the right. The ground itself, every biome and
 // everything rooted in it, comes from land.js; this file adds what moves and what is clicked.
 
 const KM = 0.008; // kilometres per pixel along a trail, for the sign's distances
@@ -121,7 +121,7 @@ function fogPass(fb, VW, VH, ox, oy, F, G, GW, wetOn, VEIL, w, here, k8, X0, X1)
 // The marine layer's deck (E5e), laid on the same way: each pixel swapped for its own colour seen through
 // fog, up to the strongest veil, by how deep in the deck its spot lies (land.js's deck), how far in the
 // deck is and a slow churn. Things standing in it are hidden with the ground, so the hills' trees go into
-// the cloud. Behind the deck's edge only, which never reaches About Lake.
+// the cloud. Behind the deck's edge only, which never reaches Reflection Lake.
 function deckPass(fb, VW, VH, ox, oy, M, VEIL, CHURN, w, t, k, X0, X1) {
   const y0 = Math.max(0, -oy), y1 = Math.min(VH, WH - oy), cx = Math.floor(t * 3), cy = Math.floor(t * 1.2);
   for (let y = y0; y < y1; y++) { const wy = y + oy; if (X0[wy] < 0) continue;
@@ -313,13 +313,13 @@ export function makeWorld(bake) {
   // ---- the weather in the west: the marine layer (E5e) ----
   // Rain in the Northwest seldom comes as a storm. A low grey deck rolls in off the sea ten seconds after
   // the page opens and settles onto the rainforest's hills, hiding their tops and their trees, with a
-  // light steady drizzle under it, and stops short of About Lake. Then it lifts and thins, and leaves
+  // light steady drizzle under it, and stops short of Reflection Lake. Then it lifts and thins, and leaves
   // white fog in the valleys with the summits standing out of it (the inversion), the trees dripping for
   // a while; that burns off too. About two minutes in all, then half a minute clear. rain=<seconds> moves
   // the clock on, for screenshots, and the debug panel's Shower button starts one now.
   const RAIN = { roll: 15, settle: 40, gone: 120, gap: 30 }; RAIN.cycle = RAIN.gone + RAIN.gap;
   let rainAhead = typeof location !== 'undefined' ? +(/[?&]rain=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
-  // About Lake's water (the core of its country): the deck never reaches it.
+  // Reflection Lake's water (the core of its country): the deck never reaches it.
   let lx0 = WW, lx1 = 0, ly0 = WH, ly1 = 0;
   for (let i = 0; i < W.dest.length; i++) if (W.dest[i] === 5) { const x = i % WW, y = (i / WW) | 0; if (x < lx0) lx0 = x; if (x > lx1) lx1 = x; if (y < ly0) ly0 = y; if (y > ly1) ly1 = y; }
   const weather = t => {

@@ -1,4 +1,4 @@
-// About Lake, part one: the run through the rainforest, seen from the side. Giant mossy trunks
+// Reflection Lake, part one: the run through the rainforest, seen from the side. Giant mossy trunks
 // stand on the bank behind the trail, a dark stream mirrors them in front of it, and the light
 // comes down through the canopy in slanting shafts. He runs right to left, the way the map sends him
 // in: west, away from the Trailhead.

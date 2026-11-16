@@ -172,7 +172,7 @@ function buildLarches() {
   for (let x = X0 + LEN * 0.33; x < X0 + LEN * 0.8 && !nanny; x += 4) for (let r = 16; r < 44 && !nanny; r += 2) { let ok = true; for (let k = -24; k <= 18 && ok; k += 4) for (const d of [-3, 0, 4, 8]) ok = ok && slabAt(x + k, r + d); if (ok) nanny = { x: Math.round(x), y: g(x) + r }; }
   if (!nanny) nanny = { x: X0 + LEN * 0.45, y: g(X0 + LEN * 0.45) + 24 };
   const kidAt = { x: nanny.x - 21, y: nanny.y + 3 }, billy = { x: Math.round(X0 + LEN * 0.7), y: g(X0 + LEN * 0.7) - 7 };
-  // The pika (G7, moved here from The Stack's talus): two rocks on the verge above the trail, on the first stretch
+  // The pika (G7, moved here from Proficiency Peak's talus): two rocks on the verge above the trail, on the first stretch
   // past halfway with no larch within 30, and the pika shuttling between them with flowers for its haystack.
   let px = X0 + LEN * 0.55;
   for (let x = X0 + LEN * 0.5; x < X0 + LEN * 0.9; x += 6) if (!things.some(th => th.tree && Math.abs(th.x - x - 11) < 30 && th.y < g(th.x) + 4) && Math.abs(x - billy.x) > 40) { px = Math.round(x); break; }
