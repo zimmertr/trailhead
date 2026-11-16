@@ -3,6 +3,7 @@
 // (u, SY - v - height), nearest first, so ground and mountains are one surface and near slopes hide
 // far ones.
 import { R, INK, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
+import { ferry, whale, sheep, squirrel } from './mapfauna.js';
 import { makeMaple, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag } from './sprites.js';
 
 const NW = 1920, SH = 1080, VD = 740, SY = SH + 52;
@@ -62,7 +63,7 @@ let SP = null;
 const GULLY = [[-80, 0.46, 1], [-40, 0.7, 0], [-9, 0.6, 2], [60, 0.56, 1]];
 const SUMMITS = [[-94, 0.66, 26, 30, 8], [-60, 0.84, 24, 20, 5], [-24, 1, 26, 22, 9], [10, 0.86, 18, 20, 5], [42, 0.95, 22, 26, 8], [82, 0.7, 24, 34, 10]];
 function spires(cu, cv, base, H, thin = 1, wide = 1) {
-  SP = { cu, cv, base, H, wide, top: cu + SUMMITS[2][0] * wide };
+  SP = { cu, cv, base, H, wide, top: cu + SUMMITS[2][0] * wide, west: SUMMITS[0][0] };
   const high = dx => {
     let best = H * (0.28 + 0.2 * smooth(160, 90, Math.abs(dx)));
     SUMMITS.forEach(([o, hh, wl, wr, cap], k) => { const u = Math.max(0, Math.abs(dx - o) - cap / 2) / (dx < o ? wl : wr), v = H * hh * (1 - 0.3 * Math.pow(u, 1.05)) - (dx - o) * (k & 1 ? 0.12 : -0.1) * (u === 0 ? 1 : 0); if (u < 2 && v > best) best = v; });
@@ -489,7 +490,7 @@ for (const th of things) {
 }
 
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { g, depth: zb, mat: mb, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, lakeAt };
+return { g, depth: zb, mat: mb, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -507,6 +508,107 @@ export const T = { x: C.T[0], y: LAND.toY(C.T[0], C.T[1]) };
 // The trail conditions board stands just north-east of the junction. The cats keep to it (cats.js).
 export const KIOSK = { x: C.T[0] + 28, y: LAND.toY(C.T[0] + 28, C.T[1] + 22) };
 export async function loadBake() { return null; }
+// ---- where things live ----------------------------------------------------------------------------
+// Every sign and every animal on the map is placed by a rule read from the land: the kind of ground,
+// its height, how far it is from a trail, whether it can be seen. No position is written down, so a
+// change to the land takes them all with it. Positions here are in the world (u east, v away from the
+// camera) until the end, where they become spots on the picture.
+function habitat() {
+  const S = LAND, at = (u, v) => clamp(Math.round(v), 0, VD - 1) * NW + clamp(Math.round(u), 0, NW - 1), rnd = rng(4040);
+  // How far each spot is from the nearest trail, in pixels up to 255, worked out once.
+  const tdist = new Uint8Array(NW * VD).fill(255);
+  for (let i = 0; i < tdist.length; i++) if (S.trail[i]) tdist[i] = 0;
+  for (let v = 0; v < VD; v++) for (let u = 0; u < NW; u++) { const i = v * NW + u; let d = tdist[i]; if (u) d = Math.min(d, tdist[i - 1] + 1); if (v) d = Math.min(d, tdist[i - NW] + 1, u ? tdist[i - NW - 1] + 1 : 255, u < NW - 1 ? tdist[i - NW + 1] + 1 : 255); tdist[i] = d; }
+  for (let v = VD - 1; v >= 0; v--) for (let u = NW - 1; u >= 0; u--) { const i = v * NW + u; let d = tdist[i]; if (u < NW - 1) d = Math.min(d, tdist[i + 1] + 1); if (v < VD - 1) d = Math.min(d, tdist[i + NW] + 1, u < NW - 1 ? tdist[i + NW + 1] + 1 : 255, u ? tdist[i + NW - 1] + 1 : 255); tdist[i] = d; }
+  const trailFar = (u, v) => tdist[at(u, v)];
+  const fromT = (u, v) => Math.hypot(u - C.T[0], (v - C.T[1]) * 1.4);
+  // Ground an animal or a sign can stand on: dry land, off the water and the trail, not too steep.
+  const firm = (u, v, steep = 0.8) => u > 3 && u < NW - 3 && v > 2 && v < VD - 2 && !S.water[at(u, v)] && S.coast(u, v) < -32 && !S.lakeAt(u, v) && S.slope(u, v) < steep;
+  // A spot shows on the picture if the ground drawn there is that spot and nothing nearer stands in front
+  // of the few pixels above it (a sign's board, an animal's back).
+  const shows = (u, v, up = 18) => { const x = Math.round(u), y = S.toY(u, v); if (x < 16 || x >= NW - 40 || y < up + 2 || y >= SH - 3) return false; if (Math.abs(S.depth[y * NW + x] - v) > 4) return false; for (let k = 5; k <= up; k += 6) if (S.depth[(y - k) * NW + x] < v - 3) return false; return true; };
+  // Points over the whole world in an order the dice choose, so what is found first is never one corner.
+  const GRID = []; for (let v = 3; v < VD - 3; v += 5) for (let u = 3; u < NW - 3; u += 5) GRID.push([u + rnd() * 5, v + rnd() * 5]);
+  for (let i = GRID.length - 1; i > 0; i--) { const j = (rnd() * (i + 1)) | 0, t = GRID[i]; GRID[i] = GRID[j]; GRID[j] = t; }
+  const taken = [], apartFrom = (list, u, v, d) => list.every(([a, b]) => Math.hypot(a - u, (b - v) * 1.4) >= d);
+  // The first n spots that keep a rule, apart from each other and from whatever was placed before.
+  const find = (n, rule, apart = 40, from = GRID) => { const out = []; for (const [u, v] of from) { if (out.length >= n) break; if (apartFrom(out, u, v, apart) && apartFrom(taken, u, v, 34) && rule(u, v)) out.push([u, v]); } taken.push(...out); return out; };
+  // The spot that scores best among those that keep a rule.
+  const best = (rule, score, from = GRID) => { let top = null, s0 = -Infinity; for (const [u, v] of from) { if (!rule(u, v)) continue; const s = score(u, v); if (s > s0) { s0 = s; top = [u, v]; } } if (top) taken.push(top); return top; };
+  // Spots just beside a trail, between two fractions of its length, on either side of it.
+  const beside = (k, a, b, off = 12) => { const P = catmull(C.trails[k]), out = []; for (let n = Math.floor(P.length * a); n < P.length * b - 1; n += 4) { const [u0, v0] = P[n], [u1, v1] = P[n + 1], l = Math.hypot(u1 - u0, v1 - v0) || 1; for (const s of [1, -1]) out.push([u0 - (v1 - v0) / l * off * s, v0 + (u1 - u0) / l * off * s]); } return out; };
+  const coulee = (u, v) => { let d = 1e9; for (const [a, b] of catmull(C.coulee)) d = Math.min(d, Math.hypot(a - u, b - v)); return d; };
+  const signable = (u, v) => apartFrom(taken, u, v, 70) && firm(u, v, 0.9) && trailFar(u, v) >= 4 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2];
+  const near = (p, d) => (u, v) => Math.hypot(u - p[0], v - p[1]) < d;
+  const ring = (p, r0, r1) => GRID.filter(([u, v]) => { const d = Math.hypot(u - p[0], (v - p[1]) * 1.4); return d >= r0 && d <= r1; });
+  const sp = S.spires, vo = S.volc, tarn = S.C.lakes.find(l => l[4] === 'tarn'), wsum = [sp.cu + sp.west * sp.wide, sp.cv];
+  // The col: the lowest point on the line from Mount Monolith's summit to the west end of the Spires.
+  let col = null; for (let t = 0.25, lo = 1e9; t < 0.95; t += 0.01) { const u = lerp(vo.cu, wsum[0], t), v = lerp(vo.cv, wsum[1], t) - 60, h = S.hAt(u, v); if (h < lo) { lo = h; col = [u, v]; } }
+  const SIGNS = {
+    'about-lake': find(1, signable, 0, beside(0, 0.03, 0.12)),
+    'yak-shave': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) < 0.1 && S.parkAmt(u, v) < 0.3, 0, beside(0, 0.12, 0.35)),
+    'stack-trace': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.45 && S.forestAmt(u, v) < 0.8, 0, beside(0, 0.2, 0.8)),
+    monorepo: find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && S.fogAmt(u, v) < 0.3, 60, beside(0, 0.2, 0.9)),
+    'scope-creep': find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'moraine', 0, beside(1, 0.7, 1)),
+    segfault: find(1, (u, v) => signable(u, v) && S.slope(u, v) > 0.35, 0, beside(1, 0.45, 0.75)),
+    'merge-conflict': col ? find(1, signable, 0, ring(col, 0, 50)) : [],
+    rollback: find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'land' && S.hAt(u, v) > 40 && S.hAt(u, v) < 66, 0, beside(2, 0.4, 0.8)),
+    'feature-flag': tarn ? find(1, signable, 0, ring(tarn, tarn[2] + 6, tarn[2] + 24)) : [],
+    hotfix: find(1, (u, v) => S.burnAmt(u, v) > 0.6 && signable(u, v)),
+    postmortem: find(1, (u, v) => S.burnAmt(u, v) > 0.55 && signable(u, v), 70),
+    'cron-job': find(1, (u, v) => S.dryAmt(u, v) > 0.3 && signable(u, v) && coulee(u, v) > 40 && coulee(u, v) < 56),
+    'tech-debt': find(1, (u, v) => S.sageAmt(u, v) > 0.7 && signable(u, v) && coulee(u, v) > 90),
+    // Off By One Peak: the top of the highest of the forested foothills round Mount Monolith's foot.
+    'off-by-one': [best((u, v) => Math.hypot((u - vo.cu) / vo.ru, (v - vo.cv) / vo.rv) < 1.4 && S.matAt(u, v) === 'land' && S.hAt(u, v) < vo.H * 0.3 && signable(u, v), (u, v) => S.hAt(u, v))].filter(Boolean),
+    dependency: find(1, (u, v) => signable(u, v) && S.hAt(u, v) > 80, 0, beside(2, 0.85, 1)),
+    'cache-miss': find(1, (u, v) => { const c = S.coast(u, v); return c > -14 && c < -7 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2]; }),
+    latency: find(1, (u, v) => { const c = S.coast(u, v); return c > -14 && c < -7 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2]; }, 160)
+  };
+  // The elk herd keeps to a roomy flat in the parkland well away from the Trailhead.
+  const roomy = (u, v) => [[-26, 0], [26, 0], [0, -18], [0, 18]].every(([a, b]) => firm(u + a, v + b, 0.5));
+  const herd = best((u, v) => S.parkAmt(u, v) > 0.5 && S.forestAmt(u, v) < 0.15 && fromT(u, v) > 120 && trailFar(u, v) > 16 && firm(u, v, 0.5) && shows(u, v, 12) && roomy(u, v), (u, v) => S.parkAmt(u, v) + 0.3 * rnd());
+  // Marmots sun on rocks: parkland or moraine with a steep bit of ground right beside them.
+  const rocky = (u, v) => [[-6, 0], [6, 0], [0, 5], [0, -5]].some(([a, b]) => S.slope(u + a, v + b) > 0.9);
+  const marmots = find(3, (u, v) => (S.parkAmt(u, v) > 0.3 || S.matAt(u, v) === 'moraine') && firm(u, v, 1.2) && shows(u, v, 8) && rocky(u, v), 140);
+  // Goats on the granite: one nanny and kid on the step under Proficiency Peak, one pair higher up.
+  const slab = (lo, hi) => (u, v) => S.matAt(u, v) === 'gran' && S.hAt(u, v) > lo && S.hAt(u, v) < hi && firm(u, v, 0.7) && shows(u, v, 12);
+  const goats = [...find(1, slab(74, 100)), ...find(1, slab(100, 160))];
+  // Bighorn sheep on the rim of the coulee, in one band.
+  const rim = (u, v) => S.dryAmt(u, v) > 0.5 && coulee(u, v) > 16 && coulee(u, v) < 52 && firm(u, v, 0.8) && shows(u, v, 12);
+  const band = find(1, rim), sheep = band.length ? [band[0], ...find(3, rim, 20, ring(band[0], 14, 70))] : [];
+  // Squirrels and chipmunks in the open meadow near trees, a bear at the edge of the forest.
+  const squirrels = find(7, (u, v) => S.forestAmt(u, v) < 0.3 && S.dryAmt(u, v) < 0.3 && S.larchAmt(u, v) < 0.2 && S.hAt(u, v) < 45 && trailFar(u, v) > 6 && fromT(u, v) > 50 && firm(u, v) && shows(u, v, 6), 70);
+  const bear = find(1, (u, v) => S.forestAmt(u, v) > 0.12 && S.forestAmt(u, v) < 0.35 && S.hAt(u, v) < 35 && S.dryAmt(u, v) < 0.2 && fromT(u, v) > 160 && firm(u, v, 0.6) && shows(u, v, 12))[0];
+  // In the sea: jellyfish not far out, the whale farther out, the ferry's course past both.
+  const clearSea = new Set(R.sea), sea = (lo, hi) => (u, v) => { const c = S.coast(u, v); return c > lo && c < hi && S.toY(u, v) < SH - 50 && shows(u, v, 4) && clearSea.has(S.g[S.toY(u, v) * NW + Math.round(u)]) && clearSea.has(S.g[(S.toY(u, v) - 6) * NW + Math.round(u)]); };
+  const jelly = find(8, sea(14, 80), 26), whale = best(sea(90, 150), (u, v) => -Math.abs(S.coast(u, v) - 115) + 6 * rnd());
+  const out = (u, v) => [Math.round(u), S.toY(u, v)];
+  // The ferry's course runs where the sea is 60 out from the shore, from past the west edge of the map to past its foot.
+  const seaV = u => { for (let v = 0; v < VD; v++) if (S.coast(u, v) < 60) return v; return VD; }, seaU = v => { for (let u = 0; u < NW; u++) if (S.coast(u, v) < 60) return u; return 0; };
+  const footV = S.toY(0, 0) - SH - 28, ferry = [[-30, S.toY(-30, seaV(-30))], [seaU(footV), SH + 28]];
+  const herdAt = herd ? out(...herd) : null;
+  return {
+    tdist, firm,
+    signs: Object.entries(SIGNS).filter(([, p]) => p && p.length).map(([k, p]) => [...out(...p[0]), k]),
+    elk: herdAt ? [[herdAt[0], herdAt[1], 0], [herdAt[0] + 34, herdAt[1] + 14, 1], [herdAt[0] - 20, herdAt[1] + 26, 1], [herdAt[0] + 16, herdAt[1] + 40, 0]] : [],
+    marmots: marmots.map(p => out(...p)),
+    goats: goats.flatMap(p => { const [x, y] = out(...p); return [[x, y, 0], [x + 16, y + 6, 1]]; }),
+    sheep: sheep.map((p, n) => [...out(...p), n & 1]),
+    squirrels: squirrels.map((p, n) => [...out(...p), n % 3 === 0 ? 1 : 0]),
+    bear: bear ? out(...bear) : out(...C.T),
+    jelly: jelly.map((p, n) => [...out(...p), n % 3 ? 0 : 1]),
+    whale: whale ? out(...whale) : [0, 0],
+    ferry,
+    // Birds circle over the elk's parkland, the dry corner and the granite; gulls over the sea by the beach.
+    flocks: [
+      herdAt && { cx: herdAt[0], cy: herdAt[1] + 40, rx: 130, ry: 44, n: 3, lift: 56, w: 0.14 },
+      ...find(1, (u, v) => S.sageAmt(u, v) > 0.6 && shows(u, v, 4), 0).map(p => ({ cx: out(...p)[0], cy: out(...p)[1], rx: 90, ry: 36, n: 1, lift: 84, w: 0.11, glide: true })),
+      goats.length && { cx: out(...goats[0])[0], cy: out(...goats[0])[1], rx: 70, ry: 26, n: 1, lift: 70, w: -0.13, glide: true },
+      ...find(1, sea(24, 50), 0).map(p => ({ cx: out(...p)[0], cy: out(...p)[1], rx: 80, ry: 30, n: 2, lift: 34, w: -0.16, gull: true })),
+      ...find(1, sea(4, 20), 120).map(p => ({ cx: out(...p)[0], cy: out(...p)[1], rx: 34, ry: 14, n: 1, lift: 22, w: 0.25, gull: true }))
+    ].filter(Boolean)
+  };
+}
 export function buildTerrain() {
   // Each trail as points on the picture, close together, each with its depth.
   const line = pts => catmull(pts).filter((_, n, a) => n % 6 === 0 || n === a.length - 1).map(([u, v]) => [u, LAND.toY(u, v), v]);
@@ -514,7 +616,7 @@ export function buildTerrain() {
   // ends at base camp; what lies beyond is the boot track on the ice.
   const home = C.trails[0].slice(0, 6).reverse().slice(1), camp = C.trails[1].findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]) + 1;
   const lines = { lake: line([...C.trails[0], ...home]), stack: line(C.trails[2]), spires: line(C.trails[1].slice(0, camp)) };
-  const lake = C.lakes[0], peak = LAND.peak, sp = LAND.spires, shore = sxy(lake[0] + lake[2] + 8, lake[1] + 2);
+  const H = habitat(), lake = C.lakes[0], peak = LAND.peak, sp = LAND.spires, shore = sxy(lake[0] + lake[2] + 8, lake[1] + 2);
   const flagOn = (x, v, kind) => { const y = LAND.toY(x, v); return { x: Math.round(x), y, lift: y - topOf(x, kind) }; };
   const spots = {
     signpost: sxy(C.T[0] - 4, C.T[1] + 8), kiosk: [KIOSK.x, KIOSK.y],
@@ -524,11 +626,31 @@ export function buildTerrain() {
     places: { lake: [lake[0], LAND.toY(lake[0], lake[1]) - 8], stack: [peak.cu, topOf(peak.cu, 'fin') + 44], spires: [sp.cu + 10, LAND.toY(sp.cu, 598)] },
     // A flag for each finished destination: at the lake shore, on Proficiency Peak, on the Spires' highest summit.
     flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
-    // Signs and animals are re-homed in checklist sections D and E.
-    signs: [], elk: [], goats: [], sheep: [], marmots: [], squirrels: [], jelly: [], birds: []
+    // Signs and animals, each placed by its rule (habitat, above).
+    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, jelly: H.jelly, whale: H.whale, ferry: H.ferry
   };
   const forestAmt = (x, y) => { const v = vAt(x, y); return v > VD ? 0 : LAND.forestAmt(x, v); };
   const coast = (x, y) => { const v = vAt(x, y); return v > VD ? -999 : LAND.coast(x, v); };
+  // Nothing nearer stands in front of a sign's board or the trail conditions board.
+  for (const [sx, sy, , half = 7] of [...spots.signs, [KIOSK.x, KIOSK.y, 'kiosk', 15]]) for (let i = LAND.things.length - 1; i >= 0; i--) {
+    const th = LAND.things[i], w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h;
+    if (th.y > sy - 3 && th.y - h < sy + 1 && Math.abs(th.x - sx) < w / 2 + half) LAND.things.splice(i, 1);
+  }
+  // The sea's corner, for the swells and the wash on the beach (critters.js): how wide and how tall the
+  // corner is, found from the shore; then for each spot of it, whether a swell shows there and when, or
+  // how far it is from the water's edge.
+  const seaW = (() => { for (let u = 0; u < NW; u++) { let wet = false; for (let v = 0; v < 70 && !wet; v += 2) wet = LAND.coast(u, v) > -8; if (!wet) return u + 8; } return NW; })();
+  const seaTop = (() => { let top = 0; for (let u = 0; u < seaW; u += 2) for (let v = top; v < VD; v++) if (LAND.coast(u, v) > -8) top = v; return Math.max(0, LAND.toY(0, top) - 8); })();
+  const SEA = { y0: seaTop, w: seaW, h: SH - seaTop }; for (const k of ['ph', 'gate', 'shore']) SEA[k] = new Uint8Array(SEA.w * SEA.h);
+  const wet = new Set(R.sea), fog = new Set(R.fog);
+  for (let y = SEA.y0; y < SH; y++) for (let x = 0; x < SEA.w; x++) {
+    const i = y * NW + x, v = LAND.depth[i]; if (v >= VD || fog.has(LAND.g[i])) continue;
+    const cs = LAND.coast(x, v), j = (y - SEA.y0) * SEA.w + x;
+    if (cs > -4 && cs < 8) SEA.shore[j] = 1 + Math.round((cs + 4) * 8);
+    else if (cs >= 8 && wet.has(LAND.g[i]) && vnoise(x / 22, y / 9, 85) > (cs < 60 ? 0.4 : 0.54)) { SEA.gate[j] = cs < 40 ? 2 : 1; SEA.ph[j] = Math.floor(frac((cs + 7 * Math.sin(x / 37 + y / 61)) / 24) * 240); }
+  }
+  const open = (x, y) => { const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
+  const nearTrail = (x, y, r) => { const v = vAt(x, y); return v < VD && H.tdist[Math.round(v) * NW + Math.round(x)] < r; };
   const flat = l => l.map(p => [p[0], p[1]]);
-  return { g: LAND.g, vAt, things: LAND.things, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast };
+  return { g: LAND.g, vAt, things: LAND.things, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: null, flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }

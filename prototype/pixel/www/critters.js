@@ -4,7 +4,7 @@
 import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, INK, SHADE, KIND, BM, outline, thick, pick } from './core.js';
 import { makeElk, makeBird } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
-import { NW, NH } from './terrain.js';
+import { NW, NH } from './land.js';
 
 // A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass.
 export function mapBear(pose, step = 0) {
@@ -42,7 +42,7 @@ function veilTable(amount) {
 }
 // The humpback's breach, twelve drawings to the second up to the moment it lands. It comes out steep
 // and fast and slows as it climbs, turns its belly up while it hangs, and tips over onto its back.
-// whale() in terrain.js says what each number means.
+// whale() in mapfauna.js says what each number means.
 const FPS = 12, IMPACT = 2.75;
 export const BREACH = Array.from({ length: Math.ceil(IMPACT * FPS) + 1 }, (_, i) => {
   const u = i / FPS, rise = 1 - (1 - clamp(u / 1.3, 0, 1)) ** 2, hang = smooth(1.25, 1.8, u), fall = clamp((u - 1.75) / (IMPACT - 1.75), 0, 1) ** 2;
@@ -276,8 +276,9 @@ export function makeCritters(W, opts = {}) {
   // Mist pools low: the tops of the tallest trees stand clear of it. (Only the tallest: in thick forest
   // the tops of the crowns are nearly all that shows of a tree.) This marks those rows as the map shows
   // them, nearer trees laid over the ones behind.
-  const TOPW = M.x1, tops = new Uint8Array(TOPW * (NH - M.y0));
-  for (const th of W.things.filter(th => th.x < TOPW + 40 && th.y > M.y0).sort((a, b) => a.y - b.y)) {
+  // On round 4's map the fog is drawn into the land, and there is no drifting mist (W.mist is null).
+  const TOPW = M ? M.x1 : 0, tops = new Uint8Array(M ? TOPW * (NH - M.y0) : 0);
+  if (M) for (const th of W.things.filter(th => th.x < TOPW + 40 && th.y > M.y0).sort((a, b) => a.y - b.y)) {
     const parts = th.tree ? th.tree.parts.map(p => [p.bm, th.x + p.x, th.y + p.y]) : [[th.bm, th.x - th.bm.ox, th.y - th.bm.oy]];
     const clearTo = th.tree && th.tree.h >= 52 ? th.y - th.tree.h + 6 : -1;
     for (const [bm, x0, y0] of parts) for (let j = 0; j < bm.h; j++) {
@@ -339,13 +340,8 @@ export function makeCritters(W, opts = {}) {
 
   // ---- birds that circle, each with its shadow on the ground --------------------------------
   const ink = [makeBird(0), makeBird(1)], gull = ink.map(b => tint(b, R.white[1]));
-  const FLOCKS = [
-    { cx: 800, cy: 900, rx: 130, ry: 44, n: 3, lift: 56, w: 0.14, bm: ink },
-    { cx: 1490, cy: 770, rx: 90, ry: 36, n: 1, lift: 84, w: 0.11, bm: ink, glide: true },
-    { cx: 1260, cy: 600, rx: 70, ry: 26, n: 1, lift: 70, w: -0.13, bm: ink, glide: true },
-    { cx: 210, cy: 905, rx: 80, ry: 30, n: 2, lift: 34, w: -0.16, bm: gull },
-    { cx: 70, cy: 930, rx: 34, ry: 14, n: 1, lift: 22, w: 0.25, bm: gull }
-  ];
+  // Where each flock circles comes from the land (land.js, habitat).
+  const FLOCKS = (W.flocks || []).map(F => ({ ...F, bm: F.gull ? gull : ink }));
 
   return {
     items,
@@ -402,6 +398,7 @@ export function makeCritters(W, opts = {}) {
     // round him as it does round a sign.
     mist(scr, ox, oy, t, here) {
       const { VW, VH, fb } = scr;
+      if (!M) return;
       if (ox >= M.x1 + 120 || oy + VH <= M.y0) return;
       if (lv.length !== VW * VH) { lv = new Uint8Array(VW * VH); lo = new Int16Array(VH); hi = new Int16Array(VH); }
       lo.fill(32767); hi.fill(-1);

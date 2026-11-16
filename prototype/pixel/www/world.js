@@ -4,6 +4,7 @@ import { breeze } from './core.js';
 import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
 import { makeCats } from './cats.js';
+import { makeCritters } from './critters.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, loadBake, NW as WW, NH as WH, T } from './land.js';
 // ---------------------------------------------------------------------------------------------
@@ -168,9 +169,8 @@ export function makeWorld(bake) {
   for (const s of spots.signs) put(makeSmallSign(), s[0], s[1]);
   put(makeJournal(), spots.journal[0], spots.journal[1]); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
   for (const [x, y, c] of spots.tents) put(makeTent(c), x, y);
-  // The animals, the sea's swells and the drifting mist are being re-homed on the new land (ROUND4.md,
-  // checklist section E). Until then nothing moves out there.
-  const crit = { items: [], sea() {}, update() {}, draw() {}, mist() {}, over() {}, areas: () => [] };
+  // The animals look after themselves: see critters.js. Where each one lives comes from land.js.
+  const crit = makeCritters(W);
   for (const it of crit.items) things.push(it);
   const birds = [makeBird(0), makeBird(1)];
   const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 330 + 40, y: 50 + (i & 1) * 70 + i * 18, v: 3 + (i % 4) }));

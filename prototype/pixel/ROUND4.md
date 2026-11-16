@@ -351,18 +351,18 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 
 ### D. What grows and stands on the land
 
-- [ ] D1. Every country re-laid on the new land, each thinning into the next across a wide, slanted, uneven edge. No bands.
-- [ ] D2. The rainforest and its fog: ranks of crowns drawn ridge by ridge, each rank greyer than the one in front, white in the hollows, bare snags against the white in the west. No hard map edge is ever visible.
+- [x] D1. Every country re-laid on the new land, each thinning into the next across a wide, slanted, uneven edge. No bands.
+- [x] D2. The rainforest and its fog: ranks of crowns drawn ridge by ridge, each rank greyer than the one in front, white in the hollows, bare snags against the white in the west. No hard map edge is ever visible.
 - [ ] D3. Eerie details: dark twisted maples hung with moss, an owl, crows, one faint drifting light. Dusk only: pairs of eyes far back, that blink out when looked at for long.
 - [ ] D4. Reflection Lake with its island and a faint mirror of the volcano. The waterfall: white water, a plunge pool, mist at its foot, moving. The footbridge a few paces below.
 - [ ] D5. Parkland: fir clumps, heather, dense flowers in drifts (lupine blue, paintbrush red, white), a few boulders.
 - [ ] D6. The meadow round the Trailhead: the river's bends, the oxbow, fir clumps, room for the elk.
-- [ ] D7. The first granite step: aspens and ponderosa pines, no larches. The burn at its east end, blending into the pines. Fireweed waist to chest high on him, in drifts.
-- [ ] D8. The second step and above: larches in groups, thick low down and sparse on the slab; bare slabs with few cracks; turf with red and gold in the seams.
+- [x] D7. The first granite step: aspens and ponderosa pines, no larches. The burn at its east end, blending into the pines. Fireweed waist to chest high on him, in drifts.
+- [x] D8. The second step and above: larches in groups, thick low down and sparse on the slab; bare slabs with few cracks; turf with red and gold in the seams.
 - [ ] D9. Proficiency Peak's foot: talus and a snow patch.
 - [ ] D10. The dry corner: pines thinning to sage, scabland benches, low yellow hills at the far edge with soft shadow lines and no stripes.
 - [ ] D11. The coast: sea stacks, driftwood, the river's channel across the beach.
-- [ ] D12. Every sign in `spots.signs` re-homed; none in water, on ice, or hidden. List the moves in section 9.
+- [x] D12. Every sign in `spots.signs` re-homed; none in water, on ice, or hidden. List the moves in section 9.
 - [ ] D13. Trail surfaces: dirt to rock to boot track blends as in round 3; footprints after a finished route.
 - [ ] D14. The placement dice: new loops get their own start so later edits do not move earlier things.
 - [ ] D15. Trees switch still hides every tree; Mist and Clouds switches still work.
@@ -371,8 +371,8 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 
 ### E. Animals and timed events on the map
 
-- [ ] E1. Elk herd and marmots moved into the parkland; goats in the Enchantments; sheep on the scabland; bear on some visits; squirrels, jellyfish, butterflies re-placed. Counts as in round 3.
-- [ ] E2. Whale and ferry courses re-fitted to the sea's corner.
+- [x] E1. Elk herd and marmots moved into the parkland; goats in the Enchantments; sheep on the scabland; bear on some visits; squirrels, jellyfish, butterflies re-placed. Counts as in round 3.
+- [x] E2. Whale and ferry courses re-fitted to the sea's corner.
 - [ ] E3. The lenticular cloud: forms over a minute, sits, thins, is gone; a few minutes clear between.
 - [ ] E4. The serac fall: block, puff down a gully, rumble a moment later (`audio.js`), every minute or two, never twice in the same place running.
 - [ ] E5. Rain in the west: a grey curtain drifts in from the sea, wets the forest (darker ground, rings on the lake only if it reaches it), stops at the crest, a short rainbow, gone. Every few minutes.
@@ -566,6 +566,11 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
   - Pieces that stand on the Spires' apron (the wall, the ice, its rims, the moraine, the camp shelf) take their heights from the ground under the apron, not from sea level (`lift` in `relief.js`).
   - Rivers: valleys are cut along bent lines to an even grade first, because without that the rainforest's ridges dammed the meadow and the routed streams crossed it in ruled lines. Some straight reaches remain below the joins.
   - The granite steps were raised (46 and 54, 84, 110) to keep their cliffs on the higher ground. Proficiency Peak is 132 high on a base of 84.
+
+- **Placed by rule (2026-11-15, Opus, `habitat()` in `land.js`).** Every sign, animal, flock, the whale and the ferry's course are found by a rule read from the land (kind of ground, height, distance from a trail, whether the spot can be seen), never by a written position. TJ asked for this. `relief.html?spots=1` marks where each one landed. The rules, in short: About Lake and Yak Shave beside the lake trail near the Trailhead and in open meadow; Stack Trace at the forest's edge, Monorepo deep in it; Scope Creep on the glacier's moraine; Segfault on a steep stretch of the Spires trail; Merge Conflict at the lowest point between Mount Monolith and the Spires (the col); Off By One on the highest foothill round Mount Monolith that is not too high; Rollback on the first granite step; Feature Flag beside a tarn; Hotfix and Postmortem in the burn; Cron Job on the coulee's rim; Tech Debt in the sage; Cache Miss and Latency on the beach. Elk on a roomy flat in the parkland; marmots on rocks in the parkland or on the moraine; goats on the granite (one pair on Proficiency Peak's step, one higher); bighorn on the coulee rim; squirrels in the meadow; the bear at the forest's edge; jellyfish near shore and the whale farther out, both in clear water.
+- The drifting mist of round 3 is off on the new map (`W.mist` is null): the fog is drawn into the land rank by rank, and drifting wisps over it looked doubled. The moving fog bank at sea is off for the same reason; the static fog over the west water stays.
+- The ferry, whale, bighorn and squirrel drawings moved from `terrain.js` to `www/mapfauna.js`.
+- The rainforest fog (D2) is drawn as ranks of conifers along lines across the forest, each rank paler with distance and toward the west, white fog filling the hollow in front of each, snags in the far west. The planted forest thins out where the ranks take over, and its trees keep their own colours.
 
 ## 10. The reference pictures TJ shared, described
 

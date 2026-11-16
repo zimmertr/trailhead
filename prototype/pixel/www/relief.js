@@ -23,5 +23,14 @@ if (q.get('labels')) {
   tag('Trailhead', C.T[0], C.T[1] - 16); tag('Reflection Lake', C.lakes[0][0], C.lakes[0][1], 16); tag('base camp', C.camp[0] - 44, C.camp[1], 4);
   tag('Mount Monolith', L.volc.cu, L.volc.cv, 14); tag('Sideproject Spires', L.spires.cu, L.spires.cv, 14); tag('Proficiency Peak', L.peak.cu, L.peak.cv + 4, 14); tag('Legacy Range', 200, VD - 1, 96); tag('coulee', 1690, 118, 30);
 }
+// spots=1 marks where the rules in land.js put every sign and animal, and where the flocks circle.
+if (q.get('spots')) {
+  ctx.font = '9px monospace'; ctx.textBaseline = 'middle';
+  const S = W.spots, mark = (x, y, t, c) => { ctx.fillStyle = c; ctx.fillRect(x - 2, y - 2, 5, 5); if (t) { const w = ctx.measureText(t).width + 4; ctx.fillStyle = '#1a1424'; ctx.fillRect(x + 4, y - 6, w, 11); ctx.fillStyle = c; ctx.fillText(t, x + 6, y); } };
+  for (const [x, y, k] of S.signs) mark(x, y, k, '#f4d048');
+  for (const k of ['elk', 'goats', 'sheep', 'marmots', 'squirrels', 'jelly']) S[k].forEach(([x, y], n) => mark(x, y, n ? '' : k, '#ff6ad5'));
+  mark(S.bear[0], S.bear[1], 'bear', '#ff6ad5'); mark(S.whale[0], S.whale[1], 'whale', '#7cf'); mark(S.ferry[0][0] + 34, S.ferry[0][1], 'ferry from', '#7cf'); mark(S.ferry[1][0], S.ferry[1][1] - 34, 'ferry to', '#7cf');
+  for (const F of W.flocks) { ctx.strokeStyle = '#fff'; ctx.beginPath(); ctx.ellipse(F.cx, F.cy, F.rx, F.ry, 0, 0, 7); ctx.stroke(); }
+}
 window.__dbg = (x, y) => { const v = L.depth[y * NW + x]; return JSON.stringify([L.MATS[L.mat[y * NW + x]], v, L.hAt(x, v), L.hAt(x + 1, v) - L.hAt(x - 1, v), L.hAt(x, v + 1) - L.hAt(x, v - 1)]); };
 window.__info = { NW, NH, live: L.things.length }; window.__ready = true;
