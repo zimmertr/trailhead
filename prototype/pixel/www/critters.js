@@ -277,7 +277,8 @@ export function makeCritters(W, opts = {}) {
       for (const p of P.pools) { const px = p.x - ox, py = p.y - oy;
         for (let dy = -p.ry; dy <= p.ry; dy++) for (let dx = -p.rx; dx <= p.rx; dx++) { const q = (dx / (p.rx + 0.5)) ** 2 + (dy / (p.ry + 0.5)) ** 2; if (q > 1 || bayerish(dx, dy, p.x) > show) continue; scr.set(px + dx, py + dy, dy === -p.ry ? R.sea[1] : q < 0.4 && ((dx + dy) & 1) ? R.sea[3] : R.sea[2]); }
         if (show < 0.7) continue;
-        if (p.life === 0) { const c = hash(p.x, p.y, 6106) < 0.5 ? R.red[1] : R.pink[0]; scr.set(px, py, c); scr.set(px - 1, py, c); scr.set(px + 1, py, c); scr.set(px, py - 1, c); scr.set(px, py + 1, c); }
+        if (p.life === 3) { for (const [dx, dy] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) scr.set(px - 1 + dx, py + dy, R.red[1]); scr.set(px + 2, py, R.moss[5]); scr.set(px + 2, py - 1, R.moss[4]); scr.set(px + 1, py + 1, R.jay[1]); scr.set(px + 2, py + 1, R.jay[1]); }
+        else if (p.life === 0) { const c = hash(p.x, p.y, 6106) < 0.5 ? R.red[1] : R.pink[0]; scr.set(px, py, c); scr.set(px - 1, py, c); scr.set(px + 1, py, c); scr.set(px, py - 1, c); scr.set(px, py + 1, c); }
         else if (p.life === 1) { scr.set(px, py, R.moss[5]); scr.set(px - 1, py, R.moss[4]); scr.set(px + 1, py, R.moss[4]); }
         else { scr.set(px, py, R.jay[1]); scr.set(px + 1, py, R.jay[1]); scr.set(px, py - 1, R.pink[0]); } }
       // A crab sidles over the sand from pool to pool, stopping now and then.
@@ -338,6 +339,9 @@ export function makeCritters(W, opts = {}) {
       if (csAt(x, y) - 4 > EBB - 8 || (Math.abs(x - s.x) <= s.half + 3 && y <= s.y) || list.some(p => Math.abs(p.x - x) < 7 && Math.abs(p.y - y) < 4)) continue;
       list.push({ x, y, rx: 3 + Math.round(2 * hash(k, n, 6103)), ry: 2, life: list.length % 3 }); }
     return { s, pools: list }; }).filter(P => P.pools.length >= 2);
+  // The pool to find (E7): the biggest of them all, with an ochre star, a green anemone and a purple
+  // urchin in it together; it can be tapped once the water has left it.
+  const FIND = (() => { let best = null; for (const P of pools) for (const p of P.pools) if (!best || p.rx > best.p.rx) best = { P, p }; if (best) best.p.life = 3; return best; })();
 
   // ---- the ferry -----------------------------------------------------------------------------
   // It sails the length of the water outside the sea stacks, is gone past the edge of the map for half
@@ -496,6 +500,7 @@ export function makeCritters(W, opts = {}) {
       scr.put(a.bm, a.x - ox, a.y - oy - (a.hop || 0), a.flip);
     },
     tideAt: t => ebbAt(t) / EBB,
+    findPool: t => FIND && ebbAt(t) - FIND.P.s.cs >= 9 ? FIND.p : null,
     // The water: swells roll in toward the beach, the wash runs up the sand and back, jellyfish pulse.
     ferryHull(t, ox, oy, VW, VH) { return hullAt(t, ox, oy, VW, VH); },
     drawHull,

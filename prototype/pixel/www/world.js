@@ -400,7 +400,7 @@ export function makeWorld(bake) {
   // Since E5h the Trailhead stands low in the meadow, so a wide view sets him just above the timeline bar
   // (about a fifth of the view up from its bottom), which leaves the skyline in frame above the destinations.
   const vista = scr => scr.narrow ? { x: T.x, y: T.y + scr.VH * 0.06 } : { x: T.x, y: T.y - scr.VH / 2 + Math.min(176, scr.VH * 0.24) };
-  let past = 0;
+  let past = 0, nowT = 0;
   const where = (leg, q) => { const P = paths[leg.path], a = P.at(lerp(leg.from, leg.to, q)), s = leg.to < leg.from ? -1 : 1; return { x: a.x, y: a.y, dx: a.dx * s, dy: a.dy * s, P }; };
   const target = (scr, here) => {
     const v = vista(scr), k = smooth(0, 60, Math.hypot(here.x - T.x, here.y - T.y));
@@ -435,6 +435,8 @@ export function makeWorld(bake) {
       const c = kit.pick(wx, wy); if (c) return { label: c.label, x: c.wx - last.ox, y: c.wy - last.oy, act: c.act };
       if (spots.lookout) { const [lx, ly] = spots.lookout; if (Math.abs(wx - lx) < 9 && wy > ly - 30 && wy < ly + 2) return { label: NAMES.lookout, x: lx - last.ox, y: ly - 31 - last.oy }; }
       { const [kx, ky] = spots.kiosk; if (Math.abs(wx - kx) < 14 && wy > ky - 27 && wy < ky + 3) return { label: NAMES.kiosk, x: kx - last.ox, y: ky - 27 - last.oy, act: 'kiosk' }; }
+      // The tide pool to find (E7), only while the low water has left it.
+      { const p = crit.findPool(nowT); if (p && Math.abs(wx - p.x) <= p.rx + 2 && Math.abs(wy - p.y) <= 4) return { label: NAMES.tidepool, x: p.x - last.ox, y: p.y - 6 - last.oy, act: 'pool' }; }
       { const k = destUnder(wx, wy); if (k) return { label: DEST_NAMES[W.DEST[k]], named: true, x: sx, y: sy, act: 'dest:' + W.DEST[k] }; }
       return null;
     },
@@ -447,9 +449,9 @@ export function makeWorld(bake) {
       if (name === 'lens') { lensAhead = mod(-(t + LENS.cycle - 5), LENS.cycle); return true; }
       return ev.trigger(name, t) || crit.trigger(name, t);
     },
-    act(id, env) { if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
+    act(id, env) { if (id === 'pool') { env.found('tidepool'); return false; } if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
     draw(scr, env, leg, q) {
-      const { VW, VH, fb } = scr, { t, tq, dt } = env;
+      const { VW, VH, fb } = scr, { t, tq, dt } = env; nowT = t;
       const here = where(leg, q);
       if (env.moving && Math.abs(here.dx) + Math.abs(here.dy) > 0.01) {
         if (Math.abs(here.dx) > Math.abs(here.dy) * 0.7) { facing = 'side'; flip = here.dx < 0; } else facing = here.dy < 0 ? 'up' : 'down';

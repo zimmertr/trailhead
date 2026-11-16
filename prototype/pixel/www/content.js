@@ -99,6 +99,7 @@ export const FINDS = {
   swim: ['The swim to the island', 'The lake looks inviting'],
   snack: ['A snack break', 'Stand still for a minute by the lake or in the trees'],
   pika: ['The pika', 'In the talus under The Stack'],
+  tidepool: ['The tide pool', 'Wait for low water on the beach'],
   dusk: ['The Dusk sky', 'Look up after the light goes'],
   offroute: ['Off route', 'An address that goes nowhere'],
   'egg:bluebird': ['The weather station', 'On top of Bluebird Forecast'],
@@ -131,7 +132,7 @@ export const SIGNS = {
 };
 // The names of things you can point at inside a scene.
 export const NAMES = {
-  kiosk: 'Trail conditions', kayti: 'Kayti', lookout: 'Observability Lookout',
+  kiosk: 'Trail conditions', kayti: 'Kayti', lookout: 'Observability Lookout', tidepool: 'Tide pool: sea star, anemone, urchin',
   cats: { tortie: 'Doot Doot', nebel: 'Peevers' },
   forest: { sign: 'Legacy Grove', creek: 'Cache Miss Creek' },
   lakeside: { sign: 'Cold Start Cove', marmot: 'Hoary marmot', swim: 'Go for a swim', back: 'Swim back' },
