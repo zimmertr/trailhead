@@ -295,6 +295,37 @@ export function makeCritters(W, opts = {}) {
   // about 100 s, every 160 s, the first 30 s after the page opens.
   const POD = [{ c: 66, lag: 0, bull: true }, { c: 71, lag: 18, bull: false }, { c: 62, lag: 31, bull: false }, { c: 68, lag: 45, bull: false }];
   const ORCA = { slot: 160, first: 30, speed: 6.5 }; let orcaAhead = ahead;
+  // Salmon at Reflection Lake's fall (E9): the one fall on a river that reaches the sea, and low enough to
+  // leap. Every SAL.slot seconds a burst of one or two sockeye (red, green heads) leap from the plunge pool;
+  // most fall back, now and then one clears the lip. An osprey comes by every OSP.slot seconds, circles
+  // over the pool, folds and dives, and flies off with a fish.
+  const SAL = { slot: 20, first: 5, gap: 1.3 }, OSP = { slot: 75, first: 22, len: 17 }; let salAhead = 0, ospAhead = 0;
+  const sockeye = (scr, x, y, up) => { scr.set(x, y, up ? R.moss[3] : R.red[0]); scr.set(x, y + 1, R.red[1]); scr.set(x, y + 2, up ? R.red[0] : R.moss[3]); scr.set(x + (up ? -1 : 1), y + (up ? 2 : 0), R.red[2]); };
+  function salmon(scr, ox, oy, t) {
+    const F = (W.falls || [])[0]; if (!F) return; const x0 = F.x - ox, ya = F.y0 - oy, yb = F.y1 - oy; if (x0 < -40 || x0 > scr.VW + 40 || yb < -40 || ya > scr.VH + 40) return;
+    const s = t + salAhead - SAL.first; if (s < 0) return; const n = Math.floor(s / SAL.slot), u = s - n * SAL.slot, leaps = hash(n, 1, 571) < 0.55 ? 1 : 2;
+    for (let k = 0; k < leaps; k++) { const a = u - k * SAL.gap; if (a < 0 || a > 1.2) continue;
+      const clear = hash(n, k, 572) < 0.3, side = Math.round((hash(n, k, 574) - 0.5) * 5), drop = yb - ya;
+      if (clear) { const p = a / 1.1; if (p > 1) continue; const y = Math.round(yb - (drop + 3) * Math.sin(Math.min(1, p / 0.7) * Math.PI / 2)), x = x0 + side - Math.round(p * 2);
+        if (p < 0.7) sockeye(scr, x, y, true); else if (hash(Math.floor(t * 12), k, 575) < 0.8) { scr.set(x - 1, ya, R.white[1]); scr.set(x + 1, ya, R.white[1]); }
+        if (p < 0.12) { scr.set(x - 1, yb + 1, R.white[1]); scr.set(x + 1, yb + 1, R.white[1]); } continue; }
+      const p = a / 0.9; if (p > 1) { if (a < 1.2) { scr.set(x0 + side - 1, yb + 1, R.white[1]); scr.set(x0 + side + 2, yb + 1, R.white[1]); scr.set(x0 + side, yb, R.white[1]); } continue; }
+      const H = drop * (0.45 + 0.35 * hash(n, k, 573)), y = Math.round(yb - 4 * H * p * (1 - p)), x = x0 + side + Math.round((p - 0.5) * 3);
+      sockeye(scr, x, y, p < 0.5); if (p < 0.12) { scr.set(x - 1, yb + 1, R.white[1]); scr.set(x + 1, yb + 1, R.white[1]); } }
+  }
+  // The osprey, seen from above as the map sees it: long bent brown wings with dark tips, a white head and
+  // breast that show against the forest; gliding, beating, folded for the dive.
+  const OSPREY = { glide: ['kb.........bk', '.bbbb.w.bbbb.', '....bwwwb....', '......b......'], beat: ['......w......', '..kbbbwbbbk..', '.bb..www..bb.', 'k.....b.....k'], fold: ['.w.', 'bwb', 'bwb', 'kbk'] };
+  const bird = (scr, x, y, rows) => rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) if (r[i] !== '.') scr.set(x - (r.length >> 1) + i, y + j, r[i] === 'w' ? R.white[1] : r[i] === 'k' ? R.bark[0] : R.wood[2]); });
+  function osprey(scr, ox, oy, t) {
+    const F = (W.falls || [])[0]; if (!F) return; const o = t + ospAhead - OSP.first; if (o < 0) return; const w = o - Math.floor(o / OSP.slot) * OSP.slot; if (w > OSP.len) return;
+    const px = F.x + 4 - ox, py = F.y1 - oy, cx = px, cy = py - 40, beat = Math.floor(t * 5) % 2 ? OSPREY.beat : OSPREY.glide, A = 9 * 1.3;
+    if (w < 9) { const an = w * 1.3 + 2; bird(scr, Math.round(cx + Math.cos(an) * 34), Math.round(cy + Math.sin(an) * 10), hash(Math.floor(t * 2), 0, 576) < 0.25 ? beat : OSPREY.glide); return; }
+    if (w < 10.2) { const p = ((w - 9) / 1.2) ** 2, sx = cx + Math.cos(A + 2) * 34, sy = cy + Math.sin(A + 2) * 10; bird(scr, Math.round(sx + (px - sx) * p), Math.round(sy + (py - 3 - sy) * p), OSPREY.fold); return; }
+    if (w < 10.9) { for (let k = 0; k < 6; k++) { const an = k / 6 * Math.PI * 2, r = 2 + (w - 10.2) * 6; scr.set(Math.round(px + Math.cos(an) * r), Math.round(py + Math.sin(an) * r * 0.4), R.white[1]); } bird(scr, px, py - 3, OSPREY.fold); return; }
+    const p = (w - 10.9) / (OSP.len - 10.9), x = Math.round(px + p * 150), y = Math.round(py - 4 - p * 110 - 20 * Math.sin(p * Math.PI));
+    bird(scr, x, y, Math.floor(t * 6) % 2 ? OSPREY.beat : OSPREY.glide); sockeye(scr, x, y + 4, false);
+  }
   const isoX = new Map(), isoAt = c => { let a = isoX.get(c); if (a) return a; a = new Int16Array(SEA.h).fill(-1);
     for (let r = 0; r < SEA.h; r++) for (let x = SEA.w - 1; x >= 0; x--) if (SEA.cs[r * SEA.w + x] >= c + 4) { a[r] = x; break; } isoX.set(c, a); return a; };
   function orcas(scr, ox, oy, t) {
@@ -556,6 +587,7 @@ export function makeCritters(W, opts = {}) {
         for (let k = 0; k < 7; k++) { const a = hash(k, Math.floor(t * 6), 462), b = hash(k, Math.floor(t * 6), 463); scr.set(Math.round(x0 + (a - 0.5) * 9), yb + 1 + Math.round((b - 0.5) * 3), R.white[1]); }
         for (let k = 0; k < 6; k++) { const age = frac(t * 0.4 + k / 6), sx = Math.round(x0 + (k - 2.5) * 1.6 + age * 5 * Math.sin(k * 2.1)), sy = Math.round(yb - age * 9); if (hash(k, Math.floor(t * 4), 464) < 1 - age) scr.set(sx, sy, age < 0.4 ? R.white[1] : R.fog[2]); }
       }
+      salmon(scr, ox, oy, t);
     },
     // The mist over the forest and the fog bank off the coast, laid over everything that stands. It parts
     // round him as it does round a sign.
@@ -565,6 +597,8 @@ export function makeCritters(W, opts = {}) {
     trigger(name, t) {
       if (name === 'breach' || name === 'blow') { const n = Math.floor((t + whaleAhead + T0) / SLOT) + (name === 'breach' ? 1 : 0); whaleAhead = n * SLOT + starts(n) + (name === 'blow' ? 16.6 : 0) - t - T0; return true; }
       if (name === 'heron') { if (!herItem || herItem.st !== 'stand') return false; takeOff(herItem, t, null); return true; }
+      if (name === 'salmon') { salAhead = (((SAL.first - t) % SAL.slot) + SAL.slot) % SAL.slot; return true; }
+      if (name === 'osprey') { ospAhead = (((OSP.first - t) % OSP.slot) + OSP.slot) % OSP.slot; return true; }
       if (name === 'orcas') { orcaAhead = (((ORCA.first - t) % ORCA.slot) + ORCA.slot) % ORCA.slot; return true; }
       if (name === 'tide') { tideAhead = (((8 - t) % TIDE) + TIDE) % TIDE; return true; }
       if (name === 'ferry') { ferryAhead = (((-(t + 0.12 * CROSS)) % ROUND) + ROUND) % ROUND; return true; }
@@ -634,6 +668,7 @@ export function makeCritters(W, opts = {}) {
     // What flies over everything else.
     over(scr, ox, oy, t, env = {}) {
       const { VW, VH, fb } = scr;
+      osprey(scr, ox, oy, t);
       for (const F of FLOCKS) for (let k = 0; k < F.n; k++) {
         const an = t * F.w + k * TAU / F.n + 0.5 * Math.sin(t * 0.3 + k * 2), wob = 1 + 0.14 * Math.sin(t * 0.21 + k * 3);
         const x = Math.round(F.cx + Math.cos(an) * F.rx * wob - ox), y = Math.round(F.cy + Math.sin(an) * F.ry * wob - oy);
