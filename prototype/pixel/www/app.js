@@ -3,7 +3,7 @@
 import { mount } from './pixel.js';
 import { makeAudio } from './audio.js';
 import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, UI, NAMES, DEST_NAMES, ago } from './content.js';
-import { OX, OY } from './terrain.js';
+import { OX, OY } from './land.js';
 import { DEBUG } from './core.js';
 import { TRICKS } from './cats.js';
 
@@ -152,7 +152,7 @@ function openDebug(on) {
 }
 
 // Where each milestone sits on the brochure map, in world pixels.
-const MAP = { x: 236, y: 204, w: 600, h: 372 };
+const MAP = { x: 440, y: 300, w: 1260, h: 781 };
 const DOTS = [
   ['', 560, 470, true], ['who', 352, 526], ['mountains', 384, 396], ['note', 446, 374],
   ['platform-engineering', 545, 366], ['site-reliability-engineering', 545, 338], ['software-engineering', 545, 308], ['summit', 545, 272],

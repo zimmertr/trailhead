@@ -3,7 +3,7 @@
 // (u, SY - v - height), nearest first, so ground and mountains are one surface and near slopes hide
 // far ones.
 import { R, INK, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
-import { makeMaple, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeSignpost, makeKiosk, makeTent } from './sprites.js';
+import { makeMaple, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag } from './sprites.js';
 
 const NW = 1920, SH = 1080, VD = 740, SY = SH + 52;
 const rdg = n => 1 - Math.abs(2 * n - 1);
@@ -62,7 +62,7 @@ let SP = null;
 const GULLY = [[-80, 0.46, 1], [-40, 0.7, 0], [-9, 0.6, 2], [60, 0.56, 1]];
 const SUMMITS = [[-94, 0.66, 26, 30, 8], [-60, 0.84, 24, 20, 5], [-24, 1, 26, 22, 9], [10, 0.86, 18, 20, 5], [42, 0.95, 22, 26, 8], [82, 0.7, 24, 34, 10]];
 function spires(cu, cv, base, H, thin = 1, wide = 1) {
-  SP = { cu, cv, base, H, wide };
+  SP = { cu, cv, base, H, wide, top: cu + SUMMITS[2][0] * wide };
   const high = dx => {
     let best = H * (0.28 + 0.2 * smooth(160, 90, Math.abs(dx)));
     SUMMITS.forEach(([o, hh, wl, wr, cap], k) => { const u = Math.max(0, Math.abs(dx - o) - cap / 2) / (dx < o ? wl : wr), v = H * hh * (1 - 0.3 * Math.pow(u, 1.05)) - (dx - o) * (k & 1 ? 0.12 : -0.1) * (u === 0 ? 1 : 0); if (u < 2 && v > best) best = v; });
@@ -266,6 +266,8 @@ function colour(u, v, hh, x, y) {
   if (cs > -15 - 6 * vnoise(u / 20, v / 20, 87)) return water[i] ? R.water[3] : R.sand[cs > -4 ? 0 : hash(u, v, 88) < 0.25 ? 1 : 2];
   const lk = lakeAt(u, v);
   if (lk) return lk === 'tarn' ? pick('tarn', 0.3 + 0.4 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
+  // Where a trail crosses water there is a footbridge: a deck of planks with a dark edge.
+  if (water[i] && trail[i] && mat !== 'ice') return trail[i] === 2 ? ((u + 2 * v) % 3 === 0 ? R.dirt[1] : R.dirt[2]) : R.dirt[0];
   if (water[i]) return steep > 0.55 ? (hash(x, y >> 1, 5) < 0.72 ? R.white[1] : R.water[4]) : water[i] === 2 ? R.water[y & 1 ? 3 : 4] : R.water[1];
   if (trail[i] === 2) return mat === 'ice' ? R.glac[1] : mat !== 'land' || steep > 0.8 ? R.rock[hash(u, v, 6) < 0.3 ? 4 : 3] : hash(u, v, 5) < 0.1 ? R.dirt[2] : R.dirt[3];
   if (trail[i] === 1) return mat === 'ice' ? R.glac[3] : mat !== 'land' || steep > 0.8 ? R.rock[1] : R.dirt[1];
@@ -411,7 +413,6 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   }
   for (let n = 0; n < 520; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) put(any(snags), u, v); }
 }
-put(makeSignpost(), TU - 4, TV + 8); put(makeKiosk(), TU + 28, TV + 20); put(makeTent('tent'), C.camp[0], C.camp[1]); put(makeTent('red'), C.camp[0] + 20, C.camp[1] - 7);
 // Far first. A thing the fog touches, or that nearer ground partly hides, is painted into the ground
 // picture for good: clipped where it is hidden, its foot lost in the fog and the rest of it paled, the
 // more so the deeper into the fog it stands. Every other thing is handed to the scene whole, to be
@@ -430,4 +431,45 @@ for (const th of things) {
 
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
 return { g, depth: zb, mat: mb, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, lakeAt };
+}
+
+// ---- for the scene --------------------------------------------------------------------------------
+// The scene works in positions on the map picture: x across, y down. Below is the land in those terms,
+// under the names the scene took from round 3's terrain.js. Every position is worked out from the
+// layout above, so moving a place there moves everything that belongs to it.
+export const LAND = buildLand();
+const C = LAND.C, sxy = (u, v) => [Math.round(u), LAND.toY(u, v)];
+// How far from the camera the ground drawn at a spot of the picture is. Sky is past everything.
+const vAt = (x, y) => { x = Math.round(x); y = Math.round(y); return x < 0 || y < 0 || x >= NW || y >= SH ? 1e9 : LAND.depth[y * NW + x]; };
+// The highest row of the picture where a column shows one kind of ground: a summit's top.
+const topOf = (x, kind) => { const k = LAND.MATS.indexOf(kind); x = Math.round(x); for (let y = 0; y < SH; y++) if (LAND.mat[y * NW + x] === k) return y; return 0; };
+export const OX = 0, OY = 0;
+export const T = { x: C.T[0], y: LAND.toY(C.T[0], C.T[1]) };
+// The trail conditions board stands just north-east of the junction. The cats keep to it (cats.js).
+export const KIOSK = { x: C.T[0] + 28, y: LAND.toY(C.T[0] + 28, C.T[1] + 22) };
+export async function loadBake() { return null; }
+export function buildTerrain() {
+  // Each trail as points on the picture, close together, each with its depth.
+  const line = pts => catmull(pts).filter((_, n, a) => n % 6 === 0 || n === a.length - 1).map(([u, v]) => [u, LAND.toY(u, v), v]);
+  // The lake loop ends where it began: back along its first stretch to the junction. The Spires trail
+  // ends at base camp; what lies beyond is the boot track on the ice.
+  const home = C.trails[0].slice(0, 6).reverse().slice(1), camp = C.trails[1].findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]) + 1;
+  const lines = { lake: line([...C.trails[0], ...home]), stack: line(C.trails[2]), spires: line(C.trails[1].slice(0, camp)) };
+  const lake = C.lakes[0], peak = LAND.peak, sp = LAND.spires, shore = sxy(lake[0] + lake[2] + 8, lake[1] + 2);
+  const flagOn = (x, v, kind) => { const y = LAND.toY(x, v); return { x: Math.round(x), y, lift: y - topOf(x, kind) }; };
+  const spots = {
+    signpost: sxy(C.T[0] - 4, C.T[1] + 8), kiosk: [KIOSK.x, KIOSK.y],
+    tents: [[...sxy(C.camp[0], C.camp[1]), 'tent'], [...sxy(C.camp[0] + 18, C.camp[1] - 6), 'red']],
+    journal: sxy(lake[0] + lake[2] + 16, lake[1] - 6), lakeShore: shore,
+    // Where each destination's name is pinned: on the lake, on Proficiency Peak's wall, on the ice under the Spires.
+    places: { lake: [lake[0], LAND.toY(lake[0], lake[1]) - 8], stack: [peak.cu, topOf(peak.cu, 'fin') + 44], spires: [sp.cu + 10, LAND.toY(sp.cu, 598)] },
+    // A flag for each finished destination: at the lake shore, on Proficiency Peak, on the Spires' highest summit.
+    flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
+    // Signs and animals are re-homed in checklist sections D and E.
+    signs: [], elk: [], goats: [], sheep: [], marmots: [], squirrels: [], jelly: [], birds: []
+  };
+  const forestAmt = (x, y) => { const v = vAt(x, y); return v > VD ? 0 : LAND.forestAmt(x, v); };
+  const coast = (x, y) => { const v = vAt(x, y); return v > VD ? -999 : LAND.coast(x, v); };
+  const flat = l => l.map(p => [p[0], p[1]]);
+  return { g: LAND.g, vAt, things: LAND.things, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast };
 }

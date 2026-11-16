@@ -3,7 +3,7 @@
 // again, so no two visits look the same. Clicking a cat gets an answer that depends on the cat
 // and on what she was doing.
 import { clamp, lerp, rng, hash, vnoise, R, INK, BM, outline, thick } from './core.js';
-import { OX, OY, KIOSK } from './terrain.js';
+import { T, KIOSK } from './land.js';
 import { NAMES } from './content.js';
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
@@ -85,8 +85,8 @@ const DO = {
 };
 // Where they roam: mostly the meadow below the junction, and now and then further off, up to the
 // trails and round the kiosk, which stands across the Spires trail from that meadow.
-const JX = 560 + OX, JY = 470 + OY;   // the junction, where he stands at the Trailhead
-const HOME = { x0: 508 + OX, x1: 642 + OX, y0: 440 + OY, y1: 528 + OY }, LEFT = { x0: 512 + OX, x1: 598 + OX, y0: 482 + OY, y1: 526 + OY }, ROOF = { x: KIOSK.x, y: KIOSK.y + 1, h: 25 };
+const JX = T.x, JY = T.y;   // the junction, where he stands at the Trailhead
+const HOME = { x0: T.x - 52, x1: T.x + 82, y0: T.y - 30, y1: T.y + 58 }, LEFT = { x0: T.x - 48, x1: T.x + 38, y0: T.y + 12, y1: T.y + 56 }, ROOF = { x: KIOSK.x, y: KIOSK.y + 1, h: 25 };
 
 export const TRICKS = ['sit', 'groom', 'roll', 'bat', 'loaf', 'stretch', 'sleep'];
 
@@ -94,8 +94,8 @@ export function makeCats() {
   const S = {}; for (const n of ['tortie', 'nebel']) { S[n] = {}; for (const p in POSES) S[n][p] = build(n, POSES[p]); }
   const rand = rng((Date.now() >>> 0) % 100000 + 7);
   const cats = [
-    { id: 'tortie', x: 546 + OX, y: 488 + OY, flip: false, st: 'sit', t0: 0, dur: 3, k: 0 },
-    { id: 'nebel', x: 582 + OX, y: 486 + OY, flip: true, st: 'loaf', t0: 0, dur: 5, k: 1 }
+    { id: 'tortie', x: T.x - 14, y: T.y + 18, flip: false, st: 'sit', t0: 0, dur: 3, k: 0 },
+    { id: 'nebel', x: T.x + 22, y: T.y + 16, flip: true, st: 'loaf', t0: 0, dur: 5, k: 1 }
   ];
   const fx = [];   // hearts, notes and Zs that float up from a cat
   let fly = null, wasHome = true, greeted = -99, lastT = 0, narrow = false, floor = HOME.y1;

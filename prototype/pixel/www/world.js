@@ -2,18 +2,17 @@
 import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
 import { breeze } from './core.js';
 import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
-import { makeCritters } from './critters.js';
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
 import { makeCats } from './cats.js';
 import { makeRunner } from './tj.js';
-import { buildTerrain, loadBake, NW as WW, NH as WH, T, PEAK as PEAK_AT, STACK as STACK_AT, SPIRES as SPIRES_AT } from './terrain.js';
+import { buildTerrain, loadBake, NW as WW, NH as WH, T } from './land.js';
 // ---------------------------------------------------------------------------------------------
 // The world. Pixel coordinates, x east, y south. North is up the screen, so the three
 // destinations stand along the top of the meadow: the forest and About Lake on the left,
 // The Stack in the middle, Sideproject Spires on the right. The ground itself, every biome and
-// everything rooted in it, comes from terrain.js; this file adds what moves and what is clicked.
+// everything rooted in it, comes from land.js; this file adds what moves and what is clicked.
 
-const STACK = { ...STACK_AT, w: 160, h: 120 }, SPIRES = { ...SPIRES_AT, w: 184, h: 140 }, PEAK = { ...PEAK_AT, w: 150, h: 112 };
+const STACK = { x: 0, y: 0, w: 160, h: 120 }, SPIRES = { x: 0, y: 0, w: 184, h: 140 }, PEAK = { x: 0, y: 0, w: 150, h: 112 };
 const KM = 0.008; // kilometres per pixel along a trail, for the sign's distances
 const RUN = 78; // pixels a second
 
@@ -151,11 +150,11 @@ function makePeak() {
 // The scene. Built once; drawn for whichever stretch of trail (a leg) he is on.
 
 export function makeWorld(bake) {
-  const peakBM = makePeak(), W = buildTerrain(peakBM, { bake }), { g: ground, spots, mist, forestAmt } = W;
+  const W = buildTerrain(), { g: ground, spots, forestAmt } = W;
   const paths = {}; for (const k of ['lake', 'stack', 'spires']) paths[k] = makePath({ pts: W.trails[k], stops: [] });
   // Shafts of light slant through the forest, and give out where the mist takes over in the west.
   const shaftMask = new Uint8Array(WW * WH);
-  for (let y = 462; y < WH; y++) for (let x = 180; x < 800; x++) {
+  for (let y = 300; y < WH; y++) for (let x = 0; x < 760; x++) {
     if (forestAmt(x, y) < 0.7) continue;
     const band = frac((x * 0.55 + y) / 64);
     if (band < 0.15 && vnoise((x * 0.55 + y) / 64, (y - x * 0.4) / 40, 77) > 0.42 + smooth(430, 200, x) * 0.4) shaftMask[y * WW + x] = band < 0.05 || band > 0.1 ? 1 : 2;
@@ -165,23 +164,20 @@ export function makeWorld(bake) {
   const things = [];
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
   const put = (bm, x, y, extra = {}) => things.push({ bm, x: Math.round(x), y: Math.round(y), ...extra });
-  put(peakBM, PEAK.x, PEAK.y); put(makeStack(), STACK.x, STACK.y); put(makeMassif(), SPIRES.x, SPIRES.y);
   put(makeSignpost(), spots.signpost[0], spots.signpost[1]);
   for (const s of spots.signs) put(makeSmallSign(), s[0], s[1]);
-  put(makeJournal(), 712, 526); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
-  // Two climbers high on the wall, on a rope; they sort in front of it by standing on its foot line.
-  things.push({ bm: makeClimber('red'), x: STACK.x + 21, y: STACK.y + 1, lift: 70, rope: true }, { bm: makeClimber('teal'), x: STACK.x + 24, y: STACK.y + 1, lift: 58 });
+  put(makeJournal(), spots.journal[0], spots.journal[1]); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
   for (const [x, y, c] of spots.tents) put(makeTent(c), x, y);
-  // The animals look after themselves: see critters.js.
-  const crit = makeCritters(W);
+  // The animals, the sea's swells and the drifting mist are being re-homed on the new land (ROUND4.md,
+  // checklist section E). Until then nothing moves out there.
+  const crit = { items: [], sea() {}, update() {}, draw() {}, mist() {}, over() {}, areas: () => [] };
   for (const it of crit.items) things.push(it);
   const birds = [makeBird(0), makeBird(1)];
-  const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 270 + 40, y: 120 + (i & 1) * 80 + i * 24, v: 3 + (i % 4) }));
+  const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 330 + 40, y: 50 + (i & 1) * 70 + i * 18, v: 3 + (i % 4) }));
   const runner = makeRunner('trail');
   const kit = makeCats(); window.__cats = kit;
   const flags = [makeFlag(0), makeFlag(1)];
-  // A flag for each finished destination: at the lake shore, on the wall's rim, on the highest summit.
-  const FLAGS = { lake: { x: 698, y: 546, lift: 0 }, stack: { x: STACK.x - 14, y: STACK.y + 1, lift: STACK.h - 9 }, spires: { x: SPIRES.x - (SPIRES.w >> 1) + SUMMITS[2].cx, y: SPIRES.y + 1, lift: SPIRES.h - SUMMITS[2].top - 2 } };
+  const FLAGS = spots.flags;
   for (const k in FLAGS) things.push({ flag: k, bm: flags[0], x: FLAGS[k].x, y: FLAGS[k].y, lift: FLAGS[k].lift });
   // The top of the boot track lies behind the Spires on the map, so it is drawn again over them.
   const trackPix = W.trackPix;
@@ -195,10 +191,13 @@ export function makeWorld(bake) {
 
   // Where the lake loop goes into the trees and where it comes back out by the lake.
   const lakeIn = (() => { const P = paths.lake; for (let q = 0; q < 1; q += 0.002) { const a = P.at(q); if (forestAmt(a.x, a.y) > 0.75) return q; } return 0.2; })();
-  const lakeOut = (() => { const P = paths.lake; let best = 0, bd = 1e9; for (let q = 0.5; q < 1; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - 716, a.y - 541); if (d < bd) { bd = d; best = q; } } return best; })();
+  const lakeOut = (() => { const P = paths.lake; let best = 0, bd = 1e9; for (let q = 0.5; q < 1; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - spots.lakeShore[0], a.y - spots.lakeShore[1]); if (d < bd) { bd = d; best = q; } } return best; })();
 
   // Where each place's name is pinned: over the signpost, on the lake's near shore, on the wall's rim, on the ice under the summits.
-  const PLACES = [{ id: 'trailhead', x: T.x - 4, y: T.y - 31 }, { id: 'lake', x: 648, y: 525 }, { id: 'stack', x: STACK.x, y: STACK.y - STACK.h + 4 }, { id: 'spires', x: SPIRES.x + 10, y: SPIRES.y - 78 }];
+  const PLACES = [{ id: 'trailhead', x: T.x - 4, y: T.y - 31 }, ...['lake', 'stack', 'spires'].map(id => ({ id, x: spots.places[id][0], y: spots.places[id][1] }))];
+  // How far from the camera he is on a trail, from the trail's own points.
+  const vOn = (path, x, y) => { let best = 0, bd = 1e9; for (const p of W.lines[path]) { const d = Math.abs(p[0] - x) + Math.abs(p[1] - y); if (d < bd) { bd = d; best = p[2]; } } return best; };
+  const saved = new Uint8Array(25 * 34);
   const cam = { x: T.x, y: 0 };
   let facing = 'down', flip = false, last = { ox: 0, oy: 0, VW: 1, VH: 1 }, focus = { x: 0, y: 0 };
   const list = [];
@@ -266,7 +265,7 @@ export function makeWorld(bake) {
       const ox = env.fixed ? env.fixed.x : Math.round(cx - VW / 2), oy = env.fixed ? env.fixed.y : Math.round(cy - VH / 2);
       last = { ox, oy, VW, VH };
       // The night sky is pinned to the world's own sky, laid out over a height that keeps the aurora in its dark upper part.
-      scr.sky = { ox, oy, w: WW, h: 440, moon: [930, 70] };
+      scr.sky = { ox, oy, w: WW, h: 330, moon: [1180, 60] };
 
       // Ground.
       for (let y = 0; y < VH; y++) {
@@ -274,8 +273,8 @@ export function makeWorld(bake) {
         if (wy < 0) { fb.fill(R.skyband[0], row, row + VW); continue; }
         if (wy >= WH) { const my = 2 * WH - 1 - wy, a = Math.max(0, ox), b = Math.min(WW, ox + VW); fb.fill(R.grass[2], row, row + VW); if (my >= 470 && b > a) fb.set(ground.subarray(my * WW + a, my * WW + b), row + (a - ox)); continue; }
         const a = Math.max(0, ox), b = Math.min(WW, ox + VW);
-        if (a > ox) fb.fill(wy < 462 ? R.sky[2] : R.grass[2], row, row + (a - ox));
-        if (b < ox + VW) fb.fill(wy < 462 ? R.sky[2] : R.grass[2], row + (b - ox), row + VW);
+        if (a > ox) fb.fill(wy < 330 ? R.sky[2] : R.grass[2], row, row + (a - ox));
+        if (b < ox + VW) fb.fill(wy < 330 ? R.sky[2] : R.grass[2], row + (b - ox), row + VW);
         if (b > a) fb.set(ground.subarray(wy * WW + a, wy * WW + b), row + (a - ox));
       }
       crit.sea(scr, ox, oy, t);
@@ -300,8 +299,12 @@ export function makeWorld(bake) {
         if (th.me) {
           const set = env.moving ? (facing === 'side' ? runner.side : facing === 'up' ? runner.up : runner.down) : (facing === 'side' ? runner.sideIdle : facing === 'up' ? runner.upIdle : runner.downIdle);
           const bm = set[Math.floor(Math.abs(leg.to - leg.from) * q * here.P.len / (facing === 'side' ? 4.2 : 5)) % set.length];
-          scr.shadow(Math.round(th.x - ox), Math.round(th.y - oy), 5, 2);
+          // Ground nearer the camera than he is stands in front of him: what was there is put back over him.
+          const X = Math.round(th.x - ox), Y = Math.round(th.y - oy), vMe = vOn(leg.path, th.x, th.y), x0 = Math.max(0, X - 12), x1 = Math.min(VW - 1, X + 12), y0 = Math.max(0, Y - 30), y1 = Math.min(VH - 1, Y + 3);
+          { let n = 0; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) saved[n++] = fb[y * VW + x]; }
+          scr.shadow(X, Y, 5, 2);
           scr.put(bm, th.x - ox, th.y - oy, flip && facing === 'side');
+          { let n = 0; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++, n++) if (W.vAt(x + ox, y + oy) < vMe - 3) fb[y * VW + x] = saved[n]; }
           focus = { x: Math.round(th.x - ox), y: Math.round(th.y - oy) - 14 };
         } else if (th.cat) {
           kit.drawOne(scr, th.cat, ox, oy, t);
@@ -326,9 +329,9 @@ export function makeWorld(bake) {
 
       // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge.
       for (let k = 0; DEBUG.clouds && k < 4; k++) {
-        const cw = 78 + 30 * hash(k, 1, 91), chh = 24 + 10 * hash(k, 2, 91), cxw = ((k * 310 + t * (5 + k * 1.3)) % (WW + 300)) - 150, cyw = 392 + hash(k, 3, 91) * 250;
+        const cw = 78 + 30 * hash(k, 1, 91), chh = 24 + 10 * hash(k, 2, 91), cxw = ((k * 310 + t * (5 + k * 1.3)) % (WW + 300)) - 150, cyw = 620 + hash(k, 3, 91) * 380;
         const y0 = Math.max(0, Math.round(cyw - chh - oy)), y1 = Math.min(VH - 1, Math.round(cyw + chh - oy)), x0 = Math.max(0, Math.round(cxw - cw - ox)), x1 = Math.min(VW - 1, Math.round(cxw + cw - ox));
-        for (let y = y0; y <= y1; y++) { const wy = y + oy; if (wy < 470) continue; for (let x = x0; x <= x1; x++) {
+        for (let y = y0; y <= y1; y++) { const wy = y + oy; if (wy < 560) continue; for (let x = x0; x <= x1; x++) {
           const nx = (x + ox - cxw) / cw, ny = (wy - cyw) / chh, d = nx * nx + ny * ny + 0.22 * Math.sin(nx * 7 + k) * Math.sin(ny * 5 + k * 2);
           if (d < 0.82 || (d < 1 && ((x + ox + wy) & 1))) { const i = y * VW + x; fb[i] = SHADE[fb[i]]; }
         } }
@@ -339,7 +342,7 @@ export function makeWorld(bake) {
       kit.drawOver(scr, ox, oy, t);
       // Smoke from the stove at base camp, drifting off with the wind.
       for (let k = 0; k < 6; k++) {
-        const age = frac(t * 0.35 + k / 6), x = Math.round(933 + age * 10 + Math.sin(age * 6 + k) * 1.5) - ox, y = Math.round(564 - age * 26) - oy;
+        const age = frac(t * 0.35 + k / 6), x = Math.round(spots.tents[0][0] + 9 + age * 10 + Math.sin(age * 6 + k) * 1.5) - ox, y = Math.round(spots.tents[0][1] - age * 26) - oy;
         if (x < 1 || y < 1 || x >= VW - 1 || y >= VH - 1) continue;
         const c = age < 0.5 ? R.white[1] : R.white[0];
         fb[y * VW + x] = c; if (age > 0.3) fb[y * VW + x + 1] = c;
@@ -347,7 +350,7 @@ export function makeWorld(bake) {
       if (DEBUG.animals) crit.over(scr, ox, oy, t);
       // Birds cross the sky in a loose V, flapping a few times a second.
       for (let k = 0; DEBUG.animals && k < 4; k++) {
-        const bx = ((t * 22 + k * 11) % (WW + 200)) - 100, by = 318 + 8 * Math.sin(t * 0.7) + [0, 5, 9, 4][k];
+        const bx = ((t * 22 + k * 11) % (WW + 200)) - 100, by = 250 + 8 * Math.sin(t * 0.7) + [0, 5, 9, 4][k];
         scr.blit(birds[(Math.floor(t * 3) + k) & 1], bx - [0, -9, 9, -17][k] - 3 - ox, by - 2 - oy);
       }
       // Butterflies over the flowers by the Trailhead.
@@ -361,13 +364,13 @@ export function makeWorld(bake) {
       }
       // Fireflies blink in the forest once the light goes.
       if (env.mix > 0.4) for (let k = 0; k < 110; k++) {
-        const fx = Math.round(20 + hash(k, 1, 90) * 760 + 6 * Math.sin(t * 0.6 + k)), fy = Math.round(480 + hash(k, 2, 90) * 560 + 4 * Math.sin(t * 0.8 + k * 1.7));
+        const fx = Math.round(20 + hash(k, 1, 90) * 640 + 6 * Math.sin(t * 0.6 + k)), fy = Math.round(420 + hash(k, 2, 90) * 640 + 4 * Math.sin(t * 0.8 + k * 1.7));
         if (forestAmt(fx, fy) < 0.5 || frac(t * 0.4 + hash(k, 3, 90)) > 0.55) continue;
         scr.set(fx - ox, fy - oy, R.yellow[1]);
       }
       // Shafts of light slant down through the forest canopy: every other pixel one step lighter.
       for (let y = 0; y < VH; y++) {
-        const wy = oy + y; if (wy < 462 || wy >= WH) continue;
+        const wy = oy + y; if (wy < 300 || wy >= WH) continue;
         for (let x = (y + oy + ox) & 1; x < VW; x += 2) {
           const wx = ox + x; if (wx < 0 || wx >= WW || !shaftMask[wy * WW + wx]) continue;
           const i = y * VW + x; fb[i] = shaftMask[wy * WW + wx] === 2 ? LIGHT[LIGHT[fb[i]]] : LIGHT[fb[i]];

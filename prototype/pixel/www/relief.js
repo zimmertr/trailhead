@@ -1,10 +1,12 @@
 // Shows the round 4 map whole: relief.html?labels=1&crop=x,y&scale=k&trees=0
 import { DAY } from './core.js';
-import { buildLand, NW, NH, VD, SY } from './land.js';
+import { LAND, buildTerrain, NW, NH, VD } from './land.js';
+import { makeSignpost, makeKiosk, makeTent } from './sprites.js';
 
-const q = new URLSearchParams(location.search), t0 = performance.now(), L = buildLand(), g = L.g.slice();
+const q = new URLSearchParams(location.search), L = LAND, W = buildTerrain(), g = L.g.slice();
 // The scene draws these each frame; here they are stamped on once, far to near.
-if (q.get('trees') !== '0') for (const th of L.things) {
+const S = W.spots, extra = [{ bm: makeSignpost(), x: S.signpost[0], y: S.signpost[1] }, { bm: makeKiosk(), x: S.kiosk[0], y: S.kiosk[1] }, ...S.tents.map(([x, y, c]) => ({ bm: makeTent(c), x, y }))];
+if (q.get('trees') !== '0') for (const th of [...L.things, ...extra].sort((a, b) => a.y - b.y)) {
   const stamp = (bm, sx, sy) => { for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i], x = sx + i, y = sy + j; if (c && x >= 0 && y >= 0 && x < NW && y < NH) g[y * NW + x] = c; } };
   if (th.tree) for (const p of th.tree.parts) stamp(p.bm, th.x + p.x, th.y + p.y); else stamp(th.bm, th.x - (th.bm.ox || 0), th.y - (th.bm.oy || 0));
 }
@@ -22,4 +24,4 @@ if (q.get('labels')) {
   tag('Mount Monolith', L.volc.cu, L.volc.cv, 14); tag('Sideproject Spires', L.spires.cu, L.spires.cv, 14); tag('Proficiency Peak', L.peak.cu, L.peak.cv + 4, 14); tag('Legacy Range', 200, VD - 1, 96); tag('coulee', 1690, 118, 30);
 }
 window.__dbg = (x, y) => { const v = L.depth[y * NW + x]; return JSON.stringify([L.MATS[L.mat[y * NW + x]], v, L.hAt(x, v), L.hAt(x + 1, v) - L.hAt(x - 1, v), L.hAt(x, v + 1) - L.hAt(x, v - 1)]); };
-window.__info = { NW, NH, ms: Math.round(performance.now() - t0), live: L.things.length }; window.__ready = true;
+window.__info = { NW, NH, live: L.things.length }; window.__ready = true;

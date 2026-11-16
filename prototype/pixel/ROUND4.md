@@ -315,12 +315,12 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 
 Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so the old game keeps running beside the new map.
 
-- [ ] C1. `www/land.js`, made from layout 1 of `relief.js`. It returns what `buildTerrain` in `terrain.js` returns (the ground picture, things, spots, trails, mist mask and the helpers the other modules call), plus the depth of every screen pixel and `hAt(u, v)`.
+- [x] C1. `www/land.js`, made from layout 1 of `relief.js`. It returns what `buildTerrain` in `terrain.js` returns (the ground picture, things, spots, trails, mist mask and the helpers the other modules call), plus the depth of every screen pixel and `hAt(u, v)`.
 - [x] C2. The Trailhead's rise and a shallow valley on each side of it. Check with trees off.
 - [x] C3. The connected crest: the two arms, the bowl between them, the saddle to Mount Monolith, the join to the granite rim. Check with trees off: no free-standing cone, no meadow at the foot of the wall.
 - [x] C4. The glacier: gullies to the notches, the gap at the rock, the icefall over its rock step, the crevassed tongue, a moraine each side, the milky tarn, camp on the moraine shelf.
 - [x] C5. The Spires: six summits at the heights in section 9, not daggers. The ground of each of the six climbs is placed and can be pointed to (4a, point 6). List the six places in section 9.
-- [ ] C6. The flower slope of the traverse and the moraine crest of the walk, with the trail drawn on them.
+- [x] C6. The flower slope of the traverse and the moraine crest of the walk, with the trail drawn on them.
 - [ ] C7. Mount Monolith: lopsided dome, three bumps on a nearly flat top, a shoulder on the left, a dark tooth on the right, cleavers between glaciers, at least two icefalls. Its rock foot runs into forested foothills, not a cliff on a lawn.
 - [ ] C8. The Legacy Range: a several-summit massif with glaciers, smaller peaks round it, ranks of forested foothills in front, the rainforest's valley leading to it.
 - [ ] C9. The back row of the crest, each peak different. Rock nearly one colour from west to east, the snow thinning eastward with no seam.
@@ -328,15 +328,15 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 - [x] C11. The dry corner and the coulee: basalt walls in steps, the creek in its floor, the way out of the map.
 - [x] C12. Water routed over the heights: both river systems, wider below each joining, wandering on the flats, one oxbow in the meadow, falls where a stream leaves a step. No smooth arcs.
 - [x] C13. Six to eight tarns on the granite steps, coloured by height.
-- [ ] C14. The coast: bluffs, the river's notch, beach, sea, fog over the water at the west edge.
-- [ ] C15. `world.js` runs on it. Things and the runner are drawn in order of depth and are hidden where nearer ground stands in front. The helpers other modules call with screen positions (`coast`, `lakeD`, `forestAmt`, `open`, `nearTrail`) answer through the depth picture.
-- [ ] C16. The mountain sprites in `world.js` (`makeStack`, `makeMassif`, `makePeak`) are retired: the mountains are in the ground picture. Summit flags and name tags take their places from `land.js` (`done=spires` puts the flag on the right summit).
-- [ ] C17. Three trails from the new Trailhead, laid on the land: a footbridge wherever a trail crosses water, switchbacks up each step, and the points where each side-on scene takes over and hands back.
-- [ ] C18. `T`, `KIOSK`, the cats' boxes, the board and the register box at the new Trailhead.
+- [x] C14. The coast: bluffs, the river's notch, beach, sea, fog over the water at the west edge.
+- [x] C15. `world.js` runs on it. Things and the runner are drawn in order of depth and are hidden where nearer ground stands in front. The helpers other modules call with screen positions (`coast`, `lakeD`, `forestAmt`, `open`, `nearTrail`) answer through the depth picture.
+- [x] C16. The mountain sprites in `world.js` (`makeStack`, `makeMassif`, `makePeak`) are retired: the mountains are in the ground picture. Summit flags and name tags take their places from `land.js` (`done=spires` puts the flag on the right summit).
+- [x] C17. Three trails from the new Trailhead, laid on the land: a footbridge wherever a trail crosses water, switchbacks up each step, and the points where each side-on scene takes over and hands back.
+- [x] C18. `T`, `KIOSK`, the cats' boxes, the board and the register box at the new Trailhead.
 - [ ] C19. Delete what is gone: `terrain.js`, the first block-in (`plan4.js`, `layout4.js`, `plan4.html`), layouts 2 and 3, The Stack's sprite and talus.
 - [ ] C20. `./bake.sh` bakes the ground and the depth. No stale warning. Ready time written in section 9 (round 3: about 0.8 s).
 - [ ] C21. Pictures: the whole map Day and Dusk, trees off, each destination close, three candidate opening views on a 1440 by 900 screen and the phone's slice. Compare with `out/r4/w1.png` and list the weak points honestly.
-- [ ] **STOP 2a.** Tag `pixel-r4-land`, publish the game (the old wall, lake and camp scenes still run behind the new map). Ask TJ: is the land right, and which opening view.
+- [ ] **STOP 2a (reached 2026-11-15 with C7 to C9, C19 and C20 still open, see section 8a).** Tag `pixel-r4-land`, publish the game (the old wall, lake and camp scenes still run behind the new map). Ask TJ: is the land right, and which opening view.
 
 ### D. What grows and stands on the land
 
@@ -496,6 +496,7 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 | 1 again: three layouts with real height (pictures) | `pixel-r4-relief` | https://claude.ai/artifact/HkLDn3zFk3fyYgagGVWQSA | 2026-11-15 |
 | 1 again: layout 1, second pass (pictures) | `pixel-r4-relief2` | https://claude.ai/artifact/SJGQUzqPa1i1RDd23pc56t | 2026-11-15 |
 | Progress, not a stop: the land of section 4a built (pictures) | `pixel-r4-landshape` | https://claude.ai/artifact/KJ2YvMaK4V8pLyoSSJxmGa | 2026-11-15 |
+| 2a: the game runs on the new land | `pixel-r4-land` | GAME_LINK | 2026-11-15 |
 
 ## 8a. Where the build stands (2026-11-15, commit after `204dc5b`)
 
@@ -506,7 +507,13 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 - `things`: what the scene must draw each frame, with screen feet (`x`, `y`) and a depth (`v`): trees that sway, the signpost, the board, the tents. A thing that the fog turns grey, or that nearer ground partly hides, is not in this list: it is painted into `g`, clipped and paled.
 - `hAt(u, v)`, `toY(u, v)`, `C` (the layout: `T`, `camp`, `lakes`, `trails` in world coordinates), `volc`, `spires`, `peak`, `routes` (the rivers), the `water` and `trail` masks, `coast`, `forestAmt`, `fogAmt`, `dryAmt`, `lakeAt` (all in world coordinates).
 
-**Not done: the game still runs on round 3's `terrain.js`.** Checklist C1 is half done and C6 to C9 and C14 to C21 are open. What the port needs, found by reading the code:
+**The game runs on it (2026-11-15).** `land.js` builds the land once when it is loaded and exports what the scene took from `terrain.js` (`buildTerrain`, `loadBake`, `T`, `KIOSK`, `OX`, `OY`), with every position worked out from the layout `C`. `world.js`, `cats.js`, `climb.js` and `app.js` import it. He is hidden by nearer ground through `W.vAt`. The three mountain sprites are no longer drawn; flags and name tags come from `spots.flags` and `spots.places`. Footbridges are planks painted where a trail crosses water.
+
+**Still open in section C:** C7 to C9 (Mount Monolith, the Legacy Range and the back row are still block-in drawing), C19 (`terrain.js` cannot go until the animals move, point 4 below), C20 (no bake yet: the page is ready in about 3 s where round 3 took 0.8 s; `loadBake` returns nothing), C21. Animals, the sea's swells, the mist, signs, ferns, logs and sea stacks are **not on the new map yet**: `world.js` holds an empty stand-in for `makeCritters` until section E. `content.js` still says About Lake and The Stack (section L).
+
+**TJ asked (2026-11-15) whether the animals need a proper engine instead of positions written as numbers, and said he prefers that.** `critters.js` already has one (`walker`, with a rule for where each kind may go). What was written as numbers is where each animal starts, the sea's corner and the mist's box. Section E must give each kind a rule for where it lives, read from the land (kind of ground, height, distance from a trail), and no numbers. Nothing in the port so far writes a position as a number.
+
+What the port needed, found by reading the code, kept for what is left:
 
 1. `land.js` must also export what the other modules import from `terrain.js` (`buildTerrain`, `loadBake`, `NW`, `NH`, `OX`, `OY`, `T`, `PEAK`, `STACK`, `SPIRES`, `KIOSK`), in screen coordinates, and return the same fields `buildTerrain` returns (see its last line). The scene works in screen space and sorts things by their feet's `y`; that can stay, because everything that needs clipping is already painted in.
 2. Whatever moves (he, the cats, the animals) needs a test against `depth` at its feet, so it goes out of sight behind nearer ground.

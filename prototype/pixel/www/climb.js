@@ -6,7 +6,7 @@ import { Strip, drawStrip, baseline } from './side.js';
 import { makeTent, makeFlag, clump, makeCloud } from './sprites.js';
 import { bluebird, speck } from './fauna.js';
 import { sideFig, frontFig, backFig } from './tj.js';
-import { T as JUNCTION } from './terrain.js';
+import { T as JUNCTION } from './land.js';
 import { NAMES, FINDS, UI } from './content.js';
 
 const W = 1000, OFF = 320, UP = 340, DOWN = 240, SX = 262;
