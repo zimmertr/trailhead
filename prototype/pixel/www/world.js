@@ -30,8 +30,28 @@ const RUN = 78; // pixels a second
 function drawTree(scr, parts, x, y, clip, v, tq, ox, oy, dl, clipBlit) {
   for (let n = 0; n < parts.length; n++) {
     const part = parts[n], [wx, wy] = breeze(x + (part.lx || 0), y + part.y, tq, part.sway);
-    if (clip) clipBlit(part.bm, x + part.x + wx, y + part.y + wy, v, dl); else scr.blit(part.bm, x + part.x + wx - ox, y + part.y + wy - oy);
+    if (clip) clipBlit(part.bm, x + part.x + wx, y + part.y + wy, v, dl); else blitRuns(scr.fb, scr.VW, scr.VH, part.bm, x + part.x + wx - ox, y + part.y + wy - oy);
   }
+}
+// A tree part drawn by its solid runs only (E11): zoomed out the map shows about 22,000 parts, nearly
+// five million pixels a frame, many of them clear, so each bitmap's runs are found once and kept on it.
+function runsOf(bm) { const r = []; for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { if (!bm.d[j * bm.w + i]) continue; let n = 1; while (i + n < bm.w && bm.d[j * bm.w + i + n]) n++; r.push(j, i, n); i += n; } return bm.runs = Int16Array.from(r); }
+function blitRuns(fb, VW, VH, bm, sx, sy) {
+  sx = Math.round(sx); sy = Math.round(sy); if (sx >= VW || sy >= VH || sx + bm.w <= 0 || sy + bm.h <= 0) return;
+  const R = bm.runs || runsOf(bm), d = bm.d, w = bm.w;
+  for (let r = 0; r < R.length; r += 3) { const y = sy + R[r]; if (y < 0 || y >= VH) continue; let x = sx + R[r + 1], n = R[r + 2], si = R[r] * w + R[r + 1]; if (x < 0) { si -= x; n += x; x = 0; } if (x + n > VW) n = VW - x; for (let di = y * VW + x, e = di + n; di < e; di++, si++) fb[di] = d[si]; }
+}
+// Everything that stands, back to front (E11). What never moves is sorted once (still); only what moves
+// (mov: the animals, him, the cats, the ferry) is sorted each frame and merged in, an equal row putting
+// the still thing first as the one sort over all of them did. Sorting all 6,400 cost 2.5 ms zoomed out.
+function standing(still, moves, mov, out, ox, oy, VW, VH, done) {
+  const seen = th => { if (th.flag && !done[th.flag]) return false; if (((th.kind === 'tree' && !th.t.tree.low) || th.isTree) && !DEBUG.trees || (th.critter && !DEBUG.animals)) return false;
+    const w = th.kind === 'tree' ? th.t.tree.w + 8 : th.bm.w, h = (th.kind === 'tree' ? th.t.tree.h + 10 : th.bm.h) + (th.lift || 0); return !(th.x + w < ox || th.x - w > ox + VW || th.y - h > oy + VH || th.y + 4 < oy); };
+  for (const th of moves) if (seen(th)) mov.push(th);
+  mov.sort((a, b) => a.y - b.y);
+  out.length = 0; let k = 0;
+  for (const th of still) { if (!seen(th)) continue; while (k < mov.length && mov[k].y < th.y) out.push(mov[k++]); out.push(th); }
+  while (k < mov.length) out.push(mov[k++]);
 }
 function drawStill(scr, th, tq, ox, oy, dl, clipBlit, flags, t) {
   if (th.fern) {
@@ -426,7 +446,7 @@ export function makeWorld(bake) {
   }
   const cam = { x: T.x, y: 0 };
   let facing = 'down', flip = false, last = { ox: 0, oy: 0, VW: 1, VH: 1 }, focus = { x: 0, y: 0 };
-  const list = [];
+  const list = [], mov = []; let still = null, moves = null;
   // The view from the Trailhead. On an upright phone the junction sign covers the lower half, so
   // the view sits lower to keep him above it, past the bottom edge of the map if it has to.
   // A wide view taller than about 600 pixels (the opening view) rests lower, down to the near edge of the
@@ -545,20 +565,14 @@ export function makeWorld(bake) {
         for (let k = 1; k < 4; k++) { lifted[k] += ((k === want ? 1 : 0) - lifted[k]) * Math.min(1, dt * 9); const d = Math.round(2 * lifted[k]); if (d > 0) liftDest(scr, k, d, ox, oy); } }
 
       // Everything that stands, back to front.
-      list.length = 0;
-      for (const th of things) {
-        if (th.flag && !env.done[th.flag]) continue;
-        // The Trees switch hides trees, not the flowers, bushes and sage that sway like them (marked low).
-        if (((th.kind === 'tree' && !th.t.tree.low) || th.isTree) && !DEBUG.trees || (th.critter && !DEBUG.animals)) continue;
-        const w = th.kind === 'tree' ? th.t.tree.w + 8 : th.bm.w, h = (th.kind === 'tree' ? th.t.tree.h + 10 : th.bm.h) + (th.lift || 0);
-        if (th.x + w < ox || th.x - w > ox + VW || th.y - h > oy + VH || th.y + 4 < oy) continue;
-        list.push(th);
-      }
-      if (!env.hideMe) list.push({ me: true, x: here.x, y: here.y });
-      { const fh = crit.ferryHull(t, ox, oy, VW, VH); if (fh) list.push({ ferryHull: true, y: fh.y }); }
+      // The Trees switch hides trees, not the flowers, bushes and sage that sway like them (marked low).
+      if (!still) { still = things.filter(th => !th.critter).sort((a, b) => a.y - b.y); moves = things.filter(th => th.critter); }
+      mov.length = 0;
+      if (!env.hideMe) mov.push({ me: true, x: here.x, y: here.y });
+      { const fh = crit.ferryHull(t, ox, oy, VW, VH); if (fh) mov.push({ ferryHull: true, y: fh.y }); }
       kit.update(env, here, scr.narrow && !env.fixed, env.home && !env.fixed ? oy + (scr.narrow ? VH * 0.56 : VH - 38) : 0);
-      for (const it of kit.items()) list.push(it);
-      list.sort((a, b) => a.y - b.y);
+      for (const it of kit.items()) mov.push(it);
+      standing(still, moves, mov, list, ox, oy, VW, VH, env.done);
       // A tree that nearer ground partly hides is drawn only where the land under each pixel is no
       // nearer than the tree itself (D6a), so it can sway and still stand behind the slope in front.
       const OY = oy, DEP = W.depth, clipBlit = (bm, sx, sy, v, dy = 0) => { sx = Math.round(sx); sy = Math.round(sy); const lim = v - 3; for (let j = 0; j < bm.h; j++) { const y = sy + j, vy = y - oy - dy; if (vy < 0 || vy >= VH || y < 0 || y >= WH) continue; for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (!c) continue; const x = sx + i, vx = x - ox; if (vx < 0 || vx >= VW || x < 0 || x >= WW || DEP[y * WW + x] < lim) continue; fb[vy * VW + vx] = c; } } };
