@@ -1318,14 +1318,16 @@ export function buildTerrain() {
   }
   // The sea's corner, for the swells and the wash on the beach (critters.js): how wide and how tall the
   // corner is, found from the shore; then for each spot of it, whether a swell shows there and when, or
-  // how far it is from the water's edge.
+  // how far it is from the water's edge. cs: how far out from the high-water line each spot of sea and
+  // beach lies (plus 4, up to 250), for the tide (E6).
   const seaW = (() => { for (let u = 0; u < NW; u++) { let wet = false; for (let v = 0; v < 70 && !wet; v += 2) wet = LAND.coast(u, v) > -8; if (!wet) return u + 8; } return NW; })();
   const seaTop = (() => { let top = 0; for (let u = 0; u < seaW; u += 2) for (let v = top; v < VD; v++) if (LAND.coast(u, v) > -8) top = v; return Math.max(0, LAND.toY(0, top) - 8); })();
-  const SEA = { y0: seaTop, w: seaW, h: SH - seaTop }; for (const k of ['ph', 'gate', 'shore']) SEA[k] = new Uint8Array(SEA.w * SEA.h);
+  const SEA = { y0: seaTop, w: seaW, h: SH - seaTop }; for (const k of ['ph', 'gate', 'shore', 'cs']) SEA[k] = new Uint8Array(SEA.w * SEA.h);
   const wet = new Set(R.sea), fog = new Set(R.fog);
   for (let y = SEA.y0; y < SH; y++) for (let x = 0; x < SEA.w; x++) {
     const i = y * NW + x, v = LAND.depth[i]; if (v >= VD || fog.has(LAND.g[i])) continue;
     const cs = LAND.coast(x, v), j = (y - SEA.y0) * SEA.w + x;
+    if (cs > -4) SEA.cs[j] = Math.min(250, Math.round(cs + 4));
     if (cs > -4 && cs < 8) SEA.shore[j] = 1 + Math.round((cs + 4) * 8);
     else if (cs >= 8 && wet.has(LAND.g[i]) && vnoise(x / 22, y / 9, 85) > (cs < 60 ? 0.4 : 0.54)) { SEA.gate[j] = cs < 40 ? 2 : 1; SEA.ph[j] = Math.floor(frac((cs + 7 * Math.sin(x / 37 + y / 61)) / 24) * 240); }
   }

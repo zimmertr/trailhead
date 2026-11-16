@@ -177,7 +177,7 @@ export const UI = {
     toggles: { trees: 'Trees', clouds: 'Clouds', mist: 'Mist', labels: 'Labels', animals: 'Animals', roam: 'Roam areas', taps: 'Tap targets', trails: 'Trail lines', camera: 'Camera limits' },
     speed: 'Time', speeds: ['Pause', '0.5\u00d7', '1\u00d7', '2\u00d7', '4\u00d7', '8\u00d7'],
     startMap: 'Start now, on the map', startForest: 'Start now, in the forest run',
-    events: { shower: 'Marine layer', breach: 'Humpback breach', blow: 'Humpback blow', ferry: 'Ferry sets out', serac: 'Serac fall', avalanche: 'Avalanche', lens: 'Lenticular cloud', heron: 'Heron lifts off', tumble: 'Tumbleweed', devil: 'Dust devil', star: 'Shooting star (Dusk)', plane: 'Float plane', jay: "Steller's jay", bear: 'Bear', sasquatch: 'Sasquatch', eyeshine: 'Deer eyeshine (Dusk)' },
+    events: { shower: 'Marine layer', breach: 'Humpback breach', blow: 'Humpback blow', ferry: 'Ferry sets out', tide: 'Low tide', serac: 'Serac fall', avalanche: 'Avalanche', lens: 'Lenticular cloud', heron: 'Heron lifts off', tumble: 'Tumbleweed', devil: 'Dust devil', star: 'Shooting star (Dusk)', plane: 'Float plane', jay: "Steller's jay", bear: 'Bear', sasquatch: 'Sasquatch', eyeshine: 'Deer eyeshine (Dusk)' },
     note: 'Roam areas, trail lines and camera limits show on the map. Tap targets show in every scene. A start button works only in its own scene.'
   },
   map: {
