@@ -479,24 +479,30 @@ export function makeWorld(bake) {
   // Since E5h the Trailhead stands low in the meadow, so a wide view sets him just above the timeline bar
   // (about a fifth of the view up from its bottom), which leaves the skyline in frame above the destinations.
   // Since F5a the wide view's rest is openFrame's, worked out again only when the view's size changes.
-  let openKey = -1, openAt = null;
+  let openKey = -1, openAt = null, openCover = 0;
   const vista = scr => {
-    if (scr.narrow) return { x: T.x, y: T.y + scr.VH * 0.06 };
-    const key = scr.VW * 1e4 + scr.VH;
+    // Worked out again when the sign comes, goes or changes height too: it is not up on the first frames, it is
+    // taller until its font has loaded, and closing it frees ground.
+    const el = document.getElementById('fork'), up = !!el && !el.hidden, key = (scr.VW * 1e4 + scr.VH) * 1e4 + (up ? el.offsetTop + 1 : 0);
     if (key !== openKey) {
-      openKey = key; const k = (window.devicePixelRatio || 1) / scr.S, el = document.getElementById('fork'), r = el && !el.hidden && el.getBoundingClientRect();
-      const sign = r && r.width ? { x0: r.left * k, x1: r.right * k, y0: r.top * k, y1: r.bottom * k } : null;
-      openAt = openFrame(T, W.destBox, PLACES.slice(1), scr.VW, scr.VH, WW, WH, barCss() * k, sign);
+      // The sign's layout box, not its drawn one: it slides in when it first shows, and a box measured mid-slide is wrong.
+      openKey = key; const k = (window.devicePixelRatio || 1) / scr.S;
+      const sign = up && el.offsetWidth ? { x0: el.offsetLeft * k, x1: (el.offsetLeft + el.offsetWidth) * k, y0: el.offsetTop * k, y1: (el.offsetTop + el.offsetHeight) * k } : null;
+      // On an upright phone the sign spans the width, so everything below its top counts as covered, like the bar (F8).
+      openCover = scr.narrow && sign ? scr.VH - sign.y0 : barCss() * k;
+      openAt = scr.narrow && sign ? openFrame(T, W.destBox, PLACES.slice(1), scr.VW, scr.VH, WW, WH + (scr.VH - sign.y0), scr.VH - sign.y0 + 4, null)
+        : openFrame(T, W.destBox, PLACES.slice(1), scr.VW, scr.VH, WW, WH, barCss() * k, sign);
     }
     return openAt;
   };
   // Left alone at the Trailhead the view looks round (F5a; it was a sideways sway before): from the opening it
   // goes to each destination in the order of the junction sign, rests there, and comes home, over and over.
-  // A destination's rest puts its name a little above the middle, right of the sign, so its peaks and its country show. Skipped when everything is in frame.
+  // A destination's rest puts its name a little above the middle, right of the sign, so its peaks and its country show.
+  // On an upright phone the sign spans the bottom, so the name sits 40% of the way down what shows above it, centred across the narrow view (F8). Skipped when everything is in frame.
   const ROUND = { hold: 5, go: 3.5 };
   const lookRound = (scr, t, hx, hy) => {
     const { VW, VH } = scr, stops = [[hx, hy]];
-    for (let k = 1; k <= 3; k++) { const b = W.destBox[k], p = PLACES[k], cx = (b.x0 + b.x1) / 2 - VW * 0.1, cy = p.y + VH * 0.06; if (p.x - hx < -VW / 2 + 40 || p.x - hx > VW / 2 - 40 || p.y - hy < -VH / 2 + 20 || p.y - hy > VH / 2 - 60) stops.push([cx, cy]); }
+    for (let k = 1; k <= 3; k++) { const b = W.destBox[k], p = PLACES[k], cx = scr.narrow ? p.x : (b.x0 + b.x1) / 2 - VW * 0.1, cy = scr.narrow ? p.y + VH / 2 - 0.4 * (VH - openCover) : p.y + VH * 0.06; if (p.x - hx < -VW / 2 + 40 || p.x - hx > VW / 2 - 40 || p.y - hy < -VH / 2 + 20 || p.y - hy > VH / 2 - 60) stops.push([cx, cy]); }
     if (stops.length < 2) return [hx, hy];
     const leg = ROUND.hold + ROUND.go, n = stops.length, i = Math.floor(t / leg) % n, u = smooth(ROUND.hold, leg, t % leg), a = stops[i], b = stops[(i + 1) % n];
     return [lerp(a[0], b[0], u), lerp(a[1], b[1], u)];
