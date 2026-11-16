@@ -121,3 +121,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **Lean back on the anchor.** At a hanging belay the three could lean out on their tethers, feet on the rock, the way people really wait on a big face, instead of standing; it shows the anchor holding them.
 - **Name the holds.** Tapping a chalked hold on the West Ridge could name it (a jug, a crimp, a pocket, the mercy hold) and the move that uses it, so a visitor learns a little of how climbing works while they wait for the followers.
 - **Shout over the wind.** At the windiest belays a short speech bubble could be torn away downwind mid-word ("OFF BEL..."), the way calls really get lost up high, and it teaches the calls climbers use.
+- **Point out the camp.** From the summit a tiny tent and a wisp of stove steam could show on a bench by a tarn far below, the camp they walked out of that morning, tying the climb back to the larch basin scene.

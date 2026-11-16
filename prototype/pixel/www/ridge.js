@@ -229,13 +229,80 @@ function paintGround(S, things) {
 function paintFar() {
   const S = new Strip(900, 220, 10);
   for (let x = 0; x < 900; x++) {
-    const top = -60 - 110 * fbm(x / 80, 1, 741, 4) - 40 * Math.abs(Math.sin(x / 37 + vnoise(x / 50, 2, 742)));
-    for (let y = Math.round(top); y < 10; y++) S.set(x, y, y - top < 3 + 4 * vnoise(x / 5, 3, 743) && top < -120 ? R.farsnow[1] : pick('far', 0.5 + 0.3 * (vnoise(x / 6, y / 14, 744) - 0.5) - (y - top) * 0.002, x, y));
+    const top = -50 - 85 * fbm(x / 80, 1, 741, 4) - 30 * Math.abs(Math.sin(x / 37 + vnoise(x / 50, 2, 742)));
+    for (let y = Math.round(top); y < 10; y++) S.set(x, y, y - top < 3 + 4 * vnoise(x / 5, 3, 743) && top < -100 ? R.farsnow[1] : pick('far', 0.5 + 0.3 * (vnoise(x / 6, y / 14, 744) - 0.5) - (y - top) * 0.002, x, y));
   }
   return S;
 }
 
 // A small larch flagged by the wind, painted straight into the strip at x, h (its root).
+// The basin far below (H12): the larch basin he walked through, seen from the ridge, in the blue of
+// distance like the far range but nearer, so it sinks faster as he climbs. Other granite peaks of
+// the group stand up out of it; under them the basin's granite benches step down, each with a lit lip
+// and a shaded riser; tarns lie on the benches; and the larches are gold dots in drifts along the
+// benches and round the tarns. Placed by rule: peaks spread across the strip, tarns on bench flats,
+// larches where the bench is flat and dry.
+function paintBasin() {
+  const BW = 1200, S = new Strip(BW, 200, 260), rand = rng(760);
+  const peaks = []; for (let k = 0; k < 5; k++) peaks.push({ x: 110 + k * 240 + 70 * hash(k, 1, 761), h: 50 + 60 * hash(k, 2, 761), w: 60 + 50 * hash(k, 3, 761) });
+  const edge = x => 30 + 6 * vnoise(x / 40, 1, 762);
+  for (let x = 0; x < BW; x++) {
+    let h = 22 + 10 * fbm(x / 50, 1, 763, 3), lean = 0;
+    for (const p of peaks) for (const dx of [x - p.x, x - p.x - BW, x - p.x + BW]) {
+      const u = 1 - Math.abs(dx) / p.w; if (u <= 0) continue;
+      const ph = p.h * Math.pow(u, 1.3) + 9 * (fbm(x / 9, p.h, 764, 3) - 0.5) * u;
+      if (ph > h) { h = ph; lean = dx; }
+    }
+    const top = -Math.round(h), e = edge(x);
+    for (let y = top; y < e; y++) {
+      // Lit on the side toward the light (left), streaked down the faces, snow in the gullies up high.
+      const lit = lean < 0 ? 0.44 : 0.2, t = lit + 0.18 * (vnoise(x / 3, y / 16, 765) - 0.5) - (y - top) * 0.0012;
+      const snow = h > 85 && y - top < 4 + 6 * vnoise(x / 4, 2, 766) && vnoise(x / 2.5, y / 9, 767) > 0.45;
+      S.set(x, y, snow ? R.farsnow[y - top < 2 ? 1 : 0] : pick('far', t, x, y));
+    }
+  }
+  // The benches: stepped terraces down the basin, nearer ones taller.
+  const flats = [];
+  for (let x = 0; x < BW; x++) {
+    const e = Math.round(edge(x));
+    for (let y = e; y < 260; y++) {
+      const v = (y - e) / 22 + 0.5 * vnoise(x / 70, 3, 768), b = Math.floor(v), u = v - b;
+      let c;
+      // A lit lip, a shaded riser, then the bench's flat, with the pale bare granite slabs the basin is
+      // known for showing through in patches.
+      if (u < 0.1) c = R.far[3]; else if (u < 0.32) c = pick('far', 0.04 + 0.08 * vnoise(x / 3, y, 769), x, y);
+      else { const slab = fbm(x / 14, y / 5, 773, 3); c = slab > 0.64 ? (bayer(x, y) < (slab - 0.64) * 3 ? R.far[3] : R.far[2]) : pick('far', 0.32 + 0.16 * (vnoise(x / 11, y / 5, 770) - 0.5), x, y); if (u > 0.4 && u < 0.85 && (x & 3) === 0 && (y & 1) === 0) flats.push([x, y, b]); }
+      S.set(x, y, c);
+    }
+  }
+  // Tarns, one on each of a few benches, turquoise with the sky's light along the far shore.
+  const tarns = [];
+  for (let k = 0; k < 7; k++) {
+    const [x, y] = flats[Math.floor(hash(k, 4, 771) * flats.length)], a = 14 + 22 * hash(k, 5, 771), b = 2.5 + 2.5 * hash(k, 6, 771);
+    if (tarns.some(t => Math.abs(t.x - x) < t.a + a + 20 && Math.abs(t.y - y) < 18)) continue;
+    tarns.push({ x, y, a, b });
+    for (let dy = -Math.ceil(b); dy <= Math.ceil(b); dy++) for (let dx = -Math.ceil(a); dx <= Math.ceil(a); dx++) {
+      const q = (dx / a) ** 2 + (dy / b) ** 2; if (q > 1) continue;
+      S.set(x + dx, y + dy, q > 0.75 && dy < 0 ? R.tarn[5] : dy === Math.round(-b * 0.3) && Math.abs(dx) < a * 0.5 ? R.tarn[5] : R.tarn[q < 0.3 ? 3 : 4]);
+    }
+  }
+  // Larches: gold dots in drifts, thicker near the tarns, never on the water.
+  // Each drift is a loose clump of a few trees; each tree a lit gold top over a deeper gold, a few of
+  // them dark firs among the larches.
+  for (let i = 0; i < 420; i++) {
+    const [cx0, cy0] = flats[Math.floor(rand() * flats.length)];
+    const near = tarns.some(t => Math.abs(cx0 - t.x) < t.a + 30 && Math.abs(cy0 - t.y) < 14);
+    if (!near && vnoise(cx0 / 30, cy0 / 12, 772) < 0.45) continue;
+    const n = 3 + Math.floor(rand() * 7);
+    for (let j = 0; j < n; j++) {
+      const x = Math.round(cx0 + (rand() - 0.5) * 18), y = Math.round(cy0 + (rand() - 0.5) * 5);
+      if (tarns.some(t => ((x - t.x) / (t.a + 2)) ** 2 + ((y - t.y) / (t.b + 2)) ** 2 < 1)) continue;
+      if (rand() < 0.1) { S.set(x, y, R.conifer[1]); S.set(x, y - 1, R.conifer[2]); S.set(x, y - 2, R.conifer[2]); continue; }
+      S.set(x, y, R.larch[1]); S.set(x, y - 1, R.larch[rand() < 0.5 ? 2 : 3]); S.set(x, y - 2, R.larch[rand() < 0.4 ? 4 : 3]); if (rand() < 0.5) S.set(x + 1, y - 1, R.larch[2]);
+    }
+  }
+  return S;
+}
 function flagLarch(S, x, h, H, seed) {
   if (!S.get(x, -h)) return;
   const lean = 1.5 + 2 * hash(seed, 1, 771);
@@ -744,7 +811,7 @@ function buildRidge() {
     return { x: x0, h, bi: h - dz };
   });
   paintHolds(main);
-  const far = paintFar(), clouds = [0, 1, 2].map(i => ({ bm: makeCloud(745 + i), x: i * 190, y: 20 + i * 46, v: 3 + i }));
+  const far = paintFar(), basin = paintBasin(), clouds = [0, 1, 2].map(i => ({ bm: makeCloud(745 + i), x: i * 190, y: 20 + i * 46, v: 3 + i }));
   const pair = makeCragPair(), st = {}, focus = { x: 0, y: 0 };
   // On the ridge all three wear helmets, one colour each with their hair showing below: his green, the
   // leader's red, the woman's white over her red hair. The leader carries the rack on his harness.
@@ -797,7 +864,8 @@ function buildRidge() {
         if (e < 0.72 || b0 >= sb.length - 1) fb.fill(sb[b0], row, row + VW); else for (let xx = 0; xx < VW; xx++) fb[row + xx] = sb[b0 + (bayer(xx, y) < (e - 0.72) / 0.28 ? 1 : 0)];
       }
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (VW + 140)) - 70, c.y + camH * 0.12 - 20);
-      drawStrip(scr, far, 120 + cx * 0.15, base + camH * 0.3 + 40, false, R.far[1]);
+      drawStrip(scr, far, 120 + cx * 0.15, base + camH * 0.08 + 60, false, R.far[1]);
+      drawStrip(scr, basin, 300 + cx * 0.4, base + camH * 0.12 - 25, false, R.far[1]);
 
       // One of them, in the pose the script gives, at their place on the line.
       const P = {};
