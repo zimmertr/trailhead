@@ -359,7 +359,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [x] Q4. Mount Monolith drawn properly (C7): rock, snow, glaciers, cleavers, icefalls and shading at round 3's level, not flat stand-in colour.
 - [x] Q5. The Legacy Range drawn properly (C8) and the crest's back row (C9), the same way.
 - [x] Q6. Zoom out to the whole map again (F1 and F2 brought forward, F9 if it helps): wheel and pinch go smoothly from the close view out until the whole map fits.
-- [ ] Q7. Side by side with round 3: whole map, opening view, Trailhead close, forest, lakeside, Day and Dusk, desktop and phone. Tag `pixel-r4-opus-quality`, publish a new artifact, write the honest list of what is still below round 3 in section 8a.
+- [x] Q7. Side by side with round 3: whole map, opening view, Trailhead close, forest, lakeside, Day and Dusk, desktop and phone. Tag `pixel-r4-opus-quality`, publish a new artifact, write the honest list of what is still below round 3 in section 8a.
 
 ### D. What grows and stands on the land
 
@@ -401,7 +401,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [ ] F2. While the size is between whole numbers the picture is drawn at the next whole size and scaled, so nothing is reallocated per frame; name tags and tap targets follow exactly.
 - [ ] F3. Debug switch: at rest, stay where let go, or ease to the nearest whole size. Both work.
 - [ ] F4. Film a slow zoom all the way out and in (`frames.sh`): no jump between any two frames.
-- [ ] F5. The opening wide view as agreed at STOP 2a; the sign and planks do not cover the skyline's main peaks.
+- [x] F5 (done in Q7). The opening wide view as agreed at STOP 2a; the sign and planks do not cover the skyline's main peaks.
 - [ ] F6. First movement eases in over about 2 seconds while he is already running; returning to the junction eases out.
 - [ ] F7. `prefers-reduced-motion`: cuts, no eases.
 - [ ] F8. Phone upright: opens on the Trailhead with the Spires above; pinch works; the sign leaves the Spires visible.
@@ -535,6 +535,15 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 
 **Still open in section C:** none of C7 to C9 (redrawn as Q4 and Q5), C19 (`terrain.js` cannot go until the animals move, point 4 below), C20 (no bake yet: the page is ready in about 3 s where round 3 took 0.8 s; `loadBake` returns nothing), C21. Since then (Opus, 2026-11-15) animals, signs, the sea's swells, ferns, logs, sea stacks and the moving mist are all on the new map (section 9). `content.js` still says About Lake and The Stack (section L).
 
+**The quality pass (section Q, Opus, 2026-11-15, tag `pixel-r4-opus-quality`).** Done: round 3's ground detail, real fogged trees, lake shores, the moving mist, Mount Monolith, the Legacy Range and the back row redrawn, zoom out to the whole map, and the opening view B (it opened close in on bare meadow, which was worse than round 3's opening; fixed as F5). Pictures side by side with round 3 are in `out/q7/` (`s-home.png`, `s-phone.png`, `s-map.png`, `s-scenes.png`). What is still below round 3, plainly:
+
+- **The sea.** Round 3's sea corner was wide, with the whale, the ferry and the swells easy to see. Round 4's sea is a narrow strip along the west edge, much of it under the standing fog, and when zoomed out its bottom is under the timeline bar.
+- **The phone's first screen.** Round 3's showed The Stack, the lake and the Spires. Round 4's (F8: the Trailhead with the Spires above) shows mostly meadow and trees, with only the foot of the glacier at the top.
+- **Load time.** About 3.9 s in the Docker browser against round 3's 0.8 s, because nothing is baked yet (C20).
+- **The east back row.** Its peaks differ in outline only; they share one grey texture.
+- **Small spots.** A plain green slope low on Mount Monolith's west side; the east glaciers of Mount Monolith, seen side-on, read as flat sheets.
+- **The side scenes** (forest, lakeside, wall, camp, climbs) are round 3's, unchanged, so they match round 3 but do not yet show the new world; that is sections G onward.
+
 **TJ asked (2026-11-15) whether the animals need a proper engine instead of positions written as numbers, and said he prefers that.** `critters.js` already has one (`walker`, with a rule for where each kind may go). What was written as numbers is where each animal starts, the sea's corner and the mist's box. Section E must give each kind a rule for where it lives, read from the land (kind of ground, height, distance from a trail), and no numbers. Nothing in the port so far writes a position as a number.
 
 What the port needed, found by reading the code, kept for what is left:
@@ -594,6 +603,7 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
 - **Q6, zoom out to the whole map (Opus, 2026-11-15).** The map's pixel size is now any number, not whole steps (`zoomTo` in `pixel.js`). It eases toward the size asked for and keeps the spot under the pointer (or between two fingers) in place. The wheel scales it smoothly. Pinch follows the fingers instead of stepping by a third. The + and - keys still step to the next whole size. It goes out until the map fills the window one way: on a 1440 by 900 window the whole height and 90% of the width show. On a phone held upright that is the whole height. It goes in to twice the size that suits the window, as before. Left alone for a quarter of a second, it settles on the whole size in the direction it was going, so pixels are crisp at rest; `?debug=-snap` leaves it where it stops (half of F3). Below one screen pixel to a pixel the picture is smoothed by the browser, not pixel-dropped. Round 3's glide between whole sizes is no longer used: nothing jumps now.
 - F2 is not done: while the size changes, the picture's buffer is made again every frame. It has not stuttered in the Docker browser; check on a phone.
 - With the map zoomed out, the fog bank at sea (Q3) sits under the timeline bar at the bottom of the page, so it is barely seen; it does no harm there.
+- **Q7 (Opus, 2026-11-15).** The opening was close in on bare meadow, worse than round 3's, because view B (F5) was not built. Now a window wider than tall opens at one screen pixel to one map pixel (twice that on a high-density screen, so it looks the same size), and a wide view taller than 600 pixels rests lower, down to the near edge of the map, which on 1440 by 900 is view B's frame. A phone held upright still opens at the size that suits it (F8).
 
 ## 10. The reference pictures TJ shared, described
 
