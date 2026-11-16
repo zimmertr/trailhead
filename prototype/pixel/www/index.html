@@ -226,6 +226,8 @@ button.name:hover, .name.done { background: var(--moss); }
 .board > div:nth-child(even) { transform: rotate(.7deg); }
 .board dt { font-family: var(--small); font-size: 15px; color: var(--dim); }
 .board dd { font-family: var(--title); font-size: 30px; line-height: 1; }
+.board > .wide { grid-column: 1 / -1; transform: rotate(-.25deg); }
+.board > .wide dd { font-family: var(--read); font-size: 22px; line-height: 1.35; }
 .open { color: var(--moss); }
 .board + h3 { font-size: 30px; line-height: 1; margin: calc(var(--px) * 6) 0 calc(var(--px) * 3); }
 .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: calc(var(--px) * 3) calc(var(--px) * 5); }

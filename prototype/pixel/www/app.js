@@ -193,10 +193,10 @@ function trailMap() {
 function kiosk() {
   api.find('kiosk');
   const done = api.done(), up = Math.round((Date.now() - BUILT) / 1000), found = api.found(), ids = Object.keys(FINDS);
-  const cell = (k, v, cls) => el('div', {}, el('dt', { text: k }), el('dd', { class: cls || '', text: v }));
+  const cell = (k, v, cls, wide) => el('div', wide ? { class: 'wide' } : {}, el('dt', { text: k }), el('dd', { class: cls || '', text: v }));
   return [el('div', { class: 'band' }, el('h2', { text: UI.kiosk.title }), el('p', { text: UI.kiosk.sub })),
     el('dl', { class: 'board' }, cell(UI.kiosk.version, VERSION), cell(UI.kiosk.deployed, BUILT.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })), cell(UI.kiosk.uptime, UI.kiosk.up(up)), cell(UI.kiosk.status[0], UI.kiosk.status[1], 'open'),
-      cell(UI.map.lake[0], done.lake ? UI.kiosk.lakeDone : UI.kiosk.open), cell(UI.map.stack[0], done.stack ? UI.kiosk.stackDone : UI.kiosk.open), cell(UI.map.spires[0], UI.kiosk.summits(SPIRE_ORDER.filter(s => done['spire:' + s]).length)), cell(UI.kiosk.wildlife[0], UI.kiosk.wildlife[1])),
+      cell(UI.map.lake[0], done.lake ? UI.kiosk.lakeDone : UI.kiosk.open), cell(UI.map.stack[0], done.stack ? UI.kiosk.stackDone : UI.kiosk.open), cell(UI.map.spires[0], UI.kiosk.summits(SPIRE_ORDER.filter(s => done['spire:' + s]).length)), cell(UI.kiosk.wildlife[0], UI.kiosk.wildlife[1], '', true), cell(UI.kiosk.seen[0], UI.kiosk.seen[1], '', true)),
     el('h3', { text: UI.kiosk.checklist(ids.filter(k => found[k]).length, ids.length) }),
     el('ul', { class: 'checks' }, ...ids.map(k => el('li', { class: found[k] ? 'got' : '' }, el('b', { text: found[k] ? FINDS[k][0] : UI.kiosk.notFound }), el('span', { text: found[k] ? UI.kiosk.got : FINDS[k][1] }))))];
 }
@@ -292,6 +292,9 @@ try {
   if (q.get('stop')) for (let i = 0; i < +q.get('stop'); i++) api.key('ArrowRight');
   // The view position is set once the opening has finished, since a scene change puts it back.
   if (q.get('look')) setTimeout(() => api.look(...q.get('look').split(',').map(Number)), 900);
+  // ?start=avalanche,osprey starts those timed events (the debug menu's names) once the opening is done,
+  // for screenshots; the clocks' own switches (sea=, tide=, serac=, lens=, rain=, bear=) still set where a clock begins.
+  if (q.get('start')) setTimeout(() => { for (const id of q.get('start').split(',')) api.trigger(id.trim()); }, 900);
   // It starts in Day whatever the device prefers; a visitor who chose Dusk gets Dusk next time.
   let dusk = false; try { dusk = localStorage.getItem('trailhead.theme') === 'dark'; } catch { /* private window */ }
   if (q.get('dusk') || dusk) { api.setTheme('dark'); syncTop(); }

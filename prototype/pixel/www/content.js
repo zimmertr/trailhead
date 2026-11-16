@@ -192,9 +192,10 @@ export const UI = {
   },
   kiosk: {
     title: 'Trail conditions', sub: 'Posted at the Trailhead kiosk', version: 'Running version', deployed: 'Deployed', uptime: 'Uptime',
-    up: s => s < 90 ? s + ' seconds' : Math.round(s / 60) + ' minutes',
+    up: s => s < 90 ? s + (s === 1 ? ' second' : ' seconds') : Math.round(s / 60) + ' minutes',
     status: ['Status', 'All trails open'], open: 'Open', lakeDone: 'Run. Flag flying.', stackDone: 'Climbed. Flag flying.', summits: n => n + ' of 6 summits',
-    wildlife: ['Wildlife', 'A few elk, goats, bighorn sheep, a whale, two cats, and some days a bear'],
+    wildlife: ['Wildlife', 'Elk in the meadow, mountain goats, bighorn sheep and marmots up high. A humpback and an orca pod offshore. Sockeye at the lake\'s fall, with an osprey after them. A heron in the oxbow, an owl in the forest, two cats at this kiosk, and some days a bear'],
+    seen: ['Also seen', 'Serac falls and an avalanche on Mount Monolith, the marine layer off the sea, low tide, the ferry and a float plane, dust devils in the sage, and shooting stars at Dusk'],
     checklist: (n, of) => 'Field checklist: ' + n + ' of ' + of + ' found', notFound: 'Not found yet', got: 'Found'
   },
   register: {
