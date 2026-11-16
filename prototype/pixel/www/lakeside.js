@@ -1,7 +1,7 @@
 // About Lake, part two: out of the trees at the lake itself, turquoise under a huge sweeping
 // peak. He runs left to right along the near shore, stops for the view with the map out, and
 // again at the boulder where his journal lies open.
-import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, thick, windAt } from './core.js';
+import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, thick, windAt, veilTable } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
 import { makeTrunk, makeLimb, swordFern } from './forest.js';
 import { makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush, makeMaple } from './sprites.js';
@@ -23,8 +23,11 @@ const T_OFF = 0.45, T_BANK = 1.05, T_WADE = 1.85, T_CLIMB = 0.7;
 
 const shore = x => -9 + Math.round(2.5 * Math.sin(x / 37) + 3 * vnoise(x / 15, 3, 120));
 const g = x => Math.round(2 * Math.sin(x / 120 + 1));
-// How much forest there still is: 1 at the trees he has just left, 0 out on the open shore.
-const woodAt = x => smooth(X0 - 64, X0 - 190, x);
+// How much forest there still is: 1 where he walks out of the trees, 0 once the shore is open
+// parkland, a couple of seconds on.
+const woodAt = x => smooth(X0 + 150, X0 - 30, x);
+// Mist lies on the water off the wooded shore, and drifts a little way past where the trees stop.
+const mistAt = x => smooth(X0 + 320, X0 - 10, x);
 const WX = X0 - 470, WW = 420, WUP = 760;
 
 // The peak: the same snowy pyramid that stands behind the lake on the map, now filling the sky.
@@ -61,6 +64,23 @@ function paintPeak(S) {
 
 function miniFir(S, x, y, h, c0) {
   for (let j = 0; j < h; j++) { const hw = Math.max(0, (j + 1) * 0.42 * (j % 3 === 2 ? 0.7 : 1)); for (let i = -Math.round(hw); i <= Math.round(hw); i++) S.set(x + i, y - h + j, R.conifer[clamp(c0 + (i < 0 ? 1 : 0) - (j % 3 === 2 ? 1 : 0), 0, 4)]); }
+}
+
+// Mist on the water off the wooded shore: slow banks drifting along the surface, thickest low over
+// the water and lapping up into the far trees, thinning out where the shore opens. Its own small
+// function, since a per-pixel loop inside draw() is too big for the browser to optimise.
+function lakeMist(scr, camX, hor, bot, t, veils) {
+  const { VW, VH, fb } = scr;
+  let x1 = VW; while (x1 > 0 && mistAt(camX + x1 - 1) <= 0) x1--;
+  for (let y = Math.max(0, hor - 7); y < Math.min(VH, bot); y++) {
+    const dy = y - hor, row = y * VW, lay = smooth(-7, 3, dy) * (0.5 + 0.5 * smooth(34, 8, dy));
+    for (let x = 0; x < x1; x++) {
+      const wx = camX + x, m = mistAt(wx) * lay; if (m <= 0.02) continue;
+      const n = 0.6 * vnoise((wx - t * 5) / 64, dy / 3.4, 580) + 0.4 * vnoise((wx + t * 3) / 21, dy / 1.8, 581);
+      const v = n * m * 2.1 - 0.45 + (bayer(x, y) - 0.5) * 0.22;
+      if (v > 0.42) fb[row + x] = veils[1][fb[row + x]]; else if (v > 0.12) fb[row + x] = veils[0][fb[row + x]];
+    }
+  }
 }
 
 // What the timeline needs to know of the lake, which takes no pictures to answer.
@@ -137,7 +157,6 @@ function buildLakeside() {
   const noteRock = makeBoulder(162, 9);
   { const b = noteRock, x = b.ox - 1, y = b.oy - 13; for (let dx = 0; dx < 7; dx++) { b.set(x + dx, y, dx === 3 ? R.white[0] : R.white[1]); b.set(x + dx, y + 1, dx === 3 ? R.red[0] : R.white[0]); } b.set(x - 1, y + 1, R.red[1]); b.set(x + 7, y + 1, R.red[1]); b.set(x + 5, y - 1, R.navy[1]); }
   things.push({ bm: noteRock, x: xNote + 15, y: g(xNote) - 4 });
-  const signX = X0 + 40; things.push({ bm: makeSmallSign(), x: signX, y: g(signX) - 5 });
   const clouds = [0, 1, 2, 3].map(i => ({ bm: makeCloud(610 + i), x: i * 210, y: 30 + (i & 1) * 34 + i * 9, v: 2.5 + i }));
 
   // The island: a low grassy hump with stones at the water and one fir, as on the map.
@@ -175,10 +194,26 @@ function buildLakeside() {
     edge.push(t);
     for (const [dir, up, len] of limbs) edge.push({ bm: makeLimb(2500 + dx + up, len, dir), x: x + dir * (w / 2 - 2), y: t.y - up, z: t.y + 0.1 });
   }
+  // The forest runs on along the shore for the first couple of seconds: spruces between the trail
+  // and the water with the lake showing between them, a few more giants, and trees in front of the
+  // trail, all thinning out as the woods give way to the parkland. Where he starts and where he stops
+  // to read the map stay clear in front of him.
+  const signX = X0 + 40; things.push({ bm: makeSmallSign(), x: signX, y: g(signX) - 5 });
+  const rw = rng(572);
+  // Behind the trail they stand in clumps with water between, so the lake and its mist show through.
+  for (let x = X0 - 150; x < X0 + 210; x += 6 + rw() * 8) {
+    const wd = woodAt(x), xr = Math.round(x), clump = vnoise(x / 34, 2, 573);
+    if (rw() < wd * (clump > 0.5 ? 1.1 : 0.12) && Math.abs(x - signX) > 14) things.push({ tree: rw() < 0.25 + 0.5 * wd ? spruces[(rw() * 4) | 0] : firs[(rw() * 6) | 0], x: xr, y: Math.min(g(x) - 4, Math.round(lerp(shore(x) + 5, g(x) - 6, rw()))) });
+    if (rw() < wd * 0.32 && Math.abs(x - X0) > 22 && Math.abs(x - xMap) > 22 && Math.abs(x - signX) > 18) things.push({ tree: rw() < 0.6 ? spruces[(rw() * 4) | 0] : firs[(rw() * 6) | 0], x: xr + Math.round(rw() * 6), y: g(x) + 34 + Math.round(sq(rw()) * 46) });
+  }
+  for (let x = X0 - 100, n = 0; x < X0 + 50; x += 40 + rw() * 30) {
+    const wd = woodAt(x); if (rw() > wd) continue;
+    things.push({ bm: makeTrunk(1600 + n++, Math.round(11 + 9 * wd), 300), x: Math.round(x), y: g(x) - 4 - Math.round(rw() * 2), tall: true });
+  }
   const maples = [0, 1, 2].map(i => makeMaple(126 + i)), ferns = [7, 9, 12, 15].map((r, i) => swordFern(340 + i, r));
   for (const [dx, k] of [[-226, 0], [-150, 1], [-88, 2]]) edge.push({ tree: maples[k], x: X0 + dx, y: g(X0 + dx) - 5 });
-  for (let n = 0; n < 44; n++) {
-    const x = Math.round(X0 - 330 + re() * 290), wd = woodAt(x), front = re() < 0.6, dy = front ? 7 + sq(re()) * 70 : -5 - re() * 2, k = re();
+  for (let n = 0; n < 64; n++) {
+    const x = Math.round(X0 - 330 + re() * 480), wd = woodAt(x), front = re() < 0.6, dy = front ? 7 + sq(re()) * 70 : -5 - re() * 2, k = re();
     if (k > wd + 0.15) continue;
     edge.push({ bm: ferns[Math.min(3, (front ? 1 + dy / 30 : 0) + re() * 1.5 | 0)], x, y: g(x) + Math.round(dy) });
   }
@@ -196,7 +231,7 @@ function buildLakeside() {
   const sit = [0, 1].map(f => sideFig('trail', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: f ? [[4, -2], [2, 3]] : [[3, 3], [2, 3]] }));
   const marm = { sun: marmot('sun'), up: marmot('up') }, bird = [speck(0), speck(1)];
 
-  const st = {}, focus = { x: 0, y: 0 };
+  const st = {}, focus = { x: 0, y: 0 }, mistV = [veilTable(0.45), veilTable(0.75)];
   // swim is how far into the swim he is, in seconds (0 on the trail); dir is +1 on the way out and
   // while he stays on the island, -1 on the way back; swimT is how long the swimming part takes.
   let cam = 0, last = { camX: 0, base: 0, isle: [0, 0], me: [0, 0] }, swim = 0, dir = 0, swimT = 3, arrived = 0, whistled = false;
@@ -316,6 +351,7 @@ function buildLakeside() {
         scr.put(isle, ix, iy, false);
         for (const part of isleFir.parts) { const [wx, wy] = windAt(ISLE_X + (part.lx || 0), ISLE_Y - 5 + part.y, tq, part.sway); scr.blit(part.bm, ix + FIR_DX + part.x + wx, iy - 5 + part.y + wy); }
       }
+      if (DEBUG.mist) lakeMist(scr, camX, hor, base + 2, t, mistV);
       // The wall of the forest, over the water and the far shore.
       for (let x = Math.max(0, WX - camX), x1 = Math.min(VW, WX + WW - camX); x < x1; x++) {
         const col = camX + x - WX;

@@ -130,3 +130,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **The rope's ghost.** On a later visit to the West Ridge, the orange rope could still be hanging from the flake under the cloud, a little faded, the way abandoned ropes stay on real routes for years.
 - **Drizzle under the cloud.** A few grey streaks of drizzle under the inversion would sell the change of weather from the sunlit top.
 - **"Off belay!" behind the card.** While a card is open, the follower's arrival at the anchor could be marked with a small call bubble at the card's edge, so the visitor knows the team is ready without closing it.
+- **Morning mist that burns off.** On the lake's wooded shore the mist could be thick on the first visit of the day and thinner on each later one, the way valley mist lifts as the sun gets onto the water.
