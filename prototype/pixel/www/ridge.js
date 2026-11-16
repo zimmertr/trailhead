@@ -339,7 +339,7 @@ function makeScript() {
     const t1 = sync(), mine = pro.filter(g => g.p === p);
     // The woman comes last and takes the gear out as she reaches it; at the piton and the bolt she
     // only unclips the carabiner, and they stay in the rock.
-    const clean = () => { for (const g of mine) { move('red', Math.max(pos.red, g.d - 8), 'climb', SPEED.follow); go('red', pos.red, 'clean', g.fixed ? 0.5 : 0.8); g.gone = clock.red - 0.3; } move('red', a + AT.red, 'climb', SPEED.follow, 'stand'); };
+    const clean = () => { for (const g of mine) { move('red', Math.max(pos.red, g.d - 6), 'climb', SPEED.follow); go('red', pos.red, 'clean', g.fixed ? 0.6 : 1.0); g.gone = clock.red - 0.3; } move('red', a + AT.red, 'climb', SPEED.follow, 'stand'); };
     if (p === 1) {
       // Pitch 1: both followers at once on two ropes, the woman a few moves behind.
       move('tj', a + AT.tj, 'climb', SPEED.follow, 'stand'); stops.push({ id: CARD.a1, t: clock.tj });
@@ -381,7 +381,7 @@ const META = {
 // racking up, tying in, the fist bump. Belaying side-on, facing the climber: from below, looking up
 // and paying out; from above, looking down and taking in hand over hand. On the rock, seen from behind:
 // climbing, placing a cam (the cam in the hand going into the crack), building an anchor, cleaning
-// (a hand down at the piece, then at the harness clipping it on), and falling.
+// (a hand up at the piece, then at the harness clipping it on), and falling.
 function kitFrames(kit) {
   const side = [0, 1, 2, 3, 4, 5].map(f => sideFig(kit, { feet: [FEET[f], FEET[(f + 3) % 6]], hands: [HANDS[f], HANDS[(f + 3) % 6]], bob: [0, -1, -1, 0, -1, -1][f] }));
   const knot = (b, cx, y) => { b.set(cx, y + 7, R.white[1]); b.set(cx - 1, y + 7, R.teal[2]); b.set(cx + 1, y + 7, R.teal[2]); b.set(cx + 1, y + 8, R.teal[1]); };
@@ -398,7 +398,7 @@ function kitFrames(kit) {
     climb: [0, 1, 2, 3].map(climb),
     place: [backFig(kit, { hands: [[-5, -13], [7, -9]], feet: [[-4, 12], [4, 11]], tool: holding(true) }), backFig(kit, { hands: [[-5, -12], [6, -16]], feet: [[-4, 12], [4, 11]] })],
     anchor: [0, 1].map(f => backFig(kit, { hands: [[-4, -14 + f], [4, -13 - f]], feet: [[-3, 12], [3, 12]] })),
-    clean: [backFig(kit, { hands: [[-5, -13], [6, -4]], feet: [[-4, 12], [4, 11]] }), backFig(kit, { hands: [[-5, -13], [4, 1]], feet: [[-4, 12], [4, 11]], tool: holding(true) })],
+    clean: [backFig(kit, { hands: [[-5, -13], [5, -9]], feet: [[-4, 12], [4, 11]] }), backFig(kit, { hands: [[-5, -13], [4, 1]], feet: [[-4, 12], [4, 11]], tool: holding(true) })],
     fall: [0, 1].map(f => backFig(kit, { hands: [[-8, -13 - f], [8, -14]], feet: [[-7, 9], [7, 8 + f]], tilt: 1 }))
   };
 }
