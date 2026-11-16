@@ -11,7 +11,8 @@
 import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick } from './core.js';
 import { Strip, drawStrip, baseline, shell } from './side.js';
 import { makeConifer, makeCloud } from './sprites.js';
-import { makeRunner } from './tj.js';
+import { makeRunner, backFig } from './tj.js';
+import { makeCragPair } from './people.js';
 
 const W = 1500, UP = 520, DOWN = 380;
 // The foot of the face: level with the start at the left, falling away to the right, so the drop
@@ -232,34 +233,72 @@ function paintFar() {
   return S;
 }
 
-// Where the camera looks along the ridge for now: the line of the route, pitch by pitch.
-const LINE = [[0, 4], [236, 10], [300, 132], [352, 190], [440, 196], [512, 202], [577, 268], [690, 238], [731, 258], [800, 270], [958, 252], [1004, 288], [1040, 413], [1072, 476]];
+// The line of the climb, from the walk in to the summit. Each point is where the feet are: x, h, then
+// where it lies: 'w' on walking ground, 's' on the south face in front of the rock, 'c' on the crest,
+// 'n' on the north side behind it (only the rope over the crest shows there); and a mark at the tie-in,
+// the anchors (a1 to a4, top) and the fixed gear. It follows the landmarks drawn above, pitch by pitch.
+const P1X = h => Math.round(250 + 0.36 * h + 2 * Math.sin(h / 9) - 2);
+const ROUTE = [
+  ...[10, 40, 70, 100, 130, 160, 190, 220].map(x => [x, Math.round(knob(x)) + 2, 'w']),
+  [244, 8, 'w', 'tie'],
+  // Pitch 1: the crack up the white band, the off-width, the belay under the roof.
+  ...[16, 30, 44, 58, 72, 86, 100].map(h => [P1X(h), h, 's']), [293, 114, 's'], [294, 126, 's'], [296, 130, 's', 'a1'],
+  // Pitch 2: along under the roof, up the corner, over the roof, down to the north side's trail and back,
+  // the stride onto the jutting block, the platform.
+  [318, 134, 's'], [338, 146, 's'], [352, 152, 's'], [354, 166, 's'], [356, 180, 's'], [360, 196, 'c'], [374, 196, 'c'],
+  [382, 186, 'n'], [392, 174, 'n'], [426, 174, 'n'], [434, 182, 's'], [440, 197, 'c'], [456, 199, 'c'], [470, 201, 'c'], [488, 202, 'c'], [505, 202, 'c', 'a2'],
+  // Pitch 3: the piton at the slab's foot, up its face beside the arete to the mercy hold, the sidewalk,
+  // the down-climb, the flake.
+  [532, 203, 's', 'piton'], [542, 210, 's'], [556, 236, 's'], [570, 258, 's'], [578, 266, 'c'], [592, 270, 'c'], [606, 263, 'c'], [650, 263, 'c'], [664, 253, 's'], [676, 240, 's'], [698, 238, 'c', 'a3'],
+  // Pitch 4: round the egg hugging it, astride the fins, the slabby down-climb on the north side, the
+  // grassy walk to the big ledge.
+  [712, 252, 's'], [731, 254, 's'], [752, 258, 's'], [766, 262, 'c'], [774, 269, 'c'], [786, 263, 'c'], [799, 272, 'c'], [811, 264, 'c'], [823, 269, 'c'],
+  [838, 258, 'n'], [856, 250, 'n'], [872, 247, 's'], [930, 247, 'c'], [960, 253, 'c', 'a4'],
+  // Pitch 5: the scramble, the off-width up the headwall to the bolt at its lip, the lieback flake, the
+  // left chimney and the hole, the summit.
+  [990, 271, 's'], [1002, 285, 's'], [1014, 290, 's'], [1018, 300, 's'], [1018, 382, 's'], [1022, 388, 's', 'bolt'], [1030, 396, 's'], [1038, 413, 's'], [1050, 416, 's'], [1050, 446, 's'], [1058, 460, 'c'], [1072, 477, 'c', 'top']
+];
+const DIST = [0]; for (let i = 1; i < ROUTE.length; i++) DIST.push(DIST[i - 1] + Math.hypot(ROUTE[i][0] - ROUTE[i - 1][0], ROUTE[i][1] - ROUTE[i - 1][1]));
+const LEN = DIST[DIST.length - 1], MARK = {}; ROUTE.forEach((p, i) => { if (p[3]) MARK[p[3]] = DIST[i]; });
+// Where along the line a distance d falls: the point, where it lies, and which way and how steeply it goes.
+function posAt(d) {
+  d = clamp(d, 0, LEN); let i = 1; while (i < DIST.length - 1 && DIST[i] < d) i++;
+  const a = ROUTE[i - 1], b = ROUTE[i], u = (d - DIST[i - 1]) / Math.max(1e-6, DIST[i] - DIST[i - 1]);
+  return { x: lerp(a[0], b[0], u), h: lerp(a[1], b[1], u), where: u < 0.5 ? a[2] : b[2], dx: b[0] - a[0], dh: b[1] - a[1] };
+}
+const ANCHORS = ['tie', 'a1', 'a2', 'a3', 'a4', 'top'];
+const below = d => { let k = 0; for (let i = 0; i < ANCHORS.length; i++) if (MARK[ANCHORS[i]] <= d + 1e-6) k = i; return ANCHORS[k]; };
 
+const DUR = 60;
 const META = {
   name: 'wall',
-  dur: () => 25.8,
-  stops: () => [['wait:belay', 0.1], ['platform-engineering', 0.3], ['site-reliability-engineering', 0.5], ['software-engineering', 0.7], ['summit', 0.9]].map(([id, at]) => ({ id, at })),
-  elev: (arg, q) => along(LINE.map(([x, h], i) => [i / (LINE.length - 1), h]), clamp(q, 0, 1)),
+  dur: () => DUR,
+  stops: () => [['wait:belay', 'tie'], ['platform-engineering', 'a1'], ['site-reliability-engineering', 'a3'], ['software-engineering', 'a4'], ['summit', 'top']].map(([id, m]) => ({ id, at: MARK[m] / LEN * 0.96 + 0.02 })),
+  elev: (arg, q) => posAt(clamp((q - 0.02) / 0.96, 0, 1) * LEN).h,
   cues: () => []
 };
 
 function buildRidge() {
   const main = new Strip(W, UP, DOWN), things = [];
-  paintRidge(main); paintGround(main, things);
+  const ID = paintRidge(main); paintGround(main, things);
+  // The crest: the highest rock in every column, which the rope lies over where the route goes north.
+  const CREST = new Int16Array(W);
+  for (let x = 0; x < W; x++) { let y = 0; while (y < main.h && !ID[y * W + x]) y++; CREST[x] = main.up - y; }
   const far = paintFar(), clouds = [0, 1, 2].map(i => ({ bm: makeCloud(745 + i), x: i * 190, y: 20 + i * 46, v: 3 + i }));
-  const run = makeRunner('wall'), st = {}, focus = { x: 0, y: 0 };
-  const pathX = LINE.map(([x], i) => [i / (LINE.length - 1), x]), pathH = LINE.map(([, h], i) => [i / (LINE.length - 1), h]);
+  const run = makeRunner('wall'), pair = makeCragPair(), st = {}, focus = { x: 0, y: 0 };
+  const climbs = [0, 1, 2, 3].map(f => backFig('wall', { hands: [[-5, -12 - (f & 1 ? 3 : 0)], [5, -12 - (f & 1 ? 0 : 3)]], feet: [[-4, 11 + (f & 1 ? 0 : 2)], [4, 11 + (f & 1 ? 2 : 0)]] }));
+  const ropePts = [];
   let camX = 0, camH = 0;
+  const dOf = q => clamp((q - 0.02) / 0.96, 0, 1) * LEN;
   return {
     ...META,
-    enter(scr, arg, q) { camX = along(pathX, q); camH = along(pathH, q); st.y = null; },
+    enter(scr, arg, q) { const p = posAt(dOf(q)); camX = p.x; camH = p.h; st.y = null; },
     focus: () => focus,
     pick: () => null,
     act: () => false,
     draw(scr, env, arg, q) {
-      const { VW, VH, fb } = scr, { t } = env, qq = clamp(q, 0, 1);
-      const x = along(pathX, qq), h = along(pathH, qq), k = Math.min(1, env.dt * 6);
-      camX += (x - camX) * k; camH += (h - camH) * k;
+      const { VW, VH, fb } = scr, { t } = env, d = dOf(q), me = posAt(d), k = env.calm ? 1 : Math.min(1, env.dt * 6);
+      camX += (me.x - camX) * k; camH += (me.h - camH) * k;
       const base = baseline(scr, env.shown, st) - Math.round(VH * (scr.narrow ? 0.2 : 0.24)), cx = clamp(Math.round(camX - VW * (scr.narrow ? 0.5 : 0.45)), 0, W - VW), rowOf = hh => Math.round(base + camH - hh);
       const sb = R.skyband;
       for (let y = 0; y < VH; y++) {
@@ -268,19 +307,62 @@ function buildRidge() {
       }
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (VW + 140)) - 70, c.y + camH * 0.12 - 20);
       drawStrip(scr, far, 120 + cx * 0.15, base + camH * 0.3 + 40, false, R.far[1]);
+      // Him: walking where the line is level or on walking ground, climbing where it is steep; drawn
+      // before the rock when he is on the north side, so the crest hides him.
+      const steep = me.where !== 'w' && me.where !== 'c' && Math.abs(me.dh) > Math.abs(me.dx) * 0.8;
+      const drawMe = () => {
+        const sx = Math.round(me.x) - cx, sy = rowOf(me.h);
+        if (steep) scr.put(climbs[Math.floor(d / 6) & 3], sx, sy - 12, false);
+        else scr.put(env.moving ? run.side[Math.floor(d / 4.2) % 6] : run.sideIdle[0], sx, sy, me.dx < 0);
+        focus.x = sx; focus.y = sy - 14;
+      };
+      if (me.where === 'n') drawMe();
       drawStrip(scr, main, cx, base + camH, false, R.grass[0]);
       for (const th of things) {
         const sx = th.x - cx, sy = rowOf(th.h);
         if (sx < -40 || sx > VW + 40) continue;
         if (th.tree) for (const part of th.tree.parts) scr.blit(part.bm, sx + part.x, sy + part.y);
         else if (th.tuft) { for (let j = -th.tuft; j <= th.tuft; j++) for (let k = 0; k < th.tuft + 1 - Math.abs(j) + (j & 1); k++) scr.set(sx + j, sy - k, R.grass[k ? 3 : 1]); }
-        else { const r = th.pine; for (let j = 0; j < r; j++) for (let d = -r + j; d <= r - j; d++) scr.set(sx + d, sy - j, R.conifer[(d + j) & 1 ? 2 : 3 - (j > r / 2 ? 0 : 1)]); }
+        else { const r = th.pine; for (let j = 0; j < r; j++) for (let dd = -r + j; dd <= r - j; dd++) scr.set(sx + dd, sy - j, R.conifer[(dd + j) & 1 ? 2 : 3 - (j > r / 2 ? 0 : 1)]); }
       }
-      const fx = x - cx, fy = rowOf(h);
-      scr.put(run.sideIdle[0], fx, fy, false);
-      focus.x = Math.round(fx); focus.y = fy - 14;
+      // His belayer stands at the anchor below him, and the rope runs up the line from the belayer's hands
+      // to his waist. Where the line goes behind the crest, the rope lies over the crest instead.
+      const am = below(d), ad = MARK[am], ap = posAt(ad), bel = pair.belay[0], bf = env.moving ? (Math.floor(t * 3) & 1 ? bel.b : bel.a) : bel.ready;
+      const bx = Math.round(ap.x) - cx - 6, by = rowOf(ap.h) - 13;
+      scr.put(bf, bx, by, false);
+      if (d > ad + 2) {
+        ropePts.length = 0;
+        ropePts.push(bx + bf.grip[0], by + bf.grip[1]);
+        // Over the crest a loaded rope does not follow every dip: it runs straight from one high point to
+        // the next, so each run behind the crest takes the crest's upper hull.
+        let run = [];
+        const flush = () => { if (!run.length) return; for (const [x, h] of overHull(run)) ropePts.push(x - cx, rowOf(h)); run = []; };
+        for (let s = ad + 3; s < d; s += 3) { const p = posAt(s); if (p.where === 'n') { const x = Math.round(p.x); run.push([x, CREST[x] + 1]); } else { flush(); ropePts.push(Math.round(p.x) - cx, rowOf(p.h + 6)); } }
+        flush();
+        ropePts.push(Math.round(me.x) - cx, rowOf(me.h + (steep ? 12 : 9)));
+        rope(scr, ropePts);
+      }
+      if (me.where !== 'n') drawMe();
     }
   };
+}
+
+// The upper hull of a run of points along the crest (x rising): the line a rope stretched over it takes.
+function overHull(pts) {
+  const out = [];
+  for (const p of [...pts].sort((a, b) => a[0] - b[0])) { while (out.length > 1 && (out[out.length - 1][0] - out[out.length - 2][0]) * (p[1] - out[out.length - 2][1]) - (out[out.length - 1][1] - out[out.length - 2][1]) * (p[0] - out[out.length - 2][0]) >= 0) out.pop(); out.push(p); }
+  return out;
+}
+
+// A rope through a list of screen points: dark edges, a bright core with a fleck every few pixels.
+function rope(scr, pts) {
+  const px = [];
+  for (let i = 2; i < pts.length; i += 2) {
+    const x0 = pts[i - 2], y0 = pts[i - 1], x1 = pts[i], y1 = pts[i + 1], n = Math.max(1, Math.abs(x1 - x0), Math.abs(y1 - y0));
+    for (let k = 0; k < n; k++) px.push(Math.round(lerp(x0, x1, k / n)), Math.round(lerp(y0, y1, k / n)));
+  }
+  for (let i = 0; i < px.length; i += 2) { const x = px[i], y = px[i + 1]; scr.set(x - 1, y, INK); scr.set(x + 1, y, INK); scr.set(x, y - 1, INK); scr.set(x, y + 1, INK); }
+  for (let i = 0; i < px.length; i += 2) scr.set(px[i], px[i + 1], (i >> 1) % 5 ? R.teal[2] : R.white[1]);
 }
 
 export const makeRidge = () => shell(META, buildRidge, ['enter', 'focus', 'pick', 'act', 'draw']);
