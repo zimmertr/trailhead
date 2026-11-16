@@ -38,7 +38,7 @@ const ROUTES = {
   // yggdrasil, the via ferrata (K6): dry rock all the way (`dry`), a steel cable from the start to `cable`,
   // anchored every `anchor` of the way; iron rungs up the first wall and a fixed ladder up the second
   // (`walls`), then unclipped over bare rock to the world tree.
-  yggdrasil: { kind: 'ladder', secs: 13, sx: 470, w: 1200, dry: true, cable: 430, anchor: 58, walls: [[200, 206, 'rungs'], [320, 326, 'ladder']], pts: [[0, 0], [50, -10], [120, -24], [200, -40], [206, -150], [260, -160], [320, -170], [326, -232], [380, -246], [430, -262], [470, -270], [512, -270], [538, -232], [608, -132], [708, -12]] },
+  yggdrasil: { kind: 'ladder', secs: 15, sx: 470, w: 1200, dry: true, cable: 430, anchor: 58, walls: [[200, 206, 'rungs'], [320, 326, 'ladder']], pts: [[0, 0], [50, -10], [120, -24], [200, -40], [206, -150], [260, -160], [320, -170], [326, -232], [380, -246], [430, -262], [470, -270], [512, -270], [538, -232], [608, -132], [708, -12]] },
   // Kubernetes-Manifests, the crevasse maze (K7): the storm comes in by stages over a broken glacier; in the
   // whiteout he follows the wands to a crevasse with no way over (`dead`: where he stops, the wand he goes
   // back to, and where the line picks up beyond it), jumps a narrow one, crosses a sagging snow bridge, and
@@ -433,13 +433,17 @@ function lanyards(scr, X, Y, cfg, pts, pl, a, xAt, arcAt, tau, hx, hy, me) {
 // map and keeps every third pixel of it, until the whole picture is built.
 const PANO_K = 3;
 function pano(scr, st, env) {
-  const { VW, VH, fb } = scr, PW = Math.max(VW, Math.min(VW + 260, Math.floor(1920 / PANO_K))), PH = VH;
+  // The Trailhead sits near the map's bottom edge, so the picture ends just below it and is only as tall as
+  // the map above it allows; on a tall phone screen the rows above it are haze.
+  const { VW, VH, fb } = scr, PW = Math.max(VW, Math.min(VW + 260, Math.floor(1920 / PANO_K))), PH = Math.min(VH, Math.floor((JUNCTION.y + 20) / PANO_K));
   let P = st.pano;
-  if (!P || P.w !== PW || P.h !== PH) P = st.pano = { w: PW, h: PH, d: new Uint8Array(PW * PH), n: 0, done: false, x0: clamp(Math.round(JUNCTION.x - PW * PANO_K * 0.55), 0, 1920 - PW * PANO_K), y0: Math.max(0, Math.round(JUNCTION.y + 60 - PH * PANO_K)) };
+  if (!P || P.w !== PW || P.h !== PH) P = st.pano = { w: PW, h: PH, d: new Uint8Array(PW * PH), n: 0, done: false, x0: clamp(Math.round(JUNCTION.x - PW * PANO_K * 0.55), 0, 1920 - PW * PANO_K), y0: Math.round(JUNCTION.y + 20 - PH * PANO_K) };
   if (P.done) return;
-  const cols = Math.ceil(PW * PANO_K / VW), rows = Math.ceil(PH * PANO_K / VH), i = P.n % cols, j = Math.floor(P.n / cols), wx = P.x0 + i * VW, wy = P.y0 + j * VH;
+  // The map scene keeps a band along the bottom of the screen for its own use, so only the rows above it
+  // are taken from each screenful.
+  const use = VH - (scr.narrow ? 76 : 44), cols = Math.ceil(PW * PANO_K / VW), rows = Math.ceil(PH * PANO_K / use), i = P.n % cols, j = Math.floor(P.n / cols), wx = P.x0 + i * VW, wy = P.y0 + j * use;
   env.mapStill(wx, wy);
-  for (let y = 0; y < VH; y++) { const gy = wy + y - P.y0; if (gy % PANO_K !== 1) continue; const py = (gy - 1) / PANO_K; if (py >= PH) break; for (let x = 0; x < VW; x++) { const gx = wx + x - P.x0; if (gx % PANO_K === 1 && gx < PW * PANO_K) P.d[py * PW + (gx - 1) / PANO_K] = fb[y * VW + x]; } }
+  for (let y = 0; y < use; y++) { const gy = wy + y - P.y0; if (gy % PANO_K !== 1) continue; const py = (gy - 1) / PANO_K; if (py >= PH) break; for (let x = 0; x < VW; x++) { const gx = wx + x - P.x0; if (gx % PANO_K === 1 && gx < PW * PANO_K) P.d[py * PW + (gx - 1) / PANO_K] = fb[y * VW + x]; } }
   if (++P.n >= cols * rows) P.done = true;
 }
 // The map seen from the knife-edge: below the horizon y0 it shows through haze that is thickest at the
@@ -447,8 +451,8 @@ function pano(scr, st, env) {
 function mapBelow(scr, P, y0, x0, x1, ox) {
   const { VW, VH, fb } = scr;
   for (let y = Math.max(0, y0); y < VH; y++) {
-    const h = 1 - smooth(0, 26, y - y0), row = y * VW, prow = clamp(P.h - (VH - y) - 1, 0, P.h - 1) * P.w + ox;
-    for (let x = Math.max(0, x0); x < Math.min(VW, x1); x++) { const b = bayer(x, y); if (b > smooth(x0, x0 + 30, x) * (1 - smooth(x1 - 20, x1, x))) continue; fb[row + x] = b < h * 0.85 ? (h > 0.55 ? R.sky[4] : R.snow[2]) : P.d[prow + x]; }
+    const h = 1 - smooth(0, 26, y - y0), row = y * VW, pr = P.h - (VH - y) - 1, prow = clamp(pr, 0, P.h - 1) * P.w + ox;
+    for (let x = Math.max(0, x0); x < Math.min(VW, x1); x++) { const b = bayer(x, y); if (b > smooth(x0, x0 + 30, x) * (1 - smooth(x1 - 20, x1, x))) continue; fb[row + x] = b < h * 0.85 ? (h > 0.55 ? R.snow[3] : R.snow[2]) : pr < 0 ? (b < 0.5 ? R.snow[2] : R.snow[3]) : P.d[prow + x]; }
   }
 }
 // The whiteout closing over everything, dithered in by a.
