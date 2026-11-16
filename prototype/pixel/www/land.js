@@ -13,7 +13,8 @@ const rdg = n => 1 - Math.abs(2 * n - 1);
 const prof = pts => x => { if (x <= pts[0][0]) return pts[0][1]; for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [xa, ha] = pts[i - 1], [xb, hb] = pts[i]; return lerp(ha, hb, (x - xa) / (xb - xa)); } return pts[pts.length - 1][1]; };
 
 export { NW, SH as NH, VD, SY };
-export function buildLand() {
+// B is the bake (readBake, below): with it, the heights, the water and the picture are read, not worked out.
+export function buildLand(B = null) {
 // ---- the pieces a layout is made of ---------------------------------------------------------------
 const F = [], C = { lakes: [], trails: [] };
 // While lift is set, a piece's heights are measured from that ground and not from sea level.
@@ -191,37 +192,39 @@ const [TU, TV] = C.T;
 
 // ---- heights --------------------------------------------------------------------------------------
 const MATS = ['land', 'volc', 'crest', 'wall', 'ice', 'moraine', 'gran', 'fin'], hg = new Float32Array(NW * VD), mg = new Uint8Array(NW * VD), at = (u, v) => v * NW + u;
+if (B) { hg.set(B.hg); mg.set(B.mg); } else {
 for (let v = 0; v < VD; v++) for (let u = 0; u < NW; u++) hg[at(u, v)] = coast(u, v) > 0 ? 0 : Math.max(0, base(u, v));
 for (const f of F) { const m = MATS.indexOf(f.mat); for (let v = Math.max(0, Math.floor(f.v0)); v < Math.min(VD, f.v1); v++) for (let u = Math.max(0, Math.floor(f.u0)); u < Math.min(NW, f.u1); u++) { const h = f.fn(u, v), i = at(u, v); if (h > hg[i]) { hg[i] = h; mg[i] = m; } } }
+}
 const hAt = (u, v) => hg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))];
 // A valley's line is bent as it goes, so no reach of it is ruled. Its two ends stay where they are.
 const wander = (all, amp, seed) => { let len = 0; const total = all.reduce((t, p, n) => t + (n ? Math.hypot(p[0] - all[n - 1][0], p[1] - all[n - 1][1]) : 0), 0); return all.map(([u, v], n) => { if (n) len += Math.hypot(u - all[n - 1][0], v - all[n - 1][1]); const a = all[Math.max(0, n - 4)], b = all[Math.min(all.length - 1, n + 4)], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, k = amp * (2 * vnoise(len / 70, seed, 77) - 1 + 0.5 * Math.sin(len / 26 + seed)) * smooth(0, 50, len) * smooth(total, total - 50, len); return [u - (b[1] - a[1]) / l * k, v + (b[0] - a[0]) / l * k * 0.6]; }); };
 for (const g of C.dig) g.line = wander(catmull(g.pts), 16, g.pts.length);
 // Valleys: the ground is lowered along a line, most in the middle.
-for (const { d, w, line } of C.dig) {
+if (!B) for (const { d, w, line } of C.dig) {
   const k = new Float32Array(NW * VD);
   for (const [pu, pv] of line) for (let dv = -w; dv <= w; dv++) for (let du = -w; du <= w; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv), dd = Math.hypot(du, dv); if (dd < w && u >= 0 && v >= 0 && u < NW && v < VD) k[at(u, v)] = Math.max(k[at(u, v)], sq(1 - dd / w)); }
   for (let i = 0; i < k.length; i++) if (k[i] && MATS[mg[i]] === 'land' && hg[i] > 0) hg[i] = Math.max(0.5, hg[i] - d * k[i]);
 }
 // Then each is cut to an even grade from its start to its end, so the way out never climbs: this is
 // what takes the west river through the forest's ridges.
-for (const { line, end } of C.dig) {
+if (!B) for (const { line, end } of C.dig) {
   const all = line, h0 = hAt(all[0][0], all[0][1]), last = all[all.length - 1], h1 = end ?? hAt(last[0], last[1]);
   all.forEach(([pu, pv], n) => { if (n % 2) return; const bed = lerp(h0, h1, n / (all.length - 1)); for (let dv = -56; dv <= 56; dv++) for (let du = -56; du <= 56; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v); if (MATS[mg[i]] !== 'land' || hg[i] <= 0) continue; const t = Math.max(0.5, bed + Math.max(0, Math.hypot(du, dv) - 12) * 0.2); if (hg[i] > t) hg[i] = t; } });
 }
 // The coulee: a flat floor, a cliff, a bench, a second cliff. It deepens as the tableland rises.
-{ const all = catmull(C.coulee); all.forEach(([pu, pv], n) => { const floor = lerp(11, 2.5, n / (all.length - 1)); for (let dv = -44; dv <= 44; dv++) for (let du = -44; du <= 44; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const d = Math.hypot(du, dv) + 9 * (fbm(u / 23, v / 23, 440, 2) - 0.5), rise = d < 13 ? 0 : d < 18 ? 14 * (d - 13) / 5 : d < 33 ? 14 + (d - 18) * 0.07 : d < 39 ? 15 + 15 * (d - 33) / 6 : 1e9; if (hg[at(u, v)] > floor + rise) hg[at(u, v)] = floor + rise; } }); }
+if (!B) { const all = catmull(C.coulee); all.forEach(([pu, pv], n) => { const floor = lerp(11, 2.5, n / (all.length - 1)); for (let dv = -44; dv <= 44; dv++) for (let du = -44; du <= 44; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const d = Math.hypot(du, dv) + 9 * (fbm(u / 23, v / 23, 440, 2) - 0.5), rise = d < 13 ? 0 : d < 18 ? 14 * (d - 13) / 5 : d < 33 ? 14 + (d - 18) * 0.07 : d < 39 ? 15 + 15 * (d - 33) / 6 : 1e9; if (hg[at(u, v)] > floor + rise) hg[at(u, v)] = floor + rise; } }); }
 // Still water is level, so a lake flattens the ground under it to the height of its shore.
 const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypot((u - ISLE[0]) / 7, (v - ISLE[1]) / 3.2);
 const lakeRim = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) { const d = Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); if (d >= 1 && d < 1 + 2.2 / Math.min(ru, 8 * rv)) return kind; } return null; };
 const lakeAt = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) if (Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5) < 1) return kind; return null; };
-for (const [cu, cv, ru, rv] of C.lakes) { const lv = hAt(cu, cv - rv); for (let v = Math.floor(cv - rv - 2); v <= cv + rv + 2; v++) for (let u = Math.floor(cu - ru - 2); u <= cu + ru + 2; u++) if (lakeAt(u, v)) hg[at(u, v)] = lv; }
+if (!B) for (const [cu, cv, ru, rv] of C.lakes) { const lv = hAt(cu, cv - rv); for (let v = Math.floor(cv - rv - 2); v <= cv + rv + 2; v++) for (let u = Math.floor(cu - ru - 2); u <= cu + ru + 2; u++) if (lakeAt(u, v)) hg[at(u, v)] = lv; }
 // ---- water finds its own way ----------------------------------------------------------------------
 // Every spot drains to a lower neighbour. Hollows are filled first, by flooding inward from the sea
 // and from the dry corner's edge, lowest ground first, so no stream dead-ends. Worked at half size.
 // A little noise on the heights makes a stream wander where the ground is flat.
 const trail = new Uint8Array(NW * VD), water = new Uint8Array(NW * VD), routes = [];
-{
+if (B) water.set(B.water); else {
   const RW = NW >> 1, RH = VD >> 1, N = RW * RH, fill = new Float32Array(N), down = new Int32Array(N).fill(-2), flow = new Float32Array(N), hk = [], hi = [];
   const push = (k, i) => { let n = hk.length; hk.push(k); hi.push(i); while (n > 0) { const p = (n - 1) >> 1; if (hk[p] <= k) break; hk[n] = hk[p]; hi[n] = hi[p]; n = p; } hk[n] = k; hi[n] = i; };
   const pop = () => { const top = hi[0], k = hk.pop(), i = hi.pop(), len = hk.length; if (len) { let n = 0; for (;;) { let c = 2 * n + 1; if (c >= len) break; if (c + 1 < len && hk[c + 1] < hk[c]) c++; if (hk[c] >= k) break; hk[n] = hk[c]; hi[n] = hi[c]; n = c; } hk[n] = k; hi[n] = i; } return top; };
@@ -246,6 +249,8 @@ const trail = new Uint8Array(NW * VD), water = new Uint8Array(NW * VD), routes =
   // An oxbow: a bend the west river left behind, in the flat of the meadow.
   { const p = routes[1].pts, k = p.findIndex(([u, v]) => u < 900 && v < 300), q = p[k], q2 = p[Math.min(p.length - 1, k + 12)]; if (k > 0) { const a = Math.atan2(q2[1] - q[1], q2[0] - q[0]), cx = q[0] + Math.cos(a + 1.4) * 22, cy = q[1] + Math.sin(a + 1.4) * 22 * 0.6; for (let t = 0; t < 60; t++) { const b = a + 1.4 + 1.0 + t / 60 * 4.3, u = Math.round(cx + Math.cos(b) * 15), v = Math.round(cy + Math.sin(b) * 9); for (let dv = -1; dv <= 1; dv++) for (let du = -2; du <= 2; du++) if (hg[at(u + du, v + dv)] > 0 && !water[at(u + du, v + dv)]) water[at(u + du, v + dv)] = Math.abs(du) < 2 ? 2 : 1; } } }
 }
+// The heights are kept to 32nds of a pixel, baked or not, so the map read from a bake is the same map.
+if (!B) for (let i = 0; i < hg.length; i++) hg[i] = Math.round(hg[i] * 32) / 32;
 function stamp(mask, pts, r0, r1) { pts.forEach(([pu, pv], n) => { const rr = lerp(r0, r1, n / (pts.length - 1)), R2 = Math.ceil(rr + 1); for (let dv = -R2; dv <= R2; dv++) for (let du = -R2; du <= R2; du++) { const d = Math.hypot(du, dv), u = Math.round(pu + du), v = Math.round(pv + dv), k = d <= rr ? 2 : d <= rr + 1 ? 1 : 0; if (k && u >= 0 && v >= 0 && u < NW && v < VD && mask[at(u, v)] < k) mask[at(u, v)] = k; } }); }
 const trailPts = []; for (const t of C.trails) { const all = catmull(t); stamp(trail, all, 1.9, 1.9); trailPts.push(...all); }
 const nearTrail = (u, v, r) => { for (let i = 0; i < trailPts.length; i += 3) { const p = trailPts[i]; if (Math.abs(p[0] - u) < r && Math.abs(p[1] - v) < r) return true; } return false; };
@@ -345,6 +350,8 @@ function b2(x, y) { return bayer(x, y); }
 // ---- the picture ----------------------------------------------------------------------------------
 const g = new Uint8Array(NW * SH), mb = new Uint8Array(NW * SH).fill(255), zb = new Float32Array(NW * SH).fill(1e9), px = (x, y) => y * NW + x;
 const skyAt = (x, y) => { const sb = R.skyband, f = clamp(y / 340, 0, 1) * (sb.length - 1), b0 = Math.floor(f), e = f - b0; return sb[Math.min(sb.length - 1, b0 + (e > 0.72 && bayer(x, y) < (e - 0.72) / 0.28 ? 1 : 0))]; };
+const painted = new Uint8Array(NW * SH);
+if (B) { g.set(B.g); mb.set(B.mb); zb.set(B.zb); painted.set(B.painted); } else {
 for (let y = 0; y < SH; y++) for (let x = 0; x < NW; x++) g[px(x, y)] = skyAt(x, y);
 // The far ranges, which really are a backdrop: pale, beyond the last of the ground.
 function farRow(u0, u1, baseY, env, seed, snowy, list) {
@@ -404,7 +411,6 @@ for (let u = 0; u < NW; u++) {
 // at the mountain's depth, so anything nearer still stands in front. Its stand-in meadow is left out:
 // the land's own meadow, trees and flowers are drawn there. The whole painting stands at the mountain's
 // depth, so nothing behind the mountain can be drawn over it, and nothing is planted on it (painted).
-const painted = new Uint8Array(NW * SH);
 {
   const P = paintMonolith(), { cu, cv, H } = VOLC, VI = MATS.indexOf('volc'), ox = cu - PMCX;
   // Line the picture up with the ground: the row of the picture's summit goes where the ground's top is.
@@ -551,6 +557,7 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
     }
   }
 }
+}
 // ---- things that stand up -------------------------------------------------------------------------
 const things = [], put = (bm, u, v, f, tree) => things.push({ bm, u: Math.round(u), v: Math.round(v), fog: f, isTree: tree }), plant = (tree, u, v, f) => things.push({ tree, u: Math.round(u), v: Math.round(v), fog: f });
 const wet8 = (u, v) => { for (let dv = -3; dv <= 6; dv += 3) for (let du = -9; du <= 9; du += 3) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) return true; return false; };
@@ -637,23 +644,63 @@ for (const th of things) {
   let n = 0, seen = 0;
   each((bm, sx, sy) => { for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { if (!bm.d[j * bm.w + i]) continue; n++; const x = sx + i, y = sy + j; if (x >= 0 && y >= 0 && x < NW && y < SH && zb[px(x, y)] >= th.v - 3) seen++; } });
   if (!(th.fog > 0.22) && seen >= n * 0.97) { live.push(th.tree ? { tree: th.tree, x: th.u, y: fy, v: th.v } : { bm: th.bm, x: th.u, y: fy, v: th.v, fern: th.fern, isTree: th.isTree }); continue; }
-  if (seen >= n * 0.12) each(blit);
+  if (!B && seen >= n * 0.12) each(blit);
 }
 
-for (const th of live) {
+if (!B) for (const th of live) {
   if (!th.tree && !th.isTree) continue;
   const rx = (th.tree ? th.tree.w : th.bm.w) * 0.42;
   for (let dy = -3; dy <= 3; dy++) for (let dx = -Math.ceil(rx); dx <= rx; dx++) { if (sq(dx / rx) + sq(dy / 3.2) > 1) continue; const x = th.x + dx + 2, y = th.y + dy - 1; if (x < 0 || y < 0 || x >= NW || y >= SH) continue; const i = px(x, y); if (Math.abs(zb[i] - th.v) < 5 && g[i] !== INK) g[i] = SHADE[g[i]]; }
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { g, depth: zb, mat: mb, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { g, depth: zb, mat: mb, hg, mg, painted, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
 // The scene works in positions on the map picture: x across, y down. Below is the land in those terms,
 // under the names the scene took from round 3's terrain.js. Every position is worked out from the
 // layout above, so moving a place there moves everything that belongs to it.
-export const LAND = buildLand();
+// The ground takes seconds to work out, so bake.sh works it out ahead of time into ground.png: the
+// picture, the depth and what each pixel is made of, which pixels are painted mountain, then the heights,
+// the materials and the water of the map. A bake is used only if it was made from the same source as
+// this page (sourceSig); otherwise the land is worked out here, which is slow, not wrong.
+export async function sourceSig() {
+  const seen = new Set(), queue = ['./land.js']; let h = 2166136261;
+  while (queue.length) {
+    const f = queue.shift(); if (seen.has(f)) continue; seen.add(f);
+    const t = await (await fetch(new URL(f, import.meta.url))).text();
+    for (let i = 0; i < t.length; i++) h = Math.imul(h ^ t.charCodeAt(i), 16777619) >>> 0;
+    for (const m of t.matchAll(/from '(\.\/[\w.]+\.js)'/g)) queue.push(m[1]);
+  }
+  return h.toString(16);
+}
+export const BAKE_ROWS = 5 * SH + 4 * VD;
+async function readBake() {
+  if (globalThis.__noBake) return null;
+  try {
+    const res = await fetch(new URL('./ground.png', import.meta.url)); if (!res.ok) return null;
+    const b = new Uint8Array(await res.arrayBuffer()), dv = new DataView(b.buffer), parts = []; let w = 0, h = 0, sig = '';
+    for (let p = 8; p + 12 <= b.length;) {
+      const n = dv.getUint32(p), type = String.fromCharCode(b[p + 4], b[p + 5], b[p + 6], b[p + 7]);
+      if (type === 'IHDR') { w = dv.getUint32(p + 8); h = dv.getUint32(p + 12); }
+      else if (type === 'IDAT') parts.push(b.subarray(p + 8, p + 8 + n));
+      else if (type === 'tEXt') { const t = String.fromCharCode(...b.subarray(p + 8, p + 8 + n)); if (t.startsWith('sig\0')) sig = t.slice(4); }
+      p += 12 + n;
+    }
+    const want = await sourceSig();
+    if (w !== NW || h !== BAKE_ROWS || sig !== want) { if (location.hostname === 'localhost') console.warn('ground.png no longer matches the map: run ./bake.sh'); return null; }
+    const px = new Uint8Array(await new Response(new Blob(parts).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
+    if (px.length !== (w + 1) * h) return null;
+    // One plane after another, each as wide as the map; every row starts with a 0 (stored as it is).
+    let y0 = 0; const plane = rows => { const a = new Uint8Array(NW * rows); for (let y = 0; y < rows; y++) a.set(px.subarray((y0 + y) * (w + 1) + 1, (y0 + y + 1) * (w + 1)), y * NW); y0 += rows; return a; };
+    const g = plane(SH), zh = plane(SH), zl = plane(SH), mb = plane(SH), painted = plane(SH), hh = plane(VD), hl = plane(VD), mg = plane(VD), water = plane(VD);
+    const zb = new Float32Array(NW * SH), hg = new Float32Array(NW * VD);
+    for (let i = 0; i < zb.length; i++) { const q = zh[i] << 8 | zl[i]; zb[i] = q === 65535 ? 1e9 : q / 64; }
+    for (let i = 0; i < hg.length; i++) hg[i] = (hh[i] << 8 | hl[i]) / 32;
+    return { g, zb, mb, painted, hg, mg, water };
+  } catch (e) { console.warn('ground.png could not be read', e); return null; }
+}
+export const LAND = buildLand(await readBake());
 const C = LAND.C, sxy = (u, v) => [Math.round(u), LAND.toY(u, v)];
 // How far from the camera the ground drawn at a spot of the picture is. Sky is past everything.
 const vAt = (x, y) => { x = Math.round(x); y = Math.round(y); return x < 0 || y < 0 || x >= NW || y >= SH ? 1e9 : LAND.depth[y * NW + x]; };
