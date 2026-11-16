@@ -244,7 +244,7 @@ function breeze(x, y, t, amt) {
     return u < 0.6 || u > 0.76 ? LEAN : STILL;
   }
   if (amt < 0.5) return STILL;
-  const xr = Math.round(x), yr = Math.round(y), ph = frac(t / (2.4 + 2.6 * hash(xr, yr, 402)) + hash(xr, yr, 403));
+  const xr = Math.round(x), yr = Math.round(y), ph = frac(t / (3.6 + 3.9 * hash(xr, yr, 402)) + hash(xr, yr, 403));
   return ph < 0.13 ? LEAN : ph > 0.5 && ph < 0.6 ? BACK : STILL;
 }
 
