@@ -243,7 +243,7 @@ function trailMap() {
   // Under the map, the same places as words: every milestone is a link.
   const lengths = api.info().lengths, list = ids => el('ul', {}, ...ids.map(id => el('li', {}, el('button', { text: CARDS[id] ? CARDS[id].title : PROJECTS[id].name, onclick: () => navigate('#' + slugOf(id)) }))));
   const key = el('div', { class: 'key' },
-    el('div', {}, el('h3', { text: UI.map.lake[0] }), el('small', { text: UI.map.lake[1](lengths.lake) }), list(['who', 'mountains', 'note'])),
+    el('div', {}, el('h3', { text: UI.map.lake[0] }), el('small', { text: UI.map.lake[1](lengths.loop) }), list(['who', 'mountains', 'note'])),
     el('div', {}, el('h3', { text: UI.map.stack[0] }), el('small', { text: UI.map.stack[1](lengths.stack) }), list(['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'])),
     el('div', {}, el('h3', { text: UI.map.spires[0] }), el('small', { text: UI.map.spires[1](lengths.spires) }), list(SPIRE_ORDER)));
   const done = api.done(), all = done.lake && done.stack && done.spires;
@@ -343,7 +343,7 @@ try {
   });
   $('intro').textContent = INTRO;
   const lengths = api.info().lengths;
-  for (const d of DESTINATIONS) $('signs').append(el('li', {}, el('button', { class: 'plank choice', 'data-route': d.route, onclick: e => { e.currentTarget.blur(); travel(d.route); } }, el('i', { class: 'arrow ' + d.dir }), el('span', {}, el('span', { text: d.sign }), el('span', { class: 'where', text: d.about })), el('small', { text: d.route === 'lake' ? lengths.lake + ' km loop' : lengths[d.route] + ' km' }))));
+  for (const d of DESTINATIONS) $('signs').append(el('li', {}, el('button', { class: 'plank choice', 'data-route': d.route, onclick: e => { e.currentTarget.blur(); travel(d.route); } }, el('i', { class: 'arrow ' + d.dir }), el('span', {}, el('span', { text: d.sign }), el('span', { class: 'where', text: d.about })), el('small', { text: UI.map.plank[d.route](lengths[d.route]) }))));
   // Each sign also says how long its route takes there and back, once its scenes are loaded.
   for (const b of $('signs').querySelectorAll('[data-route]')) api.routeTime(b.dataset.route).then(sec => { if (sec > 1) b.querySelector('small').append(document.createElement('br'), UI.map.takes(sec)); });
   for (const id of ['top', 'bar']) $(id).hidden = false;

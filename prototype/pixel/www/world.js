@@ -520,7 +520,10 @@ export function makeWorld(bake) {
 
   return {
     name: 'world', paths, lakeIn, lakeOut, spiresIn, T, WW, WH,
-    lengths: () => ({ lake: 5.2, stack: Math.round(paths.stack.len * KM * 10) / 10, spires: Math.round(paths.spires.len * KM * 10) / 10 }),
+    // The distances (L8), all read off the map's own trails at one scale, as a trail sign gives them: to the
+    // lake's shore along the loop (where it comes out by the water), to the foot of the peak's ridge, to base
+    // camp; and the lake loop all the way round, for the trail map. Round 3 wrote the lake's 5.2 by hand.
+    lengths: () => { const km = (k, f = 1) => Math.round(paths[k].len * f * KM * 10) / 10; return { lake: km('lake', lakeOut), loop: km('lake'), stack: km('stack'), spires: km('spires') }; },
     dur: leg => leg.secs || Math.abs(leg.to - leg.from) * paths[leg.path].len / RUN,
     stops: () => [],
     // North on the map is uphill, which is all the profile along the bottom needs.
