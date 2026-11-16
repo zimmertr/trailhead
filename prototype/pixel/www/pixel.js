@@ -58,20 +58,23 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   const FAST = 2; let fast = false, pace = 1;
   const look = { x: 0, y: 0 }, FREE = { x0: -150, x1: 150, y0: -40, y1: 40 };
   let recentre = false, wasRunning = false;
-  // Zoom, on the map only: whole steps of pixel size either side of the one that suits the window. It stops
-  // short of a view wider or taller than the world, so the camera's limits still hide the world's edge.
-  let zoom = 0, anchor = null, glideNext = false, glide = null;
+  // Zoom, on the map only. The pixel size eases toward the one asked for, any size in between, about
+  // the point under the pointer. It goes out until the map fills the window one way (the whole map shows
+  // along that edge) and in to twice the size that suits the window. Left alone, it settles on a whole
+  // pixel size so the pixels are crisp again (debug: snap).
+  let zT = 0, zC = 0, zAt = null, zLast = 0, zDir = 0, glide = null;
   const calm = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
-  const zoomRange = () => { const dpr = window.devicePixelRatio || 1, fit = Math.ceil(Math.max(innerWidth * dpr / (world.WW - 56), innerHeight * dpr / (world.WH - 56))); return [Math.min(scr.S0, Math.max(Math.ceil(scr.S0 / 2), fit)), scr.S0 * 2]; };
-  // at: the point of the page, in CSS pixels, that should stay over the same spot of the map.
-  function zoomBy(d, at) {
+  const zoomRange = () => { const dpr = window.devicePixelRatio || 1, fit = Math.max(innerWidth * dpr / world.WW, innerHeight * dpr / world.WH); return [Math.min(scr.S0, fit), scr.S0 * 2]; };
+  function zoomTo(z, at) {
     if (drawn.s !== 'world' || tr) return false;
-    endGlide();
-    const [lo, hi] = zoomRange(), s = clamp(scr.S0 + zoom + d, lo, hi); if (s === scr.S) return false;
-    const dpr = window.devicePixelRatio || 1;
-    if (at) { const w = world.at(at[0] * dpr / scr.S, at[1] * dpr / scr.S); anchor = { wx: w.x, wy: w.y, sx: at[0] * dpr / s, sy: at[1] * dpr / s }; }
-    zoom = s - scr.S0; glideNext = !calm.matches; emit({ type: 'sfx', name: 'step' });
-    return true;
+    const [lo, hi] = zoomRange(), was = zT || scr.S; zT = clamp(z, lo, hi); zAt = at || null; zLast = performance.now(); if (zT !== was) zDir = Math.sign(zT - was);
+    return zT !== was;
+  }
+  // at: the point of the page, in CSS pixels, that should stay over the same spot of the map.
+  // One step, from a key or a button: to the next whole size, or out to the whole map.
+  function zoomBy(d, at) {
+    const base = zT || scr.S, next = d > 0 ? Math.floor(base + 1e-3) + 1 : Math.ceil(base - 1e-3) - 1;
+    const ok = zoomTo(next < zoomRange()[0] ? 0 : next, at); if (ok) emit({ type: 'sfx', name: 'step' }); return ok;
   }
   // A zoom step swaps to a new whole pixel size in one frame, which reads as a jump. So the picture glides
   // from the old view to the new one for a moment and only rests on whole pixels. Zooming in, the last
@@ -233,7 +236,15 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       }
     }
     let gliding = null;
-    { const [lo, hi] = zoomRange(), s = drawn.s === 'world' ? clamp(scr.S0 + zoom, lo, hi) : scr.S0; if (s !== scr.S) { if (glideNext && drawn.s === 'world' && !tr) gliding = { S: scr.S, o: world.at(0, 0), shot: s > scr.S ? snapshot() : null }; scr.setScale(s); if (anchor) env.anchor = anchor; } anchor = null; glideNext = false; }
+    if (drawn.s === 'world') {
+      const [lo, hi] = zoomRange(); zT = clamp(zT || scr.S0, lo, hi); if (!zC) zC = scr.S;
+      if (DEBUG.snap && dragging !== 'pinch' && performance.now() - zLast > 260 && zT > 1) { const w = zDir > 0 ? Math.ceil(zT - 0.15) : Math.floor(zT + 0.15); if (w >= lo && w <= hi) zT = w; }
+      zC = calm.matches ? zT : zC + (zT - zC) * (1 - Math.exp(-dt * 14)); if (Math.abs(zC - zT) < 0.003) zC = zT;
+      if (zC !== scr.S) {
+        const dpr = window.devicePixelRatio || 1, at = zAt || [innerWidth / 2, innerHeight / 2], w = world.at(at[0] * dpr / scr.S, at[1] * dpr / scr.S);
+        scr.setScale(zC); if (!tr) env.anchor = { wx: w.x, wy: w.y, sx: at[0] * dpr / zC, sy: at[1] * dpr / zC };
+      }
+    } else if (scr.S !== scr.S0) scr.setScale(scr.S0);
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
     env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = dt; env.mix = mix;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
@@ -264,18 +275,18 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
 
   // Drag to look around. The view pushes back as it nears a scene's limit. A press that does not move is a click on
   // whatever is under it.
-  let lastPt = null, moved = 0, hover = null, wheelAcc = 0, wheelAt = 0, wheelStep = 0;
+  let lastPt = null, moved = 0, hover = null;
   const toView = e => { const k = (window.devicePixelRatio || 1) / scr.S; return [e.clientX * k, e.clientY * k]; };
   // What is under a point. A fingertip is blunt, so a touch that misses also tries the ground close around it.
   const probe = (x, y, blunt) => { if (!drawn.scene.pick) return null; let h = drawn.scene.pick(x, y); if (!h && blunt) for (const r of [5, 9]) for (let a = 0; a < 8 && !h; a++) h = drawn.scene.pick(x + r * Math.cos(a * Math.PI / 4), y + r * Math.sin(a * Math.PI / 4)); return h; };
-  // Two fingers pinch to zoom: each time they have moved apart or together by a third, one step.
-  const touches = new Map(); let pinch0 = 0;
+  // Two fingers pinch to zoom, smoothly, about the point between them.
+  const touches = new Map(); let pinch0 = 0, pinchZ = 0;
   const spread = () => { const [a, b] = [...touches.values()]; return [Math.hypot(a[0] - b[0], a[1] - b[1]), [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]]; };
-  canvas.addEventListener('wheel', e => { if (drawn.s !== 'world') return; e.preventDefault(); acted(); const now = performance.now(); if (now - wheelAt > 320) wheelAcc = 0; wheelAcc += e.deltaY * (e.deltaMode === 1 ? 30 : 1); if (Math.abs(wheelAcc) >= 40 && now - wheelStep > 170) { zoomBy(wheelAcc < 0 ? 1 : -1, [e.clientX, e.clientY]); wheelAcc = 0; wheelStep = now; } wheelAt = now; }, { passive: false });
-  canvas.addEventListener('pointerdown', e => { touches.set(e.pointerId, [e.clientX, e.clientY]); if (touches.size > 1) { if (touches.size === 2) { dragging = 'pinch'; pinch0 = spread()[0]; lastPt = null; } try { canvas.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer knows */ } return; } dragging = 'look'; recentre = false; moved = 0; lastPt = [e.clientX, e.clientY]; try { canvas.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer knows */ } });
+  canvas.addEventListener('wheel', e => { if (drawn.s !== 'world') return; e.preventDefault(); acted(); const dy = clamp(e.deltaY * (e.deltaMode === 1 ? 30 : 1), -240, 240); zoomTo((zT || scr.S) * Math.exp(-dy * 0.0016), [e.clientX, e.clientY]); }, { passive: false });
+  canvas.addEventListener('pointerdown', e => { touches.set(e.pointerId, [e.clientX, e.clientY]); if (touches.size > 1) { if (touches.size === 2) { dragging = 'pinch'; pinch0 = spread()[0]; pinchZ = zT || scr.S; lastPt = null; } try { canvas.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer knows */ } return; } dragging = 'look'; recentre = false; moved = 0; lastPt = [e.clientX, e.clientY]; try { canvas.setPointerCapture(e.pointerId); } catch { /* a pointer the browser no longer knows */ } });
   canvas.addEventListener('pointermove', e => {
     if (touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
-    if (dragging === 'pinch' || dragging === 'held') { if (dragging === 'pinch' && touches.size === 2) { const [d, mid] = spread(); if (pinch0 > 0 && (d > pinch0 * 1.3 || d < pinch0 / 1.3)) { zoomBy(d > pinch0 ? 1 : -1, mid); pinch0 = d; } } return; }
+    if (dragging === 'pinch' || dragging === 'held') { if (dragging === 'pinch' && touches.size === 2) { const [d, mid] = spread(); if (pinch0 > 0) zoomTo(pinchZ * d / pinch0, mid); } return; }
     if (dragging === 'look' && lastPt) {
       const k = (window.devicePixelRatio || 1) / scr.S;
       moved += Math.abs(e.clientX - lastPt[0]) + Math.abs(e.clientY - lastPt[1]);

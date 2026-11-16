@@ -257,7 +257,9 @@ class Screen {
     const S = this.S = this.fixed ? 1 : this.want || S0;
     const VW = this.VW = this.fixed ? this.fixed[0] : Math.ceil(Wd / S), VH = this.VH = this.fixed ? this.fixed[1] : Math.ceil(Hd / S);
     this.canvas.width = VW; this.canvas.height = VH;
-    if (!this.fixed) { this.canvas.style.width = (VW * S / dpr) + 'px'; this.canvas.style.height = (VH * S / dpr) + 'px'; }
+    // The map may be shown at any size, not only whole pixels. Smaller than one screen pixel to a pixel,
+    // the picture is smoothed rather than having pixels dropped.
+    if (!this.fixed) { this.canvas.style.width = (VW * S / dpr) + 'px'; this.canvas.style.height = (VH * S / dpr) + 'px'; this.canvas.style.imageRendering = S < 1 ? 'auto' : ''; }
     this.fb = new Uint8Array(VW * VH); this.img = this.ctx.createImageData(VW, VH); this.u32 = new Uint32Array(this.img.data.buffer);
     this.lastLut = -1;
     // A tall, narrow view (a phone held upright) has its panels across the bottom, so scenes
@@ -369,7 +371,7 @@ const BLACK = 255;
 
 // What the hidden debug panel has switched: the first five are layers that can be turned off, the
 // rest are outlines that can be turned on. The scenes read it as they draw.
-const DEBUG = { trees: true, clouds: true, mist: true, labels: true, animals: true, roam: false, taps: false, trails: false, camera: false };
+const DEBUG = { snap: true, trees: true, clouds: true, mist: true, labels: true, animals: true, roam: false, taps: false, trails: false, camera: false };
 
 export {
   DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
