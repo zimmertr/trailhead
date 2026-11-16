@@ -177,6 +177,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     if (!running || (tr && tr.phase === 'out' && !tr.to)) return;
     // A scene may keep him where he is while something plays out (he swims back before he runs on).
     if (!tr && drawn.scene.hold && drawn.scene.hold(env)) return;
+    // A scene may have played on behind a card while it was read (the West Ridge's followers, H17):
+    // the timeline catches up by that much as he sets off again.
+    if (!tr && drawn.scene.skip) { const sk = drawn.scene.skip(); if (sk > 0) p = Math.min(drawn.t1 - 1e-6, p + sk / total); }
     const before = p;
     pace += ((fast ? FAST : 1) - pace) * (1 - Math.exp(-dt * 9));
     let next = Math.min(1, p + dt * pace / total);

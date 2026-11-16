@@ -129,3 +129,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **Call "Rope!"** Before throwing a rappel rope climbers shout "Rope!" so nobody below gets hit. A one-word bubble from the leader as he throws would teach it.
 - **The rope's ghost.** On a later visit to the West Ridge, the orange rope could still be hanging from the flake under the cloud, a little faded, the way abandoned ropes stay on real routes for years.
 - **Drizzle under the cloud.** A few grey streaks of drizzle under the inversion would sell the change of weather from the sunlit top.
+- **"Off belay!" behind the card.** While a card is open, the follower's arrival at the anchor could be marked with a small call bubble at the card's edge, so the visitor knows the team is ready without closing it.

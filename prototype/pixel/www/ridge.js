@@ -624,6 +624,8 @@ function makeScript() {
   const CARD = { a1: 'platform-engineering', a3: 'site-reliability-engineering', a4: 'software-engineering' };
   for (let p = 1; p <= 5; p++) {
     const a = MARK[PITCH[p]], t0 = sync(), gear = gearOn(p);
+    // The card opened at the last anchor stays readable until everyone is up and the next pitch starts.
+    for (const st of stops) if (st.settle == null && st.id !== 'wait:belay') st.settle = t0;
     // The leader climbs on TJ's belay, stopping at each piece to place it (or clip it, if fixed), then
     // builds the anchor and takes the followers on belay from above.
     // A cam goes from the rack to his hand to the crack (in at t), then the rope is clipped (clip).
@@ -685,7 +687,8 @@ function makeScript() {
   // The summit (H15): once she is up, TJ steps up onto the top boulder beside the leader and they high
   // five; she comes up after him and he turns to high five her too; then she sits just below on the
   // next block and the card opens. The moves are drawn from SUMMIT_MOVES; the script only holds them.
-  const sumT = sync(); for (const k of WHO) go(k, pos[k], 'summit', SUMMIT_LEN);
+  const sumT = sync(); for (const st of stops) if (st.settle == null && st.id !== 'wait:belay') st.settle = sumT;
+  for (const k of WHO) go(k, pos[k], 'summit', SUMMIT_LEN);
   stops.push({ id: 'summit', t: sumT + SUMMIT_LEN - 0.4 });
   // The summit anchor comes down as they set off for the edge.
   const descT = sync(); for (const k of WHO) go(k, pos[k], 'desc', DESC_LEN); anc[anc.length - 1].gone = descT + 0.6;
@@ -1027,6 +1030,10 @@ function buildRidge() {
   const packs = [makePack(R.teal), makePack(R.red), makePack([R.mustard[0], R.mustard[1], R.mustard[2]])], dropAt = SCRIPT.dropAt;
   const ropePts = [];
   let camX = 0, camH = 0;
+  // While a card is open at a belay (H17), the ridge plays on behind it at its own pace, the followers
+  // climbing up, until everyone is at the anchor: ahead is how far it has got. When the visitor carries
+  // on, the timeline jumps by that much (skip), so nothing is watched twice.
+  let ahead = 0, aheadAt = -1;
   // A gust now and then: one in each 9 seconds, at a random point in its first 4, lasting 3; and the
   // debug menu's gust, now.
   const GUSTR = { slot: 9, len: 3 };
@@ -1092,9 +1099,13 @@ function buildRidge() {
     focus: () => focus,
     pick: () => null,
     act: () => false,
+    skip() { const a = ahead; ahead = 0; aheadAt = -1; return a; },
     trigger(name, t) { if (name === 'ridgegust') { gustGo = t; return true; } if (name === 'raven') { ravenGo = t; return true; } return false; },
     draw(scr, env, arg, q) {
-      const { VW, VH, fb } = scr, { t } = env, tau = q * DUR, S = stateAt(tau), k = env.calm ? 1 : Math.min(1, env.dt * 5);
+      const tau0 = q * DUR, card = env.running ? null : SCRIPT.stops.find(st => st.settle && Math.abs(st.t - tau0) < 0.02);
+      if (card) { if (aheadAt !== card.t) { aheadAt = card.t; ahead = 0; } ahead = Math.min(card.settle - card.t, ahead + env.dt); }
+      else if (!env.running) { ahead = 0; aheadAt = -1; }
+      const { VW, VH, fb } = scr, { t } = env, tau = tau0 + ahead, S = stateAt(tau), k = env.calm ? 1 : Math.min(1, env.dt * 5);
       // The camera holds on whoever is on the live end of a rope (between the two of them on pitch 1, and
       // between climber and belayer while someone hangs on the rope, so the catch is seen),
       // so it does not jump back to the belayer each time the climber stops; him the rest of the time.
@@ -1352,4 +1363,4 @@ function rope(scr, pts, two) {
   for (let i = 0; i < px.length; i += 2) scr.set(px[i], px[i + 1], (i >> 1) % 5 ? (two ? R.blaze[1] : R.teal[2]) : R.white[1]);
 }
 
-export const makeRidge = () => shell(META, buildRidge, ['enter', 'focus', 'pick', 'act', 'draw', 'trigger']);
+export const makeRidge = () => shell(META, buildRidge, ['enter', 'focus', 'pick', 'act', 'draw', 'trigger', 'skip']);
