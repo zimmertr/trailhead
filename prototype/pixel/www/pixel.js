@@ -237,7 +237,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     }
     let gliding = null;
     if (drawn.s === 'world') {
-      const [lo, hi] = zoomRange(); zT = clamp(zT || scr.S0, lo, hi); if (!zC) zC = scr.S;
+      // It opens wide on a window wider than tall, one screen pixel to one pixel of the map (the opening
+      // view TJ chose at STOP 2a); on a phone held upright, at the size that suits it.
+      const [lo, hi] = zoomRange(); zT = clamp(zT || (scr.narrow ? scr.S0 : (window.devicePixelRatio || 1)), lo, hi); if (!zC) zC = calm.matches ? zT : scr.S;
       if (DEBUG.snap && dragging !== 'pinch' && performance.now() - zLast > 260 && zT > 1) { const w = zDir > 0 ? Math.ceil(zT - 0.15) : Math.floor(zT + 0.15); if (w >= lo && w <= hi) zT = w; }
       zC = calm.matches ? zT : zC + (zT - zC) * (1 - Math.exp(-dt * 14)); if (Math.abs(zC - zT) < 0.003) zC = zT;
       if (zC !== scr.S) {

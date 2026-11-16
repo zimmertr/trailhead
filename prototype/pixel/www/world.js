@@ -203,7 +203,9 @@ export function makeWorld(bake) {
   const list = [];
   // The view from the Trailhead. On an upright phone the junction sign covers the lower half, so
   // the view sits lower to keep him above it, past the bottom edge of the map if it has to.
-  const vista = scr => scr.narrow ? { x: T.x, y: T.y + scr.VH * 0.06 } : { x: T.x, y: T.y + Math.min(46, scr.VH * 0.17) + 14 - scr.VH / 2 + Math.max(0, scr.VH - 300) * 0.25 };
+  // A wide view taller than about 600 pixels (the opening view) rests lower, down to the near edge of the
+  // map, so the meadow, the lake and all three destinations are in frame under the skyline.
+  const vista = scr => scr.narrow ? { x: T.x, y: T.y + scr.VH * 0.06 } : { x: T.x, y: T.y + Math.min(46, scr.VH * 0.17) + 14 - scr.VH / 2 + Math.max(0, scr.VH - 300) * 0.25 + Math.max(0, scr.VH - 600) * 0.45 };
   let past = 0;
   const where = (leg, q) => { const P = paths[leg.path], a = P.at(lerp(leg.from, leg.to, q)), s = leg.to < leg.from ? -1 : 1; return { x: a.x, y: a.y, dx: a.dx * s, dy: a.dy * s, P }; };
   const target = (scr, here) => {
