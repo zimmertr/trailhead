@@ -572,7 +572,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 ### M. Whole-site checks before the last checkpoint
 
 - [ ] M1. Every route end to end, Day and Dusk, desktop and phone, no errors in the console.
-- [ ] M2. Every scene at least as good as the same scene in round 3; put back anything worse.
+- [ ] M2. Every scene compared with the same scene in round 3. Nothing is put back automatically (TJ, 2026-11-16: "This sounds dangerous"): the result is a list for TJ of each scene or thing that is worse than round 3, what restoring it would bring back and what it would undo, for him to choose from.
 - [ ] M3. Colours used, of 254. Ready time. Frame rates. All in section 9.
 - [ ] M4. The off-route page, a broken scene (`break=forest`), and a scene that fails to load still behave.
 - [ ] M5. `IDEAS.md` pruned and current. No em dashes anywhere. `PROGRESS.md` gets a short round 4 report: done, weak, changed my mind about, every link.
