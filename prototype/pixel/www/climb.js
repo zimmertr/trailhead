@@ -394,7 +394,7 @@ export function makeClimb() {
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t } = env, id = arg.id, cfg = ROUTES[id], kind = cfg.kind, pl = plan(id);
       const tau = q * pl.dur, me = where(id, tau), S = me.ph === 'up' ? get(id) : slope.S, pts = me.ph === 'up' ? cfg.pts : slope.cfg.pts;
-      cam.x += (me.x - cam.x) * Math.min(1, env.dt * 8); cam.y += (me.y - cam.y) * Math.min(1, env.dt * 6);
+      cam.x += (me.x - cam.x) * (env.calm ? 1 : Math.min(1, env.dt * 8)); cam.y += (me.y - cam.y) * (env.calm ? 1 : Math.min(1, env.dt * 6));
       const anchor = scr.narrow ? 0.5 : me.ph === 'up' ? 0.52 : 0.6, u = t - egg;
       // The rack is hit hard enough to shake the picture for a moment.
       const jolt = kind === 'icefall' && me.ph === 'up' && u > 0.36 && u < 0.86 ? 1 - (u - 0.36) / 0.5 : 0;

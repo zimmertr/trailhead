@@ -23,7 +23,8 @@ const server = http.createServer((req, res) => {
 });
 await new Promise(r => server.listen(8080, r));
 const browser = await chromium.launch();
-const page = await browser.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: +dpr });
+// CALM=1 films as a visitor who asked for reduced motion.
+const page = await browser.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: +dpr, reducedMotion: process.env.CALM ? 'reduce' : 'no-preference' });
 const errors = [];
 page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });
 page.on('pageerror', e => errors.push('pageerror: ' + e.message + '\n' + (e.stack || '')));

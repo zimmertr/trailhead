@@ -411,7 +411,7 @@ function buildForest() {
       const mx = xOf(q), d = q * LEN, my = g(mx);
       // He stands right of the middle: clear of the card, and with more of the way ahead in view.
       const anchor = scr.narrow ? 0.5 : 0.6;
-      cam += (mx - cam) * Math.min(1, env.dt * 8);
+      cam += (mx - cam) * (env.calm ? 1 : Math.min(1, env.dt * 8));
       const camX = Math.round(cam - VW * anchor + env.look.x * 0.5), base = baseline(scr, env.shown, st) - Math.round(my * 0.5);
       last = { camX, base };
 

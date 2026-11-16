@@ -6,4 +6,4 @@
 D="$(cd "$(dirname "$0")" && pwd)"
 docker image inspect trailhead-pixel-lab >/dev/null 2>&1 || docker build -q -t trailhead-pixel-lab "$D" >/dev/null
 mkdir -p "$D/out"
-docker run --rm --ipc=host -v "$D/www:/www:ro" -v "$D/out:/out" -v "$D/frames.mjs:/lab/frames.mjs:ro" --entrypoint node trailhead-pixel-lab /lab/frames.mjs "$@"
+docker run --rm --ipc=host -e CALM -v "$D/www:/www:ro" -v "$D/out:/out" -v "$D/frames.mjs:/lab/frames.mjs:ro" --entrypoint node trailhead-pixel-lab /lab/frames.mjs "$@"

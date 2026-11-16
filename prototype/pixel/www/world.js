@@ -563,7 +563,7 @@ export function makeWorld(bake) {
       // Camera: the whole view from the Trailhead, then follow him.
       let [tx, ty] = target(scr, here, env);
       if (env.home && env.idle > 4 && !env.calm && Math.abs(env.look.x) + Math.abs(env.look.y) < 1) [tx, ty] = lookRound(scr, env.idle - 4, tx, ty);
-      const damp = 1 - Math.exp(-dt * 3.2);
+      const damp = env.calm ? 1 : 1 - Math.exp(-dt * 3.2);
       cam.x += (tx - cam.x) * damp; cam.y += (ty - cam.y) * damp;
       // A zoom step keeps one spot of the map under the pointer: the camera goes straight to its new rest and the dragged view makes up the difference.
       if (env.anchor && !env.fixed) { const a = env.anchor; cam.x = tx; cam.y = ty; env.look.x = a.wx - a.sx + VW / 2 - cam.x; env.look.y = a.wy - a.sy + VH / 2 - cam.y; env.anchor = null; }

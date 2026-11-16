@@ -219,8 +219,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // eases back inside; it returns to him only when he starts or stops moving.
     if (running !== wasRunning) { wasRunning = running; recentre = true; }
     if (dragging !== 'look') {
-      const b = env.lookBox, k = 1 - Math.exp(-dt * 7);
-      if (recentre) { look.x *= Math.exp(-dt * 4); look.y *= Math.exp(-dt * 4); if (Math.abs(look.x) + Math.abs(look.y) < 0.5) { look.x = look.y = 0; recentre = false; } }
+      // Reduced motion (F7): every ease of the camera is a cut.
+      const b = env.lookBox, k = calm.matches ? 1 : 1 - Math.exp(-dt * 7), r = calm.matches ? 0 : Math.exp(-dt * 4);
+      if (recentre) { look.x *= r; look.y *= r; if (Math.abs(look.x) + Math.abs(look.y) < 0.5) { look.x = look.y = 0; recentre = false; } }
       else { look.x += (clamp(look.x, b.x0, b.x1) - look.x) * k; look.y += (clamp(look.y, b.y0, b.y1) - look.y) * k; }
     }
     env.lookBox = FREE;
@@ -229,7 +230,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // The cut between scenes: a round window closes on him, the scene changes, it opens again.
     // While he runs, the window starts to close a moment before a stretch ends and is shut just as he
     // reaches the next one, so he never stands still at a scene change. `to` is the stretch it closes for.
-    if (running && !tr && scrubbing <= 0 && drawn === legAt(p)) {
+    // Under reduced motion the window does not close: the scene simply changes (F7).
+    if (running && !tr && scrubbing <= 0 && drawn === legAt(p) && !calm.matches) {
       const nx = legs[legs.indexOf(drawn) + 1], left = (drawn.t1 - p) * total;
       if (legs.includes(drawn) && nx && nx !== broken && !(nx.s === 'world' && drawn.s === 'world') && left > 0.12 && left <= 0.3 && !stops.some(s => s.at > p && s.at <= drawn.t1 + 1e-6)) { tr = { phase: 'out', k: 0, to: nx, lead: left }; emit({ type: 'sfx', name: 'iris' }); }
     }
@@ -239,7 +241,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       else { tr = { phase: 'out', k: 0, fast: scrubbing > 0 || !running }; emit({ type: 'sfx', name: 'iris' }); }
     }
     if (tr) {
-      tr.k += dt / (tr.fast ? 0.14 : tr.lead || (tr.phase === 'out' ? 0.3 : 0.36));
+      tr.k += calm.matches ? 1 : dt / (tr.fast ? 0.14 : tr.lead || (tr.phase === 'out' ? 0.3 : 0.36));
       // He was stopped while the window was closing ahead of the change: it opens again from where it had got to.
       if (tr.to && !running && legAt(p) !== tr.to) tr = { phase: 'in', k: 1 - Math.min(1, tr.k), fast: false };
       if (tr.k >= 1) {
@@ -247,7 +249,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
           if (tr.to && legAt(p) !== tr.to) p = Math.min(1, tr.to.t0 + 1e-6);
           drawn = legAt(p);
           try { drawn.scene.enter(scr, drawn.arg, local(drawn, p)); } catch (err) { fail(drawn, err); return; }
-          look.x = look.y = 0; tr = { phase: 'in', k: 0, fast: tr.fast }; emit({ type: 'scene', name: drawn.s });
+          look.x = look.y = 0; tr = calm.matches ? null : { phase: 'in', k: 0, fast: tr.fast }; emit({ type: 'scene', name: drawn.s });
         }
         else tr = null;
       }
@@ -294,7 +296,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       scr.iris(f.x, f.y, tr.phase === 'out' ? full * (1 - e) - 4 : full * e);
     }
     scr.present(t, mix);
-    if (gliding) startGlide(gliding);
+    if (gliding && !calm.matches) startGlide(gliding);
     const f = drawn.scene.focus();
     window.__info = { p, route, running, scene: drawn.s, VW: scr.VW, VH: scr.VH, S: scr.S, fx: f.x, fy: f.y, o: drawn.s === 'world' ? world.at(0, 0) : null };
   }

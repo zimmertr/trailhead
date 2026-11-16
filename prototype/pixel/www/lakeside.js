@@ -229,7 +229,7 @@ function buildLakeside() {
       const { VW, VH, fb } = scr, { t, tq } = env;
       const mx = xOf(q), d = q * LEN, my = g(mx);
       const anchor = scr.narrow ? 0.5 : 0.56;
-      cam += (mx - cam) * Math.min(1, env.dt * 8);
+      cam += (mx - cam) * (env.calm ? 1 : Math.min(1, env.dt * 8));
       const camX = Math.round(cam - VW * anchor + env.look.x * 0.5), base = baseline(scr, env.shown, st);
       const ix = Math.round(VW / 2 + (ISLE_X - camX - VW / 2) * ISLE_K), reach = ix > 30 && ix < VW - 30;
       // Start or Space while he is away turns him round (hold() keeps him here until he is back).
