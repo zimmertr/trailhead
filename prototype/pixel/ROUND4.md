@@ -31,21 +31,20 @@ The world began as three landmarks huddled in the middle of a small map. The map
 **How the code is laid out** (`www/`, plain ES modules, no build step, no dependencies)
 
 - `core.js`: the indexed-colour renderer. `ramp(name, [day...], [dusk...])` adds palette entries (`R.<name>[i]`), `BM` bitmaps, `pick()` with dither, `Screen` (frame buffer, `put`, `blit`, `iris`, `night`, `present`), `DEBUG` flags, `breeze()` and `windAt()`. New ramps go just before `const INK`, under a `// Round 4` comment.
-- `terrain.js`: `buildTerrain(peak, opt)` builds the whole map: constants (`NW`, `NH`, `T` Trailhead, `PEAK`, `STACK`, `SPIRES`, `KIOSK`), biome amounts, glacier, trails and river, `paintNorth`/`paintPeak`/`paintVolcano` (the skyline), `ground(x, y)` (one palette entry per pixel), then everything that stands up (`put` for still things, `plant` for swaying trees), `spots` (signs, animals, ferry, whale), and the mist's no-go mask. `loadBake()` reads `ground.png`.
-- `world.js`: the map scene (`makeWorld`), its sprites (`makeStack`, `makeMassif`, `makePeak`), drawing order, taps, name tags, the night sky pinned to the world (`scr.sky`).
+- `terrain.js` (round 3's map) was deleted in C19. `land.js` builds the map; `mapfauna.js` (ferry, whale, bighorn, squirrels) and `scenery.js` (blob trees, sea stacks, sage, charred trunks) hold the drawings that came out of it.
+- `world.js`: the map scene (`makeWorld`), drawing order, taps, name tags, the night sky pinned to the world (`scr.sky`).
 - `critters.js`: everything on the map that moves (animals, whale, ferry, mist, surf, birds). `cats.js`: the two cats. `fauna.js`, `sprites.js`, `people.js`, `tj.js`: drawings.
 - `forest.js`, `lakeside.js`: the side-on scenes of the lake route, built on `side.js` (`Strip`, `drawStrip`, `shell`). `wall.js`: the climb of The Stack. `camp.js`: base camp. `climb.js`: the six summit climbs. `offroute.js`: the 404.
 - `pixel.js`: the scene manager: `ROUTES` (lists of legs), stops and cards, the round-window cut between scenes, zoom, pace, input.
 - `app.js`, `index.html`, `content.js`: the page round the canvas (signs, cards, timeline, trail map sheet, debug panel) and every word shown. `audio.js`: tunes and effects, all synthesised.
-- `plan.html` + `plan.js`: paints the whole map as one picture, for block-ins.
 - `land.js`: the round 4 map with a height at every spot (sections 4a and 8a). `relief.html` + `relief.js` show it whole: `relief.html?labels=1&trees=0&crop=x,y&scale=k`. `window.__dbg(x, y)` tells what is drawn at a screen pixel.
 
 **How to run and look** (everything in Docker; nothing is installed or run on the workstation)
 
-- `./shot.sh <name.png> '<query>' [w] [h] '<steps>' [dpr]` saves `out/<name.png>`. Steps are separated by **semicolons**: `wait=600;key=Space;wheel=720,300,600;drag=x0,y0,x1,y1;click=<css>;shot=<name.png>;down=Space;up=Space;eval=<js without semicolons>`. `'@plan.html'` loads another page. Queries: `route=lake|stack|spire:<id>`, `p=0..1`, `dusk=1`, `debug=roam,-trees,-mist`, `bear=1`, `sea=<seconds>`, `done=lake,stack,spires`. Warnings and errors from the page are printed.
+- `./shot.sh <name.png> '<query>' [w] [h] '<steps>' [dpr]` saves `out/<name.png>`. Steps are separated by **semicolons**: `wait=600;key=Space;wheel=720,300,600;drag=x0,y0,x1,y1;click=<css>;shot=<name.png>;down=Space;up=Space;eval=<js without semicolons>`. `'@relief.html?...'` loads another page. Queries: `route=lake|stack|spire:<id>`, `p=0..1`, `dusk=1`, `debug=roam,-trees,-mist`, `bear=1`, `sea=<seconds>`, `done=lake,stack,spires`. Warnings and errors from the page are printed.
 - `./sheet.sh <out.png> <columns> <cell width> <files in out/...>` lays pictures side by side (`CROP=x,y,w,h` to crop).
 - `./frames.sh` films a sequence into one sheet (usage at the top of the file).
-- `./bake.sh` works the ground out ahead into `www/ground.png`. Run it after any change to `ground()` or the palette. The page prints "ground.png is missing or no longer matches the map" on localhost when it is stale; treat that warning as a failed check.
+- `./bake.sh` works the ground out ahead into `www/ground.png`. Run it after any change to `land.js` or the palette. The page prints "ground.png is missing or no longer matches the map" on localhost when it is stale; treat that warning as a failed check.
 - Edits to many places at once: a small node script under `out/splice/` run with `docker run --rm -v "$PWD/www:/www" -v "$PWD/out:/out" --entrypoint node trailhead-pixel-lab /out/splice/<name>.js`, asserting each replacement count.
 - **Look at every picture you make.** A step is not done because the code ran. Compare against round 3 (same view, side by side) and put back anything that got worse.
 
@@ -344,7 +343,7 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 - [x] C16. The mountain sprites in `world.js` (`makeStack`, `makeMassif`, `makePeak`) are retired: the mountains are in the ground picture. Summit flags and name tags take their places from `land.js` (`done=spires` puts the flag on the right summit).
 - [x] C17. Three trails from the new Trailhead, laid on the land: a footbridge wherever a trail crosses water, switchbacks up each step, and the points where each side-on scene takes over and hands back.
 - [x] C18. `T`, `KIOSK`, the cats' boxes, the board and the register box at the new Trailhead.
-- [ ] C19. Delete what is gone: `terrain.js`, the first block-in (`plan4.js`, `layout4.js`, `plan4.html`), layouts 2 and 3, The Stack's sprite and talus.
+- [x] C19. Delete what is gone: `terrain.js`, the first block-in (`plan4.js`, `layout4.js`, `plan4.html`), layouts 2 and 3, The Stack's sprite and talus.
 - [ ] C20. `./bake.sh` bakes the ground and the depth. No stale warning. Ready time written in section 9 (round 3: about 0.8 s).
 - [ ] C21. Pictures: the whole map Day and Dusk, trees off, each destination close, three candidate opening views on a 1440 by 900 screen and the phone's slice. Compare with `out/r4/w1.png` and list the weak points honestly.
 - [x] **STOP 2a (reached 2026-11-15 with C7 to C9, C19 and C20 still open, see section 8a; TJ: the land is right, carry on; opening view B, one screen pixel to one map pixel with the three destinations in frame, `out/r4/o-b.png` is `relief.html?crop=330,180` at 1440 by 900).** Tag `pixel-r4-land`, publish the game (the old wall, lake and camp scenes still run behind the new map). Ask TJ: is the land right, and which opening view.
@@ -534,7 +533,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 
 **The game runs on it (2026-11-15).** `land.js` builds the land once when it is loaded and exports what the scene took from `terrain.js` (`buildTerrain`, `loadBake`, `T`, `KIOSK`, `OX`, `OY`), with every position worked out from the layout `C`. `world.js`, `cats.js`, `climb.js` and `app.js` import it. He is hidden by nearer ground through `W.vAt`. The three mountain sprites are no longer drawn; flags and name tags come from `spots.flags` and `spots.places`. Footbridges are planks painted where a trail crosses water.
 
-**Still open in section C:** none of C7 to C9 (redrawn as Q4 and Q5), C19 (`terrain.js` cannot go until the animals move, point 4 below), C20 (no bake yet: the page is ready in about 3 s where round 3 took 0.8 s; `loadBake` returns nothing), C21. Since then (Opus, 2026-11-15) animals, signs, the sea's swells, ferns, logs, sea stacks and the moving mist are all on the new map (section 9). `content.js` still says About Lake and The Stack (section L).
+**Still open in section C:** none of C7 to C9 (redrawn as Q4 and Q5), C19 done (round 3's map and the first block-in are deleted), C20 (no bake yet: the page is ready in about 3 s where round 3 took 0.8 s; `loadBake` returns nothing), C21. Since then (Opus, 2026-11-15) animals, signs, the sea's swells, ferns, logs, sea stacks and the moving mist are all on the new map (section 9). `content.js` still says About Lake and The Stack (section L).
 
 **The quality pass (section Q, Opus, 2026-11-15, tag `pixel-r4-opus-quality`).** Done: round 3's ground detail, real fogged trees, lake shores, the moving mist, Mount Monolith, the Legacy Range and the back row redrawn, zoom out to the whole map, and the opening view B (it opened close in on bare meadow, which was worse than round 3's opening; fixed as F5). Pictures side by side with round 3 are in `out/q7/` (`s-home.png`, `s-phone.png`, `s-map.png`, `s-scenes.png`). What is still below round 3, plainly:
 
@@ -605,6 +604,7 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
 - F2 is not done: while the size changes, the picture's buffer is made again every frame. It has not stuttered in the Docker browser; check on a phone.
 - With the map zoomed out, the fog bank at sea (Q3) sits under the timeline bar at the bottom of the page, so it is barely seen; it does no harm there.
 - **Q7 (Opus, 2026-11-15).** The opening was close in on bare meadow, worse than round 3's, because view B (F5) was not built. Now a window wider than tall opens at one screen pixel to one map pixel (twice that on a high-density screen, so it looks the same size), and a wide view taller than 600 pixels rests lower, down to the near edge of the map, which on 1440 by 900 is view B's frame. A phone held upright still opens at the size that suits it (F8).
+- **C19 (Opus, 2026-11-15).** Deleted `terrain.js`, `plan4.js`, `plan4.html`, `layout4.js`, round 3's whole-map page (`plan.html`, `plan.js`; `relief.html` is the whole map now) and the three mountain sprites in `world.js` with The Stack's climber. Layouts 2 and 3 had already gone with the old `relief.js`; The Stack's talus went with `terrain.js`. `sheet.html` draws the map's animals from `mapfauna.js`. `bake.html` now bakes round 4's land: the ground picture, the depth of every screen pixel in two bytes, and what each pixel is made of, in four planes of `ground.png` (617 KB). The game does not read it yet; that is C20.
 
 ## 10. The reference pictures TJ shared, described
 

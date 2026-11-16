@@ -16,14 +16,14 @@ const sets = {
   async animals() { const m = await import('./sprites.js'); return m.sheet ? m.sheet() : []; },
   async goats() { const m = await import('./fauna.js'); return [m.goat('stand'), m.goat('look'), m.goat('stand', true)]; },
   // Every animal: the side-view scenes' first, then the map's.
-  async zoo() { const f = await import('./fauna.js'), s = await import('./sprites.js'), c = await import('./critters.js'), w = await import('./world.js'), t = await import('./terrain.js'); const m = t.buildTerrain(w.makePeak()).make;
+  async zoo() { const f = await import('./fauna.js'), s = await import('./sprites.js'), c = await import('./critters.js'), m = await import('./mapfauna.js');
     return [f.elk('up'), f.elk('up', 0, 1), f.elk('graze'), f.elk('graze', 0, 1), f.bear(false), f.bear(true), f.sasquatch(0), f.sasquatch(1), f.goat('stand'), f.goat('look'), f.goat('graze'), f.goat('stand', false, 1), f.goat('stand', true), f.goat('graze', true),
       f.jay('steller', 'sit'), f.jay('steller', 'up'), f.jay('steller', 'down'), f.jay('gray', 'sit'), f.jay('gray', 'up'), f.slug(0), f.slug(1), f.marmot('sun'), f.marmot('up'), f.pika(0), f.pika(1), f.bluebird(0), f.bluebird(1),
       s.makeElk(false), s.makeElk(true), s.makeElk(false, 1), s.makeElk(false, 2), s.makeElk(false, 0, false), s.makeElk(true, 0, false), s.makeElk(false, 1, false), m.sheep(false), m.sheep(true), m.sheep(false, 1), c.mapBear('look'), c.mapBear('sniff'), c.mapBear('look', 1),
       m.squirrel(false), m.squirrel(false, true), m.squirrel(true), m.squirrel(true, true), m.whale()]; },
   // The humpback's breach, drawing by drawing, then its flukes.
-  async whale() { const c = await import('./critters.js'), w = await import('./world.js'), t = await import('./terrain.js'); const m = t.buildTerrain(w.makePeak()).make; return [...c.BREACH.map(p => m.whale(p)), ...[0, 0.5, 1].map(f => m.whale({ fluke: f }))]; },
-  async elk() { const s = await import('./sprites.js'), f = await import('./fauna.js'), m = (await import('./terrain.js')).buildTerrain((await import('./world.js')).makePeak()).make; return [s.makeElk(false), s.makeElk(true), s.makeElk(false, 1), s.makeElk(false, 2), s.makeElk(false, 0, false), s.makeElk(true, 0, false), m.sheep(false), f.goat('stand')]; },
+  async whale() { const c = await import('./critters.js'), m = await import('./mapfauna.js'); return [...c.BREACH.map(p => m.whale(p)), ...[0, 0.5, 1].map(f => m.whale({ fluke: f }))]; },
+  async elk() { const s = await import('./sprites.js'), f = await import('./fauna.js'), m = await import('./mapfauna.js'); return [s.makeElk(false), s.makeElk(true), s.makeElk(false, 1), s.makeElk(false, 2), s.makeElk(false, 0, false), s.makeElk(true, 0, false), m.sheep(false), f.goat('stand')]; },
   async climb() { const m = await import('./tj.js'); return m.climbSheet ? m.climbSheet() : []; }
 };
 const bms = await sets[q.get('set') || 'runner']();

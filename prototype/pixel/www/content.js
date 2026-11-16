@@ -123,7 +123,7 @@ export function ago(iso, now = new Date()) {
 // The four places he can be sent to. Their names are pinned on the map and head the trail map's lists.
 export const DEST_NAMES = { trailhead: 'Trailhead', lake: 'About Lake', stack: 'The Stack', spires: 'Sideproject Spires' };
 
-// The joke place names that stand as signs on the world map. terrain.js holds where each one stands.
+// The joke place names that stand as signs on the world map. habitat() in land.js finds where each one stands.
 export const SIGNS = {
   'scope-creep': 'Scope Creep Glacier', segfault: 'Segfault Scree', 'merge-conflict': 'Merge Conflict Col', 'yak-shave': 'Yak Shave Meadow', 'about-lake': 'About Lake, 2.4 km',
   rollback: 'Rollback Basin', 'feature-flag': 'Feature Flag Tarns', hotfix: 'Hotfix Burn', postmortem: 'Postmortem Burn', 'cron-job': 'Cron Job Coulee', 'tech-debt': 'Tech Debt Badlands',

@@ -1,6 +1,6 @@
 // Works the map's ground out once, in headless Chromium, and writes it to www/ground.png, so the page
 // does not spend a second on it every time it opens. Run it (bake.sh) after any change to the ground
-// in terrain.js or to the palette; a stale bake is noticed by the page and ignored, which is slow, not wrong.
+// in land.js or to the palette; a stale bake is noticed by the page and ignored, which is slow, not wrong.
 import { chromium } from 'playwright';
 import http from 'node:http';
 import fs from 'node:fs';
