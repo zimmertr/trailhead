@@ -314,6 +314,102 @@ const dAtX = x => { for (let i = 1; i < ROUTE.length; i++) if (ROUTE[i][0] >= x)
 const AT = { tj: -14, lead: 0, red: -28 };
 const PACKS = dAtX(198), TIE = dAtX(231);
 const PITCH = ['tie', 'a1', 'a2', 'a3', 'a4', 'top'];
+// The holds (H10), as round 3 had them: two rows up the face, one for each hand, a hold every HC along
+// the line. Each limb takes them in turn: a hand stays on its hold while the body rises past it, then
+// reaches for the next, and a foot takes the hold its hand had two moves before; going down, the same
+// moves run backwards. A hold is at hip height for someone whose feet are on the line there, a little
+// to one side of it; in pitch 1's crack hands and feet go in the crack itself, and on the crest a hand
+// takes the rock's top. Where a foot's hold lies just under the spot where someone stands at a belay,
+// the foot goes onto that ledge as they step up and stays on it until they leave it; a hand that would
+// reach past a ledge takes its lip.
+const HC = 12, LIMB = [[0, -1, 9], [0.5, 1, 10], [0.25, 1, -14], [0.75, -1, -15]];
+const pitchOf = d => ANCHORS.indexOf(below(d)) + 1;
+// Where the line runs up beside an edge (the slab's arete) a hold that would be out in the air is
+// moved across onto the rock; paintHolds finds those and keeps them here, keyed by d and side.
+const HOLDX = new Map(), holdKey = (d, side) => Math.round(d) * 4 + side + 1;
+function holdAt(d, side) {
+  const p = posAt(d), face = p.where === 's' && !styleAt(d);
+  if (!face) return { x: p.x + side * 3, h: p.h + 1, top: true };
+  const crack = pitchOf(d) === 1, fx = HOLDX.get(holdKey(d, side));
+  // Up a steep stretch a hold is at hip height; where the line lies back it comes down to the rock
+  // underfoot, so a foot on a gentle ramp is on the ramp and not on a hold at someone's hip.
+  const lift = 11 * smooth(0.45, 0.85, Math.abs(p.dh) / Math.max(1e-6, Math.hypot(p.dx, p.dh)));
+  return { x: fx ?? p.x + (crack ? 2 + side * 1.5 : side * (4.5 + 3 * hash(Math.round(d / HC), side + 2, 791))), h: p.h + 1 + lift, crack, lift };
+}
+const STANDS = {}; for (const w of WHO) STANDS[w] = ANCHORS.map(m => MARK[m] + (m === 'tie' ? 0 : AT[w]));
+// Hands and feet for someone whose feet are at d on the line, as offsets from the hips (backFig's
+// order: left and right hand, left and right foot), each kept within an arm's or a leg's reach. On a
+// slanting line the hands are up the slant and the feet down it, so the hips move bx across to sit
+// between them. Feet stay a stride apart (together, with knees turned out, the legs made a ring), each
+// hand on its own side, and nothing reaches out sideways where the line runs nearly flat.
+function limbs(w, d) {
+  const sg = posAt(d).dh < 0 ? -1 : 1, me = posAt(d), hip = me.h + 12, out = [];
+  for (const [off, side, lead] of LIMB) {
+    const foot = lead < 0, K = 2 * (foot ? lead + 24 : lead), u = sg > 0 ? d : K - d, ph = u / HC - off, n = Math.floor(ph), m = ph - n;
+    const at = k => {
+      const uh = (k + 1) * HC + lead, dh = sg > 0 ? uh : K - uh;
+      if (!foot) {
+        // Past a ledge the hand takes its lip.
+        for (const a of ANCHORS) { const M = MARK[a]; if ((M - d) * sg > 0 && (dh - M) * sg > 0) { const q = posAt(M); return [q.x + side * 4, hip - q.h - 1]; } }
+        const q = holdAt(dh, side); return [q.x, hip - q.h];
+      }
+      const q = holdAt(dh, side); let x = q.x, y = hip - q.h - (q.top ? 1 : 2);
+      for (const sd of STANDS[w]) if (dh > sd - 16 && dh <= sd + 0.5) { const e = smooth(sd - 6, sd - 1, d), g = posAt(sd); x = lerp(x, g.x + side * 3, e); y = lerp(y, hip - g.h - 1, e); }
+      return [x, y];
+    };
+    const a = at(n), b = at(n + 1), e = m > 0.7 ? (m - 0.7) / 0.3 : 0;
+    out.push([lerp(a[0], b[0], e) - me.x + side * Math.sin(e * Math.PI) * 2, lerp(a[1], b[1], e), side, foot]);
+  }
+  const bx = clamp(Math.round(out.reduce((t, q) => t + q[0], 0) / 4), -4, 4);
+  const fit = ([x, y, side, foot]) => {
+    x -= bx;
+    if (foot) { x = side * clamp(x * side, 4, 8); y = Math.max(4, y); } else x = side * clamp(x * side, -2, 9);
+    const o = foot ? [side * 2, 0] : [side * 4, -9], r = foot ? 13.2 : 11.6, L = Math.hypot(x - o[0], y - o[1]);
+    if (L > r) { x = o[0] + (x - o[0]) * r / L; y = o[1] + (y - o[1]) * r / L; }
+    return [Math.round(x), Math.round(y)];
+  };
+  const [lh, rh, rf, lf] = out.map(fit);
+  if (lh[0] > rh[0] - 2) lh[0] = rh[0] - 2;
+  return { hands: [lh, rh], feet: [lf, rf], bx };
+}
+// The holds painted on the rock, exactly where hands and feet will go, each pitch its own kind: edges
+// beside the crack on pitch 1 (the crack is the hold there), big flakes and jugs up the corner on pitch
+// 2, pockets and thin edges on the slab, edges after; the "mercy hold" at the top of the slab and the
+// big hold at the headwall's lip are jugs. Every one has a lit top and a shadow under it, and most
+// carry a dab of chalk.
+function paintHolds(S) {
+  // The shadow under each is ink: the ridge's rock is busier than round 3's plain wall, and a grey
+  // shadow was lost in its speckle.
+  const lit = R.gold[6], dark = INK, dim = R.rock[0], mid = R.rock[1], put = (x, h, c) => { if (S.get(Math.round(x), -Math.round(h))) S.set(Math.round(x), -Math.round(h), c); };
+  const KINDS = {
+    edge: (x, h) => { for (let d = -2; d <= 2; d++) { put(x + d, h, lit); put(x + d, h - 1, dark); if (Math.abs(d) < 2) put(x + d, h - 2, dim); } },
+    thin: (x, h) => { for (let d = -1; d <= 2; d++) { put(x + d, h, lit); put(x + d, h - 1, dark); } put(x, h - 2, dim); put(x + 1, h - 2, dim); },
+    jug: (x, h) => { for (let d = -3; d <= 3; d++) { const e = Math.abs(d) === 3; put(x + d, h - (e ? 1 : 0), lit); put(x + d, h - 1 - (e ? 1 : 0), dark); if (!e) { put(x + d, h - 2, dark); put(x + d, h - 3, mid); } } put(x - 1, h + 1, lit); put(x, h + 1, lit); },
+    flake: (x, h, side) => { for (let k = 0; k < 6; k++) { put(x + side * (k - 2), h - k, lit); put(x + side * (k - 3), h - k, dark); if (k > 1) put(x + side * (k - 4), h - k, dim); } },
+    pocket: (x, h) => { for (let d = -1; d <= 1; d++) { put(x + d, h, dark); put(x + d, h - 1, dark); put(x + d, h - 2, lit); } put(x - 2, h - 1, dim); put(x + 2, h - 1, dim); put(x, h + 1, dim); }
+  };
+  const holds = [], rock = (x, h) => S.get(Math.round(x), -Math.round(h)) && S.get(Math.round(x) - 3, -Math.round(h)) && S.get(Math.round(x) + 3, -Math.round(h));
+  HOLDX.clear();
+  for (const [, side, lead] of LIMB.slice(0, 2)) for (let d = lead; d < LEN; d += HC) {
+    const q = holdAt(d, side);
+    if (!q.top && !rock(q.x, q.h)) { for (let k = 1; k < 16; k++) if (rock(q.x - side * k, q.h)) { q.x -= side * k; HOLDX.set(holdKey(d, side), q.x); break; } }
+    if (q.top || q.lift < 6 || ANCHORS.some(a => Math.abs(d - MARK[a]) < 5)) continue;
+    holds.push({ d, side, ...q, r: hash(Math.round(d), side, 792), p: pitchOf(d) });
+  }
+  let crest = MARK.piton + 10; while (posAt(crest).where !== 'c') crest++;
+  const mercy = holds.filter(q => q.p === 3 && q.d < crest).reduce((a, q) => (!a || q.d > a.d ? q : a), null);
+  const lip = holds.filter(q => q.p === 5 && q.d >= MARK.bolt).reduce((a, q) => (!a || q.d < a.d ? q : a), null);
+  for (const q of holds) {
+    if (q.crack && q.r < 0.45) continue;
+    const x = Math.round(q.crack ? q.x + q.side * (4 + Math.round(q.r * 3)) : q.x), h = Math.round(q.h);
+    const kind = q === mercy || q === lip ? 'jug' : q.crack ? 'thin' : q.p === 2 ? (q.r < 0.38 ? 'jug' : q.r < 0.74 ? 'flake' : 'edge') : q.p === 3 ? (q.r < 0.5 ? 'pocket' : 'thin') : 'edge';
+    KINDS[kind](x, h, q.side);
+    // Chalk on every hold, a smear over its top: on a classic every hold is chalked, and on this busy
+    // rock it is what lets the line of holds be read from a distance, as round 3's plain wall did.
+    put(x + q.side, h + 1, R.white[1]); put(x, h + 1, R.white[0]);
+    if (hash(Math.round(q.d), q.side, 793) < 0.62) { put(x + 2 * q.side, h + 1, R.white[0]); if (q.r > 0.5) put(x, h + 2, R.white[0]); }
+  }
+}
 // The gear on each pitch, by rule: so many cams spread evenly over the stretches where the line is on
 // the face (never on the crest or behind it, where there is nothing to reach up to), plus the fixed
 // piton and bolt, which are in the rock from the start. Pitch 3 is the piton and one tiny cam at the
@@ -475,8 +571,7 @@ function kitFrames(kit) {
   const side = [0, 1, 2, 3, 4, 5].map(f => sideFig(kit, { feet: [FEET[f], FEET[(f + 3) % 6]], hands: [HANDS[f], HANDS[(f + 3) % 6]], bob: [0, -1, -1, 0, -1, -1][f] }));
   const knot = (b, cx, y) => { b.set(cx, y + 7, R.white[1]); b.set(cx - 1, y + 7, R.teal[2]); b.set(cx + 1, y + 7, R.teal[2]); b.set(cx + 1, y + 8, R.teal[1]); };
   const tying = f => frontFig(kit, { held: (b, cx, y) => { knot(b, cx, y); for (const [dx, dy] of f ? [[-2, 6], [2, 7]] : [[-2, 7], [2, 6]]) { b.set(cx + dx, y + dy, R.skin[2]); b.set(cx + dx + (dx < 0 ? -1 : 1), y + dy, R.teal[1]); } } });
-  const holding = cam => (b, x, y) => { if (!cam) return; b.set(x + 1, y, R.rock[4]); b.set(x + 2, y, R.rock[3]); b.set(x + 1, y + 1, R.red[1]); b.set(x + 1, y + 2, R.red[1]); };
-  const climb = f => backFig(kit, { hands: [[-5, -12 - (f & 1 ? 3 : 0)], [5, -12 - (f & 1 ? 0 : 3)]], feet: [[-4, 11 + (f & 1 ? 0 : 2)], [4, 11 + (f & 1 ? 2 : 0)]] });
+  const holding = cam => (b, x, y) => { if (!cam || x < 22) return; b.set(x + 1, y, R.rock[4]); b.set(x + 2, y, R.rock[3]); b.set(x + 1, y + 1, R.red[1]); b.set(x + 1, y + 2, R.red[1]); };
   return {
     side, idle: sideFig(kit, { lean: 0 }), crouch: sideFig(kit, { crouch: 4, lean: 5, hands: [[6, 9], [3, 8]], look: 'down', feet: [[3, 8.5], [-3, 8.5]] }),
     rack: [sideFig(kit, { lean: 1, hands: [[3, 5], [1, 6]], look: 'down' }), sideFig(kit, { lean: 1, hands: [[2, 6], [3, 4]], look: 'down' })],
@@ -484,7 +579,7 @@ function kitFrames(kit) {
     bump: [sideFig(kit, { lean: 0, hands: [[1, 4], [-1, 6]] }), sideFig(kit, { lean: 1, hands: [[6, 4], [-1, 6]] })],
     belay: [sideFig(kit, { lean: 0, look: 'up', hands: [[4, -2], [0, 6]] }), sideFig(kit, { lean: 0, look: 'up', hands: [[5, 1], [1, 5]] })],
     tbelay: [sideFig(kit, { lean: 2, look: 'down', hands: [[5, 1], [2, 6]] }), sideFig(kit, { lean: 2, look: 'down', hands: [[3, 5], [5, 2]] })],
-    climb: [0, 1, 2, 3].map(climb),
+    holding: holding(true),
     place: [backFig(kit, { hands: [[-5, -13], [7, -9]], feet: [[-4, 12], [4, 11]], tool: holding(true) }), backFig(kit, { hands: [[-5, -12], [6, -16]], feet: [[-4, 12], [4, 11]] })],
     anchor: [0, 1].map(f => backFig(kit, { hands: [[-4, -14 + f], [4, -13 - f]], feet: [[-3, 12], [3, 12]] })),
     clean: [backFig(kit, { hands: [[-5, -13], [5, -9]], feet: [[-4, 12], [4, 11]] }), backFig(kit, { hands: [[-5, -13], [4, 1]], feet: [[-4, 12], [4, 11]], tool: holding(true) })],
@@ -603,11 +698,24 @@ function buildRidge() {
     let h = h0; while (h > p.h - 4 && !main.get(x0, -h)) h--;
     return { x: x0, h, bi: h - dz };
   });
+  paintHolds(main);
   const far = paintFar(), clouds = [0, 1, 2].map(i => ({ bm: makeCloud(745 + i), x: i * 190, y: 20 + i * 46, v: 3 + i }));
   const pair = makeCragPair(), st = {}, focus = { x: 0, y: 0 };
   // On the ridge all three wear helmets, one colour each with their hair showing below: his green, the
   // leader's red, the woman's white over her red hair. The leader carries the rack on his harness.
-  const F = { tj: kitFrames('wall'), lead: kitFrames({ ...PAIR[0], bare: false, hat: R.red, rack: true }), red: kitFrames({ ...PAIR[1], bare: false, hat: [R.white[0], R.white[1], R.white[1]] }) };
+  const KIT = { tj: 'wall', lead: { ...PAIR[0], bare: false, hat: R.red, rack: true }, red: { ...PAIR[1], bare: false, hat: [R.white[0], R.white[1], R.white[1]] } };
+  const F = { tj: kitFrames(KIT.tj), lead: kitFrames(KIT.lead), red: kitFrames(KIT.red) };
+  // On the face their hands and feet are on the holds (H10). The drawings are made as they are needed
+  // and kept: the limbs fall on whole pixels, so the same few come round again and again. right, when
+  // given, is where the right hand is busy (placing, clipping, cleaning, shaking out) instead.
+  const figs = new Map();
+  const figAt = (w, lb, right, tool) => {
+    const l = { hands: [lb.hands[0], right || lb.hands[1]], feet: lb.feet };
+    const key = w + l.hands.join() + ';' + l.feet.join() + (tool ? 't' : '');
+    let b = figs.get(key);
+    if (!b) { if (figs.size > 900) figs.clear(); b = backFig(KIT[w], { ...l, tool: tool ? F[w].holding : undefined }); figs.set(key, b); }
+    return b;
+  };
   const packs = [makePack(R.teal), makePack(R.red), makePack([R.mustard[0], R.mustard[1], R.mustard[2]])], dropAt = SCRIPT.dropAt;
   const ropePts = [];
   let camX = 0, camH = 0;
@@ -638,6 +746,8 @@ function buildRidge() {
       const P = {};
       for (const w of WHO) { const s = S[w], p = posAt(s.d); P[w] = { ...s, ...p, steep: p.where === 's' && Math.abs(p.dh) > Math.abs(p.dx) * 0.8 }; }
       if (P.red.where === 's' && P.red.moving) P.red.x += 1.5 * Math.sin(P.red.d / 7);
+      // On the face, hands and feet on the holds, and the hips between them.
+      for (const w of WHO) { const s = P[w], on = ['lead', 'climb', 'place', 'clean', 'unclip', 'rest'].includes(s.pose) && !styleAt(s.d); s.lb = on ? limbs(w, s.d) : null; s.bx = on ? s.lb.bx : 0; }
       // At a belay on the face the followers hang staggered, each lower and further across the face from
       // the leader (never out over the air beside the ridge's edge), instead of one under the other's
       // feet; they ease over in their last few moves to it and back onto the line as they leave.
@@ -656,7 +766,13 @@ function buildRidge() {
         if (s.pose === 'rack') { scr.put(fr.rack[Math.floor(t * 1.5) & 1], sx, sy, true); return; }
         if (s.pose === 'tie') { scr.put(fr.tie[Math.floor(t * 6) & 1], sx, sy, false); return; }
         if (s.pose === 'bump') { scr.put(u < 0.2 || u > 0.85 ? fr.idle : fr.bump[u > 0.45 && u < 0.7 ? 1 : 0], sx, sy, w !== 'tj'); return; }
-        if (s.pose === 'lead' || s.pose === 'climb') { const st = styleAt(s.d); scr.put(st ? fr[st][Math.floor(s.d / 4) & 1] : fr.climb[Math.floor(s.d / 6) & 3], sx, sy - 12, false); return; }
+        if (s.pose === 'lead' || s.pose === 'climb') { const st = styleAt(s.d); if (st || !s.lb) scr.put(st ? fr[st][Math.floor(s.d / 4) & 1] : fr.anchor[0], sx, sy - 12, false); else scr.put(figAt(w, s.lb), sx + s.bx, sy - 12, false); return; }
+        // Placing, clipping, cleaning and shaking out on the face: the left hand and both feet stay on
+        // their holds while the right hand works.
+        if (s.lb && (s.pose === 'place' || s.pose === 'clean' || s.pose === 'unclip' || s.pose === 'rest')) {
+          const f = Math.floor(t * 4) & 1, R2 = s.pose === 'place' ? (u < 0.2 ? [[7, -9], 1] : [[6, -16], 0]) : s.pose === 'rest' ? [[6 + f, 3 - f * 2], 0] : s.pose === 'clean' && u >= 0.55 ? [[4, 1], 1] : [[5, -9], 0];
+          scr.put(figAt(w, s.lb, R2[0], R2[1]), sx + s.bx, sy - 12, false); return;
+        }
         if (s.pose === 'place') { scr.put(fr.place[u < 0.2 ? 0 : 1], sx, sy - 12, false); return; }
         if (s.pose === 'rest') { scr.put(fr.rest[Math.floor(t * 4) & 1], sx, sy - 12, false); return; }
         if (s.pose === 'slip') { scr.put(fr.fall[Math.floor(t * 20) & 1], sx, sy - 12, false); return; }
@@ -693,7 +809,7 @@ function buildRidge() {
         const via = []; for (let i = 0; i < pro.length; i++) if (lit(i) && pro[i].d > lo && pro[i].d < (c.d > a.d ? hi + 80 : hi)) via.push(i);
         via.sort((i, j) => (pro[i].d - pro[j].d) * (c.d > a.d ? 1 : -1));
         const onRock = c.pose === 'lead' || c.pose === 'climb' || c.pose === 'place' || c.pose === 'clean' || c.pose === 'unclip' || c.pose === 'rest' || c.pose === 'slip' || c.pose === 'hang';
-        const ends = [{ d: a.d, x: Math.round(a.x) + (c.x > a.x ? 5 : -5), h: a.h + 9 }, ...via.map(i => ({ d: pro[i].d, x: SPOT[i].x, h: SPOT[i].bi })), { d: c.d, x: Math.round(c.x), h: c.h + (onRock ? 12 : 9) }];
+        const ends = [{ d: a.d, x: Math.round(a.x) + (c.x > a.x ? 5 : -5), h: a.h + 9 }, ...via.map(i => ({ d: pro[i].d, x: SPOT[i].x, h: SPOT[i].bi })), { d: c.d, x: Math.round(c.x) + c.bx, h: c.h + (onRock ? 12 : 9) }];
         // Between two points it hangs free it sags: a leader's rope more (the belayer pays out ahead of
         // him), with a loop below him for a moment after each clip (he pulled up an armful to clip);
         // a follower's rope, taken in from above, only a little. Where it lies over the crest it does
@@ -744,7 +860,7 @@ function buildRidge() {
       for (let i = 0; i < pro.length; i++) {
         const g = pro[i], sp = SPOT[i];
         if (g.fixed || tau < g.t0 + 0.25 || tau >= g.t) continue;
-        const e = smooth(g.t0 + 0.4, g.t, tau), hx = Math.round(P.lead.x) + 6, hh = P.lead.h + 27;
+        const e = smooth(g.t0 + 0.4, g.t, tau), hx = Math.round(P.lead.x) + P.lead.bx + 6, hh = P.lead.h + 27;
         drawPiece(scr, Math.round(lerp(hx, sp.x, e)) - cx, rowOf(Math.round(lerp(hh, sp.h, e))), g.kind, 0);
       }
       // When he skates off the slab, grit his feet scraped loose skitters down it after him.
