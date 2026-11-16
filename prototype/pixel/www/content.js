@@ -200,17 +200,18 @@ export const UI = {
     title: 'Trail conditions', sub: 'Posted at the Trailhead kiosk', version: 'Running version', deployed: 'Deployed', uptime: 'Uptime',
     up: s => s < 90 ? s + (s === 1 ? ' second' : ' seconds') : Math.round(s / 60) + ' minutes',
     status: ['Status', 'All trails open'], open: 'Open', lakeDone: 'Run. Flag flying.', stackDone: 'Climbed. Flag flying.', summits: n => n + ' of 6 summits',
-    wildlife: ['Wildlife', 'Elk in the meadow, mountain goats, bighorn sheep and marmots up high. A humpback and an orca pod offshore. Sockeye at the lake\'s fall, with an osprey after them. A heron in the oxbow, an owl in the forest, two cats at this kiosk, and some days a bear'],
-    seen: ['Also seen', 'Serac falls and an avalanche on Mount Monolith, the marine layer off the sea, low tide, the ferry and a float plane, dust devils in the sage, and shooting stars at Dusk'],
+    // What the board says lives here and happens here (L10), kept to what the world really has.
+    wildlife: ['Wildlife', 'Elk in the meadow, squirrels and chipmunks by the trail. Mountain goats, bighorn sheep and marmots up high, and a pika in the larch talus. A humpback and an orca pod offshore, gulls round the sea stacks. Sockeye at the lake\'s fall, with an osprey after them. A heron in the oxbow, a jay and an owl in the forest, two cats at this kiosk, and some days a bear'],
+    seen: ['Also seen', 'Serac falls, an avalanche and a cap cloud on Mount Monolith, rain showers over the hills, the marine layer off the sea, low tide, the ferry and a float plane, tumbleweeds and dust devils in the sage. At Dusk: shooting stars, the aurora, foxfire in the forest and headlamps on the Spires\' glacier'],
     checklist: (n, of) => 'Field checklist: ' + n + ' of ' + of + ' found', notFound: 'Not found yet', got: 'Found'
   },
   register: {
     close: 'Close the book',
     // The printed headings of the book's right-hand page (L3), as on a Forest Service register form.
     book: { date: 'Date', who: 'Name, party and remarks' },
-    // TJ's note on the left-hand page until the visitor has done all three (L4). Draft copy for TJ to rewrite.
     // After a visitor signs (L5). Draft copy for TJ to rewrite.
     thanks: 'Thanks for signing! Your entry is on the right, waiting for me to read it before it shows to anyone else.',
+    // TJ's note on the left-hand page until the visitor has done all three (L4). Draft copy for TJ to rewrite.
     todo: { hi: 'Thanks for stopping by!', need: 'You can sign the register once you have finished all three:', spires: name => 'One summit in ' + name, after: 'Then come back, and this page is yours.', sig: 'TJ' },
     // The trail map's link to the register (L6): anyone may read it; signing waits for all three.
     link: 'Trail register', canRead: 'read it', canSign: 'sign it',
