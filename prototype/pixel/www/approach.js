@@ -5,7 +5,8 @@
 // rocks. He goes the way the map's trail was going when it handed him over (arg.dir), so the whole
 // picture is drawn left to right and mirrored when needed, as in the larch basin.
 import { clamp, lerp, smooth, frac, sq, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, windAt, veilTable } from './core.js';
-import { Strip, drawStrip, baseline, shell } from './side.js';
+import { Strip, drawStrip, baseline, shell, blitScaled } from './side.js';
+import { SPIRES, tower } from './camp.js';
 import { makeConifer, makeBoulder, makeCloud, makeBush } from './sprites.js';
 import { makeRunner } from './tj.js';
 import { marmot } from './fauna.js';
@@ -137,6 +138,45 @@ function paintMain(S) {
   for (let x = SNOW - SNOW_W; x < SNOW + SNOW_W; x += 3) if (inSnow(x, 0)) S.set(x, g(x) + 1, R.snow[1]);
 }
 
+// The Spires as they will look from camp, seen from far off: the six towers (camp.js's own, painted the
+// same way and in the same order) on their jagged ridge, and the glacier spilling from under them in a
+// broad tongue, crevassed, with a grey snout at its foot. He walks toward them, so they grow (J2).
+const SPW = 320, SPH = 210, SPY = 150;
+function makeSpires() {
+  const b = new BM(SPW, SPH); b.ox = SPW >> 1; b.oy = SPH - 1;
+  for (let x = 38; x < 266; x++) {
+    const inX = smooth(38, 70, x) * smooth(266, 236, x), top = Math.round(SPY - 34 * inX * (0.5 + 0.5 * vnoise(x / 9, 5, 741)) - 4 * (vnoise(x / 2.5, 6, 742) - 0.5));
+    for (let y = top; y <= SPY + 4; y++) { const d = y - top, ice = d > (SPY - top) * 0.45 || vnoise(x / 8, y / 6, 743) > 0.62; b.set(x, y, d < 1 ? R.granite[0] : ice ? pick('glac', 0.8 + 0.2 * (vnoise(x / 4, y / 4, 744) - 0.5), x, y, 0.6) : pick('granite', 0.38 + 0.15 * (vnoise(x / 3, y / 5, 745) - 0.5), x, y, 0.8)); }
+  }
+  for (const [n, sp] of SPIRES.map((s, k) => [k, s]).sort((a, c) => a[1].z - c[1].z)) {
+    const h = Math.round(sp.h * 140), w = Math.round(Math.min(sp.w * h, 90));
+    tower(b, n, Math.round(40 + sp.x * 240), Math.round(SPY + (sp.z - 0.4) * 14), h, w, null);
+  }
+  // The massif's shoulders spread down from the ridge's ends to the picture's foot, so the ice lies in
+  // a valley head between rock walls instead of hanging in the sky. Lit from the west, snow in streaks.
+  for (let y = SPY - 2; y < SPH; y++) {
+    const u = (y - SPY) / (SPH - SPY), w = 114 + 40 * Math.sqrt(Math.max(0, u)) + 4 * (vnoise(y / 6, 3, 751) - 0.5);
+    for (let x = Math.max(0, Math.round(152 - w)); x <= Math.min(SPW - 1, 152 + w); x++) {
+      const a = (x - (152 - w)) / (2 * w), snow = vnoise(x / 5, y / 9, 752) > 0.7 - 0.2 * (1 - u);
+      b.set(x, y, snow ? pick('glac', 0.85, x, y, 0.6) : pick('granite', 0.48 - 0.25 * a + 0.12 * (vnoise(x / 3, y / 4, 753) - 0.5), x, y, 0.8));
+    }
+  }
+  // The glacier: it fills the whole cirque under the towers and narrows into a tongue toward him,
+  // lit from the west, long crevasses bowing downhill across it, ending in a grey snout.
+  for (let y = SPY; y < SPH; y++) {
+    const u = (y - SPY) / (SPH - SPY), half = 116 - 36 * u + 3 * Math.sin(y / 5), cx = 152 - 16 * u;
+    for (let x = Math.round(cx - half); x <= cx + half; x++) {
+      const a = (x - (cx - half)) / (2 * half), cre = frac((y - SPY) / 10 - 1.3 * Math.sin(Math.PI * a) + 0.25 * vnoise(x / 14, y / 5, 746));
+      let c = pick('glac', 0.92 - 0.35 * a - 0.2 * u + 0.1 * (vnoise(x / 4, y / 3, 747) - 0.5), x, y, 0.6);
+      if (cre < 0.09 && a > 0.1 && a < 0.9 && vnoise(x / 16, y / 4, 748) > 0.45) c = R.glac[cre < 0.045 ? 0 : 1];
+      if (SPH - y < 6 + 3 * vnoise(x / 5, 9, 749)) c = pick('rock', 0.5 + 0.3 * hash(x, y, 750), x, y);
+      b.set(x, y, c);
+    }
+  }
+  outline(b, INK);
+  return b;
+}
+
 function buildApproach() {
   const rand = rng(71), run = makeRunner('alpine'), st = {}, focus = { x: 0, y: 0 };
   const haze = veilTable(0.36), haze2 = veilTable(0.3);
@@ -148,6 +188,7 @@ function buildApproach() {
   const floor = new Strip(1300, FLOOR_H + 2, 30); paintFloor(floor, haze2, th, haze);
   const floorFill = haze[R.conifer[0]];
   const main = new Strip(SW, DROP + 2, 600); paintMain(main);
+  const spiresPic = makeSpires();
   const clouds = Array.from({ length: 3 }, (_, k) => ({ bm: makeCloud(740 + k), x: k * 270 + 30, y: 6 + k * 11, v: 2.5 + k }));
 
   // Subalpine firs: a few small ones on the drop behind (far, so small), bigger ones on the near slope,
@@ -201,6 +242,12 @@ function buildApproach() {
       }
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (VW + 140)) - 70, Math.max(4, hor - 160) + c.y);
       drawStrip(scr, far, camX * P_FAR + 300, hor + 4, false, R.far[1]);
+      // The Spires stand at the head of the valley, ahead of him, growing as he walks toward them: from
+      // two fifths of the sky's height at the start to over four fifths at the end, their glacier's snout
+      // sinking behind the valley's far wall. They drift past slowly, being far.
+      // The foot sits well down behind the wall's lowest notch, so the snout never shows a hard edge.
+      { const foot = fl - FLOOR_H - 26, k = Math.min(VW * 0.92 / SPW, lerp(0.4, 1, smooth(0, 1, q)) * (foot - 8) / SPH);
+        blitScaled(fb, VW, VH, spiresPic, Math.round(VW * (scr.narrow ? 0.6 : 0.76) - (camX - X0) * 0.06 + LEN * 0.03), foot, k); }
       drawStrip(scr, wall, camX * P_WALL + 200, fl - FLOOR_H + 1, false, 0);
       drawStrip(scr, floor, camX * P_FLOOR, fl, false, floorFill);
       // The river glints far below.

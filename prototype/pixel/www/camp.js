@@ -54,7 +54,7 @@ function farGoat(pose, kid) {
 
 // One granite tower, painted a column at a time: a jagged skyline, lit on the left, cut by a dark
 // central rib, with ice in the gullies and snow banked against the foot.
-function tower(b, n, bx, by, h, w, feet) {
+export function tower(b, n, bx, by, h, w, feet) {
   // On a bigger wall the bare rock runs further down before the ice takes over.
   const top = by - h, sl = h / (w / 2), big = Math.max(1, h / 130);
   const sky = x => { const dx = Math.abs(x - bx); return top + dx * sl * (x < bx ? 1.06 : 0.94) * (1 - 0.22 * smooth(0, w * 0.5, dx)) + 5 * (1 - Math.exp(-dx / 2.5)) + 7 * (vnoise(x / 4.5, n * 3.1, 216) - 0.5) * Math.min(1, dx / 4) - 4 * Math.max(0, vnoise(x / 2.2, n, 217) - 0.64) / 0.36 * Math.min(1, dx / 5); };

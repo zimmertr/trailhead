@@ -62,4 +62,13 @@ function shell(meta, make, what) {
   for (const k of what) s[k] = (...a) => { const f = art()[k]; return f ? f(...a) : undefined; };
   return s;
 }
-export { Strip, drawStrip, blitTall, baseline, shell };
+// A picture drawn at any size k, its foot at (x, y); nearest pixel, so it stays crisp. Landmarks that
+// grow as he nears them (Proficiency Peak, the Spires) are drawn this way.
+function blitScaled(fb, VW, VH, b, x, y, k) {
+  const w = Math.round(b.w * k), h = Math.round(b.h * k), x0 = Math.round(x - b.ox * k), y0 = Math.round(y - b.oy * k);
+  for (let j = Math.max(0, -y0); j < h && y0 + j < VH; j++) {
+    const sj = Math.min(b.h - 1, Math.floor(j / k)) * b.w, row = (y0 + j) * VW;
+    for (let i = Math.max(0, -x0); i < w && x0 + i < VW; i++) { const c = b.d[sj + Math.min(b.w - 1, Math.floor(i / k))]; if (c) fb[row + x0 + i] = c; }
+  }
+}
+export { Strip, drawStrip, blitTall, baseline, shell, blitScaled };

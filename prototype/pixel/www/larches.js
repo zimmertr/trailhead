@@ -3,7 +3,7 @@
 // behind, and the peak itself growing ahead of him. He goes the way the map's trail was going when
 // it handed him over (arg.dir), so the whole picture is drawn left to right and mirrored when needed.
 import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, DAY, INK, LIGHT, pick, BM, outline, windAt } from './core.js';
-import { Strip, drawStrip, baseline, shell } from './side.js';
+import { Strip, drawStrip, baseline, shell, blitScaled } from './side.js';
 import { makeConifer, makeBoulder, makeCloud } from './sprites.js';
 import { makeRunner } from './tj.js';
 import { goat, pika } from './fauna.js';
@@ -84,14 +84,6 @@ function makePeak() {
   }
   outline(b, INK);
   return b;
-}
-// Drawn at any size k, its foot at (x, y); nearest pixel, so it stays crisp.
-function blitScaled(fb, VW, VH, b, x, y, k) {
-  const w = Math.round(b.w * k), h = Math.round(b.h * k), x0 = Math.round(x - b.ox * k), y0 = Math.round(y - b.oy * k);
-  for (let j = Math.max(0, -y0); j < h && y0 + j < VH; j++) {
-    const sj = Math.min(b.h - 1, Math.floor(j / k)) * b.w, row = (y0 + j) * VW;
-    for (let i = Math.max(0, -x0); i < w && x0 + i < VW; i++) { const c = b.d[sj + Math.min(b.w - 1, Math.floor(i / k))]; if (c) fb[row + x0 + i] = c; }
-  }
 }
 
 // The basin's middle distance: rounded granite benches stepping up, crowded with larches, a tarn on one of

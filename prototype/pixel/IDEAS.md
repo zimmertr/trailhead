@@ -136,3 +136,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **A still morning.** On a calm visit (no wind in the debug weather) the cat's paws could stop and the mirror go glassy, the way Reflection Lakes is only perfect before the breeze gets up.
 - **A party on Monolith at Dusk.** The plan once had headlamps on Monolith too. A second party, on the mountain's own glacier, would show at the lake and on the map alike, so they would stay in step.
 - **Wave from the traverse.** Far below, a tiny figure could be setting out from the Trailhead kiosk; tapping it, TJ waves and a speck of a hand waves back.
+- **Name the towers from afar.** Tapping one of the Spires on the walk in could show its repo's name small over it, the same tag camp hangs on its summit, so a visitor learns them before arriving.
