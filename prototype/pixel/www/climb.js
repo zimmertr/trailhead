@@ -39,14 +39,18 @@ const ROUTES = {
   // anchored every `anchor` of the way; iron rungs up the first wall and a fixed ladder up the second
   // (`walls`), then unclipped over bare rock to the world tree.
   yggdrasil: { kind: 'ladder', secs: 13, sx: 470, w: 1200, dry: true, cable: 430, anchor: 58, walls: [[200, 206, 'rungs'], [320, 326, 'ladder']], pts: [[0, 0], [50, -10], [120, -24], [200, -40], [206, -150], [260, -160], [320, -170], [326, -232], [380, -246], [430, -262], [470, -270], [512, -270], [538, -232], [608, -132], [708, -12]] },
-  'kubernetes-manifests': { kind: 'wands', secs: 10.5, pts: [[0, 0], [90, -26], [170, -74], [230, -120], [262, -140], [304, -140], [330, -104], [400, 0], [500, 120]] }
+  // Kubernetes-Manifests, the crevasse maze (K7): the storm comes in by stages over a broken glacier; in the
+  // whiteout he follows the wands to a crevasse with no way over (`dead`: where he stops, the wand he goes
+  // back to, and where the line picks up beyond it), jumps a narrow one, crosses a sagging snow bridge, and
+  // comes out as the storm lets go near the cairn.
+  'kubernetes-manifests': { kind: 'wands', secs: 23, sx: 520, w: 1200, dead: [196, 172, 240], xings: [[200, 232, 'open'], [288, 300, 'jump'], [350, 380, 'sag']], pts: [[0, 0], [60, -14], [120, -34], [200, -58], [232, -62], [290, -80], [298, -82], [350, -100], [380, -104], [440, -124], [520, -140], [562, -140], [588, -104], [658, -4], [758, 116]] }
 };
 // How slowly each kind of crossing is taken, as a multiple of the walking pace.
-const SLOW = { snow: 2.2, ladder: 3, lashed: 3.4 };
+const SLOW = { snow: 2.2, ladder: 3, lashed: 3.4, sag: 3.2, jump: 1, open: 1 };
 const xingAt = (cfg, x, pad = 0) => (cfg.xings || []).find(g => x > g[0] - pad && x < g[1] + pad);
 // How far a crossing sags at x when he stands on it at mx: a little under its own weight, and more under
 // him, most where he stands (a beam with one load on it). Snow bridges arch up a little instead.
-const SAG = { snow: [-1.5, 2], ladder: [0, 2], lashed: [1, 4.5] };
+const SAG = { snow: [-1.5, 2], ladder: [0, 2], lashed: [1, 4.5], sag: [0.5, 4.5], jump: [0, 0], open: [0, 0] };
 function sagAt(g, x, mx) {
   const [g0, g1, k] = g, u = clamp((x - g0) / (g1 - g0), 0, 1), [own, load] = SAG[k];
   let s = own * Math.sin(u * Math.PI);
@@ -365,8 +369,9 @@ function veil(scr, k, tones, cx, cy, keep) {
 // showing between, resting on both lips, with a hand line on stakes either side. Two ladders lashed end to
 // end overlap in the middle, bound with orange cord, and sag more.
 function crossing(scr, X, Y, g, y0, y1, mx) {
+  if (g[2] === 'jump' || g[2] === 'open') return;
   const [g0, g1, k] = g, at = x => lerp(y0, y1, clamp((x - g0) / (g1 - g0), 0, 1)) + sagAt(g, x, mx);
-  if (k === 'snow') {
+  if (k === 'snow' || k === 'sag') {
     for (let x = g0 - 2; x <= g1 + 2; x++) {
       const y = at(x), u = clamp((x - g0) / (g1 - g0), 0, 1), th = 4 + Math.round(6 * sq(2 * u - 1)), drip = hash(x, 1, 296) > 0.7 ? 1 + Math.floor(hash(x, 2, 296) * 3) : 0;
       for (let j = 0; j < th; j++) scr.set(X(x), Y(y + j), j === 0 ? R.snow[4] : j >= th - 2 ? R.glac[j === th - 1 ? 1 : 2] : j > th - 4 ? R.glac[4] : R.snow[3]);
@@ -445,6 +450,12 @@ function mapBelow(scr, P, y0, x0, x1, ox) {
     const h = 1 - smooth(0, 26, y - y0), row = y * VW, prow = clamp(P.h - (VH - y) - 1, 0, P.h - 1) * P.w + ox;
     for (let x = Math.max(0, x0); x < Math.min(VW, x1); x++) { const b = bayer(x, y); if (b > smooth(x0, x0 + 30, x) * (1 - smooth(x1 - 20, x1, x))) continue; fb[row + x] = b < h * 0.85 ? (h > 0.55 ? R.sky[4] : R.snow[2]) : P.d[prow + x]; }
   }
+}
+// The whiteout closing over everything, dithered in by a.
+function whiteOut(scr, a) {
+  const { VW, VH, fb } = scr;
+  if (a <= 0) return;
+  for (let y = 0; y < VH; y++) { const row = y * VW; for (let x = 0; x < VW; x++) if (bayer(x, y) < a * 1.15) fb[row + x] = (x + y) & 1 ? R.snow[4] : R.snow[3]; }
 }
 // His breath in the cold: puffs from his mouth drifting up and forward and thinning out, faster and
 // bigger the harder he is breathing.
@@ -545,6 +556,8 @@ export function makeClimb() {
     climb: [0, 1].map(f => sideFig('alpine', { feet: f ? [[4, 3], [3, 8]] : [[3, 8], [4, 3]], hands: f ? [[4, -12], [4, -6]] : [[4, -6], [4, -12]], lean: 1, look: 'up' })),
     // Reaching up to the cable with one hand to move a lanyard past an anchor.
     reach: sideFig('alpine', { hands: [[5, -9], [2, 5]], lean: 1, look: 'up' }),
+    // Stopped at the edge of a crevasse, looking down into it.
+    peer2: sideFig('alpine', { hands: [[3, 5], [-2, 6]], lean: 3, look: 'down', held: axe }),
     // On top, looking at his watch.
     wrist: sideFig('alpine', { hands: [[4, 0], [3, 1]], lean: 1, look: 'down', elbowFwd: true }),
     // At the binoculars: both hands up on the viewer, leaning in to the eyepieces.
@@ -584,7 +597,16 @@ export function makeClimb() {
     // Stops on the way: a rest at the end of each set, the slip mid-set.
     const stops = (cfg.sets || []).map(([sx, d]) => ({ sx, d, k: 'rest' })); if (cfg.slipAt) stops.push({ sx: cfg.slipAt, d: 1.5, k: 'slip' });
     const anchors = []; if (cfg.cable) { const end = arcAt(a, cfg.cable); for (let s = 14; s < end - 20; s += cfg.anchor) anchors.push(s); anchors.push(end); anchors.forEach((s, i) => stops.push({ sx: xAt(a, s - 2), d: 0.8, k: 'clip', i })); }
-    for (const p of stops.sort((a, b) => a.sx - b.sx)) { walk(p.sx); legs.push({ t0: t, t1: t + p.d, x0: p.sx, x1: p.sx, [p.k]: true, i: p.i }); t += p.d; }
+    if (cfg.dead) stops.push({ sx: cfg.dead[0], k: 'dead' });
+    for (const p of stops.sort((a, b) => a.sx - b.sx)) {
+      // The dead end: he stops at the edge and looks, walks back to the last wand, and the whiteout closes
+      // over him; when it opens he is on the line again beyond the crevasse.
+      if (p.k === 'dead') { const [at, back, to] = cfg.dead; walk(at); const tb = (arcAt(a, at) - arcAt(a, back)) / speed;
+        legs.push({ t0: t, t1: t + 1.1, x0: at, x1: at, look: true }); t += 1.1;
+        legs.push({ t0: t, t1: t + tb, x0: at, x1: back, back: true }); t += tb;
+        legs.push({ t0: t, t1: t + 0.6, x0: back, x1: back, look: true, away: true }); t += 0.6;
+        legs.push({ t0: t, t1: t + 1.4, x0: back, x1: to, cut: true }); t += 1.4; x = to; continue; }
+      walk(p.sx); legs.push({ t0: t, t1: t + p.d, x0: p.sx, x1: p.sx, [p.k]: true, i: p.i }); t += p.d; }
     walk(sxOf(cfg));
     if (cfg.beep) { legs.push({ t0: t, t1: t + 1.4, x0: x, x1: x, beep: true }); t += 1.4; }
     // When each lanyard goes past each anchor: the first one in the first half of the stop, the second in the
@@ -597,6 +619,9 @@ export function makeClimb() {
     if (tau < T_UP) { const x = -34 + 34 * tau / T_UP; return { ph: 'up', x, y: 0, mode: 'walk' }; }
     if (tau <= pl.tSum) {
       const leg = pl.legs.find(l => tau <= l.t1) || pl.legs[pl.legs.length - 1];
+      if (leg.look) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: 'look', back: leg.away };
+      if (leg.back) { const x = lerp(leg.x0, leg.x1, (tau - leg.t0) / (leg.t1 - leg.t0)); return { ph: 'up', x, y: hOf(pts, x), mode: 'walk', back: true }; }
+      if (leg.cut) { const v = (tau - leg.t0) / (leg.t1 - leg.t0), x = v < 0.5 ? leg.x0 : leg.x1; return { ph: 'up', x, y: hOf(pts, x), mode: 'look', cut: v, back: v < 0.5 }; }
       if (leg.clip) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: 'clip', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
       if (leg.rest || leg.slip || leg.beep) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: leg.rest ? 'rest' : leg.slip ? 'slip' : 'beep', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
       if (leg.ice) { const pose = icePose(leg, tau - leg.t0); return pose.walk ? { ph: 'up', x: pose.x, y: pose.y, mode: 'walk' } : { ph: 'up', x: pose.hx, y: leg.w.ya - pose.hh + STAND, mode: 'ice', pose, leg }; }
@@ -605,7 +630,8 @@ export function makeClimb() {
       if (wallAt(cfg, x)) mode = 'climb';
       if (cfg.knife && knifeK(cfg, x) > 0.5) mode = cfg.astride && x > cfg.astride[0] && x < cfg.astride[1] ? 'astride' : 'edge';
       const xg = xingAt(cfg, x, 3);
-      if (xg) { y = lerp(hOf(pts, xg[0]), hOf(pts, xg[1]), clamp((x - xg[0]) / (xg[1] - xg[0]), 0, 1)) + sagAt(xg, x, x) - (xg[2] === 'snow' ? 0 : 1); if (xg[2] !== 'snow') mode = 'wind'; }
+      if (xg && xg[2] === 'jump') { const v = clamp((x - xg[0] + 3) / (xg[1] - xg[0] + 6), 0, 1); y = lerp(hOf(pts, xg[0] - 3), hOf(pts, xg[1] + 3), v) - Math.sin(v * Math.PI) * 12; mode = 'jump'; }
+      else if (xg) { y = lerp(hOf(pts, xg[0]), hOf(pts, xg[1]), clamp((x - xg[0]) / (xg[1] - xg[0]), 0, 1)) + sagAt(xg, x, x) - (xg[2] === 'snow' || xg[2] === 'sag' ? 0 : 1); if (xg[2] !== 'snow') mode = 'wind'; }
       if (cfg.gap && x > cfg.gap[0] - 4 && x < cfg.gap[1] + 2) {
         const u = (x - cfg.gap[0] + 4) / (cfg.gap[1] - cfg.gap[0] + 6);
         if (cfg.kind === 'bridge') { mode = 'jump'; y = lerp(hOf(pts, cfg.gap[0] - 4), hOf(pts, cfg.gap[1] + 2), u) - Math.sin(u * Math.PI) * 16; }
@@ -630,7 +656,7 @@ export function makeClimb() {
       const cfg = ROUTES[arg.id], pl = plan(arg.id), D = pl.dur, out = [{ at: pl.tPush / D, name: 'glissade' }, { at: (pl.tBot - 0.05) / D, name: 'step' }];
       if (cfg.gap) for (let tau = T_UP; tau < pl.tSum; tau += 0.02) if (where(arg.id, tau).x > cfg.gap[0] - 4) { out.push({ at: tau / D, name: cfg.kind === 'bridge' ? 'crack' : 'step' }); if (cfg.kind === 'bridge') out.push({ at: (tau + 0.05) / D, name: 'jump' }); break; }
       if (cfg.kind === 'ridge') out.push({ at: 0.6 / D, name: 'wind' });
-      for (const g of cfg.xings || []) for (let tau = T_UP; tau < pl.tSum; tau += 0.02) if (where(arg.id, tau).x > g[0] - 3) { out.push({ at: tau / D, name: g[2] === 'lashed' ? 'creak' : 'step' }); break; }
+      for (const g of cfg.xings || []) if (g[2] !== 'open') for (let tau = T_UP; tau < pl.tSum; tau += 0.02) if (where(arg.id, tau).x > g[0] - 3) { out.push({ at: tau / D, name: g[2] === 'lashed' || g[2] === 'sag' ? 'creak' : g[2] === 'jump' ? 'jump' : 'step' }); break; }
       // The storm on the wanded route is heard as it arrives, and again as it closes in.
       if (cfg.kind === 'wands') for (const u of [0.09, 0.3, 0.5, 0.66]) out.push({ at: (T_UP + u * (pl.tSum - T_UP)) / D, name: 'wind' });
       for (const leg of pl.legs) {
@@ -657,7 +683,7 @@ export function makeClimb() {
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t } = env, id = arg.id, cfg = ROUTES[id], kind = cfg.kind, pl = plan(id), SXr = sxOf(cfg);
       const tau = q * pl.dur, me = where(id, tau), S = me.ph === 'up' ? get(id) : slope.S, pts = me.ph === 'up' ? cfg.pts : slope.cfg.pts;
-      cam.x += (me.x - cam.x) * (env.calm ? 1 : Math.min(1, env.dt * 8)); cam.y += (me.y - cam.y) * (env.calm ? 1 : Math.min(1, env.dt * 6));
+      cam.x += (me.x - cam.x) * (env.calm || me.cut != null ? 1 : Math.min(1, env.dt * 8)); cam.y += (me.y - cam.y) * (env.calm ? 1 : Math.min(1, env.dt * 6));
       const anchor = scr.narrow ? 0.5 : me.ph === 'up' ? 0.52 : 0.6, u = t - egg;
       // The rack is hit hard enough to shake the picture for a moment.
       const jolt = kind === 'icefall' && me.ph === 'up' && u > 0.36 && u < 0.86 ? 1 - (u - 0.36) / 0.5 : 0;
@@ -673,9 +699,14 @@ export function makeClimb() {
       // cloud sliding over from the right, the first flakes, heavy snow, then white. It lets go slowly near the top.
       let gust = 0, bank = 0, flakes = 0, heavy = 0, white = 0;
       if (kind === 'wands' && me.ph === 'up') {
-        const clear = 1 - smooth(0.74, 0.98, up);
-        gust = smooth(0.07, 0.14, up) * (1 - smooth(0.84, 0.99, up)); bank = smooth(0.1, 0.34, up) * clear;
-        flakes = smooth(0.2, 0.3, up) * (1 - smooth(0.82, 0.99, up)); heavy = smooth(0.34, 0.5, up) * clear; white = smooth(0.5, 0.63, up) * clear;
+        const S7 = cfg.dead ? [0.04, 0.1, 0.06, 0.2, 0.12, 0.2, 0.18, 0.26, 0.24, 0.32, 0.72, 1] : [0.07, 0.14, 0.1, 0.34, 0.2, 0.3, 0.34, 0.5, 0.5, 0.63, 0.74, 0.98];
+        const clear = 1 - smooth(S7[10], S7[11], up);
+        gust = smooth(S7[0], S7[1], up) * (1 - smooth(0.84, 0.99, up)); bank = smooth(S7[2], S7[3], up) * clear;
+        flakes = smooth(S7[4], S7[5], up) * (1 - smooth(0.82, 0.99, up)); heavy = smooth(S7[6], S7[7], up) * clear; white = smooth(S7[8], S7[9], up) * clear;
+        // On the long maze the whiteout eases a little once he is past the dead end, enough to see the crevasses.
+        if (cfg.dead) white *= 1 - 0.4 * smooth(0.5, 0.58, up);
+        // At the dead end and at the jump the cloud parts just enough for him (and us) to see the crevasse.
+        if (cfg.dead && me.cut == null) for (const g of cfg.xings) if (g[2] === 'open' || g[2] === 'jump') white *= 1 - 0.5 * (1 - smooth(6, 34, Math.abs(me.x - g[0])));
       }
 
       // Under the knife-edge the whole map lies far below, a third of its size: built once from the map itself,
@@ -777,6 +808,7 @@ export function makeClimb() {
       if (kind === 'wands' && me.ph === 'up') {
         veil(scr, white, [R.snow[3], R.snow[4]], sx, sy - 12);
         for (let wx = 20; wx < SXr; wx += 38) {
+          if (xingAt(cfg, wx, 8)) continue;
           const away = Math.abs(wx - me.x), ghost = white > 0.35 && away > 60; if (white > 0.35 && away > 132) continue;
           const wy = hOf(pts, wx); for (let j = 1; j < 15; j++) scr.set(X(wx), Y(wy - j), ghost ? R.snow[2] : R.wood[3]);
           const fl = Math.floor(t * (6 + 6 * gust) + wx) & 1; for (let i = 1; i < 5; i++) for (let j = 0; j < 3; j++) scr.set(X(wx) - i, Y(wy - 15 + j + (fl && i > 2 ? 1 : 0)), ghost ? R.snow[2] : R.blaze[j === 0 ? 2 : 1]);
@@ -798,6 +830,7 @@ export function makeClimb() {
         bm = fig.stand;
         if (u < 5) { if (kind === 'ice' && u > 0.4 && u < 4.2) { bm = null; scr.put(fig.press[Math.floor((u - 0.4) * 1.6) & 1], X(SXr + 24), Y(hOf(pts, SXr + 24) - 4), false); } else if (kind === 'wands' && u < 1.2) bm = fig.hit[u > 0.35 && u < 0.7 ? 1 : 0]; else if (kind === 'ridge' || kind === 'ladder') bm = u > 3 ? fig.cheer : fig.stand; }
       } else if (me.mode === 'sit') { bm = fig.sit[Math.floor(t * 8) & 1]; flip = true; dy = 2; for (let k = 0; k < 14; k++) { const a = frac(t * 2.4 + k / 14); scr.set(Math.round(sx + 6 + a * 30 + hash(k, 1, 251) * 6), Math.round(sy - 2 - a * (8 + hash(k, 2, 251) * 16) + a * a * 10), a < 0.6 ? R.white[1] : R.snow[3]); } }
+      else if (me.mode === 'look') { bm = fig.peer2; flip = !!me.back; }
       else if (me.mode === 'climb' || (me.mode === 'clip' && wallAt(cfg, me.x))) { const w = wallAt(cfg, me.x); bm = fig.climb[me.mode === 'clip' ? 0 : Math.floor(-me.y / 5) & 1]; dx = X(w[0] - 5) - sx; }
       else if (me.mode === 'clip') bm = fig.reach;
       else if (me.mode === 'edge') bm = fig.edge[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1];
@@ -821,6 +854,7 @@ export function makeClimb() {
       else if (cfg.sets && me.ph === 'up' && me.x > 0) { bm = fig.wind[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1]; const a = frac(d / 7.2); if (env.moving && a < 0.3) chips(scr, sx + 6, sy - 1, a / 0.3, 4, Math.floor(d / 7.2)); }
       else { const rimed = cfg.brk && me.ph === 'up'; bm = ((me.mode === 'wind' && windK > 0.25) || (gust > 0.3 && up < 0.9) ? (rimed ? fig.windR : fig.wind) : (rimed ? fig.walkR : fig.walk))[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1]; flip = !!me.back; }
       if (bm) { scr.put(bm, sx + Math.round(dx), sy + dy, flip); }
+      if (me.cut != null) whiteOut(scr, smooth(0, 0.35, me.cut) * (1 - smooth(0.65, 1, me.cut)));
       if (cfg.cable && me.ph === 'up') lanyards(scr, X, Y, cfg, pts, pl, arc(id), xAt, arcAt, tau, sx + Math.round(dx), sy + dy, me);
       focus.x = sx; focus.y = sy - 14;
       if (bird) scr.put(bb[Math.floor(t * 10) & 1], bird.x, bird.y, bird.left);

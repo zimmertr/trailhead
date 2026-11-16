@@ -146,3 +146,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **The workout synced.** On hevy-garmin-sync's summit, a tap on the watch could show the climb as a workout card the way the app writes it to Garmin (sets, rests, total time), which explains the project in one look.
 - **Spot yourself.** On trailhead's knife-edge a tap on the map far below could ring the place a visitor has been to most (or has not found yet) with a small blinking marker, the way you pick out your own house from a plane.
 - **Clip in yourself.** On yggdrasil a visitor could tap to move the lanyards past each anchor themselves, and he will not climb on until they have, never letting both come off at once.
+- **Probe the bridge.** On Kubernetes-Manifests he could prod the snow bridge with his axe before stepping on, the pole going in further than it should, the way a glacier party tests a bridge.
