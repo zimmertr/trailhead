@@ -191,6 +191,10 @@ export function makeAudio() {
     flag: t => [523, 659, 784, 1047].forEach((f, i) => tone(fx, 'square', f, t + i * 0.09, i === 3 ? 0.34 : 0.09, 0.2)),
     summit: t => [392, 523, 659, 784, 1047, 1319].forEach((f, i) => { tone(fx, 'square', f, t + i * 0.08, i === 5 ? 0.5 : 0.09, 0.2); tone(fx, 'triangle', f / 2, t + i * 0.08, 0.12, 0.3); }),
     glissade: t => { noise(fx, t, 2.2, 0.2, 2600, 0.5, 'bandpass'); tone(fx, 'triangle', 700, t, 2.1, 0.1, 180); },
+    // Meltwater under the moraine: a few quick bubbles of running water.
+    gurgle: t => { for (let i = 0; i < 4; i++) { const d = i * 0.07 + Math.random() * 0.05; noise(fx, t + d, 0.09, 0.05, 900 + Math.random() * 700, 4, 'bandpass'); tone(fx, 'sine', 420 + Math.random() * 380, t + d, 0.07, 0.05, 700 + Math.random() * 500); } },
+    // The glacier settling: a deep, slow groan with a crack in it, far off.
+    creak: t => { tone(fx, 'sawtooth', 70, t, 0.9, 0.05, 52); noise(fx, t + 0.5, 0.25, 0.08, 260, 1, 'lowpass'); },
     crack: t => { noise(fx, t, 0.35, 0.3, 500, 1, 'lowpass'); tone(fx, 'square', 160, t, 0.2, 0.18, 60); },
     wind: t => noise(fx, t, 1.4, 0.12, 700, 1.4, 'bandpass'),
     // The same whoosh high on the West Ridge: louder, longer and lower.
@@ -228,6 +232,8 @@ export function makeAudio() {
     else if (name === 'wall') bed(500, 1.2, 0.1);
     // The larch basin: wind over open granite and the cascade below the tarn, far off.
     else if (name === 'larches') { bed(650, 1, 0.09); bed(2800, 0.6, 0.025); }
+    // The walk to camp: wind on the open slope, and the river far below in the valley.
+    else if (name === 'approach') { bed(700, 0.9, 0.09); bed(1300, 0.4, 0.02); }
     else if (name === 'camp' || name === 'climb' || name === 'offroute') { bed(420, 1.6, 0.2); bed(1500, 0.8, 0.05); }
     else bed(1800, 0.3, 0.03);
     if (name === 'world' || name === 'forest' || name === 'lakeside') ambTimer = setInterval(() => { if (ctx.state === 'running' && Math.random() < 0.5) FX.chirp(ctx.currentTime + Math.random() * 0.5); }, 2600);
