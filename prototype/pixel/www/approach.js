@@ -5,7 +5,7 @@
 // rocks. He goes the way the map's trail was going when it handed him over (arg.dir), so the whole
 // picture is drawn left to right and mirrored when needed, as in the larch basin.
 import { clamp, lerp, smooth, frac, sq, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, windAt, veilTable } from './core.js';
-import { Strip, drawStrip, baseline, shell, blitScaled } from './side.js';
+import { Strip, drawStrip, baseline, shell, blitScaled, paintPeaks } from './side.js';
 import { paintSpires, dome } from './camp.js';
 import { makeKayti } from './people.js';
 import { makeConifer, makeBoulder, makeCloud, makeBush } from './sprites.js';
@@ -53,13 +53,17 @@ const META = {
 };
 export const makeApproach = () => shell(META, buildApproach, ['enter', 'focus', 'pick', 'act', 'draw']);
 
-// Far ranges across the valley: pale, with snow on the higher tops.
+// Far ranges across the valley: a pale back range with snow on its higher tops, and in front of it the
+// Cascades' peaks, broad and lit from the west, gullied, as the larch basin paints its far mountains.
 const range = x => -58 - 36 * fbm(x / 80, 2.2, 704, 4) - 7 * Math.sin(x / 37);
 function paintFar(S) {
   for (let x = 0; x < S.w; x++) {
-    const top = Math.round(range(x)), sl = range(x + 1) - range(x - 1);
-    for (let y = top; y < S.h - S.up; y++) S.set(x, y, y - top < 3 + 3 * vnoise(x / 6, 1, 705) && top < -80 ? R.farsnow[sl < 0 ? 1 : 0] : pick('far', 0.78 + clamp(sl * 3, -0.15, 0.15) + 0.08 * (vnoise(x / 9, y / 9, 706) - 0.5) - (y - top) * 0.003, x, y));
+    const top = Math.round(range(x)), sl = (range(x + 8) - range(x - 8)) / 8;
+    for (let y = top; y < S.h - S.up; y++) S.set(x, y, y - top < 3 + 3 * vnoise(x / 6, 1, 705) && top < -80 ? R.farsnow[sl < 0 ? 1 : 0] : pick('far', 0.8 + 0.1 * (fbm(x / 14, y / 10, 706, 2) - 0.5) - (y - top) * 0.003, x, y));
   }
+  const rp = rng(708), SP = [];
+  for (let x = -30; x < S.w + 30; x += 60 + rp() * 80) SP.push({ cx: x, h: 44 + rp() * 70, hw: 44 + rp() * 40, p: 0.85 + rp() * 0.4 });
+  paintPeaks(S, SP);
 }
 // The far wall of the valley: forest up its lower slopes, rock and meadow above, all a little hazy.
 const wallTop = x => -38 - 24 * fbm(x / 60, 3.1, 707, 3) - 5 * Math.sin(x / 23);

@@ -1,4 +1,5 @@
 // Helpers for the side-view scenes: wide strips of scenery that scroll at their own speed.
+import { frac, smooth, hash, vnoise, fbm, R, pick } from './core.js';
 
 // A strip is a wide index bitmap whose row `up` is the line he runs along. Scenes paint into it
 // with y measured from that line, negative above it.
@@ -71,4 +72,24 @@ function blitScaled(fb, VW, VH, b, x, y, k) {
     for (let i = Math.max(0, -x0); i < w && x0 + i < VW; i++) { const c = b.d[sj + Math.min(b.w - 1, Math.floor(i / k))]; if (c) fb[row + x0 + i] = c; }
   }
 }
-export { Strip, drawStrip, blitTall, baseline, shell, blitScaled };
+// Far peaks for a strip, in the pale far colours: each peak {cx, h, hw, p} (centre, height over its
+// foot at -18, half width, how sharp), its ridge wandering down from the top, lit on its west face,
+// gullies down both faces with snow in the high ones, snow on the highest tops. The larch basin and the
+// walk to camp both paint their far mountains this way. Returns the skyline (y of the top at x).
+function paintPeaks(S, SP) {
+  const topAt = x => { let t = 4; topAt.own = null; for (const p of SP) { const a = 1 - Math.abs(x - p.cx) / p.hw; if (a > 0) { const h = -18 - p.h * Math.pow(a, p.p) - 5 * (vnoise(x / 4, p.cx, 618) - 0.5) * a; if (h < t) { t = h; topAt.own = p; } } } return t; };
+  for (let x = 0; x < S.w; x++) {
+    const top = Math.round(topAt(x)), p = topAt.own; if (!p) continue;
+    for (let y = top; y < S.h - S.up; y++) {
+      const ridge = p.cx + 6 * (vnoise(y / 14, p.cx, 620) - 0.5) * (y - top) / 20, lit = x < ridge, gully = frac((x - ridge) / (lit ? 9 : 7) + 0.4 * vnoise(x / 6, y / 18, 621)) < 0.18 && y - top > 4;
+      const crack = vnoise(x / 2.5, y / 20, 619) > 0.74;
+      let c = pick('far', (lit ? 0.7 : 0.3) + 0.1 * (fbm(x / 7, y / 14, 612, 3) - 0.5) - (gully ? 0.16 : 0) - (crack ? 0.1 : 0) - smooth(-30, 4, y) * 0.12, x, y);
+      if (gully && y < -46 && y - top > 3 && hash(x, y, 622) < 0.85) c = R.farsnow[lit ? 1 : 0];
+      if (y - top < 2 && top < -100) c = R.farsnow[lit ? 1 : 0];
+      S.set(x, y, c);
+    }
+  }
+  return topAt;
+}
+
+export { Strip, drawStrip, blitTall, baseline, shell, blitScaled, paintPeaks };

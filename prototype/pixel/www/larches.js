@@ -3,7 +3,7 @@
 // behind, and the peak itself growing ahead of him. He goes the way the map's trail was going when
 // it handed him over (arg.dir), so the whole picture is drawn left to right and mirrored when needed.
 import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, DAY, INK, LIGHT, pick, BM, outline, windAt } from './core.js';
-import { Strip, drawStrip, baseline, shell, blitScaled } from './side.js';
+import { Strip, drawStrip, baseline, shell, blitScaled, paintPeaks } from './side.js';
 import { makeConifer, makeBoulder, makeCloud } from './sprites.js';
 import { makeRunner } from './tj.js';
 import { goat, pika } from './fauna.js';
@@ -38,20 +38,7 @@ function paintFar(S, rand) {
     const top = Math.round(backRange(x)), sl = backRange(x + 1) - backRange(x - 1);
     for (let y = top; y < S.h - S.up; y++) S.set(x, y, y - top < 3 + 3 * vnoise(x / 6, 1, 617) && top < -88 ? R.farsnow[sl < 0 ? 1 : 0] : pick('far', 0.8 + clamp(sl * 3, -0.15, 0.15) + 0.08 * (vnoise(x / 9, y / 9, 623) - 0.5) - (y - top) * 0.003, x, y));
   }
-  let own = null;
-  const SP = spires(S.w, rand), topAt = x => { let t = 4; own = null; for (const p of SP) { const a = 1 - Math.abs(x - p.cx) / p.hw; if (a > 0) { const h = -18 - p.h * Math.pow(a, p.p) - 5 * (vnoise(x / 4, p.cx, 618) - 0.5) * a; if (h < t) { t = h; own = p; } } } return t; };
-  for (let x = 0; x < S.w; x++) {
-    const top = Math.round(topAt(x)), p = own; if (!p) continue;
-    for (let y = top; y < S.h - S.up; y++) {
-      // The ridge wanders down from the summit; gullies run down both faces.
-      const ridge = p.cx + 6 * (vnoise(y / 14, p.cx, 620) - 0.5) * (y - top) / 20, lit = x < ridge, gully = frac((x - ridge) / (lit ? 9 : 7) + 0.4 * vnoise(x / 6, y / 18, 621)) < 0.18 && y - top > 4;
-      const crack = vnoise(x / 2.5, y / 20, 619) > 0.74;
-      let c = pick('far', (lit ? 0.7 : 0.3) + 0.1 * (fbm(x / 7, y / 14, 612, 3) - 0.5) - (gully ? 0.16 : 0) - (crack ? 0.1 : 0) - smooth(-30, 4, y) * 0.12, x, y);
-      if (gully && y < -46 && y - top > 3 && hash(x, y, 622) < 0.85) c = R.farsnow[lit ? 1 : 0];
-      if (y - top < 2 && top < -100) c = R.farsnow[lit ? 1 : 0];
-      S.set(x, y, c);
-    }
-  }
+  const SP = spires(S.w, rand), topAt = paintPeaks(S, SP);
   // The glacier, under the tallest spire, about a third of the way down it.
   const big = SP.filter(p => p.cx > 200 && p.cx < S.w - 200).reduce((a, b) => (b.h > a.h ? b : a));
   for (let x = Math.round(big.cx - big.hw * 0.9); x <= big.cx + big.hw * 0.9; x++) {

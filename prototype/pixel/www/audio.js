@@ -87,8 +87,10 @@ export const SETS = [
 // Their names are words on the page, so they live with the rest of the words.
 TRACKS.forEach((tr, i) => { tr.name = TRACK_NAMES[i]; }); SETS.forEach((st, i) => { st.name = SET_NAMES[i]; });
 
-// Which tunes belong to which place, the first one first. Glissade is the walk back out.
-const PLACES = { world: [0, 4], out: [6, 0], forest: [1, 5], lakeside: [5, 1], larches: [4, 5], wall: [2, 4], camp: [4, 3], climb: [3, 6], offroute: [3] };
+// Which tunes belong to which place, the first one first. Glissade is the walk back out. The walk to
+// camp keeps Wildflower Meadow over its flower slope; camp opens with Above the Icefall, since Larch
+// March now belongs to the larch basin.
+const PLACES = { world: [0, 4], out: [6, 0], forest: [1, 5], lakeside: [5, 1], larches: [4, 5], wall: [2, 4], approach: [0, 3], camp: [3, 4], climb: [3, 6], offroute: [3] };
 
 export function makeAudio() {
   let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, timer = null, step = 0, nextAt = 0, cur = 0, set = 0, auto = true, place = 'world', turn = 0, loops = 0, level = 0.22, swap = null, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
