@@ -2,7 +2,7 @@
 // The world is a height for every spot (u east, v away from the camera). A spot is drawn at screen
 // (u, SY - v - height), nearest first, so ground and mountains are one surface and near slopes hide
 // far ones.
-import { R, INK, KIND, SHADE, RAMP_OF, veilTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
+import { R, INK, BM, outline, KIND, SHADE, RAMP_OF, veilTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
 import { paintMonolith, monolithSky, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
@@ -219,6 +219,15 @@ const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypo
 const lakeRim = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) { const d = Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); if (d >= 1 && d < 1 + 2.2 / Math.min(ru, 8 * rv)) return kind; } return null; };
 const lakeAt = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) if (Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5) < 1) return kind; return null; };
 if (!B) for (const [cu, cv, ru, rv] of C.lakes) { const lv = hAt(cu, cv - rv); for (let v = Math.floor(cv - rv - 2); v <= cv + rv + 2; v++) for (let u = Math.floor(cu - ru - 2); u <= cu + ru + 2; u++) if (lakeAt(u, v)) hg[at(u, v)] = lv; }
+// Reflection Lake spills over a step (D4): the ground in front of its outlet's lip is dropped, so the
+// stream falls instead of running down a slope. The drop fades out sideways and far ahead, where the
+// land falls away on its own. lipKeep stops the stream wearing the lip back into a notch.
+const FALL = 10, LIP = (() => { const P = catmull(C.src[0].lead); let k = 0; while (k < P.length - 1 && lakeAt(P[k][0], P[k][1])) k++; return P[Math.min(P.length - 1, k + 5)].map(Math.round); })();
+const lipKeep = new Uint8Array(NW * VD);
+if (!B) { const [lu, lv] = LIP; for (let v = Math.max(0, lv - 80); v <= lv + 12; v++) for (let u = lu - 44; u <= lu + 44; u++) {
+  const i = at(u, v), side = Math.abs(u - lu), ahead = lv - v + 1.5 * (vnoise(u / 5, 1, 444) - 0.5); if (MATS[mg[i]] !== 'land' || lakeAt(u, v)) continue;
+  if (ahead > 0) hg[i] = Math.max(0.5, hg[i] - FALL * smooth(40, 20, side) * smooth(0, 1.5, ahead) * smooth(76, 26, ahead)); else if (side < 16 && ahead > -10) lipKeep[i] = 1;
+} }
 // ---- water finds its own way ----------------------------------------------------------------------
 // Every spot drains to a lower neighbour. Hollows are filled first, by flooding inward from the sea
 // and from the dry corner's edge, lowest ground first, so no stream dead-ends. Worked at half size.
@@ -243,7 +252,7 @@ if (B) water.set(B.water); else {
     let bed = 1e9;
     for (const [pu, pv, pr] of r.pts) {
       bed = Math.min(bed, hAt(pu, pv)); const W = Math.ceil(pr + 9);
-      for (let dv = -W; dv <= W; dv++) for (let du = -W; du <= W; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v), m = MATS[mg[i]], d = Math.hypot(du, dv); if (d > W || (m !== 'land' && m !== 'moraine' && m !== 'gran')) continue; const t = Math.max(0.4, bed + Math.max(0, d - pr) * 0.9); if (hg[i] > t) hg[i] = t; if (d <= pr + 1 && hg[i] > 0) water[i] = Math.max(water[i], d <= pr ? 2 : 1); }
+      for (let dv = -W; dv <= W; dv++) for (let du = -W; du <= W; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v), m = MATS[mg[i]], d = Math.hypot(du, dv); if (d > W || lipKeep[i] || (m !== 'land' && m !== 'moraine' && m !== 'gran')) continue; const t = Math.max(0.4, bed + Math.max(0, d - pr) * 0.9); if (hg[i] > t) hg[i] = t; if (d <= pr + 1 && hg[i] > 0) water[i] = Math.max(water[i], d <= pr ? 2 : 1); }
     }
   }
   // An oxbow: a bend the west river left behind, in the flat of the meadow.
@@ -251,8 +260,20 @@ if (B) water.set(B.water); else {
 }
 // The heights are kept to 32nds of a pixel, baked or not, so the map read from a bake is the same map.
 if (!B) for (let i = 0; i < hg.length; i++) hg[i] = Math.round(hg[i] * 32) / 32;
+// The waterfall off the lake's lip, in picture terms: its column, where it leaves the lip and where it lands.
+const FALLS = (() => { const [lu, lv] = LIP, top = hAt(lu, lv + 1); let v = lv; while (v > lv - 14 && hAt(lu, v - 1) < hAt(lu, v) - 0.4) v--; const bot = hAt(lu, v);
+  return top - bot < 3 ? [] : [{ x: lu, y0: Math.round(SY - lv - top), y1: Math.round(SY - v - bot), v }]; })();
 function stamp(mask, pts, r0, r1) { pts.forEach(([pu, pv], n) => { const rr = lerp(r0, r1, n / (pts.length - 1)), R2 = Math.ceil(rr + 1); for (let dv = -R2; dv <= R2; dv++) for (let du = -R2; du <= R2; du++) { const d = Math.hypot(du, dv), u = Math.round(pu + du), v = Math.round(pv + dv), k = d <= rr ? 2 : d <= rr + 1 ? 1 : 0; if (k && u >= 0 && v >= 0 && u < NW && v < VD && mask[at(u, v)] < k) mask[at(u, v)] = k; } }); }
 const trailPts = []; for (const t of C.trails) { const all = catmull(t); stamp(trail, all, 1.9, 1.9); trailPts.push(...all); }
+// Where a trail crosses running water there is a footbridge: the stretch of trail over the water and a
+// few steps of bank at either end, as round 3 had them (D4).
+const BRIDGES = [];
+for (const t of C.trails) {
+  const P = catmull(t); let run = null;
+  const end = () => { if (run) { const pts = P.slice(Math.max(0, run[0] - 9), run[1] + 10).map(([u, v]) => [u, Math.round(SY - v - hAt(u, v)), v]); const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]); BRIDGES.push({ pts, x0: Math.min(...xs), x1: Math.max(...xs), y0: Math.min(...ys), y1: Math.max(...ys), v0: Math.min(...pts.map(p => p[2])), v1: Math.max(...pts.map(p => p[2])) }); } run = null; };
+  P.forEach(([u, v], n) => { const i = at(Math.round(u), Math.round(v)); if (water[i] && !lakeAt(u, v)) { if (!run) run = [n, n]; run[1] = n; } else if (run && n - run[1] > 30) end(); });
+  end();
+}
 const nearTrail = (u, v, r) => { for (let i = 0; i < trailPts.length; i += 3) { const p = trailPts[i]; if (Math.abs(p[0] - u) < r && Math.abs(p[1] - v) < r) return true; } return false; };
 
 // ---- what the ground is made of -------------------------------------------------------------------
@@ -333,7 +354,7 @@ function colour(u, v, hh, x, y) {
   // The ground behind the crest, glimpsed between its peaks against the sky, is more mountain, not meadow.
   if (u > 760 && v > 684) return hh > 128 && vnoise(x / 3, hh / 12, 829) > 0.45 + 0.3 * smooth(1240, 1700, u) ? R.snow[L > 0.5 ? 4 : 3] : pick('rock', 0.3 + 0.45 * L + 0.15 * vnoise(x / 3, hh / 10, 97), x, y, 0.7);
   // Land. A step in it shows the rock of its own country.
-  if (steep > 1.05) return dryAmt(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)]) : u > 1190 ? pick('rock', 0.36 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.15 * L, x, y, 0.7) : pick('rock', 0.12 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.2 * L, x, y, 0.7);
+  if (steep > 1.05) return dryAmt(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)]) : u > 1190 ? pick('rock', 0.36 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.15 * L, x, y, 0.7) : ((ld, ck) => ld < 0.22 && hash(x, y, 100) < 0.75 ? pick('moss', 0.3 + 0.35 * L, x, y) : ck > 0.74 ? R.rock[0] : pick('rock', 0.14 + 0.5 * vnoise(x / 3, hh / 5, 97) + 0.25 * L, x, y, 0.7))(frac(hh / 4.5 + 0.7 * vnoise(x / 9, 3, 98)), vnoise(x / 2.2, hh / 9, 99));
   const sh = (L - 0.5) * 0.5, blot = s => 0.5 + 0.85 * (fbm(u / 32, v / 21, s, 3) - 0.5) + 0.2 * n1;
   const fa = forestAmt(u, v);
   if (fa > 0.5 + 0.2 * n1) { const shaft = fbm(u / 34 + v / 70, v / 26, 21, 3); return pick('moss', 0.16 + 0.3 * fbm(u / 18, v / 18, 22, 3) + smooth(0.56, 0.7, shaft) * 0.4 + sh * 0.4, x, y); }
@@ -432,15 +453,30 @@ for (let u = 0; u < NW; u++) {
 // These work on the finished picture. A pixel belongs to the ground at one spot (zb, its depth), so
 // each touch keeps to one stretch of ground and never reaches across the edge of a nearer slope.
 const sameGround = (i, j) => Math.abs(zb[i] - zb[j]) < 4;
+// The plunge pool at the foot of the waterfall, white where the water lands.
+for (const F of FALLS) for (let dy = -2; dy <= 2; dy++) for (let dx = -6; dx <= 6; dx++) { const e = (dx / 6) ** 2 + (dy / 2.2) ** 2; if (e > 1) continue; const x = F.x + dx, y = F.y1 + dy + 1; if (x < 0 || y < 0 || x >= NW || y >= SH) continue; g[px(x, y)] = e < 0.35 && hash(x, y, 461) < 0.6 ? R.white[1] : e > 0.75 ? R.water[1] : R.water[2]; }
+// The footbridges' decks: planks across with a dark seam, a beam along each edge.
+for (const br of BRIDGES) {
+  const [ax, ay] = br.pts[0], [bx, by] = br.pts[br.pts.length - 1], len = Math.hypot(bx - ax, by - ay) || 1, ux = (bx - ax) / len, uy = (by - ay) / len;
+  let nx = -uy, ny = ux; if (ny < 0) { nx = -nx; ny = -ny; }
+  for (let y = Math.floor(br.y0) - 6; y <= br.y1 + 6; y++) for (let x = Math.floor(br.x0) - 6; x <= br.x1 + 6; x++) {
+    const t = (x - ax) * ux + (y - ay) * uy, d = (x - ax) * nx + (y - ay) * ny; if (t < -0.5 || t > len + 0.5 || Math.abs(d) > 3 || x < 0 || y < 0 || x >= NW || y >= SH) continue;
+    g[px(x, y)] = d > 2 ? R.wood[1] : d < -2 ? R.wood[2] : Math.floor(t + 0.5) % 3 === 0 ? R.wood[2] : R.wood[hash(Math.floor((t + 0.5) / 3), Math.floor(br.x0), 60) < 0.4 ? 4 : 3];
+  }
+}
 // Reflection Lake mirrors what stands behind it, squashed and broken by ripples: snow as pale water,
 // forest as dark water, rock in between. The shore keeps its own colour.
 {
-  const lake = C.lakes[0], top = new Int16Array(NW).fill(-1);
+  const lake = C.lakes[0], top = new Int16Array(NW).fill(-1), SUMY = SY - VOLC.cv - VOLC.H;
   for (let y = 0; y < SH; y++) for (let x = Math.floor(lake[0] - lake[2] - 4); x <= lake[0] + lake[2] + 4; x++) { const v = zb[px(x, y)]; if (v < VD && top[x] < 0 && lakeAt(x, v) === 'lake') top[x] = y; }
   for (let x = 0; x < NW; x++) if (top[x] >= 0) for (let y = top[x] + 1; y < SH; y++) {
     const i = px(x, y), v = zb[i]; if (v >= VD || lakeAt(x, v) !== 'lake' || isle(x, v) < 1.2) { if (y > top[x] + 30) break; continue; }
     if (lakeAt(x, v - 2) !== 'lake' || lakeAt(x + 2, v) !== 'lake' || lakeAt(x - 2, v) !== 'lake') continue;
-    const sy = Math.round(top[x] - (y - top[x]) * 3.2 - 2), sx = Math.round(x + 1.5 * Math.sin(y * 1.7)); if (sy < 0 || sx < 0 || sx >= NW || !(y & 1 || hash(x, y, 8) < 0.6)) continue;
+    // The first rows mirror the near shore; further out, Mount Monolith, upside down and squashed into the
+    // rest of the lake, faint: only its snow shows, as pale water every other pixel.
+    const r = y - top[x], sx = Math.round(x + 1.5 * Math.sin(y * 1.7));
+    if (r > 3) { const sy2 = Math.round(top[x] - 12 - (r - 3) * (top[x] - 12 - SUMY) / 9); if (sy2 >= 0 && sx >= 0 && sx < NW && ((x + y) & 1) && (y & 1)) { const k2 = RAMP_OF[g[px(sx, sy2)]]; if (k2 === 'snow' || k2 === 'serac') { g[i] = R.water[4]; continue; } } }
+    const sy = Math.round(top[x] - r * 3.2 - 2); if (sy < 0 || sx < 0 || sx >= NW || !(y & 1 || hash(x, y, 8) < 0.6)) continue;
     const c = g[px(sx, sy)], k = RAMP_OF[c]; if (!k || k === 'skyband' || k === 'sky') continue;
     g[i] = k === 'snow' || k === 'farsnow' || k === 'glac' ? R.water[4] : k === 'conifer' || k === 'moss' || k === 'grass' || k === 'mist' ? R.water[1] : R.water[2];
   }
@@ -653,8 +689,22 @@ if (!B) for (const th of live) {
   const rx = (th.tree ? th.tree.w : th.bm.w) * 0.42;
   for (let dy = -3; dy <= 3; dy++) for (let dx = -Math.ceil(rx); dx <= rx; dx++) { if (sq(dx / rx) + sq(dy / 3.2) > 1) continue; const x = th.x + dx + 2, y = th.y + dy - 1; if (x < 0 || y < 0 || x >= NW || y >= SH) continue; const i = px(x, y); if (Math.abs(zb[i] - th.v) < 5 && g[i] !== INK) g[i] = SHADE[g[i]]; }
 }
+// Each footbridge's rails are things of their own: the far rail sorts behind him as he crosses and the
+// near rail in front, so he is seen to run between them.
+for (const br of BRIDGES) {
+  const [ax, ay] = br.pts[0], [bx, by] = br.pts[br.pts.length - 1], len = Math.hypot(bx - ax, by - ay) || 1, ux = (bx - ax) / len, uy = (by - ay) / len;
+  let nx = -uy, ny = ux; if (ny < 0) { nx = -nx; ny = -ny; }
+  const X0 = Math.floor(br.x0) - 7, Y0 = Math.floor(br.y0) - 13, bw = Math.ceil(br.x1) - X0 + 8, bh = Math.ceil(br.y1) - Y0 + 9;
+  const rail = (side, sortY, v) => {
+    const b = new BM(bw, bh), qx = t => ax + ux * t + nx * side * 3 - X0, qy = t => ay + uy * t + ny * side * 3 - Y0; b.ox = 0; b.oy = sortY - Y0;
+    for (const t of [1, len / 2, len - 1]) for (let h = 0; h < 4; h++) b.set(qx(t), Math.round(qy(t)) - h, R.wood[2]);
+    for (let t = 0; t <= len; t += 0.5) b.set(qx(t), Math.round(qy(t)) - 4, R.wood[4]);
+    outline(b, INK); live.push({ bm: b, x: X0, y: sortY, v });
+  };
+  rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
+}
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { g, depth: zb, mat: mb, hg, mg, painted, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { g, depth: zb, mat: mb, hg, mg, painted, falls: FALLS, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -866,7 +916,7 @@ export function buildTerrain() {
   const open = (x, y) => { const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
   const nearTrail = (x, y, r) => { const v = vAt(x, y); return v < VD && H.tdist[Math.round(v) * NW + Math.round(x)] < r; };
   const flat = l => l.map(p => [p[0], p[1]]);
-  return { g: LAND.g, vAt, things: LAND.things, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  return { g: LAND.g, vAt, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the

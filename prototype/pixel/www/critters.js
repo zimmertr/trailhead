@@ -384,6 +384,17 @@ export function makeCritters(W, opts = {}) {
         else { for (let dx = -1; dx < 4; dx++) scr.set(x + dx, y + 1, dx === 0 ? c : d); for (const [dx, dy] of [[-1, 2], [1, 3], [3, 2], [0, 4], [2, 4]]) scr.set(x + dx, y + dy, d); }
       });
     },
+    // The waterfall off Reflection Lake's lip: white water streaming down, churning where it lands, and
+    // spray that rises from its foot and drifts off.
+    falls(scr, ox, oy, t) {
+      const { VW, VH } = scr;
+      for (const F of W.falls || []) {
+        const x0 = F.x - ox, ya = F.y0 - oy, yb = F.y1 - oy; if (x0 < -12 || x0 > VW + 12 || yb < -8 || ya > VH + 8) continue;
+        for (let y = ya; y <= yb; y++) for (let dx = -1; dx <= 1; dx++) { const s = frac((y - t * 34) / 5 + dx * 0.37 + 0.2 * Math.sin(y + dx)); scr.set(x0 + dx, y, dx && s > 0.55 ? R.water[3] : s < 0.6 ? R.white[1] : R.water[4]); }
+        for (let k = 0; k < 7; k++) { const a = hash(k, Math.floor(t * 6), 462), b = hash(k, Math.floor(t * 6), 463); scr.set(Math.round(x0 + (a - 0.5) * 9), yb + 1 + Math.round((b - 0.5) * 3), R.white[1]); }
+        for (let k = 0; k < 6; k++) { const age = frac(t * 0.4 + k / 6), sx = Math.round(x0 + (k - 2.5) * 1.6 + age * 5 * Math.sin(k * 2.1)), sy = Math.round(yb - age * 9); if (hash(k, Math.floor(t * 4), 464) < 1 - age) scr.set(sx, sy, age < 0.4 ? R.white[1] : R.fog[2]); }
+      }
+    },
     // The mist over the forest and the fog bank off the coast, laid over everything that stands. It parts
     // round him as it does round a sign.
     mist(scr, ox, oy, t, here) {
