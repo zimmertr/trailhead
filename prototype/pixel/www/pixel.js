@@ -397,6 +397,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // How many CSS pixels one pixel of the page's own size takes: the panels are drawn at this size whatever the map's zoom.
     scale: () => scr.S0 / (window.devicePixelRatio || 1),
     zoom: (d, at) => zoomBy(d, at),
+    // For screenshot scripts: the pixel size the map is drawn at now.
+    size: () => scr.S,
     // The ups and downs of the whole route, n heights from start to end. The map knows how high
     // each of its points is; the scenes between two stretches of map are tilted to meet them.
     profile(n = 120) {
