@@ -77,24 +77,18 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 
 ### Timed events not chosen for the checklist
 
-- **A float plane.** A small seaplane crosses the sky now and then and lands out on the water.
 - **Other hikers.** A tiny party walks a trail or crosses the glacier roped up, and waves if he passes.
-- **Larch needles and tumbleweed on the map.** On a gust, gold needles blow off the larches; on the dry side a tumbleweed rolls and a dust devil spins up.
+- **Larch needles on the map.** On a gust, gold needles blow off the larches.
 - **Elk bugling at Dusk** in the parkland, heard before it is seen.
 - **A marine layer.** Some visits open with low cloud filling the west below the crest, burning off over a few minutes.
-- **A shooting star** on the Dusk sky, rarely.
-- **Tents that glow at Dusk** at base camp, and a thread of camp smoke by day.
 - **An otter in the river** below the waterfall, on its back.
-- **A combine on the Palouse hills**, a dot trailing dust, far off.
 
 ### Places and scenes
 
 - **Carry on along the ridge.** After a Spires summit, offer the ridge to the next summit as well as the glissade to camp, so a keen visitor can link all six as one traverse.
 - **The work history as the larch approach.** Cairns or signs along the larch basin scene could name the places TJ has worked, oldest first (see "Work history as the approach" above, which was written for The Stack's walk-in).
-- **A fire lookout** on one forested foothill of Mount Monolith, with a light in its window at Dusk.
 - **The summit register on Proficiency Peak.** A small box on top that he signs, as a thing to find.
 - **A second lake scene at Dusk**: alpenglow on the mountain and its mirror, the one postcard view of the site.
-- **A heron in the oxbow.** A great blue heron standing still in the meadow's oxbow, which lifts off slowly when he runs past on the way to About Lake.
 - **The tide pools up close.** Tapping a pool at low tide could open a small close-up with its animals named.
 
 - Taking turns on the West Ridge: who leads each pitch, and which follower climbs second, drawn at random per visit. TJ's first wish; set aside in round 4 so only the black-haired man needs the leading and falling drawings.
@@ -115,9 +109,6 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **A strength scramble.** Big blocks: mantles, pull-ups over lips, a chimney pressed with arms and legs.
 - **A trail all the way up.** Switchbacks, a signpost at each bend, a cable handrail near the top. The summit anyone could walk to.
 - **A rock tower by its chimney.** Free climbing with an old tree's roots hanging down the chimney as holds, two ravens, a squirrel on the trunk.
-- **A name tag that rises with its place.** When a destination lifts on hover, its wooden name tag could rise and brighten with it, so the two read as one thing.
 - **The lenticular cloud tells the forecast.** Tapping the cloud over Mount Monolith could show a line from Bluebird Forecast, TJ's weather app: high wind on the summit, no climbing today. It would link the sky to one of his projects.
 - **The sound of the shower.** While the rain in the west is on screen, a soft hiss of rain on leaves that swells as the front comes in and dies away as it stops, quieter the farther off the view is.
-- **Drip from the trees after the rain.** For a while after the shower, a few drops falling from the crowns of the rainforest (single pale pixels) while the fog lingers.
 - **A ferry terminal on the beach.** TJ lives in Seattle, where the green and white ferries are part of every day. The ferry could cross in from the west edge to a small terminal (a slip, a car ramp and a waiting room) on the new shore, load and sail again, so it stays in view the whole time it is on the map.
-- **Light on the foothills at Dusk.** At Dusk the sun is low in the west, so the foothills' west faces could catch a warm rim of light while the valleys between them go dark first.
