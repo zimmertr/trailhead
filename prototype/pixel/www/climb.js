@@ -26,8 +26,12 @@ const ROUTES = {
   // TJs-Kubernetes-Service, the icefall (K3): among leaning seracs, over a snow bridge, across a ladder laid
   // over a crevasse, up two steps of ice with tools, and over two ladders lashed end to end. `xings` lists
   // the crevasses by the x of their two lips and what crosses each.
-  tks: { kind: 'icefall', secs: 17, sx: 600, w: 1300, ice: [[300, 304], [372, 376]], xings: [[96, 116, 'snow'], [196, 226, 'ladder'], [468, 532, 'lashed']], pts: [[0, 0], [40, -6], [96, -14], [116, -16], [160, -24], [196, -34], [226, -36], [270, -46], [300, -50], [304, -84], [340, -92], [372, -96], [376, -136], [420, -146], [468, -156], [532, -160], [566, -170], [600, -176], [642, -176], [668, -138], [738, -38], [838, 82]] },
-  'hevy-garmin-sync': { kind: 'ice', secs: 3.2, ice: [[124, 130]], slip: [0, 2], pts: [[0, 0], [70, -14], [116, -28], [124, -28], [130, -88], [160, -104], [230, -140], [262, -150], [304, -150], [330, -112], [400, -10], [500, 120]] },
+  tks: { kind: 'icefall', secs: 17, sx: 600, w: 1300, ice: [[300, 304], [372, 376]], slip: [1, 2], xings: [[96, 116, 'snow'], [196, 226, 'ladder'], [468, 532, 'lashed']], pts: [[0, 0], [40, -6], [96, -14], [116, -16], [160, -24], [196, -34], [226, -36], [270, -46], [300, -50], [304, -84], [340, -92], [372, -96], [376, -136], [420, -146], [468, -156], [532, -160], [566, -170], [600, -176], [642, -176], [668, -138], [738, -38], [838, 82]] },
+  // hevy-garmin-sync, the gully as a workout (K4): he kicks steps in sets and rests on his axe between them,
+  // breathing hard. `sets` lists where each set ends and how long the rest after it is; `slipAt` is where a
+  // foot goes and is kicked in twice; `gully` is where it narrows between rock walls; `beep` stops him on
+  // top to look at his watch.
+  'hevy-garmin-sync': { kind: 'ice', secs: 15, sx: 520, w: 1200, sets: [[150, 1.6], [330, 1.8], [410, 1.4], [450, 1.6], [488, 1.9]], slipAt: 268, gully: [372, 506], beep: true, pts: [[0, 0], [60, -10], [130, -30], [200, -52], [260, -80], [320, -112], [380, -140], [430, -172], [480, -204], [520, -220], [562, -220], [588, -182], [658, -82], [758, 38]] },
   trailhead: { kind: 'bridge', secs: 4.5, gap: [150, 176], pts: [[0, 0], [80, -30], [140, -64], [150, -66], [176, -72], [230, -128], [262, -146], [304, -146], [330, -110], [400, -10], [500, 120]] },
   yggdrasil: { kind: 'ladder', secs: 4.5, gap: [130, 160], pts: [[0, 0], [70, -20], [130, -56], [160, -76], [220, -124], [262, -146], [304, -146], [330, -110], [400, -10], [500, 120]] },
   'kubernetes-manifests': { kind: 'wands', secs: 10.5, pts: [[0, 0], [90, -26], [170, -74], [230, -120], [262, -140], [304, -140], [330, -104], [400, 0], [500, 120]] }
@@ -57,6 +61,30 @@ function crevasse(S, sx, x, y0, [g0, g1], seed) {
     if (e < edge) { S.set(sx, y, d < 2 ? R.snow[2] : R.glac[1]); continue; }
     const v = 0.22 + d / 60 + 0.2 * (vnoise(sx / 3, y / 9, seed + 2) - 0.5) + (x - g0 > g1 - x ? 0.08 : 0);
     S.set(sx, y, v > 0.95 + 0.3 * bayer(sx, y) ? INK : pick('glac', 0.66 - v * 0.7, sx, y, 0.7));
+  }
+}
+
+// Where the gully narrows: a wall of rock rises behind him and the ground in front of the line turns to
+// rock too, leaving only a ribbon of snow to climb. Both grow in from nothing at the ends of the narrows.
+// The rock is broken by slanting cracks and by ledges that hold a little snow (`crag()`).
+function crag(x, y, sx, seed, base) {
+  const crack = Math.abs(frac((x + y * 0.55) / 27 + 0.9 * vnoise(x / 23, y / 17, seed + 47)) - 0.5) < 0.03 && vnoise(x / 8, y / 8, seed + 50) > 0.35;
+  const ledge = frac(y / 15 + 0.9 * vnoise(x / 21, y / 30, seed + 48)), on = vnoise(x / 10, y / 14, seed + 51) > 0.5;
+  if (crack) return R.granite[0];
+  if (!on) return pick('granite', base + 0.28 * (fbm(x / 10, y / 7, seed + 42, 2) - 0.5), sx, y, 0.8);
+  if (ledge < 0.07) return vnoise(x / 5, y, seed + 49) > 0.45 ? R.snow[3] : R.granite[3];
+  if (ledge < 0.14) return R.granite[1];
+  return pick('granite', base + 0.28 * (fbm(x / 10, y / 7, seed + 42, 2) - 0.5) - ledge * 0.12, sx, y, 0.8);
+}
+function narrows(S, cfg, seed) {
+  const [g0, g1] = cfg.gully, pts = cfg.pts;
+  for (let x = g0 - 24; x < g1 + 14; x++) {
+    const k = smooth(g0 - 24, g0 + 6, x) * (1 - smooth(g1 - 8, g1 + 14, x)), sx = x + OFF, y0 = Math.round(hOf(pts, x));
+    if (k <= 0) continue;
+    const top = Math.round(y0 - 4 - k * (30 + 36 * fbm(x / 30, 1, seed + 40, 3)) - 2 * vnoise(x / 7, 2, seed + 41));
+    for (let y = top; y < y0 - 1; y++) { const d = y - top; S.set(sx, y, d === 0 ? INK : d < 2 ? R.snow[3] : crag(x, y, sx, seed, 0.6)); }
+    const rib = 3 + Math.round(2 * vnoise(x / 6, 5, seed + 44)), bot = y0 + rib + k * (30 + 40 * fbm(x / 20, 3, seed + 45, 2));
+    for (let y = y0 + rib; y < bot; y++) S.set(sx, y, y === y0 + rib ? INK : y === y0 + rib + 1 ? R.granite[3] : crag(x, y, sx, seed + 9, 0.42));
   }
 }
 
@@ -115,6 +143,7 @@ function paint(cfg, seed) {
       }
     }
   }
+  if (cfg.gully) narrows(S, cfg, seed);
   if (kind === 'ridge' && !cfg.sx) for (let x = 236; x < 300; x++) { const y0 = Math.round(hOf(pts, x)); for (let k = 0; k < 4 - Math.abs(x - 300) * 0.02; k++) S.set(x + OFF + k + 6, y0 + k + (x > 292 ? x - 292 : 0), R.snow[4]); }
   return S;
 }
@@ -340,6 +369,18 @@ function crossing(scr, X, Y, g, y0, y1, mx) {
   for (const [sx, sy] of [[a, ya], [b, yb]]) { for (let j = 1; j < 11; j++) scr.set(X(sx), Y(sy - j), j > 8 ? R.blaze[1] : R.rock[2]); scr.set(X(sx) + 1, Y(sy - 1), R.rock[3]); }
   for (let x = a + 1; x < b; x++) { const u = (x - a) / (b - a), y = lerp(ya, yb, u) - 9 + 3 * Math.sin(u * Math.PI) + sagAt(g, x, mx) * 0.7; scr.set(X(x), Y(y), R.blaze[0]); }
 }
+// His breath in the cold: puffs from his mouth drifting up and forward and thinning out, faster and
+// bigger the harder he is breathing.
+function breath(scr, x, y, t, hard) {
+  for (let i = 0; i < 3; i++) {
+    const a = frac(t * 0.9 * hard + i / 3), px = x + a * 11, py = y - a * 6, r = 0.8 + a * 1.4 * hard;
+    for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const q = dx * dx + dy * dy; if (q <= r * r && bayer(Math.round(px + dx), Math.round(py + dy)) > a * 0.85) scr.set(Math.round(px + dx), Math.round(py + dy), q > (r - 1) * (r - 1) && r > 1.5 ? R.snow[2] : R.white[1]); }
+  }
+}
+// Snow kicked loose: n bits thrown back and down the slope from (x, y), a from 0 to 1 over their flight.
+function chips(scr, x, y, a, n, seed) {
+  for (let k = 0; k < n; k++) { const r1 = hash(k, seed, 297), r2 = hash(k, seed, 298); scr.set(Math.round(x - (4 + 14 * r1) * a), Math.round(y - (3 + 6 * r2) * a + 14 * a * a), k % 3 ? R.snow[2] : R.snow[1]); }
+}
 // Rime on a figure: on most rows the pixel just inside its right edge (the windward side when he walks
 // right) turns white, and now and then one more beside it; the top of his hat goes white too.
 function rimeOn(bm) {
@@ -413,6 +454,13 @@ export function makeClimb() {
     walkR: null, windR: null,
     hit: [sideFig('alpine', { hands: [[-3, -2], [-1, 6]], lean: 0 }), sideFig('alpine', { hands: [[7, 1], [-1, 6]], lean: 2 })],
     watch: sideFig('alpine', { lean: 0 }),
+    // Resting on the axe between sets: bent over it, both hands on its head, heaving.
+    rest: [1, 2].map(c => sideFig('alpine', { feet: [[3, 7], [-3, 8.5]], hands: [[5, 2 + c], [4, 3 + c]], lean: 4, crouch: c, look: 'down', held: axe })),
+    // A foot gone from under him, and kicking it back in.
+    slip: sideFig('alpine', { feet: [[4, 7], [-8, 9]], hands: [[6, 6], [2, 7]], lean: 5, crouch: 2, look: 'down', held: axe }),
+    kick: sideFig('alpine', { feet: [[7, 5], [-2, 8.5]], hands: [[5, 4], [2, 6]], lean: 4, look: 'down', held: axe }),
+    // On top, looking at his watch.
+    wrist: sideFig('alpine', { hands: [[4, 0], [3, 1]], lean: 1, look: 'down', elbowFwd: true }),
     // At the binoculars: both hands up on the viewer, leaning in to the eyepieces.
     peer: sideFig('alpine', { hands: [[5, -4], [4, -2]], lean: 2, head: [1, 1], elbowFwd: true }),
     press: [0, 1].map(f => { const b = new BM(34, 22); b.ox = 17; b.oy = 21; for (let x = 8; x < 22; x++) { b.set(x, 13, R.kit[1]); b.set(x, 12, R.kit[2]); b.set(x, 14, R.kit[0]); } for (let x = 22; x < 28; x++) b.set(x, 13, R.rock[1]); thick(b, 26, 13, 29, 19, 2, R.rock[0]); b.set(30, 20, R.bark[1]); disc(b, 6, 11, 3, (nx, ny) => ny < -0.2 ? R.kit[2] : R.skin[2]); const by = f ? 3 : 8; thick(b, 12, 11, 12, by + 1, 2, R.kit[1]); thick(b, 16, 11, 16, by + 1, 2, R.kit[0]); for (let x = 3; x < 26; x++) b.set(x, by, R.rock[4]); for (const x of [3, 4, 24, 25]) for (let y = by - 3; y <= by + 3; y++) b.set(x, y, R.navy[0]); outline(b, INK); return b; })
@@ -447,7 +495,11 @@ export function makeClimb() {
     const speed = dist / cfg.secs; let t = T_UP; x = 0;
     const walk = x1 => { const d = arcAt(a, x1) - arcAt(a, x); legs.push({ t0: t, t1: t + d / speed, x0: x, x1 }); t += d / speed; x = x1; };
     walls.forEach((w, i) => { walk(w.x0); const leg = iceLeg(w, t, cfg.slip && cfg.slip[0] === i ? cfg.slip[1] : -1); legs.push(leg); t = leg.t1; x = w.xc; });
+    // Stops on the way: a rest at the end of each set, the slip mid-set.
+    const stops = (cfg.sets || []).map(([sx, d]) => ({ sx, d, k: 'rest' })); if (cfg.slipAt) stops.push({ sx: cfg.slipAt, d: 1.5, k: 'slip' });
+    for (const p of stops.sort((a, b) => a.sx - b.sx)) { walk(p.sx); legs.push({ t0: t, t1: t + p.d, x0: p.sx, x1: p.sx, [p.k]: true }); t += p.d; }
     walk(sxOf(cfg));
+    if (cfg.beep) { legs.push({ t0: t, t1: t + 1.4, x0: x, x1: x, beep: true }); t += 1.4; }
     return plans[id] = { legs, walls, tSum: t, tPush: t + T_STAND, tBot: t + T_STAND + T_SLIDE, dur: t + T_STAND + T_SLIDE + T_OUT };
   }
   function where(id, tau) {
@@ -455,6 +507,7 @@ export function makeClimb() {
     if (tau < T_UP) { const x = -34 + 34 * tau / T_UP; return { ph: 'up', x, y: 0, mode: 'walk' }; }
     if (tau <= pl.tSum) {
       const leg = pl.legs.find(l => tau <= l.t1) || pl.legs[pl.legs.length - 1];
+      if (leg.rest || leg.slip || leg.beep) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: leg.rest ? 'rest' : leg.slip ? 'slip' : 'beep', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
       if (leg.ice) { const pose = icePose(leg, tau - leg.t0); return pose.walk ? { ph: 'up', x: pose.x, y: pose.y, mode: 'walk' } : { ph: 'up', x: pose.hx, y: leg.w.ya - pose.hh + STAND, mode: 'ice', pose, leg }; }
       const a = arc(id), x = xAt(a, lerp(arcAt(a, leg.x0), arcAt(a, leg.x1), clamp((tau - leg.t0) / Math.max(1e-6, leg.t1 - leg.t0), 0, 1))); let y = hOf(pts, x), mode = 'walk';
       if (cfg.kind === 'ridge') mode = 'wind';
@@ -487,6 +540,11 @@ export function makeClimb() {
       for (const g of cfg.xings || []) for (let tau = T_UP; tau < pl.tSum; tau += 0.02) if (where(arg.id, tau).x > g[0] - 3) { out.push({ at: tau / D, name: g[2] === 'lashed' ? 'creak' : 'step' }); break; }
       // The storm on the wanded route is heard as it arrives, and again as it closes in.
       if (cfg.kind === 'wands') for (const u of [0.09, 0.3, 0.5, 0.66]) out.push({ at: (T_UP + u * (pl.tSum - T_UP)) / D, name: 'wind' });
+      for (const leg of pl.legs) {
+        if (leg.slip) for (const a of [0, 0.55, 1.05]) out.push({ at: (leg.t0 + a) / D, name: 'step' });
+        if (leg.beep) out.push({ at: (leg.t0 + 0.3) / D, name: 'beep' });
+        if (cfg.sets && !leg.rest && !leg.slip && !leg.beep && leg.t1 > T_UP) for (let a = leg.t0 + 0.2; a < leg.t1; a += 0.42) out.push({ at: a / D, name: 'step' });
+      }
       for (const leg of pl.legs) if (leg.ice) for (const h of leg.hit) out.push({ at: h.t / D, name: h.tool ? 'tink' : 'step' });
       return out;
     },
@@ -640,6 +698,14 @@ export function makeClimb() {
         bm = fig.stand;
         if (u < 5) { if (kind === 'ice' && u > 0.4 && u < 4.2) { bm = null; scr.put(fig.press[Math.floor((u - 0.4) * 1.6) & 1], X(SXr + 24), Y(hOf(pts, SXr + 24) - 4), false); } else if (kind === 'wands' && u < 1.2) bm = fig.hit[u > 0.35 && u < 0.7 ? 1 : 0]; else if (kind === 'ridge' || kind === 'ladder') bm = u > 3 ? fig.cheer : fig.stand; }
       } else if (me.mode === 'sit') { bm = fig.sit[Math.floor(t * 8) & 1]; flip = true; dy = 2; for (let k = 0; k < 14; k++) { const a = frac(t * 2.4 + k / 14); scr.set(Math.round(sx + 6 + a * 30 + hash(k, 1, 251) * 6), Math.round(sy - 2 - a * (8 + hash(k, 2, 251) * 16) + a * a * 10), a < 0.6 ? R.white[1] : R.snow[3]); } }
+      else if (me.mode === 'rest') { const hard = cfg.gully && me.x > cfg.gully[0] ? 1.5 : 1; bm = fig.rest[Math.floor(t * 1.4 * hard) & 1]; breath(scr, sx + 6, sy - 16, t, hard); }
+      else if (me.mode === 'slip') {
+        const v = me.u; dx = -2 * smooth(0, 0.18, v) + 2 * smooth(0.3, 0.45, v);
+        bm = v < 0.33 ? fig.slip : (v > 0.36 && v < 0.6) || (v > 0.7 && v < 0.88) ? fig.kick : fig.wind[1];
+        if (v < 0.4) chips(scr, sx - 6, sy, v / 0.4, 10, 1); else if (v < 0.66) chips(scr, sx + 7, sy - 1, (v - 0.4) / 0.26, 5, 2); else chips(scr, sx + 7, sy - 1, (v - 0.66) / 0.3, 5, 3);
+        breath(scr, sx + 6, sy - 16, t, 1.2);
+      }
+      else if (me.mode === 'beep') { bm = fig.wrist; if (me.u > 0.2 && me.u < 0.75 && (Math.floor(t * 8) & 1)) { scr.set(sx + 5, sy - 13, R.teal[2]); scr.set(sx + 6, sy - 13, R.white[1]); } breath(scr, sx + 6, sy - 16, t, 0.8); }
       else if (me.mode === 'ice') {
         const p = me.pose, w = me.leg.w;
         scr.put(iceFig(p), X(p.rx), Y(p.ry), false);
@@ -648,6 +714,7 @@ export function makeClimb() {
       }
       else if (me.mode === 'jump') bm = fig.jump;
       else if (me.mode === 'crawl') bm = fig.crawl[Math.floor(d / 4) & 1];
+      else if (cfg.sets && me.ph === 'up' && me.x > 0) { bm = fig.wind[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1]; const a = frac(d / 7.2); if (env.moving && a < 0.3) chips(scr, sx + 6, sy - 1, a / 0.3, 4, Math.floor(d / 7.2)); }
       else { const rimed = cfg.brk && me.ph === 'up'; bm = ((me.mode === 'wind' && windK > 0.25) || (gust > 0.3 && up < 0.9) ? (rimed ? fig.windR : fig.wind) : (rimed ? fig.walkR : fig.walk))[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1]; flip = !!me.back; }
       if (bm) { scr.put(bm, sx + Math.round(dx), sy + dy, flip); }
       focus.x = sx; focus.y = sy - 14;
