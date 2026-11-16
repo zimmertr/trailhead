@@ -25,7 +25,7 @@ const tri = u => 1 - Math.abs(2 * frac(u) - 1);
 const peaks = (x, s, seed) => { let m = 0; for (const [k, o] of [[1, 0.13], [0.62, 0.57], [0.41, 0.31]]) { const u = x / (s * k) + o + seed * 0.37; m = Math.max(m, tri(u) * (0.35 + 0.65 * hash(Math.floor(u), seed, 240)) * (0.55 + 0.45 * k)); } return m; };
 
 // A dome tent, bigger than the one on the map: this is the camp seen from close by.
-function dome(c) {
+export function dome(c) {
   const b = new BM(28, 16); b.ox = 14; b.oy = 15;
   for (let y = 0; y < 14; y++) { const half = Math.sqrt(1 - sq((13 - y) / 14)) * 13; for (let x = Math.ceil(14 - half); x <= 14 + half; x++) b.set(x, y + 1, x < 10 ? R[c][2] : x < 19 ? R[c][1] : R[c][0]); }
   for (let y = 6; y < 14; y++) for (let x = Math.ceil(13 - (y - 6) * 0.45); x <= 15 + (y - 6) * 0.45; x++) b.set(x, y + 1, y === 6 ? R[c][0] : R.navy[0]);
