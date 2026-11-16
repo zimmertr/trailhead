@@ -292,8 +292,9 @@ const below = d => { let k = 0; for (let i = 0; i < ANCHORS.length; i++) if (MAR
 const SPEED = { walk: 24, lead: 11, follow: 15 };
 const WHO = ['tj', 'lead', 'red'];
 const dAtX = x => { for (let i = 1; i < ROUTE.length; i++) if (ROUTE[i][0] >= x) return lerp(DIST[i - 1], DIST[i], clamp((x - ROUTE[i - 1][0]) / (ROUTE[i][0] - ROUTE[i - 1][0]), 0, 1)); return LEN; };
-// Where each of them stands at an anchor: the leader on it, TJ a step below, the woman below him.
-const AT = { tj: -7, lead: 0, red: -14 };
+// Where each of them stands at an anchor: the leader on it, TJ a stride below, the woman a stride below
+// him (closer, and on the crest they stood half inside one another).
+const AT = { tj: -14, lead: 0, red: -28 };
 const PACKS = dAtX(198), TIE = dAtX(231);
 const PITCH = ['tie', 'a1', 'a2', 'a3', 'a4', 'top'];
 // The gear on each pitch, by rule: so many cams spread evenly over the stretches where the line is on
@@ -360,12 +361,14 @@ function makeScript() {
     } else {
       // Then caterpillar: the leader brings TJ up, then TJ brings the woman up.
       move('tj', a + AT.tj, 'climb', SPEED.follow, 'tbelay'); go('tj', pos.tj, 'anchor', 1.0, 'tbelay'); ropes.push({ a: 'lead', b: 'tj', t0: t1, t1: clock.tj });
+      // The leader's job is done until the next pitch: he belays TJ right up to the anchor, then rests.
+      hold('lead', clock.tj); pose.lead = 'stand';
       if (CARD[PITCH[p]]) stops.push({ id: CARD[PITCH[p]], t: clock.tj });
       hold('red', clock.tj); const t2 = clock.red; clean(); ropes.push({ a: 'tj', b: 'red', t0: t2, t1: clock.red });
       if (p === 5) stops.push({ id: 'summit', t: clock.red });
     }
   }
-  pose.tj = pose.lead = pose.red = 'stand'; sync(); for (const k of WHO) go(k, pos[k], 'stand', 4);
+  sync(); pose.tj = pose.lead = pose.red = 'stand'; for (const k of WHO) go(k, pos[k], 'stand', 4);
   return { tr, ropes, stops, pro, anc, bumpAt, dropAt: tr.tj[1].t0 + 0.5, dur: clock.tj };
 }
 const SCRIPT = makeScript(), DUR = SCRIPT.dur;
