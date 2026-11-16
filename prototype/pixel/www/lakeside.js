@@ -4,7 +4,7 @@
 import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, thick, windAt, veilTable } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
 import { makeTrunk, makeLimb, swordFern } from './forest.js';
-import { makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush, makeMaple } from './sprites.js';
+import { makeConifer, makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush, makeMaple } from './sprites.js';
 import { marmot, speck } from './fauna.js';
 import { makeRunner, sideFig, cheerFig, swimFig } from './tj.js';
 import { NAMES } from './content.js';
@@ -28,6 +28,13 @@ const g = x => Math.round(2 * Math.sin(x / 120 + 1));
 const woodAt = x => smooth(X0 + 150, X0 - 30, x);
 // Mist lies on the water off the wooded shore, and drifts a little way past where the trees stop.
 const mistAt = x => smooth(X0 + 320, X0 - 10, x);
+// Out where the woods end the parkland's flowers grow in drifts, as on the map: a wide patch of
+// lupine, then heather, then paintbrush and white bistort, with plain turf between.
+const driftAt = (x, y) => {
+  if (woodAt(x) > 0.3) return null;
+  const k = vnoise(x / 70, y / 26, 590) + 0.08 * (vnoise(x / 9, y / 5, 591) - 0.5);
+  return k < 0.36 ? 'lupine' : k < 0.47 ? 'heather' : k < 0.53 ? null : k < 0.63 ? 'red' : k < 0.71 ? 'white' : null;
+};
 const WX = X0 - 470, WW = 420, WUP = 760;
 
 // The peak: the same snowy pyramid that stands behind the lake on the map, now filling the sky.
@@ -113,11 +120,12 @@ function buildLakeside() {
     const sy = shore(x), gy = g(x);
     for (let y = sy; y < 240; y++) {
       const r = y - gy; let c;
-      const slab = fbm(x / 34, y / 15, 141, 3) > 0.62 - smooth(6, -8, r) * 0.22, gravel = fbm(x / 13, y / 7, 142, 3);
+      const sT = 0.62 - smooth(6, -8, r) * 0.22 + 0.09 * smooth(8, 30, r) * (1 - woodAt(x));
+      const slab = fbm(x / 34, y / 15, 141, 3) > sT, gravel = fbm(x / 13, y / 7, 142, 3);
       if (y - sy < 2) c = y === sy ? R.tarn[5] : R.rock[1];
       else if (r >= -3 && r <= 4) c = hash(x, y, 143) < 0.07 ? R.rock[2] : pick('dirt', 0.62 - Math.abs(r - 0.5) * 0.06 + 0.25 * (vnoise(x / 5, y / 2, 144) - 0.5), x, y, 0.7);
-      else if (slab) c = Math.abs(frac(x / 31 + y / 11 + vnoise(x / 30, y / 30, 145)) - 0.5) < 0.016 ? R.rock[1] : fbm(x / 34, (y + 2) / 15, 141, 3) <= 0.6 - smooth(6, -8, r) * 0.25 ? R.rock[1] : pick('rock', 0.86 - (y - sy) * 0.0012 + 0.16 * (vnoise(x / 7, y / 4, 146) - 0.5), x, y, 0.5);
-      else if (r < -3 && gravel > 0.5) c = pick('rock', 0.7 + 0.3 * (hash(x, y, 147) - 0.5), x, y);
+      else if (slab) c = Math.abs(frac(x / 31 + y / 11 + vnoise(x / 30, y / 30, 145)) - 0.5) < 0.016 ? R.rock[1] : fbm(x / 34, (y + 2) / 15, 141, 3) <= sT - 0.02 ? R.rock[1] : pick('rock', 0.86 - (y - sy) * 0.0012 + 0.16 * (vnoise(x / 7, y / 4, 146) - 0.5), x, y, 0.5);
+      else if (r < -3 && gravel > 0.5 + 0.12 * smooth(X0 + 120, X0 + 260, x)) c = pick('rock', 0.7 + 0.3 * (hash(x, y, 147) - 0.5), x, y);
       else c = pick('grass', 0.58 + 0.5 * (fbm(x / 22, y / 12, 148, 3) - 0.5) + 0.12 * (hash(x >> 1, y >> 1, 149) - 0.5) - smooth(60, 230, r) * 0.25, x, y, 0.3);
       // Under the trees the ground is still the forest's: moss, no slabs, no gravel.
       const wd = woodAt(x);
@@ -129,7 +137,7 @@ function buildLakeside() {
   const isGrass = (x, y) => { const c = main.get(x, y); return c >= R.grass[0] && c <= R.grass[4]; };
   for (let n = 0; n < 5000; n++) { const x = (rand() * SW) | 0, y = (-4 + rand() * 240) | 0; if (!isGrass(x, y) || !isGrass(x, y - 2)) continue; main.set(x, y - 2, R.grass[4]); main.set(x - 1, y - 1, R.grass[3]); main.set(x + 1, y - 1, R.grass[3]); main.set(x, y, R.grass[1]); }
   for (let n = 0; n < 260; n++) {
-    const cx = rand() * SW, cy = 8 + rand() * 220, type = rand(), count = 5 + (rand() * 12 | 0);
+    const cx = rand() * SW, cy = 8 + rand() * 220, dk = driftAt(cx, cy), type = dk === 'lupine' ? 0 : dk === 'red' ? 0.5 : dk === 'white' ? 0.9 : dk === 'heather' ? 0.7 : rand(), count = 5 + (rand() * 12 | 0);
     for (let k = 0; k < count; k++) {
       const x = Math.round(cx + (rand() - 0.5) * 20), y = Math.round(cy + (rand() - 0.5) * 10); if (!isGrass(x, y) || !isGrass(x, y - 1)) continue;
       if (type < 0.4) { main.set(x, y - 1, R.lupine[2]); main.set(x, y, R.lupine[1]); }
@@ -139,6 +147,20 @@ function buildLakeside() {
     }
   }
 
+  {
+    const fr = rng(592);
+    for (let n = 0; n < 2600; n++) {
+      const cx = X0 + 100 + fr() * (SW - X0 - 100), cy = 4 + fr() * 232, dk = driftAt(cx, cy); if (!dk) continue;
+      for (let k = 0, m = 4 + (fr() * 7 | 0); k < m; k++) {
+        const x = Math.round(cx + (fr() - 0.5) * 14), y = Math.round(cy + (fr() - 0.5) * 6); if (!isGrass(x, y) || !isGrass(x, y - 1)) continue;
+        if (dk === 'lupine') { main.set(x, y - 2, R.lupine[2]); main.set(x, y - 1, R.lupine[1]); main.set(x, y, R.grass[1]); }
+        else if (dk === 'red') { main.set(x, y - 1, R.red[2]); main.set(x, y, R.red[1]); }
+        else if (dk === 'white') { main.set(x, y - 1, R.white[1]); main.set(x + (k & 1), y, R.white[0]); }
+        // Heather: low dark mounds dotted pink.
+        else { main.set(x, y, R.moss[1]); main.set(x + 1, y, R.moss[1]); main.set(x, y - 1, R.pink[1]); main.set(x + 1, y - 1, (k & 1) ? R.pink[2] : R.moss[2]); }
+      }
+    }
+  }
   const things = [];
   const boulders = [3, 4, 5, 6, 8, 10, 12].map((r, i) => makeBoulder(150 + i, r));
   const firs = Array.from({ length: 6 }, (_, i) => makeFir(310 + i)), spruces = Array.from({ length: 4 }, (_, i) => makeSpruce(230 + i));
@@ -149,7 +171,32 @@ function buildLakeside() {
   for (let n = 0; n < 60; n++) { const x = rand() * SW; if (!keep(x)) continue; things.push({ bm: boulders[(rand() * 4) | 0], x: Math.round(x), y: shore(x) + 3 + Math.round(rand() * 3) }); }
   for (let n = 0; n < 12; n++) { const x = rand() * SW; if (Math.abs(x - (X0 + LEN / 2)) < 250 || !keep(x)) continue; const k = 1 + (rand() * 3 | 0); for (let j = 0; j < k; j++) things.push({ tree: firs[(rand() * 6) | 0], x: Math.round(x + j * 11 + rand() * 5), y: g(x) - 5 + Math.round(rand() * 2) }); }
   for (let n = 0; n < 150; n++) { const x = rand() * SW, y = 8 + sq(rand()) * 220, k = rand(); things.push(k < 0.45 ? { bm: boulders[Math.min(6, (rand() * 4 + y / 60) | 0)], x: Math.round(x), y: Math.round(y) } : { bm: bushes[(rand() * 5) | 0], x: Math.round(x), y: Math.round(y) }); }
-  for (let n = 0; n < 34; n++) { const x = rand() * SW, y = 84 + rand() * 150; things.push({ tree: rand() < 0.6 ? spruces[(rand() * 4) | 0] : firs[(rand() * 6) | 0], x: Math.round(x), y: Math.round(y) }); }
+  // Subalpine firs: narrow spires, the tree of the high parkland.
+  const spires = Array.from({ length: 8 }, (_, i) => { const r = rng(600 + i), H = i < 5 ? 30 + (r() * 24 | 0) : 13 + (r() * 9 | 0); return makeConifer(600 + i, H, Math.max(5, Math.round(H * 0.27)), 'conifer', Math.max(5, Math.round(H / 4.5)), { ragged: i & 1 }); });
+  for (let n = 0; n < 34; n++) { const x = rand() * SW, y = 84 + rand() * 150, tr = rand() < 0.6 ? spruces[(rand() * 4) | 0] : firs[(rand() * 6) | 0]; things.push({ tree: woodAt(x) > 0.3 ? tr : spires[(hash(n, 1, 596) * 5) | 0], x: Math.round(x), y: Math.round(y) }); }
+  {
+    const cr = rng(593), stopsX = [X0, X0 + 40, xMap, xNote, xMarmot, X0 + LEN];
+    // One big boulder in the meadow below the trail, the kind the glacier left, with white flowers at
+    // its foot: on the open shore, clear of where he stops, where a slow field is highest.
+    let bx = 0, best = -1;
+    for (let x = X0 + 200; x < X0 + LEN - 60; x += 3) { if (stopsX.some(sx => Math.abs(x - sx) < 44)) continue; const v = vnoise(x / 80, 4, 595); if (v > best) { best = v; bx = x; } }
+    // Low enough in the meadow that its top stays under the trail, so it never hides his feet.
+    const by = g(bx) + 37; things.push({ bm: makeBoulder(163, 15), x: bx, y: by });
+    for (let n = 0; n < 70; n++) { const x = Math.round(bx + (cr() - 0.5) * 60), y = Math.round(by + (cr() - 0.2) * 10); if (isGrass(x, y) && isGrass(x, y - 1)) { main.set(x, y - 1, R.white[1]); main.set(x, y, n & 1 ? R.white[0] : R.grass[1]); } }
+    // Clumps of them where a slow field says so: the tallest in the middle, smaller ones round it.
+    // None in front of the trail where he stops, and none on the boulder.
+    const centres = [[bx, by]];
+    for (let n = 0; n < 90 && centres.length < 14; n++) {
+      const x = X0 + 170 + cr() * (SW - X0 - 190), y = 14 + sq(cr()) * 216, fld = vnoise(x / 120, y / 70, 594);
+      if (fld < 0.55 || woodAt(x) > 0.1 || (y < 56 && stopsX.some(sx => Math.abs(x - sx) < 44)) || centres.some(([a, b]) => Math.hypot(a - x, (b - y) * 2) < 70)) continue;
+      centres.push([x, y]);
+      for (let k = 0, m = 2 + Math.round((fld - 0.55) * 14 + cr() * 2); k <= m; k++) {
+        const a = k ? (cr() - 0.5) * 30 : 0, b = k ? (cr() - 0.3) * 8 : 0;
+        things.push({ tree: spires[k === 0 ? (cr() * 5) | 0 : k < 3 ? (cr() * 8) | 0 : 5 + ((cr() * 3) | 0)], x: Math.round(x + a), y: Math.round(y + b) });
+      }
+    }
+    for (let n = 0; n < 160; n++) { const x = X0 + 120 + cr() * (SW - X0 - 120), y = 8 + cr() * 228; if (driftAt(x, y) === 'heather') things.push({ bm: bushes[(cr() * 3) | 0], x: Math.round(x), y: Math.round(y) }); }
+  }
   const marmotRock = makeBoulder(161, 11); things.push({ bm: marmotRock, x: xMarmot, y: shore(xMarmot) + 5 });
   // How far above its foot the rock's top is, so the marmot can lie on the rock itself: the picture of a rock has empty rows above it.
   let rockTop = 0; while (rockTop < marmotRock.h && !marmotRock.d[rockTop * marmotRock.w + marmotRock.ox]) rockTop++;
