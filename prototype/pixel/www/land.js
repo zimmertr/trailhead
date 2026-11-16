@@ -95,6 +95,11 @@ function proficiency(cu, cv, base, w, hgt) {
   add('fin', cu - w / 2 - 2, cu + w / 2 + 2, cv - 12, cv + 62, (u, v) => { const p = PP((u - cu) * 150 / w), f = v < cv ? smooth(cv - 8, cv, v) : smooth(cv + 58, cv + 10, v); return p <= 0 || f <= 0 ? 0 : base * smooth(0, 0.4, f) + (hgt * p + 2 * (vnoise(u / 3, 4, 900) - 0.5)) * f; });
 }
 
+// Its foot (D9): a fan of talus spilled from the wall onto the step in front, widest at its toe, and a
+// patch of old snow lying in the shade where the lower tower meets the prow. d is how far in front of
+// the wall's foot a spot lies.
+const talusAt = (u, v) => { if (!PF) return 0; const d = PF.cv - 7 - v + 4 * (vnoise(u / 9, 2, 905) - 0.5); if (d < -2 || d > 50) return 0; const dx = u - PF.cu + 8, hw = PF.w * 0.38 + d * 0.6 + 8 * (vnoise(v / 7, 5, 906) - 0.5); return smooth(48, 20, d) * smooth(hw, hw - 22, Math.abs(dx)) * smooth(-2, 2, d); };
+const snowPatch = (u, v) => { if (!PF) return false; const d = PF.cv - 7 - v, dx = u - PF.cu; return Math.hypot((dx + 30) / 20, (d - 5) / 8) + 0.35 * (vnoise(u / 4, v / 3, 907) - 0.5) < 1; };
 // ---- the layout (ROUND4.md, section 4a) -----------------------------------------------------------
 // Above 0 is sea: the shore cuts the bottom-left corner.
 const coast = (u, v) => (440 - v) - u * 0.936 + 26 * Math.sin(u / 95) + 44 * (fbm(u / 80, v / 80, 80, 3) - 0.5);
@@ -218,6 +223,8 @@ if (!B) { const all = catmull(C.coulee); all.forEach(([pu, pv], n) => { const fl
 const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypot((u - ISLE[0]) / 7, (v - ISLE[1]) / 3.2);
 const lakeRim = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) { const d = Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); if (d >= 1 && d < 1 + 2.2 / Math.min(ru, 8 * rv)) return kind; } return null; };
 const lakeAt = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) if (Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5) < 1) return kind; return null; };
+// The talus fan stands a little proud of the step, highest against the wall.
+if (!B && PF) for (let v = PF.cv - 45; v <= PF.cv; v++) for (let u = PF.cu - 110; u <= PF.cu + 110; u++) { const t = talusAt(u, v); if (t > 0 && MATS[mg[at(u, v)]] === 'gran') hg[at(u, v)] += 6 * t * t; }
 if (!B) for (const [cu, cv, ru, rv] of C.lakes) { const lv = hAt(cu, cv - rv); for (let v = Math.floor(cv - rv - 2); v <= cv + rv + 2; v++) for (let u = Math.floor(cu - ru - 2); u <= cu + ru + 2; u++) if (lakeAt(u, v)) hg[at(u, v)] = lv; }
 // Reflection Lake spills over a step (D4): the ground in front of its outlet's lip is dropped, so the
 // stream falls instead of running down a slope. The drop fades out sideways and far ahead, where the
@@ -367,6 +374,13 @@ function colour(u, v, hh, x, y) {
     return hash(u, v, 586) < (dk ? 0.035 : 0.015) ? bloom : pick('grass', 0.4 + 0.35 * lit + 0.15 * n1, x, y, 0.4);
   }
   if (mat === 'gran' || mat === 'fin') {
+    // Talus: blocks of the wall's own granite, lit on top and dark in the gaps, thinning out at the fan's
+    // edge; the old snow lies on it in the shade.
+    const ta = mat === 'gran' ? talusAt(u, v) : 0;
+    if (ta > 0 && steep < 1.4) {
+      if (ta > 0.3 && snowPatch(u, v)) return hash(x, y, 908) < 0.1 ? R.snow[2] : R.snow[L > 0.4 ? 4 : 3];
+      if (bayer(x, y) < ta * 1.6) { const yy = y + Math.floor(3 * hash(x >> 2, 0, 911)), by = (yy / 3) | 0, bx = ((x + 2.6 * hash(by, 1, 912)) / (3 + ((hash(by, 2, 913) * 3) | 0))) | 0, q = hash(bx, by, 909), row = yy - by * 3; if (q < 0.14) return R.rock[0]; return row === 2 ? R.rock[q < 0.5 ? 0 : 1] : R.rock[clamp(Math.round(1.4 + 2.2 * L + 1.2 * (q - 0.5) + (row === 0 ? 1 : 0)), 1, 4)]; }
+    }
     if (steep > 0.75 || mat === 'fin') { const crack = vnoise(x / 2.2, hh / 26, 902), streak = vnoise(x / 5, hh / 40, 903); const k = clamp(Math.round(1.5 + 2.9 * L + (streak > 0.62 ? -1.1 : 0) + (crack > 0.74 ? -1.4 : crack < 0.2 ? 0.5 : 0) + (b2(x, y) - 0.5) * 0.9), 0, 5); return k === 5 ? R.gold[6] : R.rock[k]; }
     const slab = fbm(u / 22, v / 11, 96, 3);
     return slab > 0.4 ? pick('rock', 0.82 + 0.4 * (slab - 0.5) + 0.2 * n1, x, y, 0.7) : hash(u, v, 98) < 0.06 ? R.red[1] : pick('grass', 0.42 + 0.2 * n1, x, y, 0.4);
@@ -652,7 +666,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     const u = C.LB[0] - C.LB[2] - 50 + rand() * (C.LB[2] * 2 + 100), v = C.LB[1] - C.LB[3] - 40 + rand() * (C.LB[3] * 2 + 80), m = MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]], hi = m === 'gran';
     if (m === 'fin' || m === 'crest' || rand() > larchAmt(u, v) * (hi ? (hAt(u, v) > 98 ? 0.16 : 0.5) : 0.8) || fbm(u / 40, v / 30, 120, 3) < (hi ? 0.5 : 0.52) || !open(u, v, 0.7)) continue;
     if (rand() < burnAmt(u, v) * 1.2) { if (rand() < 0.4) put(any(snags), u, v); continue; }
-    plant(sized(any(larches), u, v, 'larch'), u, v);
+    { const lt = sized(any(larches), u, v, 'larch'); if (talusAt(u, v) < 0.08) plant(lt, u, v); }
   }
   const step1 = (u, v) => { const h = hAt(u, v); return u > 1215 && v > 424 && v < 540 ? smooth(36, 42, h) * smooth(66, 58, h) : 0; };
   const band = (u, v) => Math.max(eastAmt(u, v), step1(u, v)) * (1 - larchAmt(u, v)) * (1 - burnAmt(u, v)) * (1 - 0.85 * sageAmt(u, v));
@@ -701,6 +715,8 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     }
     for (let n = 0; n < 400; n++) { const u = C.PK[0] + (hr() * 2 - 1) * C.PK[2], v = C.PK[1] + (hr() * 2 - 1) * C.PK[3]; if (parkAmt(u, v) < 0.6 || hr() > 0.12 || !open(u, v, 1) || !meadowy(u, v)) continue; put(anyH(boulders), u, v); } }
   for (let n = 0; n < 300; n++) { const u = 1240 + rand() * 680, v = 380 + rand() * 320; if (MATS[mg[at(Math.round(u), Math.round(v))]] === 'gran' && open(u, v, 0.7) && rand() < 0.5) put(any(slabs), u, v); }
+  // Big blocks lie about the talus fan, on dice of their own (D9).
+  if (PF) { const tr = rng(910); for (let n = 0; n < 260; n++) { const u = PF.cu - 100 + tr() * 200, v = PF.cv - 42 + tr() * 38, k = (tr() * 3) | 0; if (talusAt(u, v) > 0.35 && tr() < 0.22 && !snowPatch(u, v) && MATS[mg[at(Math.round(u), Math.round(v))]] === 'gran') put(boulders[k], u, v); } }
   for (let n = 0; n < 900; n++) { const u = 1300 + rand() * 620, v = rand() * 480; if (rand() < sageAmt(u, v) * 0.5 && open(u, v) && land(u, v)) put(any(sages), u, v); }
   for (let n = 0; n < 400; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) { if (rand() < 0.5) put(any(burnt), u, v, 0, true); else plant(any(young), u, v); } }
   for (let n = 0; n < 4000; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.6 && fogAmt(u, v) < 0.25 && open(u, v, 1.1) && wooded(u, v)) things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); }
