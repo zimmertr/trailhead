@@ -281,6 +281,20 @@ function posAt(d) {
   return { x: lerp(a[0], b[0], u), h: lerp(a[1], b[1], u), where: u < 0.5 ? a[2] : b[2], dx: b[0] - a[0], dh: b[1] - a[1] };
 }
 const ANCHORS = ['tie', 'a1', 'a2', 'a3', 'a4', 'top'];
+// The wide features the line goes up, as painted in paintRidge (x0, x1, h0, h1): the two off-widths
+// (pitch 1's flaring one under the roof, pitch 5's up the headwall), the left summit chimney, and the
+// hole under its chockstone at the top. On the line inside one, everyone climbs it its own way and
+// slower (H9): arm bars and a knee in an off-width, back and feet in the chimney, a squeeze through
+// the hole.
+const FEATURES = { ow: [[286, 300, 104, 132], [1015, 1023, 289, 388]], chim: [[1046, 1054, 413, 440]], hole: [[1046, 1058, 440, 456]] };
+const SLOW = { ow: 0.45, chim: 0.55, hole: 0.35 };
+function styleAt(d) {
+  const p = posAt(d);
+  for (const k in FEATURES) for (const [x0, x1, h0, h1] of FEATURES[k]) if (p.x >= x0 && p.x <= x1 && p.h >= h0 && p.h < h1) return k;
+  return null;
+}
+// Where along the line a style starts or stops, so a move can be cut there and each part timed at its pace.
+const BOUNDS = []; { let prev = null; for (let d = 0; d <= LEN; d++) { const st = styleAt(d); if (st !== prev) BOUNDS.push(d); prev = st; } }
 const FACE_BELAYS = ['a1', 'a2', 'a3', 'a4', 'top'].filter(m => posAt(MARK[m]).where === 's');
 const below = d => { let k = 0; for (let i = 0; i < ANCHORS.length; i++) if (MARK[ANCHORS[i]] <= d + 1e-6) k = i; return ANCHORS[k]; };
 
@@ -309,7 +323,7 @@ const GEAR = { 1: 4, 2: 4, 3: 0, 4: 2, 5: 4 };
 function gearOn(p) {
   const d0 = MARK[PITCH[p - 1]], d1 = MARK[PITCH[p]], face = [], out = [];
   for (let d = d0 + 10; d < d1 - 8; d++) if (posAt(d).where === 's' && posAt(d - 10).where === 's') face.push(d);
-  for (let i = 0; i < GEAR[p]; i++) out.push({ d: face[Math.floor(face.length * (i + 0.5) / GEAR[p])], kind: 'cam' });
+  for (let i = 0; i < GEAR[p]; i++) { const d = face[Math.floor(face.length * (i + 0.5) / GEAR[p])]; out.push({ d, kind: styleAt(d) === 'ow' ? 'big' : 'cam' }); }
   if (p === 3) out.push({ d: MARK.piton + 2, kind: 'piton', fixed: true }, { d: MARK.piton + 6, kind: 'tiny' });
   if (p === 5) out.push({ d: MARK.bolt, kind: 'bolt', fixed: true });
   return out.sort((a, b) => a.d - b.d);
@@ -347,7 +361,15 @@ function makeScript() {
   let slipAt = -1, fallAt = -1;
   const pos = { tj: 0, lead: MARK.tie, red: dAtX(183) }, pose = { tj: 'walk', lead: 'rack', red: 'sit' }, clock = { tj: 0, lead: 0, red: 0 };
   const go = (k, to, p, dur, after) => { tr[k].push({ t0: clock[k], t1: clock[k] + dur, d0: pos[k], d1: to, pose: p }); clock[k] += dur; pos[k] = to; pose[k] = after || p; };
-  const move = (k, to, p, v, after) => go(k, to, p, Math.max(0.8, Math.abs(to - pos[k]) / v), after);
+  const move = (k, to, p, v, after) => {
+    const d0 = pos[k], dir = Math.sign(to - d0);
+    if (!dir) return go(k, to, p, 0.8, after);
+    const cuts = BOUNDS.filter(b => (b - d0) * dir > 0 && (to - b) * dir > 0); if (dir < 0) cuts.reverse();
+    const legs = []; let a = d0;
+    for (const b of [...cuts, to]) { legs.push([b, Math.abs(b - a) / (v * (p === 'walk' ? 1 : SLOW[styleAt((a + b) / 2)] || 1))]); a = b; }
+    const pad = Math.max(0, 0.8 - legs.reduce((t, l) => t + l[1], 0));
+    legs.forEach(([b, t], i) => { const last = i === legs.length - 1; go(k, b, p, t + (last ? pad : 0), last ? after : p); });
+  };
   const hold = (k, until) => { if (until > clock[k] + 1e-6) go(k, pos[k], pose[k], until - clock[k]); };
   const sync = () => { const t = Math.max(clock.tj, clock.lead, clock.red); for (const k of WHO) hold(k, t); return t; };
   // He walks in over the knob past the balanced rock, puts his pack under the overhanging rock with
@@ -467,6 +489,12 @@ function kitFrames(kit) {
     anchor: [0, 1].map(f => backFig(kit, { hands: [[-4, -14 + f], [4, -13 - f]], feet: [[-3, 12], [3, 12]] })),
     clean: [backFig(kit, { hands: [[-5, -13], [5, -9]], feet: [[-4, 12], [4, 11]] }), backFig(kit, { hands: [[-5, -13], [4, 1]], feet: [[-4, 12], [4, 11]], tool: holding(true) })],
     fall: [0, 1].map(f => backFig(kit, { hands: [[-8, -13 - f], [8, -14]], feet: [[-7, 9], [7, 8 + f]], tilt: 1 })),
+    // In an off-width: one arm barred in the crack, a knee jammed in it, the other foot on its edge. In
+    // the chimney: back to one wall, feet and hands pushing on the other. Through the hole: arms up,
+    // narrow, squeezing.
+    ow: [0, 1].map(f => backFig(kit, { hands: [[-3, -10 - f * 2], [5, -14 + f]], feet: [[-2, 6 + f], [6, 12 - f]] })),
+    chim: [0, 1].map(f => backFig(kit, { hands: [[-8, -7 + f], [8, -9 - f]], feet: [[-7, 9 - f], [7, 8 + f]] })),
+    hole: [0, 1].map(f => backFig(kit, { hands: [[-2, -19 + f], [2, -18 - f]], feet: [[-1, 12], [2, 12 - f]] })),
     // Shaking out an arm, hanging on the rope (sitting in the harness, knees up, feet on the rock, both
     // hands on the rope), and bracing to hold a fall.
     rest: [0, 1].map(f => backFig(kit, { hands: [[-5, -13], [6 + f, 3 - f * 2]], feet: [[-4, 12], [4, 11]] })),
@@ -483,7 +511,8 @@ function drawPiece(scr, x, y, kind, open = 1) {
   if (kind === 'bolt') { scr.set(x - 1, y, INK); scr.set(x, y, R.shoe[2]); scr.set(x, y + 1, R.shoe[1]); scr.set(x + 1, y + 1, INK); return; }
   // Silver lobes with a dark rim (spread across the crack once in), the stem, and a sling in the cam's
   // colour long enough to read as a coloured tick from far off.
-  const sl = kind === 'tiny' ? R.teal : R.red, w = kind === 'tiny' || !open ? 1 : 2;
+  // A big cam for an off-width: wide lobes and a blue sling.
+  const sl = kind === 'tiny' ? R.teal : kind === 'big' ? R.jay.slice(1) : R.red, w = kind === 'tiny' || !open ? 1 : kind === 'big' ? 3 : 2;
   for (let i = -w; i <= w; i++) { scr.set(x + i, y - 1, INK); scr.set(x + i, y, Math.abs(i) === w ? INK : (i + w) & 1 ? R.rock[4] : R.white[1]); }
   scr.set(x - 1, y + 1, INK); scr.set(x, y + 1, R.rock[3]); scr.set(x + 1, y + 1, INK);
   for (let j = 2; j < 5; j++) { scr.set(x - 1, y + j, sl[j < 4 ? 2 : 1]); scr.set(x, y + j, sl[1]); scr.set(x + 1, y + j, INK); }
@@ -627,7 +656,7 @@ function buildRidge() {
         if (s.pose === 'rack') { scr.put(fr.rack[Math.floor(t * 1.5) & 1], sx, sy, true); return; }
         if (s.pose === 'tie') { scr.put(fr.tie[Math.floor(t * 6) & 1], sx, sy, false); return; }
         if (s.pose === 'bump') { scr.put(u < 0.2 || u > 0.85 ? fr.idle : fr.bump[u > 0.45 && u < 0.7 ? 1 : 0], sx, sy, w !== 'tj'); return; }
-        if (s.pose === 'lead' || s.pose === 'climb') { scr.put(fr.climb[Math.floor(s.d / 6) & 3], sx, sy - 12, false); return; }
+        if (s.pose === 'lead' || s.pose === 'climb') { const st = styleAt(s.d); scr.put(st ? fr[st][Math.floor(s.d / 4) & 1] : fr.climb[Math.floor(s.d / 6) & 3], sx, sy - 12, false); return; }
         if (s.pose === 'place') { scr.put(fr.place[u < 0.2 ? 0 : 1], sx, sy - 12, false); return; }
         if (s.pose === 'rest') { scr.put(fr.rest[Math.floor(t * 4) & 1], sx, sy - 12, false); return; }
         if (s.pose === 'slip') { scr.put(fr.fall[Math.floor(t * 20) & 1], sx, sy - 12, false); return; }
