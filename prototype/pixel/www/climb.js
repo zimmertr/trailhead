@@ -163,6 +163,9 @@ function paint(cfg, seed) {
     }
   }
   if (cfg.gully) narrows(S, cfg, seed);
+  // The gully's apron is old avalanche debris, a fan of it spreading down the slope below the gully: lumps
+  // of snow, lit on top, blue beneath, thickest near the line and thinning out lower down.
+  if (cfg.sets) { const rd = rng(seed + 90); for (let k = 0; k < 160; k++) { const x = Math.round(rd() * (cfg.gully[0] - 20)), dep = Math.pow(rd(), 1.6) * (30 + x * 0.25), r = 1.5 + rd() * 2.8 * (1 - dep / 140), cx = x, cy = Math.round(hOf(pts, x) + dep - r * 0.6); for (let dy = -Math.ceil(r); dy <= Math.ceil(r); dy++) for (let dx = -Math.ceil(r); dx <= Math.ceil(r); dx++) { const q = (dx * dx + dy * dy) / (r * r); if (q > 1) continue; S.set(cx + dx + OFF, cy + dy, q > 0.7 ? (dy > 0 ? R.snow[1] : R.snow[2]) : dy < -r * 0.3 ? R.snow[4] : dy > r * 0.3 ? R.snow[2] : R.snow[3]); } } }
   // Tufts of grass in the cracks along the top of the dry rock, never on the walls.
   if (cfg.dry) for (let x = 4; x < sxOf(cfg) + 40; x++) if (!wallAt(cfg, x) && !wallAt(cfg, x + 2) && hash(x, 1, seed + 84) > 0.88) { const y0 = Math.round(hOf(pts, x)) - 1; for (let k = 0; k < 3; k++) { const hgt = 1 + Math.round(hash(x, k + 2, seed + 84) * 2); for (let j = 0; j < hgt; j++) S.set(x + OFF + k - 1, y0 - j, j === hgt - 1 ? R.grass[3] : R.grass[1]); } }
   if (kind === 'ridge' && !cfg.sx) for (let x = 236; x < 300; x++) { const y0 = Math.round(hOf(pts, x)); for (let k = 0; k < 4 - Math.abs(x - 300) * 0.02; k++) S.set(x + OFF + k + 6, y0 + k + (x > 292 ? x - 292 : 0), R.snow[4]); }
@@ -760,7 +763,9 @@ export function makeClimb() {
       // As the snow thickens, everything dark goes behind it (rock, the far wands, the edge of the slope) while the snow at his feet stays.
       if (heavy > 0.02) veil(scr, heavy * 0.85, [R.snow[1], R.snow[2]], X(me.x), Y(me.y) - 12, pale);
       // His tracks stay in the snow behind him: boot prints on the way up, one long groove on the way down.
-      if (me.ph === 'up') { for (let x = -30; x < me.x - 3; x += 4) { if (cfg.gap && x > cfg.gap[0] - 6 && x < cfg.gap[1] + 6) continue; if (xingAt(cfg, x, 6)) continue; if (pl.walls.some(w => x > w.x0 + 2 && x < w.xc + 2)) continue; const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[1]); scr.set(X(x) + 1, Y(y) + 2, R.snow[2]); } }
+      // On the gully the tracks are a staircase of kicked steps.
+      if (me.ph === 'up' && cfg.sets) for (let x = 2; x < me.x - 3; x += 4) { const y = Y(hOf(pts, x)); scr.set(X(x), y + 1, R.snow[1]); scr.set(X(x) + 1, y + 1, R.snow[1]); scr.set(X(x) + 2, y, R.snow[2]); scr.set(X(x), y, R.snow[2]); }
+      else if (me.ph === 'up') { for (let x = -30; x < me.x - 3; x += 4) { if (cfg.gap && x > cfg.gap[0] - 6 && x < cfg.gap[1] + 6) continue; if (xingAt(cfg, x, 6)) continue; if (pl.walls.some(w => x > w.x0 + 2 && x < w.xc + 2)) continue; const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[1]); scr.set(X(x) + 1, Y(y) + 2, R.snow[2]); } }
       else if (me.mode === 'sit') for (let x = Math.ceil(me.x) + 4; x < 400; x++) { const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[2]); if (x & 1) scr.set(X(x), Y(y) + 3, R.snow[3]); }
       // Spindrift blows off the top.
       if (me.ph === 'up' && white < 0.3) for (let k = 0; k < 34; k++) { const a = frac(t * (0.5 + storm) + k / 34), x0 = SXr + 38 + (k % 5) * 3, y0 = hOf(pts, x0) - 1; const x = X(x0 + a * (46 + 30 * storm) + 4 * Math.sin(a * 9 + k)), y = Y(y0 - a * 13 - 3 * Math.sin(a * 5 + k * 2)); if (bayer(x, y) > a * 0.9) scr.set(x, y, a < 0.4 ? R.white[1] : R.snow[3]); }
