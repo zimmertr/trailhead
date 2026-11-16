@@ -8,7 +8,8 @@
 // line against the sky. The lower ridge (pitches 1 to 4) is dark granite blotched with black lichen,
 // with lime and rust patches; the tower is pale cream with long vertical cracks. Every landmark of the
 // pitch list in ROUND4.md section 5 is one or more blocks below, in the order the route meets them.
-import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline } from './core.js';
+import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, DEBUG } from './core.js';
+import { goat } from './fauna.js';
 import { Strip, drawStrip, baseline, shell } from './side.js';
 import { makeConifer, makeCloud } from './sprites.js';
 import { sideFig, frontFig, backFig, FEET, HANDS, KITS } from './tj.js';
@@ -329,6 +330,25 @@ function cloudCol(fb, VW, VH, x, ys, y0, wx) {
     if (k >= 8 && roll < 1) col = R.farsnow[1]; else if (k >= 8 && roll < 2 && bayer(x, y) < 0.5) col = R.sky[4];
     fb[y * VW + x] = col;
   }
+}
+// A raven, seen from below and a little to the side: black, with a glint of blue on its back and
+// fingered wing tips. 'hang' rides the updraft, wings out (two frames, tips a pixel up or down);
+// 'peel' banks away with its wings half folded.
+function raven(pose, f = 0) {
+  const b = new BM(17, 9); b.ox = 8; b.oy = 4;
+  if (pose === 'peel') {
+    for (let i = -5; i <= 5; i++) { const y = 4 + Math.round(Math.abs(i) * 0.5) * (i < 0 ? 1 : -1); b.set(8 + i, y, INK); if (Math.abs(i) < 4) b.set(8 + i, y + 1, INK); }
+    b.set(9, 3, R.navy[1]);
+  } else {
+    for (let i = -8; i <= 8; i++) {
+      const a = Math.abs(i), y = 4 - (a > 2 ? (f ? 1 : 0) + (a > 6 ? (f ? 1 : -1) : 0) : 0);
+      b.set(8 + i, y, INK); if (a < 6) b.set(8 + i, y + 1, INK); if (a > 6 && (a & 1)) b.set(8 + i, y - 1, INK);
+    }
+    b.set(7, 4, R.navy[1]); b.set(8, 4, R.navy[1]);
+  }
+  // A heavy bill out front and the wedge of the tail behind.
+  b.set(13, 3, INK); b.set(14, 3, INK); b.set(3, 5, INK); b.set(2, 5, INK); b.set(2, 6, INK); b.set(3, 6, INK); b.set(1, 6, INK);
+  return b;
 }
 function flagLarch(S, x, h, H, seed) {
   if (!S.get(x, -h)) return;
@@ -840,6 +860,18 @@ function buildRidge() {
   paintHolds(main);
   const far = paintFar(), basin = paintBasin(), clouds = [0, 1, 2].map(i => ({ bm: makeCloud(745 + i), x: i * 190, y: 20 + i * 46, v: 3 + i }));
   const pair = makeCragPair(), st = {}, focus = { x: 0, y: 0 };
+  // The goat (H14) stands watching on top of the egg, the boulder the line hugs its way round on
+  // pitch 4 (the highest of the egg's pieces, by rule), so it is off the line and looks down on them as
+  // they edge round under it. It turns to watch whoever comes near.
+  const GOAT = { stand: goat('stand'), look: goat('look') }, goatAt = (() => {
+    const e = LANDMARKS.egg.reduce((m, q) => (q.h + q.b > m.h + m.b ? q : m)), x = Math.round(e.x);
+    return { x, h: CREST[x] };
+  })();
+  // The raven (H14): one in each 36 seconds it rides the updraft over the crest ahead of the camera,
+  // hanging almost still for six seconds, then croaks and peels away downwind. ravenGo: a start
+  // button's raven, now.
+  const RV = { slot: 36, len: 10 }, RB = { hang: [raven('hang', 0), raven('hang', 1)], peel: raven('peel') };
+  let ravenGo = -1e9, ravenN = null, ravenAt = null, ravenHeard = null;
   // On the ridge all three wear helmets, one colour each with their hair showing below: his green, the
   // leader's red, the woman's white over her red hair. The leader carries the rack on his harness.
   const KIT = { tj: 'wall', lead: { ...PAIR[0], bare: false, hat: R.red, rack: true }, red: { ...PAIR[1], bare: false, hat: [R.white[0], R.white[1], R.white[1]] } };
@@ -871,7 +903,7 @@ function buildRidge() {
     focus: () => focus,
     pick: () => null,
     act: () => false,
-    trigger(name, t) { if (name === 'ridgegust') { gustGo = t; return true; } return false; },
+    trigger(name, t) { if (name === 'ridgegust') { gustGo = t; return true; } if (name === 'raven') { ravenGo = t; return true; } return false; },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t } = env, tau = q * DUR, S = stateAt(tau), k = env.calm ? 1 : Math.min(1, env.dt * 5);
       // The camera holds on whoever is on the live end of a rope (between the two of them on pitch 1, and
@@ -1012,6 +1044,7 @@ function buildRidge() {
         }
         drawBiner(scr, mx, my); scr.set(mx, my, R.white[1]);
       });
+      if (DEBUG.animals) { const gx = goatAt.x - cx, near = Math.abs(P.tj.x - goatAt.x) < 160; if (gx > -30 && gx < VW + 30) scr.put(near ? GOAT.look : GOAT.stand, gx, rowOf(goatAt.h) + 1, P.tj.x < goatAt.x); }
       for (const w of WHO) if (P[w].where !== 'n') draw1(w);
       // Jackets snap downwind and loose hair streams from under a helmet once there is wind.
       if (wnd > 0.15) for (const w of WHO) {
@@ -1029,6 +1062,17 @@ function buildRidge() {
       // When he skates off the slab, grit his feet scraped loose skitters down it after him.
       if (SCRIPT.fallAt > 0 && tau > SCRIPT.fallAt && tau < SCRIPT.fallAt + 1.6) grit(scr, tau - SCRIPT.fallAt, cx, rowOf);
       if (bumping) spark(scr, Math.round((P.tj.x + P.lead.x) / 2) - cx, rowOf(P.tj.h + 10), (P.tj.u - 0.45) * 0.8);
+      // The raven: in from downwind, hanging in the updraft, then away.
+      if (DEBUG.animals) {
+        const go = t - ravenGo >= 0 && t - ravenGo < RV.len, n = go ? 'go' + ravenGo : Math.floor(t / RV.slot), u = go ? t - ravenGo : t - Math.floor(t / RV.slot) * RV.slot;
+        if (u < RV.len && (go || wnd > 0.1)) {
+          if (ravenN !== n) { ravenN = n; const x = Math.round(camX + 70); let h = 0; for (let i = -12; i <= 12; i++) h = Math.max(h, CREST[clamp(x + i, 0, W - 1)]); ravenAt = { x, h: h + 34 }; }
+          let x = ravenAt.x, h = ravenAt.h + Math.sin(t * 1.3) * 1.5, bm = RB.hang[Math.floor(t * 1.6) & 1];
+          if (u < 1.5) { const e = 1 - smooth(0, 1.5, u); x += 90 * e; h += 20 * e; }
+          if (u > 7.5) { const e = (u - 7.5) / 2.5; x += 160 * e * e + 30 * e; h -= 120 * e * e; bm = RB.peel; if (ravenHeard !== n) { ravenHeard = n; env.sfx('kraa'); } }
+          scr.put(bm, Math.round(x) - cx, rowOf(h), u > 7.5);
+        }
+      }
       windLines(scr, t, wnd, g);
       const me = P.tj; focus.x = Math.round(me.x) - cx; focus.y = rowOf(me.h) - 14;
     }
