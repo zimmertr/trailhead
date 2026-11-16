@@ -445,7 +445,9 @@ function buildRidge() {
   });
   const far = paintFar(), clouds = [0, 1, 2].map(i => ({ bm: makeCloud(745 + i), x: i * 190, y: 20 + i * 46, v: 3 + i }));
   const pair = makeCragPair(), st = {}, focus = { x: 0, y: 0 };
-  const F = { tj: kitFrames('wall'), lead: kitFrames(PAIR[0]), red: kitFrames(PAIR[1]) };
+  // On the ridge all three wear helmets, one colour each with their hair showing below: his green, the
+  // leader's red, the woman's white over her red hair. The leader carries the rack on his harness.
+  const F = { tj: kitFrames('wall'), lead: kitFrames({ ...PAIR[0], bare: false, hat: R.red, rack: true }), red: kitFrames({ ...PAIR[1], bare: false, hat: [R.white[0], R.white[1], R.white[1]] }) };
   const packs = [makePack(R.teal), makePack(R.red), makePack([R.mustard[0], R.mustard[1], R.mustard[2]])], dropAt = SCRIPT.dropAt;
   const ropePts = [];
   let camX = 0, camH = 0;
@@ -532,7 +534,7 @@ function buildRidge() {
           }
           ropePts.push(x, y);
         }
-        rope(scr, ropePts);
+        rope(scr, ropePts, r.two);
       }
       // The gear on the rock, over the rope so its sling shows and the rope runs into its carabiner, and
       // behind whoever is in front of it: a cam from when it is in until the woman takes it out; the
@@ -587,14 +589,15 @@ function sagTo(out, x1, y1, slack, loop = 0) {
 }
 
 // A rope through a list of screen points: dark edges, a bright core with a fleck every few pixels.
-function rope(scr, pts) {
+// The second rope on pitch 1 is orange, so the two followers' ropes can be told apart.
+function rope(scr, pts, two) {
   const px = [];
   for (let i = 2; i < pts.length; i += 2) {
     const x0 = pts[i - 2], y0 = pts[i - 1], x1 = pts[i], y1 = pts[i + 1], n = Math.max(1, Math.abs(x1 - x0), Math.abs(y1 - y0));
     for (let k = 0; k < n; k++) px.push(Math.round(lerp(x0, x1, k / n)), Math.round(lerp(y0, y1, k / n)));
   }
   for (let i = 0; i < px.length; i += 2) { const x = px[i], y = px[i + 1]; scr.set(x - 1, y, INK); scr.set(x + 1, y, INK); scr.set(x, y - 1, INK); scr.set(x, y + 1, INK); }
-  for (let i = 0; i < px.length; i += 2) scr.set(px[i], px[i + 1], (i >> 1) % 5 ? R.teal[2] : R.white[1]);
+  for (let i = 0; i < px.length; i += 2) scr.set(px[i], px[i + 1], (i >> 1) % 5 ? (two ? R.blaze[1] : R.teal[2]) : R.white[1]);
 }
 
 export const makeRidge = () => shell(META, buildRidge, ['enter', 'focus', 'pick', 'act', 'draw']);

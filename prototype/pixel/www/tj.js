@@ -57,6 +57,7 @@ function sideFig(kitName, o = {}) {
     b.set(hip[0] + x + l, y, c);
   }
   if (k.flask) b.set(hip[0] + 2 + lean, sh[1] + 1, k.flask);
+  if (k.rack) rackOn(b, hip[0], hip[1], [-2, -1, 0, 1, 2]);
   leg(0, false); arm(0, false);
   const hd = o.head || [0, 0], cx = sh[0] + 1 + hd[0], cy = sh[1] - 6 + hd[1];
   head(b, k, cx, cy, 'side', o.look);
@@ -130,6 +131,10 @@ function frontFig(kitName, o = {}) {
   return b;
 }
 
+// A leader's rack (kit.rack): cams in their makers' colours hanging from the harness, silver ends down.
+const RACK = () => [R.red[1], R.yellow[1], R.teal[2], R.kit[2], R.jay[2], R.blaze[1]];
+function rackOn(b, x0, y0, xs) { const c = RACK(); xs.forEach((dx, i) => { const n = 2 + (i & 1); for (let j = 0; j < n; j++) b.set(x0 + dx, y0 + j, j === n - 1 ? R.rock[4] : c[i % c.length]); }); }
+
 // Seen from behind on a wall, each hand and foot on its own hold. Offsets are measured from the
 // middle of his hips; the scene works out where the holds are.
 function backFig(kitName, o) {
@@ -151,7 +156,8 @@ function backFig(kitName, o) {
     else if (y < cy - 2 && y > cy - 9 && Math.abs(x) <= k.packW) c = k.pack[x > 0 ? 0 : 1];
     b.set(cx + x + t, y, c);
   }
-  if (o.rack !== false) { b.set(cx - 4, cy, R.rock[3]); b.set(cx + 4, cy, R.red[1]); b.set(cx - 3, cy + 1, R.rock[2]); b.set(cx + 3, cy + 1, R.rock[3]); }
+  if (k.rack) rackOn(b, cx, cy, [-5, -4, -3, 3, 4, 5]);
+  else if (o.rack !== false) { b.set(cx - 4, cy, R.rock[3]); b.set(cx + 4, cy, R.red[1]); b.set(cx - 3, cy + 1, R.rock[2]); b.set(cx + 3, cy + 1, R.rock[3]); }
   limb(shL, o.hands[0], 6, 6, false, k.top[2], k.top[1], 2.2); limb(shR, o.hands[1], 6, 6, true, k.top[1], k.top[0], 2.2);
   for (const h of o.hands) { b.set(cx + h[0], cy + h[1], k.hand[1]); b.set(cx + h[0], cy + h[1] - 1, k.hand[1]); if (o.tool) o.tool(b, cx + h[0], cy + h[1]); }
   head(b, k, cx + tilt, cy - 15 + (o.headY || 0), 'back');
