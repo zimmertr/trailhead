@@ -303,6 +303,33 @@ function paintBasin() {
   }
   return S;
 }
+// The inversion (H13): from mid-height cloud gathers in the basin's hollows, first in patches, then
+// filling it, until by the top they look down on a sea of cloud with peaks standing out of it. top is
+// the screen row of the sea's surface, c how far it has gathered (0 to 1), sx the basin's scroll, so
+// the billows stay with the ground under them and drift slowly east.
+function cloudSea(scr, top, c, t, sx) {
+  if (c <= 0) return;
+  const { VW, VH, fb } = scr;
+  for (let x = 0; x < VW; x++) {
+    const wx = x + sx, d = clamp((c * 1.8 - vnoise(wx / 150, 5, 775)) / 0.6, -1, 1);
+    // Where it has not yet gathered the surface sags into a hollow; elsewhere it rises in rounded
+    // billows that drift slowly east.
+    const bil = 5 * vnoise(wx / 21 - t * 0.04, 1, 776) + 3 * Math.abs(Math.sin(wx / 7 + 3 * vnoise(wx / 30, 3, 776) - t * 0.15)) + 6 * d;
+    const y0 = Math.round(top - bil + (d < 0 ? smooth(0, 1, -d) * 45 : 0));
+    if (y0 >= VH) continue;
+    cloudCol(fb, VW, VH, x, Math.max(0, y0), y0, wx);
+  }
+}
+// One column of the cloud sea from its top down: a sunlit top, a soft shaded band under it, then
+// the sea itself with the rolls of further billows in it, wider apart the nearer they are.
+function cloudCol(fb, VW, VH, x, ys, y0, wx) {
+  for (let y = ys; y < VH; y++) {
+    const k = y - y0, per = 6 + k * 0.12, roll = (k + 3 * vnoise(wx / 13, Math.floor(k / per), 777)) % per;
+    let col = k < 1 ? R.white[1] : k < 3 ? R.farsnow[1] : k < 8 ? (bayer(x, y) < (k - 3) / 5 ? R.farsnow[0] : R.farsnow[1]) : R.farsnow[0];
+    if (k >= 8 && roll < 1) col = R.farsnow[1]; else if (k >= 8 && roll < 2 && bayer(x, y) < 0.5) col = R.sky[4];
+    fb[y * VW + x] = col;
+  }
+}
 function flagLarch(S, x, h, H, seed) {
   if (!S.get(x, -h)) return;
   const lean = 1.5 + 2 * hash(seed, 1, 771);
@@ -866,6 +893,7 @@ function buildRidge() {
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (VW + 140)) - 70, c.y + camH * 0.12 - 20);
       drawStrip(scr, far, 120 + cx * 0.15, base + camH * 0.08 + 60, false, R.far[1]);
       drawStrip(scr, basin, 300 + cx * 0.4, base + camH * 0.12 - 25, false, R.far[1]);
+      { const L = base + camH * 0.12 - 25, cl = smooth(220, 430, camH); cloudSea(scr, L + 40 - 31 * cl, cl, t, Math.round(300 + cx * 0.4)); }
 
       // One of them, in the pose the script gives, at their place on the line.
       const P = {};
