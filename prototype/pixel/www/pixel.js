@@ -431,6 +431,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     mark(list) { for (const k of list) { done[k] = true; if (k.startsWith('spire:')) done.spires = true; } },
     // How many CSS pixels one pixel of the page's own size takes: the panels are drawn at this size whatever the map's zoom.
     scale: () => scr.S0 / (window.devicePixelRatio || 1),
+    // The register's pages in the close-up, in its pixels (L3), once it has been drawn.
+    pages: () => drawn && drawn.s === 'register' && drawn.scene.pages ? drawn.scene.pages() : null,
     zoom: (d, at) => zoomBy(d, at),
     // For screenshot scripts: the pixel size the map is drawn at now.
     size: () => scr.S,

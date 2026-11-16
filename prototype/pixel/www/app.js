@@ -63,9 +63,39 @@ async function home() { inBook(false); hideCard(); await api.setRoute('lake'); a
 async function travel(route) { audio.start(); audio.sfx('select'); await api.setRoute(route); buildMarks(); api.start(); }
 async function climb(id) { audio.sfx('select'); hideCard(); await api.setRoute('spire:' + id); buildMarks(); api.start(); }
 // The register (L2): he walks to the box and folds its front down, and the scene changes to the book.
-async function openBook() { audio.start(); audio.sfx('select'); hideCard(); closeSheet(); tip.hidden = true; document.documentElement.classList.add('in-book'); await api.setRoute('register'); buildMarks(); api.start(); }
+async function openBook() { audio.start(); audio.sfx('select'); hideCard(); closeSheet(); tip.hidden = true; handsReady(); document.documentElement.classList.add('in-book'); await api.setRoute('register'); buildMarks(); api.start(); }
 // The book's way out shows once it is open; the map's tags and the route bar go as he sets off for it.
-function inBook(on) { document.documentElement.classList.toggle('in-book', on); $('book-x').hidden = !on; }
+function inBook(on) { document.documentElement.classList.toggle('in-book', on); $('book-x').hidden = !on; book.hidden = !on; if (on) { fillBook(); handsReady().then(() => { if (!book.hidden) fillBook(); }); } }
+// The book's pages (L3): the words laid over the pages the close-up draws, on its printed rules. Every
+// entry is written in its own hand and ink (blue pen, black pen, pencil), taken in turn down the page so
+// no two neighbours match; its slight tilt comes from its name. The rules are about 24 CSS pixels apart on any screen.
+const book = $('book');
+const HANDS = [['Caveat', 1.06], ['Kalam', 0.8], ['Patrick Hand', 0.92], ['Gochi Hand', 0.86]], INKS = ['#22409a', '#1c1a24', '#5f5f6a'];
+// The hands are fetched as he sets off for the box; the page is laid out again once they are in, since
+// how many lines an entry takes depends on its hand.
+let hands = null;
+const handsReady = () => hands || (hands = document.fonts && document.fonts.load ? Promise.all(HANDS.map(([f]) => document.fonts.load('24px "' + f + '"').catch(() => null))) : Promise.resolve());
+const shortDate = d => { const m = /^\d{4}-(\d\d)-(\d\d)/.exec(d || ''); return m ? +m[1] + '/' + +m[2] : ''; };
+function fillBook() {
+  const P = api.pages(); if (!P) return;
+  const k = api.scale(), pitch = P.pitch * k, top = P.top * k, R = P.right, col = Math.round(R.w * 0.24) * k;
+  const page = (g, cls) => el('div', { class: 'page ' + cls, style: 'left:' + g.x * k + 'px;top:' + g.y * k + 'px;width:' + g.w * k + 'px;height:' + g.h * k + 'px' });
+  const right = page(R, 'right');
+  right.append(el('span', { class: 'head', style: 'left:' + 3 * k + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.date }), el('span', { class: 'head', style: 'left:' + (col + 3 * k) + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.who }));
+  book.replaceChildren(page(P.left, 'left'), right);
+  let mine = []; try { mine = JSON.parse(localStorage.getItem('trailhead.register') || '[]'); } catch { mine = []; }
+  let row = 0;
+  [...REGISTER, ...mine.map(e => ({ ...e, pending: true }))].forEach((e, i) => {
+    const h = [...String(e.name)].reduce((a, c) => a + c.charCodeAt(0), 0), [font, fz] = HANDS[(i + 1) % HANDS.length], ink = INKS[(i * 2 + 1) % INKS.length];
+    const st = "font-family:'" + font + "',cursive;font-size:" + (pitch * 0.9 * fz).toFixed(1) + 'px;line-height:' + pitch + 'px;color:' + ink + ';top:' + (top + row * pitch) + 'px;--tilt:' + ((h % 7) - 3) * 0.25 + 'deg;--drop:' + (pitch * 0.14).toFixed(1) + 'px;';
+    const t = el('p', { class: 'hand', style: st + 'left:' + (col + 3 * k) + 'px;right:' + 4 * k + 'px' }, el('span', { class: 'who', text: e.name }), ' ' + e.note);
+    if (e.pending) t.append(el('span', { class: 'pending', text: UI.register.pending }));
+    // A date is kept to its column: on a phone the column is narrow, so the date is written smaller.
+    right.append(el('span', { class: 'hand', style: st + 'white-space:nowrap;font-size:' + Math.min(pitch * 0.9 * fz, (col - 5 * k) / 2.7).toFixed(1) + 'px;left:' + 3 * k + 'px;width:' + (col - 5 * k) + 'px', text: e.pending ? '' : shortDate(e.date) }), t);
+    row += Math.max(1, Math.round(t.offsetHeight / pitch));
+  });
+}
+addEventListener('resize', () => setTimeout(() => { if (!book.hidden) fillBook(); }, 60));
 async function walkOut() { audio.sfx('select'); hideCard(); await api.setRoute('spires-home'); buildMarks(); api.start(); }
 // A name on the map sends him there from wherever he is on it.
 async function send(dest) { audio.start(); const how = await api.go(dest); if (how === 'start') return travel(dest); if (how === 'home') forkShut = false; if (how) { audio.sfx('select'); if (how === 'turn') buildMarks(); } }

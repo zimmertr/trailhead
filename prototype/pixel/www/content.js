@@ -203,6 +203,8 @@ export const UI = {
   },
   register: {
     close: 'Close the book',
+    // The printed headings of the book's right-hand page (L3), as on a Forest Service register form.
+    book: { date: 'Date', who: 'Name, party and remarks' },
     title: 'Summit register', sub: 'You did all three. Sign in.', open: 'open', locked: 'locked',
     lockedSay: 'The summit register opens once all three destinations are done.',
     pending: 'waiting for TJ to approve it', signed: 'Signed. Your entry waits for TJ to approve it.',

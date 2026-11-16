@@ -1,7 +1,7 @@
 <title>Trailhead Pixel Round 4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+15&family=Silkscreen&family=Tiny5&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+15&family=Silkscreen&family=Tiny5&family=Caveat:wght@500&family=Gochi+Hand&family=Kalam&family=Patrick+Hand&display=swap">
 <style>
 /* The world fills the screen at whole-pixel scale. Everything on top of it is trail furniture:
    routed wooden signs for anything you press, paper placards for anything you read. Lines are
@@ -103,6 +103,12 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #tab { position: fixed; z-index: 2; left: max(18px, env(safe-area-inset-left, 0px)); bottom: calc(var(--px) * 38 + env(safe-area-inset-bottom, 0px)); min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); max-width: calc(100% - 36px); }
 /* The register's close-up (L2): only the book and the way out of it. */
 #book-x { position: fixed; z-index: 3; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(var(--px) * 4 + env(safe-area-inset-bottom, 0px)); min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
+#book { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
+#book .page { position: absolute; overflow: hidden; }
+#book .head { position: absolute; top: 0; display: flex; align-items: flex-end; font-family: var(--small); font-size: 13px; color: #8a5a4a; }
+#book .hand { position: absolute; margin: 0; -webkit-font-smoothing: antialiased; transform: translateY(var(--drop)) rotate(var(--tilt)); transform-origin: 0 50%; }
+#book .who { margin-right: .3em; }
+#book .pending { font-family: var(--small); font-size: 12px; margin-left: .6em; color: #b0502c; white-space: nowrap; }
 .in-book #bar, .in-book #fork, .in-book #tab, .in-book #names, .in-book #tip { display: none; }
 #tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The junction sign: the placard on top, three planks under it on one post. */
@@ -333,6 +339,7 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   <button id="card-go" class="plank go"><i class="arrow go"></i><span></span></button>
 </section>
 
+<div id="book" hidden></div>
 <button id="book-x" class="plank" hidden><span>Close the book</span></button>
 <button id="tab" class="plank" hidden><i class="arrow up"></i><span></span></button>
 <div id="names"></div>
