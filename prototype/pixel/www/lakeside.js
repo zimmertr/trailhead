@@ -1,7 +1,7 @@
 // About Lake, part two: out of the trees at the lake itself, turquoise under a huge sweeping
 // peak. He runs left to right along the near shore, stops for the view with the map out, and
 // again at the boulder where his journal lies open.
-import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, thick, windAt, veilTable } from './core.js';
+import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, thick, windAt, veilTable, SHADE } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
 import { makeTrunk, makeLimb, swordFern } from './forest.js';
 import { makeConifer, makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush, makeMaple } from './sprites.js';
@@ -78,6 +78,44 @@ function lakeMist(scr, camX, hor, bot, t, veils) {
       const v = n * m * 2.1 - 0.45 + (bayer(x, y) - 0.5) * 0.22;
       if (v > 0.42) fb[row + x] = veils[1][fb[row + x]]; else if (v > 0.12) fb[row + x] = veils[0][fb[row + x]];
     }
+  }
+}
+
+// The water. Off the far shore it is a mirror: the far trees and Monolith upside down in their own
+// colours a shade darker, squashed as a reflection seen this low is. Nearer, more of the lake's own
+// turquoise shows through, and everywhere the mirror is broken: each row sways a little with the
+// swell, cat's paws of wind drift across and scuff it to plain water, and where he swims the rings
+// and wake break it up round him. Its own small function, outside draw(), being a per-pixel loop.
+function lakeWater(scr, hor, base, t, farS, farX, peak, peakX, sink, sw) {
+  const { VW, VH, fb } = scr, tarn = R.tarn, pw = peak.w, fw = farS.w;
+  // Far shore and mountain squashed by the same amount, chosen so the summit's reflection lands just
+  // short of this shore: first the far trees upside down, then the snow above them.
+  const squash = Math.max(2, (peak.up - 4 - sink) / Math.max(8, base - hor - 6));
+  for (let y = Math.max(0, hor + 1); y < Math.min(VH, base + 2); y++) {
+    const dy = y - hor, row = y * VW, depth = dy / -FAR;
+    const swell = 1.5 * Math.sin(dy * 1.9 + t * 1.4) * Math.min(1, dy / 8);
+    const fy = -Math.round(dy * squash) - 1, py0 = fy - sink;
+    // How much of the mirror shows: nearly all of it off the far shore, about half near this one.
+    const k0 = 0.97 - 0.4 * smooth(0.3, 1.1, depth);
+    for (let x = 0; x < VW; x++) {
+      let rip = swell, k = k0;
+      const paw = vnoise((x - t * 14) / 38, dy / 1.7 + t * 0.15, 597);
+      if (paw > 0.7) { k *= 0.2; rip += 1.5 * Math.sin(x * 0.9 + t * 6); }
+      if (sw) {
+        const ex = (x - sw[0]) / 34, ey = (y - sw[1]) / 7, e = ex * ex + ey * ey;
+        if (e < 1) { rip += 3.5 * (1 - e) * Math.sin(Math.hypot(ex * 34, ey * 20) * 0.7 - t * 9); k *= 0.35 + 0.65 * e; }
+      }
+      const r = Math.round(rip), f = farS.get(((farX + x + r) % fw + fw) % fw, fy);
+      const src = f || peak.get(((peakX + x + r) % pw + pw) % pw, py0);
+      let v = 0.62 - 0.3 * smooth(0.55, 0, depth) + 0.07 * Math.sin(x / 19 + dy);
+      if (src) {
+        if (dy >= 2 && bayer(x, y) < k) { fb[row + x] = SHADE[src]; continue; }
+        const lum = (0.3 * DAY[src][0] + 0.59 * DAY[src][1] + 0.11 * DAY[src][2]) / 255; v = lerp(v, 0.15 + lum * 0.75, f ? 0.6 : 0.45);
+      }
+      if (dy < 2) v = 0.05;
+      fb[row + x] = tarn[clamp(Math.round(v * 5 + (bayer(x, y) - 0.5) * 0.8), 0, 5)];
+    }
+    if ((dy & 3) === 1) for (let x = (Math.floor(t * 3) + dy * 7) % 23; x < VW; x += 23 + (dy % 5)) { const i = row + x; for (let k = 0; k < 3 + (dy % 4); k++) if (x + k < VW) fb[i + k] = LIGHT[fb[i + k]]; }
   }
 }
 
@@ -349,22 +387,10 @@ function buildLakeside() {
       const farX = camX * 0.45 + 200;
       drawStrip(scr, farS, farX, hor);
 
-      // The lake: turquoise, darker under the far shore, with the peak upside down in it.
-      const tarn = R.tarn, pw = peak.w, fw = farS.w;
-      for (let y = Math.max(0, hor + 1); y < Math.min(VH, base + 2); y++) {
-        const dy = y - hor, row = y * VW, depth = dy / -FAR;
-        const rip = Math.round(1.5 * Math.sin(dy * 1.9 + t * 1.4) * Math.min(1, dy / 8));
-        const py = -Math.round(dy * 4.6) - 1 - sink, fy = -Math.round(dy * 1.4) - 1;
-        for (let x = 0; x < VW; x++) {
-          const f = farS.get(((Math.round(farX) + x + rip) % fw + fw) % fw, fy);
-          const src = f || peak.get(((Math.round(peakX) + x + rip) % pw + pw) % pw, py);
-          let v = 0.62 - 0.3 * smooth(0.55, 0, depth) + 0.07 * Math.sin(x / 19 + dy);
-          if (src) { const lum = (0.3 * DAY[src][0] + 0.59 * DAY[src][1] + 0.11 * DAY[src][2]) / 255; v = lerp(v, 0.15 + lum * 0.75, f ? 0.8 : 0.62); }
-          if (dy < 2) v = 0.05;
-          fb[row + x] = tarn[clamp(Math.round(v * 5 + (bayer(x, y) - 0.5) * 0.8), 0, 5)];
-        }
-        if ((dy & 3) === 1) for (let x = (Math.floor(t * 3) + dy * 7) % 23; x < VW; x += 23 + (dy % 5)) { const i = row + x; for (let k = 0; k < 3 + (dy % 4); k++) if (x + k < VW) fb[i + k] = LIGHT[fb[i + k]]; }
-      }
+      // The lake, with the far shore and Monolith upside down in it.
+      const sw = at && (at.k === 'swim' || (at.k === 'wade' && at.depth >= 1)) ? [at.x, base + at.y] : null;
+      lakeWater(scr, hor, base, t, farS, Math.round(farX), peak, Math.round(peakX), sink, sw);
+      const tarn = R.tarn;
       // Sun on the water, and now and then a trout rises.
       for (let k = 0; k < 40; k++) {
         const sx = Math.round((hash(k, 1, 150) * 600 - camX * 0.7) % VW + VW) % VW, sy = hor + 8 + Math.round(hash(k, 2, 150) * (-FAR - 20));
@@ -388,7 +414,7 @@ function buildLakeside() {
         for (let j = 1; j <= 16; j++) {
           const y = iy + j, src = isleAll.oy - Math.round(j * 1.7); if (y < 0 || y >= VH || src < 0) continue;
           const rip = Math.round(1.5 * Math.sin((y - hor) * 1.9 + t * 1.4));
-          for (let i = 0; i < w; i++) { const c = isleAll.d[src * w + i], x = ix - isleAll.ox + i + rip; if (!c || x < 0 || x >= VW) continue; const lum = (0.3 * DAY[c][0] + 0.59 * DAY[c][1] + 0.11 * DAY[c][2]) / 255; fb[y * VW + x] = tarn[clamp(Math.round((0.1 + lum * 0.8) * 5 + (bayer(x, y) - 0.5) * 0.8), 0, 5)]; }
+          for (let i = 0; i < w; i++) { const c = isleAll.d[src * w + i], x = ix - isleAll.ox + i + rip; if (!c || x < 0 || x >= VW) continue; if (bayer(x, y) < 0.8 - j * 0.03) { fb[y * VW + x] = SHADE[c]; continue; } const lum = (0.3 * DAY[c][0] + 0.59 * DAY[c][1] + 0.11 * DAY[c][2]) / 255; fb[y * VW + x] = tarn[clamp(Math.round((0.1 + lum * 0.8) * 5 + (bayer(x, y) - 0.5) * 0.8), 0, 5)]; }
         }
         scr.put(isle, ix, iy, false);
         for (const part of isleFir.parts) { const [wx, wy] = windAt(ISLE_X + (part.lx || 0), ISLE_Y - 5 + part.y, tq, part.sway); scr.blit(part.bm, ix + FIR_DX + part.x + wx, iy - 5 + part.y + wy); }
