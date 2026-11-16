@@ -1,5 +1,5 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
-import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
+import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
 import { breeze, veilTable } from './core.js';
 import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
@@ -54,6 +54,56 @@ function duskHills(fb, VW, VH, ox, oy, H, ground, mix, WARM) {
     for (let k = rows[wy], e = rows[wy + 1]; k < e; k++) { const x = xs[k] - ox; if (x < 0) continue; if (x >= VW) break; const m = vals[k], wi = wrow + xs[k], b = bayer(xs[k], wy), i = row + x;
       if (m < 16) { if (b < mix * m * 0.08) fb[i] = WARM[fb[i]]; }
       else if (fb[i] !== ground[wi] && b < mix * (m - 32) * 0.1) fb[i] = WARM[fb[i]]; } }
+}
+// The fog of the inversion (E5e), laid over the finished picture the way the mist is: each pixel swapped
+// for its own colour seen through fog, in seven strengths and then plain white, by how thick it lies
+// there (W.fog) and how much of it is in. Whatever stands (a crown, an animal) shows through two steps
+// clearer than the ground under it, so the summits' trees stand out of the fog in the valleys. Only the
+// sea goes wholly white. It parts round him as the mist does. G is the ground the frame was drawn from
+// (GW west of the weather's edge when it is wet), to tell what stands.
+function fogPass(fb, VW, VH, ox, oy, F, G, GW, wetOn, VEIL, w, here, k8, X0, X1) {
+  const y0 = Math.max(0, -oy), y1 = Math.min(VH, WH - oy);
+  for (let y = y0; y < y1; y++) { const wy = y + oy; if (X0[wy] < 0) continue;
+    const fr = w.front + 26 * Math.sin(wy / 37 + w.n) + 14 * Math.sin(wy / 11 + 2 * w.n), xa = Math.max(X0[wy] - ox, 0), xb = Math.min(X1[wy] + 1, Math.ceil(fr + 70), VW + ox) - ox;
+    const row = y * VW, wrow = wy * WW, his = here !== null && wy > here.y - 23 && wy < here.y + 3, hx = here !== null ? here.x : 0, we = wetOn ? fr : -1;
+    for (let x = xa; x < xb; x++) { const wx = x + ox, f = F[wrow + wx]; if (f < 72 || (his && wx > hx - 9 && wx < hx + 9)) continue;
+      const i = row + x, gate = fr + 70 - wx, under = wx < we ? GW[wrow + wx] : G[wrow + wx];
+      let l = Math.floor(f * k8 * (gate >= 90 ? 1 : gate / 90) + bayer(wx, wy) - 0.5) - (fb[i] !== under ? 2 : 0); if (l <= 0) continue; if (l >= 8 && f < 230) l = 7;
+      fb[i] = l >= 8 ? (hash(wx >> 4, wy >> 2, 231) > 0.74 ? R.fog[1] : R.fog[2]) : VEIL[(l - 1) * 256 + fb[i]]; } }
+}
+// The marine layer's deck (E5e), laid on the same way: each pixel swapped for its own colour seen through
+// fog, up to the strongest veil, by how deep in the deck its spot lies (land.js's deck), how far in the
+// deck is and a slow churn. Things standing in it are hidden with the ground, so the hills' trees go into
+// the cloud. Behind the deck's edge only, which never reaches About Lake.
+function deckPass(fb, VW, VH, ox, oy, M, VEIL, CHURN, w, t, k, X0, X1) {
+  const y0 = Math.max(0, -oy), y1 = Math.min(VH, WH - oy), cx = Math.floor(t * 3), cy = Math.floor(t * 1.2);
+  for (let y = y0; y < y1; y++) { const wy = y + oy; if (X0[wy] < 0) continue;
+    const fr = w.front + 26 * Math.sin(wy / 37 + w.n) + 14 * Math.sin(wy / 11 + 2 * w.n), xa = Math.max(X0[wy] - ox, 0), xb = Math.min(X1[wy] + 1, Math.ceil(fr + 50), VW + ox) - ox, row = y * VW, wrow = wy * WW, crow = ((wy + cy) & 63) * 128;
+    for (let x = xa; x < xb; x++) { const wx = x + ox, m = M[wrow + wx]; if (m < 14) continue; const gate = fr + 50 - wx;
+      let l = Math.floor(m * (70 + 1.1 * CHURN[crow + ((wx + cx) & 127)]) * k * (gate >= 60 ? 1 : gate / 60) + bayer(wx, wy) - 0.5); if (l <= 0) continue; if (l > 7) l = 7;
+      fb[row + x] = VEIL[(l - 1) * 256 + fb[row + x]]; } }
+}
+// The drizzle under the deck: short streaks, light and steady, slanting east, over the rainforest and the
+// sea behind the deck's edge. Each streak is pale over dark ground and grey over the pale deck (STREAK), so
+// it shows on both.
+function drizzle(scr, ox, oy, t, w, F, M, frontAt, STREAK) {
+  const { VW, VH, fb } = scr, n = Math.round(900 * w.rain);
+  for (let i = 0; i < n; i++) {
+    const life = t / 0.5 + (i * 0.618) % 1, c = Math.floor(life), h = hash(i, c, 5150), x = Math.round(ox + hash(i, c, 5151) * VW + (life - c) * 2), y = Math.round(oy + h * VH + (life - c) * 6);
+    if (x < 0 || y < 0 || x >= WW || y >= WH || !(F[y * WW + x] || M[y * WW + x]) || x > frontAt(y, w)) continue;
+    for (let j = 0; j < 4; j++) { const X = x + (j >> 1) - ox, Y = y + j - oy; if (X >= 0 && Y >= 0 && X < VW && Y < VH) { const k = Y * VW + X; fb[k] = STREAK[fb[k]]; } }
+  }
+}
+// After the drizzle, while the fog lingers, a pale drop now and then falls from a crown in the rainforest.
+function drip(scr, ox, oy, t, w, D, frontAt) {
+  if (!D.length) return;
+  for (let k = 0; k < 90; k++) {
+    const life = t / 0.7 + hash(k, 1, 5160), c = Math.floor(life), q = life - c, [x, y0, foot] = D[(hash(k, c, 5161) * D.length) | 0];
+    if (hash(k, c, 5162) > w.drip || x > frontAt(y0, w)) continue;
+    const y = Math.round(y0 + q * q * Math.min(12, foot - y0));
+    scr.set(x - ox, y - oy, q < 0.8 ? R.white[1] : R.fog[2]); if (q > 0.15 && q < 0.8) scr.set(x - ox, y - 1 - oy, R.fog[1]);
+    if (q > 0.85) { scr.set(x - 1 - ox, y - oy, R.fog[1]); scr.set(x + 1 - ox, y - oy, R.fog[1]); }
+  }
 }
 
 export function makeWorld(bake) {
@@ -124,129 +174,72 @@ export function makeWorld(bake) {
     // The block itself, until it is lost in its own powder.
     if (a < 1.4) { const [bx, by] = path(a / 1.4); for (let i = -2; i <= 1; i++) { dot(bx + i, by - 1, R.white[1]); dot(bx + i, by, R.serac[i < 1 ? 2 : 1]); dot(bx + i, by + 1, R.serac[0]); } }
   }
-  // ---- the weather in the west (E5) ----
-  // A shower comes in off the sea ten seconds after the page opens, and again half a minute after the
-  // last one's fog has gone (E5a: loops are quick). Fog builds on the water first; then dark rain clouds
-  // and a front of rain and fog push east over the rainforest, wetting the ground, as far as a reach
-  // rolled for that shower, so about half of them get to About Lake and ring its water. The rain stops
-  // there, the clouds drift on and break up, a low rainbow arch stands in the rain as it goes, the fog
-  // lingers, then burns off. rain=<seconds> moves the clock on, for screenshots.
-  const RAIN = { sea: 8, land: 26, stop: 46, dry: 52, lift: 62, gone: 76, gap: 30 }; RAIN.cycle = RAIN.gone + RAIN.gap;
+  // ---- the weather in the west: the marine layer (E5e) ----
+  // Rain in the Northwest seldom comes as a storm. A low grey deck rolls in off the sea ten seconds after
+  // the page opens and settles onto the rainforest's hills, hiding their tops and their trees, with a
+  // light steady drizzle under it, and stops short of About Lake. Then it lifts and thins, and leaves
+  // white fog in the valleys with the summits standing out of it (the inversion), the trees dripping for
+  // a while; that burns off too. About two minutes in all, then half a minute clear. rain=<seconds> moves
+  // the clock on, for screenshots, and the debug panel's Shower button starts one now.
+  const RAIN = { roll: 15, settle: 40, gone: 120, gap: 30 }; RAIN.cycle = RAIN.gone + RAIN.gap;
   let rainAhead = typeof location !== 'undefined' ? +(/[?&]rain=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
-  // About Lake's water (the core of its country), for the reach and the rings.
+  // About Lake's water (the core of its country): the deck never reaches it.
   let lx0 = WW, lx1 = 0, ly0 = WH, ly1 = 0;
   for (let i = 0; i < W.dest.length; i++) if (W.dest[i] === 5) { const x = i % WW, y = (i / WW) | 0; if (x < lx0) lx0 = x; if (x > lx1) lx1 = x; if (y < ly0) ly0 = y; if (y > ly1) ly1 = y; }
   const weather = t => {
-    const T = t + rainAhead + RAIN.cycle - 10, n = Math.floor(T / RAIN.cycle), s = T - n * RAIN.cycle, reach = lerp(lx0 - 90, lx1 + 30, hash(n, 1, 5101));
+    const T = t + rainAhead + RAIN.cycle - 10, n = Math.floor(T / RAIN.cycle), s = T - n * RAIN.cycle, reach = lx0 - 50 - 50 * hash(n, 1, 5101);
     return { n, s, reach,
-      front: s < RAIN.sea ? lerp(-80, 40, s / RAIN.sea) : lerp(40, reach, smooth(RAIN.sea, RAIN.land, s)),
-      fog: smooth(0, RAIN.sea, s) * smooth(RAIN.gone, RAIN.lift, s),
-      rain: smooth(RAIN.sea + 2, RAIN.sea + 8, s) * smooth(RAIN.dry, RAIN.stop, s),
-      wet: smooth(RAIN.sea + 2, RAIN.land, s) * smooth(RAIN.gone + 20, RAIN.dry, s),
-      cloud: smooth(2, RAIN.sea + 4, s) * smooth(RAIN.dry + 12, RAIN.stop + 2, s), drift: Math.max(0, s - RAIN.stop) * 5,
-      bow: smooth(RAIN.stop, RAIN.stop + 4, s) * smooth(RAIN.lift + 4, RAIN.stop + 14, s) };
+      front: lerp(-80, reach, smooth(0, RAIN.settle, s)),
+      deck: smooth(0, RAIN.roll, s) * smooth(78, 64, s),
+      rain: smooth(10, 18, s) * smooth(74, 64, s),
+      wet: smooth(12, 40, s) * smooth(125, 80, s),
+      fog: smooth(74, 90, s) * smooth(RAIN.gone, 102, s),
+      drip: smooth(68, 74, s) * smooth(108, 92, s) };
   };
-  // The front is not a straight line: row by row it bulges ahead and lags behind.
+  // The deck's edge is not a straight line: row by row it bulges ahead and lags behind.
   const frontAt = (wy, w) => w.front + 26 * Math.sin(wy / 37 + w.n) + 14 * Math.sin(wy / 11 + 2 * w.n);
-  // How much of the fog that lies at a spot is in: all of it behind the front, none a little ahead of it.
-  const fogIn = (wx, wy, w) => w.fog * clamp((frontAt(wy, w) + 70 - wx) / 90, 0, 1);
+  // How much of the fog that lies at a spot is in, for the mist and the sea's bank (critters.js).
+  const fogIn = (wx, wy, w) => Math.max(w.fog, w.deck * 0.8) * clamp((frontAt(wy, w) + 70 - wx) / 90, 0, 1);
+  // The deck's churn: a tile of soft noise, wider than tall as stratus is, that slides slowly through it
+  // so it never sits still. It wraps without a seam: each spot blends the noise there with the noise a
+  // tile away, by how near the tile's edge it lies. (A first tile of small cells read as polka dots.)
+  const CHURN = new Uint8Array(128 * 64).map((_, i) => { const x = i & 127, y = i >> 7, n = (a, b) => 0.65 * vnoise(a / 30, b / 11, 5131) + 0.35 * vnoise(a / 13, b / 6, 5132), u = x / 128, v = y / 64;
+    return Math.round(255 * ((1 - u) * (1 - v) * n(x, y) + u * (1 - v) * n(x - 128, y) + (1 - u) * v * n(x, y - 64) + u * v * n(x - 128, y - 64))); });
+  // The drips: where a tree in the rainforest holds its crown, for drops to fall from after the drizzle.
+  const DRIPS = W.things.filter(th => th.tree && !th.tree.low && th.x < 800 && forestAmt(th.x, th.y) > 0.5).map(th => [th.x + Math.round((hash(th.x, th.y, 5140) - 0.5) * th.tree.w * 0.6), th.y - Math.round(th.tree.h * (0.35 + 0.3 * hash(th.x, th.y, 5141))), th.y]);
   // Wet ground under the rain: a step darker through a dither, drying after. Water stays as it is.
   const WATERY = KIND[R.water[3]];
-  function wetGround(scr, ox, oy, w) {
-    if (w.wet < 0.02) return;
-    const { VW, VH, fb } = scr, D = W.depth;
-    for (let y = Math.max(0, -oy); y < Math.min(VH, WH - oy); y++) {
-      const wy = y + oy, row = y * VW, lim = Math.min(VW, Math.ceil(frontAt(wy, w) - ox), WW - ox), by = (wy & 3) * 4, wrow = wy * WW, cut = w.wet * 0.5;
-      for (let x = Math.max(0, -ox); x < lim; x++) { const wx = x + ox; if (BAY[by + (wx & 3)] >= cut || D[wrow + wx] > 1e8 || KIND[fb[row + x]] === WATERY) continue; fb[row + x] = SHADE[fb[row + x]]; }
-    }
-  }
-  // The fog, laid on the way the mist is (each pixel swapped for its own colour seen through fog), in
-  // seven strengths and then plain white, by how thick it lies there (W.fog) and how much of it is in.
-  // Whatever stands (a tree's crown, an animal) shows through it two steps clearer than the ground
-  // under it, so the ranks stand out of the fog in the hollows, and the farther back the ground the
-  // thicker the fog in front of it, so each rank is paler than the one before it. Only the sea goes
-  // wholly white; over the land something always shows through. It parts round him as the mist does.
-  const FOGV = [0.12, 0.26, 0.4, 0.53, 0.65, 0.76, 0.86].map(veilTable), BAY = Array.from({ length: 16 }, (_, i) => bayer(i & 3, i >> 2));
-  function westFog(scr, ox, oy, w, here) {
-    if (w.fog < 0.01) return;
-    const { VW, VH, fb } = scr, F = W.fog, k8 = w.fog * 8 / 255;
-    for (let y = Math.max(0, -oy); y < Math.min(VH, WH - oy); y++) {
-      const wy = y + oy, row = y * VW, fr = frontAt(wy, w), lim = Math.min(VW, Math.ceil(fr + 70 - ox), WW - ox), his = here && wy > here.y - 23 && wy < here.y + 3, by = (wy & 3) * 4, wrow = wy * WW;
-      for (let x = Math.max(0, -ox); x < lim; x++) {
-        const wx = x + ox, f = F[wrow + wx]; if (!f || (his && wx > here.x - 9 && wx < here.x + 9)) continue;
-        const i = row + x, gate = fr + 70 - wx;
-        let l = Math.floor(f * k8 * (gate >= 90 ? 1 : gate / 90) + BAY[by + (wx & 3)] - 0.5) - (fb[i] !== gNow[wrow + wx] ? 2 : 0); if (l <= 0) continue; if (l >= 8 && f < 230) l = 7;
-        fb[i] = l >= 8 ? (hash(wx >> 4, wy >> 2, 231) > 0.74 ? R.fog[1] : R.fog[2]) : FOGV[l - 1][fb[i]];
-      }
-    }
-  }
-  // A cloud drawn in pixels: rounded lobes along a flat base, tallest in the middle. Fair-weather ones
-  // are white with the sky's blue underneath; rain clouds are the grey of a storm, darkest at the belly.
-  const puff = (w, h, seed, dark) => {
+  // That never changes but for where the deck's edge is, so it is done once, in copies of the ground (by
+  // Day and at Dusk) drawn west of the edge once the drizzle has wet it; done each frame it cost 4 ms.
+  const wetOf = g => { const o = g.slice(); for (let y = 0; y < WH; y++) for (let x = 0; x < 900; x++) { const i = y * WW + x; if (W.depth[i] > 1e8 || KIND[g[i]] === WATERY || bayer(x, y) >= 0.25) continue; o[i] = SHADE[g[i]]; } return o; };
+  const groundWet = wetOf(ground), groundDuskWet = wetOf(groundDusk);
+  // The veils the fog and the deck lay on, from faint to the strongest (westVeil, above makeWorld).
+  const FOGV = [0.12, 0.26, 0.4, 0.53, 0.65, 0.76, 0.86].map(veilTable);
+  // For each row of the picture, the columns the fog and the deck can reach, so a frame only visits those.
+  // A deck value under 14 never shows even at its thickest (the dither never lifts it to the first veil),
+  // so it is left out. The fog is left out under 72: there it was only the faintest veils on the hills'
+  // slopes, which cost frame time and blurred the summits that should stand out of it.
+  const span = (A, lo) => { const X0 = new Int16Array(WH).fill(-1), X1 = new Int16Array(WH).fill(-1); for (let y = 0; y < WH; y++) for (let x = 0; x < WW; x++) if (A[y * WW + x] >= lo) { if (X0[y] < 0) X0[y] = x; X1[y] = x; } return [X0, X1]; };
+  const [FX0, FX1] = span(W.fog, 72), [DX0, DX1] = span(W.deck, 14);
+  // The veils as one flat table, seven of 256: entry (l - 1) * 256 + c is colour c through veil l.
+  const VEIL = new Uint8Array(7 * 256); FOGV.forEach((t, k) => VEIL.set(t, k * 256));
+  // A drizzle streak's colour over each colour: grey over light ones, pale over dark ones.
+  const STREAK = new Uint8Array(256).map((_, c) => { const p = DAY[c] || [0, 0, 0]; return 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2] > 150 ? R.nebel[1] : R.fog[1]; });
+  // A cloud drawn in pixels: rounded lobes along a flat base, tallest in the middle, white with the sky's
+  // blue underneath (the fair-weather clouds).
+  const puff = (w, h, seed) => {
     const r = rng(seed), b = new BM(w, h); b.ox = w >> 1; b.oy = h - 1;
     const n = Math.max(3, Math.round(w / 13)), base = h - 2, lobes = [];
     for (let k = 0; k < n; k++) { const f = (k + 0.5) / n; lobes.push([w * (0.1 + 0.8 * f) + (r() - 0.5) * 5, base - h * (0.2 + 0.42 * Math.sin(Math.PI * f) * (0.7 + 0.3 * r())), h * (0.22 + 0.14 * r()) + h * 0.16 * Math.sin(Math.PI * f)]); }
     for (let y = 0; y <= base; y++) for (let x = 0; x < w; x++) {
       if (!lobes.some(([lx, ly, lr]) => sq(x - lx) + sq((y - ly) * 1.25) <= lr * lr)) continue;
       const q = y / base, d = bayer(x, y);
-      b.set(x, y, dark ? (y === base ? R.nebel[0] : q < 0.35 ? (d < 0.6 ? R.nebel[3] : R.nebel[2]) : q < 0.7 ? (d < 0.5 ? R.nebel[2] : R.nebel[1]) : R.nebel[1])
-        : (q < 0.6 ? R.white[1] : q < 0.82 ? (d < 0.5 ? R.white[1] : R.sky[4]) : R.sky[3]));
+      b.set(x, y, q < 0.6 ? R.white[1] : q < 0.82 ? (d < 0.5 ? R.white[1] : R.sky[4]) : R.sky[3]);
     }
     return b;
   };
-  // The rain clouds: ten of them scattered over the forest, at rows and distances behind the front rolled
-  // once, so they bunch and overlap as real ones do. The
-  // rain falls in streaks from under each, slanting east with the wind, down to its own shadow on the
-  // ground. When the rain stops they drift on east and break up.
-  const RAIN_ALT = 70, RCLOUDS = Array.from({ length: 10 }, (_, k) => { const w = Math.round(78 + 64 * hash(k, 4, 7101)); return { gy: 380 + 440 * hash(k, 2, 7101), lag: 10 + 270 * Math.pow(hash(k, 3, 7101), 0.8), w, bm: puff(w, Math.round(26 + w * 0.1), 7110 + k, true) }; }).sort((a, b) => a.gy - b.gy);
-  const rcX = (c, w) => frontAt(Math.round(c.gy), w) - c.lag + w.drift;
-  function rainShadows(scr, ox, oy, w) {
-    if (w.cloud < 0.02) return;
-    const { VW, VH, fb } = scr;
-    for (const c of RCLOUDS) { const cx = rcX(c, w) + 10, rx = c.w * 0.45, ry = 9;
-      for (let y = Math.max(0, Math.round(c.gy - ry - oy)); y <= Math.min(VH - 1, Math.round(c.gy + ry - oy)); y++) for (let x = Math.max(0, Math.round(cx - rx - ox)); x <= Math.min(VW - 1, Math.round(cx + rx - ox)); x++) {
-        const nx = (x + ox - cx) / rx, ny = (y + oy - c.gy) / ry; if (nx * nx + ny * ny > 1 || bayer(x + ox, y + oy) >= w.cloud * 0.9) continue; const i = y * VW + x; fb[i] = SHADE[fb[i]]; } }
-  }
-  function rainClouds(scr, ox, oy, t, w) {
-    if (w.cloud < 0.02) return;
-    const { VW, VH, fb } = scr;
-    RCLOUDS.forEach((c, k) => {
-      const cx = rcX(c, w), base = c.gy - RAIN_ALT;
-      // The rain under it first, from its base to the ground.
-      for (let i = 0, n = Math.round(60 * w.rain); i < n; i++) {
-        const life = t / 0.4 + frac(i * 0.618 + k * 0.31), cc = Math.floor(life), h = hash(k * 97 + i, cc, 5103);
-        const wx = Math.round(cx - c.w * 0.4 + h * c.w * 0.8), wy = Math.round(base + frac(h * 7919) * (RAIN_ALT - 6) + (life - cc) * 10);
-        for (let j = 0; j < 3; j++) { const x = wx + (j >> 1) - ox, y = wy + j - oy; if (x >= 0 && y >= 0 && x < VW && y < VH) fb[y * VW + x] = j < 2 ? R.fog[1] : R.fog[0]; }
-      }
-      // Then the cloud, thinning through a dither as it breaks up.
-      const bm = c.bm, x0 = Math.round(cx) - bm.ox - ox, y0 = Math.round(base) - bm.oy - oy, keep = w.cloud * 1.25;
-      for (let j = 0; j < bm.h; j++) { const y = y0 + j; if (y < 0 || y >= VH) continue; for (let i = 0; i < bm.w; i++) { const col = bm.d[j * bm.w + i], x = x0 + i; if (!col || x < 0 || x >= VW || bayer(x + ox, y + oy) >= keep) continue; fb[y * VW + x] = col; } }
-    });
-  }
-  // Rings on About Lake where the rain reaches it: a white drop that opens into a ring two steps lighter
-  // than the water, and is gone.
-  function rings(scr, ox, oy, t, w) {
-    if (w.rain < 0.1 || lx1 < lx0) return;
-    const { VW, VH, fb } = scr;
-    for (let k = 0; k < 22; k++) {
-      const life = t / 0.9 + hash(k, 4, 5105), c = Math.floor(life), age = life - c; if (age > 0.7) continue;
-      const x = Math.round(lx0 + hash(k, c, 5106) * (lx1 - lx0)), y = Math.round(ly0 + hash(k, c, 5107) * (ly1 - ly0));
-      if (W.dest[y * WW + x] !== 5 || x >= frontAt(y, w) || hash(k, c, 5108) > w.rain) continue;
-      for (const [dx, dy] of age < 0.25 ? [[0, 0]] : age < 0.45 ? [[1, 0], [-1, 0], [0, 1], [0, -1]] : [[2, 0], [-2, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
-        const X = x + dx - ox, Y = y + dy - oy; if (X < 0 || Y < 0 || X >= VW || Y >= VH || W.dest[(y + dy) * WW + x + dx] !== 5) continue; const i = Y * VW + X; fb[i] = age < 0.25 ? R.white[1] : LIGHT[LIGHT[fb[i]]]; }
-    }
-  }
-  // The rainbow: a low arch standing in the rain and fog as the shower moves off, violet inside and red
-  // outside, its feet fading into the forest. Not at night.
-  const BOW = [R.lupine[1], R.sky[0], R.grass[3], R.sun[2], R.blaze[2], R.red[1]];
-  function rainbow(scr, ox, oy, w, mix) {
-    const a = w.bow * (1 - mix); if (a < 0.02) return;
-    const cx = w.reach - 150, cy = ly0 - 10;
-    for (let deg = 200; deg <= 340; deg += 0.25) { const th = deg * Math.PI / 180, along = smooth(200, 214, deg) * smooth(340, 326, deg);
-      for (let b = 0; b < 6; b++) { const x = Math.round(cx + (70 + b) * Math.cos(th)), y = Math.round(cy + (70 + b) * Math.sin(th)); if (bayer(x, y) < a * along * 0.75) scr.set(x - ox, y - oy, BOW[b]); } }
-  }
   // The small fair-weather clouds that cast the drifting shadows, each its shadow's size, FAIR_ALT above it.
-  const FAIR_ALT = 64, FAIR = [0, 1, 2, 3].map(k => { const cw = 40 + 16 * hash(k, 1, 91), chh = 11 + 5 * hash(k, 2, 91); return { cw, chh, y: Math.round(620 + hash(k, 3, 91) * 380), bm: puff(Math.round(cw * 1.9), Math.round(chh * 2.4), 610 + k, false) }; });
+  const FAIR_ALT = 64, FAIR = [0, 1, 2, 3].map(k => { const cw = 40 + 16 * hash(k, 1, 91), chh = 11 + 5 * hash(k, 2, 91); return { cw, chh, y: Math.round(620 + hash(k, 3, 91) * 380), bm: puff(Math.round(cw * 1.9), Math.round(chh * 2.4), 610 + k) }; });
   const fairX = (k, t) => ((k * 310 + t * (5 + k * 1.3)) % (WW + 300)) - 150;
   const things = [];
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
@@ -395,8 +388,9 @@ export function makeWorld(bake) {
       // The night sky is pinned to the world's own sky, laid out over a height that keeps the aurora in its dark upper part.
       scr.sky = { ox, oy, w: WW, h: 330, moon: [1180, 60] };
 
-      // Ground.
+      // Ground. West of the weather's edge, once the drizzle has wet it, the wet copy.
       gNow = env.mix > 0.5 ? groundDusk : ground;
+      const sky = weather(t), wetOn = DEBUG.clouds && sky.wet > 0.3, gWet = env.mix > 0.5 ? groundDuskWet : groundWet;
       for (let y = 0; y < VH; y++) {
         const wy = oy + y, row = y * VW;
         if (wy < 0) { fb.fill(R.skyband[0], row, row + VW); continue; }
@@ -404,12 +398,11 @@ export function makeWorld(bake) {
         const a = Math.max(0, ox), b = Math.min(WW, ox + VW);
         if (a > ox) fb.fill(wy < 330 ? R.sky[2] : R.grass[2], row, row + (a - ox));
         if (b < ox + VW) fb.fill(wy < 330 ? R.sky[2] : R.grass[2], row + (b - ox), row + VW);
-        if (b > a) fb.set(gNow.subarray(wy * WW + a, wy * WW + b), row + (a - ox));
+        if (b > a) { const e = wetOn ? clamp(Math.round(frontAt(wy, sky)), a, b) : a; if (e > a) fb.set(gWet.subarray(wy * WW + a, wy * WW + e), row + (a - ox)); if (b > e) fb.set(gNow.subarray(wy * WW + e, wy * WW + b), row + (e - ox)); }
       }
       // With the Trees switch off, the snags and shadows painted into the ground give way to what lay under them.
       if (!DEBUG.trees) for (let y = Math.max(0, -oy); y < Math.min(VH, WH - oy); y++) { const wy = y + oy, row = y * VW; for (let x = Math.max(0, -ox); x < Math.min(VW, WW - ox); x++) { const c = W.bare[wy * WW + x + ox]; if (c) fb[row + x] = c; } }
-      const sky = weather(t); crit.weather(sky.fog, (x, y) => fogIn(x, y, sky));
-      if (DEBUG.clouds) wetGround(scr, ox, oy, sky);
+      crit.weather(Math.max(sky.fog, sky.deck * 0.8), (x, y) => fogIn(x, y, sky));
       if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], H = TIP_H[n], k = 6 + n;
         for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = top[x]; if (y0 < 0) continue;
           for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { if (W.dest[y * WW + x] !== k) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8)) { const i = (y - oy) * VW + (x - ox); fb[i] = GLOW[fb[i]]; } } } }
@@ -466,7 +459,6 @@ export function makeWorld(bake) {
       if (env.mix > 0.02) duskHills(fb, VW, VH, ox, oy, HLIT, gNow, env.mix, WARM);
       // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge. Each is
       // cast by a small fair-weather cloud drifting above it (E5a), drawn after the mist.
-      if (DEBUG.clouds) rainShadows(scr, ox, oy, sky);
       for (let k = 0; DEBUG.clouds && k < 4; k++) {
         const { cw, chh } = FAIR[k], cxw = fairX(k, t) + 8, cyw = FAIR[k].y;
         const y0 = Math.max(0, Math.round(cyw - chh - oy)), y1 = Math.min(VH - 1, Math.round(cyw + chh - oy)), x0 = Math.max(0, Math.round(cxw - cw - ox)), x1 = Math.min(VW - 1, Math.round(cxw + cw - ox));
@@ -477,10 +469,12 @@ export function makeWorld(bake) {
       }
       // The boot track on the glacier, then the mist over the forest and the fog bank off the coast.
       for (const [x, y, c] of trackPix) scr.set(x - ox, y - oy, c);
-      if (DEBUG.clouds) rings(scr, ox, oy, t, sky);
-      if (DEBUG.mist) westFog(scr, ox, oy, sky, env.hideMe ? null : here);
+      if (DEBUG.mist && sky.fog > 0.01) fogPass(fb, VW, VH, ox, oy, W.fog, gNow, gWet, wetOn, VEIL, sky, env.hideMe ? null : here, sky.fog * 8 / 255, FX0, FX1);
+      if (DEBUG.clouds && sky.deck > 0.06) deckPass(fb, VW, VH, ox, oy, W.deck, VEIL, CHURN, sky, t, sky.deck * 7.4 / 255 / 255, DX0, DX1);
       if (DEBUG.mist) crit.mist(scr, ox, oy, t, env.hideMe ? null : here);
-      if (DEBUG.clouds) { rainbow(scr, ox, oy, sky, env.mix || 0); rainClouds(scr, ox, oy, t, sky); for (let k = 0; k < 4; k++) scr.blit(FAIR[k].bm, Math.round(fairX(k, t)) - FAIR[k].bm.ox - ox, FAIR[k].y - FAIR_ALT - FAIR[k].bm.oy - oy); }
+      if (DEBUG.clouds && sky.rain > 0.02) drizzle(scr, ox, oy, t, sky, W.fog, W.deck, frontAt, STREAK);
+      if (DEBUG.clouds && sky.drip > 0.02) drip(scr, ox, oy, t, sky, DRIPS, frontAt);
+      if (DEBUG.clouds) { for (let k = 0; k < 4; k++) scr.blit(FAIR[k].bm, Math.round(fairX(k, t)) - FAIR[k].bm.ox - ox, FAIR[k].y - FAIR_ALT - FAIR[k].bm.oy - oy); }
       kit.drawOver(scr, ox, oy, t);
       // Smoke from the stove at base camp, drifting off with the wind.
       for (let k = 0; k < 6; k++) {

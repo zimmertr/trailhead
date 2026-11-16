@@ -1314,7 +1314,22 @@ export function buildTerrain() {
   const open = (x, y) => { const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
   const nearTrail = (x, y, r) => { const v = vAt(x, y); return v < VD && H.tdist[Math.round(v) * NW + Math.round(x)] < r; };
   const flat = l => l.map(p => [p[0], p[1]]);
-  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  // Where the marine layer lies when it is in (E5e), for each pixel of the picture, 0 to 255: over the sea
+  // and the beach evenly, fading out over the open sea past 90 to 170 from the shore (it cost frame time
+  // and added nothing there); over the rainforest by height, so the hills' upper slopes and their trees are
+  // in the cloud and the valley floors stay under it; and in a band just above each skyline it covers
+  // (the deck's own top), thinning upward. Only the rainforest's own ground takes it, never Mount
+  // Monolith, the far ranges or the meadow.
+  const deck = (() => { const M = new Uint8Array(NW * SH), X1 = 860, LANDM = LAND.MATS.indexOf('land');
+    for (let y = 0; y < SH; y++) for (let x = 0; x < X1; x++) { const i = y * NW + x, v = LAND.depth[i]; if (v >= VD) continue;
+      const cs = LAND.coast(x, v); let d;
+      if (cs > -30) d = (0.6 + 0.25 * smooth(-30, 60, cs)) * smooth(170, 90, cs);
+      else { if (LAND.mat[i] !== LANDM) continue; const fa = LAND.forestAmt(x, v); if (fa < 0.3) continue; d = smooth(6, 52, LAND.hAt(x, v)) * smooth(0.3, 0.6, fa); }
+      if (d > 0.02) M[i] = Math.round(d * 255);
+    }
+    for (let x = 0; x < X1; x++) for (let y = 1; y < SH; y++) { const i = y * NW + x; if (M[i] < 60 || M[i - NW]) continue; for (let k = 1; k <= 22 && y - k >= 0; k++) { const j = i - k * NW; if (M[j]) break; M[j] = Math.round(M[i] * (1 - k / 24)); } }
+    return M; })();
+  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the
