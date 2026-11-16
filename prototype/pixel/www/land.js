@@ -6,7 +6,7 @@ import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, T
 import { paintMonolith, monolithSky, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
-import { makeFlowers, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog } from './sprites.js';
+import { makeFlowers, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
 
 const NW = 1920, SH = 1080, VD = 740, SY = SH + 52;
 const rdg = n => 1 - Math.abs(2 * n - 1);
@@ -118,10 +118,25 @@ const SHV = (() => {
   return { lo, n, V, K };
 })();
 const coast = (u, v) => { const x = clamp(u - SHV.lo, 0, SHV.n - 1.001), k = Math.floor(x), f = x - k; return (lerp(SHV.V[k], SHV.V[k + 1], f) - v) * lerp(SHV.K[k], SHV.K[k + 1], f) + 40 * (fbm(u / 80, v / 80, 80, 3) - 0.5); };
-// The dry country fills the bottom-right corner behind one slanted, uneven edge, the way the sea
-// fills the bottom-left. Above 0 is dry; it grows drier toward the corner.
-const dryS = (u, v) => (u - 1380) / 540 - v / 430 + 0.4 * (fbm(u / 150, v / 120, 207, 3) - 0.5);
-const dryAmt = (u, v) => smooth(-0.04, 0.2, dryS(u, v)), sageAmt = (u, v) => smooth(0.28, 0.55, dryS(u, v)), eastAmt = (u, v) => smooth(-0.5, -0.05, dryS(u, v));
+// The tableland of the dry corner: the shape of the ground (its rise, its mesas, the coulee) and where
+// the east rivers may leave the map. Above 0 it rises; it grows higher toward the corner. Since E5g it
+// shapes the ground only; what grows and what colour the ground is follow TJ's line (BORDER).
+const dryS0 = (u, v) => (u - 1380) / 540 - v / 430 + 0.4 * (fbm(u / 150, v / 120, 207, 3) - 0.5);
+const dryAmt0 = (u, v) => smooth(-0.04, 0.2, dryS0(u, v));
+// TJ's line (E5g, his marked map of 2026-11-16, section 10): everything east of it is the dry side.
+// Traced from his picture into map coordinates, from the foot of the Enchantment plateau at the east
+// edge, down past the end of the Stack's bench and the meadow's east half, to the map's foot.
+const BORDER = [[1990, 640], [1913, 593], [1783, 551], [1681, 454], [1620, 435], [1544, 392], [1496, 358], [1462, 297], [1442, 254], [1421, 163], [1408, 82], [1402, -60]];
+const borderU = v => { for (let k = 1; k < BORDER.length; k++) { const [u0, v0] = BORDER[k - 1], [u1, v1] = BORDER[k]; if (v <= v0 && v >= v1) return lerp(u0, u1, (v0 - v) / (v0 - v1)); } return v > BORDER[0][1] ? BORDER[0][0] + (v - BORDER[0][1]) * 2 : BORDER[BORDER.length - 1][0]; };
+// How far east of the line a spot lies, with an uneven edge (TJ: edges of country are never even).
+const eastOf = (u, v) => u - borderU(v) + 44 * (fbm(u / 90, v / 70, 211, 3) - 0.5) + 18 * (fbm(u / 22, v / 16, 213, 2) - 0.5);
+// North of about 330 the dry side rolls into wild golden grass hills (his NE); south of it is sage (his SE).
+const northAmt = (u, v) => smooth(290, 430, v + 70 * (fbm(u / 120, v / 90, 212, 2) - 0.5));
+const dryAmt = (u, v) => smooth(-34, 70, eastOf(u, v));
+const sageAmt = (u, v) => smooth(30, 150, eastOf(u, v)) * (1 - northAmt(u, v));
+// The dry forest (ponderosa, lodgepole, aspen, juniper) runs along the line, from a little way into
+// the meadow to well onto the dry side, and up onto the bench under the plateau.
+const eastAmt = (u, v) => { const e = eastOf(u, v); return smooth(-120, -40, e) * smooth(240, 140, e); };
 // Low ridges through the rainforest, one behind another, with hollows between them for the fog to
 // lie in. They run mostly east and west. Since E5b they are only the small folds on the foothills.
 const RA = 14, ridges = (u, v) => RA * rdg(fbm((v + 0.25 * u) / 85, u / 260, 31, 2)) * smooth(-24, -110, coast(u, v)) * (1 - 0.45 * smooth(600, 730, v) * smooth(420, 300, u));
@@ -160,9 +175,9 @@ const regional = (u, v) => (8 + 0.02 * v + 10 * Math.exp(-sq((u - divU(v)) / 250
 // The dry country is a basalt tableland that rises out of the meadow. On it stand the scabland's benches
 // (D10): flat-topped mesas of basalt in one or two steps, whose cliffs face the camera, since a rise that
 // climbs toward the camera hides its own riser. In the far corner they give way to low, rolling Palouse hills.
-const palAmt = (u, v) => smooth(0.5, 0.68, dryS(u, v));
-const mesa = (u, v) => { const k = fbm(u / 64, v / 34, 36, 3) + 0.04 * (vnoise(u / 6, v / 4, 37) - 0.5); return 12 * (smooth(0.52, 0.545, k) + smooth(0.63, 0.655, k)) * smooth(0.12, 0.3, dryS(u, v)) * (1 - palAmt(u, v)); };
-const plate = (u, v) => { const raw = 34 * smooth(0.02, 0.4, dryS(u, v)) + 10 * fbm(u / 80, v / 60, 33, 2) * dryAmt(u, v), b = raw + mesa(u, v); return b + palAmt(u, v) * 22 * (fbm(u / 46, v / 30, 34, 2) - 0.3); };
+const palAmt = (u, v) => { const e = eastOf(u, v); return smooth(50, 150, e) * northAmt(u, v); };
+const mesa = (u, v) => { const k = fbm(u / 64, v / 34, 36, 3) + 0.04 * (vnoise(u / 6, v / 4, 37) - 0.5); return 12 * (smooth(0.52, 0.545, k) + smooth(0.63, 0.655, k)) * smooth(0.12, 0.3, dryS0(u, v)) * (1 - palAmt(u, v)); };
+const plate = (u, v) => { const raw = 34 * smooth(0.02, 0.4, dryS0(u, v)) + 10 * fbm(u / 80, v / 60, 33, 2) * dryAmt0(u, v), b = raw + mesa(u, v); return b; };
 // The glacier: where its middle runs, how wide it is and how high its surface stands, by depth. It
 // starts under the Spires' wall, breaks over a rock step (the icefall) and runs out as a tongue.
 const GL = { top: 616, toe: 503, fall: [556, 578], cu: v => 1072 + 7 * Math.sin((v - 500) / 24), w: v => lerp(30, 112, smooth(522, 592, v)) * smooth(501, 516, v), h: v => 28 + 0.3 * (v - 500) + 10 * smooth(556, 576, v) };
@@ -244,6 +259,9 @@ for (let v = 0; v < VD; v++) for (let u = 0; u < NW; u++) hg[at(u, v)] = coast(u
 // A hill that the sea has reached since the shore moved (E5b) runs down to the beach, not out of the water.
 for (const f of F) { const m = MATS.indexOf(f.mat); for (let v = Math.max(0, Math.floor(f.v0)); v < Math.min(VD, f.v1); v++) for (let u = Math.max(0, Math.floor(f.u0)); u < Math.min(NW, f.u1); u++) { const h = f.fn(u, v) * (u < 760 && f.mat === 'land' ? smooth(-6, -60, coast(u, v)) : 1), i = at(u, v); if (h > hg[i]) { hg[i] = h; mg[i] = m; } } }
 }
+// The golden hills in the dry side's north-east (E5g): rounded swells rolling one behind another, laid on
+// after every piece so they roll over the east end of the bench as well as the low ground.
+if (!B) for (let v = 280; v < VD; v++) for (let u = 1300; u < NW; u++) { const i = at(u, v); if (MATS[mg[i]] !== 'land' || hg[i] <= 0) continue; const p = palAmt(u, v); if (p > 0.01) hg[i] += p * 22 * sq(clamp((fbm(u / 42, v / 16, 34, 2) - 0.38) / 0.3, 0, 1)); }
 const hAt = (u, v) => hg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))];
 // A valley's line is bent as it goes, so no reach of it is ruled. Its two ends stay where they are.
 const wander = (all, amp, seed) => { let len = 0; const total = all.reduce((t, p, n) => t + (n ? Math.hypot(p[0] - all[n - 1][0], p[1] - all[n - 1][1]) : 0), 0); return all.map(([u, v], n) => { if (n) len += Math.hypot(u - all[n - 1][0], v - all[n - 1][1]); const a = all[Math.max(0, n - 4)], b = all[Math.min(all.length - 1, n + 4)], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, k = amp * (2 * vnoise(len / 70, seed, 77) - 1 + 0.5 * Math.sin(len / 26 + seed)) * smooth(0, 50, len) * smooth(total, total - 50, len); return [u - (b[1] - a[1]) / l * k, v + (b[0] - a[0]) / l * k * 0.6]; }); };
@@ -295,7 +313,7 @@ if (B) water.set(B.water); else {
   let dig = () => 0;
   const rh = i => { const u = (i % RW) * 2, v = ((i / RW) | 0) * 2; return hg[at(u, v)] + 3 * (fbm(u / 40, v / 30, 410, 3) - 0.5) - dig(u, v); };
   const flood = () => { fill.fill(0); down.fill(-2); flow.fill(0); hk.length = 0; hi.length = 0; routes.length = 0;
-  for (let i = 0; i < N; i++) { const ru = i % RW, rv = (i / RW) | 0, u = ru * 2, v = rv * 2; if (coast(u, v) > 0) { down[i] = -1; fill[i] = 0; push(0, i); } else if ((rv === 0 || ru === RW - 1) && dryAmt(u, v) > 0.2) { down[i] = -1; fill[i] = rh(i); push(fill[i], i); } }
+  for (let i = 0; i < N; i++) { const ru = i % RW, rv = (i / RW) | 0, u = ru * 2, v = rv * 2; if (coast(u, v) > 0) { down[i] = -1; fill[i] = 0; push(0, i); } else if ((rv === 0 || ru === RW - 1) && dryAmt0(u, v) > 0.2) { down[i] = -1; fill[i] = rh(i); push(fill[i], i); } }
   while (hk.length) { const c = pop(), cu = c % RW, cv = (c / RW) | 0; for (let dv = -1; dv <= 1; dv++) for (let du = -1; du <= 1; du++) { const nu = cu + du, nv = cv + dv; if ((!du && !dv) || nu < 0 || nv < 0 || nu >= RW || nv >= RH) continue; const n = nv * RW + nu; if (down[n] !== -2) continue; fill[n] = Math.max(rh(n), fill[c] + (du && dv ? 0.0028 : 0.002)); down[n] = c; push(fill[n], n); } }
   // Follow each source down to an outlet, adding its water to every spot it passes.
   for (const s of C.src) { const lead = catmull(s.lead), [lu, lv] = lead[lead.length - 1], cells = []; let i = (Math.round(lv) >> 1) * RW + (Math.round(lu) >> 1), guard = 0; while (i >= 0 && guard++ < 8000) { cells.push(i); flow[i] += s.w; if (down[i] < 0) break; i = down[i]; } routes.push({ s, lead, cells }); }
@@ -383,8 +401,9 @@ const DRIFT = (u, v) => { if (parkAmt(u, v) < 0.45) return null; const k = vnois
 const forestAmt = (u, v) => smooth(forestEdge(v) + 40, forestEdge(v) - 24, u + 30 * (fbm(u / 30, v / 30, 8, 2) - 0.5)) * smooth(-6, -30, coast(u, v)) * (1 - 0.9 * smooth(1.1, 0.7, ell(C.PK, u, v)));
 // Larches are trees of the high country: none below the second granite step.
 const larchAmt = (u, v) => smooth(1.2, 0.85, ell(C.LB, u, v) + wob(u, v, 204, 0.35)) * smooth(62, 74, hAt(u, v));
-// The old burn lies across the east end of the first granite step and runs off the edge of the map.
-const burnAmt = (u, v) => { const a = u - 1850, b = v - 470; return smooth(1.1, 0.72, Math.hypot((a * 0.9 + b * 0.43) / 130, (a * -0.43 + b * 0.9) / 58) + wob(u, v, 210, 0.5)); };
+// The old burn lies on the bench at the foot of the Enchantment plateau's cliff (E5g, TJ's red box), at
+// the top of the dry forest, where the rivers off the plateau come down through it.
+const burnAmt = (u, v) => { const a = u - 1592, b = v - 492; return smooth(1.1, 0.72, Math.hypot((a * 0.9 - b * 0.43) / 140, (a * 0.43 + b * 0.9) / 62) + wob(u, v, 210, 0.5)) * smooth(100, 84, hAt(u, v)); };
 // The fog of the rainforest: nothing in the east, building westward until only white is left. It
 // lies in the hollows, so this is the height it fills the forest to: measured from the ground under
 // the foothills (E5b), it fills the valleys between them and leaves their summits standing out.
@@ -488,7 +507,9 @@ function colour(u, v, hh, x, y) {
     const c = pick('conifer', 0.06 + 0.58 * lit + (!top ? -0.2 : fx < 0.05 && fy < 0.15 ? 0.14 : 0) + 0.12 * (hash(k, row, 243) - 0.5), x, y);
     return bayer(x + 1, y) < 0.45 * smooth(470, 740, v) ? HILLHAZE[c] : c; }
   // Land. A step in it shows the rock of its own country.
-  if (steep > 1.05) return dryAmt(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)]) : u > 1190 ? pick('rock', 0.36 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.15 * L, x, y, 0.7) : ((ld, ck) => ld < 0.22 && hash(x, y, 100) < 0.75 ? pick('moss', 0.3 + 0.35 * L, x, y) : ck > 0.74 ? R.rock[0] : pick('rock', 0.14 + 0.5 * vnoise(x / 3, hh / 5, 97) + 0.25 * L, x, y, 0.7))(frac(hh / 4.5 + 0.7 * vnoise(x / 9, 3, 98)), vnoise(x / 2.2, hh / 9, 99));
+  // The golden hills' swells are grass to their crests, lit and shaded, never rock.
+  if (steep > 1.05 && palAmt(u, v) > 0.3) return pick('dry', 0.12 + 0.95 * L, x, y, 0.5);
+  if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)]) : u > 1190 ? pick('rock', 0.36 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.15 * L, x, y, 0.7) : ((ld, ck) => ld < 0.22 && hash(x, y, 100) < 0.75 ? pick('moss', 0.3 + 0.35 * L, x, y) : ck > 0.74 ? R.rock[0] : pick('rock', 0.14 + 0.5 * vnoise(x / 3, hh / 5, 97) + 0.25 * L, x, y, 0.7))(frac(hh / 4.5 + 0.7 * vnoise(x / 9, 3, 98)), vnoise(x / 2.2, hh / 9, 99));
   const sh = (L - 0.5) * 0.5, blot = s => 0.5 + 0.85 * (fbm(u / 32, v / 21, s, 3) - 0.5) + 0.2 * n1;
   if (fa > 0.5 + 0.2 * n1) { const shaft = fbm(u / 34 + v / 70, v / 26, 21, 3); return pick('moss', 0.16 + 0.3 * fbm(u / 18, v / 18, 22, 3) + smooth(0.56, 0.7, shaft) * 0.4 + sh * 0.4, x, y); }
   const bu = burnAmt(u, v), da = dryAmt(u, v);
@@ -856,15 +877,29 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     if (!here) continue; groves.push([cu, cv]);
     for (let k = 0; k < size; k++) { const a = rand() * 6.283, d = Math.sqrt(rand()) * 9, u = cu + Math.cos(a) * d * 1.5, v = cv + Math.sin(a) * d * 0.8; if (here && open(u, v) && land(u, v)) plant(any(aspens), u, v); }
   }
+  // The dry forest along TJ's line (E5g): ponderosa in the open, lodgepole in close stands, western
+  // juniper where it gives out to sage, whitebark pine high on the bench under the plateau. Thinner than
+  // the rainforest, thicker than the scattered pines before it.
+  const lodge = Array.from({ length: 6 }, (_, i) => makeLodgepole(960 + i)), junipers = Array.from({ length: 5 }, (_, i) => makeJuniper(980 + i)), whitebarks = Array.from({ length: 4 }, (_, i) => makeWhitebark(990 + i));
   const stood = [];
   rand = rng(6106);
-  for (let n = 0; n < 1100; n++) {
-    const u = 1240 + rand() * 680, v = rand() * 540;
-    if (rand() > band(u, v) * (0.05 + 0.3 * Math.max(dryAmt(u, v), 0.5 * step1(u, v))) || !open(u, v) || !land(u, v) || stood.some(([a, b]) => Math.abs(a - u) < 24 && Math.abs(b - v) < 20)) continue;
-    stood.push([u, v]); { const pn = any(pines); if (hash(u | 0, v | 0, 5941) > palAmt(u, v)) plant(pn, u, v); }
+  for (let n = 0; n < 3400; n++) {
+    const u = 1240 + rand() * 680, v = rand() * 600, stand = fbm(u / 50, v / 36, 215, 3);
+    if (rand() > band(u, v) * (0.14 + 0.5 * smooth(0.45, 0.65, stand)) || !open(u, v) || !land(u, v) || hash(u | 0, v | 0, 5941) < palAmt(u, v)) continue;
+    const h = hAt(u, v), kind = h > 60 && rand() < 0.5 ? 'wb' : sageAmt(u, v) > 0.25 || (eastOf(u, v) > 150 && rand() < 0.5) ? 'jun' : stand > 0.55 ? 'lodge' : 'pond';
+    const gu = kind === 'lodge' ? 9 : kind === 'jun' ? 12 : 20, gv = kind === 'lodge' ? 7 : kind === 'jun' ? 9 : 16;
+    if (stood.some(([a, b, g, k]) => Math.abs(a - u) < Math.max(g, gu) && Math.abs(b - v) < Math.max(k, gv))) continue;
+    stood.push([u, v, gu, gv]);
+    plant(any(kind === 'wb' ? whitebarks : kind === 'jun' ? junipers : kind === 'lodge' ? lodge : pines), u, v);
   }
   rand = rng(6107);
-  for (let n = 0; n < 520; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) put(any(snags), u, v, 0, true); }
+  for (let n = 0; n < 520; n++) { const u = 1440 + rand() * 330, v = 400 + rand() * 200; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) put(any(snags), u, v, 0, true); }
+  // New growth in the burn (E5g, TJ): along the rivers off the plateau, slide alder and manzanita are
+  // leafing out among the snags and the fireweed. Thick by the water, a few farther off.
+  { const shrubs = [0, 1, 2].map(i => makeShrub(1000 + i, 'alder')).concat([0, 1].map(i => makeShrub(1010 + i, 'manz'))), SHR = new Map(shrubs.map(b => [b, swaying(b)]));
+    const toWater = (u, v) => { let d = 30; for (let dv = -30; dv <= 30; dv += 2) for (let du = -30; du <= 30; du += 2) { const uu = Math.round(u + du), vv = Math.round(v + dv); if (uu >= 0 && vv >= 0 && uu < NW && vv < VD && water[at(uu, vv)]) d = Math.min(d, Math.hypot(du, dv)); } return d; };
+    const gr = rng(6114);
+    for (let n = 0; n < 1600; n++) { const u = 1440 + gr() * 330, v = 400 + gr() * 200; if (burnAmt(u, v) < 0.3 || !open(u, v) || !land(u, v)) continue; const w = toWater(u, v); if (gr() > 0.85 * smooth(28, 6, w) + 0.03) continue; plant(SHR.get(shrubs[w < 14 && gr() < 0.7 ? (gr() * 3) | 0 : 3 + ((gr() * 2) | 0)]), u, v); } }
   // Round 3's furniture of the ground: boulders and bushes in the open, granite slabs among the larches,
   // sage in the dry corner, ferns and logs on the forest floor, sea stacks off the beach, a fir on the island.
   const boulders = Array.from({ length: 6 }, (_, i) => makeBoulder(500 + i, 3 + i * 0.8));
@@ -909,7 +944,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   // The sage flats (D10): bushes thick where the pines have given out, thinning onto the Palouse.
   { const sr = rng(4720); for (let n = 0; n < 5200; n++) { const u = 1300 + sr() * 620, v = sr() * 480, k = (sr() * sages.length) | 0; if (sr() < sageAmt(u, v) * 0.55 * (1 - 0.8 * palAmt(u, v)) && open(u, v) && land(u, v)) plant(SAGE.get(sages[k]), u, v); } }
   rand = rng(6111);
-  for (let n = 0; n < 400; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) { if (rand() < 0.5) put(any(burnt), u, v, 0, true); else plant(any(young), u, v); } }
+  for (let n = 0; n < 400; n++) { const u = 1440 + rand() * 330, v = 400 + rand() * 200; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) { if (rand() < 0.5) put(any(burnt), u, v, 0, true); else plant(any(young), u, v); } }
   rand = rng(6112);
   for (let n = 0; n < 4000; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.6 && fogAmt(u, v) < 0.25 && hills(u, v) < 3 && open(u, v, 1.1) && wooded(u, v)) things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); }
   rand = rng(6113);

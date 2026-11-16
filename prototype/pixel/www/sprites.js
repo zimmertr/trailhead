@@ -78,7 +78,7 @@ function makeConifer(seed, H, W, name, tiers, o = {}) {
     }
     if (i === 0) { if (o.nod) { bm.set(cx, 1, ramp[3]); bm.set(cx + 1, 0, ramp[2]); bm.set(cx + 2, 0, ramp[2]); bm.set(cx + 3, 1, ramp[2]); } else { bm.set(cx, 0, ramp[2]); bm.set(cx, 1, ramp[3]); } }
     outline(bm, ramp[0]);
-    const y = -H + 2 + i * (H * 0.82) / tiers;
+    const y = -H + 2 + i * (H * 0.82 * (o.crown || 1)) / tiers;
     parts.push({ bm, x: Math.round(-cx + 0.5), y: Math.round(y - 1), sway: 1 - f * 0.6, lx: 0 });
   }
   return { parts, h: H, w: W };
@@ -180,6 +180,49 @@ function makePonderosa(seed) {
   const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }];
   crown(parts, cs, [R.conifer[0], R.pine[0], R.pine[1], R.pine[2], R.pine[3]], R.conifer[0], W, H, bx, rand);
   return { parts, h: H, w: 20 };
+}
+// The dry side's trees (E5g). A lodgepole pine: tall, straight and thin, crowded in stands, its needles
+// only in the top half with the trunk bare below.
+const makeLodgepole = seed => { const r = rng(seed); return makeConifer(seed, 34 + (r() * 14 | 0), 8 + (r() * 3 | 0), 'pine', 6, { crown: 0.55 }); };
+// A western juniper: low and gnarled, a twisting trunk of shaggy grey-brown bark under dense clumps of
+// blue-grey foliage. It grows where the pines give out to sage.
+function makeJuniper(seed) {
+  const rand = rng(seed), H = 13 + (rand() * 6 | 0), W = 20, bx = W >> 1, lean = rand() < 0.5 ? -1 : 1;
+  const trunk = new BM(W, H + 2), pts = [[bx, H], [bx + lean * (1 + rand() * 2), H * 0.62], [bx - lean * (1 + rand() * 2), H * 0.36]];
+  for (let k = 1; k < pts.length; k++) thick(trunk, pts[k - 1][0], pts[k - 1][1], pts[k][0], pts[k][1], k === 1 ? 2 : 1, k === 1 ? R.ochre[0] : R.rock[1]);
+  thick(trunk, pts[1][0], pts[1][1], pts[1][0] + lean * 5, pts[1][1] - 3, 1, R.ochre[0]);
+  outline(trunk, INK);
+  const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }], cs = [[pts[2][0], H * 0.28, 3.4 + rand()], [pts[1][0] + lean * 5, pts[1][1] - 4, 2.8 + rand()]];
+  if (rand() < 0.6) cs.push([pts[2][0] - lean * 3, H * 0.42, 2.6 + rand()]);
+  crown(parts, cs, [R.hill[0], R.hill[1], R.sage[1], R.sage[2], R.sage[3]], R.hill[0], W, H, bx, rand);
+  return { parts, h: H, w: 14 };
+}
+// A whitebark pine, high on the bench and the plateau's rim: several pale grey trunks from one foot,
+// spreading, with dark clumps of needles at their ends, bent by the wind.
+function makeWhitebark(seed) {
+  const rand = rng(seed), H = 20 + (rand() * 8 | 0), W = 26, bx = W >> 1, cs = [];
+  const trunk = new BM(W, H + 2);
+  for (let k = 0, n = 2 + (rand() * 2 | 0); k < n; k++) { const ex = bx + (k - (n - 1) / 2) * (5 + rand() * 3), ey = H * (0.18 + rand() * 0.2); thick(trunk, bx, H, ex, ey, k === 0 ? 2 : 1, R.rock[hash(k, seed, 3) < 0.5 ? 3 : 4]); cs.push([ex, ey - 1, 3 + rand() * 1.2]); }
+  outline(trunk, INK);
+  const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }];
+  crown(parts, cs, [R.conifer[0], R.conifer[1], R.pine[1], R.pine[2], R.pine[3]], R.conifer[0], W, H, bx, rand);
+  return { parts, h: H, w: 18 };
+}
+// New growth in the burn (E5g): slide alder, a low tangle of bright fresh leaves along the water, and
+// manzanita, its red-brown stems showing through small dark leaves.
+function makeShrub(seed, kind) {
+  const rand = rng(seed), b = new BM(14, 10); b.ox = 7; b.oy = 9;
+  if (kind === 'manz') for (let k = 0; k < 4; k++) thick(b, 7, 9, 7 + (rand() - 0.5) * 10, 3 + rand() * 3, 0, R.pbark[1 + (k & 1)]);
+  const r = kind === 'alder' ? 3.4 + rand() * 1.6 : 2.8 + rand() * 1.2;
+  for (let y = 0; y < 10; y++) for (let x = 0; x < 14; x++) {
+    const nx = (x - 7) / (r * 1.3), ny = (y - (9 - r * 0.7)) / (r * 0.8);
+    if (nx * nx + ny * ny > 1 + 0.5 * (vnoise(x / 2, y / 2, seed) - 0.5)) continue;
+    if (kind === 'manz' && hash(x, y, seed) < 0.35) continue;
+    const v = 0.6 - nx * 0.3 - ny * 0.4 + (hash(x, y, seed + 1) - 0.5) * 0.4;
+    b.set(x, y, kind === 'alder' ? R.kit[clamp(Math.round(v * 2.4), 0, 2)] : R.pine[clamp(Math.round(1 + v * 2), 1, 3)]);
+  }
+  outline(b, kind === 'alder' ? R.moss[2] : R.conifer[0]);
+  return b;
 }
 const makeSpruce = seed => { const r = rng(seed); return makeConifer(seed, 52 + (r() * 16 | 0), 26 + (r() * 8 | 0), 'conifer', 9); };
 const makeFir = seed => { const r = rng(seed); return makeConifer(seed, 22 + (r() * 12 | 0), 9 + (r() * 4 | 0), 'conifer', 6); };
@@ -377,4 +420,4 @@ function makeFlag(f, ramp = R.red) {
   return b;
 }
 
-export { makeSnag, makeBush, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeSnag, makeBush, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
