@@ -281,7 +281,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     scr.present(t, mix);
     if (gliding) startGlide(gliding);
     const f = drawn.scene.focus();
-    window.__info = { p, route, running, scene: drawn.s, VW: scr.VW, VH: scr.VH, S: scr.S, fx: f.x, fy: f.y };
+    window.__info = { p, route, running, scene: drawn.s, VW: scr.VW, VH: scr.VH, S: scr.S, fx: f.x, fy: f.y, o: drawn.s === 'world' ? world.at(0, 0) : null };
   }
   drawn.scene.enter(scr, drawn.arg, 0);
   requestAnimationFrame(draw);
