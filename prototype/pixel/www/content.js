@@ -98,7 +98,7 @@ export const FINDS = {
   marmot: ["The marmot's whistle", 'On a rock above the lake'],
   swim: ['The swim to the island', 'The lake looks inviting'],
   snack: ['A snack break', 'Stand still for a minute by the lake or in the trees'],
-  pika: ['The pika', 'In the talus under The Stack'],
+  pika: ['The pika', 'In the talus among the larches'],
   tidepool: ['The tide pool', 'Wait for low water on the beach'],
   dusk: ['The Dusk sky', 'Look up after the light goes'],
   offroute: ['Off route', 'An address that goes nowhere'],
@@ -136,10 +136,10 @@ export const NAMES = {
   cats: { tortie: 'Doot Doot', nebel: 'Peevers' },
   forest: { sign: 'Legacy Grove', creek: 'Cache Miss Creek' },
   lakeside: { sign: 'Cold Start Cove', marmot: 'Hoary marmot', swim: 'Go for a swim', back: 'Swim back' },
-  wall: { pika: 'Pika', ledge: 'Deadlock Ledge', roof: 'Rollback Roof', scree: 'Segfault Scree' },
+  wall: { ledge: 'Deadlock Ledge', roof: 'Rollback Roof', scree: 'Segfault Scree' },
   climb: { crevasse: 'Tech Debt Crevasse', ridge: 'Race Condition Ridge' },
   offroute: { wand: 'The only wand for miles' },
-  larches: { goats: 'Nanny and kid', billy: 'On-call billy goat' }
+  larches: { goats: 'Nanny and kid', billy: 'On-call billy goat', pika: 'Pika' }
 };
 // Every joke place name, for the legend on the trail map.
 const PLACE_NAMES = [...Object.values(SIGNS).filter(n => !n.includes(',')), NAMES.forest.sign, NAMES.forest.creek, NAMES.lakeside.sign, NAMES.wall.ledge, NAMES.wall.roof, NAMES.climb.crevasse, NAMES.climb.ridge, NAMES.lookout].filter((n, i, a) => a.indexOf(n) === i);

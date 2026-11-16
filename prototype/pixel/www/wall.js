@@ -4,7 +4,7 @@
 import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, INK, SHADE, LIGHT, pick, BM, outline, thick } from './core.js';
 import { Strip, drawStrip, baseline } from './side.js';
 import { makeFir, makeSpruce, makeBoulder, makeCloud, makeFlag, makeBush } from './sprites.js';
-import { pika, speck } from './fauna.js';
+import { speck } from './fauna.js';
 import { makeRunner, sideFig, frontFig, backFig } from './tj.js';
 import { NAMES } from './content.js';
 import { makeCragPair } from './people.js';
@@ -144,9 +144,10 @@ export function makeWall() {
   paintWall(main); paintGround(main, things);
   const valley = paintValley();
   const clouds = [0, 1, 2].map(i => ({ bm: makeCloud(620 + i), x: i * 190, y: 20 + i * 46, v: 3 + i }));
-  const run = makeRunner('wall'), flag = [makeFlag(0), makeFlag(1)], pikaBM = [pika(0), pika(1)], swift = [speck(0), speck(1)];
-  const pikaRock = makeBoulder(190, 8), pikaX = RX - 86;
-  things.push({ bm: pikaRock, x: pikaX, s: -12 }, { bm: makeBoulder(191, 5), x: pikaX + 22, s: -15 });
+  const run = makeRunner('wall'), flag = [makeFlag(0), makeFlag(1)], swift = [speck(0), speck(1)];
+  // The pika moved to the larch basin (G7); its two rocks stay in the talus.
+  const pikaX = RX - 86;
+  things.push({ bm: makeBoulder(190, 8), x: pikaX, s: -12 }, { bm: makeBoulder(191, 5), x: pikaX + 22, s: -15 });
   const prop = {
     'platform-engineering': (b, cx, y) => { for (const [dx, c] of [[-7, R.rock[3]], [-6, R.red[1]], [-8, R.rock[2]]]) b.set(cx + dx, y + 1 + (dx & 1), c); b.set(cx - 7, y - 1, R.rock[4]); b.set(cx - 7, y, R.teal[2]); },
     'site-reliability-engineering': (b, cx, y) => { b.set(cx + 5, y + 2, INK); b.set(cx + 6, y + 2, R.kit[2]); b.set(cx + 5, y + 3, INK); },
@@ -224,13 +225,12 @@ export function makeWall() {
     focus: () => focus,
     pick(sx, sy) {
       const wx = sx + last.camX, s = last.base + camS - sy;
-      if (Math.abs(wx - pikaX) < 12 && s > 8 && s < 34) return { label: NAMES.wall.pika, x: pikaX - last.camX, y: last.base + camS - 36, act: 'pika' };
       if (Math.abs(wx - route(H2)) < 34 && Math.abs(s - H2) < 8) return { label: NAMES.wall.ledge, x: sx, y: sy - 10 };
       if (Math.abs(wx - RX - 10) < 78 && s > ROOF - 12 && s < ROOF + 3) return { label: NAMES.wall.roof, x: sx, y: sy - 10 };
       if (wx < RX + 150 && s < 0 && s > -70 && Math.abs(wx - RX) > 20) return { label: NAMES.wall.scree, x: sx, y: sy - 10 };
       return null;
     },
-    act(id, env) { if (id === 'pika') { env.sfx('eep'); st.eep = env.t; env.found('pika'); return true; } return false; },
+    act() { return false; },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t } = env;
       const tau = q * DUR, me = at(tau), s = me.s;
@@ -312,8 +312,6 @@ export function makeWall() {
         const sx = th.x - camX, sy = rowOf(th.s);
         if (th.tree) for (const part of th.tree.parts) scr.blit(part.bm, sx + part.x, sy + part.y); else scr.put(th.bm, sx, sy, false);
       }
-      // The pika shuttles between its two rocks with flowers for its haystack.
-      { const u = frac(t / 6), hopT = u < 0.1 ? u / 0.1 : u < 0.5 ? 1 : u < 0.6 ? 1 - (u - 0.5) / 0.1 : 0, eep = st.eep && t - st.eep < 0.5; scr.put(pikaBM[u >= 0.5 ? 1 : 0], pikaX + hopT * 22 - camX, rowOf(-12) - pikaRock.h + 4 - Math.round(Math.sin(hopT * Math.PI) * 6) + lerp(0, 6, hopT) - (eep ? 2 : 0), u > 0.5 && u < 0.62); }
       // Swifts work the face.
       for (let k = 0; k < 4; k++) { const a = t * (0.7 + k * 0.13) + k * 2; scr.put(swift[(Math.floor(t * 7) + k) & 1], RX - 120 + k * 60 + Math.sin(a) * 90 - camX, rowOf(110 + k * 70 + Math.sin(a * 1.7) * 30), Math.cos(a) < 0); }
 

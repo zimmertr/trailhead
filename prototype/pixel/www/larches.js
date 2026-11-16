@@ -6,7 +6,7 @@ import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, DAY, INK, 
 import { Strip, drawStrip, baseline, shell } from './side.js';
 import { makeConifer, makeBoulder, makeCloud } from './sprites.js';
 import { makeRunner } from './tj.js';
-import { goat } from './fauna.js';
+import { goat, pika } from './fauna.js';
 import { NAMES } from './content.js';
 import { PROFICIENCY } from './land.js';
 
@@ -23,7 +23,7 @@ const META = {
   stops: () => [],
   elev: (arg, q) => -g(X0 + q * LEN) * 1.5
 };
-export const makeLarches = () => shell(META, buildLarches, ['enter', 'focus', 'pick', 'draw', 'trigger']);
+export const makeLarches = () => shell(META, buildLarches, ['enter', 'focus', 'pick', 'act', 'draw', 'trigger']);
 
 // The Enchantments. Far back, a pale range with snow on its tops; in front, granite spires of every size
 // standing where they please (Dragontail, Little Annapurna and friends), each lit on its west face, with snow
@@ -193,8 +193,15 @@ function buildLarches() {
   for (let x = X0 + LEN * 0.33; x < X0 + LEN * 0.8 && !nanny; x += 4) for (let r = 16; r < 44 && !nanny; r += 2) { let ok = true; for (let k = -24; k <= 18 && ok; k += 4) for (const d of [-3, 0, 4, 8]) ok = ok && slabAt(x + k, r + d); if (ok) nanny = { x: Math.round(x), y: g(x) + r }; }
   if (!nanny) nanny = { x: X0 + LEN * 0.45, y: g(X0 + LEN * 0.45) + 24 };
   const kidAt = { x: nanny.x - 21, y: nanny.y + 3 }, billy = { x: Math.round(X0 + LEN * 0.7), y: g(X0 + LEN * 0.7) - 7 };
-  // Larches and boulders keep clear of the goats.
-  for (let i = things.length - 1; i >= 0; i--) { const th = things[i]; if ([nanny, kidAt, billy].some(p => Math.abs(th.x - p.x) < 20 && Math.abs(th.y - p.y) < 14)) things.splice(i, 1); }
+  // The pika (G7, moved here from The Stack's talus): two rocks on the verge above the trail, on the first stretch
+  // past halfway with no larch within 30, and the pika shuttling between them with flowers for its haystack.
+  let px = X0 + LEN * 0.55;
+  for (let x = X0 + LEN * 0.5; x < X0 + LEN * 0.9; x += 6) if (!things.some(th => th.tree && Math.abs(th.x - x - 11) < 30 && th.y < g(th.x) + 4) && Math.abs(x - billy.x) > 40) { px = Math.round(x); break; }
+  const rockA = makeBoulder(190, 7), rockB = makeBoulder(191, 5), pk = [pika(0), pika(1)], py = g(px) - 6;
+  // Larches and boulders keep clear of the goats and the pika's rocks.
+  for (let i = things.length - 1; i >= 0; i--) { const th = things[i]; if ([nanny, kidAt, billy, { x: px + 11, y: py }].some(p => Math.abs(th.x - p.x) < 22 && Math.abs(th.y - p.y) < 14)) things.splice(i, 1); }
+  things.push({ bm: rockA, x: px, y: py }, { bm: rockB, x: px + 22, y: py - 2 });
+  let eep = -9;
   // A gust now and then (G6): one in each 14 seconds, at a random point in its first 6, lasting 2.6. Needles
   // stream off the larches across the whole view and the trees bend harder. gustGo: a start button's gust.
   const GUST = { slot: 14, len: 2.6 };
@@ -208,6 +215,7 @@ function buildLarches() {
     ...META,
     enter(scr, arg, q) { cam = xOf(q); st.y = null; },
     focus: () => focus,
+    act(id, env) { if (id === 'pika') { env.sfx('eep'); eep = env.t; env.found('pika'); return true; } return false; },
     trigger(name, t) { if (name === 'gust') { gustGo = t; return true; } return false; },
     pick(sx, sy) {
       if (last.dir < 0) sx = last.VW - 1 - sx;
@@ -215,6 +223,7 @@ function buildLarches() {
       const mx = v => last.dir < 0 ? last.VW - 1 - (v - last.camX) : v - last.camX;
       if (near(nanny, 14, 20) || near(kidAt, 10, 15)) return { label: NAMES.larches.goats, x: mx(nanny.x - 10), y: last.base + nanny.y - 24 };
       if (near(billy, 13, 22)) return { label: NAMES.larches.billy, x: mx(billy.x), y: last.base + billy.y - 26 };
+      if (wx > px - 12 && wx < px + 32 && wy > py - 18 && wy < py + 2) return { label: NAMES.larches.pika, x: mx(px + 11), y: last.base + py - 20, act: 'pika' };
       return null;
     },
     draw(scr, env, arg, q) {
@@ -250,6 +259,9 @@ function buildLarches() {
       list.push({ bm: near ? G.look : G.graze, x: nanny.x, y: nanny.y, flip: near && mx < nanny.x });
       list.push({ bm: hop ? G.hop : G.kid, x: kidAt.x, y: kidAt.y - (hop ? 2 : 0), z: kidAt.y, flip: false });
       list.push({ bm: Math.abs(mx - billy.x) < 160 ? G.look : G.stand, x: billy.x, y: billy.y, flip: mx < billy.x });
+      // The pika, as on the wall: a hop over, a pause with a mouthful of flowers, a hop back; it sits up when clicked.
+      { const u = frac(t / 6), h = u < 0.1 ? u / 0.1 : u < 0.5 ? 1 : u < 0.6 ? 1 - (u - 0.5) / 0.1 : 0, up = t - eep < 0.5;
+        list.push({ bm: pk[u >= 0.5 ? 1 : 0], x: Math.round(px + h * 22), y: py - rockA.h + 4 - Math.round(Math.sin(h * Math.PI) * 6) + Math.round(lerp(0, 2, h)) - (up ? 2 : 0), z: py + 0.5, flip: u > 0.5 && u < 0.62 }); }
       list.push({ me: true, x: mx, y: my + 0.5 });
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
       const gu = gustAt(t), ge = gu ? Math.sin(Math.PI * gu[0] / GUST.len) : 0;
