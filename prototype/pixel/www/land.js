@@ -2,7 +2,7 @@
 // The world is a height for every spot (u east, v away from the camera). A spot is drawn at screen
 // (u, SY - v - height), nearest first, so ground and mountains are one surface and near slopes hide
 // far ones.
-import { R, INK, BM, outline, KIND, SHADE, RAMP_OF, veilTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
+import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
 import { paintMonolith, monolithSky, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
@@ -561,6 +561,31 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
   if (zb[i - NW] > zb[i] + 14 || zb[i - 1] > zb[i] + 14 || zb[i + 1] > zb[i] + 14) g[i] = INK;
 }
 }
+// Which pixels of the picture belong to each destination (D12a): 1 About Lake (its water, island and
+// shore, inside the lake's own outline), 2 Proficiency Peak (the fin), 3 the Spires (their wall). It is
+// worked out from the planes the bake already holds, so it costs nothing to keep.
+const dest = new Uint8Array(NW * SH), DEST = ['', 'lake', 'stack', 'spires'], destBox = DEST.map(() => ({ x0: NW, x1: -1, y0: SH, y1: -1 }));
+{ const WALL = MATS.indexOf('wall'), FIN = MATS.indexOf('fin'), LANDM = MATS.indexOf('land');
+  for (let y = 0; y < SH; y++) for (let x = 0; x < NW; x++) {
+    const i = px(x, y), m = mb[i]; let k = m === FIN ? 2 : m === WALL ? 3 : 0;
+    if (!k && m === LANDM && zb[i] < VD && lakeAt(x, zb[i]) === 'lake') k = 1;
+    if (!k) continue; dest[i] = k; const b = destBox[k]; if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y;
+  } }
+// Each one is a step brighter in its own colours than the land round it, and has a dark edge: all round
+// the lake and the fin; for the Spires only the skyline (above) and the foot of the wall, so there is no
+// seam where the wall runs into the crest (TJ's choice).
+if (!B) {
+  const out = new Uint8Array(NW * SH), CREST = MATS.indexOf('crest');
+  for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
+    const i = px(x, y), k = dest[i]; if (!k) continue;
+    if (k === 1) { if (dest[i - 1] !== 1 || dest[i + 1] !== 1 || dest[i - NW] !== 1 || dest[i + NW] !== 1) out[i] = 1; continue; }
+    const below = i + NW; if (dest[below] !== k && zb[below] < zb[i] - 1 && !(k === 3 && mb[below] === CREST)) out[i] = 1;
+  }
+  // The lake is only brightened: deepening its dark steps as well turned the water navy, and round 3's
+  // lake read as a bright sheet. The rock of the fin and the wall gets both, lit faces up and gullies down.
+  const bolder = c => { const n = R[RAMP_OF[c]].length, s = STEP_OF[c]; return s >= n * 0.45 ? LIGHT[c] : s <= n * 0.25 ? SHADE[c] : c; };
+  for (let i = 0; i < dest.length; i++) if (dest[i]) g[i] = out[i] ? INK : g[i] === INK ? INK : dest[i] === 1 ? LIGHT[g[i]] : bolder(g[i]);
+}
 const FOGTREES = [];
 const riverFront = (u, v) => { if (coast(u, v) < -170) return false; for (let dv = 1; dv <= 34; dv += 3) for (let du = -8; du <= 8; du += 4) { const uu = Math.round(u + du), vv = Math.round(v + dv); if (uu >= 0 && vv >= 0 && uu < NW && vv < VD && water[at(uu, vv)] && coast(uu, vv) < 0) return true; } return false; };
 // ---- the fog in the rainforest --------------------------------------------------------------------
@@ -798,7 +823,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { g, depth: zb, mat: mb, hg, mg, painted, falls: FALLS, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { g, depth: zb, mat: mb, dest, destBox, DEST, hg, mg, painted, falls: FALLS, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -1010,7 +1035,7 @@ export function buildTerrain() {
   const open = (x, y) => { const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
   const nearTrail = (x, y, r) => { const v = vAt(x, y); return v < VD && H.tdist[Math.round(v) * NW + Math.round(x)] < r; };
   const flat = l => l.map(p => [p[0], p[1]]);
-  return { g: LAND.g, vAt, depth: LAND.depth, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  return { g: LAND.g, vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the

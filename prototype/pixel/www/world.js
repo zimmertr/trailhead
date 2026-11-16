@@ -70,6 +70,22 @@ export function makeWorld(bake) {
   // How far from the camera he is on a trail, from the trail's own points.
   const vOn = (path, x, y) => { let best = 0, bd = 1e9; for (const p of W.lines[path]) { const d = Math.abs(p[0] - x) + Math.abs(p[1] - y); if (d < bd) { bd = d; best = p[2]; } } return best; };
   const saved = new Uint8Array(25 * 34);
+  // The destinations rise a little when the pointer rests on one or it is tapped (D12a).
+  const lifted = [0, 0, 0, 0]; let tapped = 0, tapUntil = 0;
+  const destUnder = (wx, wy) => { wx = Math.round(wx); wy = Math.round(wy); return wx < 0 || wy < 0 || wx >= WW || wy >= WH ? 0 : W.dest[wy * WW + wx]; };
+  // Redraws destination k d pixels higher, from what the ground pass put in the frame. Rows are read top
+  // to bottom, so a row is always read before anything is written over it. Where it has left its foot
+  // the ground goes dark, softer one row further down: a shadow under a place that has stepped up.
+  function liftDest(scr, k, d, ox, oy) {
+    const { VW, VH, fb } = scr, b = W.destBox[k], D = W.dest;
+    const x0 = Math.max(b.x0, ox), x1 = Math.min(b.x1, ox + VW - 1), y0 = Math.max(b.y0, oy + d), y1 = Math.min(b.y1, oy + VH - 1);
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { if (D[y * WW + x] !== k) continue; fb[(y - oy - d) * VW + (x - ox)] = fb[(y - oy) * VW + (x - ox)]; }
+    for (let y = Math.max(b.y0, oy); y <= Math.min(b.y1 + 1, oy + VH - 1); y++) for (let x = x0; x <= x1; x++) {
+      const w = y * WW + x; if (y >= WH) continue; const here = D[w] === k, under = y + d < WH && D[w + d * WW] === k;
+      if (here && !under) { const i = (y - oy) * VW + (x - ox); fb[i] = SHADE[SHADE[fb[i]]]; }
+      else if (!here && y > 0 && D[w - WW] === k && ((x + y) & 1)) { const i = (y - oy) * VW + (x - ox); fb[i] = SHADE[fb[i]]; }
+    }
+  }
   const cam = { x: T.x, y: 0 };
   let facing = 'down', flip = false, last = { ox: 0, oy: 0, VW: 1, VH: 1 }, focus = { x: 0, y: 0 };
   const list = [];
@@ -111,9 +127,10 @@ export function makeWorld(bake) {
       for (const s of spots.signs) if (Math.abs(wx - s[0]) < 8 && wy > s[1] - 17 && wy < s[1] + 3) return { label: SIGNS[s[2]], x: s[0] - last.ox, y: s[1] - 18 - last.oy };
       const c = kit.pick(wx, wy); if (c) return { label: c.label, x: c.wx - last.ox, y: c.wy - last.oy, act: c.act };
       { const [kx, ky] = spots.kiosk; if (Math.abs(wx - kx) < 14 && wy > ky - 27 && wy < ky + 3) return { label: NAMES.kiosk, x: kx - last.ox, y: ky - 27 - last.oy, act: 'kiosk' }; }
+      { const k = destUnder(wx, wy); if (k) return { label: DEST_NAMES[W.DEST[k]], named: true, x: sx, y: sy, act: 'dest:' + W.DEST[k] }; }
       return null;
     },
-    act(id, env) { return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
+    act(id, env) { if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
     draw(scr, env, leg, q) {
       const { VW, VH, fb } = scr, { t, tq, dt } = env;
       const here = where(leg, q);
@@ -155,6 +172,8 @@ export function makeWorld(bake) {
         if (b > a) fb.set(ground.subarray(wy * WW + a, wy * WW + b), row + (a - ox));
       }
       crit.sea(scr, ox, oy, t); crit.falls(scr, ox, oy, t);
+      { const over = env.ptr && !env.fixed ? destUnder(env.ptr[0] + ox, env.ptr[1] + oy) : 0, want = over || (t < tapUntil ? tapped : 0);
+        for (let k = 1; k < 4; k++) { lifted[k] += ((k === want ? 1 : 0) - lifted[k]) * Math.min(1, dt * 9); const d = Math.round(2 * lifted[k]); if (d > 0) liftDest(scr, k, d, ox, oy); } }
       crit.update(dt, t, env.hideMe ? null : here);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
       for (const k in prints) if (env.done[k]) for (const [x, y] of prints[k]) { const sx = x - ox, sy = y - oy; if (sx >= 0 && sy >= 0 && sx < VW && sy < VH && KIND[fb[sy * VW + sx]] === 3) fb[sy * VW + sx] = R.dirt[0]; }
@@ -203,7 +222,7 @@ export function makeWorld(bake) {
           const [wx] = breeze(th.x, th.y, tq, 0.6);
           scr.blit(th.bm, th.x - th.bm.ox + wx - ox, th.y - th.bm.oy - oy);
         } else if (th.flag) {
-          scr.blit(flags[Math.floor(t * 5) & 1], th.x - 2 - ox, th.y - th.lift - 15 - oy);
+          scr.blit(flags[Math.floor(t * 5) & 1], th.x - 2 - ox, th.y - th.lift - 15 - oy - Math.round(2 * lifted[W.DEST.indexOf(th.flag)]));
         } else if (th.lift) {
           scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.lift - th.bm.oy - oy);
           if (th.rope) for (let j = 1; j < 12; j++) scr.set(th.x + Math.round(j * 0.25) - ox, th.y - 70 + j - oy, R.yellow[0]);
