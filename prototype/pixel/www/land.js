@@ -117,8 +117,12 @@ Object.assign(C, { T: [1075, 310], PK: [660, 440, 210, 110], PK2: [985, 482, 78,
 // and the water that runs east into the dry country. The whole land tilts gently toward the camera.
 const divU = v => 1075 + (310 - v) * 0.22;
 const regional = (u, v) => (8 + 0.02 * v + 10 * Math.exp(-sq((u - divU(v)) / 250))) * smooth(-8, -150, coast(u, v));
-// The dry country is a basalt tableland that rises out of the meadow.
-const plate = (u, v) => 34 * smooth(0.02, 0.4, dryS(u, v)) + 10 * fbm(u / 80, v / 60, 33, 2) * dryAmt(u, v);
+// The dry country is a basalt tableland that rises out of the meadow. On it stand the scabland's benches
+// (D10): flat-topped mesas of basalt in one or two steps, whose cliffs face the camera, since a rise that
+// climbs toward the camera hides its own riser. In the far corner they give way to low, rolling Palouse hills.
+const palAmt = (u, v) => smooth(0.5, 0.68, dryS(u, v));
+const mesa = (u, v) => { const k = fbm(u / 64, v / 34, 36, 3) + 0.04 * (vnoise(u / 6, v / 4, 37) - 0.5); return 12 * (smooth(0.52, 0.545, k) + smooth(0.63, 0.655, k)) * smooth(0.12, 0.3, dryS(u, v)) * (1 - palAmt(u, v)); };
+const plate = (u, v) => { const raw = 34 * smooth(0.02, 0.4, dryS(u, v)) + 10 * fbm(u / 80, v / 60, 33, 2) * dryAmt(u, v), b = raw + mesa(u, v); return b + palAmt(u, v) * 22 * (fbm(u / 46, v / 30, 34, 2) - 0.3); };
 // The glacier: where its middle runs, how wide it is and how high its surface stands, by depth. It
 // starts under the Spires' wall, breaks over a rock step (the icefall) and runs out as a tongue.
 const GL = { top: 616, toe: 503, fall: [556, 578], cu: v => 1072 + 7 * Math.sin((v - 500) / 24), w: v => lerp(30, 112, smooth(522, 592, v)) * smooth(501, 516, v), h: v => 28 + 0.3 * (v - 500) + 10 * smooth(556, 576, v) };
@@ -395,6 +399,7 @@ function colour(u, v, hh, x, y) {
   const bu = burnAmt(u, v), da = dryAmt(u, v);
   if (larchAmt(u, v) > blot(181) && bu < 0.5) { const slab = fbm(u / 22, v / 11, 96, 3); return slab > 0.58 ? pick('rock', 0.85 + 0.2 * n1, x, y, 0.7) : hash(u, v, 98) < 0.06 ? R.red[1] : hash(u, v, 99) < 0.05 ? R.larch[3] : pick('grass', 0.42 + sh + 0.2 * n1, x, y, 0.4); }
   if (bu > blot(182)) { for (let k = 0; k < 9; k++) { const tall = 6 + Math.floor(hash(u, v - k, 132) * 3.99); if (k < tall && hash(u, v - k, 101) < 0.008 + 0.09 * smooth(0.5, 0.66, fbm(u / 30, (v - k) / 15, 131, 3))) return k < 2 ? R.grass[1] : k === tall - 1 ? R.fireweed[1] : R.fireweed[0]; } return fbm(u / 24, v / 16, 100, 3) > 0.56 ? pick('grass', 0.3, x, y, 0.5) : pick('ash', 0.4 + 0.5 * fbm(u / 14, v / 9, 102, 3), x, y); }
+  if (da > blot(183) && palAmt(u, v) > blot(184)) return pick('dry', 0.22 + 0.95 * L + 0.18 * (fbm(u / 60, v / 40, 185, 2) - 0.5), x, y, 0.5);
   if (da > blot(183)) { const sg = sageAmt(u, v); return hash(u >> 1, v >> 1, 103) < 0.04 + sg * 0.3 ? R.sage[1 + (hash(u, v, 104) < 0.5 ? 0 : 1)] : pick('dry', 0.5 + 0.5 * (fbm(u / 24, v / 14, 105, 3) - 0.5) + sh + sg * 0.1, x, y); }
   // High ground with no forest on it goes from meadow to bare rock and then snow.
   if (hh > 96 + 30 * vnoise(u / 30, v / 30, 828)) return hh > 150 ? R.snow[L > 0.5 ? 4 : 3] : pick('rock', 0.3 + 0.5 * L, x, y);
@@ -678,7 +683,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   for (let n = 0; n < 1100; n++) {
     const u = 1240 + rand() * 680, v = rand() * 540;
     if (rand() > band(u, v) * (0.05 + 0.3 * Math.max(dryAmt(u, v), 0.5 * step1(u, v))) || !open(u, v) || !land(u, v) || stood.some(([a, b]) => Math.abs(a - u) < 24 && Math.abs(b - v) < 20)) continue;
-    stood.push([u, v]); plant(any(pines), u, v);
+    stood.push([u, v]); { const pn = any(pines); if (hash(u | 0, v | 0, 5941) > palAmt(u, v)) plant(pn, u, v); }
   }
   for (let n = 0; n < 520; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) put(any(snags), u, v, 0, true); }
   // Round 3's furniture of the ground: boulders and bushes in the open, granite slabs among the larches,
@@ -717,7 +722,10 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   for (let n = 0; n < 300; n++) { const u = 1240 + rand() * 680, v = 380 + rand() * 320; if (MATS[mg[at(Math.round(u), Math.round(v))]] === 'gran' && open(u, v, 0.7) && rand() < 0.5) put(any(slabs), u, v); }
   // Big blocks lie about the talus fan, on dice of their own (D9).
   if (PF) { const tr = rng(910); for (let n = 0; n < 260; n++) { const u = PF.cu - 100 + tr() * 200, v = PF.cv - 42 + tr() * 38, k = (tr() * 3) | 0; if (talusAt(u, v) > 0.35 && tr() < 0.22 && !snowPatch(u, v) && MATS[mg[at(Math.round(u), Math.round(v))]] === 'gran') put(boulders[k], u, v); } }
-  for (let n = 0; n < 900; n++) { const u = 1300 + rand() * 620, v = rand() * 480; if (rand() < sageAmt(u, v) * 0.5 && open(u, v) && land(u, v)) put(any(sages), u, v); }
+  const SAGE = new Map(sages.map(b => [b, swaying(b)]));
+  for (let n = 0; n < 900; n++) { const u = 1300 + rand() * 620, v = rand() * 480; if (rand() < sageAmt(u, v) * 0.5 && open(u, v) && land(u, v)) plant(SAGE.get(any(sages)), u, v); }
+  // The sage flats (D10): bushes thick where the pines have given out, thinning onto the Palouse.
+  { const sr = rng(4720); for (let n = 0; n < 5200; n++) { const u = 1300 + sr() * 620, v = sr() * 480, k = (sr() * sages.length) | 0; if (sr() < sageAmt(u, v) * 0.55 * (1 - 0.8 * palAmt(u, v)) && open(u, v) && land(u, v)) plant(SAGE.get(sages[k]), u, v); } }
   for (let n = 0; n < 400; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) { if (rand() < 0.5) put(any(burnt), u, v, 0, true); else plant(any(young), u, v); } }
   for (let n = 0; n < 4000; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.6 && fogAmt(u, v) < 0.25 && open(u, v, 1.1) && wooded(u, v)) things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); }
   for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && open(u, v, 0.8) && wooded(u, v)) put(any(logs), u, v); }
