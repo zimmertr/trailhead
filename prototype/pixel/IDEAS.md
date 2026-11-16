@@ -144,3 +144,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **Read the forecast.** On Bluebird Forecast's summit a tap on the weather station could show the real forecast card the app would have given for that window (wind dropping, cloud base below the summit), so a visitor sees what the app does before reading about it.
 - **Drop something in.** On TJs-Kubernetes-Service a tap on a crevasse could have him drop a chip of ice, and the sound of it hitting comes a long second later.
 - **The workout synced.** On hevy-garmin-sync's summit, a tap on the watch could show the climb as a workout card the way the app writes it to Garmin (sets, rests, total time), which explains the project in one look.
+- **Spot yourself.** On trailhead's knife-edge a tap on the map far below could ring the place a visitor has been to most (or has not found yet) with a small blinking marker, the way you pick out your own house from a plane.
