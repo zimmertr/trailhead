@@ -59,10 +59,13 @@ function paintWall(S) {
       for (const [h, hw] of [[H1, 30], [H2, 34], [H3, 26]]) { const d = Math.abs(x - route(h)); if (d < hw + 3 * vnoise(x / 5, h, 172)) { if (s <= h && s > h - 2) v = 1; else if (s <= h - 2 && s > h - 7) v = 0.16 + (h - 2 - s) * 0.04; } }
       if (x > edge(s) - 9) v += 0.16 - (edge(s) - x) * 0.012;
       if (top - s < 2) v += 0.2;
+      // Water streaks (CHECKPOINT 2: the wall in Proficiency Peak's granite as the map paints its fin, cool grey `rock`
+      // lit to `gold`'s near-white, after Prusik's south face, darker grey wherever water runs; round 3's warm ochre
+      // stains on tan read as Yosemite).
       const warm = fbm(x / 13, y / 34, 173, 3) > 0.64 && v > 0.42 && v < 0.86 && hash(x, s, 1) < 0.8;
       // Lichen: pale sage where the rock stays damp, in drifts that run down the face.
       const lichen = v > 0.34 && v < 0.9 && fbm(x / 7, y / 19, 176, 3) > 0.66 && vnoise(x / 64, y / 110, 177) > 0.56 && hash(x, s, 3) < 0.7;
-      S.set(x, y, lichen ? pick('mist', 0.42 + v * 0.5, x, y) : pick(warm ? 'ochre' : 'gold', v, x, y));
+      S.set(x, y, lichen ? pick('mist', 0.42 + v * 0.5, x, y) : (warm ? pick('rock', v * 0.62, x, y) : v > 0.88 ? R.gold[6] : pick('rock', v / 0.88, x, y)));
     }
     if (x <= edge(top)) S.set(x, -top - 1, INK);
   }
@@ -70,7 +73,7 @@ function paintWall(S) {
   // The holds, exactly where his hands and feet will go. Every one has a top the light catches and a
   // shadow under it, and each pitch has its own kind: edges beside the crack on the first, big flakes and
   // jugs on the second, pockets and thin edges on the third. Most carry a dab of chalk.
-  const lit = R.gold[6], dark = R.gold[0], dim = R.gold[1], mid = R.gold[2], put = (x, s, c) => S.set(Math.round(x), -Math.round(s), c);
+  const lit = R.gold[6], dark = R.rock[0], dim = R.rock[1], mid = R.rock[2], put = (x, s, c) => S.set(Math.round(x), -Math.round(s), c);
   const KINDS = {
     edge: (x, s) => { for (let d = -2; d <= 2; d++) { put(x + d, s, lit); put(x + d, s - 1, dark); if (Math.abs(d) < 2) put(x + d, s - 2, dim); } },
     thin: (x, s) => { for (let d = -1; d <= 1; d++) { put(x + d, s, lit); put(x + d, s - 1, dark); } },
@@ -94,7 +97,7 @@ function paintWall(S) {
   // A few firs that found a foothold on the face, each on its own small ledge, well away from the line.
   for (const [x, sLedge, h] of [[RX - 196, 148, 13], [RX - 96, 262, 10], [RX + 78, 196, 9], [RX - 292, 74, 15], [RX - 330, 236, 11], [RX - 150, 44, 12]]) {
     if (x > edge(sLedge) - 12) continue;
-    for (let dx = -7; dx <= 7; dx++) { S.set(x + dx, -sLedge, R.gold[5]); S.set(x + dx, -sLedge + 1, R.gold[1]); if (Math.abs(dx) < 6) S.set(x + dx, -sLedge + 2, R.gold[2]); }
+    for (let dx = -7; dx <= 7; dx++) { S.set(x + dx, -sLedge, R.rock[4]); S.set(x + dx, -sLedge + 1, R.rock[1]); if (Math.abs(dx) < 6) S.set(x + dx, -sLedge + 2, R.gold[2]); }
     for (let j = 0; j < h; j++) { const w = Math.floor(j / 2.2); for (let dx = -w; dx <= w; dx++) S.set(x + dx, -sLedge - h + j - 1, R.conifer[dx < 0 ? 3 : dx === w && w ? 0 : 1]); }
     S.set(x, -sLedge - 1, R.bark[1]); S.set(x - 4, -sLedge - 1, R.moss[4]); S.set(x + 3, -sLedge - 1, R.moss[5]); S.set(x + 5, -sLedge - 1, R.moss[4]);
   }
