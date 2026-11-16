@@ -942,14 +942,16 @@ function buildRidge() {
   const LH = Math.round(CLOUDH - 85), E0 = EAST(LH), CB = LH + 70, LX = EAST(LH + 8) + 8, LANDS = {};
   for (const [w, dx] of [['tj', 0], ['lead', 13], ['red', 25]]) LANDS[w] = { x: LX + dx, h: LH };
   // The ledge they land on: a shelf of the tower's pale rock standing out from the east face, lit on
-  // top, thinning toward its end, ink under it and a dark joint where it meets the face.
+  // top, thinning toward its end, ink under it and a dark joint where it meets the face. It is kept
+  // apart and drawn only under the cloud, so it does not stick out of the tower all through pitch 5.
+  const LEDGE = [];
   for (let x = E0 - 1; x <= E0 + 46; x++) {
     const u = (x - E0) / 46, th = Math.round(lerp(8, 3, u) + (u > 0.9 ? -2 * (u - 0.9) * 10 : 0)), top = LH - (u > 0.95 ? 1 : 0);
     for (let k = 0; k <= th; k++) {
       const h = top - k, c = k === 0 ? (hash(x, 1, 790) < 0.3 ? R.gold[6] : R.granite[5]) : k === th ? INK : pick('granite', 0.32 + 0.66 * (0.62 - 0.08 * k), x, h);
-      main.set(x, -h, x === E0 - 1 && k > 0 ? INK : c);
+      LEDGE.push(x, h, x === E0 - 1 && k > 0 ? INK : c);
     }
-    if (x === E0 + 46) for (let k = 0; k <= th; k++) main.set(x + 1, -(top - k), INK);
+    if (x === E0 + 46) for (let k = 0; k <= th; k++) LEDGE.push(x + 1, top - k, INK);
   }
   // The flake that eats ropes: a pale sliver standing off the face, with a dark slot behind it that
   // closes at its top, where a rope's end can jam.
@@ -1208,6 +1210,7 @@ function buildRidge() {
       };
       for (const w of WHO) if (P[w].where === 'n') draw1(w);
       drawStrip(scr, main, cx, base + camH, false, R.grass[0]);
+      if (dv >= DESC.under) paintPts(scr, LEDGE, cx, rowOf);
       for (const th of things) {
         const sx = th.x - cx, sy = rowOf(th.h);
         if (sx < -40 || sx > VW + 40) continue;
@@ -1241,7 +1244,8 @@ function buildRidge() {
           const x = ends[k].x - cx, y = rowOf(ends[k].h);
           if (k) {
             const n = ropePts.length; ropeOver(ropePts, ends[k - 1], ends[k], CREST, cx, rowOf);
-            if (ropePts.length === n && !tight) sagTo(ropePts, x, y, lead ? 0.07 : 0.03, k === ends.length - 1 ? loop : 0, wob, t);
+            // Over the crest it rests on the high points and hangs a little between them.
+            if (!tight) { const rest = ropePts.splice(n); for (let i = 0; i < rest.length; i += 2) { sagTo(ropePts, rest[i], rest[i + 1], lead ? 0.07 : 0.04, 0, wob, t); ropePts.push(rest[i], rest[i + 1]); } sagTo(ropePts, x, y, lead ? 0.07 : rest.length ? 0.04 : 0.03, k === ends.length - 1 ? loop : 0, wob, t); }
           }
           ropePts.push(x, y);
         }
@@ -1320,6 +1324,8 @@ function buildRidge() {
   };
 }
 
+// Pixels kept as a flat list of x, h, colour, drawn in the world.
+function paintPts(scr, pts, cx, rowOf) { for (let i = 0; i < pts.length; i += 3) scr.set(pts[i] - cx, rowOf(pts[i + 1]), pts[i + 2]); }
 // The upper hull of a run of points along the crest (x rising): the line a rope stretched over it takes.
 function overHull(pts) {
   const out = [];
