@@ -88,7 +88,7 @@ export const SETS = [
 TRACKS.forEach((tr, i) => { tr.name = TRACK_NAMES[i]; }); SETS.forEach((st, i) => { st.name = SET_NAMES[i]; });
 
 // Which tunes belong to which place, the first one first. Glissade is the walk back out.
-const PLACES = { world: [0, 4], out: [6, 0], forest: [1, 5], lakeside: [5, 1], wall: [2, 4], camp: [4, 3], climb: [3, 6], offroute: [3] };
+const PLACES = { world: [0, 4], out: [6, 0], forest: [1, 5], lakeside: [5, 1], larches: [4, 5], wall: [2, 4], camp: [4, 3], climb: [3, 6], offroute: [3] };
 
 export function makeAudio() {
   let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, timer = null, step = 0, nextAt = 0, cur = 0, set = 0, auto = true, place = 'world', turn = 0, loops = 0, level = 0.22, swap = null, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
@@ -199,6 +199,8 @@ export function makeAudio() {
     chirp: t => { tone(fx, 'square', 2600, t, 0.05, 0.07, 3400); tone(fx, 'square', 3000, t + 0.08, 0.05, 0.07, 2400); },
     jay: t => { for (let i = 0; i < 3; i++) noise(fx, t + i * 0.12, 0.08, 0.12, 3000, 6, 'bandpass'); },
     bark: t => noise(fx, t, 0.2, 0.2, 300, 1, 'lowpass'),
+    // A Clark's nutcracker in the larches: a harsh, drawn-out kraa, twice.
+    kraa: t => { for (let i = 0; i < 2; i++) { noise(fx, t + i * 0.3, 0.22, 0.1, 1300, 4, 'bandpass'); tone(fx, 'square', 520, t + i * 0.3, 0.2, 0.03, 430); } },
     step: t => noise(fx, t, 0.02, 0.05, 1200, 1, 'bandpass'),
     // An ice tool biting: a short bright tick. And the server rack being hit: a low thump, a crunch and a ring of sheet metal.
     // Two hands meeting.
@@ -222,9 +224,13 @@ export function makeAudio() {
     if (name === 'forest') { bed(2400, 0.4, 0.12); bed(500, 0.6, 0.06); }
     else if (name === 'lakeside') { bed(900, 0.5, 0.07); bed(3000, 0.3, 0.03); }
     else if (name === 'wall') bed(500, 1.2, 0.1);
+    // The larch basin: wind over open granite and the cascade below the tarn, far off.
+    else if (name === 'larches') { bed(650, 1, 0.09); bed(2800, 0.6, 0.025); }
     else if (name === 'camp' || name === 'climb' || name === 'offroute') { bed(420, 1.6, 0.2); bed(1500, 0.8, 0.05); }
     else bed(1800, 0.3, 0.03);
     if (name === 'world' || name === 'forest' || name === 'lakeside') ambTimer = setInterval(() => { if (ctx.state === 'running' && Math.random() < 0.5) FX.chirp(ctx.currentTime + Math.random() * 0.5); }, 2600);
+    // Up in the basin no songbirds: now and then the pika eeps from its rocks (a hint that it is there) or a nutcracker calls.
+    else if (name === 'larches') ambTimer = setInterval(() => { const r = Math.random(); if (ctx.state === 'running' && r < 0.35) FX[r < 0.2 ? 'eep' : 'kraa'](ctx.currentTime + Math.random() * 0.5); }, 3200);
   }
 
   const out = {
