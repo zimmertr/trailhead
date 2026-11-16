@@ -17,6 +17,8 @@ let sasquatchSeen = false;
 // How far the forest has thinned out: 0 in the thick of it, 1 where it ends at the lake, and 1 again
 // behind where he comes in from the meadow, so he is seen entering it.
 const thinAt = x => Math.max(smooth(660, 380, x), smooth(1040, 1330, x));
+// The far layers thin out over the last third of the way to the lake (I1), sooner than the giants do.
+const farThin = x => Math.max(smooth(X0 - LEN * 2 / 3, X0 - LEN - 30, x), smooth(1040, 1330, x));
 // The line he runs along rolls a little.
 const g = x => Math.round(5 * Math.sin(x / 97) + 3 * Math.sin(x / 41 + 2));
 const farBank = x => 17 + Math.round(2.5 * Math.sin(x / 23) + 2 * vnoise(x / 9, 1, 81));
@@ -213,6 +215,32 @@ function farLayer(S, seed, o) {
   }
 }
 
+// Near the lake the far trees give way to open light, in clumps, paler and bluer the nearer the edge;
+// low down in the gaps the lake's turquoise shows (I1), its far shore a dark line, glints on it that
+// grow thicker toward the end, and the band of water taller as the trees fall away. The lakeward
+// side only: behind him at the meadow end there is no lake.
+function lakeLight(scr, camX, base, t) {
+  const { VW, VH, fb } = scr, T = R.tarn;
+  for (let x = 0; x < VW; x++) {
+    const wx = camX + x, k = farThin(wx); if (k <= 0) continue;
+    const lake = wx < 900, top = base - 52 - Math.round(22 * k), bot = base - 36;
+    for (let y = 0, y1 = Math.min(VH, base + 14); y < y1; y++) {
+      const b = 0.3 * bayer(x, y) + 0.7 * vnoise((camX * 0.6 + x) / 12, y / 90, 320);
+      if (b >= k * 0.9) continue;
+      let c = b < (k - 0.45) * 1.2 ? R.sky[4] : R.mist[5];
+      if (lake && y >= top && y < bot) {
+        const r = y - top;
+        if (r === 0) c = R.mist[2];
+        else if (r === 1) c = T[3];
+        else {
+          const glint = hash(Math.floor((wx * 0.6 + t * 4) / 5), y, 321) < 0.12 + 0.35 * k && (x + y) % 3 !== 0;
+          c = glint ? T[5] : r < 5 ? T[3] : T[4];
+        }
+      }
+      fb[y * VW + x] = c;
+    }
+  }
+}
 // What the timeline needs to know of the forest, which takes no pictures to answer.
 const META = {
   name: 'forest',
@@ -427,14 +455,8 @@ function buildForest() {
       drawStrip(scr, farA, camX * 0.14 + 120, base - 2, true, R.mist[4]);
       drawStrip(scr, farB, camX * 0.34 + 300, base - 2, true, R.mist[3]);
       drawStrip(scr, mid, camX * 0.6 + 200, base - 1, true, R.mist[1]);
-      // Near the lake the far trees give way to open light, in clumps, paler and bluer the nearer the edge.
-      for (let x = 0; x < VW; x++) {
-        const k = thinAt(camX + x); if (k <= 0) continue;
-        for (let y = 0, y1 = Math.min(VH, base + 14); y < y1; y++) {
-          const b = 0.3 * bayer(x, y) + 0.7 * vnoise((camX * 0.6 + x) / 12, y / 90, 320);
-          if (b < k * 0.9) fb[y * VW + x] = b < (k - 0.45) * 1.2 ? R.sky[4] : R.mist[5];
-        }
-      }
+      // Near the lake the far trees give way to open light, in clumps, and the lake shows low down.
+      lakeLight(scr, camX, base, t);
       drawStrip(scr, waterAbs, camX, base, false, 0, r => Math.round(Math.sin(t * 1.6 + r * 0.7)));
       drawStrip(scr, main, camX, base, false, R.moss[1]);
       // Sasquatch strides through the undergrowth behind the trail, in front of the far trees and
