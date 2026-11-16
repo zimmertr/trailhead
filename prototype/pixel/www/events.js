@@ -33,6 +33,28 @@ function blitA(scr, bm, x, y, a, flip) {
   for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + (flip ? bm.w - 1 - i : i)]; if (!c) continue; const X = x + i, Y = y + j; if (a < 1 && bayer(X, Y) >= a) continue; scr.set(X, Y, c); }
 }
 
+// The lenticular cloud (E3): a stack of smooth lenses standing still over Mount Monolith's summit, the
+// sign of a strong wind up high. It forms over fifteen seconds, sits half a minute, thins and is gone,
+// and the sky stays clear for half a minute before the next (E5a: loops are quick). The first starts
+// forming five seconds after the page opens. Its clock lives here, not in a scene, so that the map and
+// the lake scene show the same cloud at the same moment, and a start from the debug menu in either
+// starts both. lens=<seconds> in the address starts it that far into its cycle, for screenshots.
+export const LENS = { cycle: 90, form: 15, sit: 45, gone: 60, ahead: typeof location !== 'undefined' ? +(/[?&]lens=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0 };
+const lensPhase = t => (((t + LENS.ahead + LENS.cycle - 5) % LENS.cycle) + LENS.cycle) % LENS.cycle;
+export const startLens = t => { LENS.ahead = (((-(t + LENS.cycle - 5)) % LENS.cycle) + LENS.cycle) % LENS.cycle; return true; };
+// Draws it with the summit at sx, sy, k times the map's size, in a picture whose top left is ox, oy.
+// Drawn with the drifting clouds' white and their blue underside, lit from above.
+const LAYERS = [[0, 1, 7], [-8, 0.8, 6], [-14, 0.56, 4]];
+export function drawLens(scr, sx, sy, t, k = 1, ox = 0, oy = 0) {
+  const ph = lensPhase(t), a = ph < LENS.form ? smooth(0, LENS.form, ph) : ph < LENS.sit ? 1 : ph < LENS.gone ? smooth(LENS.gone, LENS.sit, ph) : 0; if (a <= 0) return;
+  const W0 = k * 66 * (0.55 + 0.45 * Math.min(1, ph / LENS.form)) * (ph > LENS.sit ? 1 + 0.12 * (ph - LENS.sit) / (LENS.gone - LENS.sit) : 1), cy = sy - Math.round(9 * k);
+  for (const [dy, wk, T0] of LAYERS) { const w = W0 * wk, y0 = cy + Math.round(dy * k), T = T0 * k;
+    for (let x = Math.round(sx - w); x <= sx + w; x++) { const q = (x - sx) / w, th = T * Math.pow(Math.max(0, 1 - q * q), 0.7), top = Math.round(th), bot = Math.round(th * 0.3);
+      for (let y = y0 - top; y <= y0 + bot; y++) { const vx = x - ox, vy = y - oy; if (vx < 0 || vy < 0 || vx >= scr.VW || vy >= scr.VH) continue;
+        const edge = Math.min(1, (1 - Math.abs(q)) * 4); if (bayer(x, y) >= a * edge) continue;
+        const f = (y - (y0 - top)) / Math.max(1, top + bot); scr.fb[vy * scr.VW + vx] = y === y0 + bot && bot > 0 ? R.sky[3] : f > 0.45 && bayer(x + 1, y) < (f - 0.45) * 1.6 ? R.sky[4] : R.white[1]; } } }
+}
+
 export function makeEvents(W) {
   const { spots } = W, D = W.depth;
   const weeds = [0, 1, 2, 3].map(weed), planes = [plane(0), plane(1)];

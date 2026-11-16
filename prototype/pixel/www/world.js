@@ -5,7 +5,7 @@ import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTen
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
-import { makeEvents } from './events.js';
+import { makeEvents, drawLens, startLens } from './events.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, loadBake, NW as WW, NH as WH, VD, T } from './land.js';
 // How much of the bottom of the window the timeline bar covers, in page pixels: from its top edge down, measured
@@ -225,23 +225,9 @@ export function makeWorld(bake) {
     const xs = new Int16Array(n), vals = new Uint8Array(n); n = 0;
     for (let y = 0; y < WH; y++) { rows[y] = n; for (let x = 0; x < WW; x++) { const m = M[y * WW + x]; if (keep(m)) { xs[n] = x; vals[n++] = m; } } } rows[WH] = n; return { rows, xs, vals }; })();
   const TIP_H = [26, 34], GLOW = new Uint8Array(256).map((_, c) => { const r = c && R[RAMP_OF[c]]; if (!r) return c; const k = Math.min(R.snow.length - 1, Math.round((STEP_OF[c] + 1) / r.length * (R.snow.length - 1)) + 1); return R.snow[k]; });
-  // The lenticular cloud (E3): a stack of smooth lenses standing still over Mount Monolith's summit, the
-  // sign of a strong wind up high. It forms over fifteen seconds, sits half a minute, thins and is gone,
-  // and the sky stays clear for half a minute before the next (E5a: loops are quick). The first starts
-  // forming five seconds after the page opens. Drawn with the drifting clouds' white and their blue underside.
-  const LENS = { cycle: 90, form: 15, sit: 45, gone: 60 }, LAYERS = [[0, 1, 7], [-8, 0.8, 6], [-14, 0.56, 4]];
-  // lens=<seconds> in the address starts the cloud that far into its cycle, for screenshots.
-  let lensAhead = typeof location !== 'undefined' ? +(/[?&]lens=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
-  function lenticular(scr, ox, oy, t) {
-    const ph = (t + lensAhead + LENS.cycle - 5) % LENS.cycle, a = ph < LENS.form ? smooth(0, LENS.form, ph) : ph < LENS.sit ? 1 : ph < LENS.gone ? smooth(LENS.gone, LENS.sit, ph) : 0; if (a <= 0) return;
-    const [sx, sy] = spots.summit, W0 = 66 * (0.55 + 0.45 * Math.min(1, ph / LENS.form)) * (ph > LENS.sit ? 1 + 0.12 * (ph - LENS.sit) / (LENS.gone - LENS.sit) : 1), cy = sy - 9;
-    for (const [dy, wk, T] of LAYERS) { const w = W0 * wk, y0 = cy + dy;
-      for (let x = Math.round(sx - w); x <= sx + w; x++) { const q = (x - sx) / w, th = T * Math.pow(Math.max(0, 1 - q * q), 0.7), top = Math.round(th), bot = Math.round(th * 0.3);
-        for (let y = y0 - top; y <= y0 + bot; y++) { const vx = x - ox, vy = y - oy; if (vx < 0 || vy < 0 || vx >= scr.VW || vy >= scr.VH) continue;
-          const edge = Math.min(1, (1 - Math.abs(q)) * 4); if (bayer(x, y) >= a * edge) continue;
-          // Lit from above: white on top, the lower half dithered toward the sky's pale blue, the underside blue.
-          const f = (y - (y0 - top)) / Math.max(1, top + bot); scr.fb[vy * scr.VW + vx] = y === y0 + bot && bot > 0 ? R.sky[3] : f > 0.45 && bayer(x + 1, y) < (f - 0.45) * 1.6 ? R.sky[4] : R.white[1]; } } }
-  }
+  // The lenticular cloud (E3) over Mount Monolith's summit: its clock and its drawing are in events.js,
+  // shared with the lake scene.
+  const lenticular = (scr, ox, oy, t) => drawLens(scr, spots.summit[0], spots.summit[1], t, 1, ox, oy);
   // The serac fall (E4): every 40 to 50 seconds, the first about 15 seconds after the page opens (E5a), a block of ice breaks off one of the icefalls (spots.seracs),
   // tumbles down the slope under it with a puff of powder following and spreading, and a low rumble comes
   // a moment later, as sound would from that far off. Never twice running from the same place.
@@ -556,7 +542,7 @@ export function makeWorld(bake) {
       if (name === 'shower') { const n = Math.floor((t + rainAhead + RAIN.cycle - 10) / RAIN.cycle) + 1; rainAhead = n * RAIN.cycle - t - RAIN.cycle + 10; return true; }
       if (name === 'avalanche') { if (!AV) return false; AVA.phase = 'covered'; AVA.cover = 1; AVA.plume = -1; AVA.start = t; return true; }
       if (name === 'serac') { if (SER.length < 2) return false; const n = Math.floor((t + serAhead + SLOT - 15) / SLOT) + 1; serAhead = n * SLOT + 10 * hash(n, 3, 4741) - t - SLOT + 15; return true; }
-      if (name === 'lens') { lensAhead = mod(-(t + LENS.cycle - 5), LENS.cycle); return true; }
+      if (name === 'lens') return startLens(t);
       return ev.trigger(name, t) || crit.trigger(name, t);
     },
     act(id, env) { if (id === 'pool') { env.found('tidepool'); return false; } if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },

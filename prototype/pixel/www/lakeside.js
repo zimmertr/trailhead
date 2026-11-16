@@ -8,6 +8,7 @@ import { makeConifer, makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign
 import { marmot, speck } from './fauna.js';
 import { makeRunner, sideFig, cheerFig, swimFig } from './tj.js';
 import { NAMES } from './content.js';
+import { drawLens, startLens } from './events.js';
 import { paintMonolith, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 
 const SW = 1640, X0 = 500, LEN = 624, DUR = 8;
@@ -126,7 +127,7 @@ const META = {
   stops: () => [{ id: 'mountains', at: D_MAP / LEN }, { id: 'note', at: D_NOTE / LEN }],
   elev: (arg, q) => -g(X0 + q * LEN) * 1.5
 };
-export const makeLakeside = () => shell(META, buildLakeside, ['enter', 'focus', 'pick', 'act', 'hold', 'draw']);
+export const makeLakeside = () => shell(META, buildLakeside, ['enter', 'focus', 'pick', 'act', 'hold', 'draw', 'trigger']);
 function buildLakeside() {
   const rand = rng(57);
 
@@ -336,6 +337,8 @@ function buildLakeside() {
     },
     // Asked to run on while he is in the water or on the island, he swims back and dresses first.
     hold: () => swim > 0,
+    // The debug menu's start for the lenticular cloud works here too, and starts it on the map as well.
+    trigger: (name, t) => name === 'lens' && startLens(t),
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t, tq } = env;
       const mx = xOf(q), d = q * LEN, my = g(mx);
@@ -384,6 +387,8 @@ function buildLakeside() {
       // The summit stays clear of the buttons along the top; the foot sinks behind the far shore as far as it has to.
       const sink = clamp(PH + 26 - hor, 0, 140);
       drawStrip(scr, peak, peakX, hor + sink);
+      // The lenticular cloud, when it stands over the summit on the map, stands over it here at the same moment.
+      if (DEBUG.clouds) drawLens(scr, 600 - Math.round(peakX), hor + sink - PH + 2, t, MS);
       const farX = camX * 0.45 + 200;
       drawStrip(scr, farS, farX, hor);
 
