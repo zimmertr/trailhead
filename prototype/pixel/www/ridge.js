@@ -8,11 +8,11 @@
 // line against the sky. The lower ridge (pitches 1 to 4) is dark granite blotched with black lichen,
 // with lime and rust patches; the tower is pale cream with long vertical cracks. Every landmark of the
 // pitch list in ROUND4.md section 5 is one or more blocks below, in the order the route meets them.
-import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick } from './core.js';
+import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline } from './core.js';
 import { Strip, drawStrip, baseline, shell } from './side.js';
 import { makeConifer, makeCloud } from './sprites.js';
-import { makeRunner, backFig } from './tj.js';
-import { makeCragPair } from './people.js';
+import { sideFig, frontFig, backFig, FEET, HANDS } from './tj.js';
+import { makeCragPair, PAIR } from './people.js';
 
 const W = 1500, UP = 520, DOWN = 380;
 // The foot of the face: level with the start at the left, falling away to the right, so the drop
@@ -217,7 +217,7 @@ function paintGround(S, things) {
   // Dwarf pine in knee-high mats on the knob and in the cracks low on the ridge; larches below.
   for (let n = 0; n < 40; n++) { const x = 20 + rand() * 240, h = (x < 236 ? knob(x) : along(LOW, x)) - rand() * 6; things.push({ pine: 3 + rand() * 5, x: Math.round(x), h: Math.round(h) }); }
   for (let n = 0; n < 22; n++) { const x = 250 + rand() * 900, f = foot(x) - 34 - rand() * 160, H = 14 + rand() * 26; things.push({ tree: makeConifer(740 + n, Math.round(H), Math.round(H / 2.6), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: 0.2, droop: 0.6 }), x: Math.round(x), h: Math.round(f) }); }
-  things.push({ tree: makeConifer(739, 26, 10, 'larch', 8, { ragged: 0.3, droop: 0.6 }), x: 240, h: 6 });
+  things.push({ tree: makeConifer(739, 26, 10, 'larch', 8, { ragged: 0.3, droop: 0.6 }), x: 223, h: Math.round(knob(223)) + 1 });
   // A few small larches rooted in cracks on the face, and grass in tufts along the crest and its ledges.
   for (let x = 300 + rand() * 60; x < 960; x += 70 + rand() * 90) { const H = 9 + Math.round(rand() * 9); things.push({ tree: makeConifer(760 + Math.round(x), H, Math.round(H / 2.4), 'larch', Math.max(3, Math.round(H / 3)), { ragged: 0.4, droop: 0.6 }), x: Math.round(x), h: Math.round(along(LOW, x) - 18 - rand() * 70) }); }
   for (let x = 250 + rand() * 20; x < 1000; x += 14 + rand() * 40) things.push({ tuft: 2 + Math.round(rand() * 3), x: Math.round(x), h: Math.round(along(LOW, x) + 2 - (rand() < 0.5 ? 0 : 20 + rand() * 80)) });
@@ -269,14 +269,93 @@ function posAt(d) {
 const ANCHORS = ['tie', 'a1', 'a2', 'a3', 'a4', 'top'];
 const below = d => { let k = 0; for (let i = 0; i < ANCHORS.length; i++) if (MARK[ANCHORS[i]] <= d + 1e-6) k = i; return ANCHORS[k]; };
 
-const DUR = 60;
+// The script: who does what, when. Three of them: TJ, the black-haired man who leads every pitch, and the
+// red-haired woman. Each phase says, for each of them, where along the line they go (from, to) and in
+// what pose, and which ropes are live (belayer to climber). Everything on the ridge is read off this at
+// a moment of the scene, so the timeline can be dragged either way.
+const SPEED = { walk: 24, lead: 11, follow: 15 };
+const WHO = ['tj', 'lead', 'red'];
+const dAtX = x => { for (let i = 1; i < ROUTE.length; i++) if (ROUTE[i][0] >= x) return lerp(DIST[i - 1], DIST[i], clamp((x - ROUTE[i - 1][0]) / (ROUTE[i][0] - ROUTE[i - 1][0]), 0, 1)); return LEN; };
+// Where each of them stands at an anchor: the leader on it, TJ a step below, the woman below him.
+const AT = { tj: -7, lead: 0, red: -14 };
+const PACKS = dAtX(198), TIE = dAtX(231);
+function makeScript() {
+  const ph = [], now = { tj: [0, 'walk'], lead: [MARK.tie, 'rack'], red: [dAtX(183), 'sit'] };
+  let t = 0;
+  // moves: { who: [to, pose, poseAfter] }. Someone not named stays where they are, as they were.
+  const step = (dur, moves = {}, ropes = [], stop) => {
+    const a = {};
+    for (const k of WHO) { const m = moves[k]; a[k] = m ? [now[k][0], m[0], m[1]] : [now[k][0], now[k][0], now[k][1]]; if (m) now[k] = [m[0], m[2] || m[1]]; }
+    ph.push({ t0: t, t1: t + dur, a, ropes, stop }); t += dur;
+  };
+  const time = (k, to, v) => Math.max(0.8, Math.abs(to - now[k][0]) / v);
+  // He walks in over the knob past the balanced rock, puts his pack under the overhanging rock with
+  // theirs, walks on to the start tree and ties in beside the leader, who is racking up; the woman,
+  // eating by the packs, gets up and ties in too. Then he waits for Space with the leader on belay.
+  step(time('tj', PACKS, SPEED.walk), { tj: [PACKS, 'walk', 'stand'] });
+  step(0.9, { tj: [PACKS, 'drop', 'stand'] });
+  step(time('tj', TIE, SPEED.walk), { tj: [TIE, 'walk', 'stand'] });
+  step(1.4, { tj: [TIE, 'tie', 'belay'], red: [dAtX(214), 'tie', 'stand'] }, [], 'wait:belay');
+  step(1.0, { tj: [TIE, 'bump', 'belay'], lead: [MARK.tie, 'bump', 'climb'] });
+  const A = ['tie', 'a1', 'a2', 'a3', 'a4', 'top'], CARD = { a1: 'platform-engineering', a3: 'site-reliability-engineering', a4: 'software-engineering' };
+  for (let p = 1; p <= 5; p++) {
+    const d1 = MARK[A[p]];
+    // The leader climbs on TJ's belay, then builds the anchor.
+    step(time('lead', d1, SPEED.lead), { lead: [d1, 'climb', 'anchor'], tj: [now.tj[0], 'belay', 'belay'] }, [['tj', 'lead']]);
+    step(2.5, { lead: [d1, 'anchor', 'belay'] }, [['tj', 'lead']]);
+    if (p === 1) {
+      // Pitch 1: both followers at once on two ropes, the woman a few moves behind.
+      step(time('tj', d1 + AT.tj, SPEED.follow), { tj: [d1 + AT.tj, 'climb', 'stand'], red: [d1 + AT.red, 'climb', 'stand'] }, [['lead', 'tj'], ['lead', 'red']], CARD.a1);
+    } else {
+      // Then caterpillar: the leader brings TJ up, then TJ brings the woman up.
+      step(time('tj', d1 + AT.tj, SPEED.follow), { tj: [d1 + AT.tj, 'climb', 'belay'] }, [['lead', 'tj']], p < 5 ? CARD[A[p]] : null);
+      step(time('red', d1 + AT.red, SPEED.follow), { red: [d1 + AT.red, 'climb', 'stand'], tj: [d1 + AT.tj, 'belay', 'stand'] }, [['tj', 'red']], p === 5 ? 'summit' : null);
+    }
+  }
+  step(4, {});
+  return { ph, dur: t };
+}
+const SCRIPT = makeScript(), DUR = SCRIPT.dur;
+// Each of them at a moment: where along the line, in what pose, whether moving; and the live ropes.
+function stateAt(tau) {
+  const ph = SCRIPT.ph.find(p => tau < p.t1) || SCRIPT.ph[SCRIPT.ph.length - 1], u = clamp((tau - ph.t0) / (ph.t1 - ph.t0), 0, 1), out = { ph, u, ropes: ph.ropes };
+  for (const k of WHO) { const [d0, d1, pose] = ph.a[k]; out[k] = { d: lerp(d0, d1, u), pose, moving: d0 !== d1 && u < 1, dir: Math.sign(d1 - d0) }; }
+  return out;
+}
+
 const META = {
   name: 'wall',
   dur: () => DUR,
-  stops: () => [['wait:belay', 'tie'], ['platform-engineering', 'a1'], ['site-reliability-engineering', 'a3'], ['software-engineering', 'a4'], ['summit', 'top']].map(([id, m]) => ({ id, at: MARK[m] / LEN * 0.96 + 0.02 })),
-  elev: (arg, q) => posAt(clamp((q - 0.02) / 0.96, 0, 1) * LEN).h,
-  cues: () => []
+  stops: () => SCRIPT.ph.filter(p => p.stop).map(p => ({ id: p.stop, at: p.t1 / DUR })),
+  elev: (arg, q) => posAt(stateAt(q * DUR).tj.d).h,
+  cues: () => [{ at: (SCRIPT.ph[4].t0 + 0.45) / DUR, name: 'slap' }]
 };
+
+// Every drawing one of them needs, in their own kit: walking, standing, crouched, tying in, the fist
+// bump, belaying (seen from behind, hands where the rope runs), climbing and building an anchor.
+function kitFrames(kit) {
+  const side = [0, 1, 2, 3, 4, 5].map(f => sideFig(kit, { feet: [FEET[f], FEET[(f + 3) % 6]], hands: [HANDS[f], HANDS[(f + 3) % 6]], bob: [0, -1, -1, 0, -1, -1][f] }));
+  const knot = (b, cx, y) => { b.set(cx, y + 7, R.white[1]); b.set(cx - 1, y + 7, R.teal[2]); b.set(cx + 1, y + 7, R.teal[2]); b.set(cx + 1, y + 8, R.teal[1]); };
+  const tying = f => frontFig(kit, { held: (b, cx, y) => { knot(b, cx, y); for (const [dx, dy] of f ? [[-2, 6], [2, 7]] : [[-2, 7], [2, 6]]) { b.set(cx + dx, y + dy, R.skin[2]); b.set(cx + dx + (dx < 0 ? -1 : 1), y + dy, R.teal[1]); } } });
+  const belay = (grip, brake, ft) => Object.assign(backFig(kit, { hands: [brake, grip], feet: ft || [[-3, 13], [3, 13]], rack: false }), { grip, brake });
+  return {
+    side, idle: sideFig(kit, { lean: 0 }), crouch: sideFig(kit, { crouch: 4, lean: 5, hands: [[6, 9], [3, 8]], look: 'down', feet: [[3, 8.5], [-3, 8.5]] }),
+    rack: [sideFig(kit, { lean: 1, hands: [[3, 5], [1, 6]], look: 'down' }), sideFig(kit, { lean: 1, hands: [[2, 6], [3, 4]], look: 'down' })],
+    tie: [tying(0), tying(1)],
+    bump: [sideFig(kit, { lean: 0, hands: [[1, 4], [-1, 6]] }), sideFig(kit, { lean: 1, hands: [[6, 4], [-1, 6]] })],
+    belay: { a: belay([7, -12], [-6, 0]), b: belay([7, -9], [-6, -3]), ready: belay([5, -3], [-5, 1]), lock: belay([6, -7], [-5, 3], [[-5, 12], [5, 12]]) },
+    climb: [0, 1, 2, 3].map(f => backFig(kit, { hands: [[-5, -12 - (f & 1 ? 3 : 0)], [5, -12 - (f & 1 ? 0 : 3)]], feet: [[-4, 11 + (f & 1 ? 0 : 2)], [4, 11 + (f & 1 ? 2 : 0)]] })),
+    anchor: [0, 1].map(f => backFig(kit, { hands: [[-4, -14 + f], [4, -13 - f]], feet: [[-3, 12], [3, 12]] }))
+  };
+}
+// A pack lying on its side under the overhang, in its owner's colour.
+function makePack(ramp) {
+  const b = new BM(10, 7); b.ox = 5; b.oy = 6;
+  for (let y = 1; y < 6; y++) for (let x = 1 + (y < 2 ? 1 : 0); x < 9; x++) b.set(x, y, y === 3 ? ramp[0] : x < 4 ? ramp[2] : ramp[1]);
+  outline(b, INK); return b;
+}
+// Hands meeting: a small star where they touch.
+const spark = (scr, x, y, a) => { if (a < 0 || a > 0.22) return; const r = a < 0.08 ? 2 : 3; scr.set(x, y, R.white[1]); for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { scr.set(x + dx, y + dy, R.white[1]); scr.set(x + dx * r, y + dy * r, R.yellow[1]); } };
 
 function buildRidge() {
   const main = new Strip(W, UP, DOWN), things = [];
@@ -285,21 +364,23 @@ function buildRidge() {
   const CREST = new Int16Array(W);
   for (let x = 0; x < W; x++) { let y = 0; while (y < main.h && !ID[y * W + x]) y++; CREST[x] = main.up - y; }
   const far = paintFar(), clouds = [0, 1, 2].map(i => ({ bm: makeCloud(745 + i), x: i * 190, y: 20 + i * 46, v: 3 + i }));
-  const run = makeRunner('wall'), pair = makeCragPair(), st = {}, focus = { x: 0, y: 0 };
-  const climbs = [0, 1, 2, 3].map(f => backFig('wall', { hands: [[-5, -12 - (f & 1 ? 3 : 0)], [5, -12 - (f & 1 ? 0 : 3)]], feet: [[-4, 11 + (f & 1 ? 0 : 2)], [4, 11 + (f & 1 ? 2 : 0)]] }));
+  const pair = makeCragPair(), st = {}, focus = { x: 0, y: 0 };
+  const F = { tj: kitFrames('wall'), lead: kitFrames(PAIR[0]), red: kitFrames(PAIR[1]) };
+  const packs = [makePack(R.teal), makePack(R.red), makePack([R.mustard[0], R.mustard[1], R.mustard[2]])], dropAt = SCRIPT.ph[1].t0 + 0.5;
   const ropePts = [];
   let camX = 0, camH = 0;
-  const dOf = q => clamp((q - 0.02) / 0.96, 0, 1) * LEN;
   return {
     ...META,
-    enter(scr, arg, q) { const p = posAt(dOf(q)); camX = p.x; camH = p.h; st.y = null; },
+    enter(scr, arg, q) { const p = posAt(stateAt(q * DUR).tj.d); camX = p.x; camH = p.h; st.y = null; },
     focus: () => focus,
     pick: () => null,
     act: () => false,
     draw(scr, env, arg, q) {
-      const { VW, VH, fb } = scr, { t } = env, d = dOf(q), me = posAt(d), k = env.calm ? 1 : Math.min(1, env.dt * 6);
-      camX += (me.x - camX) * k; camH += (me.h - camH) * k;
-      const base = baseline(scr, env.shown, st) - Math.round(VH * (scr.narrow ? 0.2 : 0.24)), cx = clamp(Math.round(camX - VW * (scr.narrow ? 0.5 : 0.45)), 0, W - VW), rowOf = hh => Math.round(base + camH - hh);
+      const { VW, VH, fb } = scr, { t } = env, tau = q * DUR, S = stateAt(tau), k = env.calm ? 1 : Math.min(1, env.dt * 5);
+      // The camera follows whoever is climbing, and him the rest of the time.
+      const lead = WHO.find(w => S[w].moving && S[w].pose === 'climb') || 'tj', at = posAt(S[lead].d);
+      camX += (at.x - camX) * k; camH += (at.h - camH) * k;
+      const base = baseline(scr, env.shown && !String(env.shown).startsWith('wait:'), st) - Math.round(VH * (scr.narrow ? 0.2 : 0.24)), cx = clamp(Math.round(camX - VW * (scr.narrow ? 0.5 : 0.45)), 0, W - VW), rowOf = hh => Math.round(base + camH - hh);
       const sb = R.skyband;
       for (let y = 0; y < VH; y++) {
         const f = clamp((y + 120 - camH * 0.25) / 330, 0, 1) * (sb.length - 1), b0 = Math.floor(f), e = f - b0, row = y * VW;
@@ -307,42 +388,53 @@ function buildRidge() {
       }
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (VW + 140)) - 70, c.y + camH * 0.12 - 20);
       drawStrip(scr, far, 120 + cx * 0.15, base + camH * 0.3 + 40, false, R.far[1]);
-      // Him: walking where the line is level or on walking ground, climbing where it is steep; drawn
-      // before the rock when he is on the north side, so the crest hides him.
-      const steep = me.where !== 'w' && me.where !== 'c' && Math.abs(me.dh) > Math.abs(me.dx) * 0.8;
-      const drawMe = () => {
-        const sx = Math.round(me.x) - cx, sy = rowOf(me.h);
-        if (steep) scr.put(climbs[Math.floor(d / 6) & 3], sx, sy - 12, false);
-        else scr.put(env.moving ? run.side[Math.floor(d / 4.2) % 6] : run.sideIdle[0], sx, sy, me.dx < 0);
-        focus.x = sx; focus.y = sy - 14;
+
+      // One of them, in the pose the script gives, at their place on the line.
+      const P = {};
+      for (const w of WHO) { const s = S[w], p = posAt(s.d); P[w] = { ...s, ...p, steep: p.where === 's' && Math.abs(p.dh) > Math.abs(p.dx) * 0.8 }; }
+      const ph = S.ph, u = S.u, bumping = ph === SCRIPT.ph[4];
+      const draw1 = w => {
+        const s = P[w], fr = F[w], sx = Math.round(s.x) - cx, sy = rowOf(s.h);
+        if (s.pose === 'sit') { pair.snack(scr, 1, sx, sy, t, 0); return; }
+        if (s.pose === 'walk') { scr.put(env.moving ? fr.side[Math.floor(s.d / 4.2) % 6] : fr.idle, sx, sy, s.dir < 0); return; }
+        if (s.pose === 'drop') { scr.put(u < 0.25 || u > 0.85 ? fr.idle : fr.crouch, sx, sy, true); return; }
+        if (s.pose === 'rack') { scr.put(fr.rack[Math.floor(t * 1.5) & 1], sx, sy, true); return; }
+        if (s.pose === 'tie') { scr.put(fr.tie[Math.floor(t * 6) & 1], sx, sy, false); return; }
+        if (s.pose === 'bump') { const mine = w === 'tj'; scr.put(u < 0.2 || u > 0.85 ? fr.idle : fr.bump[u > 0.45 && u < 0.7 ? 1 : 0], sx, sy, !mine); return; }
+        if (s.pose === 'climb' && s.moving) { if (s.steep) scr.put(fr.climb[Math.floor(s.d / 6) & 3], sx, sy - 12, false); else scr.put(env.moving ? fr.side[Math.floor(s.d / 4.2) % 6] : fr.idle, sx, sy, s.dir < 0); return; }
+        if (s.pose === 'anchor') { scr.put(fr.anchor[Math.floor(t * 3) & 1], sx, sy - 12, false); return; }
+        if (s.pose === 'belay') { const busy = S.ropes.find(r => r[0] === w), climber = busy && P[busy[1]]; scr.put(climber && climber.moving ? (Math.floor(t * 3) & 1 ? fr.belay.b : fr.belay.a) : fr.belay.ready, sx, sy - 13, false); return; }
+        scr.put(fr.idle, sx, sy, false);
       };
-      if (me.where === 'n') drawMe();
+      for (const w of WHO) if (P[w].where === 'n') draw1(w);
       drawStrip(scr, main, cx, base + camH, false, R.grass[0]);
       for (const th of things) {
         const sx = th.x - cx, sy = rowOf(th.h);
         if (sx < -40 || sx > VW + 40) continue;
         if (th.tree) for (const part of th.tree.parts) scr.blit(part.bm, sx + part.x, sy + part.y);
-        else if (th.tuft) { for (let j = -th.tuft; j <= th.tuft; j++) for (let k = 0; k < th.tuft + 1 - Math.abs(j) + (j & 1); k++) scr.set(sx + j, sy - k, R.grass[k ? 3 : 1]); }
+        else if (th.tuft) { for (let j = -th.tuft; j <= th.tuft; j++) for (let k2 = 0; k2 < th.tuft + 1 - Math.abs(j) + (j & 1); k2++) scr.set(sx + j, sy - k2, R.grass[k2 ? 3 : 1]); }
         else { const r = th.pine; for (let j = 0; j < r; j++) for (let dd = -r + j; dd <= r - j; dd++) scr.set(sx + dd, sy - j, R.conifer[(dd + j) & 1 ? 2 : 3 - (j > r / 2 ? 0 : 1)]); }
       }
-      // His belayer stands at the anchor below him, and the rope runs up the line from the belayer's hands
-      // to his waist. Where the line goes behind the crest, the rope lies over the crest instead.
-      const am = below(d), ad = MARK[am], ap = posAt(ad), bel = pair.belay[0], bf = env.moving ? (Math.floor(t * 3) & 1 ? bel.b : bel.a) : bel.ready;
-      const bx = Math.round(ap.x) - cx - 6, by = rowOf(ap.h) - 13;
-      scr.put(bf, bx, by, false);
-      if (d > ad + 2) {
+      // The packs under the overhanging rock: theirs from the start, his once he has put it down.
+      { const px = Math.round(posAt(PACKS).x) - cx + 2, py = rowOf(posAt(PACKS).h - 1); scr.put(packs[0], px - 6, py, false); scr.put(packs[1], px + 3, py + 1, true); if (tau > dropAt) scr.put(packs[2], px + 12, py + 1, false); }
+      // The live ropes, from the belayer's hands along the line to the climber's waist; over the crest
+      // where the line goes north, along its upper hull.
+      for (const [bw, cw] of S.ropes) {
+        const a = P[bw], c = P[cw], lo = Math.min(a.d, c.d), hi = Math.max(a.d, c.d);
         ropePts.length = 0;
-        ropePts.push(bx + bf.grip[0], by + bf.grip[1]);
-        // Over the crest a loaded rope does not follow every dip: it runs straight from one high point to
-        // the next, so each run behind the crest takes the crest's upper hull.
+        ropePts.push(Math.round(a.x) - cx + (a.d < c.d ? 5 : -5), rowOf(a.h + 9));
         let run = [];
         const flush = () => { if (!run.length) return; for (const [x, h] of overHull(run)) ropePts.push(x - cx, rowOf(h)); run = []; };
-        for (let s = ad + 3; s < d; s += 3) { const p = posAt(s); if (p.where === 'n') { const x = Math.round(p.x); run.push([x, CREST[x] + 1]); } else { flush(); ropePts.push(Math.round(p.x) - cx, rowOf(p.h + 6)); } }
+        const samples = []; for (let s = lo + 3; s < hi - 1; s += 3) samples.push(s);
+        if (a.d > c.d) samples.reverse();
+        for (const s of samples) { const p = posAt(s); if (p.where === 'n') { const x = Math.round(p.x); run.push([x, CREST[x] + 1]); } else { flush(); ropePts.push(Math.round(p.x) - cx, rowOf(p.h + 6)); } }
         flush();
-        ropePts.push(Math.round(me.x) - cx, rowOf(me.h + (steep ? 12 : 9)));
+        ropePts.push(Math.round(c.x) - cx, rowOf(c.h + (c.steep ? 12 : 9)));
         rope(scr, ropePts);
       }
-      if (me.where !== 'n') drawMe();
+      for (const w of WHO) if (P[w].where !== 'n') draw1(w);
+      if (bumping) spark(scr, Math.round((P.tj.x + P.lead.x) / 2) - cx, rowOf(P.tj.h + 10), (u - 0.45) * 0.8);
+      const me = P.tj; focus.x = Math.round(me.x) - cx; focus.y = rowOf(me.h) - 14;
     }
   };
 }

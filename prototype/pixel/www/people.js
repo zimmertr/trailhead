@@ -50,7 +50,7 @@ export function makeKayti() {
 }
 
 // The two at the foot of The Stack: a man with short black hair and a woman with long red hair.
-const PAIR = [
+export const PAIR = [
   { top: [R.jay[1], R.jay[2], R.jay[3]], upper: [R.rock[0], R.rock[1]], lower: [R.rock[0], R.rock[1]], hand: [R.skin[1], R.skin[2]], hat: R.kit, bare: true, hair: [R.basalt[0], R.basalt[1], R.basalt[2]], beard: false, shades: false, packW: -1, shoe: [R.bark[0], R.bark[1], R.bark[2]] },
   { top: [R.mist[3], R.mist[4], R.mist[5]], upper: [R.navy[0], R.navy[1]], lower: [R.navy[0], R.navy[1]], hand: [R.skin[1], R.skin[2]], hat: R.kit, bare: true, hair: [R.blaze[0], R.blaze[1], R.blaze[2]], long: 6, beard: false, shades: false, packW: -1, shoe: [R.bark[0], R.red[1], R.red[2]] }
 ];
