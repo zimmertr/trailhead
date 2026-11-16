@@ -569,6 +569,9 @@ const SLIP = (() => {
 // What each belay is built from (TJ, section 5): the sling-wrapped block backed up with two cams, the two
 // slung horns, three cams by the flake, a horn, a cam and a nut, and the summit block.
 const ANCHOR_KIT = { a1: ['block', 'cam', 'cam'], a2: ['horn', 'horn'], a3: ['cam', 'cam', 'cam'], a4: ['horn', 'cam', 'nut'], top: ['block'] };
+// The summit's moves, in seconds after all three are up: TJ walks up beside the leader, they high five;
+// she walks up below TJ and the two of them high five; she sits down.
+const SUMMIT_LEN = 5.6, FIVES = [{ a: 'tj', b: 'lead', at: 1.9 }, { a: 'red', b: 'tj', at: 3.5 }], WALKS = { tj: [0, 1.2], red: [1.6, 2.9] };
 function makeScript() {
   const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [], anc = [];
   let slipAt = -1, fallAt = -1;
@@ -652,11 +655,15 @@ function makeScript() {
       hold('red', clock.tj); const t2 = clock.red; clean(); ropes.push({ a: 'tj', b: 'red', t0: t2, t1: clock.red });
       // TJ catches her: he braces and locks off the rope as it comes tight, then takes in again.
       if (slip) { hold('tj', slip); go('tj', pos.tj, 'catch', 2.0, 'tbelay'); slipAt = slip; }
-      if (p === 5) stops.push({ id: 'summit', t: clock.red });
     }
   }
+  // The summit (H15): once she is up, TJ steps up onto the top boulder beside the leader and they high
+  // five; she comes up after him and he turns to high five her too; then she sits just below on the
+  // next block and the card opens. The moves are drawn from SUMMIT_MOVES; the script only holds them.
+  const sumT = sync(); for (const k of WHO) go(k, pos[k], 'summit', SUMMIT_LEN);
+  stops.push({ id: 'summit', t: sumT + SUMMIT_LEN - 0.4 });
   sync(); pose.tj = pose.lead = pose.red = 'stand'; for (const k of WHO) go(k, pos[k], 'stand', 4);
-  return { tr, ropes, stops, pro, anc, slipAt, fallAt, bumpAt, dropAt: tr.tj[1].t0 + 0.5, dur: clock.tj };
+  return { tr, ropes, stops, pro, anc, slipAt, fallAt, bumpAt, sumT, dropAt: tr.tj[1].t0 + 0.5, dur: clock.tj };
 }
 const SCRIPT = makeScript(), DUR = SCRIPT.dur;
 // Each of them at a moment: where along the line, in what pose, how far through it, whether moving;
@@ -676,7 +683,7 @@ const META = {
   stops: () => SCRIPT.stops.map(s => ({ id: s.id, at: s.t / DUR })),
   elev: (arg, q) => posAt(stateAt(q * DUR).tj.d).h,
   // The fist bump, and a click of metal as each piece goes in.
-  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' }))]
+  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, ...FIVES.map(v => ({ at: (SCRIPT.sumT + v.at) / DUR, name: 'slap' })), { at: (SCRIPT.sumT + 4.4) / DUR, name: 'summit' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' }))]
 };
 
 // Every drawing one of them needs, in their own kit. On the ground: walking, standing, crouched,
@@ -693,6 +700,8 @@ function kitFrames(kit) {
     side, idle: sideFig(kit, { lean: 0 }), blow: [sideFig(kit, { lean: 0, hands: [[6, -4], [6, -2]] }), sideFig(kit, { lean: 0, hands: [[5, -2], [6, -5]] })], crouch: sideFig(kit, { crouch: 4, lean: 5, hands: [[6, 9], [3, 8]], look: 'down', feet: [[3, 8.5], [-3, 8.5]] }),
     rack: [sideFig(kit, { lean: 1, hands: [[3, 5], [1, 6]], look: 'down' }), sideFig(kit, { lean: 1, hands: [[2, 6], [3, 4]], look: 'down' })],
     tie: [tying(0), tying(1)],
+    // A high five, one hand up and forward; sitting on a block's edge with the legs forward.
+    five: sideFig(kit, { lean: 0, hands: [[5, -6], [1, 5]] }), sit: sideFig(kit, { crouch: 6, lean: 2, hands: [[5, 3], [3, 4]], feet: [[6, 8.5], [3, 8.5]] }),
     bump: [sideFig(kit, { lean: 0, hands: [[1, 4], [-1, 6]] }), sideFig(kit, { lean: 1, hands: [[6, 4], [-1, 6]] })],
     belay: [sideFig(kit, { lean: 0, look: 'up', hands: [[4, -2], [0, 6]] }), sideFig(kit, { lean: 0, look: 'up', hands: [[5, 1], [1, 5]] })],
     tbelay: [sideFig(kit, { lean: 2, look: 'down', hands: [[5, 1], [2, 6]] }), sideFig(kit, { lean: 2, look: 'down', hands: [[3, 5], [5, 2]] })],
@@ -863,6 +872,10 @@ function buildRidge() {
   // The goat (H14) stands watching on top of the egg, the boulder the line hugs its way round on
   // pitch 4 (the highest of the egg's pieces, by rule), so it is off the line and looks down on them as
   // they edge round under it. It turns to watch whoever comes near.
+  // Where they end up on top: the leader and TJ on the top boulder either side of the line's end, the
+  // woman on the block just below it to the west, each on the rock's top there.
+  const TOPX = ROUTE[ROUTE.length - 1][0], SUMMIT = { lead: TOPX + 7, tj: TOPX - 8, red: TOPX - 25 };
+  for (const k in SUMMIT) { const x = SUMMIT[k]; SUMMIT[k] = { x, h: CREST[x] }; }
   const GOAT = { stand: goat('stand'), look: goat('look') }, goatAt = (() => {
     const e = LANDMARKS.egg.reduce((m, q) => (q.h + q.b > m.h + m.b ? q : m)), x = Math.round(e.x);
     return { x, h: CREST[x] };
@@ -933,6 +946,9 @@ function buildRidge() {
       if (P.red.where === 's' && P.red.moving) P.red.x += 1.5 * Math.sin(P.red.d / 7);
       // On the face, hands and feet on the holds, and the hips between them.
       for (const w of WHO) { P[w].hood = P[w].h >= HOOD_H; P[w].fig = null; }
+      // On the summit each eases over to their spot as they walk up to it.
+      const sv = tau - SCRIPT.sumT;
+      if (sv >= 0) for (const w of WHO) { const wk = WALKS[w], e = wk ? smooth(wk[0], wk[1], sv) : 1; P[w].x = lerp(P[w].x, SUMMIT[w].x, e); P[w].h = lerp(P[w].h, SUMMIT[w].h, e); P[w].sv = sv; }
       for (const w of WHO) { const s = P[w], on = ['lead', 'climb', 'place', 'clean', 'unclip', 'rest'].includes(s.pose) && !styleAt(s.d); s.lb = on ? limbs(w, s.d) : null; s.bx = on ? s.lb.bx : 0; }
       // At a belay on the face the followers hang staggered, each lower and further across the face from
       // the leader (never out over the air beside the ridge's edge), instead of one under the other's
@@ -948,6 +964,14 @@ function buildRidge() {
         const put = (bm, x, y, f) => { scr.put(bm, x, y, f); s.fig = { x, y, f, back: bm.oy === 28, side: bm.oy === 36 }; };
         const u = s.u, flick = Math.floor(t * 3) & 1;
         if (s.pose === 'sit') { pair.snack(scr, 1, sx, sy, t, 0); return; }
+        if (s.pose === 'summit') {
+          const v = s.sv, wk = WALKS[w], five = FIVES.find(q => (q.a === w || q.b === w) && v > q.at - 0.5 && v < q.at + 0.5);
+          if (wk && v > wk[0] && v < wk[1]) { put(fr.side[Math.floor(t * 9) % 6], sx, sy, false); return; }
+          if (five) { const other = P[five.a === w ? five.b : five.a]; put(fr.five, sx, sy, other.x < s.x); return; }
+          if (w === 'red' && v > 4.0) { put(fr.sit, sx, sy, false); return; }
+          // Before her turn, TJ and the leader face each other; after the fives they face out, east.
+          put(fr.idle, sx, sy, v < 1.4 && w === 'lead' ? true : v < 4.0 && w === 'red' ? false : false); return;
+        }
         if (s.pose === 'walk' || (s.moving && !s.steep && s.pose !== 'drop')) { put(env.moving && s.moving ? fr.side[Math.floor(s.d / 4.2) % 6] : fr.idle, sx, sy, s.dir < 0); return; }
         if (s.pose === 'drop') { put(u < 0.25 || u > 0.85 ? fr.idle : fr.crouch, sx, sy, true); return; }
         if (s.pose === 'rack') { put(fr.rack[Math.floor(t * 1.5) & 1], sx, sy, true); return; }
@@ -1061,6 +1085,7 @@ function buildRidge() {
       }
       // When he skates off the slab, grit his feet scraped loose skitters down it after him.
       if (SCRIPT.fallAt > 0 && tau > SCRIPT.fallAt && tau < SCRIPT.fallAt + 1.6) grit(scr, tau - SCRIPT.fallAt, cx, rowOf);
+      if (tau >= SCRIPT.sumT) for (const v of FIVES) { const a = P[v.a], b = P[v.b]; spark(scr, Math.round((a.x + b.x) / 2) - cx, rowOf((a.h + b.h) / 2 + 20), (tau - SCRIPT.sumT - v.at + 0.15) * 0.8); }
       if (bumping) spark(scr, Math.round((P.tj.x + P.lead.x) / 2) - cx, rowOf(P.tj.h + 10), (P.tj.u - 0.45) * 0.8);
       // The raven: in from downwind, hanging in the updraft, then away.
       if (DEBUG.animals) {

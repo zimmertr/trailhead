@@ -124,3 +124,5 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **Point out the camp.** From the summit a tiny tent and a wisp of stove steam could show on a bench by a tarn far below, the camp they walked out of that morning, tying the climb back to the larch basin scene.
 - **The Brocken spectre.** At the summit, with the sun behind them, their three shadows could fall on the cloud sea below, each ringed by a small rainbow glory, the way climbers sometimes see themselves above an inversion.
 - **The raven rolls.** Ravens play in the wind: now and then it could flip onto its back for a beat and roll upright again, which climbers love to see and which would reward a visitor who waits at a belay.
+- **A hood that reads as a hood.** Seen side-on at this size a hood up under the helmet can read as long hair; a hood that stands a pixel proud of the head at the back, with its own outline, would read as fabric.
+- **The summit register.** A small tin box under the top boulder that TJ opens to sign, the way many summits keep a register, with the list of earlier names as a place to put credits or thanks.
