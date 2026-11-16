@@ -2,9 +2,10 @@
 // The world is a height for every spot (u east, v away from the camera). A spot is drawn at screen
 // (u, SY - v - height), nearest first, so ground and mountains are one surface and near slopes hide
 // far ones.
-import { R, INK, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
+import { R, INK, KIND, SHADE, RAMP_OF, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
+import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
-import { makeMaple, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag } from './sprites.js';
+import { makeMaple, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog } from './sprites.js';
 
 const NW = 1920, SH = 1080, VD = 740, SY = SH + 52;
 const rdg = n => 1 - Math.abs(2 * n - 1);
@@ -201,6 +202,7 @@ for (const { line, end } of C.dig) {
 // The coulee: a flat floor, a cliff, a bench, a second cliff. It deepens as the tableland rises.
 { const all = catmull(C.coulee); all.forEach(([pu, pv], n) => { const floor = lerp(11, 2.5, n / (all.length - 1)); for (let dv = -44; dv <= 44; dv++) for (let du = -44; du <= 44; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const d = Math.hypot(du, dv) + 9 * (fbm(u / 23, v / 23, 440, 2) - 0.5), rise = d < 13 ? 0 : d < 18 ? 14 * (d - 13) / 5 : d < 33 ? 14 + (d - 18) * 0.07 : d < 39 ? 15 + 15 * (d - 33) / 6 : 1e9; if (hg[at(u, v)] > floor + rise) hg[at(u, v)] = floor + rise; } }); }
 // Still water is level, so a lake flattens the ground under it to the height of its shore.
+const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypot((u - ISLE[0]) / 7, (v - ISLE[1]) / 3.2);
 const lakeAt = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) if (Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5) < 1) return kind; return null; };
 for (const [cu, cv, ru, rv] of C.lakes) { const lv = hAt(cu, cv - rv); for (let v = Math.floor(cv - rv - 2); v <= cv + rv + 2; v++) for (let u = Math.floor(cu - ru - 2); u <= cu + ru + 2; u++) if (lakeAt(u, v)) hg[at(u, v)] = lv; }
 // ---- water finds its own way ----------------------------------------------------------------------
@@ -217,7 +219,7 @@ const trail = new Uint8Array(NW * VD), water = new Uint8Array(NW * VD), routes =
   while (hk.length) { const c = pop(), cu = c % RW, cv = (c / RW) | 0; for (let dv = -1; dv <= 1; dv++) for (let du = -1; du <= 1; du++) { const nu = cu + du, nv = cv + dv; if ((!du && !dv) || nu < 0 || nv < 0 || nu >= RW || nv >= RH) continue; const n = nv * RW + nu; if (down[n] !== -2) continue; fill[n] = Math.max(rh(n), fill[c] + (du && dv ? 0.0028 : 0.002)); down[n] = c; push(fill[n], n); } }
   // Follow each source down to an outlet, adding its water to every spot it passes.
   for (const s of C.src) { const lead = catmull(s.lead), [lu, lv] = lead[lead.length - 1], cells = []; let i = (Math.round(lv) >> 1) * RW + (Math.round(lu) >> 1), guard = 0; while (i >= 0 && guard++ < 8000) { cells.push(i); flow[i] += s.w; if (down[i] < 0) break; i = down[i]; } routes.push({ s, lead, cells }); }
-  const wide = f => 0.6 + 1.25 * Math.sqrt(f), flowAt = (u, v) => { let f = 0; const ru = Math.round(u) >> 1, rv = Math.round(v) >> 1; for (let dv = -1; dv <= 1; dv++) for (let du = -1; du <= 1; du++) { const nu = ru + du, nv = rv + dv; if (nu >= 0 && nv >= 0 && nu < RW && nv < RH) f = Math.max(f, flow[nv * RW + nu]); } return f; };
+  const wide = f => 0.5 + 0.8 * Math.sqrt(f), flowAt = (u, v) => { let f = 0; const ru = Math.round(u) >> 1, rv = Math.round(v) >> 1; for (let dv = -1; dv <= 1; dv++) for (let du = -1; du <= 1; du++) { const nu = ru + du, nv = rv + dv; if (nu >= 0 && nv >= 0 && nu < RW && nv < RH) f = Math.max(f, flow[nv * RW + nu]); } return f; };
   for (const r of routes) {
     const sparse = r.cells.filter((_, n) => n % 4 === 0 || n === r.cells.length - 1).map(i => [(i % RW) * 2, ((i / RW) | 0) * 2]);
     const run = sparse.length > 2 ? catmull([r.lead[r.lead.length - 1], ...sparse.slice(1)]) : [];
@@ -265,10 +267,11 @@ function colour(u, v, hh, x, y) {
   if (cs > 0) return cs < 3 + 2 * vnoise(u / 9, v / 9, 85) ? R.sea[5] : pick('sea', 0.75 - smooth(0, 150, cs) * 0.6 + 0.12 * (vnoise(u / 14, v / 3, 86) - 0.5), x, y);
   if (cs > -15 - 6 * vnoise(u / 20, v / 20, 87)) return water[i] ? R.water[3] : R.sand[cs > -4 ? 0 : hash(u, v, 88) < 0.25 ? 1 : 2];
   const lk = lakeAt(u, v);
+  if (lk === 'lake' && isle(u, v) < 1) return pick('grass', 0.55 + 0.3 * n1, x, y);
   if (lk) return lk === 'tarn' ? pick('tarn', 0.3 + 0.4 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
   // Where a trail crosses water there is a footbridge: a deck of planks with a dark edge.
   if (water[i] && trail[i] && mat !== 'ice') return trail[i] === 2 ? ((u + 2 * v) % 3 === 0 ? R.dirt[1] : R.dirt[2]) : R.dirt[0];
-  if (water[i]) return steep > 0.55 ? (hash(x, y >> 1, 5) < 0.72 ? R.white[1] : R.water[4]) : water[i] === 2 ? R.water[y & 1 ? 3 : 4] : R.water[1];
+  if (water[i]) return steep > 0.55 ? (hash(x, y >> 1, 5) < 0.72 ? R.white[1] : R.water[4]) : water[i] === 2 ? (hash(x, y, 9) < 0.08 ? R.glint[(x + y) & 3] : R.water[y & 1 ? 3 : 4]) : R.water[1];
   if (trail[i] === 2) return mat === 'ice' ? R.glac[1] : mat !== 'land' || steep > 0.8 ? R.rock[hash(u, v, 6) < 0.3 ? 4 : 3] : hash(u, v, 5) < 0.1 ? R.dirt[2] : R.dirt[3];
   if (trail[i] === 1) return mat === 'ice' ? R.glac[3] : mat !== 'land' || steep > 0.8 ? R.rock[1] : R.dirt[1];
   if (mat === 'ice') {
@@ -312,16 +315,14 @@ function colour(u, v, hh, x, y) {
   if (steep > 1.05) return dryAmt(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)]) : u > 1190 ? pick('rock', 0.36 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.15 * L, x, y, 0.7) : pick('rock', 0.12 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.2 * L, x, y, 0.7);
   const sh = (L - 0.5) * 0.5, blot = s => 0.5 + 0.85 * (fbm(u / 32, v / 21, s, 3) - 0.5) + 0.2 * n1;
   const fa = forestAmt(u, v);
-  if (fa > 0.5 + 0.2 * n1) return pick('moss', 0.2 + 0.3 * fbm(u / 18, v / 18, 22, 3) + sh, x, y);
+  if (fa > 0.5 + 0.2 * n1) { const shaft = fbm(u / 34 + v / 70, v / 26, 21, 3); return pick('moss', 0.16 + 0.3 * fbm(u / 18, v / 18, 22, 3) + smooth(0.56, 0.7, shaft) * 0.4 + sh * 0.4, x, y); }
   const bu = burnAmt(u, v), da = dryAmt(u, v);
   if (larchAmt(u, v) > blot(181) && bu < 0.5) { const slab = fbm(u / 22, v / 11, 96, 3); return slab > 0.58 ? pick('rock', 0.85 + 0.2 * n1, x, y, 0.7) : hash(u, v, 98) < 0.06 ? R.red[1] : hash(u, v, 99) < 0.05 ? R.larch[3] : pick('grass', 0.42 + sh + 0.2 * n1, x, y, 0.4); }
   if (bu > blot(182)) { for (let k = 0; k < 9; k++) { const tall = 6 + Math.floor(hash(u, v - k, 132) * 3.99); if (k < tall && hash(u, v - k, 101) < 0.008 + 0.09 * smooth(0.5, 0.66, fbm(u / 30, (v - k) / 15, 131, 3))) return k < 2 ? R.grass[1] : k === tall - 1 ? R.fireweed[1] : R.fireweed[0]; } return fbm(u / 24, v / 16, 100, 3) > 0.56 ? pick('grass', 0.3, x, y, 0.5) : pick('ash', 0.4 + 0.5 * fbm(u / 14, v / 9, 102, 3), x, y); }
   if (da > blot(183)) { const sg = sageAmt(u, v); return hash(u >> 1, v >> 1, 103) < 0.04 + sg * 0.3 ? R.sage[1 + (hash(u, v, 104) < 0.5 ? 0 : 1)] : pick('dry', 0.5 + 0.5 * (fbm(u / 24, v / 14, 105, 3) - 0.5) + sh + sg * 0.1, x, y); }
-  const pa = parkAmt(u, v), drift = fbm(u / 16, v / 9, 110, 3);
-  if (pa > 0.3 && drift > 0.62 - pa * 0.12 && hash(u, v, 111) < 0.3) { const k = hash(u >> 3, v >> 2, 112); return k < 0.45 ? R.lupine[1] : k < 0.75 ? R.red[1] : k < 0.9 ? R.white[1] : R.pink[1]; }
   // High ground with no forest on it goes from meadow to bare rock and then snow.
   if (hh > 96 + 30 * vnoise(u / 30, v / 30, 828)) return hh > 150 ? R.snow[L > 0.5 ? 4 : 3] : pick('rock', 0.3 + 0.5 * L, x, y);
-  return pick('grass', 0.56 + 0.55 * (fbm(u / 26, v / 26, 31, 3) - 0.5) + sh - fa * 0.45 + da * 0.2, x, y, 0.3);
+  return pick('grass', 0.56 + 0.55 * (fbm(u / 26, v / 26, 31, 3) - 0.5) + 0.14 * (hash(x >> 1, y >> 1, 32) - 0.5) + sh - fa * 0.45 + da * 0.2, x, y, 0.3);
 }
 function b2(x, y) { return bayer(x, y); }
 
@@ -360,6 +361,57 @@ for (let u = 0; u < NW; u++) {
   }
 }
 
+// ---- detail on the ground, as round 3 had it ------------------------------------------------------
+// These work on the finished picture. A pixel belongs to the ground at one spot (zb, its depth), so
+// each touch keeps to one stretch of ground and never reaches across the edge of a nearer slope.
+const sameGround = (i, j) => Math.abs(zb[i] - zb[j]) < 4;
+// Reflection Lake mirrors what stands behind it, squashed and broken by ripples: snow as pale water,
+// forest as dark water, rock in between. The shore keeps its own colour.
+{
+  const lake = C.lakes[0], top = new Int16Array(NW).fill(-1);
+  for (let y = 0; y < SH; y++) for (let x = Math.floor(lake[0] - lake[2] - 4); x <= lake[0] + lake[2] + 4; x++) { const v = zb[px(x, y)]; if (v < VD && top[x] < 0 && lakeAt(x, v) === 'lake') top[x] = y; }
+  for (let x = 0; x < NW; x++) if (top[x] >= 0) for (let y = top[x] + 1; y < SH; y++) {
+    const i = px(x, y), v = zb[i]; if (v >= VD || lakeAt(x, v) !== 'lake' || isle(x, v) < 1.2) { if (y > top[x] + 30) break; continue; }
+    if (lakeAt(x, v - 2) !== 'lake' || lakeAt(x + 2, v) !== 'lake' || lakeAt(x - 2, v) !== 'lake') continue;
+    const sy = Math.round(top[x] - (y - top[x]) * 3.2 - 2), sx = Math.round(x + 1.5 * Math.sin(y * 1.7)); if (sy < 0 || sx < 0 || sx >= NW || !(y & 1 || hash(x, y, 8) < 0.6)) continue;
+    const c = g[px(sx, sy)], k = RAMP_OF[c]; if (!k || k === 'skyband' || k === 'sky') continue;
+    g[i] = k === 'snow' || k === 'farsnow' || k === 'glac' ? R.water[4] : k === 'conifer' || k === 'moss' || k === 'grass' || k === 'mist' ? R.water[1] : R.water[2];
+  }
+}
+// Tufts of grass: a small arch with a dark root.
+{
+  const r0 = rng(5);
+  for (let n = 0; n < 30000; n++) {
+    const x = 2 + (r0() * (NW - 4)) | 0, y = 300 + (r0() * (SH - 302)) | 0, i = px(x, y), k = KIND[g[i]]; if ((k !== 1 && k !== 2) || mb[i] !== 0) continue;
+    if (KIND[g[i - NW]] !== k || KIND[g[i - 2 * NW]] !== k || !sameGround(i, i - 2 * NW)) continue;
+    const r = R[k === 1 ? 'grass' : 'moss']; g[i - 2 * NW] = r[r.length - 1]; g[i - NW - 1] = r[r.length - 2]; g[i - NW + 1] = r[r.length - 2]; g[i] = r[1];
+  }
+}
+// Wildflowers in clumps, each flower a bloom on a stem: thick in the parkland, scattered through the meadow.
+{
+  const rand = rng(11), isGrass = i => g[i] >= R.grass[0] && g[i] <= R.grass[4];
+  for (let n = 0; n < 9000; n++) {
+    const cx = (rand() * NW) | 0, cy = 300 + ((rand() * (SH - 302)) | 0), v = zb[px(cx, cy)], type = rand(), count = 6 + (rand() * 12 | 0);
+    if (v >= VD || !isGrass(px(cx, cy))) continue;
+    const want = 0.9 * parkAmt(cx, v) + (forestAmt(cx, v) < 0.2 && dryAmt(cx, v) < 0.2 && larchAmt(cx, v) < 0.2 && burnAmt(cx, v) < 0.2 ? 0.07 : 0);
+    if (rand() > want) continue;
+    for (let k = 0; k < count; k++) {
+      const x = Math.round(cx + (rand() - 0.5) * 18), y = Math.round(cy + (rand() - 0.5) * 10); if (x < 2 || y < 2 || x >= NW - 2 || y >= SH - 2) continue;
+      const i = px(x, y); if (!isGrass(i) || !isGrass(i - NW) || !sameGround(i, i - NW)) continue;
+      if (type < 0.5) { g[i - NW] = R.lupine[2]; g[i] = R.lupine[1]; } else if (type < 0.75) { g[i - NW] = R.red[2]; g[i] = R.red[1]; } else if (type < 0.9) g[i] = R.white[1]; else g[i] = R.yellow[1];
+    }
+  }
+}
+// Driftwood along the beach: pale logs, each with its shadow under it.
+{
+  const rand = rng(44390);
+  for (let n = 0; n < 700; n++) {
+    const x = (rand() * 700) | 0, y = 500 + ((rand() * (SH - 500)) | 0), v = zb[px(x, y)]; if (v >= VD) continue;
+    const cs = coast(x, v); if (cs > -3 || cs < -13) continue;
+    const len = 6 + rand() * 12, a = (rand() - 0.5) * 0.9 + 0.6;
+    for (let k = 0; k < len; k++) { const qx = Math.round(x + Math.cos(a) * k), qy = Math.round(y + Math.sin(a) * k * 0.5); if (qx > 0 && qy > 0 && qx < NW && qy < SH - 1 && !water[at(qx, Math.round(zb[px(qx, qy)]))] && sameGround(px(x, y), px(qx, qy))) { g[px(qx, qy)] = R.rock[4]; g[px(qx, qy + 1)] = R.rock[2]; } }
+  }
+}
 // A dark line where a wall or the granite fin stands against something farther off, so the Spires
 // and Proficiency Peak read as shapes of their own.
 for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
@@ -427,7 +479,7 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
   }
 }
 // ---- things that stand up -------------------------------------------------------------------------
-const things = [], put = (bm, u, v, f) => things.push({ bm, u: Math.round(u), v: Math.round(v), fog: f }), plant = (tree, u, v, f) => things.push({ tree, u: Math.round(u), v: Math.round(v), fog: f });
+const things = [], put = (bm, u, v, f, tree) => things.push({ bm, u: Math.round(u), v: Math.round(v), fog: f, isTree: tree }), plant = (tree, u, v, f) => things.push({ tree, u: Math.round(u), v: Math.round(v), fog: f });
 const wet8 = (u, v) => { for (let dv = -3; dv <= 6; dv += 3) for (let du = -9; du <= 9; du += 3) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) return true; return false; };
 const slope = (u, v) => Math.hypot(hAt(u + 2, v) - hAt(u - 2, v), hAt(u, v + 2) - hAt(u, v - 2)) / 4;
 const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && coast(u, v) < -32 && !lakeAt(u, v) && !water[at(Math.round(u), Math.round(v))] && !wet8(Math.round(u), Math.round(v)) && slope(u, v) < max && !nearTrail(u, v, 9) && Math.hypot(u - TU, (v - TV) * 1.4) > 46;
@@ -435,6 +487,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   const rand = rng(2026), any = a => a[(rand() * a.length) | 0], land = (u, v) => MATS[mg[at(Math.round(u), Math.round(v))]] === 'land';
   const wooded = (u, v) => { const i = at(Math.round(u), Math.round(v)), m = MATS[mg[i]], h = hg[i]; return m === 'land' ? h < 100 : m === 'volc' ? h < VOLC.H * 0.16 : m === 'crest' ? h < 48 : false; };
   const maples = Array.from({ length: 6 }, (_, i) => makeMaple(100 + i)), spruces = Array.from({ length: 6 }, (_, i) => makeSpruce(200 + i)), firs = Array.from({ length: 8 }, (_, i) => makeFir(300 + i));
+  const bigleaf = Array.from({ length: 4 }, (_, i) => blobTree(800 + i, i & 1 ? 'larch' : 'sun', 36 + i * 2, 'bark', 5, 5.5));
   const larches = Array.from({ length: 6 }, (_, i) => { const r = rng(900 + i); return makeConifer(900 + i, 24 + (r() * 14 | 0), 10 + (r() * 4 | 0), 'larch', 6); });
   const pines = Array.from({ length: 5 }, (_, i) => makePonderosa(820 + i)), aspens = Array.from({ length: 7 }, (_, i) => makeAspen(600 + i)), snags = Array.from({ length: 5 }, (_, i) => makeSnag(730 + i));
   // The rainforest climbs the ridges and the volcano's foot. Where the fog is thickest only snags stand.
@@ -443,7 +496,8 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     if (rand() > fa * 0.78 || !open(u, v, 1.3) || !wooded(u, v)) continue;
     // Deeper in, the fog's own ranks take over (drawn above), so the planted forest thins out.
     if (f > 0.12 && rand() < smooth(0.12, 0.55, f)) continue;
-    if (rand() < f * f * 0.5) put(any(snags), u, v, f); else plant(r < 0.45 ? any(maples) : r < 0.88 ? any(spruces) : any(firs), u, v, f);
+    if (f < 0.2 && (nearTrail(u, v, 46) && rand() < 0.3 || rand() < 0.04)) { put(any(bigleaf), u, v, f, true); continue; }
+    if (rand() < f * f * 0.5) put(any(snags), u, v, f, true); else plant(r < 0.45 ? any(maples) : r < 0.88 ? any(spruces) : any(firs), u, v, f);
   }
   // Firs in clumps over the parkland, the meadows and the lower slopes of the crest.
   for (let n = 0; n < 5200; n++) {
@@ -471,7 +525,23 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     if (rand() > band(u, v) * (0.05 + 0.3 * Math.max(dryAmt(u, v), 0.5 * step1(u, v))) || !open(u, v) || !land(u, v) || stood.some(([a, b]) => Math.abs(a - u) < 24 && Math.abs(b - v) < 20)) continue;
     stood.push([u, v]); plant(any(pines), u, v);
   }
-  for (let n = 0; n < 520; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) put(any(snags), u, v); }
+  for (let n = 0; n < 520; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) put(any(snags), u, v, 0, true); }
+  // Round 3's furniture of the ground: boulders and bushes in the open, granite slabs among the larches,
+  // sage in the dry corner, ferns and logs on the forest floor, sea stacks off the beach, a fir on the island.
+  const boulders = Array.from({ length: 6 }, (_, i) => makeBoulder(500 + i, 3 + i * 0.8));
+  const slabs = Array.from({ length: 4 }, (_, i) => { const b = makeBoulder(520 + i, 5 + i * 1.5); for (let k = 0; k < b.d.length; k++) if (b.d[k] && b.d[k] !== INK) b.d[k] = R.granite[clamp(R.rock.indexOf(b.d[k]) + 1, 1, 5)]; return b; });
+  const bushes = [0, 1, 2].map(i => makeBush(700 + i, 'huck')).concat([0, 1, 2].map(i => makeBush(710 + i, 'heather')), [0, 1].map(i => makeBush(720 + i, 'green')));
+  const sages = [0, 1, 2].map(i => sageBush(850 + i)), burnt = Array.from({ length: 4 }, (_, i) => charred(740 + i)), young = Array.from({ length: 4 }, (_, i) => makeConifer(940 + i, 9 + i * 2, 6, 'kit', 3));
+  const ferns = Array.from({ length: 6 }, (_, i) => makeFern(400 + i)), logs = Array.from({ length: 6 }, (_, i) => makeLog(i));
+  const meadowy = (u, v) => forestAmt(u, v) < 0.3 && burnAmt(u, v) < 0.3 && dryAmt(u, v) < 0.3 && Math.hypot(u - TU, (v - TV) * 1.4) > 40;
+  for (let n = 0; n < 700; n++) { const u = 420 + rand() * 1200, v = rand() * 640; if (!open(u, v) || !meadowy(u, v)) continue; const m = MATS[mg[at(Math.round(u), Math.round(v))]]; if (m !== 'land' && m !== 'moraine') continue; const rock = m === 'moraine' || rand() < 0.3; put(rock ? any(boulders) : any(bushes), u, v); }
+  for (let n = 0; n < 300; n++) { const u = 1240 + rand() * 680, v = 380 + rand() * 320; if (MATS[mg[at(Math.round(u), Math.round(v))]] === 'gran' && open(u, v, 0.7) && rand() < 0.5) put(any(slabs), u, v); }
+  for (let n = 0; n < 900; n++) { const u = 1300 + rand() * 620, v = rand() * 480; if (rand() < sageAmt(u, v) * 0.5 && open(u, v) && land(u, v)) put(any(sages), u, v); }
+  for (let n = 0; n < 400; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) { if (rand() < 0.5) put(any(burnt), u, v, 0, true); else plant(any(young), u, v); } }
+  for (let n = 0; n < 4000; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.6 && fogAmt(u, v) < 0.25 && open(u, v, 1.1)) things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); }
+  for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && open(u, v, 0.8)) put(any(logs), u, v); }
+  { const seen = []; for (let n = 0; n < 4000 && seen.length < 6; n++) { const u = rand() * 520, v = rand() * 420, c = coast(u, v); if (c < 22 || c > 110 || seen.some(([a, b]) => Math.hypot(a - u, b - v) < 70)) continue; seen.push([u, v]); const H = 16 + (rand() * 34 | 0); put(seaStack(seen.length, H, Math.round(H * 0.45)), u, v); } }
+  plant(any(firs), ISLE[0], ISLE[1]);
 }
 // Far first. A thing the fog touches, or that nearer ground partly hides, is painted into the ground
 // picture for good: clipped where it is hidden, its foot lost in the fog and the rest of it paled, the
@@ -485,10 +555,15 @@ for (const th of things) {
   const each = fn => { if (th.tree) for (const p of th.tree.parts) fn(p.bm, th.u + p.x, fy + p.y); else fn(th.bm, th.u - (th.bm.ox || 0), fy - (th.bm.oy || 0)); };
   let n = 0, seen = 0;
   each((bm, sx, sy) => { for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { if (!bm.d[j * bm.w + i]) continue; n++; const x = sx + i, y = sy + j; if (x >= 0 && y >= 0 && x < NW && y < SH && zb[px(x, y)] >= th.v - 3) seen++; } });
-  if (!(th.fog > 0.22) && seen >= n * 0.97) { live.push(th.tree ? { tree: th.tree, x: th.u, y: fy, v: th.v } : { bm: th.bm, x: th.u, y: fy, v: th.v }); continue; }
+  if (!(th.fog > 0.22) && seen >= n * 0.97) { live.push(th.tree ? { tree: th.tree, x: th.u, y: fy, v: th.v } : { bm: th.bm, x: th.u, y: fy, v: th.v, fern: th.fern, isTree: th.isTree }); continue; }
   if (seen >= n * 0.12) each(blit);
 }
 
+for (const th of live) {
+  if (!th.tree && !th.isTree) continue;
+  const rx = (th.tree ? th.tree.w : th.bm.w) * 0.42;
+  for (let dy = -3; dy <= 3; dy++) for (let dx = -Math.ceil(rx); dx <= rx; dx++) { if (sq(dx / rx) + sq(dy / 3.2) > 1) continue; const x = th.x + dx + 2, y = th.y + dy - 1; if (x < 0 || y < 0 || x >= NW || y >= SH) continue; const i = px(x, y); if (Math.abs(zb[i] - th.v) < 5 && g[i] !== INK) g[i] = SHADE[g[i]]; }
+}
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
 return { g, depth: zb, mat: mb, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
