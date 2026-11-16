@@ -36,6 +36,8 @@ const RIDGES = [
 // as a range of distance from the summit.
 const SNOUT = [266, 300, 296, 334, 290, 316, 282, 306, 268];
 const FALLS = { 2: [128, 186], 3: [150, 214], 4: [96, 150], 7: [120, 160] };
+// The middle icefall, the large one low in the centre, is the one the avalanche bares (E5c).
+export const MID_FALL = 3;
 const SUM = [324, 70];
 const rOf = (x, y) => Math.hypot((x - SUM[0]) * 0.72, y - SUM[1]);
 // The summit snowfield: above this the glaciers have not begun.
@@ -51,6 +53,9 @@ export function paintMonolith() {
   // own marks the mountain proper; the meadow at its foot is only a stand-in for the mockup, and in the
   // game the land's own meadow, trees and flowers are drawn there instead.
   const own = new Uint8Array(MW * MH), d = new Uint8Array(MW * MH), snow = R.snow, ice = R.serac, rock = R.mauve;
+  // For each pixel of the middle icefall: its index, the plain snow that would lie there with no icefall,
+  // and how far down the icefall it is (0 at its top, 1 at its foot).
+  const cover = [];
   // The relief: each cleaver is a ridge with a sharp crest and slopes either side; between them the
   // glaciers lie in troughs. It is only used for light, so it is worked out at every pixel of the picture.
   const relief = new Float32Array(MW * MH), wob = (y, k) => 0.8 + 0.4 * vnoise(y / 7, k, 902);
@@ -135,7 +140,13 @@ export function paintMonolith() {
     const bow = 9 * Math.sin(Math.PI * a), rr = r - bow;
     const fall = FALLS[gi];
     const fj = fall ? 14 * (vnoise(x / 10, gi, 927) - 0.5) : 0;
+    // The ice as it would be with no icefall: crevasses in bands, otherwise snow.
+    const plain = () => { const sp = 7 + 3 * smooth(140, 280, r), row = rr / sp, fr = frac(row), k = Math.floor(row);
+      const zone = vnoise(r / 26, gi * 3.1, 921), seg = vnoise(a * 16 + k * 0.7, k, 915);
+      if (zone > 0.55 && seg > 0.5 && a > 0.1 && a < 0.9) { const w = 1 / sp; if (fr < w) return snow[4]; if (fr < 2 * w) return ice[L > 0.45 ? 1 : 0]; if (fr < 3 * w && seg > 0.52) return ice[3]; }
+      return snowC(L, x, y); };
     if (fall && rr > fall[0] + fj && rr < fall[1] + fj) {
+      const before = d[i];
       // An icefall: blocks stepping down, each with a white top, a blue face lit from the west, a
       // shaded east side and a dark gap under it. Its edges are ragged, not ruled.
       const f0 = fall[0] + fj, f1 = fall[1] + fj, edge = smooth(f0, f0 + 16, rr) * smooth(f1, f1 - 16, rr) * smooth(0.02, 0.2, a) * smooth(0.98, 0.8, a);
@@ -147,20 +158,11 @@ export function paintMonolith() {
       if (blk < edge * 0.8) {
         const topH = 0.22 + 0.25 * hash(col, row, 926);
         d[i] = fy < topH ? snow[blk < 0.2 ? 3 : 4] : fy > 0.86 ? ice[0] : fx > 0.75 ? ice[1] : fx < 0.2 ? ice[4] : blk < 0.12 ? snow[3] : ice[L > 0.5 ? 3 : 2];
-        continue;
-      }
-      if (edge > 0.25) { d[i] = blk < 0.85 ? ice[fy > 0.5 ? 0 : 1] : snowC(L - 0.2, x, y); continue; }
+      } else if (edge > 0.25) d[i] = blk < 0.85 ? ice[fy > 0.5 ? 0 : 1] : snowC(L - 0.2, x, y);
+      if (d[i] !== before) { if (gi === MID_FALL) cover.push(i, plain(), Math.round(255 * clamp((rr - f0) / (f1 - f0), 0, 1))); continue; }
     }
     // Crevasses: short arcs across the ice, not everywhere: in bands where the glacier bends or steepens.
-    const sp = 7 + 3 * smooth(140, 280, r), row = rr / sp, fr = frac(row), k = Math.floor(row);
-    const zone = vnoise(r / 26, gi * 3.1, 921), seg = vnoise(a * 16 + k * 0.7, k, 915);
-    if (zone > 0.55 && seg > 0.5 && a > 0.1 && a < 0.9) {
-      const w = 1 / sp;
-      if (fr < w) { d[i] = snow[4]; continue; }
-      if (fr < 2 * w) { d[i] = ice[L > 0.45 ? 1 : 0]; continue; }
-      if (fr < 3 * w && seg > 0.52) { d[i] = ice[3]; continue; }
-    }
-    d[i] = snowC(L, x, y);
+    d[i] = plain();
   }
-  return { w: MW, h: MH, d, own, cx: MCX };
+  return { w: MW, h: MH, d, own, cx: MCX, cover };
 }

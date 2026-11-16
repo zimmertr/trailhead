@@ -105,6 +105,37 @@ function drip(scr, ox, oy, t, w, D, frontAt) {
     if (q > 0.85) { scr.set(x - 1 - ox, y - oy, R.fog[1]); scr.set(x + 1 - ox, y - oy, R.fog[1]); }
   }
 }
+// ---- the avalanche on Mount Monolith's middle icefall (E5c) ----
+// The cover of snow over the icefall, drawn on the bare seracs of the ground: a pixel is covered once
+// the cover has built past its own threshold (the top of the icefall first, as the spindrift settles
+// from above). Before it goes, a crack opens across its top and the slab below the crack creeps down.
+function coverPass(fb, VW, VH, ox, oy, A, cover, crack, creep, crackC) {
+  const { AX, AY, snow, q, thr, cx, x0, x1 } = A, half = Math.max(cx - x0, x1 - cx) + 1;
+  for (let j = 0; j < AX.length; j++) {
+    if (thr[j] >= cover) continue;
+    const x = AX[j] - ox; if (x < 0 || x >= VW) continue;
+    const below = q[j] > 16, y = AY[j] - oy + (below ? creep : 0); if (y < 0 || y >= VH) continue;
+    fb[y * VW + x] = crack > 0 && q[j] > 12 && q[j] <= 20 && Math.abs(AX[j] - cx) < crack * half ? crackC : snow[j];
+  }
+}
+// The slab once it gives way: it breaks into blocks that slide off faster and faster, each its own way,
+// and comes apart into powder.
+function slabPass(fb, VW, VH, ox, oy, A, a) {
+  const { AX, AY, snow } = A, gone = smooth(0.4, 2.6, a);
+  for (let j = 0; j < AX.length; j++) {
+    const X = AX[j], Y = AY[j], h = hash(X >> 2, Y >> 2, 4801), off = Math.round(2 + a * a * 16 * (0.75 + 0.5 * h)), y = Y + off - oy, x = X + Math.round((h - 0.5) * a * 6) - ox;
+    if (x < 0 || y < 0 || x >= VW || y >= VH || bayer(X, Y + off) < gone * (0.7 + 0.6 * h)) continue;
+    fb[y * VW + x] = snow[j];
+  }
+}
+// A round cloud of powder, lit from above: white on top, blue-grey snow shade under, with no outline so
+// that puffs laid over each other merge into one billowing cloud. Used for the avalanche's cloud and the
+// plume off the summit.
+function puffAt(fb, VW, VH, ox, oy, cx, cy, r, al, sq) {
+  for (let dy = -Math.ceil(r); dy <= r * 0.7; dy++) { const y = Math.round(cy + dy) - oy; if (y < 0 || y >= VH) continue;
+    for (let dx = -Math.ceil(r * sq); dx <= r * sq; dx++) { const x = Math.round(cx + dx) - ox; if (x < 0 || x >= VW) continue; const d = Math.hypot(dx / sq, dy) / r; if (d > 1 || bayer(x + ox, y + oy) >= al * (1.3 - d * d)) continue;
+      const f = (dy + r) / (1.7 * r) + 0.25 * (bayer(x + ox + 1, y + oy) - 0.5); fb[y * VW + x] = f < 0.36 ? R.snow[4] : f < 0.62 ? R.snow[3] : R.snow[2]; } }
+}
 
 export function makeWorld(bake) {
   const W = buildTerrain(), { g: ground, spots, forestAmt } = W;
@@ -164,7 +195,8 @@ export function makeWorld(bake) {
   function seracFall(scr, ox, oy, t, env) {
     if (SER.length < 2) return;
     const T = t + serAhead + SLOT - 15, n = Math.floor(T / SLOT), a = T - n * SLOT - 10 * hash(n, 3, 4741); if (a < 0 || a > 4.5) return;
-    const [sx, sy] = SER[serAt(n)], fall = 40, path = q => [sx + Math.round(2 * Math.sin(q * 5 + n)), sy + Math.round(fall * Math.pow(q, 1.6))];
+    const sk = serAt(n); if (midSerac[sk] && AVA.cover > 0.5) return;
+    const [sx, sy] = SER[sk], fall = 40, path = q => [sx + Math.round(2 * Math.sin(q * 5 + n)), sy + Math.round(fall * Math.pow(q, 1.6))];
     const on = sx - ox > -20 && sx - ox < scr.VW + 20 && sy - oy > -40 && sy - oy < scr.VH + 10;
     if (on && a > 0.9 && rumbled !== n) { rumbled = n; env.sfx('rumble'); }
     const dot = (x, y, c) => { const vx = x - ox, vy = y - oy; if (vx >= 0 && vy >= 0 && vx < scr.VW && vy < scr.VH) scr.fb[vy * scr.VW + vx] = c; };
@@ -173,6 +205,63 @@ export function makeWorld(bake) {
       for (let dy = -Math.ceil(r); dy <= r * 0.6; dy++) for (let dx = -Math.ceil(r * 1.3); dx <= r * 1.3; dx++) { const d = Math.hypot(dx / 1.3, dy) / r; if (d > 1 || bayer(px + dx, py + dy - Math.round(age * 2)) >= al * (1.3 - d * d)) continue; dot(px + dx, py + dy - Math.round(age * 2), dy > r * 0.25 || d > 0.82 ? R.snow[1] : d < 0.5 ? R.white[1] : R.snow[3]); } }
     // The block itself, until it is lost in its own powder.
     if (a < 1.4) { const [bx, by] = path(a / 1.4); for (let i = -2; i <= 1; i++) { dot(bx + i, by - 1, R.white[1]); dot(bx + i, by, R.serac[i < 1 ? 2 : 1]); dot(bx + i, by + 1, R.serac[0]); } }
+  }
+  // The avalanche (E5c). The middle icefall begins each visit under a cover of snow. About 40 s in (and
+  // whenever the debug button says) it warns: a crack across the top, a creep of a pixel or two, a few
+  // bits trickling off its foot, a breath, and then it goes: the slab breaks and slides, a cloud of powder
+  // pours down the glacier and billows, a deep rumble, a fan of debris at the glacier's foot that fades
+  // over a minute. The blue seracs it leaves fall in turn with the other icefalls'. From then on a plume
+  // of spindrift streams off the summit now and then and drifts down onto the icefall, each one leaving
+  // it whiter, until it is buried and looks like plain snow again, and a while later it can go again.
+  // It lives as long as the page does, through scene changes; a reload starts it covered.
+  const AV = W.avalanche ? (() => { const A = W.avalanche, n = A.at.length, AX = new Int16Array(n), AY = new Int16Array(n), thr = new Float32Array(n);
+    for (let j = 0; j < n; j++) { AX[j] = A.at[j] % WW; AY[j] = (A.at[j] / WW) | 0; thr[j] = Math.min(0.999, 0.55 * hash(AX[j], AY[j], 4790) + 0.44 * A.q[j] / 255); }
+    return { ...A, AX, AY, thr, set: new Set(A.at) }; })() : null;
+  const AVA = { phase: 'covered', start: 40, cover: 1, plume: -1, nextPlume: 0, gone: false, heard: -1 };
+  const AV_RELEASE = 4.2, PLUMES = 7;
+  const midSerac = SER.map(([x, y]) => !!AV && [0, 1, 2, 3].some(d => AV.set.has((y + d) * WW + x)));
+  function avalancheStep(t, env, on) {
+    if (!AV) return;
+    if (AVA.phase === 'covered' && t >= AVA.start) { AVA.phase = 'falling'; AVA.gone = false; }
+    if (AVA.phase === 'falling') { const a = t - AVA.start;
+      if (a >= AV_RELEASE && !AVA.gone) { AVA.gone = true; AVA.cover = 0; if (on) env.sfx('avalanche'); }
+      if (a > 75) { AVA.phase = 'bare'; AVA.nextPlume = t + 15; } }
+    if (AVA.phase === 'bare') {
+      if (AVA.plume < 0 && t >= AVA.nextPlume) AVA.plume = t;
+      if (AVA.plume >= 0 && t - AVA.plume > 9) { AVA.plume = -1; AVA.cover = Math.min(1, AVA.cover + 1 / PLUMES); AVA.nextPlume = t + 18 + 10 * hash(Math.floor(t), 2, 4791);
+        if (AVA.cover >= 0.999) { AVA.cover = 1; AVA.phase = 'covered'; AVA.start = t + 45; } }
+    }
+  }
+  function avalancheCover(fb, VW, VH, ox, oy, t) {
+    if (!AV || AV.x1 < ox || AV.x0 > ox + VW || AV.y1 + 4 < oy || AV.y0 > oy + VH) return;
+    let crack = 0, creep = 0;
+    if (AVA.phase === 'falling') { const a = t - AVA.start; if (a >= AV_RELEASE) return; crack = smooth(0, 1.4, a); creep = a < 1.6 ? 0 : a < 2.2 ? 1 : 2; }
+    if (AVA.cover > 0) coverPass(fb, VW, VH, ox, oy, AV, AVA.cover, crack, creep, R.serac[0]);
+  }
+  function avalancheFx(scr, ox, oy, t) {
+    if (!AV) return;
+    const { fb, VW, VH } = scr, w = AV.x1 - AV.x0, ym = (AV.y0 + AV.y1) / 2, [fx, fy] = AV.foot;
+    if (AVA.phase === 'falling') { const a = t - AVA.start;
+      // A few bits of snow trickle off the slab's foot before it goes.
+      if (a > 2.4 && a < AV_RELEASE + 0.3) for (let k = 0; k < 6; k++) { const s = (a - 2.4 - k * 0.27); if (s < 0 || s > 0.9) continue; const x = AV.cx + Math.round((hash(k, 1, 4802) - 0.5) * w * 0.7) - ox, y = AV.y1 + 2 + Math.round(s * s * 30) - oy; if (x >= 0 && y >= 0 && x < VW && y < VH) fb[y * VW + x] = R.white[1]; }
+      if (a >= AV_RELEASE) { const b = a - AV_RELEASE;
+        if (b < 3) slabPass(fb, VW, VH, ox, oy, AV, b);
+        // The powder: puffs thrown off along the way down, each growing, rising and thinning.
+        for (let k = 0; k < 34; k++) { const te = k * 0.13, age = b - te; if (age < 0) continue; const u = k / 33, h = hash(k, 3, 4803), grow = Math.min(1, age / 2.5);
+          const r = (4 + 17 * Math.sqrt(grow)) * (0.7 + 0.6 * h) * (0.8 + 0.5 * u), al = smooth(18, 4, age) * 0.97;
+          if (al > 0.02) puffAt(fb, VW, VH, ox, oy, AV.cx + (h - 0.5) * w * (1.1 - 0.3 * u) * (1 + 0.5 * grow), lerp(ym, fy, Math.pow(u, 1.1)) - age * 2, r, al, 1.35); }
+        // The debris: a fan of snow at the foot of the glacier, fading over a minute.
+        const den = smooth(5, 9, b) * smooth(70, 35, b);
+        if (den > 0.01) for (let dy = -2; dy <= 8; dy++) for (let dx = -Math.round(w * 0.45); dx <= w * 0.45; dx++) { const e = (dx / (w * 0.45)) ** 2 + ((dy + 2) / 10) ** 2; if (e > 1) continue; const x = fx + dx - ox, y = fy + dy - oy; if (x < 0 || y < 0 || x >= VW || y >= VH || bayer(fx + dx, fy + dy) >= den * (1.1 - e)) continue; fb[y * VW + x] = hash(fx + dx, fy + dy, 4804) < 0.5 ? R.white[1] : R.snow[3]; }
+      } }
+    // The plume: spindrift torn off the summit by the wind, streaming east against the sky as a banner
+    // (white on the snow would not show), and a fall of fine snow sinking out of it onto the icefall.
+    if (AVA.plume >= 0) { const p = t - AVA.plume, [sx, sy] = spots.summit, head = Math.min(1, p / 4), al = smooth(0, 1.2, p) * smooth(9, 6.5, p);
+      for (let k = 0; k <= 20; k++) { const u = k / 20; if (u > head) break; const x = sx + 6 + 120 * u + p * 3, y = sy - 4 + 14 * u * u + 2 * Math.sin(u * 9 + p);
+        puffAt(fb, VW, VH, ox, oy, x, y, 2 + 6 * u, al * (0.9 - 0.45 * u), 2.4); }
+      for (let k = 0; k < 40; k++) { const h = hash(k, 7, 4805), born = 1 + 6 * h, q = (p - born) / 3; if (q < 0 || q > 1) continue; const u = 0.15 + 0.6 * hash(k, 8, 4805);
+        const x0 = sx + 6 + 120 * u, y0 = sy + 14 * u * u, tx = AV.x0 + (AV.x1 - AV.x0) * hash(k, 9, 4805), x = Math.round(lerp(x0, tx, q) + 3 * Math.sin(q * 7 + k)) - ox, y = Math.round(lerp(y0, AV.y0 + 4, q)) - oy;
+        if (x >= 0 && y >= 0 && x < VW && y < VH && al > 0.3) fb[y * VW + x] = (k & 1) ? R.snow[2] : R.snow[1]; } }
   }
   // ---- the weather in the west: the marine layer (E5e) ----
   // Rain in the Northwest seldom comes as a storm. A low grey deck rolls in off the sea ten seconds after
@@ -353,6 +442,7 @@ export function makeWorld(bake) {
     trigger(name, t) {
       const mod = (a, m) => ((a % m) + m) % m;
       if (name === 'shower') { const n = Math.floor((t + rainAhead + RAIN.cycle - 10) / RAIN.cycle) + 1; rainAhead = n * RAIN.cycle - t - RAIN.cycle + 10; return true; }
+      if (name === 'avalanche') { if (!AV) return false; AVA.phase = 'covered'; AVA.cover = 1; AVA.plume = -1; AVA.start = t; return true; }
       if (name === 'serac') { if (SER.length < 2) return false; const n = Math.floor((t + serAhead + SLOT - 15) / SLOT) + 1; serAhead = n * SLOT + 10 * hash(n, 3, 4741) - t - SLOT + 15; return true; }
       if (name === 'lens') { lensAhead = mod(-(t + LENS.cycle - 5), LENS.cycle); return true; }
       return ev.trigger(name, t) || crit.trigger(name, t);
@@ -402,6 +492,8 @@ export function makeWorld(bake) {
       }
       // With the Trees switch off, the snags and shadows painted into the ground give way to what lay under them.
       if (!DEBUG.trees) for (let y = Math.max(0, -oy); y < Math.min(VH, WH - oy); y++) { const wy = y + oy, row = y * VW; for (let x = Math.max(0, -ox); x < Math.min(VW, WW - ox); x++) { const c = W.bare[wy * WW + x + ox]; if (c) fb[row + x] = c; } }
+      avalancheStep(t, env, !!AV && AV.cx - ox > -40 && AV.cx - ox < VW + 40 && AV.y0 - oy > -60 && AV.y0 - oy < VH);
+      avalancheCover(fb, VW, VH, ox, oy, t);
       crit.weather(Math.max(sky.fog, sky.deck * 0.8), (x, y) => fogIn(x, y, sky));
       if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], H = TIP_H[n], k = 6 + n;
         for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = top[x]; if (y0 < 0) continue;
@@ -411,6 +503,7 @@ export function makeWorld(bake) {
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
       if (DEBUG.clouds) lenticular(scr, ox, oy, t);
       seracFall(scr, ox, oy, t, env);
+      avalancheFx(scr, ox, oy, t);
       for (const k in prints) if (env.done[k]) for (const [x, y] of prints[k]) { const sx = x - ox, sy = y - oy; if (sx >= 0 && sy >= 0 && sx < VW && sy < VH && KIND[fb[sy * VW + sx]] >= 3 && KIND[fb[sy * VW + sx]] !== 4) { const i = sy * VW + sx; fb[i] = KIND[fb[i]] === 3 ? R.dirt[0] : SHADE[fb[i]]; } }
       { const over = env.ptr && !env.fixed ? destUnder(env.ptr[0] + ox, env.ptr[1] + oy) : 0, want = over || (t < tapUntil ? tapped : 0);
         for (let k = 1; k < 4; k++) { lifted[k] += ((k === want ? 1 : 0) - lifted[k]) * Math.min(1, dt * 9); const d = Math.round(2 * lifted[k]); if (d > 0) liftDest(scr, k, d, ox, oy); } }

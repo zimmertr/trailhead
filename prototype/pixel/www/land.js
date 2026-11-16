@@ -723,6 +723,24 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
   if (zb[i - NW] > zb[i] + 14 || zb[i - 1] > zb[i] + 14 || zb[i + 1] > zb[i] + 14) g[i] = INK;
 }
 }
+// Mount Monolith's middle icefall and the snow that covers it until the avalanche (E5c). The ground
+// keeps the bare blue seracs; the scene draws the cover over them. The painting is worked out again here,
+// since a bake holds only the finished picture, and lined up with the picture by where its icefall
+// matches the ground best. Each pixel keeps the plain snow that would lie there and how far down the
+// icefall it is (0 to 255). foot is where the snow runs out below it, down the glacier.
+const MONO_COVER = (() => {
+  const P = paintMonolith(), ox = VOLC.cu - PMCX, n = P.cover.length / 3; if (!n) return null;
+  const fit = oy => { let m = 0; for (let j = 0; j < n; j += 5) { const k = P.cover[3 * j], x = ox + k % PMW, y = oy + ((k / PMW) | 0); if (x >= 0 && y >= 0 && x < NW && y < SH && g[px(x, y)] === P.d[k]) m++; } return m; };
+  const guess = Math.round(SY - VOLC.cv - VOLC.H - PTOPY); let oy = guess, best = -1;
+  for (let o = guess - 200; o <= guess + 200; o++) { const m = fit(o); if (m > best) { best = m; oy = o; } }
+  const at = [], snow = [], q = []; let x0 = NW, x1 = 0, y0 = SH, y1 = 0, sx = 0, sn = 0;
+  for (let j = 0; j < n; j++) { const k = P.cover[3 * j], x = ox + k % PMW, y = oy + ((k / PMW) | 0); if (x < 0 || y < 0 || x >= NW || y >= SH || g[px(x, y)] !== P.d[k]) continue;
+    at.push(px(x, y)); snow.push(P.cover[3 * j + 1]); q.push(P.cover[3 * j + 2]); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); if (P.cover[3 * j + 2] > 200) { sx += x; sn++; } }
+  if (at.length < 50) return null;
+  const cx = Math.round(sn ? sx / sn : (x0 + x1) / 2); let fy = y1, miss = 0;
+  while (fy < SH - 1 && miss < 3) { fy++; const k = RAMP_OF[g[px(cx, fy)]]; miss = k === 'snow' || k === 'serac' ? 0 : miss + 1; }
+  return { at: Int32Array.from(at), snow: Uint8Array.from(snow), q: Uint8Array.from(q), x0, x1, y0, y1, cx, foot: [cx, fy - 3] };
+})();
 // Each destination and its country (D12a, D12b), worked out from the heights, materials and depth the
 // bake already holds, so it costs nothing to keep. First on the map, by rules from the land:
 // 1 About Lake: the lake, the bench it lies on (where the bench is the ground), and the lake loop's last
@@ -1059,7 +1077,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { g, depth: zb, mat: mb, bare, fogField, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { g, depth: zb, mat: mb, bare, fogField, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -1329,7 +1347,7 @@ export function buildTerrain() {
     }
     for (let x = 0; x < X1; x++) for (let y = 1; y < SH; y++) { const i = y * NW + x; if (M[i] < 60 || M[i - NW]) continue; for (let k = 1; k <= 22 && y - k >= 0; k++) { const j = i - k * NW; if (M[j]) break; M[j] = Math.round(M[i] * (1 - k / 24)); } }
     return M; })();
-  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, avalanche: LAND.monoCover, vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the
