@@ -459,6 +459,39 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       return out;
     },
     // A still picture of part of the map as a canvas, for the trail map.
+    // The trail map sheet's dots (L9), found from the routes themselves: a stop on a stretch of map sits on that
+    // stretch of trail; one in a scene between two stretches of the same trail (the forest and the shore) sits
+    // on the part of trail that scene stands for, by time; one on the climb sits on the line from the foot of
+    // the ridge to the summit; base camp at the trail's end; each project on its own summit.
+    async mapDots() {
+      const out = [{ id: '', x: world.T.x, y: world.T.y, big: true }];
+      for (const r of ['lake', 'stack', 'spires']) {
+        await need(ROUTES[r]().map(l => l[0]));
+        const legs = ROUTES[r]().filter(([n]) => scenes[n]).map(([n, arg]) => ({ n, arg, dur: scenes[n].dur(arg), stops: scenes[n].stops(arg) }));
+        legs.forEach((l, i) => { for (const st of l.stops) {
+          let pt;
+          if (l.n === 'world') { const a = world.paths[l.arg.path].at(lerp(l.arg.from, l.arg.to, st.at)); pt = [a.x, a.y]; }
+          else {
+            let j = i - 1, k = i + 1; while (j >= 0 && legs[j].n !== 'world') j--; while (k < legs.length && legs[k].n !== 'world') k++;
+            const before = legs[j], after = legs[k], P = world.paths[before ? before.arg.path : r];
+            if (before && after && before.arg.to !== after.arg.from) {
+              let t = 0, T = 0; for (let m = j + 1; m < k; m++) { if (m < i) t += legs[m].dur; else if (m === i) t += st.at * legs[m].dur; T += legs[m].dur; }
+              const a = P.at(lerp(before.arg.to, after.arg.from, t / T)); pt = [a.x, a.y];
+            } else if (r === 'stack') {
+              // Stops on the climb, spaced evenly from the foot of the ridge to the summit in their order, stepping
+              // left and right of the line as a route zigzags up, so their dots stand clear of each other.
+              const n = l.stops.length, m = l.stops.indexOf(st), f = (m + 1) / n, a = P.at(1), side = m === n - 1 ? 0 : m % 2 ? 24 : -24;
+              pt = [lerp(a.x, world.peakTop[0], f) + side, lerp(a.y, world.peakTop[1], f)];
+            }
+            else { const a = P.at(before ? before.arg.to : 1); pt = [a.x, a.y]; }
+          }
+          out.push({ id: st.id, x: Math.round(pt[0]), y: Math.round(pt[1]) });
+        } });
+      }
+      world.spireTops.forEach(([x, y], k) => { if (SPIRES[k]) out.push({ id: SPIRES[k], x, y: y + 3 }); });
+      return out;
+    },
+    mapFrame: () => world.mapFrame(),
     mapImage(x, y, w, h) {
       const cv = document.createElement('canvas'), still = new Screen(cv, [w, h]);
       world.still(still, x, y, env); still.present(env.t, mix);

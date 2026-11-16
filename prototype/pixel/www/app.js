@@ -231,15 +231,11 @@ function openDebug(on) {
 }
 
 // Where each milestone sits on the brochure map, in world pixels.
-const MAP = { x: 440, y: 300, w: 1260, h: 781 };
-const DOTS = [
-  ['', 560, 470, true], ['who', 352, 526], ['mountains', 384, 396], ['note', 446, 374],
-  ['platform-engineering', 545, 366], ['site-reliability-engineering', 545, 338], ['software-engineering', 545, 308], ['summit', 545, 272],
-  ['base-camp', 676, 410], ['bluebird', 703, 229], ['tks', 732, 253], ['hevy-garmin-sync', 675, 271], ['trailhead', 759, 279], ['yggdrasil', 649, 302], ['kubernetes-manifests', 782, 306]
-];
+// The trail map (L9): a picture of the new map framed round the Trailhead and the three destinations, its
+// dots placed from the routes themselves (`api.mapDots()`), so they follow the map when it changes.
 function trailMap() {
-  const box = el('div', { class: 'mapbox', style: `aspect-ratio:${MAP.w}/${MAP.h}` }), cv = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); box.append(cv);
-  for (const [id, x, y, big] of DOTS) { const name = id === '' ? UI.map.title : UI.map.dots[id] || (CARDS[id] ? CARDS[id].title : PROJECTS[id].name); box.append(el('button', { class: 'dot' + (big ? ' big' : ''), style: `left:${(x - MAP.x) / MAP.w * 100}%;top:${(y - MAP.y) / MAP.h * 100}%`, 'aria-label': name, onclick: () => navigate('#' + slugOf(id)) }, el('span', { text: name }))); }
+  const MAP = api.mapFrame(), box = el('div', { class: 'mapbox', style: `aspect-ratio:${MAP.w}/${MAP.h}` }), cv = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); box.append(cv);
+  api.mapDots().then(dots => { for (const { id, x, y, big } of dots.filter(d => d.id === '' || UI.map.dots[d.id] || CARDS[d.id] || PROJECTS[d.id])) { const name = id === '' ? UI.map.title : UI.map.dots[id] || (CARDS[id] ? CARDS[id].title : PROJECTS[id].name); box.append(el('button', { class: 'dot' + (big ? ' big' : ''), style: `left:${(x - MAP.x) / MAP.w * 100}%;top:${(y - MAP.y) / MAP.h * 100}%`, 'aria-label': name, onclick: () => navigate('#' + slugOf(id)) }, el('span', { text: name }))); } });
   // Under the map, the same places as words: every milestone is a link.
   const lengths = api.info().lengths, list = ids => el('ul', {}, ...ids.map(id => el('li', {}, el('button', { text: CARDS[id] ? CARDS[id].title : PROJECTS[id].name, onclick: () => navigate('#' + slugOf(id)) }))));
   const key = el('div', { class: 'key' },

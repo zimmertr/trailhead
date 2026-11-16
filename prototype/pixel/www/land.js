@@ -1335,6 +1335,12 @@ export function buildTerrain() {
     // Where each destination's name is pinned: on the lake, on Proficiency Peak's wall, on the ice under the Spires.
     places: { lake: [lake[0], LAND.toY(lake[0], lake[1]) - 8], stack: [peak.cu, topOf(peak.cu, 'fin') + 44], spires: [sp.cu + 10, LAND.toY(sp.cu, 598)] },
     // A flag for each finished destination: at the lake shore, on Proficiency Peak, on the Spires' highest summit.
+    // The six projects' summits on the map's Spires (L9): the six highest tops along the wall's skyline, at least
+    // a ninth of its width apart, west to east in the order of the climbs.
+    spireTops: (() => { const cols = []; for (let x = Math.max(1, Math.round(sp.cu - 420)); x < Math.min(NW - 1, sp.cu + 420); x++) { const t = topOf(x, 'wall'); if (t > 0) cols.push([x, t]); }
+      if (cols.length < 6) return []; const gap = (cols[cols.length - 1][0] - cols[0][0]) / 9, picks = [];
+      for (const c of [...cols].sort((a, b) => a[1] - b[1])) { if (picks.length === 6) break; if (picks.every(p => Math.abs(p[0] - c[0]) >= gap)) picks.push(c); }
+      return picks.sort((a, b) => a[0] - b[0]); })(),
     flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
     // Signs and animals, each placed by its rule (habitat, above).
     signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,

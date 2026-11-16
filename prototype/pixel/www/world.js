@@ -520,6 +520,18 @@ export function makeWorld(bake) {
 
   return {
     name: 'world', paths, lakeIn, lakeOut, spiresIn, T, WW, WH,
+    // For the trail map sheet (L9): the peak's summit and the six Spires summits on the map, and the picture's
+    // frame: the box round the Trailhead and the three destinations' countries with a margin, widened to the
+    // sheet's shape (8 by 5) and kept on the map.
+    peakTop: [spots.flags.stack.x, spots.flags.stack.y - spots.flags.stack.lift], spireTops: spots.spireTops,
+    mapFrame() {
+      let x0 = T.x, x1 = T.x, y0 = T.y, y1 = T.y;
+      for (let k = 1; k <= 3; k++) { const b = W.destBox[k]; if (b.x1 < 0) continue; x0 = Math.min(x0, b.x0); x1 = Math.max(x1, b.x1); y0 = Math.min(y0, b.y0); y1 = Math.max(y1, b.y1); }
+      x0 -= 40; x1 += 40; y0 -= 30; y1 += 40;
+      let w = x1 - x0, h = y1 - y0; if (w / h < 1.6) { const d = h * 1.6 - w; x0 -= d / 2; w = h * 1.6; } else { const d = w / 1.6 - h; y0 -= d / 2; h = w / 1.6; }
+      w = Math.min(w, WW); h = Math.min(h, WH); x0 = clamp(x0, 0, WW - w); y0 = clamp(y0, 0, WH - h);
+      return { x: Math.round(x0), y: Math.round(y0), w: Math.round(w), h: Math.round(h) };
+    },
     // The distances (L8), all read off the map's own trails at one scale, as a trail sign gives them: to the
     // lake's shore along the loop (where it comes out by the water), to the foot of the peak's ridge, to base
     // camp; and the lake loop all the way round, for the trail map. Round 3 wrote the lake's 5.2 by hand.
