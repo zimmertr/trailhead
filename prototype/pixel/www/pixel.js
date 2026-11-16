@@ -432,6 +432,13 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     forget() { for (const k in done) delete done[k]; saveDone(); for (const k in found) delete found[k]; try { localStorage.removeItem('trailhead.found'); } catch { /* private window */ } },
     found: () => ({ ...found }),
     find,
+    // For test scripts (L11): where in the view, in CSS pixels, the first thing that answers to a click named
+    // act is drawn (a prefix will do), or null. The test then clicks there as a visitor would.
+    hitAt(act) {
+      if (!drawn.scene.pick) return null; const k = scr.S / (window.devicePixelRatio || 1);
+      for (let y = 0; y < scr.VH; y += 2) for (let x = 0; x < scr.VW; x += 2) { const h = drawn.scene.pick(x, y); if (h && h.act && h.act.startsWith(act)) return [Math.round(x * k), Math.round(y * k)]; }
+      return null;
+    },
     // Marks routes as finished without walking them (the screenshots use it).
     mark(list) { for (const k of list) { done[k] = true; if (k.startsWith('spire:')) done.spires = true; } },
     // How many CSS pixels one pixel of the page's own size takes: the panels are drawn at this size whatever the map's zoom.

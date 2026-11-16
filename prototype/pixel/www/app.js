@@ -254,7 +254,9 @@ function trailMap() {
     el('button', { class: 'plank', onclick: e => { nextTrack(); e.currentTarget.querySelector('small').textContent = trackName(); } }, el('span', { text: UI.map.music }), el('small', { text: trackName() })),
     el('button', { class: 'plank', onclick: e => { audio.start(); e.currentTarget.querySelector('small').textContent = audio.setSet(audio.set().index + 1); audio.sfx('flag'); } }, el('span', { text: UI.map.playedOn }), el('small', { text: audio.set().name })),
     el('button', { class: 'plank', onclick: () => { toggleDusk(); } }, el('span', { text: UI.map.dusk })),
-    el('button', { class: 'plank', onclick: () => { api.forget(); say(UI.map.cleared); closeSheet(); } }, el('span', { text: UI.map.clear })),
+    // Clear my flags (L11): the finished routes and the finds, and the note that the register is open, so
+    // finishing all three again says so again. A signed register entry is the visitor's own words and stays.
+    el('button', { class: 'plank', onclick: () => { api.forget(); try { localStorage.removeItem('trailhead.told'); } catch { /* private window */ } buildMarks(); say(UI.map.cleared); closeSheet(); } }, el('span', { text: UI.map.clear })),
     el('p', { class: 'legend', text: UI.map.legend }),
     el('button', { class: 'plank debug-sign', onclick: () => { closeSheet(); openDebug(true); } }, el('span', { text: UI.debug.title })));
   return [el('div', { class: 'band' }, el('h2', { text: UI.map.title }), el('p', { text: UI.map.sub })), el('div', { class: 'cols' }, el('div', {}, box, key), side)];

@@ -96,6 +96,17 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - A shivering belayer on the West Ridge: when the scene looks windy and cold, whoever is belaying visibly shivers while waiting for the climber (TJ, 2026-11-15; not part of the round 4 build).
 - **The eyes in the fog as a thing to find.** Tapping a pair of eyes at Dusk before they blink out could count as a find, with a short line in the voice of the rainforest. The owl could hoot (a soft `audio.js` call) when tapped.
 
+### Finds for TJ to choose from (L11, nothing built)
+
+The list has 17 finds and every one still answers. New ones wait for TJ's pick (J6, the walk to camp, has none yet). Candidates, each tied to something true about him:
+
+- **Kayti's painting at camp.** Tapping her easel shows what she is painting that day: one of the six summits.
+- **A cairn on the moraine crest (J6).** Tapping it adds a stone, the way every party does on the way to camp.
+- **The ferry's horn.** Tapping the ferry when it is in view sounds its horn, for the Seattle commute.
+- **A shooting star at Dusk.** Tapping one before it fades counts, and shows the one place TJ would go to watch them.
+- **The elk in the meadow.** Tapping the bull at the right moment makes him bugle, as they do in the Olympics each fall.
+- **His real summit list.** A small summit log on Proficiency Peak's top that opens to the peaks TJ has stood on (with the register idea above).
+
 ### Page and feel
 
 - **A photo mode.** One key hides every sign and card for a clean screenshot of the view.
