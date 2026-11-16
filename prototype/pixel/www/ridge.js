@@ -308,7 +308,7 @@ function paintBasin() {
 // filling it, until by the top they look down on a sea of cloud with peaks standing out of it. top is
 // the screen row of the sea's surface, c how far it has gathered (0 to 1), sx the basin's scroll, so
 // the billows stay with the ground under them and drift slowly east.
-function cloudSea(scr, top, c, t, sx) {
+function cloudSea(scr, top, c, t, sx, bot = 1e9) {
   if (c <= 0) return;
   const { VW, VH, fb } = scr;
   for (let x = 0; x < VW; x++) {
@@ -318,16 +318,27 @@ function cloudSea(scr, top, c, t, sx) {
     const bil = 5 * vnoise(wx / 21 - t * 0.04, 1, 776) + 3 * Math.abs(Math.sin(wx / 7 + 3 * vnoise(wx / 30, 3, 776) - t * 0.15)) + 6 * d;
     const y0 = Math.round(top - bil + (d < 0 ? smooth(0, 1, -d) * 45 : 0));
     if (y0 >= VH) continue;
-    cloudCol(fb, VW, VH, x, Math.max(0, y0), y0, wx);
+    cloudCol(fb, VW, VH, x, Math.max(0, y0), y0, wx, bot + Math.round(4 * vnoise(wx / 11, 9, 778) + 2 * Math.sin(wx / 5 + t * 0.2)));
+  }
+}
+// Under the cloud (H16a): grey, flat light from the cloud's underside fading darker toward the ground.
+function gloom(scr, y0) {
+  const { VW, VH, fb } = scr, N = R.nebel;
+  for (let y = y0; y < VH; y++) {
+    const f = clamp((y - y0) / 160, 0, 1) * 1.6, b = Math.floor(f), e = f - b, row = y * VW;
+    for (let x = 0; x < VW; x++) fb[row + x] = N[3 - Math.min(2, b + (bayer(x, y) < e ? 1 : 0))];
   }
 }
 // One column of the cloud sea from its top down: a sunlit top, a soft shaded band under it, then
 // the sea itself with the rolls of further billows in it, wider apart the nearer they are.
-function cloudCol(fb, VW, VH, x, ys, y0, wx) {
-  for (let y = ys; y < VH; y++) {
+function cloudCol(fb, VW, VH, x, ys, y0, wx, yb = 1e9) {
+  const end = Math.min(VH, yb);
+  for (let y = ys; y < end; y++) {
     const k = y - y0, per = 6 + k * 0.12, roll = (k + 3 * vnoise(wx / 13, Math.floor(k / per), 777)) % per;
     let col = k < 1 ? R.white[1] : k < 3 ? R.farsnow[1] : k < 8 ? (bayer(x, y) < (k - 3) / 5 ? R.farsnow[0] : R.farsnow[1]) : R.farsnow[0];
     if (k >= 8 && roll < 1) col = R.farsnow[1]; else if (k >= 8 && roll < 2 && bayer(x, y) < 0.5) col = R.sky[4];
+    // The underside, where there is one: a soft grey fringe.
+    if (yb - y <= 4) col = yb - y <= 2 ? (bayer(x, y) < 0.5 ? R.nebel[3] : R.farsnow[0]) : R.nebel[3];
     fb[y * VW + x] = col;
   }
 }
@@ -578,7 +589,14 @@ const SUMMIT_LEN = 5.6, FIVES = [{ a: 'tj', b: 'lead', at: 1.9 }, { a: 'red', b:
 // off as the one before sinks out of sight. The scene ends as TJ goes under, and the round window
 // closes to the map. The other rappels down the north side are in the cloud, unseen.
 const ZIP = 2.6, DESC = { walk: { lead: [0, 1.2], tj: [1.0, 2.2], red: [1.6, 3.0] }, rig: [1.2, 3.4], toss: [3.4, 4.2], turn: { lead: 4.2, red: 7.6, tj: 11.0 } };
-const DESC_LEN = DESC.turn.tj + 1.5 + 0.8 * ZIP + 0.4;
+// Under the cloud (H16a, TJ's in-joke: their real rope stuck and had to be left), in seconds after the
+// camera follows TJ into it: he comes down the last rappel out of the cloud's underside, unclips; all
+// three pull the rope down; its tail whips up the face and jams in the flake that eats ropes; they
+// heave on it three times, look at each other, shrug, and TJ walks off west round the tower's foot,
+// the way back to the packs. Nobody climbs the stuck rope.
+DESC.under = DESC.turn.tj + 1.5 + 0.8 * ZIP;
+const UNDER = { out: 1.2, land: 3.0, unclip: 3.6, snag: 6.2, heave: [6.4, 9.4], look: 9.6, shrug: [11.0, 12.2], walk: 12.6 };
+const DESC_LEN = DESC.under + UNDER.walk + 1.3;
 function makeScript() {
   const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [], anc = [];
   let slipAt = -1, fallAt = -1;
@@ -691,7 +709,7 @@ const META = {
   stops: () => SCRIPT.stops.map(s => ({ id: s.id, at: s.t / DUR })),
   elev: (arg, q) => posAt(stateAt(q * DUR).tj.d).h,
   // The fist bump, and a click of metal as each piece goes in.
-  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, ...FIVES.map(v => ({ at: (SCRIPT.sumT + v.at) / DUR, name: 'slap' })), { at: (SCRIPT.sumT + 4.4) / DUR, name: 'summit' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' })), ...[2.0, 2.8].map(v => ({ at: (SCRIPT.descT + v) / DUR, name: 'place' })), ...WHO.flatMap(w => [{ at: (SCRIPT.descT + DESC.turn[w] + 1.1) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.turn[w] + 1.55) / DUR, name: 'glissade' }])]
+  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, ...FIVES.map(v => ({ at: (SCRIPT.sumT + v.at) / DUR, name: 'slap' })), { at: (SCRIPT.sumT + 4.4) / DUR, name: 'summit' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' })), ...[2.0, 2.8].map(v => ({ at: (SCRIPT.descT + v) / DUR, name: 'place' })), ...WHO.flatMap(w => [{ at: (SCRIPT.descT + DESC.turn[w] + 1.1) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.turn[w] + 1.55) / DUR, name: 'glissade' }]), { at: (SCRIPT.descT + DESC.under + UNDER.unclip - 0.4) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.under + UNDER.snag) / DUR, name: 'catch' }]
 };
 
 // Every drawing one of them needs, in their own kit. On the ground: walking, standing, crouched,
@@ -736,6 +754,10 @@ function kitFrames(kit) {
     rig: [0, 1].map(f => sideFig(kit, { crouch: 4, lean: 4, look: 'down', hands: [[6, 7 - f], [4 + f, 6]], feet: [[3, 8.5], [-3, 8.5]] })),
     toss: sideFig(kit, { lean: 2, hands: [[7, -1], [6, 1]] }),
     clip: [0, 1].map(f => sideFig(kit, { lean: 1, look: 'down', hands: [[3, 4 - f], [2, 5]] })),
+    // Pulling the rope down hand over hand, heaving on it with all their weight, and a shrug.
+    pull: [sideFig(kit, { lean: -1, look: 'up', hands: [[4, -6], [3, -1]] }), sideFig(kit, { lean: -1, look: 'up', hands: [[4, -2], [4, -7]] })],
+    heave: sideFig(kit, { lean: -3, crouch: 3, look: 'up', hands: [[5, -4], [4, -2]], feet: [[-3, 8.5], [3, 8.5]] }),
+    shrug: frontFig(kit, { held: (b, cx, y) => { const K = typeof kit === 'string' ? KITS[kit] : kit; for (const sd of [-1, 1]) { for (let yy = y + 3; yy <= y + 7; yy++) { b.set(cx + 5 * sd, yy, 0); b.set(cx + 4 * sd, yy, 0); } b.set(cx + 5 * sd, y + 3, K.top[1]); b.set(cx + 6 * sd, y + 2, K.top[1]); b.set(cx + 7 * sd, y + 1, K.top[1]); b.set(cx + 8 * sd, y, K.hand[1]); b.set(cx + 9 * sd, y, K.hand[1]); } } }),
     rap: [sideFig(kit, { lean: -2, hands: [[3, -4], [-3, 6]], feet: [[8, 1], [7, 3]] }), sideFig(kit, { lean: -1, hands: [[3, -5], [-3, 6]], feet: [[6, 2], [5, 4]] })]
   };
 }
@@ -910,8 +932,59 @@ function buildRidge() {
   for (const k in WAIT) WAIT[k] = { x: WAIT[k], h: CREST[WAIT[k]] };
   const CAMD = LIPH - 50, CLOUDH = 0.88 * CAMD - 15 + 31 * smooth(220, 430, CAMD) + 10, HIP0 = EDGE.h + 4;
   const zease = u => u + 0.05 * Math.sin(6 * Math.PI * u), DROP = (HIP0 + 13 - (CLOUDH - 6)) / zease(0.8);
+  // Under the cloud, by rule: the landing is where the east edge, going down from the lip, first meets
+  // gentle ground; each stands there, TJ by the rock, the other two a step and two steps out. The
+  // cloud's underside is 150 above the landing, and the flake that eats ropes is on the edge 55 above
+  // it, painted into the rock: a sliver standing off the face with a dark crack behind it.
+  const LH = Math.round(CLOUDH - 85), E0 = EAST(LH), CB = LH + 70, LX = EAST(LH + 8) + 8, LANDS = {};
+  for (const [w, dx] of [['tj', 0], ['lead', 13], ['red', 25]]) LANDS[w] = { x: LX + dx, h: LH };
+  // The ledge they land on: a shelf of the tower's pale rock standing out from the east face, lit on
+  // top, thinning toward its end, ink under it and a dark joint where it meets the face.
+  for (let x = E0 - 1; x <= E0 + 46; x++) {
+    const u = (x - E0) / 46, th = Math.round(lerp(8, 3, u) + (u > 0.9 ? -2 * (u - 0.9) * 10 : 0)), top = LH - (u > 0.95 ? 1 : 0);
+    for (let k = 0; k <= th; k++) {
+      const h = top - k, c = k === 0 ? (hash(x, 1, 790) < 0.3 ? R.gold[6] : R.granite[5]) : k === th ? INK : pick('granite', 0.32 + 0.66 * (0.62 - 0.08 * k), x, h);
+      main.set(x, -h, x === E0 - 1 && k > 0 ? INK : c);
+    }
+    if (x === E0 + 46) for (let k = 0; k <= th; k++) main.set(x + 1, -(top - k), INK);
+  }
+  // The flake that eats ropes: a pale sliver standing off the face, with a dark slot behind it that
+  // closes at its top, where a rope's end can jam.
+  const FL = (() => {
+    const hf = LH + 46;
+    for (let j = 0; j < 18; j++) {
+      const h = hf - 8 + j, e = EAST(h), joined = j >= 14, slot = j >= 1 && j < 14;
+      for (let k = 1; k <= 6; k++) {
+        let c = 0;
+        if (k <= 2) c = slot ? INK : joined && k <= 4 - (j - 14) ? pick('granite', 0.45, e + k, h) : 0;
+        else if (k <= 5) c = j === 0 ? INK : joined && k > 4 - (j - 14) ? 0 : k === 3 ? R.gold[6] : pick('granite', 0.75 - 0.15 * (k - 3), e + k, h);
+        else c = j < 14 ? INK : 0;
+        if (c) main.set(e + k, -h, c);
+      }
+    }
+    for (let k = 1; k <= 4; k++) main.set(EAST(hf + 10) + k, -(hf + 10), INK);
+    return { x: EAST(hf + 3) + 2, h: hf + 3 };
+  })();
+  const underAt = (w, a) => {
+    const L = LANDS[w];
+    if (w === 'tj' && a < UNDER.land) {
+      const u = clamp((a - UNDER.out) / (UNDER.land - UNDER.out), 0, 1), hip = lerp(CB + 10, L.h + 8, u + 0.04 * Math.sin(4 * Math.PI * u));
+      const out = 3 * Math.abs(Math.sin(2 * Math.PI * u)) ** 3, e = smooth(0.8, 1, u);
+      return { x: lerp(EAST(hip) + 8 + out, L.x, e), h: hip - 8, dp: u < 0.97 ? 'zip' : 'clip', push: out > 1, left: true, zu: 2 };
+    }
+    if (a < UNDER.land) return { x: L.x, h: L.h, dp: 'stand', left: true };
+    if (a < UNDER.unclip) return { x: L.x, h: L.h, dp: w === 'tj' ? 'clip' : 'stand', left: true };
+    if (a < UNDER.heave[0]) return { x: L.x, h: L.h, dp: 'pull', left: true };
+    if (a < UNDER.heave[1]) return { x: L.x, h: L.h, dp: frac((a - UNDER.heave[0]) / 1.0) < 0.55 ? 'heave' : 'pull', left: true };
+    if (a < UNDER.look) return { x: L.x, h: L.h, dp: 'stand', left: true };
+    if (a < UNDER.shrug[0]) return { x: L.x, h: L.h, dp: 'stand', left: w !== 'tj' };
+    if (a < UNDER.shrug[1]) return { x: L.x, h: L.h, dp: 'shrug', left: true };
+    if (w === 'tj' && a >= UNDER.walk) return { x: L.x - 24 * (a - UNDER.walk), h: L.h, dp: 'walk', left: true, where: 'n' };
+    return { x: L.x, h: L.h, dp: 'stand', left: w !== 'tj' || a < UNDER.walk - 0.2 };
+  };
   // Where one of them is v seconds into the descent, in what pose (dp), facing which way (left).
   const descAt = (w, v) => {
+    if (v >= DESC.under) return underAt(w, v - DESC.under);
     const T = DESC.turn[w], wk = DESC.walk[w], wt = WAIT[w];
     if (v < T) {
       if (v < wk[1]) { const x = lerp(SUMMIT[w].x, wt.x, smooth(wk[0], wk[1], v)); return { x, h: CREST[Math.round(x)], dp: v > wk[0] ? 'walk' : 'stand', left: false }; }
@@ -976,6 +1049,43 @@ function buildRidge() {
     }
     rope(scr, rp, false);
   }
+  // The rope under the cloud: both strands down the edge from the cloud to a pile at its foot; TJ on
+  // it coming down; then strand A from their hands to the foot and up the edge, while the other strand's
+  // tail whips up the edge (a little out from it), jams in the flake and hangs tight from it.
+  const up = (out, h0, dx, cx, rowOf) => { for (let h = h0; h < CB + 40; h += 6) out.push(EAST(h) + dx - cx, rowOf(h)); };
+  function underRope(scr, a, P, cx, rowOf) {
+    const foot = LH + 2;
+    rp.length = 0;
+    if (a < UNDER.unclip && P.tj.dp === 'zip') {
+      const dx = Math.round(P.tj.x) - 2, hh = P.tj.h + 8;
+      rp.push(EAST(CB + 40) + 1 - cx, rowOf(CB + 40), dx - cx, rowOf(hh));
+      for (let h = hh - 6; h > foot; h -= 6) rp.push(Math.max(dx, EAST(h) + 1) - cx, rowOf(h));
+      rp.push(EAST(foot) + 3 - cx, rowOf(foot - 1));
+      rope(scr, rp, false); return;
+    }
+    if (a < UNDER.unclip || a >= UNDER.shrug[0]) {
+      rp.push(Math.round(P.lead.x) - 3 - cx, rowOf(P.lead.h + 1), EAST(foot) + 2 - cx, rowOf(foot)); up(rp, foot + 6, 1, cx, rowOf); rope(scr, rp, false);
+    } else {
+      for (const w of ['red', 'lead', 'tj']) { const q = P[w]; rp.push(Math.round(q.x) - 5 - cx, rowOf(q.h + (q.dp === 'heave' ? 13 : 17))); }
+      rp.push(EAST(foot + 10) + 1 - cx, rowOf(foot + 10)); up(rp, foot + 16, 1, cx, rowOf); rope(scr, rp, false);
+    }
+    // The other strand.
+    rp.length = 0;
+    if (a < UNDER.unclip) { rp.push(EAST(foot) + 6 - cx, rowOf(foot)); up(rp, foot + 6, 5, cx, rowOf); rope(scr, rp, true); return; }
+    const e = smooth(UNDER.unclip, UNDER.snag, a) ** 1.4, th = lerp(foot, FL.h, e), stuck = a >= UNDER.snag;
+    let tip;
+    if (stuck) {
+      // Jammed: the end hangs out under the slot, and from the slot the rope runs tight up into the cloud.
+      tip = [FL.x + 4 - cx, rowOf(FL.h - 11)]; rp.push(...tip, FL.x + 2 - cx, rowOf(FL.h - 5), FL.x - cx, rowOf(FL.h), EAST(CB + 40) + 6 - cx, rowOf(CB + 40));
+    } else {
+      // Running: the end whips up the face, the last of the rope flailing behind it.
+      for (let k = 0; k <= 6; k++) { const h = th + 4 * k, wob = 6 * (1 - k / 7) * Math.sin(a * 23 - k * 1.3); rp.push(EAST(h) + 6 + Math.round(wob) - cx, rowOf(h)); }
+      tip = [rp[0], rp[1]]; up(rp, Math.ceil(th) + 30, 5, cx, rowOf);
+    }
+    rope(scr, rp, true);
+    scr.set(tip[0], tip[1], R.white[1]); scr.set(tip[0], tip[1] + 1, R.white[1]);
+    if (stuck) spark(scr, FL.x - cx, rowOf(FL.h), (a - UNDER.snag) * 0.5);
+  }
   return {
     ...META,
     enter(scr, arg, q) { const p = posAt(stateAt(q * DUR).tj.d); camX = p.x; camH = p.h; st.y = null; },
@@ -992,10 +1102,11 @@ function buildRidge() {
       const ends = S.ropes.length ? S.ropes.map(r => held(r) ? mid(posAt(S[r.a].d), posAt(S[r.b].d)) : posAt(S[r.b].d)) : [posAt(S.tj.d)], at = { x: ends.reduce((a, p) => a + p.x, 0) / ends.length, h: ends.reduce((a, p) => a + p.h, 0) / ends.length };
       const dv = tau - SCRIPT.descT;
       if (dv >= 0) { at.x = LIPX + 6; at.h = CAMD; }
+      if (dv >= DESC.under) { at.x = LX + 24; at.h = LH + 45; }
       camX += (at.x - camX) * k; camH += (at.h - camH) * k;
       // The wind where the camera is, and the gust's strength; a whoosh as each gust arrives, louder
       // high up (none at the foot, where there is no wind to speak of).
-      const gu = gustAt(t), g = gu ? Math.sin(Math.PI * gu[0] / GUSTR.len) : 0, wnd = windy(camH), wob = 2.5 * wnd * (0.35 + g);
+      const gu = gustAt(t), g = gu ? Math.sin(Math.PI * gu[0] / GUSTR.len) : 0, wnd = tau - SCRIPT.descT >= DESC.under ? 0 : windy(camH), wob = 2.5 * wnd * (0.35 + g);
       if (gu && gu[1] !== gustHeard) { gustHeard = gu[1]; if (wnd > 0.12 || typeof gu[1] === 'string') env.sfx(wnd > 0.55 ? 'windHi' : 'wind'); }
       const base = baseline(scr, env.shown && !String(env.shown).startsWith('wait:'), st) - Math.round(VH * (scr.narrow ? 0.2 : 0.24)), cx = clamp(Math.round(camX - VW * (scr.narrow ? 0.5 : 0.45)), 0, W - VW), rowOf = hh => Math.round(base + camH - hh);
       const sb = R.skyband;
@@ -1008,6 +1119,8 @@ function buildRidge() {
       drawStrip(scr, basin, 300 + cx * 0.4, base + camH * 0.12 - 25, false, R.far[1]);
       const seaC = smooth(220, 430, camH), seaTop = base + camH * 0.12 - 25 + 40 - 31 * seaC, seaX = Math.round(300 + cx * 0.4);
       cloudSea(scr, seaTop, seaC, t, seaX);
+      const cbH = CB - 8 * Math.max(0, camH - (LH + 45));
+      if (dv >= DESC.under) gloom(scr, Math.max(0, rowOf(cbH)));
 
       // One of them, in the pose the script gives, at their place on the line.
       const P = {};
@@ -1048,6 +1161,9 @@ function buildRidge() {
           if (s.dp === 'toss') { put(fr.toss, sx, sy, false); return; }
           if (s.dp === 'clip') { put(fr.clip[Math.floor(t * 4) & 1], sx, sy, true); return; }
           if (s.dp === 'zip') { put(fr.rap[s.push ? 1 : 0], sx, sy, true); return; }
+          if (s.dp === 'pull') { put(fr.pull[Math.floor(t * 4) & 1], sx, sy, true); return; }
+          if (s.dp === 'heave') { put(fr.heave, sx, sy, true); return; }
+          if (s.dp === 'shrug') { put(fr.shrug, sx, sy, false); return; }
           // Waiting their turn, they watch the edge.
           put(fr.idle, sx, sy, s.left); return;
         }
@@ -1151,7 +1267,8 @@ function buildRidge() {
         anchorPiece(scr, RAPA, 'block', cx, rowOf);
         if (dv > DESC.rig[0] + 1.6) { const rx = RAPA.x - cx, ry = rowOf(RAPA.bot); drawBiner(scr, rx, ry); }
       }
-      if (dv > DESC.toss[0]) descRope(scr, dv, P, cx, rowOf);
+      if (dv > DESC.toss[0] && dv < DESC.under) descRope(scr, dv, P, cx, rowOf);
+      if (dv >= DESC.under + 0.5) underRope(scr, dv - DESC.under, P, cx, rowOf);
       if (DEBUG.animals) { const gx = goatAt.x - cx, near = Math.abs(P.tj.x - goatAt.x) < 160; if (gx > -30 && gx < VW + 30) scr.put(near ? GOAT.look : GOAT.stand, gx, rowOf(goatAt.h) + 1, P.tj.x < goatAt.x); }
       for (const w of WHO) if (P[w].where !== 'n') draw1(w);
       // Jackets snap downwind and loose hair streams from under a helmet once there is wind.
@@ -1161,7 +1278,9 @@ function buildRidge() {
         else if (fg.side) { flap(scr, fg.x + 3, fg.y - 9, ko.top, t, wnd, g, sd); if (!s.hood && ko.long && ko.hair && fg.f) hair(scr, fg.x + 5, fg.y - 17, ko.hair, t, wnd, g, sd); }
       }
       // The cloud wells up the tower as they come down, in front of the rock, until its top is the sea's.
-      if (dv > 0.5) cloudSea(scr, seaTop + (1 - smooth(0.5, 4.0, dv)) * VH, seaC, t, seaX);
+      // Going under, the cloud's top races up out of sight as the camera sinks into it.
+      if (dv >= DESC.under) cloudSea(scr, rowOf(CLOUDH + 6 * Math.max(0, CAMD - camH)), 1, t, seaX, rowOf(cbH));
+      else if (dv > 0.5) cloudSea(scr, seaTop + (1 - smooth(0.5, 4.0, dv)) * VH, seaC, t, seaX);
       // While he places a cam: in his raised hand, lobes shut, then pushed up into the crack.
       for (let i = 0; i < pro.length; i++) {
         const g = pro[i], sp = SPOT[i];
