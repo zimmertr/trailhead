@@ -116,3 +116,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **A trail all the way up.** Switchbacks, a signpost at each bend, a cable handrail near the top. The summit anyone could walk to.
 - **A rock tower by its chimney.** Free climbing with an old tree's roots hanging down the chimney as holds, two ravens, a squirrel on the trunk.
 - **A name tag that rises with its place.** When a destination lifts on hover, its wooden name tag could rise and brighten with it, so the two read as one thing.
+- **The lenticular cloud tells the forecast.** Tapping the cloud over Mount Monolith could show a line from Bluebird Forecast, TJ's weather app: high wind on the summit, no climbing today. It would link the sky to one of his projects.

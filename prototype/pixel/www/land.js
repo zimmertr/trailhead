@@ -1111,6 +1111,8 @@ export function buildTerrain() {
   const flagOn = (x, v, kind) => { const y = LAND.toY(x, v); return { x: Math.round(x), y, lift: y - topOf(x, kind) }; };
   const spots = {
     signpost: sxy(C.T[0] - 4, C.T[1] + 8), kiosk: [KIOSK.x, KIOSK.y],
+    // Mount Monolith's summit: the highest pixel of the painted volcano, where the lenticular cloud sits (E3).
+    summit: (() => { let best = [LAND.volc.cu, 1e9]; for (let x = Math.round(LAND.volc.cu - 160); x <= LAND.volc.cu + 160; x += 2) { const y = topOf(x, 'volc'); if (y > 0 && y < best[1]) best = [x, y]; } return best; })(),
     tents: [[...sxy(C.camp[0], C.camp[1]), 'tent'], [...sxy(C.camp[0] + 18, C.camp[1] - 6), 'red']],
     journal: sxy(lake[0] + lake[2] + 16, lake[1] - 6), lakeShore: shore,
     // Where each destination's name is pinned: on the lake, on Proficiency Peak's wall, on the ice under the Spires.

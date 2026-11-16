@@ -40,6 +40,22 @@ export function makeWorld(bake) {
   // downward through a dither. GLOW maps a colour to the snow step of the same lightness.
   const tipTop = [6, 7].map(k => { const top = new Int16Array(WW).fill(-1); for (let x = 0; x < WW; x++) for (let y = 0; y < WH; y++) if (W.dest[y * WW + x] === k) { top[x] = y; break; } return top; });
   const TIP_H = [26, 34], GLOW = new Uint8Array(256).map((_, c) => { const r = c && R[RAMP_OF[c]]; if (!r) return c; const k = Math.min(R.snow.length - 1, Math.round((STEP_OF[c] + 1) / r.length * (R.snow.length - 1)) + 1); return R.snow[k]; });
+  // The lenticular cloud (E3): a stack of smooth lenses standing still over Mount Monolith's summit, the
+  // sign of a strong wind up high. It forms over a minute, sits, thins and is gone, and the sky stays
+  // clear for a minute before the next. Drawn with the drifting clouds' white and their blue underside.
+  const LENS = { cycle: 300, form: 60, sit: 150, gone: 210 }, LAYERS = [[0, 1, 7], [-8, 0.8, 6], [-14, 0.56, 4]];
+  // lens=<seconds> in the address starts the cloud that far into its cycle, for screenshots.
+  const lensAhead = typeof location !== 'undefined' ? +(/[?&]lens=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
+  function lenticular(scr, ox, oy, t) {
+    const ph = (t + lensAhead) % LENS.cycle, a = ph < LENS.form ? smooth(0, LENS.form, ph) : ph < LENS.sit ? 1 : ph < LENS.gone ? smooth(LENS.gone, LENS.sit, ph) : 0; if (a <= 0) return;
+    const [sx, sy] = spots.summit, W0 = 66 * (0.55 + 0.45 * Math.min(1, ph / LENS.form)) * (ph > LENS.sit ? 1 + 0.12 * (ph - LENS.sit) / (LENS.gone - LENS.sit) : 1), cy = sy - 9;
+    for (const [dy, wk, T] of LAYERS) { const w = W0 * wk, y0 = cy + dy;
+      for (let x = Math.round(sx - w); x <= sx + w; x++) { const q = (x - sx) / w, th = T * Math.pow(Math.max(0, 1 - q * q), 0.7), top = Math.round(th), bot = Math.round(th * 0.3);
+        for (let y = y0 - top; y <= y0 + bot; y++) { const vx = x - ox, vy = y - oy; if (vx < 0 || vy < 0 || vx >= scr.VW || vy >= scr.VH) continue;
+          const edge = Math.min(1, (1 - Math.abs(q)) * 4); if (bayer(x, y) >= a * edge) continue;
+          // Lit from above: white on top, the lower half dithered toward the sky's pale blue, the underside blue.
+          const f = (y - (y0 - top)) / Math.max(1, top + bot); scr.fb[vy * scr.VW + vx] = y === y0 + bot && bot > 0 ? R.sky[3] : f > 0.45 && bayer(x + 1, y) < (f - 0.45) * 1.6 ? R.sky[4] : R.white[1]; } } }
+  }
   const things = [];
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
   const put = (bm, x, y, extra = {}) => things.push({ bm, x: Math.round(x), y: Math.round(y), ...extra });
@@ -191,6 +207,7 @@ export function makeWorld(bake) {
       crit.sea(scr, ox, oy, t); crit.falls(scr, ox, oy, t);
       crit.update(dt, t, env.hideMe ? null : here);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
+      if (DEBUG.clouds) lenticular(scr, ox, oy, t);
       for (const k in prints) if (env.done[k]) for (const [x, y] of prints[k]) { const sx = x - ox, sy = y - oy; if (sx >= 0 && sy >= 0 && sx < VW && sy < VH && KIND[fb[sy * VW + sx]] >= 3 && KIND[fb[sy * VW + sx]] !== 4) { const i = sy * VW + sx; fb[i] = KIND[fb[i]] === 3 ? R.dirt[0] : SHADE[fb[i]]; } }
       { const over = env.ptr && !env.fixed ? destUnder(env.ptr[0] + ox, env.ptr[1] + oy) : 0, want = over || (t < tapUntil ? tapped : 0);
         for (let k = 1; k < 4; k++) { lifted[k] += ((k === want ? 1 : 0) - lifted[k]) * Math.min(1, dt * 9); const d = Math.round(2 * lifted[k]); if (d > 0) liftDest(scr, k, d, ox, oy); } }
