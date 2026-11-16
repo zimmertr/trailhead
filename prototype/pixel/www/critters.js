@@ -1,7 +1,7 @@
 // The animals of the world map and the water that moves: herds that graze and wander, a bear, squirrels
 // and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
-import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, INK, SHADE, KIND, BM, outline, thick, pick, veilTable } from './core.js';
+import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, INK, SHADE, KIND, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
 import { makeElk, makeBird, makeOwl } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './land.js';
@@ -212,8 +212,9 @@ export function makeCritters(W, opts = {}) {
 
   // ---- the ferry -----------------------------------------------------------------------------
   // It sails the length of the water outside the sea stacks, is gone past the edge of the map for the
-  // better part of a minute, and comes back the other way. It is drawn with the water, under everything
-  // that stands: its course keeps it clear of the stacks and the whale.
+  // better part of a minute, and comes back the other way. Its wake is drawn with the water; the hull is
+  // drawn with the things that stand, in order of their feet, so a stack in front hides it and it passes
+  // in front of a stack behind (D11a). The stacks keep inshore of its lane.
   const ferryBM = W.make.ferry(), [FA, FB] = spots.ferry, FLEN = Math.hypot(FB[0] - FA[0], FB[1] - FA[1]);
   const FERRY = { v: 7, away: [38, 50] }, CROSS = FLEN / FERRY.v, ROUND = 2 * CROSS + FERRY.away[0] + FERRY.away[1];
   // How far along its course it is, 0 at the west end and 1 at the south, and which way it is heading;
@@ -221,7 +222,7 @@ export function makeCritters(W, opts = {}) {
   const ferryAt = t => { const u = (t + 0.6 * CROSS) % ROUND, back = u - CROSS - FERRY.away[0]; return u < CROSS ? [u / CROSS, 1] : back >= 0 && back < CROSS ? [1 - back / CROSS, -1] : null; };
   // The course bows out to sea a little in the middle.
   const coursePt = s => { const b = 14 * Math.sin(Math.PI * clamp(s, 0, 1)); return [FA[0] + (FB[0] - FA[0]) * s - 0.56 * b, FA[1] + (FB[1] - FA[1]) * s + 0.83 * b]; };
-  function drawFerry(scr, ox, oy, t) {
+  function drawWake(scr, ox, oy, t) {
     const at = ferryAt(t + ahead); if (!at) return;
     const [s, dir] = at, [fx, fy] = coursePt(s), { VW, VH } = scr;
     if (fx - ox < -140 || fx - ox > VW + 140 || fy - oy < -120 || fy - oy > VH + 120) return;
@@ -248,8 +249,18 @@ export function makeCritters(W, opts = {}) {
         }
       }
     }
-    const x0 = Math.round(fx) - ferryBM.ox, y0 = Math.round(fy) - ferryBM.oy;
-    for (let j = 0; j < ferryBM.h; j++) for (let i = 0; i < ferryBM.w; i++) { const c = ferryBM.d[j * ferryBM.w + i]; if (c) dot(x0 + i, y0 + j, c); }
+  }
+  // Where the hull is and the row its keel sits on, for sorting; null while it is away or off screen.
+  const hullAt = (t, ox, oy, VW, VH) => { const at = ferryAt(t + ahead); if (!at) return null; const [fx, fy] = coursePt(at[0]); if (fx - ox < -60 || fx - ox > VW + 60 || fy - oy < -40 || fy - oy > VH + 40) return null; return { x0: Math.round(fx) - ferryBM.ox, y0: Math.round(fy) - ferryBM.oy, y: Math.round(fy) - ferryBM.oy + ferryBM.h - 1, cx: Math.round(fx) }; };
+  // In the fog bank the whole boat pales by one step, read at its middle, so no edge of the bank cuts
+  // across it; in the bank's solid part it is lost in the white. The bank then leaves its pixels alone.
+  let hullMask = null, hullMarked = [];
+  function drawHull(scr, ox, oy, t) {
+    const { VW, VH, fb } = scr, h = hullAt(t, ox, oy, VW, VH); if (!h) return;
+    let veil = null;
+    if (DEBUG.mist) { const xs = bankXs(h.y, t, ox); if (xs) { const x = h.cx - ox; if (x < xs[3]) return; veil = x < xs[2] ? SEAVEIL[2] : x < xs[1] ? SEAVEIL[1] : x < xs[0] ? SEAVEIL[0] : null; } }
+    if (!hullMask || hullMask.length !== VW * VH) hullMask = new Uint8Array(VW * VH);
+    for (let j = 0; j < ferryBM.h; j++) for (let i = 0; i < ferryBM.w; i++) { const c = ferryBM.d[j * ferryBM.w + i]; if (!c) continue; const wx = h.x0 + i, wy = h.y0 + j, x = wx - ox, y = wy - oy; if (wx < 0 || wy >= NH || x < 0 || y < 0 || x >= VW || y >= VH) continue; const k = y * VW + x; fb[k] = veil ? veil[c] : c; hullMask[k] = 1; hullMarked.push(k); }
   }
 
   // ---- mist -------------------------------------------------------------------------------------
@@ -260,6 +271,9 @@ export function makeCritters(W, opts = {}) {
   const M = W.mist, FOG = R.fog, VEIL = veilTable(0.4), VEIL2 = veilTable(0.6), VEIL3 = veilTable(0.76), VEILS = [null, VEIL, VEIL2, VEIL3];
   // The fog bank out at sea is thicker stuff, and over water there is nothing to see through to.
   const SEAVEIL = [veilTable(0.3), veilTable(0.58), veilTable(0.84)];
+  // The fog bank's four stepped edges on one row of the world, in view columns: solid west of xs[3],
+  // then three veils thinning to clear at xs[0]. Null where the bank does not reach.
+  function bankXs(wy, t, ox, VW = 1e6) { const sh = M.shore[wy]; if (wy >= NH || wy < M.y0 || !(sh >= 200)) return null; const xs = []; for (let j = 0; j < 4; j++) { const e = 9 * Math.sin(wy / 15 + t * 0.045 + j * 1.3) + 14 * (vnoise(wy / 1.6, j * 7 + Math.floor(t * 0.05), 134) - 0.5) + 12 * Math.abs(Math.sin(wy / 27 + t * 0.025 + j)); xs.push(Math.min(VW, Math.round(sh - [200, 235, 270, 310][j] - e * 1.2) - ox)); } for (let j = 2; j >= 0; j--) if (xs[j] < xs[j + 1]) xs[j] = xs[j + 1]; return xs; }
   // Mist pools low: the tops of the tallest trees stand clear of it. (Only the tallest: in thick forest
   // the tops of the crowns are nearly all that shows of a tree.) This marks those rows as the map shows
   // them, nearer trees laid over the ones behind.
@@ -348,6 +362,8 @@ export function makeCritters(W, opts = {}) {
       scr.put(a.bm, a.x - ox, a.y - oy - (a.hop || 0), a.flip);
     },
     // The water: swells roll in toward the beach, the wash runs up the sand and back, jellyfish pulse.
+    ferryHull(t, ox, oy, VW, VH) { return hullAt(t, ox, oy, VW, VH); },
+    drawHull,
     sea(scr, ox, oy, t) {
       const { VW, VH, fb } = scr, xa = Math.max(0, ox), xb = Math.min(ox + VW, SEA.w), ya = Math.max(oy, SEA.y0), yb = Math.min(oy + VH, SEA.y0 + SEA.h);
       if (xa >= xb || ya >= yb) return;
@@ -374,7 +390,7 @@ export function makeCritters(W, opts = {}) {
           scr.set(Math.round(x + Math.cos(an) * rx), Math.round(y + sy * ry), surge > 0.3 || k % 3 ? white : nearC);
         }
       }
-      drawFerry(scr, ox, oy, t);
+      drawWake(scr, ox, oy, t);
       spots.jelly.forEach(([jx, jy, pale], k) => {
         const x = jx + Math.round(3 * Math.sin(t * 0.13 + k * 2)) - ox, y = jy + Math.round(1.5 * Math.sin(t * 0.5 + k)) - oy;
         if (x < -4 || y < -6 || x > VW + 4 || y > VH) return;
@@ -447,13 +463,12 @@ export function makeCritters(W, opts = {}) {
       // The fog bank off the coast: solid far out and thinner in three steps toward the land. The edge
       // of each step rolls slowly at its own pace, so the bank has no hard face.
       for (let y = Math.max(0, M.y0 - oy); y < VH; y++) {
-        const wy = y + oy, row = y * VW, xs = [], sh = M.shore[wy]; if (wy >= NH || sh < 200) continue;
-        for (let j = 0; j < 4; j++) { const e = 9 * Math.sin(wy / 15 + t * 0.045 + j * 1.3) + 14 * (vnoise(wy / 1.6, j * 7 + Math.floor(t * 0.05), 134) - 0.5) + 12 * Math.abs(Math.sin(wy / 27 + t * 0.025 + j)); xs.push(Math.min(VW, Math.round(sh - [200, 235, 270, 310][j] - e * 1.2) - ox)); }
-        for (let j = 2; j >= 0; j--) if (xs[j] < xs[j + 1]) xs[j] = xs[j + 1];
+        const wy = y + oy, row = y * VW, xs = bankXs(wy, t, ox, VW); if (!xs) continue;
         const x0 = Math.max(0, -ox); if (xs[0] <= x0) continue;
         const lit = vnoise(wy / 2.6, Math.floor(t * 0.02), 133) > 0.56 ? FOG[2] : FOG[1];
-        for (let x = x0; x < xs[0]; x++) { const i = row + x; fb[i] = x < xs[3] ? lit : SEAVEIL[x < xs[2] ? 2 : x < xs[1] ? 1 : 0][fb[i]]; }
+        for (let x = x0; x < xs[0]; x++) { const i = row + x; if (hullMask && hullMask[i]) continue; fb[i] = x < xs[3] ? lit : SEAVEIL[x < xs[2] ? 2 : x < xs[1] ? 1 : 0][fb[i]]; }
       }
+      if (hullMask) { for (const k of hullMarked) hullMask[k] = 0; hullMarked.length = 0; }
     },
     // Where each animal may wander and each flock circles, as ovals on the map, for the debug panel.
     areas: () => [...items.filter(a => a.walker).map(a => ({ x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...FLOCKS.map(F => ({ x: F.cx, y: F.cy, rx: F.rx, ry: F.ry }))],

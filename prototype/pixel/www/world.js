@@ -169,6 +169,7 @@ export function makeWorld(bake) {
         list.push(th);
       }
       if (!env.hideMe) list.push({ me: true, x: here.x, y: here.y });
+      { const fh = crit.ferryHull(t, ox, oy, VW, VH); if (fh) list.push({ ferryHull: true, y: fh.y }); }
       kit.update(env, here, scr.narrow && !env.fixed, env.home && !env.fixed ? oy + (scr.narrow ? VH * 0.56 : VH - 38) : 0);
       for (const it of kit.items()) list.push(it);
       list.sort((a, b) => a.y - b.y);
@@ -186,6 +187,8 @@ export function makeWorld(bake) {
           scr.put(bm, th.x - ox, th.y - oy, flip && facing === 'side');
           { let n = 0; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++, n++) if (W.vAt(x + ox, y + oy) < vMe - 3) fb[y * VW + x] = saved[n]; }
           focus = { x: Math.round(th.x - ox), y: Math.round(th.y - oy) - 14 };
+        } else if (th.ferryHull) {
+          crit.drawHull(scr, ox, oy, t);
         } else if (th.cat) {
           kit.drawOne(scr, th.cat, ox, oy, t);
         } else if (th.kind === 'tree') {

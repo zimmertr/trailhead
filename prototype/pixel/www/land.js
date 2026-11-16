@@ -745,7 +745,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && open(u, v, 0.8) && wooded(u, v)) put(any(logs), u, v); }
   { const dr = rng(4730), drift = Array.from({ length: 4 }, (_, i) => { const b = makeLog(30 + i, true), o = new BM(b.w, b.h); o.ox = b.ox; o.oy = b.oy; for (let k = 0; k < b.d.length; k++) { const c = b.d[k]; o.d[k] = !c || c === INK ? c : R.gold[clamp(3 + Math.round((hash(k, i, 4732) - 0.3) * 2.4), 3, 5)]; } return o; }); // bleached by the sea
     for (let n = 0; n < 1400; n++) { const u = dr() * 560, v = dr() * 460, k = (dr() * drift.length) | 0, c = coast(u, v); if (c > -20 && c < -9 && dr() < 0.2 && !water[at(Math.round(u), Math.round(v))]) put(drift[k], u, v); } }
-  { const seen = []; for (let n = 0; n < 4000 && seen.length < 6; n++) { const u = rand() * 520, v = rand() * 420, c = coast(u, v); if (c < 22 || c > 110 || seen.some(([a, b]) => Math.hypot(a - u, b - v) < 70)) continue; seen.push([u, v]); STACKS.push([u, v]); const H = 16 + (rand() * 34 | 0); put(seaStack(seen.length, H, Math.round(H * 0.45)), u, v); } }
+  { const seen = []; for (let n = 0; n < 4000 && seen.length < 6; n++) { const u = rand() * 520, v = rand() * 420, c = coast(u, v); if (c < 18 || c > 44 || seen.some(([a, b]) => Math.hypot(a - u, b - v) < 70)) continue; seen.push([u, v]); STACKS.push([u, v]); const H = 16 + (rand() * 34 | 0); put(seaStack(seen.length, H, Math.round(H * 0.45)), u, v); } }
   plant(any(firs), ISLE[0], ISLE[1]);
 }
 // Surf breaks white round the foot of each sea stack, broken into dashes (D11).
