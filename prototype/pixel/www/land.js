@@ -260,7 +260,8 @@ if (B) water.set(B.water); else {
   // The lower west river reaches the sea at the bottom edge of the map, out of sight, so the land gives it
   // a shallow valley of its own (D11): from where its trunk first comes within 150 of the near edge, it
   // runs west, falling a little, to the beach. The water is routed again over that valley.
-  { const A = routes[1].cells.map(i => [(i % RW) * 2, ((i / RW) | 0) * 2]).find(([, v]) => v < 150); if (A) { const hA = hAt(A[0], A[1]), floor = u => hA * clamp((u - A[0] + 300) / 300, 0, 1) - 6; dig = (u, v) => u > A[0] + 8 ? 0 : Math.max(0, hAt(u, v) - floor(u)) * smooth(14, 4, Math.abs(v - A[1] + 0.06 * (A[0] - u))) * smooth(A[0] + 8, A[0] - 12, u); flood(); } }
+  { const A = routes[1].cells.map(i => [(i % RW) * 2, ((i / RW) | 0) * 2]).find(([, v]) => v < 150); if (A) { const hA = hAt(A[0], A[1]), floor = u => hA * clamp((u - A[0] + 300) / 300, 0, 1) - 6; dig = (u, v) => u > A[0] + 8 ? 0 : Math.max(0, hAt(u, v) - floor(u)) * smooth(14, 4, Math.abs(v - A[1] + 0.06 * (A[0] - u))) * smooth(A[0] + 8, A[0] - 12, u); flood();
+    for (let u = Math.max(0, A[0] - 340); u <= A[0] + 30; u++) for (let v = Math.max(0, A[1] - 70); v <= Math.min(VD - 1, A[1] + 50); v++) { const d = Math.abs(v - A[1] + 0.06 * (A[0] - u)), i = at(u, v); if (d > 44 || coast(u, v) > 0 || MATS[mg[i]] !== 'land') continue; const t = Math.max(0.6, floor(u) + 6) + 0.3 * d, k = smooth(A[0] + 30, A[0] - 10, u); if (hg[i] > t) hg[i] = lerp(hg[i], t, k); } } }
   // Read from the land as it was before any stream cut its bed, so every stream sees the same ground.
   const hg0 = hg.slice(), h0 = (u, v) => hg0[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))];
   const flatFor = (u, v) => { let m = 0; for (const [du, dv] of [[0, 0], [12, 0], [-12, 0], [0, 10], [0, -10]]) m = Math.max(m, Math.hypot(h0(u + du + 3, v + dv) - h0(u + du - 3, v + dv), h0(u + du, v + dv + 3) - h0(u + du, v + dv - 3)) / 6); return m; };
@@ -277,7 +278,7 @@ if (B) water.set(B.water); else {
     // notch through it, with banks that open out.
     let bed = 1e9;
     for (let [pu, pv, pr] of r.pts) {
-      bed = Math.min(bed, hAt(pu, pv)); pr += 3.5 * smooth(-34, -4, coast(pu, pv)); const W = Math.ceil(pr + 9);
+      bed = Math.min(bed, hAt(pu, pv)); pr += 5 * smooth(-36, 0, coast(pu, pv)); const W = Math.ceil(pr + 9);
       for (let dv = -W; dv <= W; dv++) for (let du = -W; du <= W; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v), m = MATS[mg[i]], d = Math.hypot(du, dv); if (d > W || lipKeep[i] || (m !== 'land' && m !== 'moraine' && m !== 'gran')) continue; const t = Math.max(0.4, bed + Math.max(0, d - pr) * 0.9); if (hg[i] > t) hg[i] = t; if (d <= pr + 1 && hg[i] > 0) water[i] = Math.max(water[i], d <= pr ? 2 : 1); }
     }
   }
@@ -335,9 +336,10 @@ function colour(u, v, hh, x, y) {
   // The sun is in the west: slopes that face west or the camera are lit.
   const L = clamp(0.5 + 0.17 * clamp(du, -2.5, 2.5) + 0.06 * clamp(dv, -2.5, 2.5), 0, 1);
   const cs = coast(u, v);
-  if (cs > -15 && bayer(x, y) < seaFog(u, v) * 1.2 - 0.14) return fogInk(x, y, 9);
+  // The sea fog on the beach veils the river crossing it only half as much, so the water still reads (D11).
+  if (cs > -15 && bayer(x, y) < (seaFog(u, v) * 1.2 - 0.14) * (water[i] ? 0.45 : 1)) return fogInk(x, y, 9);
   if (cs > 0) return cs < 3 + 2 * vnoise(u / 9, v / 9, 85) ? R.sea[5] : pick('sea', 0.75 - smooth(0, 150, cs) * 0.6 + 0.12 * (vnoise(u / 14, v / 3, 86) - 0.5), x, y);
-  if (cs > -24 - 8 * vnoise(u / 20, v / 20, 87)) return water[i] ? R.water[3] : R.sand[cs > -4 ? 0 : hash(u, v, 88) < 0.25 ? 1 : 2];
+  if (cs > -24 - 8 * vnoise(u / 20, v / 20, 87)) return water[i] ? (water[i] === 1 ? R.sand[0] : hash(x, y, 4733) < 0.07 ? R.glint[(x + y) & 3] : R.water[(x + 2 * y) % 5 < 2 ? 4 : 3]) : R.sand[cs > -4 ? 0 : hash(u, v, 88) < 0.25 ? 1 : 2];
   const lk = lakeAt(u, v);
   if (lk === 'lake' && isle(u, v) < 1) return pick('grass', 0.55 + 0.3 * n1, x, y);
   if (lk) return lk === 'tarn' ? pick('tarn', 0.3 + 0.4 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
@@ -345,7 +347,10 @@ function colour(u, v, hh, x, y) {
   if (water[i] && trail[i] && mat !== 'ice') return trail[i] === 2 ? ((u + 2 * v) % 3 === 0 ? R.dirt[1] : R.dirt[2]) : R.dirt[0];
   // 3 is still water (the oxbow): never white, whatever the bank does round it.
   if (water[i] === 3) return hash(x, y, 9) < 0.05 ? R.glint[(x + y) & 3] : R.water[y & 1 ? 2 : 3];
-  if (water[i]) return steep > 0.55 ? (hash(x, y >> 1, 5) < 0.72 ? R.white[1] : R.water[4]) : water[i] === 2 ? (hash(x, y, 9) < 0.08 ? R.glint[(x + y) & 3] : R.water[y & 1 ? 3 : 4]) : R.water[1];
+  // White water where the stream itself falls, read from the water's own surface, not from its banks,
+  // so a low river between high banks near the sea stays blue (D11).
+  const wh = (a, b) => water[at(a, b)] ? hg[at(a, b)] : hg[at(uu, vv)], fall = water[i] ? Math.hypot(wh(uu + 1, vv) - wh(uu - 1, vv), wh(uu, vv + 1) - wh(uu, vv - 1)) / 2 : 0;
+  if (water[i]) return fall > 0.55 ? (hash(x, y >> 1, 5) < 0.72 ? R.white[1] : R.water[4]) : water[i] === 2 ? (hash(x, y, 9) < 0.08 ? R.glint[(x + y) & 3] : R.water[y & 1 ? 3 : 4]) : R.water[1];
   const rim = lakeRim(u, v); if (rim) return rim === 'lake' ? R.dirt[hash(x, y, 3) < 0.3 ? 3 : 4] : R.rock[hash(x >> 1, y >> 1, 3) < 0.5 ? 2 : 3];
   if (trail[i] === 2) return mat === 'ice' ? R.glac[1] : mat !== 'land' || steep > 0.8 ? R.rock[hash(u, v, 6) < 0.3 ? 4 : 3] : hash(u, v, 5) < 0.1 ? R.dirt[2] : R.dirt[3];
   if (trail[i] === 1) return mat === 'ice' ? R.glac[3] : mat !== 'land' || steep > 0.8 ? R.rock[1] : R.dirt[1];
@@ -467,7 +472,7 @@ for (let u = 0; u < NW; u++) {
     for (let y = Math.max(0, sy); y < minY; y++) {
       const hh = SY - v - y;
       // Fog lies on the forest floor up to its level: thick in the hollows, thin over the ridges.
-      mb[px(u, y)] = mg[at(u, v)]; g[px(u, y)] = fa > 0.4 && hh < ft && bayer(u, y) < 0.2 + (ft - hh) / 4 ? fogInk(u, y, ft - hh) : colour(u, v, hh, u, y);
+      mb[px(u, y)] = mg[at(u, v)]; g[px(u, y)] = fa > 0.4 && hh < ft && bayer(u, y) < (water[at(u, v)] ? Math.min(0.3, 0.2 + (ft - hh) / 4) : 0.2 + (ft - hh) / 4) ? fogInk(u, y, ft - hh) : colour(u, v, hh, u, y);
       zb[px(u, y)] = v;
     }
     minY = sy;
@@ -570,7 +575,7 @@ const riverFront = (u, v) => { if (coast(u, v) < -170) return false; for (let dv
   // The white first: the forest floor under the fog.
   if (!B) for (let y = 0; y < SH; y++) for (let x = 0; x < 660; x++) {
     const i = px(x, y), v = zb[i]; if (v >= VD || mb[i] !== 0) continue;
-    const w = foggy(x, v); if (w > 0 && bayer(x, y) < w) g[i] = white(x, y);
+    const w = foggy(x, v); if (w > 0 && bayer(x, y) < w && !water[at(x, Math.round(v))]) g[i] = white(x, y);
   }
   const rr = rng(2311);
   const ink = (x, y, v, k) => { if (B || x < 0 || y < 0 || x >= NW || y >= SH) return; const i = px(x, y); if (zb[i] < v - 2) return; g[i] = RANK[clamp(Math.floor(k + 0.9 * (bayer(x + 3, y) - 0.5)), 0, 7)]; zb[i] = v; mb[i] = 0; };
@@ -622,7 +627,7 @@ const riverFront = (u, v) => { if (coast(u, v) < -170) return false; for (let dv
       const base = Math.round(SY - v - hAt(x, v));
       for (let y = Math.max(0, base - 7); y <= Math.min(SH - 1, base + 12); y++) {
         const i = px(x, y); if (zb[i] < v - 2) continue;
-        if (bayer(x, y) < smooth(base - 7, base + 1, y) * w) { g[i] = white(x, y); zb[i] = v - 4; mb[i] = 0; }
+        if (bayer(x, y) < smooth(base - 7, base + 1, y) * w && !(zb[i] < VD && water[at(x, Math.round(zb[i]))])) { g[i] = white(x, y); zb[i] = v - 4; mb[i] = 0; }
       }
     }
   }
