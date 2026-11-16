@@ -23,7 +23,7 @@ const META = {
   stops: () => [],
   elev: (arg, q) => -g(X0 + q * LEN) * 1.5
 };
-export const makeLarches = () => shell(META, buildLarches, ['enter', 'focus', 'pick', 'draw']);
+export const makeLarches = () => shell(META, buildLarches, ['enter', 'focus', 'pick', 'draw', 'trigger']);
 
 // The Enchantments. Far back, a pale range with snow on its tops; in front, granite spires of every size
 // standing where they please (Dragontail, Little Annapurna and friends), each lit on its west face, with snow
@@ -195,6 +195,11 @@ function buildLarches() {
   const kidAt = { x: nanny.x - 21, y: nanny.y + 3 }, billy = { x: Math.round(X0 + LEN * 0.7), y: g(X0 + LEN * 0.7) - 7 };
   // Larches and boulders keep clear of the goats.
   for (let i = things.length - 1; i >= 0; i--) { const th = things[i]; if ([nanny, kidAt, billy].some(p => Math.abs(th.x - p.x) < 20 && Math.abs(th.y - p.y) < 14)) things.splice(i, 1); }
+  // A gust now and then (G6): one in each 14 seconds, at a random point in its first 6, lasting 2.6. Needles
+  // stream off the larches across the whole view and the trees bend harder. gustGo: a start button's gust.
+  const GUST = { slot: 14, len: 2.6 };
+  let gustGo = -1e9, gustHeard = -1;
+  const gustAt = t => { const n = Math.floor(t / GUST.slot), u = t - n * GUST.slot - 6 * hash(n, 1, 690); return u >= 0 && u < GUST.len ? [u, n] : t - gustGo < GUST.len ? [t - gustGo, -2 - Math.floor(gustGo)] : null; };
   let cam = 0, last = { camX: 0, base: 0, dir: 1, VW: 0 };
   const list = [];
   const xOf = q => X0 + q * LEN;
@@ -203,6 +208,7 @@ function buildLarches() {
     ...META,
     enter(scr, arg, q) { cam = xOf(q); st.y = null; },
     focus: () => focus,
+    trigger(name, t) { if (name === 'gust') { gustGo = t; return true; } return false; },
     pick(sx, sy) {
       if (last.dir < 0) sx = last.VW - 1 - sx;
       const wx = sx + last.camX, wy = sy - last.base, near = (p, w, h) => Math.abs(wx - p.x) < w && wy > p.y - h && wy < p.y + 2;
@@ -246,6 +252,8 @@ function buildLarches() {
       list.push({ bm: Math.abs(mx - billy.x) < 160 ? G.look : G.stand, x: billy.x, y: billy.y, flip: mx < billy.x });
       list.push({ me: true, x: mx, y: my + 0.5 });
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
+      const gu = gustAt(t), ge = gu ? Math.sin(Math.PI * gu[0] / GUST.len) : 0;
+      if (gu && gu[1] !== gustHeard) { gustHeard = gu[1]; env.sfx('wind'); }
       for (const th of list) {
         const sx = th.x - camX, sy = base + th.y;
         if (th.me) {
@@ -253,13 +261,28 @@ function buildLarches() {
           scr.shadow(Math.round(sx), Math.round(base + my), 5, 1);
           scr.put(env.moving ? run.side[Math.floor(d / 4.2) % 6] : run.sideIdle[0], sx, base + my, false);
         } else if (th.tree) {
-          for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
+          for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway * (1 + 2.5 * ge)); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
         } else scr.put(th.bm, sx, sy, !!th.flip);
       }
+      if (gu) needles(scr, gu[0], gu[1], base);
       last = { camX, base, dir, VW };
       if (dir < 0) { mirror(fb, VW, VH); focus.x = VW - 1 - focus.x; }
     }
   };
+}
+
+// The needles of a gust: each leaves from a crown height, streams across with the wind, flutters, and settles
+// a little as it goes. u: seconds into the gust; n: which gust, so each one is different.
+function needles(scr, u, n, base) {
+  const { VW } = scr;
+  for (let k = 0; k < 150; k++) {
+    const a = u - 1.1 * hash(k, n, 691), sp = 140 + 140 * hash(k, n, 692); if (a < 0) continue;
+    const x = Math.round(-8 + a * sp + hash(k, n, 693) * VW * 0.35), y = Math.round(base - 95 + 165 * hash(k, n, 694) + 8 * Math.sin(a * 7 + k) + 16 * a);
+    if (x >= VW + 3) continue;
+    // A needle is a short streak along the wind, bright at its head; every other one flips as it flutters.
+    const tilt = Math.floor(a * 9 + k) & 1 ? 1 : 0;
+    scr.set(x, y, R.larch[4]); scr.set(x - 1, y - tilt, R.larch[3]); if (k % 3 === 0) scr.set(x - 2, y - tilt, R.larch[2]);
+  }
 }
 
 // Going the other way, the whole picture flips (he then faces left, and the light comes from the east).

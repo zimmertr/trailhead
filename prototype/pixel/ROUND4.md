@@ -482,7 +482,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [x] G3. Middle: granite slabs stepping up, a tarn with a reflection, a cascade.
 - [x] G4. Near: golden larches of several ages, needles on the ground, slab underfoot, cairns marking the way.
 - [x] G5. Goats: a nanny and kid on a slab, one that watches him pass.
-- [ ] G6. A gust now and then: larch needles blow across.
+- [x] G6. A gust now and then: larch needles blow across.
 - [ ] G7. One thing to find (suggestion: the pika, moved here from The Stack's talus).
 - [ ] G8. Day and Dusk, desktop and phone, and the cuts in and out filmed: he never stands still or sprints at a change.
 - [ ] G9. Its tune and ambience in `audio.js` (`PLACES`).
@@ -858,6 +858,7 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
 - **G3, the middle (Opus).** Rounded granite benches in three steps, their tops lit and their faces in shade with joints running down them (a first try with vertical walls and even sheeting read as concrete), crowded with small larches; a tarn on one bench with the bench behind upside down in it, glinting; its outlet falls down the face below, the water running.
 - **G4, the near ground (Opus).** Heather and grass with granite slabs breaking through, the trail worn to dirt across it and pale where it crosses bare slab, a step up at each rise with a cairn on it, dark red huckleberry in patches (autumn), larches of four ages from seedlings to old ragged ones behind and in front of the trail with gold needles sprinkled under them, boulders. A first try was mostly bare grey slab with blotches of green and gold, well below round 3's lake shore meadow.
 - **G5, the goats (Opus, 2026-11-16).** Placed by rule: a nanny and her kid on the first slab below the trail past the scene's first third that is bare granite a few rows under their feet as well, and a billy on the verge above the trail at two thirds; larches and boulders keep clear of them. The nanny grazes and lifts her head as he comes within 70, the kid stands behind her facing her and hops now and then, and the billy turns to face him and watches from 160 away until he is past. Hover names in the tone of the other scenes' labels: "Nanny and kid" and "On-call billy goat" (he watches everything that goes by). The kid first stood in front of the grazing nanny and the two read as one white blob.
+- **G6, the gust (Opus, 2026-11-16).** One gust in each 14 seconds, at a random point in its first 6, lasting 2.6 s: 150 larch needles stream across the whole view with the wind (left to right, mirrored with the scene), each a short two-tone streak that flutters and settles a little, while the larches bend two and a half times as hard at the gust's height; the `wind` sound plays once. A first pass with 70 single dots was too faint to read. The debug menu has a new heading, "Start now, in the larch basin", with a "Larch needle gust" button (`trigger('gust')`).
 
 ## 10. The reference pictures TJ shared, described
 
