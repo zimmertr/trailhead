@@ -298,6 +298,8 @@ Map 1920 by 1080. The ground line (where land meets sky) stays near y 462. x run
 
 Tick an item only after looking at a picture of it. Log every creative call in one line in section 9.
 
+**The STOPs are checkpoints, not halts** (TJ, 2026-11-16). At each STOP the loop does not wait: it makes a branch named after that STOP's tag (for example `pixel-r4-map` at STOP 2) from the current commit, pushes it, publishes a NEW artifact for it, writes a short report at the end of section 8a, and carries on with the next item on `pixel-round4-opus`. Those branches are the points to go back to if something goes wrong. Where a STOP asked to show TJ something first (STOP 3's pitch list), the loop uses the draft it has, logs that in section 9, and keeps going. The loop ends after STOP 8, with the full report in section 8a and in chat.
+
 ### A. Setup
 
 - [x] A1. TJ has said to begin.
