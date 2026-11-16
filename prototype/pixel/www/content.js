@@ -209,8 +209,8 @@ export const UI = {
     // After a visitor signs (L5). Draft copy for TJ to rewrite.
     thanks: 'Thanks for signing! Your entry is on the right, waiting for me to read it before it shows to anyone else.',
     todo: { hi: 'Thanks for stopping by!', need: 'You can sign the register once you have finished all three:', spires: name => 'One summit in ' + name, after: 'Then come back, and this page is yours.', sig: 'TJ' },
-    title: 'Summit register', sub: 'You did all three. Sign in.', open: 'open', locked: 'locked',
-    lockedSay: 'The summit register opens once all three destinations are done.',
+    // The trail map's link to the register (L6): anyone may read it; signing waits for all three.
+    link: 'Trail register', canRead: 'read it', canSign: 'sign it',
     pending: 'waiting for TJ to approve it', signed: 'Signed. Your entry waits for TJ to approve it.',
     yourName: 'Your name', yourNote: 'A note for the register', notePh: 'A few words', sign: 'Sign the register', mock: 'This is a mock. Entries stay in this browser.'
   },

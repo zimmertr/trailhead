@@ -53,7 +53,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     'off-route': () => [['offroute', {}]],
     // The register (L2): he walks the few steps to the box (the first 55% of 1.3 s), stands at it while
     // its front comes down, then the close-up of the book.
-    register: () => [['world', { path: 'register', from: 0, to: 1, secs: 1.3, walkTo: 0.55 }], ['register', {}]]
+    register: () => [['world', { path: 'register', from: 0, to: 1, secs: 1.3, walkTo: 0.55 }], ['register', {}]],
+    // Closing the book (L6): back on the map where he stood at the box, and the few steps back to the junction.
+    'register-back': () => [['world', { path: 'register', from: 1, to: 0, secs: 0.9 }]]
   };
   for (const id of SPIRES) ROUTES['spire:' + id] = () => [['climb', { id }]];
   // One stretch of map walked for its own sake: back to the junction from part way along a trail.
@@ -265,6 +267,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
         if (tr.phase === 'out') {
           if (tr.to && legAt(p) !== tr.to) p = Math.min(1, tr.to.t0 + 1e-6);
           drawn = legAt(p);
+          // Back on the map from the register's close-up (L6): the map's own pixel size first, so the view
+          // is placed for the size it will be drawn at and opens exactly where he left it.
+          if (drawn.s === 'world' && route === 'register-back' && zC && scr.S !== zC) scr.setScale(zC);
           try { drawn.scene.enter(scr, drawn.arg, local(drawn, p)); } catch (err) { fail(drawn, err); return; }
           look.x = look.y = 0; tr = calm.matches ? null : { phase: 'in', k: 0, fast: tr.fast }; emit({ type: 'scene', name: drawn.s });
         }
@@ -277,7 +282,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       // It opens at twice one-to-one (TJ, F5a: the one-to-one opening chosen at STOP 2a halved every movement
       // and turned the trees and destinations to noise), never larger than the travelling size; on a phone
       // held upright, at the size that suits it.
-      const away = env.home || route === 'register' ? 0 : 1;
+      const away = env.home || route.startsWith('register') ? 0 : 1;
       if (away !== leadTo) { leadTo = away; zUser = false; zFrom = zT || zOpen(); zTo = away ? scr.S0 : zOpen(); }
       leadT = calm.matches ? away : clamp(leadT + (away ? dt : -dt) / HAND, 0, 1);
       const easing = leadT > 0 && leadT < 1 && !zUser; env.lead = leadT * leadT * (3 - 2 * leadT);

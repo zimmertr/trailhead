@@ -63,7 +63,10 @@ async function home() { inBook(false); hideCard(); await api.setRoute('lake'); a
 async function travel(route) { audio.start(); audio.sfx('select'); await api.setRoute(route); buildMarks(); api.start(); }
 async function climb(id) { audio.sfx('select'); hideCard(); await api.setRoute('spire:' + id); buildMarks(); api.start(); }
 // The register (L2): he walks to the box and folds its front down, and the scene changes to the book.
-async function openBook() { audio.start(); audio.sfx('select'); hideCard(); closeSheet(); tip.hidden = true; handsReady(); document.documentElement.classList.add('in-book'); await api.setRoute('register'); buildMarks(); api.start(); }
+async function openBook() { audio.start(); audio.sfx('select'); hideCard(); closeSheet(); tip.hidden = true; handsReady(); document.documentElement.classList.add('in-book'); setAddress('register'); await api.setRoute('register'); buildMarks(); api.start(); }
+// Closing the book (L6): the map again with him at the box, its front shut, and the few steps back to the
+// junction; from there it is the Trailhead as he left it.
+async function closeBook() { inBook(false); audio.sfx('close'); setAddress(''); await api.setRoute('register-back'); buildMarks(); api.start(); }
 // The book's way out shows once it is open; the map's tags and the route bar go as he sets off for it.
 function inBook(on) { document.documentElement.classList.toggle('in-book', on); $('book-x').hidden = !on; book.hidden = !on; if (on) { fillBook(); handsReady().then(() => { if (!book.hidden) fillBook(); }); } }
 // The book's pages (L3): the words laid over the pages the close-up draws, on its printed rules. Every
@@ -173,7 +176,8 @@ async function navigate(hash) {
   const slug = decodeURIComponent((hash || '').replace(/^#\/?/, ''));
   closeSheet(); closePlain();
   if (!slug) return home();
-  if (slug === 'map' || slug === 'register' || slug === 'kiosk' || slug === 'keys') return openSheet(slug);
+  if (slug === 'register') return openBook();
+  if (slug === 'map' || slug === 'kiosk' || slug === 'keys') return openSheet(slug);
   if (slug === 'plain') return openPlain();
   const dest = DESTINATIONS.find(d => d.slug === slug && d.route !== 'spires');
   if (dest) { await api.setRoute(dest.route); buildMarks(); hideCard(); return; }
@@ -188,7 +192,6 @@ function openSheet(name) {
   const body = $('sheet-body'); body.replaceChildren(); sheetName = name;
   if (name === 'map') body.append(...trailMap());
   else if (name === 'kiosk') body.append(...kiosk());
-  else if (name === 'register') body.append(...register());
   else body.append(el('div', { class: 'band' }, el('h2', { text: UI.keys.title }), el('p', { text: UI.keys.note })), el('dl', { class: 'keys' }, ...HELP.flatMap(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })])));
   sheet.hidden = false; audio.sfx('open'); audio.focus(2); $('close').focus();
 }
@@ -246,7 +249,7 @@ function trailMap() {
     el('h3', { text: UI.map.onMap }),
     el('button', { class: 'plank', onclick: () => navigate('#plain') }, el('span', { text: UI.map.plain })),
     el('button', { class: 'plank', onclick: () => navigate('#kiosk') }, el('span', { text: UI.kiosk.title })),
-    el('button', { class: 'plank', onclick: () => { if (all) navigate('#register'); else { audio.sfx('locked'); say(UI.register.lockedSay); } } }, el('span', { text: UI.register.title }), el('small', { text: all ? UI.register.open : UI.register.locked })),
+    el('button', { class: 'plank', onclick: () => navigate('#register') }, el('span', { text: UI.register.link }), el('small', { text: all ? UI.register.canSign : UI.register.canRead })),
     el('h3', { text: UI.map.settings }),
     el('button', { class: 'plank', onclick: e => { toggleSound(); e.currentTarget.querySelector('small').textContent = UI.map.onOff[audio.muted() ? 1 : 0]; } }, el('span', { text: UI.map.sound }), el('small', { text: UI.map.onOff[audio.muted() ? 1 : 0] })),
     el('button', { class: 'plank', onclick: e => { nextTrack(); e.currentTarget.querySelector('small').textContent = trackName(); } }, el('span', { text: UI.map.music }), el('small', { text: trackName() })),
@@ -266,14 +269,6 @@ function kiosk() {
       cell(UI.map.lake[0], done.lake ? UI.kiosk.lakeDone : UI.kiosk.open), cell(UI.map.stack[0], done.stack ? UI.kiosk.stackDone : UI.kiosk.open), cell(UI.map.spires[0], UI.kiosk.summits(SPIRE_ORDER.filter(s => done['spire:' + s]).length)), cell(UI.kiosk.wildlife[0], UI.kiosk.wildlife[1], '', true), cell(UI.kiosk.seen[0], UI.kiosk.seen[1], '', true)),
     el('h3', { text: UI.kiosk.checklist(ids.filter(k => found[k]).length, ids.length) }),
     el('ul', { class: 'checks' }, ...ids.map(k => el('li', { class: found[k] ? 'got' : '' }, el('b', { text: found[k] ? FINDS[k][0] : UI.kiosk.notFound }), el('span', { text: found[k] ? UI.kiosk.got : FINDS[k][1] }))))];
-}
-function register() {
-  let mine = []; try { mine = JSON.parse(localStorage.getItem('trailhead.register') || '[]'); } catch { mine = []; }
-  const list = el('ul', { class: 'entries' }, ...REGISTER.map(e => el('li', {}, el('b', { text: e.name }), el('time', { text: e.date }), el('p', { text: e.note }))), ...mine.map(e => el('li', {}, el('b', { text: e.name }), el('span', { class: 'pending', text: UI.register.pending }), el('p', { text: e.note }))));
-  const name = el('input', { id: 'reg-name', maxlength: 40, required: '' }), note = el('textarea', { id: 'reg-note', rows: 3, maxlength: 240, required: '' });
-  const form = el('form', { onsubmit: e => { e.preventDefault(); mine.push({ name: name.value, note: note.value }); try { localStorage.setItem('trailhead.register', JSON.stringify(mine)); } catch { /* private window */ } audio.sfx('flag'); say(UI.register.signed); openSheet('register'); } },
-    el('label', { for: 'reg-name', text: UI.register.yourName }), name, el('label', { for: 'reg-note', text: UI.register.yourNote }), note, el('button', { class: 'plank', type: 'submit' }, el('span', { text: UI.register.sign })), el('p', { class: 'legend', text: UI.register.mock }));
-  return [el('div', { class: 'band' }, el('h2', { text: UI.register.title }), el('p', { text: UI.register.sub })), list, form];
 }
 function checkRegister() { const d = api.done(); if (d.lake && d.stack && d.spires) { let told = false; try { told = localStorage.getItem('trailhead.told') === '1'; localStorage.setItem('trailhead.told', '1'); } catch { /* private window */ } if (!told) { audio.sfx('unlock'); say(UI.allDone, 7000); } } }
 
@@ -336,7 +331,7 @@ try {
       else if (e.type === 'leave') { hideCard(); if (waiting) { waiting = false; toast.hidden = true; } }
       else if (e.type === 'end') { if (e.route === 'register') inBook(true); else if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
       else if (e.type === 'sfx') audio.sfx(e.name);
-      else if (e.type === 'scene') { audio.ambience(e.name === 'register' ? 'world' : e.name); audio.place(e.name === 'world' && lastScene !== 'world' ? 'out' : e.name); lastScene = e.name; syncTop(); }
+      else if (e.type === 'scene') { audio.ambience(e.name === 'register' ? 'world' : e.name); audio.place(e.name === 'world' && lastScene !== 'world' && lastScene !== 'register' ? 'out' : e.name); lastScene = e.name; syncTop(); }
       else if (e.type === 'say') say(e.text);
       else if (e.type === 'found' && FINDS[e.id]) { const n = Object.keys(api ? api.found() : {}).filter(k => FINDS[k]).length; if (e.id !== 'kiosk') { say(UI.found(FINDS[e.id][0], n, Object.keys(FINDS).length), 5200); audio.sfx('egg'); } }
       else if (e.type === 'hover') { tip.hidden = !e.label; if (e.label) { tip.textContent = e.label; const hw = tip.offsetWidth / 2 + 6; tip.style.left = Math.min(Math.max(e.x, hw), innerWidth - hw) + 'px'; tip.style.top = (e.y - 4) + 'px'; if (e.tap) { clearTimeout(tip._t); tip._t = setTimeout(() => { tip.hidden = true; }, 2200); } } }
@@ -401,7 +396,7 @@ addEventListener('blur', () => { if (press.down) { press.down = false; clearTime
   // Pressed from the keyboard there is no pointer: it is a plain start or stop.
   run.addEventListener('click', e => { if (e.detail === 0) { audio.start(); api.toggle(); } });
   run.addEventListener('contextmenu', e => e.preventDefault()); }
-$('book-x').addEventListener('click', () => { audio.sfx('close'); home(); });
+$('book-x').addEventListener('click', closeBook);
 $('fork-x').addEventListener('click', () => { forkShut = true; audio.sfx('close'); });
 $('card-x').addEventListener('click', () => { cardShut = true; card.hidden = true; audio.focus(0); audio.sfx('close'); });
 tab.addEventListener('click', e => { e.currentTarget.blur(); if (shown && cardShut) { cardShut = false; card.hidden = false; audio.focus(1); } else forkShut = false; audio.sfx('open'); });
@@ -420,6 +415,7 @@ addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input, textarea')) return;
   audio.start();
   if (e.code === 'Backquote' && !e.metaKey && !e.ctrlKey && !e.altKey) { openDebug(debug.hidden); e.preventDefault(); return; }
+  if (e.code === 'Escape' && !book.hidden) { closeBook(); e.preventDefault(); return; }
   if (e.code === 'Escape') { if (!plain.hidden) navigate(''); else if (!sheet.hidden) closeSheet(); else if (!debug.hidden) openDebug(false); else openSheet('map'); e.preventDefault(); return; }
   if (!sheet.hidden || !plain.hidden) return;
   // A key held with Command, Control or Alt belongs to the browser.

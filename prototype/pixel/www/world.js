@@ -477,7 +477,11 @@ export function makeWorld(bake) {
   // (about a fifth of the view up from its bottom), which leaves the skyline in frame above the destinations.
   // Since F5a the wide view's rest is openFrame's, worked out again only when the view's size changes.
   let openKey = -1, openAt = null, openCover = 0;
+  // On the few steps to the register and back (L6) the junction sign is put away, but the view keeps the frame
+  // it had with the sign up, so it does not pan off and back again. regTrip is set as each frame is drawn.
+  let signAt = null, regTrip = false;
   const vista = scr => {
+    if (regTrip && signAt && signAt.size === scr.VW * 1e4 + scr.VH) return signAt.at;
     // Worked out again when the sign comes, goes or changes height too: it is not up on the first frames, it is
     // taller until its font has loaded, and closing it frees ground.
     const el = document.getElementById('fork'), up = !!el && !el.hidden, key = (scr.VW * 1e4 + scr.VH) * 1e4 + (up ? el.offsetTop + 1 : 0);
@@ -489,6 +493,7 @@ export function makeWorld(bake) {
       openCover = scr.narrow && sign ? scr.VH - sign.y0 : barCss() * k;
       openAt = scr.narrow && sign ? openFrame(T, W.destBox, PLACES.slice(1), scr.VW, scr.VH, WW, WH + (scr.VH - sign.y0), scr.VH - sign.y0 + 4, null)
         : openFrame(T, W.destBox, PLACES.slice(1), scr.VW, scr.VH, WW, WH, barCss() * k, sign);
+      if (sign) signAt = { size: scr.VW * 1e4 + scr.VH, at: openAt };
     }
     return openAt;
   };
@@ -526,7 +531,8 @@ export function makeWorld(bake) {
       this.draw(scr, { ...env, dt: 0, moving: false, home: false, idle: 0, look: { x: 0, y: 0 }, hideMe: true, fixed: { x, y } }, { path: 'lake', from: 0, to: 0 }, 0);
       [cam.x, cam.y, last, focus, facing, flip] = keep;
     },
-    enter(scr, leg, q) { const [tx, ty] = target(scr, where(leg, q)); cam.x = tx; cam.y = ty; },
+    // Back from the register's close-up (L6) the view opens on the Trailhead's own frame, not one leaning toward him.
+    enter(scr, leg, q) { regTrip = leg.path === 'register'; const [tx, ty] = target(scr, where(leg, q), regTrip ? { lead: 0 } : undefined); cam.x = tx; cam.y = ty; },
     focus: () => focus,
     // The spot of the map under a point of the screen.
     at: (sx, sy) => ({ x: sx + last.ox, y: sy + last.oy }),
@@ -559,6 +565,7 @@ export function makeWorld(bake) {
     act(id, env) { if (id === 'pool') { env.found('tidepool'); return false; } if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
     draw(scr, env, leg, q) {
       const { VW, VH, fb } = scr, { t, tq, dt } = env; nowT = t;
+      regTrip = leg.path === 'register';
       const here = where(leg, q);
       if (env.moving && Math.abs(here.dx) + Math.abs(here.dy) > 0.01) {
         if (Math.abs(here.dx) > Math.abs(here.dy) * 0.7) { facing = 'side'; flip = here.dx < 0; } else facing = here.dy < 0 ? 'up' : 'down';
@@ -628,7 +635,7 @@ export function makeWorld(bake) {
       kit.update(env, here, scr.narrow && !env.fixed, env.home && !env.fixed ? oy + (scr.narrow ? VH * 0.56 : VH - 38) : 0);
       for (const it of kit.items()) mov.push(it);
       // Once he is at the box, its front is down (L2).
-      regBox.bm = REGS[(env.done.lake ? 1 : 0) | (env.done.stack ? 2 : 0) | (env.done.spires ? 4 : 0) | (leg.path === 'register' && q > 0.8 ? 8 : 0)];
+      regBox.bm = REGS[(env.done.lake ? 1 : 0) | (env.done.stack ? 2 : 0) | (env.done.spires ? 4 : 0) | (leg.path === 'register' && leg.to === 1 && q > 0.8 ? 8 : 0)];
       standing(still, moves, mov, list, ox, oy, VW, VH, env.done);
       // A tree that nearer ground partly hides is drawn only where the land under each pixel is no
       // nearer than the tree itself (D6a), so it can sway and still stand behind the slope in front.
