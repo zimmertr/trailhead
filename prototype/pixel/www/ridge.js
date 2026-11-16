@@ -281,6 +281,7 @@ function posAt(d) {
   return { x: lerp(a[0], b[0], u), h: lerp(a[1], b[1], u), where: u < 0.5 ? a[2] : b[2], dx: b[0] - a[0], dh: b[1] - a[1] };
 }
 const ANCHORS = ['tie', 'a1', 'a2', 'a3', 'a4', 'top'];
+const FACE_BELAYS = ['a1', 'a2', 'a3', 'a4', 'top'].filter(m => posAt(MARK[m]).where === 's');
 const below = d => { let k = 0; for (let i = 0; i < ANCHORS.length; i++) if (MARK[ANCHORS[i]] <= d + 1e-6) k = i; return ANCHORS[k]; };
 
 // The script: who does what, when. Three of them: TJ, the black-haired man who leads every pitch, and the
@@ -348,10 +349,13 @@ function makeScript() {
     // Before she leaves the anchor below (not the ground), she takes it apart; at the top she clips in.
     const clean = () => { if (p > 1) { go('red', pos.red, 'anchor', 1.4); anc[p - 2].gone = clock.red - 0.2; } for (const g of mine) { move('red', Math.max(pos.red, g.d - 6), 'climb', SPEED.follow); go('red', pos.red, 'clean', g.fixed ? 0.6 : 1.0); g.gone = clock.red - 0.3; } move('red', a + AT.red, 'climb', SPEED.follow, 'stand'); go('red', pos.red, 'anchor', 0.8, 'stand'); };
     if (p === 1) {
-      // Pitch 1: both followers at once on two ropes, the woman a few moves behind.
-      // He clips in to the anchor, and then the card opens.
+      // Pitch 1: both followers at once on two ropes, the woman a few moves behind. Each piece has both
+      // ropes through it: he stops to unclip his and leaves the piece for her, so the two stay a body
+      // length or so apart instead of him running away from her. He clips in to the anchor, and then
+      // the card opens.
+      for (const g of mine) if (!g.fixed && g.d - 6 > pos.tj) { move('tj', g.d - 6, 'climb', SPEED.follow); go('tj', pos.tj, 'unclip', 0.8); }
       move('tj', a + AT.tj, 'climb', SPEED.follow, 'stand'); go('tj', pos.tj, 'anchor', 1.0, 'stand'); stops.push({ id: CARD.a1, t: clock.tj });
-      hold('red', t1 + 1.2); clean();
+      hold('red', t1 + 3.2); clean();
       ropes.push({ a: 'lead', b: 'tj', t0: t1, t1: clock.tj }, { a: 'lead', b: 'red', t0: t1, t1: clock.red, two: true });
     } else {
       // Then caterpillar: the leader brings TJ up, then TJ brings the woman up.
@@ -532,6 +536,13 @@ function buildRidge() {
       // One of them, in the pose the script gives, at their place on the line.
       const P = {};
       for (const w of WHO) { const s = S[w], p = posAt(s.d); P[w] = { ...s, ...p, steep: p.where === 's' && Math.abs(p.dh) > Math.abs(p.dx) * 0.8 }; }
+      // At a belay on the face the followers hang staggered, each lower and further across the face from
+      // the leader (never out over the air beside the ridge's edge), instead of one under the other's
+      // feet; they ease over in their last few moves to it and back onto the line as they leave.
+      for (const m of FACE_BELAYS) for (const w of ['tj', 'red']) {
+        const e = smooth(0, 1, 1 - Math.abs(P[w].d - (MARK[m] + AT[w])) / 12);
+        if (e > 0) { const a = posAt(MARK[m]); P[w].x = lerp(P[w].x, a.x + (w === 'tj' ? 12 : 24), e); P[w].h = lerp(P[w].h, a.h - (w === 'tj' ? 12 : 22), e); }
+      }
       const bumping = S.tj.pose === 'bump';
       const rateOf = w => { const r = S.ropes.find(r => r.a === w); return r && S[r.b].moving; };
       const draw1 = w => {
@@ -545,6 +556,7 @@ function buildRidge() {
         if (s.pose === 'bump') { scr.put(u < 0.2 || u > 0.85 ? fr.idle : fr.bump[u > 0.45 && u < 0.7 ? 1 : 0], sx, sy, w !== 'tj'); return; }
         if (s.pose === 'lead' || s.pose === 'climb') { scr.put(fr.climb[Math.floor(s.d / 6) & 3], sx, sy - 12, false); return; }
         if (s.pose === 'place') { scr.put(fr.place[u < 0.2 ? 0 : 1], sx, sy - 12, false); return; }
+        if (s.pose === 'unclip') { scr.put(fr.clean[0], sx, sy - 12, false); return; }
         if (s.pose === 'clean') { scr.put(fr.clean[u < 0.55 ? 0 : 1], sx, sy - 12, false); return; }
         if (s.pose === 'anchor') { scr.put(fr.anchor[flick], sx, sy - 12, false); return; }
         if (s.pose === 'fall') { scr.put(fr.fall[Math.floor(t * 20) & 1], sx, sy - 12, false); return; }
@@ -573,7 +585,7 @@ function buildRidge() {
         const top = c.pose === 'lead' || c.pose === 'place' ? hi + 20 : hi;
         const via = []; for (let i = 0; i < pro.length; i++) if (lit(i) && pro[i].d > lo && pro[i].d < (c.d > a.d ? top : hi)) via.push(i);
         via.sort((i, j) => (pro[i].d - pro[j].d) * (c.d > a.d ? 1 : -1));
-        const onRock = c.pose === 'lead' || c.pose === 'climb' || c.pose === 'place' || c.pose === 'clean';
+        const onRock = c.pose === 'lead' || c.pose === 'climb' || c.pose === 'place' || c.pose === 'clean' || c.pose === 'unclip';
         const ends = [{ d: a.d, x: Math.round(a.x) + (c.x > a.x ? 5 : -5), h: a.h + 9 }, ...via.map(i => ({ d: pro[i].d, x: SPOT[i].x, h: SPOT[i].bi })), { d: c.d, x: Math.round(c.x), h: c.h + (onRock ? 12 : 9) }];
         // Between two points it hangs free it sags: a leader's rope more (the belayer pays out ahead of
         // him), with a loop below him for a moment after each clip (he pulled up an armful to clip);
