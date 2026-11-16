@@ -23,6 +23,12 @@ const mor = x => smooth(XM - 50, XM + 40, x);
 // At the end the crest broadens into the shelf where camp is, and levels off (XS: where the shelf starts).
 const XS = X0 + LEN - 70, shelf = x => smooth(XS - 40, XS + 30, x);
 const g = x => { const m = mor(x), sh = shelf(x), xc = Math.min(x, XS) + Math.max(0, x - XS) * 0.1; return -Math.round((xc - X0) * 0.028 + (1 - m) * (2.2 * Math.sin(x / 47) + 1.5 * vnoise(x / 30, 1, 700)) + m * (1 - sh) * 3 * Math.sin(x / 29) + m * 0.016 * Math.max(0, xc - XM)); };
+// Ice worms (J6): they live in the glaciers of the Pacific Northwest, Rainier's among them, and come up
+// to the surface toward evening. A knot of them lies on the ice just across the runnel from the crest,
+// in the stretch of the moraine walk where the ice is most shaded (a field read once, by rule).
+const WORMS = (() => { let b = XM + 120, bv = -1; for (let x = XM + 80; x < X0 + LEN - 140; x += 2) { const v = vnoise(x / 40, 9, 790); if (v > bv) { bv = v; b = x; } } return b; })();
+// Each worm: where it lies in the knot, which way it lies, and its own pace.
+const WORM = Array.from({ length: 11 }, (_, k) => ({ dx: Math.round((k - 5) * 2.6 + (hash(k, 1, 791) - 0.5) * 3), dy: 2 * Math.round(hash(k, 2, 791) * 2), lean: hash(k, 3, 791) < 0.5 ? 1 : -1, ph: hash(k, 4, 791) * 6 }));
 // Camp on the shelf, a little past where he stops: the two tents, and Kayti further on, painting.
 const TENTS = [X0 + LEN + 44, X0 + LEN + 70], KAYTI = X0 + LEN + 100;
 // Behind the crest the glacier: its far edge rises as the walk goes on, so it fills more of the view.
@@ -281,7 +287,7 @@ function buildApproach() {
   for (let i = things.length - 1; i >= 0; i--) if (M.some(m => Math.abs(things[i].x - m.x) < 24 && Math.abs(things[i].y - m.y) < 18)) things.splice(i, 1);
   for (const m of M) { things.push({ bm: m.rock, x: m.x, y: m.y }); let top = 0; while (top < m.rock.h && !m.rock.d[top * m.rock.w + m.rock.ox]) top++; m.top = m.rock.oy - top; }
   const marm = { sun: marmot('sun'), up: marmot('up') };
-  const tents = [dome('tent'), dome('red')], kayti = makeKayti(); let waved = -9, now = 0;
+  const tents = [dome('tent'), dome('red')], kayti = makeKayti(); let waved = -9, now = 0, dived = -9;
 
   let cam = 0, last = { camX: 0, base: 0, dir: 1, VW: 0 };
   const list = [];
@@ -291,10 +297,11 @@ function buildApproach() {
     ...META,
     enter(scr, arg, q) { cam = xOf(q); st.y = null; },
     focus: () => focus,
-    act(id, env) { if (id === 'kayti') { waved = now; return true; } const m = M[+id.slice(6)]; if (id.startsWith('marmot') && m) { m.seen = env.t; env.sfx('whistle'); return true; } return false; },
+    act(id, env) { if (id === 'kayti') { waved = now; return true; } if (id === 'worms') { dived = now; env.sfx('tink'); env.found('iceworm'); return true; } const m = M[+id.slice(6)]; if (id.startsWith('marmot') && m) { m.seen = env.t; env.sfx('whistle'); return true; } return false; },
     pick(sx, sy) {
       if (last.dir < 0) sx = last.VW - 1 - sx;
       const wx = sx + last.camX, wy = sy - last.base, mx = v => last.dir < 0 ? last.VW - 1 - (v - last.camX) : v - last.camX;
+      if (last.mix > 0.4 && now - dived > 4 && Math.abs(wx - WORMS) < 12 && Math.abs(wy - (g(WORMS) + lipAt(WORMS) - 6)) < 6) return { label: NAMES.approach.worms, x: mx(WORMS), y: last.base + g(WORMS) + lipAt(WORMS) - 14, act: 'worms' };
       if (Math.abs(wx - KAYTI) < 9 && wy > g(KAYTI) - 25 && wy < g(KAYTI) + 3) return { label: NAMES.kayti, x: mx(KAYTI), y: last.base + g(KAYTI) - 27, act: 'kayti' };
       for (let k = 0; k < M.length; k++) { const m = M[k]; if (Math.abs(wx - m.x) < 13 && wy > m.y - m.top - 14 && wy < m.y + 2) return { label: NAMES.approach.marmot, x: mx(m.x), y: last.base + m.y - m.top - 16, act: 'marmot' + k }; }
       return null;
@@ -369,10 +376,20 @@ function buildApproach() {
         } else scr.put(th.bm, sx, sy, !!th.flip);
       }
       if (TENTS[0] - camX < VW + 30) { const cx = (TENTS[0] + TENTS[1]) / 2 - camX, cy = base + g(TENTS[0]) - 12; for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx + age * 9 + Math.sin(age * 6 + k)), Math.round(cy - age * 24), age < 0.5 ? R.granite[4] : R.granite[3]); } }
-      last = { camX, base, dir, VW };
+      // The ice worms come out as the light goes: dark threads on the ice, each curling one way then the
+      // other. Tapped, they dive back under and come up again after a few seconds.
+      if (env.mix > 0.3 && t - dived > 4 && Math.abs(WORMS - camX - VW / 2) < VW) drawWorms(scr, WORMS - camX, base + g(WORMS) + lipAt(WORMS) - 7, t, smooth(0.3, 0.7, env.mix) * smooth(4, 5.5, t - dived));
+      last = { camX, base, dir, VW, mix: env.mix };
       if (dir < 0) { mirror(fb, VW, VH); focus.x = VW - 1 - focus.x; }
     }
   };
+}
+
+function drawWorms(scr, x0, y0, t, a) {
+  for (const w of WORM) {
+    const curl = Math.sin(t * 2.2 + w.ph), x = x0 + w.dx, y = y0 + w.dy;
+    for (let i = 0; i < 4; i++) { const px = x + i * w.lean, py = y + Math.round(curl * (i - 1.5) * 0.6 * (i & 1 ? 1 : -0.5)); if (bayer(px, py) < a) scr.set(px, py, i === 0 ? R.granite[1] : INK); }
+  }
 }
 
 // Going the other way, the whole picture flips (he then faces left, and the light comes from the east).

@@ -99,6 +99,7 @@ export const FINDS = {
   swim: ['The swim to the island', 'The lake looks inviting'],
   snack: ['A snack break', 'Stand still for a minute by the lake or in the trees'],
   pika: ['The pika', 'In the talus among the larches'],
+  iceworm: ['Ice worms', 'On the glacier beside the moraine, after the light goes'],
   tidepool: ['The tide pool', 'Wait for low water on the beach'],
   dusk: ['The Dusk sky', 'Look up after the light goes'],
   offroute: ['Off route', 'An address that goes nowhere'],
@@ -140,7 +141,7 @@ export const NAMES = {
   climb: { crevasse: 'Tech Debt Crevasse', ridge: 'Race Condition Ridge' },
   offroute: { wand: 'The only wand for miles' },
   larches: { goats: 'Nanny and kid', billy: 'On-call billy goat', pika: 'Pika' },
-  approach: { marmot: 'Hoary marmot' }
+  approach: { marmot: 'Hoary marmot', worms: 'Ice worms' }
 };
 // Every joke place name, for the legend on the trail map.
 const PLACE_NAMES = [...Object.values(SIGNS).filter(n => !n.includes(',')), NAMES.forest.sign, NAMES.forest.creek, NAMES.lakeside.sign, NAMES.wall.ledge, NAMES.wall.roof, NAMES.climb.crevasse, NAMES.climb.ridge, NAMES.lookout].filter((n, i, a) => a.indexOf(n) === i);
