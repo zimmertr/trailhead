@@ -132,3 +132,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **"Off belay!" behind the card.** While a card is open, the follower's arrival at the anchor could be marked with a small call bubble at the card's edge, so the visitor knows the team is ready without closing it.
 - **Morning mist that burns off.** On the lake's wooded shore the mist could be thick on the first visit of the day and thinner on each later one, the way valley mist lifts as the sun gets onto the water.
 - **Flowers that follow the season.** The lake's drifts could change with the visit's date: lupine and paintbrush in July, bistort and fading heather in August, red huckleberry and bare stalks by late September.
+- **Name the features on the mountain.** Tapping Monolith from the lake could put small labels on Liberty Cap, the crater and Little Tahoma, each with a line on what it is, the way a summit panorama board does.

@@ -8,6 +8,7 @@ import { makeConifer, makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign
 import { marmot, speck } from './fauna.js';
 import { makeRunner, sideFig, cheerFig, swimFig } from './tj.js';
 import { NAMES } from './content.js';
+import { paintMonolith, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 
 const SW = 1640, X0 = 500, LEN = 624, DUR = 8;
 const D_MAP = 125, D_NOTE = 437, D_MARMOT = 276;
@@ -37,35 +38,25 @@ const driftAt = (x, y) => {
 };
 const WX = X0 - 470, WW = 420, WUP = 760;
 
-// The peak: the same snowy pyramid that stands behind the lake on the map, now filling the sky.
-// One summit, long sweeping ridges with lesser tops on its shoulders, ridges fanning from the top,
-// snow above a ragged line and down the gullies, rock below, forest at its foot.
-const PH = 236;
+// Mount Monolith behind the lake: the very picture the map lays over the volcano (monolith.js), so
+// it is the same mountain with the same glaciers, cleavers, icefalls and Little Tahoma, seen from its
+// south side across the water. It is shown at MS of the map's size, small enough that the summit and
+// the upper icefalls stand clear in the sky while the far forest hides its foot, as Rainier's does
+// from Reflection Lakes. The meadow and fir clumps the picture paints at its foot come along too.
+const MS = 0.75, PH = Math.round((PMH - PTOPY) * MS), PW = Math.round(PMW * MS);
 function paintPeak(S) {
-  const W = S.w, H = PH, sx = 600;
-  const top = x => {
-    const dx = Math.abs(x - sx);
-    return 3 + 206 * (1 - Math.exp(-Math.pow(dx / (x < sx ? 170 : 150), 0.85))) - 40 * Math.exp(-sq((x - 392) / 30)) - 30 * Math.exp(-sq((x - 800) / 24)) - 22 * Math.exp(-sq((x - 955) / 34)) - 26 * Math.exp(-sq((x - 215) / 38)) - 16 * Math.exp(-sq((x - 1100) / 40))
-      + 12 * (vnoise(x / 8, 1, 121) - 0.5) * Math.min(1, dx / 8) + 5 * (vnoise(x / 2.6, 2, 122) - 0.5) * Math.min(1, dx / 5);
-  };
-  for (let x = 0; x < W; x++) {
-    const t0 = Math.round(top(x)); if (t0 >= H) continue;
-    for (let y = Math.max(0, t0); y < H; y++) {
-      const face = x < sx ? 0.2 : -0.18;
-      const fr = frac((x - sx) / Math.max(3, y) * 5.2 + 0.4 * vnoise(x / 13, y / 13, 123));
-      let v = 0.5 + face + (fr < 0.5 ? 0.13 : -0.13) + 0.16 * (vnoise(x / 5, y / 7, 124) - 0.5);
-      if (Math.abs(fr - 0.5) > 0.45) v += 0.2;
-      const snowLine = 112 + 34 * vnoise(x / 22, 3, 125) - Math.abs(x - sx) * 0.1 + (fr < 0.5 ? 14 : -9);
-      const gully = fr > 0.6 && fr < 0.74 && y < 186 && vnoise(x / 30, y / 40, 126) > 0.3;
-      const ledge = y > snowLine && y < 190 && vnoise(x / 7, y / 1.8, 127) > 0.85 && x < sx + 40;
-      const forest = y > H - 30 - 16 * vnoise(x / 9, 7, 128) - 8 * vnoise(x / 3, 8, 129);
-      let c;
-      if (forest) c = pick('conifer', 0.2 + 0.55 * hash(x, y, 130) - (y > H - 12 ? 0.15 : 0), x, y);
-      else if (y < snowLine || gully || ledge) c = v < 0.36 ? pick('glac', v + 0.42, x, y, 0.6) : pick('snow', v + 0.15, x, y);
-      else c = pick('rock', v - 0.05 + 0.1 * (vnoise(x / 2.2, y / 9, 131) - 0.5), x, y);
-      S.set(x, y - H, c);
+  // The crater (x 330 in the picture) lands on column 600 of the strip.
+  const P = paintMonolith(), sx = 600 - Math.round(330 * MS);
+  for (let x = 0; x < PW; x++) {
+    const u = Math.min(PMW - 1, Math.floor((x + 0.5) / MS));
+    let first = -1;
+    for (let y = 0; y < PH; y++) {
+      const v = PTOPY + Math.floor((y + 0.5) / MS), c = v < PMH ? P.d[v * PMW + u] : 0;
+      if (!c) continue;
+      if (first < 0) first = y;
+      S.set(sx + x, y - PH, c);
     }
-    S.set(x, Math.max(0, t0) - H - 1, INK);
+    if (first > 0) S.set(sx + x, first - 1 - PH, INK);
   }
 }
 
@@ -349,8 +340,12 @@ function buildLakeside() {
       }
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (VW + 140)) - 70, Math.max(4, hor - PH - 70) + c.y * (scr.narrow ? 1 : 0.5));
       drawStrip(scr, range, camX * 0.06 + 100, hor);
-      const peakX = camX * 0.2 + 420 - VW * 0.5;
-      drawStrip(scr, peak, peakX, hor + clamp(PH + 12 - hor, 0, 84));
+      // The summit stands straight across the water from where he stops to read the map, and drifts by
+      // slowly as he runs, being so far off.
+      const peakX = 0.2 * (camX - (X0 + D_MAP - VW * anchor)) + 600 - VW * 0.5;
+      // The summit stays clear of the buttons along the top; the foot sinks behind the far shore as far as it has to.
+      const sink = clamp(PH + 26 - hor, 0, 140);
+      drawStrip(scr, peak, peakX, hor + sink);
       const farX = camX * 0.45 + 200;
       drawStrip(scr, farS, farX, hor);
 
@@ -359,7 +354,7 @@ function buildLakeside() {
       for (let y = Math.max(0, hor + 1); y < Math.min(VH, base + 2); y++) {
         const dy = y - hor, row = y * VW, depth = dy / -FAR;
         const rip = Math.round(1.5 * Math.sin(dy * 1.9 + t * 1.4) * Math.min(1, dy / 8));
-        const py = -Math.round(dy * 4.6) - 1 - clamp(PH + 12 - hor, 0, 84), fy = -Math.round(dy * 1.4) - 1;
+        const py = -Math.round(dy * 4.6) - 1 - sink, fy = -Math.round(dy * 1.4) - 1;
         for (let x = 0; x < VW; x++) {
           const f = farS.get(((Math.round(farX) + x + rip) % fw + fw) % fw, fy);
           const src = f || peak.get(((Math.round(peakX) + x + rip) % pw + pw) % pw, py);
