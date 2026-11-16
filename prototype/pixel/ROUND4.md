@@ -1,6 +1,6 @@
 # Round 4: the map re-laid as its own Washington
 
-Status: **TJ said "begin" on 2026-11-15.** Work the checklist in section 7 from the first unticked item; stop at every STOP.
+Status: **TJ said "begin" on 2026-11-15.** Work the checklist in section 7 from the first unticked item. At every CHECKPOINT make its checkpoint branch and artifact and keep going (section 7); the work never halts before CHECKPOINT 8 is done.
 
 This file is written so that someone with no memory of the conversation can do the work. Read all of it once, then work the checklist from the top.
 
@@ -8,7 +8,7 @@ This file is written so that someone with no memory of the conversation can do t
 
 **Tag `pixel-r4-checkpoint-fable`** marks the last commit made by Fable. TJ switched to Opus here and asked for a checkpoint he can come back to with Fable if he does not like what Opus does.
 
-- **Where Fable left off.** STOP 2a is closed: the game runs on the new land (section 8a), TJ said the land is right and chose opening view B. Checklist sections C7 to C9, C19 and C20 are still open (mountain drawing, deleting `terrain.js`, the bake). Next in order is section D (what grows and stands on the land), then E (animals and timed events), then F (camera, zoom and opening view B).
+- **Where Fable left off.** CHECKPOINT 2a is closed: the game runs on the new land (section 8a), TJ said the land is right and chose opening view B. Checklist sections C7 to C9, C19 and C20 are still open (mountain drawing, deleting `terrain.js`, the bake). Next in order is section D (what grows and stands on the land), then E (animals and timed events), then F (camera, zoom and opening view B).
 - **What Fable was doing at the handover.** Reading `www/critters.js` to plan section E. TJ prefers animals placed by rule over positions written as numbers (section 8a). `critters.js` already has a `walker` with a rule for where each kind may go; the numbers live in `spots` (start positions), `SEA`, the mist's box (`W.mist`) and `FLOCKS`. The drawings for the ferry, whale, sheep and squirrels are still inside `buildTerrain` in `terrain.js` and must move out first.
 - **Where Opus works.** On a new branch, `pixel-round4-opus`, cut from this tag. `pixel-round4` stays exactly at the checkpoint, so nothing ever needs a force push.
 - **To keep Opus's work:** fast-forward `pixel-round4` to `pixel-round4-opus`.
@@ -56,15 +56,15 @@ The world began as three landmarks huddled in the middle of a small map. The map
 - Never coin a name for a mechanism and use it as if TJ knows it. Say what happens in plain words.
 - All new user-facing words are draft copy for TJ to reword; they live in `content.js`.
 - No references to alcohol anywhere. Three of TJ's private rules (about email, about job seeking, and this one) are never written into anything committed.
-- Colours: 237 of 254 are used. Reuse ramps. **If new art would pass 254, stop and tell TJ first.**
+- Colours: 237 of 254 are used. New art uses the existing ramps and the free slots. **If a piece truly needs more than 254, widen the palette to two bytes a pixel right then** (TJ, 2026-11-16): a checkpoint branch first as a rollback point, then the change, every scene checked against its last picture, frame time logged in section 9. Never halt for it.
 - One stream of work, in order, by one agent. No parallel copies or subagents for art (TJ, 2026-11-15: they used up the usage limit and needed rework).
-- After TJ gives feedback at a stop: report findings and ask questions first, with AskUserQuestion, before changing anything.
+- When TJ is present and gives feedback: report findings and ask questions first, with AskUserQuestion, before changing anything.
 - Keep `IDEAS.md` current: add ideas as they come up, delete ones that get built or rejected.
 
 **Stops, tags and links (how TJ rolls back)**
 
-- The work stops at each line marked **STOP** in the checklist and waits for TJ.
-- At each stop: tag the commit (`pixel-r4-<step>`), push the tag, export that tag into its own folder (`git archive <tag> prototype/pixel/www | tar -x -C <new folder>`), publish **from that folder as a new artifact** (no `url`, so nothing older can be overwritten; `files` = every `.js` in `www/` except `plan.js`, plus `ground.png`), and add the row to the table in section 8.
+- At each line marked **CHECKPOINT** in the checklist the work makes a checkpoint branch and a new artifact and carries on (section 7). Nothing in this plan is a reason to halt and wait for TJ.
+- At each CHECKPOINT: make a branch at the commit (`pixel-r4-<step>`), push it, export that branch into its own folder (`git archive <branch> prototype/pixel/www | tar -x -C <new folder>`), publish **from that folder as a new artifact** (no `url`, so nothing older can be overwritten; `files` = every `.js` in `www/` except `plan.js`, plus `ground.png`), and add the row to the table in section 8.
 - "Go back to step X" then means: check out that tag. No hunting for commits.
 
 ## 3. The law of this world
@@ -149,8 +149,8 @@ Gone for good: the Yosemite-style dome (The Stack), the tan Patagonian towers, t
 
 **Process**
 
-- Stops: after the block-in, then after each big piece (section 7 marks them).
-- No `/loop` this round: TJ is at hand throughout. Work the checklist in order in the open session, say briefly what is being done, and wait at every stop.
+- Checkpoints: after the block-in, then after each big piece (section 7 marks them). None of them halts the work.
+- Since 2026-11-15 the checklist runs as an unattended `/loop` (TJ asked for it), straight through to CHECKPOINT 8 without waiting at any checkpoint. When TJ is present he gives feedback and it is filed into the plan.
 - Build order after the map: Proficiency Peak, then Reflection Lake, then Sideproject Spires, then the register and the page.
 - Effort: high for design and for judging pictures, medium for mechanical work.
 
@@ -179,7 +179,7 @@ Gone for good: the Yosemite-style dome (The Stack), the tan Patagonian towers, t
 11. **The burn moves to the east edge**, across the east end of the first step under the basin's cliff (about `u` 1770 to 1920, `v` 400 to 540), running off the edge of the map. Tall fireweed as before.
 12. **The dry country is one slanted corner at the bottom right** with a wandering edge. No country on this map is an even band or a rectangle. TJ: stacked sections make "the world look fake and computer gnerated".
 13. **The fog** covers all of the rainforest, from nothing in the east to only white in the west, and lies over the beach and sea at the west edge. Rules could not make its ranks of trees (tried four times). They are drawn ridge by ridge.
-14. **The opening view is not decided.** TJ could not choose until the world is right. Candidates are shown on the real map at STOP 2a.
+14. **The opening view is not decided.** TJ could not choose until the world is right. Candidates are shown on the real map at CHECKPOINT 2a.
 
 **Starting numbers** (world `u`, `v`; tune by eye)
 
@@ -262,8 +262,8 @@ What the report adds to the look:
 **Still open**
 
 1. (Settled 2026-11-15: the West Ridge pitch list. The things marked topo only are kept as the topo draws them. The helmets are still the builder's call for TJ to veto.)
-2. Whether the Legacy Range stays (decided at STOP 1).
-3. Which opening frame (decided at STOP 1).
+2. Whether the Legacy Range stays (decided at CHECKPOINT 1).
+3. Which opening frame (decided at CHECKPOINT 1).
 
 ## 6. Starting numbers for the block-in (tune them by eye)
 
@@ -298,7 +298,7 @@ Map 1920 by 1080. The ground line (where land meets sky) stays near y 462. x run
 
 Tick an item only after looking at a picture of it. Log every creative call in one line in section 9.
 
-**The STOPs are checkpoints, not halts** (TJ, 2026-11-16). At each STOP the loop does not wait: it makes a branch named after that STOP's tag (for example `pixel-r4-map` at STOP 2) from the current commit, pushes it, publishes a NEW artifact for it, writes a short report at the end of section 8a, and carries on with the next item on `pixel-round4-opus`. Those branches are the points to go back to if something goes wrong. Where a STOP asked to show TJ something first (STOP 3's pitch list), the loop uses the draft it has, logs that in section 9, and keeps going. The loop ends after STOP 8, with the full report in section 8a and in chat.
+**A CHECKPOINT never halts the work** (TJ, 2026-11-16). At each CHECKPOINT the loop does not wait: it makes a branch named after that CHECKPOINT's tag (for example `pixel-r4-map` at CHECKPOINT 2) from the current commit, pushes it, publishes a NEW artifact for it, writes a short report at the end of section 8a, and carries on with the next item on `pixel-round4-opus`. Those branches are the points to go back to if something goes wrong. CHECKPOINT 3 once said to show TJ the pitch list; he confirmed it on 2026-11-15 (section 5), so there is nothing to wait for. The loop ends after CHECKPOINT 8, with the full report in section 8a and in chat.
 
 ### A. Setup
 
@@ -321,7 +321,7 @@ Tick an item only after looking at a picture of it. Log every creative call in o
 - [x] B10. Pictures: whole map; the opening wide view on a 1440 by 900 screen in two or three candidate framings, some cropped (section 5); the phone's opening slice; the close view at the Trailhead; round 3's map beside the new one.
 - [x] B11. Check the law: walk the map west to east and name every pair of neighbours; none is unbelievable. Check the four kinds of mountain: nothing else on the skyline.
 - [x] B12. A page like `plan/skyline-pick.html` showing the pictures, with the weak points listed honestly.
-- [x] **STOP 1 (closed 2026-11-15: TJ said to move on from block-ins and signed off building layout 1 with the changes in section 4a; reached 2026-11-15; TJ's answers sent the block-in round again, see section 9; three layouts shown and TJ picked layout 1, the land climbs; its second pass is shown and waits for his word that the layout is right).** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
+- [x] **CHECKPOINT 1 (closed 2026-11-15: TJ said to move on from block-ins and signed off building layout 1 with the changes in section 4a; reached 2026-11-15; TJ's answers sent the block-in round again, see section 9; three layouts shown and TJ picked layout 1, the land climbs; its second pass is shown and waits for his word that the layout is right).** Tag `pixel-r4-blockin`, publish, ask TJ: is the Legacy Range in or out, the opening frame, anything to move.
 
 ### C. The land and the water, in the game
 
@@ -348,7 +348,7 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 - [x] C19. Delete what is gone: `terrain.js`, the first block-in (`plan4.js`, `layout4.js`, `plan4.html`), layouts 2 and 3, The Stack's sprite and talus.
 - [x] C20. `./bake.sh` bakes the ground and the depth. No stale warning. Ready time written in section 9 (round 3: about 0.8 s).
 - [x] C21. Pictures: the whole map Day and Dusk, trees off, each destination close, three candidate opening views on a 1440 by 900 screen and the phone's slice. Compare with `out/r4/w1.png` and list the weak points honestly.
-- [x] **STOP 2a (reached 2026-11-15 with C7 to C9, C19 and C20 still open, see section 8a; TJ: the land is right, carry on; opening view B, one screen pixel to one map pixel with the three destinations in frame, `out/r4/o-b.png` is `relief.html?crop=330,180` at 1440 by 900).** Tag `pixel-r4-land`, publish the game (the old wall, lake and camp scenes still run behind the new map). Ask TJ: is the land right, and which opening view.
+- [x] **CHECKPOINT 2a (reached 2026-11-15 with C7 to C9, C19 and C20 still open, see section 8a; TJ: the land is right, carry on; opening view B, one screen pixel to one map pixel with the three destinations in frame, `out/r4/o-b.png` is `relief.html?crop=330,180` at 1440 by 900).** Tag `pixel-r4-land`, publish the game (the old wall, lake and camp scenes still run behind the new map). Ask TJ: is the land right, and which opening view.
 
 ### Q. Quality pass (TJ, 2026-11-15: the game looked "half baked" beside round 3; do these before anything else)
 
@@ -420,7 +420,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
   - **Sage in the SE, golden hills in the NE.** Sagebrush dominates the south-east, as now. The north-east of the dry side turns to rolling, wild golden grass hills, as round 3 had (TJ chose wild grass, no farming). The burn's old ground becomes part of those hills.
   - **A dry forest along the border.** Lodgepole pine, ponderosa pine, aspen, gnarled juniper and whitebark pine (the last only high up, near the plateau's rim), each where it would grow. Not as thick as the rainforest (TJ: it is not the Olympics) but thicker than the scattered trees there today. It runs the length of the border and creeps a little way into the meadow before fading back to meadow.
   - **The burn moves to the top of that forest** (TJ's red box): the bench at the foot of the plateau's cliff, west of the border. The rivers that come down from the plateau now run through it. Still mostly gnarled burnt snags and fireweed, but along the rivers new growth is coming back: slide alder and manzanita starting to leaf out, life coming out of the burned zone.
-  - Colours: the new trees reuse the existing ramps where they can; stop and log before passing 254.
+  - Colours: the new trees reuse the existing ramps where they can; past 254, widen the palette as section 0 says.
 - [ ] E5h. The Trailhead moves down (TJ's orange box, 2026-11-16) to the open meadow below today's spot, nearer the map's foot. All three trails are laid out again from the new spot by rule (TJ chose this over one shared approach), so the lake loop, the Stack and the Spires paths change; their bridges and switchbacks are redone by the same rules. Everything that hangs on the Trailhead moves with it: the kiosk, the register, the junction sign, the opening view, the timeline's profile and stops, the route lengths on the sign, and Doot Doot and Peevers. Signs and animals placed near the Trailhead by rule are placed again. The magenta box on TJ's map was a mistake and means nothing.
 - [ ] E5i. Every animal that moves has a small home to wander in (TJ, 2026-11-16). None stands still: each walks a little, stops, grazes or sniffs, and moves on, inside a small area found by rule from its kind of ground. The cats' area is close to where he starts on the map, with no trees in it or right round it so they never clip into a trunk, and with the kiosk, the register and the signboard outside it, so the cats never walk behind them (TJ remembers them doing so today). The roof jump stays: now and then one hops onto the kiosk's roof, sits, and hops back. A debug switch draws every animal's wander area on the map.
 - [ ] E5j. Small things on the foothills and the meadow (TJ chose these from `IDEAS.md`, 2026-11-16).
@@ -467,13 +467,13 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [ ] F2. While the size is between whole numbers the picture is drawn at the next whole size and scaled, so nothing is reallocated per frame; name tags and tap targets follow exactly.
 - [ ] F3. Debug switch: at rest, stay where let go, or ease to the nearest whole size. Both work.
 - [ ] F4. Film a slow zoom all the way out and in (`frames.sh`): no jump between any two frames.
-- [x] F5 (done in Q7). The opening wide view as agreed at STOP 2a; the sign and planks do not cover the skyline's main peaks.
-- [ ] F5a (TJ, 2026-11-15, replacing the STOP 2a choice of opening size). The page opens closer in, at twice the size (round 3's opening size), on the Trailhead with the three destinations as near the frame as that size allows. Zooming out to the whole map still works. Round 4's one-to-one opening halved every movement and made the trees, flowers and destinations read as noise.
+- [x] F5 (done in Q7). The opening wide view as agreed at CHECKPOINT 2a; the sign and planks do not cover the skyline's main peaks.
+- [ ] F5a (TJ, 2026-11-15, replacing the CHECKPOINT 2a choice of opening size). The page opens closer in, at twice the size (round 3's opening size), on the Trailhead with the three destinations as near the frame as that size allows. Zooming out to the whole map still works. Round 4's one-to-one opening halved every movement and made the trees, flowers and destinations read as noise.
 - [ ] F6. First movement eases in over about 2 seconds while he is already running; returning to the junction eases out.
 - [ ] F7. `prefers-reduced-motion`: cuts, no eases.
 - [ ] F8. Phone upright: opens on the Trailhead with the Spires above; pinch works; the sign leaves the Spires visible.
 - [ ] F9. Zoom limits: out to the whole map, in to twice the travelling size. Never past the point where the map fills the screen (TJ's bug, 2026-11-15): zoomed out until the screen is taller than the map, the view centres the map and fills the space below its bottom edge with an upside-down copy of the map's lowest rows (a dark mirrored sea and trails), and the ferry is cut off at that edge because nothing is drawn below it. TJ chose to limit the zoom so nothing past the map's edges ever shows, done here in F.
-- [ ] **STOP 2.** Tag `pixel-r4-map`, publish. The old wall, lake and camp scenes still run behind the new map (the wall recoloured to Proficiency Peak's granite, nothing more).
+- [ ] **CHECKPOINT 2.** Branch `pixel-r4-map`, publish a new artifact, carry on. The old wall, lake and camp scenes still run behind the new map (the wall recoloured to Proficiency Peak's granite, nothing more).
 
 ### G. The larch basin scene (new, side-on, on the way to Proficiency Peak)
 
@@ -487,7 +487,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [ ] G8. Day and Dusk, desktop and phone, and the cuts in and out filmed: he never stands still or sprints at a change.
 - [ ] G9. Its tune and ambience in `audio.js` (`PLACES`).
 - [x] G10. Read the five West Ridge sources in section 5, photographs included, and correct the draft pitch list there. (Done 2026-11-15, before the build, by an Opus subagent: four of the five, SummitPost refused. Report in `plan/west-ridge-beta.md`.)
-- [ ] **STOP 3.** Tag `pixel-r4-larches`, publish, show TJ the pitch list.
+- [ ] **CHECKPOINT 3.** Branch `pixel-r4-larches`, publish a new artifact, carry on. (The West Ridge pitch list in section 5 was already confirmed by TJ on 2026-11-15.)
 
 ### H. The West Ridge climb (rebuild of `wall.js`)
 
@@ -516,7 +516,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [ ] H17. Waiting: followers climb at real pace; holding Space doubles them; the timeline can jump to any card without watching.
 - [ ] H18. Stops, cues and the timeline's profile updated; the route label on the junction sign shows its real length.
 - [ ] H19. Filmed end to end, Day and Dusk, desktop and phone. Total time written in section 9.
-- [ ] **STOP 4.** Tag `pixel-r4-westridge`, publish.
+- [ ] **CHECKPOINT 4.** Branch `pixel-r4-westridge`, publish a new artifact, carry on.
 
 ### I. Reflection Lake
 
@@ -528,7 +528,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [ ] I6. The lenticular cloud and the Dusk headlamps appear here too when they are on the map.
 - [ ] I7. Island, swim, marmot, cards and finds all still work.
 - [ ] I8. Day and Dusk (alpenglow), desktop and phone, cuts filmed.
-- [ ] **STOP 5.** Tag `pixel-r4-lake`, publish.
+- [ ] **CHECKPOINT 5.** Branch `pixel-r4-lake`, publish a new artifact, carry on.
 
 ### J. The walk to Spires base camp (new, side-on)
 
@@ -539,7 +539,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [ ] J5. Base camp's backdrop redrawn as the new Spires; the six name tags and flags sit on the right summits.
 - [ ] J6. One thing to find on the walk.
 - [ ] J7. Day and Dusk, desktop and phone, cuts filmed, tune and ambience.
-- [ ] **STOP 6.** Tag `pixel-r4-spireswalk`, publish.
+- [ ] **CHECKPOINT 6.** Branch `pixel-r4-spireswalk`, publish a new artifact, carry on.
 
 ### K. The six climbs (designs are in section 5)
 
@@ -553,7 +553,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [ ] K8. Each climb runs about 30 seconds (time them), keeps its summit object and its find, and is filmed Day and Dusk, desktop and phone.
 - [ ] K9. No two climbs share a stretch drawn the same way. Lay one frame of every stretch of all six on one sheet and check.
 - [ ] K10. The glissade back to camp still ends each one. Round 3's ice climbing, storm, rack and binoculars work is carried over where it fits.
-- [ ] **STOP 7.** Tag `pixel-r4-spires`, publish.
+- [ ] **CHECKPOINT 7.** Branch `pixel-r4-spires`, publish a new artifact, carry on.
 
 ### L. The Trailhead, the page and the words (register design is in section 5)
 
@@ -569,26 +569,26 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [ ] L10. The kiosk's lines (wildlife, finds, hints) match the new world.
 - [ ] L11. The list of things to find: every one still findable; new ones added; "Clear my flags" clears them.
 
-### M. Whole-site checks before the last stop
+### M. Whole-site checks before the last checkpoint
 
 - [ ] M1. Every route end to end, Day and Dusk, desktop and phone, no errors in the console.
 - [ ] M2. Every scene at least as good as the same scene in round 3; put back anything worse.
 - [ ] M3. Colours used, of 254. Ready time. Frame rates. All in section 9.
 - [ ] M4. The off-route page, a broken scene (`break=forest`), and a scene that fails to load still behave.
 - [ ] M5. `IDEAS.md` pruned and current. No em dashes anywhere. `PROGRESS.md` gets a short round 4 report: done, weak, changed my mind about, every link.
-- [ ] **STOP 8.** Tag `pixel-r4-final`, publish.
+- [ ] **CHECKPOINT 8.** Branch `pixel-r4-final`, publish a new artifact, carry on.
 
 ## 8. Steps
 
-| Stop | Tag | Artifact | Date |
+| Checkpoint | Tag or branch | Artifact | Date |
 |---|---|---|---|
 | Round 3, for comparison | `pixel-r3-final` | https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1 | 2026-11-15 |
 | 1, the block-in (a page of pictures, not the game) | `pixel-r4-blockin` | https://claude.ai/artifact/LDB4ivAk4ZU2EVskcN7nHj | 2026-11-15 |
 | 1 again: three layouts with real height (pictures) | `pixel-r4-relief` | https://claude.ai/artifact/HkLDn3zFk3fyYgagGVWQSA | 2026-11-15 |
 | 1 again: layout 1, second pass (pictures) | `pixel-r4-relief2` | https://claude.ai/artifact/SJGQUzqPa1i1RDd23pc56t | 2026-11-15 |
-| Progress, not a stop: the land of section 4a built (pictures) | `pixel-r4-landshape` | https://claude.ai/artifact/KJ2YvMaK4V8pLyoSSJxmGa | 2026-11-15 |
-| Working build, republished after each item (not a stop) | `pixel-round4-opus` | https://claude.ai/artifact/QzAfYnTZGZr8L8wfh1EksH | 2026-11-15 |
-| Quality pass (section Q, Opus; not a stop): mist back, Mount Monolith and the ranges redrawn, zoom out, opening view B | `pixel-r4-opus-quality` | https://claude.ai/artifact/Lx1MmJoRyTzRERRHwWL28f | 2026-11-15 |
+| Progress, not a checkpoint: the land of section 4a built (pictures) | `pixel-r4-landshape` | https://claude.ai/artifact/KJ2YvMaK4V8pLyoSSJxmGa | 2026-11-15 |
+| Working build, republished after each item (not a checkpoint) | `pixel-round4-opus` | https://claude.ai/artifact/QzAfYnTZGZr8L8wfh1EksH | 2026-11-15 |
+| Quality pass (section Q, Opus; not a checkpoint): mist back, Mount Monolith and the ranges redrawn, zoom out, opening view B | `pixel-r4-opus-quality` | https://claude.ai/artifact/Lx1MmJoRyTzRERRHwWL28f | 2026-11-15 |
 | 2a: the game runs on the new land (and the opening view candidates, `plan/opening-r4.html`) | `pixel-r4-land` | https://claude.ai/artifact/WVKKSA9g8uC5PDePJhjXnk and https://claude.ai/artifact/XsZEi9AqXxgXo9FNgHm9LP | 2026-11-15 |
 
 ## 8a. Where the build stands (2026-11-15, commit after `204dc5b`)
@@ -637,11 +637,11 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
 (One line each, newest last.)
 
 - B2: the block-in is a page of its own (`plan4.html?labels=1&trees=0&crop=x,y&scale=k&sign=1`), not a `?v=4` switch inside the real map. Round 3's map cannot be disturbed that way, and a published artifact cannot take a `?v=` address anyway. **The real map (sections C and D) should import its numbers and shapes from `layout4.js`** so it cannot drift from what TJ approves.
-- STOP 1's artifact is the page of pictures (`plan/blockin-r4.html`), not the game, for the same reason.
+- CHECKPOINT 1's artifact is the page of pictures (`plan/blockin-r4.html`), not the game, for the same reason.
 - B1, what makes each outline recognisable. **Rainier from the south:** wider than tall; a nearly flat summit with three low bumps; convex shoulders, never straight cone sides; a lower shoulder left of the top; a step (Gibraltar Rock) then a small dark tooth (Little Tahoma) low on the right; dark cleavers fanning down between glaciers. **Southern Pickets:** one continuous dark wall; many summits of unequal height; notches that stay high (about four fifths of the summits); broken tops, gendarmes; ice hanging below the wall and a glacier in the cirque. **Prusik Peak, south face:** a lower flat-topped tower on the left; a notch; a steep prow to a small summit block; a serrated ridge stepping down to the right; pale rock with dark vertical streaks. **Olympics from the west:** low, far, many similar snowy peaks, one a little higher in the middle, foothills and haze across the foot. **Glacier Peak from Image Lake** (for the lake scene): a broad white dome over dark forested ridges, mirrored.
 - Spires: summits west to east at 66, 84, 100, 86, 95 and 70 percent of full height, in the order of `SPIRES` in `pixel.js` (bluebird, tks, hevy-garmin-sync, trailhead, yggdrasil, kubernetes-manifests). First tries came out as six separate daggers, then as rounded fingers; what fixed it was keeping the wall between summits at about four fifths of their height and cutting the snow gullies short.
 - Mount Monolith: the first try was a cone. What fixed it was a summit plateau about 60 wide and convex flanks.
-- Proficiency Peak is 164 by 142 (the plan said 150 by 120) so its summit breaks the skyline; the granite row behind dips there. Told TJ at STOP 1.
+- Proficiency Peak is 164 by 142 (the plan said 150 by 120) so its summit breaks the skyline; the granite row behind dips there. Told TJ at CHECKPOINT 1.
 - Water: the lake trail crosses the river twice (above the fall and at the footbridge below it). Meltwater from the glacier's toe drops over the headwall, crosses the trail to Proficiency Peak, is joined by the cascade out of the upper basin, and leaves the map southward. Told TJ it is the strongest line on the map.
 - Phone opening drawn at 1.25 screen pixels to one map pixel; desktop candidates at 0.75, 1 and 1.5.
 - **TJ on the first block-in (2026-11-15):** "all of the mountains are in the background, on the horizon. Or just in front of it. The mountains should be *part* of the world/scenery. Not just sitting in the background like a puppet show backboard." He could not judge three directions from ASCII sketches and asked to see them blocked in. Proficiency Peak stays at the larger size. The Legacy Range is to be larger. The opening view is decided after the world is right.
@@ -750,6 +750,7 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
 - **E5f, the clock (Opus, 2026-11-16).** The scenes now read one clock of their own (`simT` in `pixel.js`) that keeps the page's time at 1x and runs at 0, 0.5, 1, 2, 4 or 8 times. His running uses it too, so Pause stops everything; the camera's easing and the round window between scenes keep the page's own time so they never freeze half way. The idle and still timers count on the same clock. At 8x a frame's step for the animals can be 0.4 s; I left it so rather than stepping them several times a frame, since it is for watching cycles in the debug panel.
 - **E5f, the start buttons (Opus).** Each event's clock offset (the same one its address switch sets) is moved so the event begins now: the shower, the serac fall (the next icefall in its order, so never the same twice), the lenticular cloud, the humpback's breach, its first roll and blow after a breach, the ferry setting out from the west end, and in the forest run the jay, the bear and Sasquatch (who can be called again even after he has been seen). The whale and the ferry, which shared one clock, have one each now so starting one does not move the other. A button pressed in the wrong scene does nothing and plays the close sound; the panel's note says each works in its own scene. `window.__api` is set for screenshot scripts. Pictures: `out/e5f/` (`s4.png`/`s6.png` the serac fall, `s7.png` the breach, 8x and pause, `s8.png` the forest).
 - **Filed from TJ (2026-11-16, his marked map of the east side).** E5g (the dry side out to his line, sage SE, wild golden hills NE, a dry forest of five kinds along the line, the burn moved to the bench under the plateau with new growth along its rivers), E5h (the Trailhead down to his orange box, all three trails laid out again from it, as he chose), E5i (every moving animal wanders a small area and grazes; the cats' area clear of trees and of the kiosk and register so they never walk behind them, the roof jump kept; a debug switch draws the areas), all right after E5b2 as he chose. From `IDEAS.md` he chose: E5j (a fire lookout on a small cleared summit, Dusk light on the foothills, the heron in the oxbow, name tags that rise with their place), E5k (tumbleweed and dust devils, a shooting star, a float plane, each with a debug start button), drip after the rain in E5e, and glowing tents and camp smoke in E8. Those ideas left `IDEAS.md`.
+- **Filed from TJ (2026-11-16, before the night run).** Every STOP is renamed CHECKPOINT and every line that said to stop or wait for TJ is rewritten, so nothing in the plan reads as a halt. Colours: new art uses existing ramps and the free slots; only if a piece truly needs more than 254 is the palette widened to two bytes a pixel, then and there, with a checkpoint branch first. TJ turned down merging shades (lossy) and a table of merges kept for a later backout (a layer to maintain forever).
 
 ## 10. The reference pictures TJ shared, described
 
@@ -808,7 +809,7 @@ The pictures themselves are other people's photographs and are not in the repo. 
 - `shot.sh` steps are separated by semicolons. With commas the screenshot is taken at load, mid-fade, and looks like a bug that is not there.
 - The mist, the aspens and the river mouth each came back wrong the first time because nobody looked at the picture critically before calling it done: mist as opaque white bars, aspens wall to wall, the river as a ruled blue stripe. Look, compare with round 3, and ask "would TJ wince".
 - Volcanoes drawn so far lean toward Fuji (smooth, even, pointed). Rainier is wide, lopsided and flat-topped.
-- Never heard by anyone yet: the seven tunes' second parts and the effects `tink`, `bang`, `slap`. Ask TJ to listen at a stop.
+- Never heard by anyone yet: the seven tunes' second parts and the effects `tink`, `bang`, `slap`. List them in the final report for TJ to listen to.
 - Not confirmed on the artifact host: that `ground.png` loads there and that the page's own files fetch back byte for byte, which the bake's check (`sourceSig`) needs. If either fails, the page is correct but takes about 3.5 s to be ready.
 - Known weak spots carried in from round 3: the swimmer's head sits upright and the wade-to-swim change is abrupt; some mist banks are long thin bands; chalk and rope stay bright white at Dusk; (fixed in D15: with Trees off, tree shadows painted into the ground remained); the icefall climb and the hevy-garmin-sync climb ran 17 and 15 seconds, the others under 10.
 - Usage: five parallel copies used up TJ's limit in a few hours. One stream of work only.
