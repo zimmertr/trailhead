@@ -23,18 +23,47 @@ const ROUTES = {
   // Bluebird Forecast, the weather window (K2): a long snow ridge, climbed in cloud and wind; the deck
   // thins and he breaks out (at brk of the way up) above an inversion into still blue air.
   bluebird: { kind: 'ridge', secs: 25, sx: 1080, w: 1700, brk: 0.6, pts: [[0, 0], [60, -12], [140, -40], [220, -58], [300, -90], [380, -104], [460, -140], [540, -160], [620, -178], [700, -210], [780, -226], [860, -252], [940, -266], [1010, -288], [1080, -300], [1122, -300], [1150, -262], [1220, -160], [1320, -20], [1420, 120]] },
-  tks: { kind: 'icefall', secs: 3.4, ice: [[52, 56], [112, 116]], pts: [[0, 0], [30, -5], [44, -9], [52, -9], [56, -42], [92, -54], [104, -58], [112, -58], [116, -112], [170, -124], [224, -134], [262, -138], [304, -138], [330, -100], [400, 0], [500, 120]] },
+  // TJs-Kubernetes-Service, the icefall (K3): among leaning seracs, over a snow bridge, across a ladder laid
+  // over a crevasse, up two steps of ice with tools, and over two ladders lashed end to end. `xings` lists
+  // the crevasses by the x of their two lips and what crosses each.
+  tks: { kind: 'icefall', secs: 17, sx: 600, w: 1300, ice: [[300, 304], [372, 376]], xings: [[96, 116, 'snow'], [196, 226, 'ladder'], [468, 532, 'lashed']], pts: [[0, 0], [40, -6], [96, -14], [116, -16], [160, -24], [196, -34], [226, -36], [270, -46], [300, -50], [304, -84], [340, -92], [372, -96], [376, -136], [420, -146], [468, -156], [532, -160], [566, -170], [600, -176], [642, -176], [668, -138], [738, -38], [838, 82]] },
   'hevy-garmin-sync': { kind: 'ice', secs: 3.2, ice: [[124, 130]], slip: [0, 2], pts: [[0, 0], [70, -14], [116, -28], [124, -28], [130, -88], [160, -104], [230, -140], [262, -150], [304, -150], [330, -112], [400, -10], [500, 120]] },
   trailhead: { kind: 'bridge', secs: 4.5, gap: [150, 176], pts: [[0, 0], [80, -30], [140, -64], [150, -66], [176, -72], [230, -128], [262, -146], [304, -146], [330, -110], [400, -10], [500, 120]] },
   yggdrasil: { kind: 'ladder', secs: 4.5, gap: [130, 160], pts: [[0, 0], [70, -20], [130, -56], [160, -76], [220, -124], [262, -146], [304, -146], [330, -110], [400, -10], [500, 120]] },
   'kubernetes-manifests': { kind: 'wands', secs: 10.5, pts: [[0, 0], [90, -26], [170, -74], [230, -120], [262, -140], [304, -140], [330, -104], [400, 0], [500, 120]] }
 };
+// How slowly each kind of crossing is taken, as a multiple of the walking pace.
+const SLOW = { snow: 2.2, ladder: 3, lashed: 3.4 };
+const xingAt = (cfg, x, pad = 0) => (cfg.xings || []).find(g => x > g[0] - pad && x < g[1] + pad);
+// How far a crossing sags at x when he stands on it at mx: a little under its own weight, and more under
+// him, most where he stands (a beam with one load on it). Snow bridges arch up a little instead.
+const SAG = { snow: [-1.5, 2], ladder: [0, 2], lashed: [1, 4.5] };
+function sagAt(g, x, mx) {
+  const [g0, g1, k] = g, u = clamp((x - g0) / (g1 - g0), 0, 1), [own, load] = SAG[k];
+  let s = own * Math.sin(u * Math.PI);
+  if (mx > g0 - 3 && mx < g1 + 3) { const m = clamp((mx - g0) / (g1 - g0), 0.02, 0.98); s += load * Math.sin(m * Math.PI) * (u < m ? u / m : (1 - u) / (1 - m)); }
+  return s;
+}
 const hOf = (pts, x) => { if (x <= 0) return 0; for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; return lerp(y0, y1, (x - x0) / (x1 - x0)); } return pts[pts.length - 1][1]; };
+
+// One column of a crevasse seen from the side, cut into the ground already painted there: a slot whose
+// walls close in quickly at first and then slowly, each wall ragged in its own way, and inside it the far wall of ice going from pale blue at the
+// top to black where the slot closes. A lip of snow overhangs the top.
+function crevasse(S, sx, x, y0, [g0, g1], seed) {
+  const e = Math.min(x - g0, g1 - x), half = (g1 - g0) / 2;
+  for (let y = y0; y < DOWN; y++) {
+    const d = y - y0, side = x > (g0 + g1) / 2 ? 1 : 0, edge = 1 + 0.75 * half * (1 - Math.exp(-d / 60)) + 4 * (vnoise(y / 9, side * 5, seed + 1) - 0.5) + 2 * (vnoise(y / 2.5, side * 5 + 2, seed + 3) - 0.5) + (d < 3 ? 2 - d / 1.5 : 0);
+    if (e < edge - 1) continue;
+    if (e < edge) { S.set(sx, y, d < 2 ? R.snow[2] : R.glac[1]); continue; }
+    const v = 0.22 + d / 60 + 0.2 * (vnoise(sx / 3, y / 9, seed + 2) - 0.5) + (x - g0 > g1 - x ? 0.08 : 0);
+    S.set(sx, y, v > 0.95 + 0.3 * bayer(sx, y) ? INK : pick('glac', 0.66 - v * 0.7, sx, y, 0.7));
+  }
+}
 
 function paint(cfg, seed) {
   const SW = wOf(cfg), S = new Strip(SW, UP, DOWN), { pts, kind, gap } = cfg, tops = new Int16Array(SW);
   for (let sx = 0; sx < SW; sx++) {
-    const x = sx - OFF, inGap = gap && x > gap[0] && x < gap[1];
+    const x = sx - OFF, inGap = gap && x > gap[0] && x < gap[1], xg = xingAt(cfg, x);
     const y0 = Math.round(hOf(pts, x) + (x > 0 && x < sxOf(cfg) ? 1.5 * (vnoise(x / 7, 1, seed) - 0.5) : 0)), slope = hOf(pts, x + 3) - hOf(pts, x - 3);
     const far = slope > 2;
     tops[sx] = y0;
@@ -47,6 +76,7 @@ function paint(cfg, seed) {
       S.set(sx, y, c);
     }
     if (!inGap) S.set(sx, y0 - 1, INK);
+    if (xg) crevasse(S, sx, x, y0, xg, seed);
   }
   // A fall of ice hangs down the face of each step, WIDE pixels across, and he climbs it with his back to
   // us. Flutes run down it, pale where they catch the light and dark in the seams between; it bulges in
@@ -227,9 +257,9 @@ const TALL = { ladder: 66, icefall: 40 };
 // A serac: a tower of glacier ice broken into blocks that lean on one another. Each block is a slab
 // with a tilted top, lit on its left face and blue in shadow on its right, split from the next by a dark
 // fracture, and wherever a block is wider than the one above it snow has settled on the step.
-function makeSerac(seed, w, h) {
-  const rand = rng(seed), b = new BM(w + 44, h + 6), cx = (w + 44) >> 1; b.ox = cx; b.oy = h + 5;
-  const lean = (rand() - 0.5) * 0.5, n = 2 + Math.floor(h / 28), blocks = [];
+function makeSerac(seed, w, h, tip) {
+  const rand = rng(seed), b = new BM(w + 44 + Math.round(Math.abs(tip || 0) * h), h + 6), cx = (b.w) >> 1; b.ox = cx; b.oy = h + 5;
+  const lean = tip != null ? tip : (rand() - 0.5) * 0.5, n = 2 + Math.floor(h / 28), blocks = [];
   let y = 3;
   for (let k = 0; k < n; k++) {
     const u = (k + 1) / n, hw = w * (0.15 + 0.35 * u) + (rand() - 0.5) * 2, off = lean * (h - y) + (rand() - 0.5) * 3;
@@ -284,6 +314,32 @@ function veil(scr, k, tones, cx, cy, keep) {
     }
   }
 }
+// What crosses a crevasse, drawn each frame because it sags under him. A snow bridge is a thick arch of
+// snow, blue ice underneath with drips hanging off it, throwing the slot below it into shadow. A ladder seen side-on is its two rails as one, light aluminium, with the rung ends
+// showing between, resting on both lips, with a hand line on stakes either side. Two ladders lashed end to
+// end overlap in the middle, bound with orange cord, and sag more.
+function crossing(scr, X, Y, g, y0, y1, mx) {
+  const [g0, g1, k] = g, at = x => lerp(y0, y1, clamp((x - g0) / (g1 - g0), 0, 1)) + sagAt(g, x, mx);
+  if (k === 'snow') {
+    for (let x = g0 - 2; x <= g1 + 2; x++) {
+      const y = at(x), u = clamp((x - g0) / (g1 - g0), 0, 1), th = 4 + Math.round(6 * sq(2 * u - 1)), drip = hash(x, 1, 296) > 0.7 ? 1 + Math.floor(hash(x, 2, 296) * 3) : 0;
+      for (let j = 0; j < th; j++) scr.set(X(x), Y(y + j), j === 0 ? R.snow[4] : j >= th - 2 ? R.glac[j === th - 1 ? 1 : 2] : j > th - 4 ? R.glac[4] : R.snow[3]);
+      for (let j = 0; j < drip; j++) scr.set(X(x), Y(y + th + j), R.glac[j === drip - 1 ? 4 : 2]);
+      if (x > g0 && x < g1) for (let j = drip; j < 14; j++) if (j < 3 || bayer(X(x), Y(y + th + j)) < 1 - j * 0.06) scr.set(X(x), Y(y + th + j), j < 6 ? R.glac[0] : R.glac[1]);
+    }
+    return;
+  }
+  const mid = (g0 + g1) / 2;
+  for (let x = g0 - 5; x <= g1 + 5; x++) {
+    const y = Math.round(at(x)), r = (x - g0 + 5) % 4 === 0, lap = k === 'lashed' && Math.abs(x - mid) < 4;
+    scr.set(X(x), Y(y), R.white[1]); scr.set(X(x), Y(y + 1), r ? R.rock[2] : lap ? R.rock[3] : R.snow[1]); scr.set(X(x), Y(y + 2), R.rock[2]); if (r) scr.set(X(x), Y(y + 3), R.rock[1]);
+    if (lap) { scr.set(X(x), Y(y - 1), R.rock[4]); if ((x & 1) === 0) { scr.set(X(x), Y(y), R.blaze[1]); scr.set(X(x), Y(y + 2), R.blaze[0]); scr.set(X(x), Y(y + 3), R.blaze[1]); } }
+  }
+  // The hand lines, from a stake at each end, slack, pulled down a little where he holds them.
+  const a = g0 - 8, b = g1 + 8, ya = y0, yb = y1;
+  for (const [sx, sy] of [[a, ya], [b, yb]]) { for (let j = 1; j < 11; j++) scr.set(X(sx), Y(sy - j), j > 8 ? R.blaze[1] : R.rock[2]); scr.set(X(sx) + 1, Y(sy - 1), R.rock[3]); }
+  for (let x = a + 1; x < b; x++) { const u = (x - a) / (b - a), y = lerp(ya, yb, u) - 9 + 3 * Math.sin(u * Math.PI) + sagAt(g, x, mx) * 0.7; scr.set(X(x), Y(y), R.blaze[0]); }
+}
 // Rime on a figure: on most rows the pixel just inside its right edge (the windward side when he walks
 // right) turns white, and now and then one more beside it; the top of his hat goes white too.
 function rimeOn(bm) {
@@ -330,7 +386,8 @@ export function makeClimb() {
       mid.set(x, y, ice ? pick('glac', 0.62 + face * 0.8 + 0.2 * (vnoise(x / 4, y / 4, 266) - 0.5), x, y, 0.6) : d < 1 ? R.granite[1] : pick('granite', 0.5 + face + (fr < 0.5 ? 0.1 : -0.1) + 0.16 * (vnoise(x / 3, y / 5, 267) - 0.5), x, y, 0.8)); } } }
   }
   // The seracs of the icefall, standing behind the route on its benches: where along it, how wide, how tall.
-  const seracs = [[-22, 15, 34], [8, 22, 52], [30, 12, 24], [70, 24, 66], [90, 14, 38], [128, 18, 46], [150, 26, 78], [176, 13, 36], [200, 20, 58], [232, 14, 40], [286, 18, 44]].map(([x, w, h], k) => ({ x, bm: makeSerac(700 + k * 7, w, h) }));
+  // Spaced at random along the way to the summit, every third one leaning hard toward the line.
+  const seracs = []; { const rs = rng(699); for (let x = -26, k = 0; x < ROUTES.tks.sx - 20; x += 16 + rs() * 24, k++) { const tall = Math.round(26 + rs() * 56), lean = k % 3 === 1 ? (rs() < 0.5 ? -1 : 1) * (0.2 + rs() * 0.12) : null; seracs.push({ x, bm: makeSerac(700 + k * 7, Math.round(12 + rs() * 14), tall, lean) }); } }
   const WALK = [[3, 8.5], [1, 8.5], [-2, 8.5], [-3, 7], [-1, 6.5], [2, 7]];
   const axe = (b, sh, hands, hip) => { const hx = sh[0] + hands[0][0], hy = sh[1] + hands[0][1]; for (let y = hy; y < hip[1] + 9; y++) b.set(hx + 1, y, R.rock[3]); b.set(hx, hy - 1, R.rock[4]); b.set(hx + 2, hy - 1, R.rock[4]); b.set(hx + 3, hy, R.rock[4]); b.set(hx - 1, hy - 1, R.blaze[1]); };
   // Him on the ice, drawn fresh each frame from where his hands and feet are. An ice tool seen from behind
@@ -373,7 +430,7 @@ export function makeClimb() {
 
   // Distance along the slope, so steep ground takes longer than easy ground.
   const arcs = {}, plans = {};
-  const arc = id => { if (!arcs[id]) { const pts = ROUTES[id].pts, a = [0]; for (let x = 1; x <= sxOf(ROUTES[id]); x++) a.push(a[x - 1] + Math.hypot(1, (hOf(pts, x) - hOf(pts, x - 1)) * 1.5)); arcs[id] = a; } return arcs[id]; };
+  const arc = id => { if (!arcs[id]) { const pts = ROUTES[id].pts, a = [0]; for (let x = 1; x <= sxOf(ROUTES[id]); x++) { const g = xingAt(ROUTES[id], x - 0.5, 3); a.push(a[x - 1] + Math.hypot(1, (hOf(pts, x) - hOf(pts, x - 1)) * 1.5) * (g ? SLOW[g[2]] : 1)); } arcs[id] = a; } return arcs[id]; };
   const arcAt = (a, x) => { const i = clamp(Math.floor(x), 0, a.length - 2); return a[i] + (a[i + 1] - a[i]) * clamp(x - i, 0, 1); };
   function xAt(a, want) {
     let lo = 0, hi = a.length - 1;
@@ -401,6 +458,8 @@ export function makeClimb() {
       if (leg.ice) { const pose = icePose(leg, tau - leg.t0); return pose.walk ? { ph: 'up', x: pose.x, y: pose.y, mode: 'walk' } : { ph: 'up', x: pose.hx, y: leg.w.ya - pose.hh + STAND, mode: 'ice', pose, leg }; }
       const a = arc(id), x = xAt(a, lerp(arcAt(a, leg.x0), arcAt(a, leg.x1), clamp((tau - leg.t0) / Math.max(1e-6, leg.t1 - leg.t0), 0, 1))); let y = hOf(pts, x), mode = 'walk';
       if (cfg.kind === 'ridge') mode = 'wind';
+      const xg = xingAt(cfg, x, 3);
+      if (xg) { y = lerp(hOf(pts, xg[0]), hOf(pts, xg[1]), clamp((x - xg[0]) / (xg[1] - xg[0]), 0, 1)) + sagAt(xg, x, x) - (xg[2] === 'snow' ? 0 : 1); if (xg[2] !== 'snow') mode = 'wind'; }
       if (cfg.gap && x > cfg.gap[0] - 4 && x < cfg.gap[1] + 2) {
         const u = (x - cfg.gap[0] + 4) / (cfg.gap[1] - cfg.gap[0] + 6);
         if (cfg.kind === 'bridge') { mode = 'jump'; y = lerp(hOf(pts, cfg.gap[0] - 4), hOf(pts, cfg.gap[1] + 2), u) - Math.sin(u * Math.PI) * 16; }
@@ -425,6 +484,7 @@ export function makeClimb() {
       const cfg = ROUTES[arg.id], pl = plan(arg.id), D = pl.dur, out = [{ at: pl.tPush / D, name: 'glissade' }, { at: (pl.tBot - 0.05) / D, name: 'step' }];
       if (cfg.gap) for (let tau = T_UP; tau < pl.tSum; tau += 0.02) if (where(arg.id, tau).x > cfg.gap[0] - 4) { out.push({ at: tau / D, name: cfg.kind === 'bridge' ? 'crack' : 'step' }); if (cfg.kind === 'bridge') out.push({ at: (tau + 0.05) / D, name: 'jump' }); break; }
       if (cfg.kind === 'ridge') out.push({ at: 0.6 / D, name: 'wind' });
+      for (const g of cfg.xings || []) for (let tau = T_UP; tau < pl.tSum; tau += 0.02) if (where(arg.id, tau).x > g[0] - 3) { out.push({ at: tau / D, name: g[2] === 'lashed' ? 'creak' : 'step' }); break; }
       // The storm on the wanded route is heard as it arrives, and again as it closes in.
       if (cfg.kind === 'wands') for (const u of [0.09, 0.3, 0.5, 0.66]) out.push({ at: (T_UP + u * (pl.tSum - T_UP)) / D, name: 'wind' });
       for (const leg of pl.legs) if (leg.ice) for (const h of leg.hit) out.push({ at: h.t / D, name: h.tool ? 'tink' : 'step' });
@@ -508,7 +568,7 @@ export function makeClimb() {
       // As the snow thickens, everything dark goes behind it (rock, the far wands, the edge of the slope) while the snow at his feet stays.
       if (heavy > 0.02) veil(scr, heavy * 0.85, [R.snow[1], R.snow[2]], X(me.x), Y(me.y) - 12, pale);
       // His tracks stay in the snow behind him: boot prints on the way up, one long groove on the way down.
-      if (me.ph === 'up') { for (let x = -30; x < me.x - 3; x += 4) { if (cfg.gap && x > cfg.gap[0] - 6 && x < cfg.gap[1] + 6) continue; if (pl.walls.some(w => x > w.x0 + 2 && x < w.xc + 2)) continue; const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[1]); scr.set(X(x) + 1, Y(y) + 2, R.snow[2]); } }
+      if (me.ph === 'up') { for (let x = -30; x < me.x - 3; x += 4) { if (cfg.gap && x > cfg.gap[0] - 6 && x < cfg.gap[1] + 6) continue; if (xingAt(cfg, x, 6)) continue; if (pl.walls.some(w => x > w.x0 + 2 && x < w.xc + 2)) continue; const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[1]); scr.set(X(x) + 1, Y(y) + 2, R.snow[2]); } }
       else if (me.mode === 'sit') for (let x = Math.ceil(me.x) + 4; x < 400; x++) { const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[2]); if (x & 1) scr.set(X(x), Y(y) + 3, R.snow[3]); }
       // Spindrift blows off the top.
       if (me.ph === 'up' && white < 0.3) for (let k = 0; k < 34; k++) { const a = frac(t * (0.5 + storm) + k / 34), x0 = SXr + 38 + (k % 5) * 3, y0 = hOf(pts, x0) - 1; const x = X(x0 + a * (46 + 30 * storm) + 4 * Math.sin(a * 9 + k)), y = Y(y0 - a * 13 - 3 * Math.sin(a * 5 + k * 2)); if (bayer(x, y) > a * 0.9) scr.set(x, y, a < 0.4 ? R.white[1] : R.snow[3]); }
@@ -524,6 +584,7 @@ export function makeClimb() {
           for (let x = g0; x <= g1; x++) { const u = (x - g0) / (g1 - g0), by = lerp(y0, y1, u) + Math.sin(u * Math.PI) * 3; const drop = me.x > g0 - 2 ? Math.max(0, (me.x - g0 + 2) / (g1 - g0 + 4) - u * 0.5) * 120 * (0.5 + hash(x, 2, 248)) : 0; for (let j = 0; j < 5; j++) scr.set(X(x), Y(by + j + drop), j === 0 ? R.snow[4] : R.snow[2 + (j < 3 ? 1 : 0)]); }
         }
         if (kind === 'ladder') { const [g0, g1] = cfg.gap, y0 = hOf(pts, g0), y1 = hOf(pts, g1); for (let x = g0 - 4; x <= g1 + 4; x++) { const u = (x - g0) / (g1 - g0), y = lerp(y0, y1, u); scr.set(X(x), Y(y), R.rock[4]); scr.set(X(x), Y(y + 2), R.rock[2]); if ((x - g0) % 4 === 0) scr.set(X(x), Y(y + 1), R.rock[3]); } for (const [x, y] of [[g0 - 5, y0], [g1 + 5, y1]]) { scr.set(X(x), Y(y - 3), R.blaze[1]); scr.set(X(x), Y(y - 2), R.rock[3]); scr.set(X(x), Y(y - 1), R.rock[3]); } }
+        for (const g of cfg.xings || []) crossing(scr, X, Y, g, hOf(pts, g[0]), hOf(pts, g[1]), me.x);
         // The thing on the summit, and whatever it does when clicked.
         if (kind === 'icefall') {
           // He hits it, it bangs, and its lights stutter from red to green and stay there for the visit.

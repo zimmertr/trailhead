@@ -142,3 +142,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **Trace the route.** At camp, holding a finger on a summit could draw its climb's line up the wall in a faint dotted line before he sets off, the way a topo shows it.
 - **A steeper flower slope.** On the traverse the near slope could show its steepness with the meadow's drifts and the firs leaning into the view, flowers shrinking up toward the trail and a stone now and then bouncing down past the camera.
 - **Read the forecast.** On Bluebird Forecast's summit a tap on the weather station could show the real forecast card the app would have given for that window (wind dropping, cloud base below the summit), so a visitor sees what the app does before reading about it.
+- **Drop something in.** On TJs-Kubernetes-Service a tap on a crevasse could have him drop a chip of ice, and the sound of it hitting comes a long second later.
