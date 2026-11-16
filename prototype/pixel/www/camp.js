@@ -1,6 +1,6 @@
-// Sideproject Spires, base camp: two tents on a moraine in the middle of a great glacier, under six
-// granite towers, one per project, with the ice sheet running off to far ranges behind them. Click
-// a tower and he sets off. The picture is painted to fit the screen it is on, at the same pixel size
+// Sideproject Spires, base camp: two tents on a moraine in the middle of a great glacier, under the
+// granite wall of the Spires and its six summits, one per project, with the ice sheet running off to
+// far ranges behind. Click a summit and he sets off. The picture is painted to fit the screen it is on, at the same pixel size
 // as everything else, and keeps the towers and the camp clear of the card.
 import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, INK, pick, BM, outline, thick } from './core.js';
 import { makeCloud, makeFlag, makeBoulder } from './sprites.js';
@@ -9,15 +9,14 @@ import { makeRunner, sideFig } from './tj.js';
 import { makeKayti } from './people.js';
 import { NAMES } from './content.js';
 
-// Where each tower stands across the clear part of the picture (x), how near it is (z, 0 at the
-// back), and how tall and how wide it is: h as a share of the tallest, w as a share of its own height.
+// The six projects, west to east along the wall (where each summit stands is in paintSpires).
 export const SPIRES = [
-  { id: 'bluebird', name: 'Bluebird Forecast', x: 0.41, z: 0.3, h: 1.0, w: 0.58 },
-  { id: 'tks', name: 'TJs-Kubernetes-Service', x: 0.68, z: 0.22, h: 0.82, w: 0.56 },
-  { id: 'hevy-garmin-sync', name: 'hevy-garmin-sync', x: 0.13, z: 0.36, h: 0.74, w: 0.58 },
-  { id: 'trailhead', name: 'trailhead', x: 0.82, z: 0.6, h: 0.52, w: 0.62 },
-  { id: 'yggdrasil', name: 'yggdrasil', x: 0.27, z: 0.66, h: 0.52, w: 0.62 },
-  { id: 'kubernetes-manifests', name: 'Kubernetes-Manifests', x: 0.55, z: 0.76, h: 0.44, w: 0.66 }
+  { id: 'bluebird', name: 'Bluebird Forecast' },
+  { id: 'tks', name: 'TJs-Kubernetes-Service' },
+  { id: 'hevy-garmin-sync', name: 'hevy-garmin-sync' },
+  { id: 'trailhead', name: 'trailhead' },
+  { id: 'yggdrasil', name: 'yggdrasil' },
+  { id: 'kubernetes-manifests', name: 'Kubernetes-Manifests' }
 ];
 
 const tri = u => 1 - Math.abs(2 * frac(u) - 1);
@@ -50,6 +49,56 @@ function farGoat(pose, kid) {
   // Eye and horns go on after the outline, so they stay single pixels.
   b.set(hx + 1, hy, INK); b.set(hx - 1, hy - 2, INK); if (!kid) b.set(hx - 2, hy - 3, INK);
   return b;
+}
+
+// The Spires as the map draws them (section 4a, the six climbs): one jagged granite wall, its skyline
+// a crowd of pinnacles over six summits, west to east in the order of SPIRES. Bluebird Forecast is the
+// west end summit, standing clear; TJs-Kubernetes-Service the second, with the icefall under it;
+// hevy-garmin-sync the third and highest, a long snow gully running down from the notch beside it;
+// trailhead the knife-edge between the third and fourth; yggdrasil the fifth, on the dry rock of the
+// east arm, where no snow lies; Kubernetes-Manifests the east end summit above the crevassed tongue.
+// Painted into b between x0 and x1, its foot at yb, the highest summit H above it. Returns where each
+// project's summit is (geo, in SPIRES order) and the wall's foot in each column (feet).
+// Each summit: where it stands across the wall (u), its height, and how wide its mass is (half width).
+const SUMMITS = [[0.08, 0.68, 0.13], [0.26, 0.82, 0.14], [0.45, 1, 0.16], [0.63, 0.84, 0.13], [0.79, 0.7, 0.13], [0.94, 0.53, 0.12]];
+const AT = [0.08, 0.26, 0.45, 0.54, 0.79, 0.94];
+const GULLIES = [[0.355, 1], [0.17, 0.6], [0.71, 0.45]];
+export function paintSpires(b, x0, x1, yb, H, feet) {
+  const span = x1 - x0, U = x => (x - x0) / span, sc = Math.min(1, span / 220);
+  // Which summit's mass a column belongs to, and how high the wall stands there (0 to 1 of H).
+  const mass = u => { let e = 0.34 + 0.05 * vnoise(u * 9, 1, 300), k = -1; for (let i = 0; i < SUMMITS.length; i++) { const [su, sh, hw] = SUMMITS[i], m = sh * Math.max(0, 1 - Math.abs(u - su) / hw); if (m > e) { e = m; k = i; } } const kn = 0.8 * smooth(0.45, 0.49, u) * smooth(0.64, 0.6, u); if (kn > e) { e = kn; k = 3.5; } return [e, k]; };
+  const knife = u => smooth(0.48, 0.51, u) * smooth(0.59, 0.56, u);
+  // The skyline: the masses, crowded with pinnacles of uneven width and height, fewer near the tops and
+  // only small teeth along the knife-edge.
+  const top = x => { const u = U(x), [e] = mass(u), w = x / (8 * sc) + 0.8 * vnoise(x / 16, 2, 301), i = Math.floor(w), tooth = (1 - 0.75 * knife(u)) * 13 * sc * (1.15 - e) * tri(w) * (0.3 + 0.7 * hash(i, 3, 302)); return yb - H * e * smooth(-0.04, 0.03, u) * smooth(1.04, 0.97, u) - tooth; };
+  const dryAt = u => smooth(0.69, 0.74, u) * smooth(0.89, 0.85, u);
+  for (let x = Math.max(0, Math.round(x0 - span * 0.04)); x <= Math.min(b.w - 1, x1 + span * 0.04); x++) {
+    const u = U(x), t0 = Math.round(top(x)), s = top(x + 1) - top(x - 1), dry = dryAt(u), foot = Math.round(yb + 3 * (vnoise(x / 9, 7, 303) - 0.5));
+    if (t0 >= foot) continue;
+    const [, k] = mass(u), su = k < 0 ? u : k === 3.5 ? 0.545 : SUMMITS[k][0], lit = u < su, hgt = foot - t0, apron = hgt * (0.7 + 0.12 * vnoise(x / 11, 8, 304) + 0.15 * dry);
+    for (let y = Math.max(0, t0); y <= Math.min(b.h - 1, foot); y++) {
+      const d = y - t0;
+      let gully = 0;
+      for (const [gu, len] of GULLIES) { const gx = x0 + gu * span, gt = top(gx) + 1, kk = (y - gt) / (foot - gt); if (kk < -0.02 || kk > len + 0.3) continue; const o = x - gx - 2.5 * Math.sin(y / 8) * sc - kk * 6 * sc, w = 1.2 + 4 * sc * Math.max(0, kk); if (Math.abs(o) < w) gully = o > w - 1.2 ? 2 : 1; }
+      const fl = frac(x / (4.5 * Math.max(0.6, sc)) + 0.35 * vnoise(x / 9, y / 25, 305));
+      // A rib of darker rock runs down each summit just east of its axis.
+      const rib = k >= 0 && k !== 3.5 && Math.abs(x - (x0 + su * span) - 2 - 3 * Math.sin(y / 11 + k * 2)) < (1.2 + d * 0.05) * Math.max(0.7, sc);
+      let c;
+      if (d < 1) c = R.granite[0];
+      else if (gully && dry < 0.5) c = gully === 2 ? R.glac[2] : pick('snow', 0.82 - 0.1 * vnoise(x / 2, y / 3, 310), x, y, 0.5);
+      else if (d > apron) c = pick('glac', 0.74 + 0.1 * (lit ? 1 : -1) * smooth(0.5, 3, Math.abs(x - x0 - su * span)) + 0.15 * (vnoise(x / 4, y / 4, 306) - 0.5) - (frac((d - apron) / 9 + 0.6 * vnoise(x / 20, 4, 311)) < 0.1 ? 0.28 : 0), x, y, 0.6);
+      else {
+        const v = (lit ? 0.6 : 0.3) + clamp(-s * 0.04, -0.08, 0.08) + (rib ? -0.16 : 0) + (fl < 0.22 ? -0.12 : fl > 0.82 ? 0.08 : 0) + 0.12 * (vnoise(x / 3, y / 12, 307) - 0.5) + 0.06 * dry;
+        c = pick('granite', v * 0.85, x, y, 0.8);
+        // Snow and ice hang on the faces, mostly the lit ones; on the dry east arm there is none.
+        if (dry < 0.5 && !rib && d > 3 && vnoise(x / (6 * Math.max(0.6, sc)), y / (7 * Math.max(0.6, sc)), 309) > (lit ? 0.64 : 0.76)) c = pick('glac', lit ? 0.9 : 0.56, x, y, 0.6);
+        else if (dry < 0.5 && vnoise(x / 2.6, y / 1.1, 308) > 0.84 && fl > 0.25) c = R.snow[lit ? 4 : 3];
+      }
+      b.set(x, y, c);
+    }
+    if (feet) feet.push([x, foot]);
+  }
+  return SPIRES.map((sp, k) => { const x = Math.round(x0 + AT[k] * span); let t = top(x); for (let i = -4; i <= 4; i++) t = Math.min(t, top(x + i)); return { id: sp.id, name: sp.name, x, top: Math.round(t), by: yb, w: Math.round(span * (k === 3 ? 0.08 : 0.2)), h: Math.round(yb - t) }; });
 }
 
 // One granite tower, painted a column at a time: a jagged skyline, lit on the left, cut by a dark
@@ -101,25 +150,10 @@ function build(VW, VH, narrow) {
     }
   }
 
-  // ---- the wall and its six towers ------------------------------------------------------------
-  const tw = new BM(VW, VH), geo = [], feet = [];
-  // A ridge joins them: lower, jagged, half buried in hanging ice.
-  for (let x = 0; x < VW; x++) {
-    const inX = smooth(X0 - bw * 0.2, X0 + bw * 0.04, x) * (narrow ? 1 : smooth(X1 + 30, X1 - bw * 0.06, x));
-    const p = peaks(x, 27, 5), top = Math.round(yb - H * (0.2 + 0.2 * p) * inX + 2 * (vnoise(x / 2.5, 6, 247) - 0.5)), foot = Math.round(yb - 5 + 3 * (vnoise(x / 9, 7, 248) - 0.5)), up = peaks(x + 1, 27, 5) > p;
-    if (inX < 0.05 || top >= foot) continue;
-    for (let y = top; y <= foot; y++) {
-      const d = y - top, hgt = foot - top, flute = frac(x / 5 + 0.25 * vnoise(x / 7, y / 20, 249));
-      const ice = d > hgt * (0.38 + 0.3 * vnoise(x / 11, 8, 273)) || vnoise(x / 8, y / 6, 274) > 0.62;
-      tw.set(x, y, d < 1 ? R.granite[0] : ice ? pick('glac', (up ? 0.9 : 0.6) + 0.2 * (vnoise(x / 4, y / 4, 275) - 0.5) - (frac(d / 8 + x / 30) < 0.12 ? 0.3 : 0), x, y, 0.6) : pick('granite', (up ? 0.5 : 0.24) + (flute < 0.2 ? -0.1 : flute > 0.8 ? 0.1 : 0) + 0.12 * (vnoise(x / 3, y / 5, 276) - 0.5), x, y, 0.8));
-    }
-    feet.push([x, foot]);
-  }
-  for (const [n, sp] of SPIRES.map((s, k) => [k, s]).sort((a, c) => a[1].z - c[1].z)) {
-    const h = Math.round(sp.h * H), w = Math.round(Math.min(sp.w * h, bw * 0.34)), fx = narrow ? 0.52 + (sp.x - 0.465) : sp.x, bx = Math.round(X0 + fx * bw), by = Math.round(yb + (sp.z - 0.4) * bh * 0.2);
-    const top = tower(tw, n, bx, by, h, w, feet);
-    geo[n] = { id: sp.id, name: sp.name, x: bx, top, by, w, h };
-  }
+  // ---- the wall of the Spires, as on the map ----------------------------------------------------
+  const tw = new BM(VW, VH), feet = [];
+  // A little under the full height, so the highest summit's flag and name tag clear the buttons at the top.
+  const geo = paintSpires(tw, X0 + bw * (narrow ? 0.1 : 0.02), X1 - bw * (narrow ? 0.1 : 0.04), yb, H - 10, feet);
   outline(tw, INK);
   // Two walls too big for the picture close it at the sides (a wide screen only: a phone has no room).
   const side = new BM(VW, VH), sides = [];
@@ -131,19 +165,19 @@ function build(VW, VH, narrow) {
 
   // ---- the glacier ----------------------------------------------------------------------------
   // Depth runs from the horizon to just past the camp, so the glacier is laid out the same on a tall screen as on a wide one.
-  const Vx = X0 + bw * 0.5, Vy = yh - 8, span = Y1 + 40 - yh, casts = geo.concat(sides);
+  const Vx = X0 + bw * 0.5, Vy = yh - 8, Fx = geo[1].x, span = Y1 + 40 - yh, casts = geo.concat(sides);
   const shadowed = (x, y) => { for (const g of casts) { const ty = y - g.by, L = Math.min(g.h * 0.5, bh * 0.4); if (ty > -4 && ty < L && Math.abs(x - ty * 1.9 - g.x) < g.w * 0.5 * (1 - ty / L)) return true; } return false; };
   const pool = { x: Math.round(X0 + bw * 0.2), y: Y1 - 26, rx: Math.max(9, bw * 0.05), ry: 3 };
   // The upper glacier breaks off in a line of ice cliffs before it reaches the camp.
   const cliff = x => { const top = yh + span * (0.4 + 0.035 * Math.sin(x / 47) + 0.05 * (vnoise(x / 30, 2, 277) - 0.5)); return [top, vnoise(x / 34, 5, 278) > 0.34 ? 4 + 7 * vnoise(x / 13, 3, 279) : 0]; };
   for (let y = yh; y < VH; y++) for (let x = 0; x < VW; x++) {
-    const d = (y - yh) / span, Z = 1 / (d + 0.1), a = (x - Vx) / (y - Vy + 6), an = (x - Vx) / (VW * 0.5);
+    const d = (y - yh) / span, Z = 1 / (d + 0.1), a = (x - Vx) / (y - Vy + 6), an = (x - Vx) / (VW * 0.5), af = (x - Fx) / (VW * 0.5);
     let v = 0.76 - 0.06 * d + 0.34 * (fbm(x / (22 + 60 * d), y / (4 + 9 * d), 250, 3) - 0.5), c = 0;
     // Wind-cut snow in the foreground.
     if (d > 0.45) { const sn = vnoise(x / 13, y / 1.6, 280); v += sn > 0.7 ? 0.1 : sn < 0.22 ? -0.09 : 0; }
     const dark = shadowed(x, y); if (dark) v -= 0.24;
     // The icefall under the towers: a jumble of blocks, spilling widest in the middle.
-    const fall = smooth(0.015, 0.06, d) * smooth(0.4, 0.26, d) * smooth(0.5 + d, 0.2 + d, Math.abs(an)) * (0.45 + 0.9 * vnoise(x / 24, y / 9, 256));
+    const fall = smooth(0.015, 0.06, d) * smooth(0.4, 0.26, d) * smooth(0.36 + d, 0.12 + d, Math.abs(af)) * (0.45 + 0.9 * vnoise(x / 24, y / 9, 256));
     if (fall > 0.4) {
       // Lumps of ice in three brightnesses, each with a lit top and a shadow underneath.
       const sc = 1 + d * 1.6, k = vnoise(x / (4.5 * sc), y / (2.4 * sc), 257), up = vnoise(x / (4.5 * sc), (y - 1.4) / (2.4 * sc), 257), dn = vnoise(x / (4.5 * sc), (y + 1.4) / (2.4 * sc), 257);
@@ -237,7 +271,8 @@ export function makeCamp() {
       for (let k = 0; k < 3; k++) { const bx = ((t * 14 + k * 17) % (VW + 120)) - 60; scr.put(bird[(Math.floor(t * 4) + k) & 1], bx + [0, 9, -7][k], yh * 0.3 + [0, 5, 9][k], false); }
       scr.blit(pic.front, 0, 0);
       // The wind takes snow off the three highest tops.
-      for (const g of geo) if (g.h > pic.geo[0].h * 0.7) for (let k = 0; k < 14; k++) {
+      const hi = Math.max(...geo.map(g => g.h));
+      for (const g of geo) if (g.h > hi * 0.78) for (let k = 0; k < 14; k++) {
         const age = frac(t * 0.42 + k / 14 + g.x * 0.01), x = Math.round(g.x + 2 + age * (20 + (k % 4) * 5)), y = Math.round(g.top + 1 - Math.sin(age * 2.6) * 3 + (k % 3) - age * 2);
         if (age < 0.55 || bayer(x, y) > (age - 0.55) / 0.45) scr.set(x, y, age < 0.3 ? R.snow[4] : R.snow[3]);
       }

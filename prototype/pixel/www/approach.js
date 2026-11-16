@@ -6,7 +6,7 @@
 // picture is drawn left to right and mirrored when needed, as in the larch basin.
 import { clamp, lerp, smooth, frac, sq, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, windAt, veilTable } from './core.js';
 import { Strip, drawStrip, baseline, shell, blitScaled } from './side.js';
-import { SPIRES, tower, dome } from './camp.js';
+import { paintSpires, dome } from './camp.js';
 import { makeKayti } from './people.js';
 import { makeConifer, makeBoulder, makeCloud, makeBush } from './sprites.js';
 import { makeRunner } from './tj.js';
@@ -205,14 +205,7 @@ function paintIce(S, x, gy, lip) {
 const SPW = 320, SPH = 210, SPY = 150;
 function makeSpires() {
   const b = new BM(SPW, SPH); b.ox = SPW >> 1; b.oy = SPH - 1;
-  for (let x = 38; x < 266; x++) {
-    const inX = smooth(38, 70, x) * smooth(266, 236, x), top = Math.round(SPY - 34 * inX * (0.5 + 0.5 * vnoise(x / 9, 5, 741)) - 4 * (vnoise(x / 2.5, 6, 742) - 0.5));
-    for (let y = top; y <= SPY + 4; y++) { const d = y - top, ice = d > (SPY - top) * 0.45 || vnoise(x / 8, y / 6, 743) > 0.62; b.set(x, y, d < 1 ? R.granite[0] : ice ? pick('glac', 0.8 + 0.2 * (vnoise(x / 4, y / 4, 744) - 0.5), x, y, 0.6) : pick('granite', 0.38 + 0.15 * (vnoise(x / 3, y / 5, 745) - 0.5), x, y, 0.8)); }
-  }
-  for (const [n, sp] of SPIRES.map((s, k) => [k, s]).sort((a, c) => a[1].z - c[1].z)) {
-    const h = Math.round(sp.h * 140), w = Math.round(Math.min(sp.w * h, 90));
-    tower(b, n, Math.round(40 + sp.x * 240), Math.round(SPY + (sp.z - 0.4) * 14), h, w, null);
-  }
+  paintSpires(b, 44, 262, SPY + 4, 120, null);
   // The massif's shoulders spread down from the ridge's ends to the picture's foot, so the ice lies in
   // a valley head between rock walls instead of hanging in the sky. Lit from the west, snow in streaks.
   for (let y = SPY - 2; y < SPH; y++) {

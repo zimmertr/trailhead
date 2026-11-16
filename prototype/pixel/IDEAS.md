@@ -139,3 +139,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **Name the towers from afar.** Tapping one of the Spires on the walk in could show its repo's name small over it, the same tag camp hangs on its summit, so a visitor learns them before arriving.
 - **Step onto the ice.** On the moraine a tap on the glacier could have him peer over the edge into a crevasse, the blue going down and down, and a stone he kicks clatter in after a long second.
 - **Kayti's painting.** At camp a tap on her pad could show what she has painted so far, a little watercolour of the six towers, finished a bit more on each visit.
+- **Trace the route.** At camp, holding a finger on a summit could draw its climb's line up the wall in a faint dotted line before he sets off, the way a topo shows it.
