@@ -183,7 +183,7 @@ function buildLarches() {
     things.push({ tree: makeConifer(650 + things.length, H, Math.round(a[1] * s), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: a[0] > 40 && rand() < 0.5 ? 0.5 : 0.15, droop: 0.6 }), x: Math.round(x), y: g(x) + y });
   }
   const trees = things.map(th => [th.x, th.y - g(th.x), th.tree.w]);
-  const main = new Strip(SW, 20, 230); paintMain(main, (x, r) => { let a = 0; for (const [tx, ty, tw] of trees) { const d = Math.abs(x - tx) / (tw + 6) + Math.abs(r - ty) / 14; if (d < 1) a = Math.max(a, 1 - d); } return a; });
+  const main = new Strip(SW, 20, 600); paintMain(main, (x, r) => { let a = 0; for (const [tx, ty, tw] of trees) { const d = Math.abs(x - tx) / (tw + 6) + Math.abs(r - ty) / 14; if (d < 1) a = Math.max(a, 1 - d); } return a; });
   for (let n = 0; n < 26; n++) { const x = Math.round(rand() * SW), y = (rand() < 0.5 ? -6 : 10 + rand() * 90) | 0; things.push({ bm: makeBoulder(660 + n, 3 + rand() * 6), x, y: g(x) + y }); }
   for (let x = X0 - 60; x < SW; x += 1) if (g(x + 1) < g(x) && g(x) >= g(x - 3)) { things.push({ bm: makeCairn(670 + x), x: x + 6, y: g(x) - 3 }); x += 60; }
   // Goats (G5). A nanny and her kid (behind her, facing her) on the first broad slab below the trail past the scene's first third;
