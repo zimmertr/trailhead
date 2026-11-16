@@ -72,6 +72,23 @@ function jay(kind, pose) {
   return b;
 }
 
+// A barred owl (E5d), the rainforest's own: a round head with no ear tufts, a pale face in rings, dark
+// eyes, bars across the breast and streaks below, yellow talons on its perch. face: 'r' (looking right),
+// 'f' (at you) or 'l'; blink shuts the eyes.
+const OWL_HEAD = {
+  f: ['...kkkkk...', '.kkmnmnmkk.', 'kmnppmppnmk', 'kmpeepeepmk', 'knpeepeepnk', 'kmnpnynpnmk', '.kmnpppnmk.'],
+  r: ['...kkkkk...', '.kkmmnmnkk.', 'kmmnppmppnk', 'kmmpeepeepk', 'kmnpeepeepk', 'kmmnpnpynpk', '.kmmnpppnk.']
+};
+// The breast barred across at the neck and streaked down the belly; the folded wings dark with pale spots.
+const OWL_BODY = ['kdmnpnpnmdk', 'kdmpppppmdk', 'kpdpnpnpdpk', 'kdmpnpnpmdk', 'kpdppnppdpk', '.kdpnpnpdk.', '.kkdpppdkk.', '...kmmmk...', '...yk.ky...'];
+function owl(face, blink) {
+  const b = new BM(11, 16); b.ox = 5; b.oy = 15;
+  const head = face === 'l' ? OWL_HEAD.r.map(s => [...s].reverse().join('')) : OWL_HEAD[face];
+  const C = { k: INK, d: R.bark[1], m: R.wood[2], n: R.wood[1], p: R.fog[2], y: R.yellow[1], e: blink ? R.wood[1] : INK };
+  [...head, ...OWL_BODY].forEach((row, y) => [...row].forEach((ch, x) => { if (C[ch]) b.set(x, y, C[ch]); }));
+  return b;
+}
+
 // A banana slug, big enough to see: yellow, a few dark spots, two eye stalks.
 function slug(f) {
   const b = new BM(12, 6); b.ox = 6; b.oy = 5;
@@ -172,4 +189,4 @@ function bluebird(f) {
 // A little bird far off: a pair of wing strokes.
 function speck(f) { const b = new BM(7, 4); b.ox = 3; b.oy = 2; (f ? [0, 1, 2, 2, 2, 1, 0] : [2, 2, 1, 2, 1, 2, 2]).forEach((y, x) => b.set(x, y, INK)); return b; }
 
-export { ell, elk, bear, sasquatch, jay, slug, marmot, heron, pika, goat, bluebird, speck };
+export { ell, elk, bear, sasquatch, jay, slug, owl, marmot, heron, pika, goat, bluebird, speck };

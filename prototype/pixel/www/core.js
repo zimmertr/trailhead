@@ -123,6 +123,8 @@ ramp('serac', ['#1b4a8c', '#2d6fc0', '#4c98e2', '#82c4f2', '#c2e8fc']);
 ramp('mauve', ['#3a2f40', '#55465a', '#75627a', '#957f96', '#b8a4b6']);
 // Round 4, E5j: glass that shows the sky by day and a lit lamp at Dusk (the fire lookout's windows).
 ramp('lamp', ['#3a4a66', '#7090b8'], ['#f0a040', '#ffe08a']);
+// Round 4, E5d: foxfire, the fungus that glows on rotting wood, only seen once the light has gone.
+ramp('foxfire', ['#4f7a52', '#8fd6a0'], ['#3fb58a', '#b4ffd8']);
 const INK = R.ink[0];
 const N = DAY.length;
 // One step darker or lighter within an entry's own ramp, for shadows drawn onto finished pixels.

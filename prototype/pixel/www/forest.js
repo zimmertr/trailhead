@@ -5,7 +5,7 @@
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, SHADE, LIGHT, pick, BM, outline, disc, thick, windAt } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
 import { makeMaple, makeSpruce, makeBoulder } from './sprites.js';
-import { elk, bear, sasquatch, jay, slug } from './fauna.js';
+import { elk, bear, sasquatch, jay, slug, owl } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
 import { NAMES } from './content.js';
 
@@ -116,6 +116,15 @@ function makeNurseLog(seed, len) {
   }
   outline(b, INK);
   return b;
+}
+
+// Foxfire (E5d): its glowing spots on the log, pale mint at the heart of each cluster, and a dithered
+// green light on the log's own pixels round them. fox: [x, y, the log's colour there, cluster].
+function foxfireGlow(scr, fox, x0, y0, t, a) {
+  for (const [x, y, v, c] of fox) { const sx = x0 + x, sy = y0 + y; if (scr.get(sx, sy) !== v) continue;
+    const pulse = 0.5 + 0.5 * Math.sin(t * (0.6 + 0.3 * hash(c, 4, 3304)) + c * 2.1);
+    scr.set(sx, sy, pulse * a > 0.45 ? R.foxfire[1] : R.foxfire[0]);
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1], [-2, 0], [2, 0]]) { const px = sx + dx, py = sy + dy; const w = scr.get(px, py); if (w && w !== R.foxfire[1] && w !== R.foxfire[0] && bayer(px, py) < 0.35 * a * pulse) scr.set(px, py, R.foxfire[0]); } }
 }
 
 function makeStump(seed) {
@@ -300,12 +309,36 @@ function buildForest() {
   }
   for (let n = 0; n < 150; n++) { const x = rand() * SW, dy = 30 + rand() * 170; things.push({ bm: ferns[5 + (rand() * 4 | 0)], x: Math.round(x), y: g(x) + nearBank(x) + Math.round(dy), sway: 0.6 }); }
   const logs = [makeNurseLog(41, 92), makeNurseLog(42, 64)];
-  for (const [d, k, by] of [[590, 0, -12], [206, 1, -15], [-150, 0, -14], [840, 1, -11]]) { const x = X0 - d; things.push({ bm: logs[k], x, y: g(x) + by }); }
+  const TRAIL_LOGS = [[590, 0, -12], [206, 1, -15], [-150, 0, -14], [840, 1, -11]];
+  for (const [d, k, by] of TRAIL_LOGS) { const x = X0 - d; things.push({ bm: logs[k], x, y: g(x) + by }); }
   for (let n = 0; n < 9; n++) { const x = n * 190 + rand() * 120; things.push({ bm: logs[n & 1], x: Math.round(x), y: g(x) + nearBank(x) + 26 + Math.round(rand() * 110), flip: n % 3 === 0 }); }
   const stump = makeStump(5), stumpX = X0 - D_JAY;
   things.push({ bm: stump, x: stumpX, y: g(stumpX) - 9 });
   const signX = X0 - D_SIGN - 15;
   things.push({ bm: makeTrailSign(), x: signX, y: g(signX) - 6 });
+  // The eerie corner of the rainforest (E5d), by rule, with no turns of the dice so nothing else moves.
+  // The owl: on a low limb of the giant in the thick of the forest that stands farthest from every other
+  // animal and sign along the run, with no tree in front of it to hide it.
+  const busy = [D_SIGN, D_SLUG, D_ELK, D_BEAR, D_JAY];
+  let owlT = null, owlScore = -1;
+  for (const t of trunks) { const d = X0 - t.x; if (!t.bm || t === bearTrunk || d < 40 || d > LEN - 40 || thinAt(t.x) > 0.05 || things.some(th => th.tree && Math.abs(th.x - t.x) < 44)) continue;
+    const s = Math.min(...busy.map(b => Math.abs(d - b))); if (s > owlScore) { owlScore = s; owlT = t; } }
+  const perch = owlT && (() => { const bm = makeLimb(2900, 28, 1), x = owlT.x + Math.round(owlT.w / 2 - 2), y = owlT.y - 52, col = bm.ox + 14; let top = 0; while (top < bm.h && !bm.d[top * bm.w + col]) top++;
+    things.push({ bm, x, y, z: owlT.y + 0.1 }); return { x: x + 14, y: y - bm.oy + top, z: owlT.y + 0.2 }; })();
+  const owlBM = { r: owl('r'), f: owl('f'), l: owl('l'), rb: owl('r', 1), fb: owl('f', 1), lb: owl('l', 1) };
+  // Foxfire: on the nurse log by the trail that lies deepest in the forest, glowing in clusters along
+  // the rotten underside of the trunk where the bark has gone.
+  const [fd, fk, fby] = TRAIL_LOGS.filter(([d]) => d > 0 && d < LEN).sort((a, b) => thinAt(X0 - a[0]) - thinAt(X0 - b[0]))[0], foxX = X0 - fd, foxY = g(foxX) + fby, foxBM = logs[fk];
+  const fox = [];
+  for (let c = 0; c < 7; c++) { const cx = 8 + Math.round(hash(c, 1, 3301) * (foxBM.w - 22)), cy = 29 + Math.round(hash(c, 2, 3301) * 6);
+    for (let k = 0; k < 7; k++) { const x = cx + Math.round((hash(c, k, 3302) - 0.5) * 6), y = cy + Math.round((hash(c, k, 3303) - 0.5) * 3); const v = foxBM.d[y * foxBM.w + x]; if (v && v !== INK) fox.push([x - foxBM.ox, y - foxBM.oy, v, c]); } }
+  // The deer: its eyes shine out of the dark from the spot along the run in the thick of the forest that
+  // lies farthest from any giant's trunk, clear of the other animals, the sign, the foxfire's log and the
+  // small trees, up on the bank behind, so nothing stands in front of it.
+  let eyeX = null, gap = 0;
+  { const stand = trunks.filter(t => t.bm);
+    for (let d = 40; d <= LEN - 40; d += 2) { const x = X0 - d; if (thinAt(x) > 0.1 || busy.some(b => Math.abs(d - b) < 36) || (owlT && Math.abs(x - owlT.x) < 50) || Math.abs(x - foxX) < foxBM.w / 2 + 24 || things.some(th => th.tree && Math.abs(th.x - x) < 26)) continue;
+      const room = Math.min(...stand.map(t => Math.abs(t.x - x) - t.w / 2)); if (room > gap) { gap = room; eyeX = x; } } }
   const boulders = [0, 1, 2, 3].map(i => makeBoulder(50 + i, 4 + i * 1.6));
   const stones = [];
   for (let n = 0; n < 26; n++) { const x = Math.round(rand() * SW), y = g(x) + farBank(x) + 6 + Math.round(rand() * (nearBank(x) - farBank(x) - 10)), bm = boulders[(rand() * 4) | 0]; stones.push({ bm, x, y }); }
@@ -351,6 +384,8 @@ function buildForest() {
   // not yet). The jay flies once a visit to the scene; the bear can lean out again on a later pass.
   const JAY_AT = D_JAY - 46, BEAR_AT = D_BEAR + 26, SAS_AT = 0.66;
   let jayGo = null, bearGo = null, bearArmed = true, sasGo = null, sasX = 0, sasOn = 0;
+  // The deer's eyes at Dusk: 8 s in every 26, or when the debug button says.
+  const EYES = { slot: 26, dur: 8 }; let eyeGo = null;
 
   return {
     ...META,
@@ -361,6 +396,7 @@ function buildForest() {
     trigger(name, t) {
       if (name === 'jay') { jayGo = t; return true; }
       if (name === 'bear') { bearGo = t; bearArmed = false; return true; }
+      if (name === 'eyeshine') { eyeGo = t; return true; }
       if (name === 'sasquatch') { sasquatchSeen = false; sasGo = t; sasX = last.camX - 12; sasOn = 0; return true; }
       return false;
     },
@@ -436,6 +472,8 @@ function buildForest() {
       if (ju < 0) list.push({ bm: jayBM.sit, x: stumpX + 2, y: g(stumpX) - 27, z: 999, flip: frac(t / 2.3) < 0.5 });
       else if (ju < 1.5) list.push({ bm: Math.floor(t * 9) & 1 ? jayBM.up : jayBM.down, x: stumpX + 2 - ju * 150, y: g(stumpX) - 27 - Math.sin(Math.min(1, ju) * 1.4) * 150, z: 999, flip: true });
       list.push({ bm: slugBM[Math.floor(t * 1.2) & 1], x: slugX, y: g(slugX) + 1, flip: true });
+      // The owl turns its head to follow him: looking right as he comes, at you as he passes under, then left.
+      if (perch) { const rel = mx - perch.x, f = rel > 26 ? 'r' : rel < -26 ? 'l' : 'f'; list.push({ bm: owlBM[frac(t / 4.3) < 0.04 ? f + 'b' : f], x: perch.x, y: perch.y, z: perch.z }); }
       // He hops the slug.
       const ds = d - D_SLUG, hop = Math.abs(ds) < 12 ? Math.round(9 * Math.cos(ds / 12 * Math.PI / 2)) : 0;
       const snack = !env.running && env.still > 60;
@@ -458,6 +496,13 @@ function buildForest() {
         else scr.put(th.bm, sx, sy, th.flip);
       }
 
+      // At Dusk the foxfire glows on its log, each cluster swelling and fading at its own pace, with a faint
+      // green light on the wood round it; only where the log still shows, not over a fern in front of it.
+      if (env.mix > 0.3) foxfireGlow(scr, fox, foxX - camX, base + foxY, t, smooth(0.3, 0.8, env.mix));
+      // And a deer's eyes shine between the trunks, now and then blinking or turning away.
+      if (eyeX !== null && env.mix > 0.5) { const s = eyeGo !== null && t - eyeGo < EYES.dur ? t - eyeGo : frac(t / EYES.slot) * EYES.slot;
+        if (s < EYES.dur && frac(s / 2.7) > 0.05) { const turn = Math.round(1.5 * Math.sin(s * 0.9)), ex = eyeX - camX + turn, ey = base + g(eyeX) - 42;
+          for (const dx of [0, 4]) { scr.set(ex + dx, ey, R.lamp[1]); scr.set(ex + dx - 1, ey, R.lamp[0]); scr.set(ex + dx + 1, ey, R.lamp[0]); } } }
       // Shafts of light: every other pixel a step lighter, the middle of each shaft two steps.
       for (let y = 0; y < VH; y++) {
         const r = y - base; if (r > 16) break;
