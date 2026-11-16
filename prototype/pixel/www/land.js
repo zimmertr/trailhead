@@ -181,8 +181,9 @@ const palAmt = (u, v) => { const e = eastOf(u, v); return smooth(50, 150, e) * n
 const mesa = (u, v) => { const k = fbm(u / 64, v / 34, 36, 3) + 0.04 * (vnoise(u / 6, v / 4, 37) - 0.5); return 12 * (smooth(0.52, 0.545, k) + smooth(0.63, 0.655, k)) * smooth(0.12, 0.3, dryS0(u, v)) * (1 - palAmt(u, v)); };
 const plate = (u, v) => { const raw = 34 * smooth(0.02, 0.4, dryS0(u, v)) + 10 * fbm(u / 80, v / 60, 33, 2) * dryAmt0(u, v), b = raw + mesa(u, v); return b; };
 // The glacier: where its middle runs, how wide it is and how high its surface stands, by depth. It
-// starts under the Spires' wall, breaks over a rock step (the icefall) and runs out as a tongue.
-const GL = { top: 616, toe: 503, fall: [556, 578], cu: v => 1072 + 7 * Math.sin((v - 500) / 24), w: v => lerp(30, 112, smooth(522, 592, v)) * smooth(501, 516, v), h: v => 28 + 0.3 * (v - 500) + 10 * smooth(556, 576, v) };
+// starts under the Spires' wall, breaks over a rock step (the icefall) and ends in a broad snout in its
+// lake (E8c), not a point.
+const GL = { top: 616, toe: 503, fall: [556, 578], cu: v => 1072 + 7 * Math.sin((v - 500) / 24), w: v => lerp(30, 112, smooth(522, 592, v)) * smooth(498, 506, v), h: v => 28 + 0.3 * (v - 500) + 10 * smooth(556, 576, v) };
 const glD = (u, v) => Math.abs(u - GL.cu(v)) + 6 * (vnoise(u / 9, v / 9, 9) - 0.5);
 // Between the volcano and the granite the whole ground climbs to the foot of the Spires, so the crest
 // is one mass with its neighbours. The glacier's bed is cut into it.
@@ -216,11 +217,13 @@ const rim = hi => (u, v) => {
   return lerp(GL.h(v) + lerp(7, 30, smooth(520, 610, v)), apron(u, v), Math.pow(clamp(out / wide, 0, 1), 0.8));
 };
 add('moraine', 930, 1214, GL.toe - 4, 548, rim(false)); add('land', 880, 1264, 548, GL.top + 10, rim(true));
-// The moraine across the glacier's toe, with the milky tarn behind it, and the shelf base camp is on.
-spur('moraine', [[1036, 506, 33, 13], [1052, 490, 29, 13], [1080, 483, 27, 13], [1106, 489, 29, 13], [1120, 505, 33, 13]]);
+// The shelf base camp is on, on the glacier's west moraine. The lake at the glacier's snout is PRO, below.
 plateau('moraine', 1020, 526, 22, 8, 44, 0.35);
 lift = null;
-C.lakes.push([1080, 496, 13, 4, 'silt']);
+// The Spires' glacier ends in its lake (E8c, after TJ's photograph): the snout runs into milky water, and
+// the terminal moraine is the low rim that holds the lake on the near side. Ice, water, moraine.
+const PRO = (() => { const rv = 8, ru = 32; return { cu: Math.round(GL.cu(GL.toe)), cv: GL.toe - rv + 4, ru, rv }; })(); // its far edge runs a little under the snout, so no rim shows between
+C.lakes.push([PRO.cu, PRO.cv, PRO.ru, PRO.rv, 'silt']);
 // The granite country: three steps. Larches from the second step up, Proficiency Peak on the second.
 plateau('gran', 1745, 598, 150, 42, 110, 0.08); plateau('gran', 1471, 574, 205, 50, 84, 0.08); C.step2 = F[F.length - 1];
 plateau('land', 1446, 480, 215, 50, 46, 0.1); plateau('land', 1712, 492, 150, 38, 54, 0.1);
@@ -231,7 +234,7 @@ C.lakes.push([1790, 592, 16, 5, 'milk'], [1702, 600, 20, 6, 'milk'], [1752, 620,
 // after which it finds its own way downhill. w is how much water it carries.
 C.src = [
   { w: 3, lead: null }, // set by rule below: off Reflection Lake's lowest shore (E8b)
-  { w: 2, lead: [[1082, 493], [1083, 484]] },
+  { w: 2, lead: null }, // set by rule below: through the moraine rim of the Spires' lake (E8c)
   { w: 0.6, lead: [[952, 536], [950, 520]] },
   { w: 0.8, lead: [[806, 512], [812, 498]] },
   { w: 1, lead: null }, // set by rule below: snowmelt from the foot of the Legacy Range (E5b2)
@@ -286,6 +289,13 @@ if (!B) for (const { line, end } of C.dig) {
 }
 // The coulee: a flat floor, a cliff, a bench, a second cliff. It deepens as the tableland rises.
 if (!B) { const all = catmull(C.coulee); all.forEach(([pu, pv], n) => { const floor = lerp(11, 2.5, n / (all.length - 1)); for (let dv = -44; dv <= 44; dv++) for (let du = -44; du <= 44; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const d = Math.hypot(du, dv) + 9 * (fbm(u / 23, v / 23, 440, 2) - 0.5), rise = d < 13 ? 0 : d < 18 ? 14 * (d - 13) / 5 : d < 33 ? 14 + (d - 18) * 0.07 : d < 39 ? 15 + 15 * (d - 33) / 6 : 1e9; if (hg[at(u, v)] > floor + rise) hg[at(u, v)] = floor + rise; } }); }
+// The lake at the snout: its level a little above the ground in front, the ice let down to meet it, no
+// ground in the lake higher than the water, and a low rim of moraine round it where there is no ice.
+if (!B) { const { cu, cv, ru, rv } = PRO, LV = hAt(cu, cv - rv - 14) + 4, MI = MATS.indexOf('moraine'), II = MATS.indexOf('ice');
+  for (let v = cv - rv - 16; v <= GL.toe + 24; v++) for (let u = cu - ru - 20; u <= cu + ru + 20; u++) { const i = at(u, v), x = (u - cu) / ru, y = (v - cv) / rv, e = Math.hypot(x, y);
+    if (mg[i] === II) { const t = LV + 3 + Math.max(0, v - GL.toe) * 1.4; if (hg[i] > t) hg[i] = t; continue; }
+    if (e < 1) { if (hg[i] > LV) hg[i] = LV; continue; }
+    const out = (e - 1) * lerp(rv, ru, Math.abs(x) / e); if (out > 12) continue; const crest = LV + 2 - Math.max(0, out - 2) * 0.8; if (hg[i] < crest) { hg[i] = crest; mg[i] = MI; } } }
 // Still water is level, so a lake flattens the ground under it to the height of its shore.
 const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypot((u - ISLE[0]) / 7, (v - ISLE[1]) / 3.2);
 const lakeRim = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) { const d = Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); if (d >= 1 && d < 1 + 2.2 / Math.min(ru, 8 * rv)) return kind; } return null; };
@@ -333,6 +343,8 @@ if (B) water.set(B.water); else {
   // Follow each source down to an outlet, adding its water to every spot it passes.
   for (const s of C.src) { const lead = catmull(s.lead), [lu, lv] = lead[lead.length - 1], cells = []; let i = (Math.round(lv) >> 1) * RW + (Math.round(lu) >> 1), guard = 0; while (i >= 0 && guard++ < 8000) { cells.push(i); flow[i] += s.w; if (down[i] < 0) break; i = down[i]; } routes.push({ s, lead, cells }); }
   };
+  // The Spires' lake spills through a notch in its moraine rim, at the rim's middle, toward the eye.
+  C.src[1].lead = [[PRO.cu + 2, PRO.cv], [PRO.cu + 2, PRO.cv - PRO.rv - 1], [PRO.cu + 3, PRO.cv - PRO.rv - 9]];
   // The stream in the rainforest (E5b2) starts as snowmelt at the foot of the Legacy Range, on the east
   // flank of the largest foothill, and finds its own way down between the hills to the sea.
   { const A = hillList()[0], su = Math.round(A.cu + A.ru * 0.8); C.src.find(s => !s.lead).lead = [[su, VD - 6], [su - 7, VD - 40], [su - 14, VD - 80]]; }
@@ -694,6 +706,14 @@ for (let u = 0; u < NW; u++) {
   if (hd) { const x0 = Math.round(hd[0]), y0 = Math.round(SY - hd[1] - hAt(hd[0], hd[1])); let y1 = y0 - 1, x1 = x0;
     find: for (; y1 > y0 - 160; y1--) for (const dx of [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6]) if (painted[px(x0 + dx, y1)]) { x1 = x0 + dx; break find; }
     if (y1 > y0 - 160) for (let y = y1 + 1; y <= y0; y++) { const t = (y - y1) / (y0 - y1), x = Math.round(lerp(x1, x0, t) + 2.2 * Math.sin(y / 7) * Math.sin(t * Math.PI)); for (let dx = 0; dx <= 1; dx++) { const i = px(x + dx, y); g[i] = hash(x + dx, y >> 1, 471) < 0.3 ? R.white[1] : dx ? R.water[2] : R.water[3]; painted[i] = 1; } g[px(x - 1, y)] = R.water[1]; g[px(x + 2, y)] = R.water[1]; } } }
+
+// The snout's face: the ice standing at the snout's own depth just above the water is a blue and white
+// ice cliff, streaked down its height, darker where it meets the lake.
+{ const II = MATS.indexOf('ice'); for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) { let y = 0; while (y < SH && !(zb[px(x, y)] < VD && lakeAt(x, Math.round(zb[px(x, y)])) === 'silt')) y++; if (y >= SH) continue;
+  for (let k = 1; k <= 12; k++) { const i = px(x, y - k); if (mb[i] !== II || zb[i] > GL.toe + 7) break; const top = k === 12 || mb[px(x, y - k - 1)] !== II || zb[px(x, y - k - 1)] > GL.toe + 7; g[i] = top ? R.white[1] : k === 1 ? R.serac[0] : hash(x, 0, 482) < 0.3 ? R.serac[1] : (x & 1) ? R.serac[3] : R.serac[2]; } } }
+// Ice broken off the snout floats in the Spires' lake, thickest against the ice (E8c, TJ's photograph).
+for (let y = 0; y < SH - 1; y++) for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) { const i = px(x, y), v = zb[i]; if (v >= VD || lakeAt(x, Math.round(v)) !== 'silt') continue;
+  const near = (v - (PRO.cv - PRO.rv)) / (2 * PRO.rv); if (hash(x >> 1, y, 481) > 0.2 * near * near) continue; g[i] = R.white[1]; if (lakeAt(x + 1, Math.round(v))) g[px(x + 1, y)] = R.white[1]; g[px(x, y + 1)] = R.water[4]; }
 
 // ---- detail on the ground, as round 3 had it ------------------------------------------------------
 // These work on the finished picture. A pixel belongs to the ground at one spot (zb, its depth), so
