@@ -53,25 +53,30 @@ function makeMaple(seed) {
   for (const [x, y, r] of cs) { const bm = clump(r, 'moss', rand, 6); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
   return { parts, h: H, w: W };
 }
-function makeConifer(seed, H, W, name, tiers) {
-  const rand = rng(seed), parts = [];
-  const trunk = new BM(5, H + 1);
-  for (let y = Math.round(H * 0.2); y <= H; y++) { trunk.set(1, y, R.bark[2]); trunk.set(2, y, R.bark[1]); if (y > H - 4) trunk.set(3, y, R.bark[1]); }
+// A conifer: a trunk and tiers of branches that sway. name is a ramp's name, or a list of colours from
+// dark to light. o tells the Northwest's kinds apart (E5b2): bark (the trunk's ramp; a redcedar's is
+// red-brown and flares at the foot), droop (how far each tier's tips hang; cedar and hemlock droop),
+// nod (a hemlock's leader bends over at the top), ragged (a Douglas fir's tiers are uneven and gappy).
+function makeConifer(seed, H, W, name, tiers, o = {}) {
+  const rand = rng(seed), parts = [], bark = R[o.bark || 'bark'], droop = o.droop || 1;
+  const trunk = new BM(7, H + 1);
+  for (let y = Math.round(H * 0.2); y <= H; y++) { trunk.set(2, y, bark[2]); trunk.set(3, y, bark[1]); if (y > H - 4 || (o.bark && y > H - 7)) trunk.set(4, y, bark[1]); if (o.bark && y > H - 4) trunk.set(1, y, bark[2]); }
   outline(trunk, INK);
-  parts.push({ bm: trunk, x: -2, y: -H, sway: 0 });
-  const ramp = R[name];
+  parts.push({ bm: trunk, x: -3, y: -H, sway: 0 });
+  const ramp = Array.isArray(name) ? name : R[name];
   for (let i = 0; i < tiers; i++) {
-    const f = (i + 1) / tiers, hw = Math.max(1.5, W / 2 * Math.pow(f, 0.9) + (rand() - 0.5) * 1.5), th = 4 + (f > 0.5 ? 1 : 0);
-    const bm = new BM(Math.ceil(hw * 2) + 5, th + 5), cx = bm.w / 2;
+    if (o.ragged && i > 1 && i < tiers - 1 && rand() < 0.22) continue;
+    const f = (i + 1) / tiers, hw = Math.max(1.5, W / 2 * Math.pow(f, 0.9) + (rand() - 0.5) * 1.5 * (1 + 2.5 * (o.ragged || 0))), th = 4 + (f > 0.5 ? 1 : 0), hang = Math.ceil(2.5 * droop);
+    const bm = new BM(Math.ceil(hw * 2) + 5, th + 5 + hang), cx = bm.w / 2;
     for (let dx = -Math.floor(hw); dx <= Math.ceil(hw); dx++) {
       const a = Math.abs(dx) / hw; if (a > 1) continue;
-      const y0 = 1 + a * a * 2.5 + (i === 0 ? 0 : 0), t = th * (1 - a * 0.55);
+      const y0 = 1 + a * a * 2.5 * droop, t = th * (1 - a * 0.55);
       for (let j = 0; j < t; j++) {
         let v = 0.78 - j / th * 0.6 - dx / hw * 0.2 + (hash(dx, j + i * 7, seed) - 0.5) * 0.3;
         bm.set(cx + dx, y0 + j + 1, ramp[clamp(Math.round(v * (ramp.length - 1) + (bayer(dx & 3, j) - 0.5) * 0.7), 1, ramp.length - 1)]);
       }
     }
-    if (i === 0) { bm.set(cx, 0, ramp[2]); bm.set(cx, 1, ramp[3]); }
+    if (i === 0) { if (o.nod) { bm.set(cx, 1, ramp[3]); bm.set(cx + 1, 0, ramp[2]); bm.set(cx + 2, 0, ramp[2]); bm.set(cx + 3, 1, ramp[2]); } else { bm.set(cx, 0, ramp[2]); bm.set(cx, 1, ramp[3]); } }
     outline(bm, ramp[0]);
     const y = -H + 2 + i * (H * 0.82) / tiers;
     parts.push({ bm, x: Math.round(-cx + 0.5), y: Math.round(y - 1), sway: 1 - f * 0.6, lx: 0 });

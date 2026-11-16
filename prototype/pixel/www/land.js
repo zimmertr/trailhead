@@ -128,19 +128,30 @@ const RA = 14, ridges = (u, v) => RA * rdg(fbm((v + 0.25 * u) / 85, u / 260, 31,
 const wet = (u, v, e) => smooth(e + 130, e - 110, u);
 const edgeE = 590, crestH = (c, a, b) => u => a + b * Math.exp(-sq((u - c) / 150));
 const forestEdge = v => edgeE - 96 * (fbm(v / 110, 2.3, 3, 3) - 0.5) + 30 * (fbm(v / 24, 7.1, 5, 2) - 0.5) + 44 * smooth(440, 260, v);
-// The rainforest's foothills (E5b), after TJ's two photographs (ROUND4.md section 10): rounded hills
-// wholly under forest, one behind another from the sea up to the foot of the Legacy Range, with
-// valleys between them. By rule: a row of hills every 80 to 110 of depth across the strip of forest
-// between the shore and the forest's east edge, one hill for each 240 of the strip's width, each about
-// as wide as its share and taller the farther back it stands, until the last row sinks again so the
-// Legacy Range shows above them. Their slopes stay gentle enough for trees.
+// The rainforest's foothills (E5b2), after TJ's two photographs (ROUND4.md section 10) and his note:
+// three big rounded hills wholly under forest, in a line down the forest from the top left to the river's
+// mouth, with the lake loop's forest stretch in the valley between the two larger. By rule, from that
+// stretch of the trail: the largest stands behind it (toward the Legacy Range), the second in front of
+// it, and a small third in front of that where the strip of forest between the shore and the forest's
+// east edge still has room. Each sits in the middle of the strip at its depth, as wide as about half
+// the strip. Their slopes stay gentle enough for trees. Worked out once, when the heights are.
 const shoreU = v => { for (let k = 0; k < SHV.n; k++) if (SHV.V[k] <= v) return k + SHV.lo; return NW; };
-const HILLS = [];
-for (let v = 70, n = 0; v < VD + 60; v += 80 + 30 * hash(n, 1, 5201), n++) {
-  const a = Math.max(-40, shoreU(v) + 30), b = forestEdge(v) - 20, w = b - a, m = Math.max(1, Math.round(w / 240)); if (w < 90) continue;
-  for (let j = 0; j < m; j++) HILLS.push({ cu: a + (j + 0.5 + 0.3 * (hash(n, j, 5202) - 0.5)) * w / m, cv: v + 16 * (hash(n, j, 5204) - 0.5), ru: 0.62 * w / m + 30, rv: 82 + 24 * hash(n, j, 5203), H: lerp(30, 54, smooth(120, 480, v)) * lerp(1, 0.45, smooth(560, 720, v)) * (0.85 + 0.3 * hash(n, j, 5205)) });
-}
-const hills = (u, v) => { let best = 0; for (const { cu, cv, ru, rv, H } of HILLS) { const d2 = sq((u - cu) / ru) + sq((v - cv) / rv); if (d2 < 1) best = Math.max(best, H * sq(1 - d2)); } return best * smooth(forestEdge(v) + 50, forestEdge(v) - 30, u); };
+let HILLS = null;
+const hillList = () => {
+  if (HILLS) return HILLS;
+  const lu = C.lakes[0][0], pts = C.trails[0].filter(([u]) => u < lu - 60), v0 = Math.min(...pts.map(p => p[1])), v1 = Math.max(...pts.map(p => p[1]));
+  const hill = (cv, rv, H) => { const a = Math.max(-40, shoreU(cv) + 20), b = forestEdge(cv) - 10, w = b - a; return w < 60 ? null : { cu: (a + b) / 2, cv, ru: 0.42 * w + 30, rv, H, back: 1 }; };
+  const A = hill(Math.min(VD - 80, v1 + 112), 120, 70), B = hill(v0 - 96, 100, 62), D = B && hill(B.cv - B.rv - 46, 56, 34);
+  // The largest runs back unbroken into the foot of the Legacy Range, so no trough lies behind it.
+  if (A) A.back = 1.9;
+  return (HILLS = [A, B, D].filter(Boolean));
+};
+const hills = (u, v) => { let best = 0; for (const { cu, cv, ru, rv, H, back } of hillList()) { const d2 = sq((u - cu) / ru) + sq((v - cv) / (v > cv ? rv * back : rv)); if (d2 < 1) best = Math.max(best, H * sq(1 - d2)); } return best * smooth(forestEdge(v) + 50, forestEdge(v) - 30, u) * offVolc(u, v); };
+// A hill ends where Mount Monolith's own foot begins: piled onto the volcano's slope it made a bare ramp
+// too steep for trees.
+const offVolc = (u, v) => VOLC ? smooth(0.8, 1.02, Math.hypot((u - VOLC.cu) / VOLC.ru, (v - VOLC.cv) / VOLC.rv)) : 1;
+// How far up its hill a spot stands, 0 at the foot and 1 on the summit, for the trees (E5b2).
+const hillUp = (u, v) => { let best = 0; for (const { cu, cv, ru, rv, back } of hillList()) { const d2 = sq((u - cu) / ru) + sq((v - cv) / (v > cv ? rv * back : rv)); if (d2 < 1) best = Math.max(best, sq(1 - d2)); } return best; };
 Object.assign(C, { T: [1075, 310], PK: [660, 440, 210, 110], PK2: [985, 482, 78, 52], LB: [1610, 566, 330, 110], camp: [1022, 526] });
 // The Trailhead stands on a low, broad rise: the divide between the water that runs west to the sea
 // and the water that runs east into the dry country. The whole land tilts gently toward the camera.
@@ -166,9 +177,7 @@ const apron = (u, v) => {
 };
 const under = (u, v) => regional(u, v) + 0.11 * Math.max(0, v - 400) * smooth(480, 640, u) * (1 - zone(u)) + ridges(u, v) * wet(u, v, 590) + (u < 760 ? hills(u, v) * smooth(-20, -90, coast(u, v)) : 0) + plate(u, v);
 const base = (u, v) => under(u, v) + apron(u, v);
-// Forested foothills in front of the Legacy Range. The rainforest's valley runs up between them and
-// the volcano.
-for (const [cu, cv, ru, rv, H] of [[150, 600, 170, 80, 58], [40, 690, 150, 60, 30], [296, 704, 110, 50, 30], [250, 520, 120, 60, 38]]) horn('land', cu, cv, ru, rv, H, { pow: 1.2 });
+// The forested foothills in front of the Legacy Range are hills(), above (E5b2).
 volcano(640, 600, 300, 150, 290);
 // Foothills round the volcano's foot, so it rises out of forest and not off a lawn.
 for (const [cu, cv, ru, rv, H] of [[500, 478, 96, 44, 42], [770, 474, 84, 40, 38], [858, 530, 70, 52, 46], [420, 540, 80, 52, 44]]) horn('land', cu, cv, ru, rv, H, { pow: 1.15 });
@@ -208,7 +217,7 @@ C.src = [
   { w: 2, lead: [[1082, 493], [1083, 484]] },
   { w: 0.6, lead: [[952, 536], [950, 520]] },
   { w: 0.8, lead: [[806, 512], [812, 498]] },
-  { w: 1, lead: [[392, 668], [398, 650]] },
+  { w: 1, lead: null }, // set by rule below: snowmelt from the foot of the Legacy Range (E5b2)
   { w: 1.6, lead: [[1790, 590], [1745, 588], [1702, 598], [1668, 588], [1632, 578], [1596, 582], [1558, 580], [1528, 566], [1498, 552], [1480, 544], [1466, 524], [1458, 506], [1438, 482], [1424, 462], [1420, 442]] },
   { w: 0.6, lead: [[1562, 486], [1540, 470], [1524, 452], [1516, 436]] },
   { w: 0.5, lead: [[1346, 568], [1336, 548], [1326, 530]] }
@@ -238,6 +247,11 @@ for (const f of F) { const m = MATS.indexOf(f.mat); for (let v = Math.max(0, Mat
 const hAt = (u, v) => hg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))];
 // A valley's line is bent as it goes, so no reach of it is ruled. Its two ends stay where they are.
 const wander = (all, amp, seed) => { let len = 0; const total = all.reduce((t, p, n) => t + (n ? Math.hypot(p[0] - all[n - 1][0], p[1] - all[n - 1][1]) : 0), 0); return all.map(([u, v], n) => { if (n) len += Math.hypot(u - all[n - 1][0], v - all[n - 1][1]); const a = all[Math.max(0, n - 4)], b = all[Math.min(all.length - 1, n + 4)], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, k = amp * (2 * vnoise(len / 70, seed, 77) - 1 + 0.5 * Math.sin(len / 26 + seed)) * smooth(0, 50, len) * smooth(total, total - 50, len); return [u - (b[1] - a[1]) / l * k, v + (b[0] - a[0]) / l * k * 0.6]; }); };
+// The rainforest's stream (E5b2) gets a valley of its own: from its snowmelt start at the foot of the
+// Legacy Range, down between the largest foothill and Mount Monolith, west along the valley the lake
+// loop runs in (between the two larger hills), and out to the sea. By rule from the hills.
+{ const [A, Bh] = hillList(), su = Math.round(A.cu + A.ru * 0.8), vm = Bh ? Math.round((A.cv - A.rv + Bh.cv + Bh.rv) / 2) : 440, sh = shoreU(vm), um = Math.round((sh + forestEdge(vm)) / 2);
+  C.dig.push({ d: 8, w: 30, pts: [[su, VD - 6], [su - 14, VD - 80], [su - 40, vm + 70], [um + 60, vm + 12], [um, vm], [sh + 40, vm - 6], [sh - 20, vm - 10]], end: 0.6 }); }
 for (const g of C.dig) g.line = wander(catmull(g.pts), 16, g.pts.length);
 // Valleys: the ground is lowered along a line, most in the middle.
 if (!B) for (const { d, w, line } of C.dig) {
@@ -286,6 +300,9 @@ if (B) water.set(B.water); else {
   // Follow each source down to an outlet, adding its water to every spot it passes.
   for (const s of C.src) { const lead = catmull(s.lead), [lu, lv] = lead[lead.length - 1], cells = []; let i = (Math.round(lv) >> 1) * RW + (Math.round(lu) >> 1), guard = 0; while (i >= 0 && guard++ < 8000) { cells.push(i); flow[i] += s.w; if (down[i] < 0) break; i = down[i]; } routes.push({ s, lead, cells }); }
   };
+  // The stream in the rainforest (E5b2) starts as snowmelt at the foot of the Legacy Range, on the east
+  // flank of the largest foothill, and finds its own way down between the hills to the sea.
+  { const A = hillList()[0], su = Math.round(A.cu + A.ru * 0.8); C.src.find(s => !s.lead).lead = [[su, VD - 6], [su - 7, VD - 40], [su - 14, VD - 80]]; }
   flood();
   // The lower west river reaches the sea at the bottom edge of the map, out of sight, so the land gives it
   // a shallow valley of its own (D11): from where its trunk first comes within 150 of the near edge, it
@@ -308,8 +325,8 @@ if (B) water.set(B.water); else {
     // notch through it, with banks that open out.
     let bed = 1e9;
     for (let [pu, pv, pr] of r.pts) {
-      bed = Math.min(bed, hAt(pu, pv)); pr += 5 * smooth(-36, 0, coast(pu, pv)); const W = Math.ceil(pr + 9);
-      for (let dv = -W; dv <= W; dv++) for (let du = -W; du <= W; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v), m = MATS[mg[i]], d = Math.hypot(du, dv); if (d > W || lipKeep[i] || (m !== 'land' && m !== 'moraine' && m !== 'gran')) continue; const t = Math.max(0.4, bed + Math.max(0, d - pr) * 0.9); if (hg[i] > t) hg[i] = t; if (d <= pr + 1 && hg[i] > 0) water[i] = Math.max(water[i], d <= pr ? 2 : 1); }
+      bed = Math.min(bed, hAt(pu, pv)); pr += 1.5 * smooth(-36, 0, coast(pu, pv)); const W = Math.ceil(pr + 9);
+      for (let dv = -W; dv <= W; dv++) for (let du = -W; du <= W; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v), m = MATS[mg[i]], d = Math.hypot(du, dv); if (d > W || lipKeep[i] || (m !== 'land' && m !== 'moraine' && m !== 'gran')) continue; const t = Math.max(0.4, bed + Math.max(0, d - pr) * 0.9); if (hg[i] > t) hg[i] = t; if (d <= pr + 1 && (hg[i] > 0 || coast(u, v) > -40)) water[i] = Math.max(water[i], d <= pr ? 2 : 1); }
     }
   }
   // An oxbow: a loop the river left behind, a crescent of still water just outside its widest swing in
@@ -547,7 +564,7 @@ for (let u = 0; u < NW; u++) {
     const lying = u >= 800 ? 0 : cs > -15 ? Math.min(1, seaFog(u, v) * 1.1 * (wet ? 0.45 : 1)) : smooth(0.16, 0.6, fogAmt(u, v)) * smooth(0.3, 0.5, forestAmt(u, v)) * 0.4;
     for (let y = Math.max(0, sy); y < minY; y++) {
       const hh = SY - v - y, hollow = fa > 0.4 && hh < ft ? 0.8 * Math.min(wet ? 0.3 : 1, 0.2 + (ft - hh) / 4) : 0;
-      mb[px(u, y)] = mg[at(u, v)]; g[px(u, y)] = colour(u, v, hh, u, y); fogField[px(u, y)] = Math.round(255 * Math.max(lying, hollow) * (0.55 + 0.45 * v / VD));
+      mb[px(u, y)] = mg[at(u, v)]; g[px(u, y)] = colour(u, v, hh, u, y); if (u < 760 && v > 560 && water[at(u, v)] && bayer(u, y) < 0.55 * smooth(560, 740, v)) g[px(u, y)] = HILLHAZE[g[px(u, y)]]; fogField[px(u, y)] = Math.round(255 * Math.max(lying, hollow) * (0.55 + 0.45 * v / VD));
       zb[px(u, y)] = v;
     }
     minY = sy;
@@ -652,9 +669,10 @@ const reg = new Uint8Array(NW * VD);
 if (!B) { const box = (P, fn) => { for (let v = Math.max(0, Math.floor(P.v0)); v <= Math.min(VD - 1, Math.ceil(P.v1)); v++) for (let u = Math.max(0, Math.floor(P.u0)); u <= Math.min(NW - 1, Math.ceil(P.u1)); u++) fn(u, v, at(u, v)); };
   const [lu, , lru] = C.lakes[0], FIN = MATS.indexOf('fin'), WALL = MATS.indexOf('wall');
   box(C.bench, (u, v, i) => { const f = C.bench.fn(u, v); if ((f > 3 && hg[i] >= f - 3 && hg[i] < f + 10) || lakeAt(u, v) === 'lake') reg[i] = 1; });
-  // The loop's band narrows to nothing over its last 60 to the west, so the country ends in a round end,
+  // The loop's band runs the whole loop (E5b2; it stopped 300 west of the lake while fog hid the rest), narrows
+  // to nothing over its last 60 to the west, so the country ends in a round end,
   // and every column of it is filled between its highest and lowest spot: the ground between the stretches.
-  { const W0 = lu - 300, top = new Int16Array(NW).fill(VD), bot = new Int16Array(NW).fill(-1);
+  { const W0 = Math.min(...C.trails[0].map(p => p[0])) - 30, top = new Int16Array(NW).fill(VD), bot = new Int16Array(NW).fill(-1);
     for (const [pu, pv] of catmull(C.trails[0])) { if (pu >= lu + lru || pu < W0) continue; const r = 22 * Math.sqrt(smooth(W0, W0 + 60, pu)), r2 = r * r; for (let dv = -22; dv <= 22; dv++) for (let du = -22; du <= 22; du++) { if (du * du + dv * dv > r2) continue; const u = Math.round(pu + du), v = Math.round(pv + dv); if (u >= 0 && v >= 0 && u < NW && v < VD) { reg[at(u, v)] = 1; top[u] = Math.min(top[u], v); bot[u] = Math.max(bot[u], v); } } }
     for (let u = 0; u < NW; u++) for (let v = top[u] + 1; v < bot[u]; v++) if (!reg[at(u, v)]) reg[at(u, v)] = 1; }
   box(C.step2, (u, v, i) => { const f = C.step2.fn(u, v); if ((f > 3 && hg[i] >= f - 3 && hg[i] < f + 16) || mg[i] === FIN) reg[i] = 2; });
@@ -719,32 +737,41 @@ if (!B) {
 const RANKTREES = [];
 const riverFront = (u, v) => { if (coast(u, v) < -170) return false; for (let dv = 1; dv <= 34; dv += 3) for (let du = -8; du <= 8; du += 4) { const uu = Math.round(u + du), vv = Math.round(v + dv); if (uu >= 0 && vv >= 0 && uu < NW && vv < VD && water[at(uu, vv)] && coast(uu, vv) < 0) return true; } return false; };
 // ---- the rainforest's ranks ---------------------------------------------------------------------
-// Drawn ridge by ridge, after TJ's photograph: ranks of conifers stand one behind another along the
-// forest's ridges, thickest toward the coast. The fog that lay white in the hollows between them is
-// weather since E5 (fogField below, laid on by the scene while a shower is in), so the ranks are drawn
-// in their own colours, and where the bare snags stood in the thickest of it there are living trees.
+// After TJ's photographs: rows of conifers stand one behind another along the foothills' upper slopes
+// and crests (E5b2; before, wherever the fog used to lie), so the rows arch over each hill and show its
+// shape. They are the kinds of the drier summits: mostly Douglas fir and western hemlock, some Sitka
+// spruce toward the sea, a few redcedar.
+// The Northwest's conifers, told apart at the map's size (E5b2, TJ: a variety, as on the Olympic
+// Peninsula). Douglas fir: tall, narrow, dark, uneven gappy tiers. Western hemlock: yellower green,
+// soft drooping tiers, its leader nodding over. Sitka spruce: blue-green, dense and stiff. Western
+// redcedar: yellow-green, broad, its tips hanging, a red-brown trunk flared at the foot.
+const SPRUCE_RAMP = [R.conifer[0], R.hill[0], R.hill[1], R.hill[2], R.mist[3]], CEDAR_RAMP = [R.moss[1], R.moss[2], R.moss[3], R.pine[3], R.moss[4]];
+const KINDS_NW = {
+  douglas: (s, H) => makeConifer(s, H, Math.round(H * 0.36), 'conifer', Math.max(5, Math.round(H / 7)), { ragged: 1 }),
+  hemlock: (s, H) => makeConifer(s, H, Math.round(H * 0.46), 'pine', Math.max(5, Math.round(H / 6.5)), { droop: 1.8, nod: true }),
+  spruce: (s, H) => makeConifer(s, H, Math.round(H * 0.5), SPRUCE_RAMP, Math.max(6, Math.round(H / 5.5))),
+  cedar: (s, H) => makeConifer(s, H, Math.round(H * 0.56), CEDAR_RAMP, Math.max(5, Math.round(H / 7)), { droop: 2.6, bark: 'pbark' })
+};
+// How wet the forest is at a spot, 0 to 1 (E5b2, after the Olympic Peninsula): wettest by the sea and on
+// the valley floors, along the trail too, drier up the hills and toward the forest's east edge.
+const wetAt = (u, v) => clamp(0.55 * smooth(-260, -30, coast(u, v)) + 0.5 * (1 - hillUp(u, v)) - 0.45 * smooth(forestEdge(v) - 220, forestEdge(v), u) + (nearTrail(u, v, 40) ? 0.3 : 0), 0, 1);
+const ridgeRow = (u, v) => coast(u, v) < -18 && forestAmt(u, v) > 0.3 && hillUp(u, v) > 0.32 + 0.12 * (vnoise(u / 40, v / 30, 238) - 0.5);
 {
-  const foggy = (u, v) => coast(u, v) < -18 ? smooth(0.16, 0.6, fogAmt(u, v) + 0.12 * (fbm(u / 40, v / 30, 235, 2) - 0.5)) * smooth(0.3, 0.5, forestAmt(u, v)) : 0;
   const rr = rng(2311);
-  // Its trees are the forest's own conifers, drawn live so they sway (D6a): tall in the nearest ranks,
-  // smaller and with fewer tiers of branches the farther back they stand.
-  const SIZES = [24, 28, 33, 38, 44, 50, 57, 64], kinds = SIZES.map((H, n) => Array.from({ length: 3 }, (_, i) => makeConifer(360 + n * 7 + i, H, Math.round(H * 0.5), 'conifer', Math.max(5, Math.round(H / 7)))));
+  // Tall in the nearest ranks, smaller and with fewer tiers the farther back they stand (D6a).
+  const SIZES = [24, 28, 33, 38, 44, 50, 57, 64], lib = {};
+  const kindOf = (u, v) => { const w = wetAt(u, v), k = rr(); return k < 0.08 + 0.3 * w * smooth(-200, -40, coast(u, v)) ? 'spruce' : k < 0.5 ? 'douglas' : k < 0.86 ? 'hemlock' : 'cedar'; };
   const tree = (x0, base, v) => {
-    const want = (64 - 34 * smooth(0, VD, v)) * (0.8 + 0.4 * vnoise(x0 / 23, v / 17, 237)), n = SIZES.reduce((b, H, j) => Math.abs(H - want) < Math.abs(SIZES[b] - want) ? j : b, 0), set = kinds[n];
+    const want = (64 - 34 * smooth(0, VD, v)) * (0.8 + 0.4 * vnoise(x0 / 23, v / 17, 237)), n = SIZES.reduce((b, H, j) => Math.abs(H - want) < Math.abs(SIZES[b] - want) ? j : b, 0), kind = kindOf(x0, v);
+    const set = (lib[kind] || (lib[kind] = []))[n] || (lib[kind][n] = [0, 1].map(i => KINDS_NW[kind](360 + n * 7 + i + kind.length * 50, SIZES[n])));
     const t = set[(rr() * set.length) | 0]; if (!riverFront(x0, v)) RANKTREES.push({ t, x: x0, y: base, v });
   };
   // The ranks, far to near. Each is a line across the forest at one distance from the camera.
   for (let c = VD + 170; c > -60; c -= 26 + rr() * 12) {
     const seed = Math.round(c), vOf = u => c - 0.25 * u + 10 * (vnoise(u / 60, seed, 232) - 0.5);
-    for (let u = 2 + rr() * 5; u < 660; u += 6 + rr() * 5) {
-      const v = vOf(u); if (v < 2 || v >= VD - 1) continue;
-      const w = foggy(u, v); if (w < 0.05) continue;
-      const f = fogAmt(u, v);
-      // Gaps open in the ranks toward the west.
-      if (fbm(u / 26, seed / 7, 233, 2) < 0.17 + 0.2 * f || rr() > 0.25 + 0.75 * w) continue;
-      // The rolls that once set how pale each tree was, whether it stood as a snag, and its height and
-      // width, kept so that every tree after it stands where it did.
-      for (let k = f > 0.72 ? 4 : 3; k > 0; k--) rr();
+    for (let u = 2 + rr() * 5; u < 700; u += 6 + rr() * 5) {
+      const v = vOf(u); if (v < 2 || v >= VD - 1 || !ridgeRow(u, v)) continue;
+      if (fbm(u / 26, seed / 7, 233, 2) < 0.15 || rr() > 0.85) continue;
       tree(Math.round(u), Math.round(SY - v - hAt(u, v)), v);
     }
   }
@@ -759,7 +786,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   // Each placement loop below starts its own dice (D14): rand is set afresh before each, so a roll added to
   // or taken from one loop never moves what another places. A new loop gets a seed of its own the same way.
   let rand = rng(2026), any = a => a[(rand() * a.length) | 0], land = (u, v) => MATS[mg[at(Math.round(u), Math.round(v))]] === 'land';
-  const wooded = (u, v) => { const i = at(Math.round(u), Math.round(v)), m = MATS[mg[i]], h = hg[i]; return m === 'land' ? h < 100 && !(u > 760 && v > 684) : m === 'volc' ? VP(Math.min(1, vrelief(u, v).d)) < 0.17 + 0.05 * vnoise(u / 30, v / 30, 588) : m === 'crest' ? h < 48 : false; };
+  const wooded = (u, v) => { const i = at(Math.round(u), Math.round(v)), m = MATS[mg[i]], h = hg[i]; return m === 'land' ? h - (u < 760 ? hills(u, v) : 0) < 100 &&!(u > 760 && v > 684) : m === 'volc' ? VP(Math.min(1, vrelief(u, v).d)) < 0.17 + 0.05 * vnoise(u / 30, v / 30, 588) : m === 'crest' ? h < 48 : false; };
   const twisted = Array.from({ length: 5 }, (_, i) => makeTwisted(1200 + i));
   // Distance and height (D6a). The map has no perspective, so a tree far back or high up is drawn as a
   // smaller, plainer conifer, paled a little by the haze: at the back of the map about half size, and
@@ -773,16 +800,22 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   const bigleaf = Array.from({ length: 4 }, (_, i) => blobTree(800 + i, i & 1 ? 'larch' : 'sun', 36 + i * 2, 'bark', 5, 5.5));
   const larches = Array.from({ length: 6 }, (_, i) => { const r = rng(900 + i); return makeConifer(900 + i, 24 + (r() * 14 | 0), 10 + (r() * 4 | 0), 'larch', 6); });
   const pines = Array.from({ length: 5 }, (_, i) => makePonderosa(820 + i)), aspens = Array.from({ length: 7 }, (_, i) => makeAspen(600 + i)), snags = Array.from({ length: 5 }, (_, i) => makeSnag(730 + i));
-  // The rainforest climbs the ridges and the volcano's foot. Where the fog lies thickest when it comes,
-  // spruce stand where bare snags once did (E5).
+  // The rainforest (E5b2, after the Olympic Peninsula): below the ranks on the hills, a mix picked by how
+  // wet the spot is. Wet (by the sea, the valley floors, the trail): mostly mossy maples, Sitka spruce
+  // and redcedar, with a gold bigleaf maple now and then. Drier (up the hills, the east edge): mostly
+  // Douglas fir and hemlock, with some moss. A dark twisted maple stands here and there in the wettest.
+  const NWT = {}; for (const [k, lo, hi] of [['douglas', 54, 70], ['hemlock', 44, 58], ['spruce', 48, 62], ['cedar', 40, 54]]) NWT[k] = Array.from({ length: 5 }, (_, i) => { const r = rng(1600 + i * 13 + k.length); return KINDS_NW[k](1600 + i * 13 + k.length, lo + (r() * (hi - lo) | 0)); });
   rand = rng(6101);
   for (let gv = -30; gv < VD; gv += 9) for (let gu = -10; gu < edgeE + 180; gu += 9) {
-    const u = clamp(gu + rand() * 9, 3, NW - 4), v = clamp(gv + rand() * 9, 2, VD - 3), fa = forestAmt(u, v), r = rand(), f = fogAmt(u, v);
-    if (rand() > fa * 0.78 || !open(u, v, 1.3) || !wooded(u, v)) continue;
-    // Deeper in, the ranks (drawn above) take over, so the planted forest thins out.
-    if (f > 0.12 && rand() < smooth(0.12, 0.55, f)) continue;
-    if (f < 0.2 && (nearTrail(u, v, 46) && rand() < 0.3 || rand() < 0.04)) { const b = any(bigleaf); if (glade(u, v)) continue; if (shrinkAt(u, v) >= 0.12) plant(sized({ h: 40 }, u, v), u, v, f); else put(b, u, v, f, true); continue; }
-    if (rand() < f * f * 0.5) { const sp = any(spruces); if (shrinkAt(u, v) < 0.3) plant(sized(sp, u, v), u, v); } else { const t = r < 0.45 ? ((m) => f > 0.2 && hash(u | 0, v | 0, 5911) < 0.65 ? twisted[(hash(u | 0, v | 0, 5912) * twisted.length) | 0] : m)(any(maples)) : r < 0.88 ? any(spruces) : any(firs); if (glade(u, v) || riverFront(u, v)) continue; plant(sized(t, u, v), u, v, f); }
+    const u = clamp(gu + rand() * 9, 3, NW - 4), v = clamp(gv + rand() * 9, 2, VD - 3), fa = forestAmt(u, v), r = rand();
+    // A hill's flank is steep where it falls to the forest's edge, and trees stand on it anyway.
+    if (rand() > fa * 0.78 || !open(u, v, u < 760 && hills(u, v) > 2 ? 2.6 : 1.3) || !wooded(u, v)) continue;
+    // The ranks hold the hills' upper slopes.
+    if (ridgeRow(u, v) || glade(u, v) || riverFront(u, v)) continue;
+    const w = wetAt(u, v), pm = 0.05 + 0.36 * w, pg = pm + (w > 0.55 ? 0.04 : 0), ps = pg + 0.05 + 0.26 * w, pc = ps + 0.12 + 0.06 * w;
+    if (r < pm) { plant(sized(w > 0.85 && hash(u | 0, v | 0, 5911) < 0.06 ? twisted[(hash(u | 0, v | 0, 5912) * twisted.length) | 0] : any(maples), u, v), u, v); continue; }
+    if (r < pg) { if (shrinkAt(u, v) >= 0.12) plant(sized({ h: 40 }, u, v), u, v); else put(any(bigleaf), u, v, 0, true); continue; }
+    plant(sized(any(NWT[r < ps ? 'spruce' : r < pc ? 'cedar' : r < pc + 0.24 + 0.2 * (1 - w) ? 'douglas' : 'hemlock']), u, v), u, v);
   }
   // Firs in clumps over the parkland, the meadows and the lower slopes of the crest.
   rand = rng(6102);

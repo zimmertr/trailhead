@@ -22,6 +22,28 @@ const RUN = 78; // pixels a second
 // ---------------------------------------------------------------------------------------------
 // The scene. Built once; drawn for whichever stretch of trail (a leg) he is on.
 
+// Everything on the map that stands still or only sways: trees, ferns, flags, signs, rocks. Kept out of
+// draw(): that function is too big for the browser to optimise, and with E5b2's denser forest the
+// sprite loops inside it cost about 19 ms a frame against under 4 when they run here.
+// Trees have one function of their own, taking plain numbers, so it only ever sees tree parts.
+function drawTree(scr, parts, x, y, clip, v, tq, ox, oy, dl, clipBlit) {
+  for (let n = 0; n < parts.length; n++) {
+    const part = parts[n], [wx, wy] = breeze(x + (part.lx || 0), y + part.y, tq, part.sway);
+    if (clip) clipBlit(part.bm, x + part.x + wx, y + part.y + wy, v, dl); else scr.blit(part.bm, x + part.x + wx - ox, y + part.y + wy - oy);
+  }
+}
+function drawStill(scr, th, tq, ox, oy, dl, clipBlit, flags, t) {
+  if (th.fern) {
+    const [wx] = breeze(th.x, th.y, tq, 0.6);
+    scr.blit(th.bm, th.x - th.bm.ox + wx - ox, th.y - th.bm.oy - oy);
+  } else if (th.flag) {
+    scr.blit(flags[Math.floor(t * 5) & 1], th.x - 2 - ox, th.y - th.lift - 15 - oy);
+  } else if (th.lift) {
+    scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.lift - th.bm.oy - oy);
+    if (th.rope) for (let j = 1; j < 12; j++) scr.set(th.x + Math.round(j * 0.25) - ox, th.y - 70 + j - oy, R.yellow[0]);
+  } else if (th.clip) clipBlit(th.bm, th.x - th.bm.ox, th.y - th.bm.oy, th.v, dl); else scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.bm.oy - oy);
+}
+
 export function makeWorld(bake) {
   const W = buildTerrain(), { g: ground, spots, forestAmt } = W;
   const paths = {}; for (const k of ['lake', 'stack', 'spires']) paths[k] = makePath({ pts: W.trails[k], stops: [] });
@@ -402,23 +424,10 @@ export function makeWorld(bake) {
           crit.drawHull(scr, ox, oy, t);
         } else if (th.cat) {
           kit.drawOne(scr, th.cat, ox, oy, t);
-        } else if (th.kind === 'tree') {
-          const { tree, x, y, clip, v } = th.t;
-          for (const part of tree.parts) {
-            const [wx, wy] = breeze(x + (part.lx || 0), y + part.y, tq, part.sway);
-            if (clip) clipBlit(part.bm, x + part.x + wx, y + part.y + wy, v, dl); else scr.blit(part.bm, x + part.x + wx - ox, y + part.y + wy - oy);
-          }
         } else if (th.critter) {
           crit.draw(scr, th, ox, oy, t);
-        } else if (th.fern) {
-          const [wx] = breeze(th.x, th.y, tq, 0.6);
-          scr.blit(th.bm, th.x - th.bm.ox + wx - ox, th.y - th.bm.oy - oy);
-        } else if (th.flag) {
-          scr.blit(flags[Math.floor(t * 5) & 1], th.x - 2 - ox, th.y - th.lift - 15 - oy);
-        } else if (th.lift) {
-          scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.lift - th.bm.oy - oy);
-          if (th.rope) for (let j = 1; j < 12; j++) scr.set(th.x + Math.round(j * 0.25) - ox, th.y - 70 + j - oy, R.yellow[0]);
-        } else if (th.clip) clipBlit(th.bm, th.x - th.bm.ox, th.y - th.bm.oy, th.v, dl); else scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.bm.oy - oy);
+        } else if (th.kind === 'tree') { const T = th.t; drawTree(scr, T.tree.parts, T.x, T.y, !!T.clip, T.v || 0, tq, ox, oy, dl, clipBlit); }
+        else drawStill(scr, th, tq, ox, oy, dl, clipBlit, flags, t);
       }
 
       // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge. Each is
