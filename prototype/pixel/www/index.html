@@ -111,6 +111,12 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #book .todo { padding-left: 1.4em; text-indent: -1em; }
 #book .box { display: inline-block; position: relative; width: .5em; height: .5em; margin-right: .45em; border: .08em solid currentColor; vertical-align: -.02em; }
 #book .done .box::after { content: ''; position: absolute; left: .14em; top: -.32em; width: .22em; height: .6em; border: solid #22409a; border-width: 0 .12em .12em 0; transform: rotate(40deg); }
+#book form { pointer-events: auto; }
+#book .field { position: absolute; margin: 0; padding: 0; border: 0; border-radius: 2px; background: transparent; resize: none; overflow: hidden; outline: none; -webkit-font-smoothing: antialiased; transform: translateY(var(--drop)); }
+#book .field::placeholder { color: #a8a094; }
+#book .field:focus-visible { box-shadow: 0 0 0 2px rgba(34, 64, 154, .35); }
+#book .sign { position: absolute; min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
+#book .legend { position: absolute; margin: 0; font-family: var(--small); font-size: 12px; color: #8a5a4a; }
 #book .sig { text-align: right; padding-right: 1.5em; }
 #book .pending { font-family: var(--small); font-size: 12px; margin-left: .6em; color: #b0502c; white-space: nowrap; }
 .in-book #bar, .in-book #fork, .in-book #tab, .in-book #names, .in-book #tip { display: none; }

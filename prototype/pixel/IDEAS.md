@@ -152,3 +152,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **Something left in the box.** Real register boxes collect a lost glove or a sticker; one small object in the corner of the box could change with the season or the time of day.
 - **Self-host the hands.** The register's four handwriting faces come from Google Fonts in the prototype; the real site could serve them itself so a visitor's browser never asks Google for them.
 - **Turn the page.** With more entries than one page holds, a corner of the right-hand page could lift, and a tap turns back to older pages.
+- **The pencil writes.** While a visitor types on the left-hand page, the pencil could lift off the page and follow the last letter.

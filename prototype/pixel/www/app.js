@@ -87,7 +87,25 @@ function fillBook() {
   // The left-hand page (L4): until the lake, the peak and one Spires summit are done, TJ's note of what is
   // still to do, ticked off as each is done. After that it is blank, and the close-up lays the pencil on it.
   const done = api.done(), T = UI.register.todo;
-  if (!(done.lake && done.stack && done.spires)) {
+  let mine = []; try { mine = JSON.parse(localStorage.getItem('trailhead.register') || '[]'); } catch { mine = []; }
+  const row = n => top + n * pitch, drop = '--tilt:0deg;--drop:' + (pitch * 0.14).toFixed(1) + 'px;';
+  if (done.lake && done.stack && done.spires) {
+    // Signing (L5): once all three are done the visitor writes on the left-hand page, in pencil, in a hand
+    // of their own. The entry is kept in this browser only and waits for TJ (the real register is issue 3).
+    const pen = "font-family:'Patrick Hand',cursive;font-size:" + (pitch * 0.9 * 0.92).toFixed(1) + 'px;line-height:' + pitch + 'px;color:#5f5f6a;left:' + 14 * k + 'px;right:' + 6 * k + 'px;' + drop;
+    if (mine.length) {
+      const st = "font-family:'Caveat',cursive;font-size:" + (pitch * 0.95).toFixed(1) + 'px;line-height:' + pitch + 'px;color:#1c1a24;left:' + 14 * k + 'px;right:' + 6 * k + 'px;' + drop;
+      const p = el('p', { class: 'hand', style: st + 'top:' + row(0) + 'px', text: UI.register.thanks }); left.append(p);
+      left.append(el('p', { class: 'hand sig', style: st + 'top:' + row(Math.round(p.offsetHeight / pitch)) + 'px', text: UI.register.todo.sig }));
+    } else {
+      const name = el('input', { class: 'field', maxlength: 40, required: '', autocomplete: 'off', 'aria-label': UI.register.yourName, placeholder: UI.register.yourName, style: pen + 'top:' + row(0) + 'px;height:' + pitch + 'px' });
+      const note = el('textarea', { class: 'field', maxlength: 240, required: '', 'aria-label': UI.register.yourNote, placeholder: UI.register.notePh, style: pen + 'top:' + row(1) + 'px;height:' + 5 * pitch + 'px' });
+      const form = el('form', { onsubmit: ev => { ev.preventDefault(); const n = name.value.trim(), t = note.value.trim(); if (!n || !t) return; mine.push({ name: n, note: t, date: new Date().toISOString().slice(0, 10) }); try { localStorage.setItem('trailhead.register', JSON.stringify(mine)); } catch { /* private window */ } audio.sfx('flag'); say(UI.register.signed); fillBook(); } },
+        name, note, el('button', { class: 'plank sign', type: 'submit', style: 'top:' + row(6.3) + 'px;right:' + 6 * k + 'px;' + (P.left.w * k < 300 ? 'left:' + 14 * k + 'px;justify-content:center;' : '') }, el('span', { text: UI.register.sign })));
+      left.append(form);
+    }
+    left.append(el('p', { class: 'legend', style: 'left:' + 14 * k + 'px;bottom:' + 4 * k + 'px', text: UI.register.mock }));
+  } else {
     const st = "font-family:'Caveat',cursive;font-size:" + (pitch * 0.95).toFixed(1) + 'px;line-height:' + pitch + 'px;color:#1c1a24;--tilt:-0.4deg;--drop:' + (pitch * 0.14).toFixed(1) + 'px;left:' + 14 * k + 'px;right:' + 6 * k + 'px;';
     let r = 0;
     const line = (kids, cls = '') => { const p = el('p', { class: 'hand ' + cls, style: st + 'top:' + (top + r * pitch) + 'px' }, ...kids); left.append(p); r += Math.max(1, Math.round(p.offsetHeight / pitch)); };
@@ -95,16 +113,15 @@ function fillBook() {
     for (const [id, name] of [['lake', DEST_NAMES.lake], ['stack', DEST_NAMES.stack], ['spires', T.spires(DEST_NAMES.spires)]]) line([el('span', { class: 'box' }), name], 'todo' + (done[id] ? ' done' : ''));
     r++; line([T.after]); line([T.sig], 'sig');
   }
-  let mine = []; try { mine = JSON.parse(localStorage.getItem('trailhead.register') || '[]'); } catch { mine = []; }
-  let row = 0;
+  let at = 0;
   [...REGISTER, ...mine.map(e => ({ ...e, pending: true }))].forEach((e, i) => {
-    const h = [...String(e.name)].reduce((a, c) => a + c.charCodeAt(0), 0), [font, fz] = HANDS[(i + 1) % HANDS.length], ink = INKS[(i * 2 + 1) % INKS.length];
-    const st = "font-family:'" + font + "',cursive;font-size:" + (pitch * 0.9 * fz).toFixed(1) + 'px;line-height:' + pitch + 'px;color:' + ink + ';top:' + (top + row * pitch) + 'px;--tilt:' + ((h % 7) - 3) * 0.25 + 'deg;--drop:' + (pitch * 0.14).toFixed(1) + 'px;';
+    const h = [...String(e.name)].reduce((a, c) => a + c.charCodeAt(0), 0), [font, fz] = e.pending ? ['Patrick Hand', 0.92] : HANDS[(i + 1) % HANDS.length], ink = e.pending ? INKS[2] : INKS[(i * 2 + 1) % INKS.length];
+    const st = "font-family:'" + font + "',cursive;font-size:" + (pitch * 0.9 * fz).toFixed(1) + 'px;line-height:' + pitch + 'px;color:' + ink + ';top:' + (top + at * pitch) + 'px;--tilt:' + ((h % 7) - 3) * 0.25 + 'deg;--drop:' + (pitch * 0.14).toFixed(1) + 'px;';
     const t = el('p', { class: 'hand', style: st + 'left:' + (col + 3 * k) + 'px;right:' + 4 * k + 'px' }, el('span', { class: 'who', text: e.name }), ' ' + e.note);
     if (e.pending) t.append(el('span', { class: 'pending', text: UI.register.pending }));
     // A date is kept to its column: on a phone the column is narrow, so the date is written smaller.
-    right.append(el('span', { class: 'hand', style: st + 'white-space:nowrap;font-size:' + Math.min(pitch * 0.9 * fz, (col - 5 * k) / 2.7).toFixed(1) + 'px;left:' + 3 * k + 'px;width:' + (col - 5 * k) + 'px', text: e.pending ? '' : shortDate(e.date) }), t);
-    row += Math.max(1, Math.round(t.offsetHeight / pitch));
+    right.append(el('span', { class: 'hand', style: st + 'white-space:nowrap;font-size:' + Math.min(pitch * 0.9 * fz, (col - 5 * k) / 2.7).toFixed(1) + 'px;left:' + 3 * k + 'px;width:' + (col - 5 * k) + 'px', text: shortDate(e.date) }), t);
+    at += Math.max(1, Math.round(t.offsetHeight / pitch));
   });
 }
 addEventListener('resize', () => setTimeout(() => { if (!book.hidden) fillBook(); }, 60));

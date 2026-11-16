@@ -159,7 +159,7 @@ export const UI = {
   // The word in the burst when the server rack on TJs-Kubernetes-Service is hit. Drawn in pixels, capitals only.
   bang: 'BANG!',
   found: (name, n, of) => 'Found: ' + name + '. ' + n + ' of ' + of + ' on the kiosk checklist.',
-  allDone: 'All three destinations done. The summit register is open, on the trail map.',
+  allDone: 'All three done. The trail register at the Trailhead is yours to sign.',
   fail: 'The world could not be drawn here. The trail map has everything as text.',
   // Said when a scene breaks and he is put on the off-route page instead.
   broken: 'That stretch of trail has washed out. He is off route.',
@@ -206,11 +206,13 @@ export const UI = {
     // The printed headings of the book's right-hand page (L3), as on a Forest Service register form.
     book: { date: 'Date', who: 'Name, party and remarks' },
     // TJ's note on the left-hand page until the visitor has done all three (L4). Draft copy for TJ to rewrite.
+    // After a visitor signs (L5). Draft copy for TJ to rewrite.
+    thanks: 'Thanks for signing! Your entry is on the right, waiting for me to read it before it shows to anyone else.',
     todo: { hi: 'Thanks for stopping by!', need: 'You can sign the register once you have finished all three:', spires: name => 'One summit in ' + name, after: 'Then come back, and this page is yours.', sig: 'TJ' },
     title: 'Summit register', sub: 'You did all three. Sign in.', open: 'open', locked: 'locked',
     lockedSay: 'The summit register opens once all three destinations are done.',
     pending: 'waiting for TJ to approve it', signed: 'Signed. Your entry waits for TJ to approve it.',
-    yourName: 'Your name', yourNote: 'A note for the register', sign: 'Sign the register', mock: 'This is a mock. Entries stay in this browser.'
+    yourName: 'Your name', yourNote: 'A note for the register', notePh: 'A few words', sign: 'Sign the register', mock: 'This is a mock. Entries stay in this browser.'
   },
   plain: {
     back: 'Back to the world',
