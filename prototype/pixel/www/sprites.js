@@ -114,6 +114,25 @@ function makeTwisted(seed) {
   for (const [x, y, r] of cs) { const bm = clump(r, dark, rand, 5); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
   return { parts, h: H, w: W };
 }
+// A clump of wildflowers for the map (D5a): a few stems with a bloom on each, the blooms a part of their
+// own so they sway on still stems. kind: 'lupine' (a blue spike), 'red' (paintbrush), 'white', 'yellow'.
+function makeFlowers(kind, seed) {
+  const rand = rng(seed), stems = new BM(9, 7), blooms = new BM(9, 7), n = 3 + (rand() * 3 | 0);
+  const top = { lupine: [R.lupine[1], R.lupine[2]], red: [R.red[1], R.red[2]], white: [R.white[0], R.white[1]], yellow: [R.yellow[0], R.yellow[1]] }[kind];
+  for (let k = 0; k < n; k++) {
+    const x = 1 + Math.round(k * 7 / n + rand()), hgt = 2 + (rand() * 3 | 0);
+    for (let y = 6; y > 6 - hgt; y--) stems.set(x, y, R.grass[y === 6 ? 0 : 1]);
+    const y0 = 6 - hgt; blooms.set(x, y0, top[0]); if (kind === 'lupine' || kind === 'red' || rand() < 0.4) blooms.set(x, y0 - 1, top[1]);
+    if (kind === 'white' && rand() < 0.5) blooms.set(x + 1, y0, top[1]);
+  }
+  return { parts: [{ bm: stems, x: -4, y: -6, sway: 0 }, { bm: blooms, x: -4, y: -6, sway: 1, lx: 0 }], h: 7, w: 9, low: true };
+}
+// A still drawing made to sway like a tree: its top rows are a part that leans, its foot stays put.
+function swaying(bm, cut = Math.round(bm.h * 0.55)) {
+  const top = new BM(bm.w, cut), foot = new BM(bm.w, bm.h - cut);
+  for (let y = 0; y < bm.h; y++) for (let x = 0; x < bm.w; x++) { const c = bm.d[y * bm.w + x]; if (c) (y < cut ? top : foot).set(x, y < cut ? y : y - cut, c); }
+  return { parts: [{ bm: foot, x: -bm.ox, y: cut - bm.oy, sway: 0 }, { bm: top, x: -bm.ox, y: -bm.oy, sway: 0.8, lx: 0 }], h: bm.h, w: bm.w, low: true };
+}
 // The owl in the rainforest, on a broken stub: pose 'open', 'blink' or 'turn' (its head round to one side).
 function makeOwl(pose) {
   const b = new BM(5, 15), F = R.fur, eye = pose === 'blink' ? F[1] : R.yellow[1];
@@ -353,4 +372,4 @@ function makeFlag(f, ramp = R.red) {
   return b;
 }
 
-export { makeSnag, makeBush, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeSnag, makeBush, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };

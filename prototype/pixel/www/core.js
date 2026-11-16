@@ -222,10 +222,11 @@ function windAt(x, y, t, amt) {
   const ph = frac(t / 1.54 - along / 69), q = POSE[Math.floor(ph * 4) & 3], a = Math.round((g > 0.85 ? 2 : 1) * amt);
   return [q[0] * a, q[1] * a];
 }
-// The map's own air: still most of the time. About every eleven seconds one light gust comes in off
-// the sea and crosses to the east, and each tree leans once, and once more briefly, as its front goes
-// by. The forest and lake scenes keep windAt: there the trees are close and never quite stop.
-const STILL = [0, 0], LEAN = [1, 0], GUST = { every: 11, speed: 180, wide: 230 };
+// The map's own air. About every eleven seconds one light gust comes in off the sea and crosses to the
+// east, and each tree leans once, and once more briefly, as its front goes by. In between, every leaf
+// clump and flower head has a life of its own (TJ, 2026-11-15): each sways now and then, one way and
+// back, on its own slow beat, so the map is never quite still and no two plants move together. The forest and lake scenes keep windAt: there the trees are close and never quite stop.
+const STILL = [0, 0], LEAN = [1, 0], BACK = [-1, 0], GUST = { every: 11, speed: 180, wide: 230 };
 let gustT = -1, gustNow = [];
 function breeze(x, y, t, amt) {
   if (!amt) return STILL;
@@ -242,7 +243,9 @@ function breeze(x, y, t, amt) {
     if (u < 0.08 || u >= 0.9 || Math.round(amt * strength) < 1) continue;
     return u < 0.6 || u > 0.76 ? LEAN : STILL;
   }
-  return STILL;
+  if (amt < 0.5) return STILL;
+  const xr = Math.round(x), yr = Math.round(y), ph = frac(t / (2.4 + 2.6 * hash(xr, yr, 402)) + hash(xr, yr, 403));
+  return ph < 0.13 ? LEAN : ph > 0.5 && ph < 0.6 ? BACK : STILL;
 }
 
 // ---------------------------------------------------------------------------------------------
