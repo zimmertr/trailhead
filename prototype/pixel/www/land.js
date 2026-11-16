@@ -3,6 +3,7 @@
 // (u, SY - v - height), nearest first, so ground and mountains are one surface and near slopes hide
 // far ones.
 import { R, INK, KIND, SHADE, RAMP_OF, veilTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
+import { paintMonolith, monolithSky, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
 import { makeMaple, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog } from './sprites.js';
@@ -46,8 +47,6 @@ function spur(mat, pts, pow = 1.2) {
 // dark tooth low on the east flank. Its lower slopes run out into the land round it.
 let VOLC = null;
 const VP = prof([[0, 1], [0.07, 0.985], [0.14, 0.94], [0.25, 0.8], [0.4, 0.58], [0.55, 0.4], [0.7, 0.25], [0.85, 0.11], [1, 0]]);
-// Its skyline from the south, as drawn for the first block-in: [offset from the summit, height].
-const VS = prof([[-236, 0], [-208, 0.09], [-176, 0.22], [-146, 0.38], [-118, 0.54], [-96, 0.67], [-80, 0.76], [-70, 0.815], [-62, 0.845], [-54, 0.85], [-48, 0.875], [-40, 0.93], [-32, 0.96], [-24, 0.975], [-16, 0.965], [-8, 0.985], [0, 1], [8, 0.995], [16, 0.98], [24, 0.985], [32, 0.96], [42, 0.92], [54, 0.87], [64, 0.85], [72, 0.78], [90, 0.67], [108, 0.585], [118, 0.56], [124, 0.585], [128, 0.6], [133, 0.545], [146, 0.47], [170, 0.33], [200, 0.18], [228, 0.07], [252, 0]]);
 // The ribs of rock (cleavers) that fan down from below the summit dome, with a glacier between each
 // pair. t is 1 on a rib's crest and 0 in the middle of a glacier; each rib has its own strength (amp)
 // and they wander a little as they come down, so no two are alike.
@@ -60,8 +59,9 @@ function volcano(cu, cv, ru, rv, H) {
   VOLC = { cu, cv, ru, rv, H };
   add('volc', cu - ru, cu + ru, cv - rv, cv + rv, (u, v) => {
     const du = (u - cu) / ru, dv = (v - cv) / rv, d = Math.hypot(du, dv) + 0.04 * (vnoise(u / 40, v / 40, 559) - 0.5); if (d >= 1) return 0;
-    // A round dome, stretched column by column so that what shows against the sky is the drawn outline.
-    const round = VP(Math.abs(du)), want = VS((u - cu) * 250 / ru), fit = round > 0.06 ? clamp(want / round, 0.55, 1.5) : 1;
+    // A round dome, stretched column by column so that what shows against the sky is the outline of the
+    // painted mountain (monolith.js).
+    const round = VP(Math.abs(du)), want = monolithSky((u - cu) * 300 / ru), fit = round > 0.06 ? clamp(want / round, 0.55, 1.5) : 1;
     const Q = vrelief(u, v), rib = 0.07 * smooth(0.12, 0.3, Q.d) * smooth(0.98, 0.72, Q.d) * Q.amp * (Math.pow(Q.t, 3) - 0.25);
     return H * VP(Math.max(0, d)) * lerp(1, fit, smooth(0.9, 0.3, Math.abs(dv))) * (1 + rib + 0.03 * (vnoise(u / 18, v / 18, 560) - 0.5));
   });
@@ -130,7 +130,7 @@ const base = (u, v) => under(u, v) + apron(u, v);
 // Forested foothills in front of the Legacy Range. The rainforest's valley runs up between them and
 // the volcano.
 for (const [cu, cv, ru, rv, H] of [[150, 600, 170, 80, 58], [40, 690, 150, 60, 30], [296, 704, 110, 50, 30], [250, 520, 120, 60, 38]]) horn('land', cu, cv, ru, rv, H, { pow: 1.2 });
-volcano(640, 600, 300, 150, 262);
+volcano(640, 600, 300, 150, 290);
 // Foothills round the volcano's foot, so it rises out of forest and not off a lawn.
 for (const [cu, cv, ru, rv, H] of [[500, 478, 96, 44, 42], [770, 474, 84, 40, 38], [858, 530, 70, 52, 46], [420, 540, 80, 52, 44]]) horn('land', cu, cv, ru, rv, H, { pow: 1.15 });
 plateau('land', 640, 436, 112, 34, 30, 0.1);
@@ -312,35 +312,10 @@ function colour(u, v, hh, x, y) {
     const { cu, ru, H } = VOLC, e = hh / H, b = bayer(x, y), Q = vrelief(u, v), ew = (u - cu) / ru;
     const lit = clamp(L - 0.3 * smooth(0, 0.8, ew) + 0.12 * smooth(0, -0.8, ew), 0, 1), n2 = vnoise(x / 9, hh / 7, 574);
     const rock = (dk = 0) => R.rock[clamp(Math.round(lit * 3.2 + (b - 0.5) * 0.9) - dk, 0, 3)];
-    const snow = () => R.snow[clamp(Math.round(lit * 4.2 + 0.3 + (b - 0.5) * 0.9), 1, 4)];
-    // The tooth low on the east flank, after Little Tahoma: dark rock standing out of the ice.
-    // It breaks the skyline as the bump on the mountain's right-hand outline.
-    const tu = cu + 128 * ru / 250, tq = Math.hypot((u - tu) / 22, (v - VOLC.cv - 0.05 * VOLC.rv) / 46);
-    if (e > 0.42 && tq < 1 - 0.25 * n2) return vnoise(x / 3, hh / 5, 581) > 0.72 && lit > 0.4 ? R.snow[3] : rock(1);
-    // Ribs of rock between the glaciers: thin near the top, wider low down, gone below the dome.
-    // A rib on the east or west flank is seen edge-on, so it is drawn thinner there.
-    const ribW = (Q.amp * 0.3 * smooth(0.82, 0.3, e) + 0.1 * (n2 - 0.5)) * (0.35 + 0.65 * Q.face);
-    // The snow comes down lowest in the middle of each glacier, as a tongue, and stops higher on the ribs.
-    // How far up the mountain's own slope a spot is, from its foot (0) to the summit (1): the height
-    // drawn also counts the raised ground it stands on, which would bring the ice down too far in front.
-    const el = VP(Math.min(1, Q.d));
-    // Each glacier reaches its own distance down, so the ice does not end along one line.
-    const snowE = 0.44 - (0.05 + 0.13 * hash(Q.k & 15, 7, 587)) * smooth(0.15, 0.85, 1 - Q.t) + 0.07 * (vnoise(u / 14, v / 14, 575) - 0.5);
-    if (el > snowE) {
-      if (e > 0.2 && Q.t > 1 - ribW) return vnoise(x / 2.5, hh / 4, 582) > 0.76 && lit > 0.35 ? R.snow[3] : rock(vnoise(x / 4, hh / 12, 583) > 0.62 ? 1 : 0);
-      // A crack round the dome where the summit snow pulls away (the bergschrund).
-      if (e > 0.812 && e < 0.826 && vnoise(x / 9, hh / 3, 563) > 0.6) return R.glac[lit > 0.45 ? 2 : 1];
-      // Two or three glaciers break over a step into an icefall of blue blocks.
-      const fall = hash(Q.k & 15, 5, 578), f0 = 0.4 + 0.14 * hash(Q.k & 15, 6, 578);
-      if (fall > 0.45 && Q.t < 0.62 && e > f0 && e < f0 + 0.09) { const row = Math.floor(hh / 3), k = hash((u + row * 5) >> 1, row, 579); return k < 0.2 ? R.glac[1] : k < 0.45 ? R.glac[lit > 0.4 ? 3 : 2] : k < 0.75 ? R.snow[3] : R.snow[4]; }
-      // Crevasses across the flow, short pale-blue dashes.
-      if (e > 0.24 && e < 0.78 && frac(hh / 4.5 + 3 * Q.t + 0.6 * vnoise(u / 10, v / 10, 576)) < 0.1 && vnoise(x / 4, hh / 3, 577) > 0.55) return R.glac[lit > 0.45 ? 3 : 2];
-      return snow();
-    }
-    // The snout of each glacier: a band of dirty ice and rubble.
-    if (el > snowE - 0.025) return b < 0.5 ? R.glac[2] : rock();
-    // Below the ice, moraine and scree with dark streaks, then heather and meadow, then the forest.
-    if (el > Math.max(0.12, snowE - 0.07 - 0.04 * n2)) return vnoise(x / 4, hh / 9, 584) > 0.74 ? R.rock[0] : hash(u >> 1, v >> 1, 585) < smooth(snowE - 0.03, snowE - 0.08, el) * 0.8 ? pick('grass', 0.3 + 0.3 * lit, x, y) : pick('rock', 0.2 + 0.5 * lit + 0.15 * vnoise(x / 3, hh / 6, 580), x, y, 0.7);
+    // The ice, the ribs, Little Tahoma and the crater are painted (monolith.js) and laid over this ground
+    // afterwards. What shows below the painting is the mountain's lower slopes: scree here and there
+    // in the meadow, then the forest.
+    if (vnoise(x / 5, hh / 4, 584) > 0.82 - 0.08 * smooth(0.2, 0.4, VP(Math.min(1, Q.d)))) return rock(vnoise(x / 3, hh / 3, 583) > 0.6 ? 1 : 0);
     if (forestAmt(u, v) > 0.4) return pick('moss', 0.2 + 0.35 * lit, x, y);
     return hash(u, v, 586) < 0.05 ? R.red[1] : pick('grass', 0.4 + 0.35 * lit + 0.15 * n1, x, y, 0.4);
   }
@@ -420,6 +395,27 @@ for (let u = 0; u < NW; u++) {
       zb[px(u, y)] = v;
     }
     minY = sy;
+  }
+}
+
+// Mount Monolith is painted (monolith.js) and laid over its own ground, one map pixel to one picture
+// pixel. Where the painted outline stands a little above the ground it is drawn over the sky behind,
+// at the mountain's depth, so anything nearer still stands in front. Its stand-in meadow is left out:
+// the land's own meadow, trees and flowers are drawn there.
+{
+  const P = paintMonolith(), { cu, cv, H } = VOLC, VI = MATS.indexOf('volc'), ox = cu - PMCX;
+  // Line the picture up with the ground: the row of the picture's summit goes where the ground's top is.
+  const tops = [];
+  for (let x = cu - 40; x <= cu + 40; x += 4) { let y = 0; while (y < SH && mb[px(x, y)] !== VI) y++; const pxl = x - ox, sk = Math.ceil(monolithSky(pxl - PMCX) ? PMH - monolithSky(pxl - PMCX) * (PMH - PTOPY) : PMH); if (y < SH) tops.push(y - sk); }
+  tops.sort((a, b) => a - b); const oy = tops.length ? tops[tops.length >> 1] : SY - cv - H - PTOPY;
+  for (let py = 0; py < PMH; py++) for (let qx = 0; qx < PMW; qx++) {
+    const k = py * PMW + qx, c = P.d[k], x = ox + qx, y = oy + py; if (x < 0 || y < 0 || x >= NW || y >= SH) continue;
+    const i = px(x, y);
+    // Above the painted outline the mountain's own ground would poke out: the sky goes back there.
+    if (!c) { if (mb[i] === VI && py < PMH - 40) { g[i] = skyAt(x, y); mb[i] = 255; zb[i] = 1e9; } continue; }
+    if (!P.own[k]) continue;
+    if (mb[i] === VI) g[i] = c;
+    else if (zb[i] > cv) { g[i] = c; zb[i] = cv; mb[i] = VI; }
   }
 }
 

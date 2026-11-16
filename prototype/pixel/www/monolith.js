@@ -17,7 +17,7 @@ const along = (pts, x) => { if (x <= pts[0][0]) return pts[0][1]; for (let i = 1
 export const skyline = x => along(SKY, x);
 // The same outline as a share of the summit's height, by distance from the summit's column in map
 // pixels: land.js shapes the mountain's heights to it, so the picture fits the ground it is laid on.
-const TOPY = 70;
+export const TOPY = 70;
 export const monolithSky = du => clamp((MH - skyline(MCX + du)) / (MH - TOPY), 0, 1);
 
 // The cleavers, west to east, [x, y, half-width]. The fourth is Gibraltar Rock, broad and dark; the
@@ -48,7 +48,9 @@ function ridgeAt(r, y) {
 }
 
 export function paintMonolith() {
-  const d = new Uint8Array(MW * MH), snow = R.snow, ice = R.serac, rock = R.mauve;
+  // own marks the mountain proper; the meadow at its foot is only a stand-in for the mockup, and in the
+  // game the land's own meadow, trees and flowers are drawn there instead.
+  const own = new Uint8Array(MW * MH), d = new Uint8Array(MW * MH), snow = R.snow, ice = R.serac, rock = R.mauve;
   // The relief: each cleaver is a ridge with a sharp crest and slopes either side; between them the
   // glaciers lie in troughs. It is only used for light, so it is worked out at every pixel of the picture.
   const relief = new Float32Array(MW * MH), wob = (y, k) => 0.8 + 0.4 * vnoise(y / 7, k, 902);
@@ -72,6 +74,7 @@ export function paintMonolith() {
   const rockC = (L, x, y) => rock[clamp(Math.round(L * 3.8 + (bayer(x, y) - 0.5) * 0.7), 0, 4)];
   for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
     const top = skyline(x); if (y < top) continue;
+    own[y * MW + x] = 1;
     const i = y * MW + x, b = bayer(x, y), n = vnoise(x / 11, y / 9, 901), r = rOf(x, y);
     const dR = (relief[y * MW + Math.min(MW - 1, x + 1)] - relief[y * MW + Math.max(0, x - 1)]) / 2;
     // Light from the west: the east side of the mountain and the east face of every rib fall in shadow.
@@ -101,6 +104,7 @@ export function paintMonolith() {
       if (vnoise(y / 16, on.k, 922) < 0.3 && y < 260) bare -= 0.5;
       if (green > 0.6) bare = Math.min(bare, rag + 0.2 - 0.4 * smooth(snout + 40, snout + 70, y));
       if (Math.abs(s) < bare) {
+        if (green > 0.6) own[i] = 0;
         const gully = vnoise(x / 2.3, y / 9, 906 + on.k);
         d[i] = gully > 0.72 - 0.18 * smooth(240, 110, y) ? snow[s < 0 ? 4 : 2] : rockC(clamp(0.66 - 0.55 * (s + 1) / 2 + 0.3 * (L - 0.5), 0, 1), x, y);
         continue;
@@ -109,10 +113,12 @@ export function paintMonolith() {
     // Below the ice: a band of dirty ice, then moraine and rock patched with old snow, then meadow with
     // clumps of fir toward the foot, and a stream of melt water wandering down from each snout.
     if (y > snout && !dome) {
-      if (left && right) { const mid = (left.x + right.x) / 2 + 6 * Math.sin(y / 10 + gi * 2); if (Math.abs(x - mid) < 0.9) { d[i] = ice[(y & 1) ? 2 : 3]; continue; } }
+      // In the game only a ragged band of moraine is kept; the land's own meadow comes up to meet it.
+      if (y > snout + 5 + 14 * vnoise(x / 6, 6, 929)) own[i] = 0;
+      if (left && right) { const mid = (left.x + right.x) / 2 + 6 * Math.sin(y / 10 + gi * 2); if (Math.abs(x - mid) < 0.9) { d[i] = ice[(y & 1) ? 2 : 3]; if (green > 0.6) own[i] = 0; continue; } }
       if (y < snout + 2.5) { d[i] = b < 0.55 ? ice[1] : rock[1]; continue; }
       const old = vnoise(x / 4, y / 5, 908);
-      if (green > 0.6) { const fir = vnoise(x / 6, y / 5, 916) > 0.66; d[i] = fir ? R.conifer[clamp(Math.round(0.5 + 1.6 * L + (b - 0.5)), 0, 3)] : hash(x, y, 917) < 0.04 ? (hash(x, y, 918) < 0.5 ? R.lupine[2] : R.red[2]) : R.grass[clamp(Math.round(0.8 + 2.6 * L + (b - 0.5) * 0.8), 0, 4)]; continue; }
+      if (green > 0.6) { own[i] = 0; const fir = vnoise(x / 6, y / 5, 916) > 0.66; d[i] = fir ? R.conifer[clamp(Math.round(0.5 + 1.6 * L + (b - 0.5)), 0, 3)] : hash(x, y, 917) < 0.04 ? (hash(x, y, 918) < 0.5 ? R.lupine[2] : R.red[2]) : R.grass[clamp(Math.round(0.8 + 2.6 * L + (b - 0.5) * 0.8), 0, 4)]; continue; }
       d[i] = old > 0.72 ? snow[3] : rockC(0.28 + 0.45 * L + 0.2 * (hash(x >> 1, y >> 1, 910) - 0.5), x, y);
       continue;
     }
@@ -156,5 +162,5 @@ export function paintMonolith() {
     }
     d[i] = snowC(L, x, y);
   }
-  return { w: MW, h: MH, d, cx: MCX };
+  return { w: MW, h: MH, d, own, cx: MCX };
 }
