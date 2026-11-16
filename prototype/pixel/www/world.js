@@ -34,6 +34,12 @@ export function makeWorld(bake) {
   }
 
   // Everything that stands up, sorted by its feet each frame.
+  // The last light at Dusk (D16): the tips of the Spires and of Proficiency Peak catch the sun after the
+  // land below has lost it, as Mount Monolith's snow does. For each column, the top of each landmark; a
+  // band below it is lit with the snow's dusk colours, one step lighter than the rock's own, thinning
+  // downward through a dither. GLOW maps a colour to the snow step of the same lightness.
+  const tipTop = [6, 7].map(k => { const top = new Int16Array(WW).fill(-1); for (let x = 0; x < WW; x++) for (let y = 0; y < WH; y++) if (W.dest[y * WW + x] === k) { top[x] = y; break; } return top; });
+  const TIP_H = [26, 34], GLOW = new Uint8Array(256).map((_, c) => { const r = c && R[RAMP_OF[c]]; if (!r) return c; const k = Math.min(R.snow.length - 1, Math.round((STEP_OF[c] + 1) / r.length * (R.snow.length - 1)) + 1); return R.snow[k]; });
   const things = [];
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
   const put = (bm, x, y, extra = {}) => things.push({ bm, x: Math.round(x), y: Math.round(y), ...extra });
@@ -179,6 +185,9 @@ export function makeWorld(bake) {
       }
       // With the Trees switch off, the snags and shadows painted into the ground give way to what lay under them.
       if (!DEBUG.trees) for (let y = Math.max(0, -oy); y < Math.min(VH, WH - oy); y++) { const wy = y + oy, row = y * VW; for (let x = Math.max(0, -ox); x < Math.min(VW, WW - ox); x++) { const c = W.bare[wy * WW + x + ox]; if (c) fb[row + x] = c; } }
+      if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], H = TIP_H[n], k = 6 + n;
+        for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = top[x]; if (y0 < 0) continue;
+          for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { if (W.dest[y * WW + x] !== k) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8)) { const i = (y - oy) * VW + (x - ox); fb[i] = GLOW[fb[i]]; } } } }
       crit.sea(scr, ox, oy, t); crit.falls(scr, ox, oy, t);
       crit.update(dt, t, env.hideMe ? null : here);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);

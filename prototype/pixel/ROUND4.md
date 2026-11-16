@@ -382,7 +382,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [x] D13. Trail surfaces: dirt to rock to boot track blends as in round 3; footprints after a finished route.
 - [x] D14. The placement dice: new loops get their own start so later edits do not move earlier things.
 - [x] D15. Trees switch still hides every tree; Mist and Clouds switches still work.
-- [ ] D16. Dusk on the whole map: alpenglow on Mount Monolith and the Spires' tips, night sky above.
+- [x] D16. Dusk on the whole map: alpenglow on Mount Monolith and the Spires' tips, night sky above.
 - [ ] D17. `./bake.sh` again; no stale warning.
 
 ### E. Animals and timed events on the map
@@ -653,6 +653,7 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
 - **D14, aspen groves by count (Opus).** The re-roll left almost no aspen groves in view east of the Spires, because the groves came from only 160 tries, each with a small chance, so their number hung on luck. The loop now places 36 groves, each where the aspen country is (picked by its share) and at least 26 apart, so the count holds whatever the dice.
 - **D15, the switches (Opus, 2026-11-15).** With Trees off every standing tree went, but the bare snags drawn into the fog stayed, the tree shadows stayed (a weak spot carried from round 3), and the flowers, bushes and sage went too, since D5a made them sway like trees. Now the ground keeps a record, in the bake, of what lay under each pixel a tree painted (a snag, a shadow) and shows that with Trees off, unless something else was painted over it later; and the switch skips the swaying flora (they were already marked `low`). Mist and Clouds still switch their layers off. Pictures: `out/r4/d15-switches.png` (the west with Trees off, then with Mist and Clouds off), `out/r4/d15-clouds.png`.
 - **D15, load time (Opus).** Measuring the switches showed the page ready in 1.2 s, against 0.85 s before D12a: the destinations' areas (D12a, D12b) were worked out on every load. They depend only on the land, so they are now baked with the ground (`dest`, one more layer of `ground.png`), and the page is ready in 0.70 s again.
+- **D16, Dusk (Opus, 2026-11-15).** The night sky with the aurora was already pinned to the world's sky, and Mount Monolith's snow already turned pink at Dusk through its palette. What fell short of round 3 was the Spires: plain purple to their tips, where round 3's caught the last light. Now the tips of the Spires and of Proficiency Peak take the snow's dusk colours, one step lighter than the rock's own, in a band below the skyline (34 deep on the Spires, 26 on the fin) that thins downward through a dither and grows with the dusk, so day is untouched. The crest's other peaks keep the plain dusk, so the two destinations are the ones the sun still finds. Pictures: `out/r4/d16-dusk.png` (round 3's dusk beside round 4's), `out/r4/d16-tips.png`.
 
 ## 10. The reference pictures TJ shared, described
 
