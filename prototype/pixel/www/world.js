@@ -177,6 +177,8 @@ export function makeWorld(bake) {
         if (b < ox + VW) fb.fill(wy < 330 ? R.sky[2] : R.grass[2], row + (b - ox), row + VW);
         if (b > a) fb.set(ground.subarray(wy * WW + a, wy * WW + b), row + (a - ox));
       }
+      // With the Trees switch off, the snags and shadows painted into the ground give way to what lay under them.
+      if (!DEBUG.trees) for (let y = Math.max(0, -oy); y < Math.min(VH, WH - oy); y++) { const wy = y + oy, row = y * VW; for (let x = Math.max(0, -ox); x < Math.min(VW, WW - ox); x++) { const c = W.bare[wy * WW + x + ox]; if (c) fb[row + x] = c; } }
       crit.sea(scr, ox, oy, t); crit.falls(scr, ox, oy, t);
       crit.update(dt, t, env.hideMe ? null : here);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
@@ -188,7 +190,8 @@ export function makeWorld(bake) {
       list.length = 0;
       for (const th of things) {
         if (th.flag && !env.done[th.flag]) continue;
-        if (((th.kind === 'tree' || th.isTree) && !DEBUG.trees) || (th.critter && !DEBUG.animals)) continue;
+        // The Trees switch hides trees, not the flowers, bushes and sage that sway like them (marked low).
+        if (((th.kind === 'tree' && !th.t.tree.low) || th.isTree) && !DEBUG.trees || (th.critter && !DEBUG.animals)) continue;
         const w = th.kind === 'tree' ? th.t.tree.w + 8 : th.bm.w, h = (th.kind === 'tree' ? th.t.tree.h + 10 : th.bm.h) + (th.lift || 0);
         if (th.x + w < ox || th.x - w > ox + VW || th.y - h > oy + VH || th.y + 4 < oy) continue;
         list.push(th);

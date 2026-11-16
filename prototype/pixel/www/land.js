@@ -452,7 +452,11 @@ function b2(x, y) { return bayer(x, y); }
 const g = new Uint8Array(NW * SH), mb = new Uint8Array(NW * SH).fill(255), zb = new Float32Array(NW * SH).fill(1e9), px = (x, y) => y * NW + x;
 const skyAt = (x, y) => { const sb = R.skyband, f = clamp(y / 340, 0, 1) * (sb.length - 1), b0 = Math.floor(f), e = f - b0; return sb[Math.min(sb.length - 1, b0 + (e > 0.72 && bayer(x, y) < (e - 0.72) / 0.28 ? 1 : 0))]; };
 const painted = new Uint8Array(NW * SH);
-if (B) { g.set(B.g); mb.set(B.mb); zb.set(B.zb); painted.set(B.painted); } else {
+// What the ground shows with the Trees switch off, where a tree is painted into it (a snag in the fog, a
+// tree's shadow): the colour that lay there before, 0 elsewhere. inked holds what the tree put there, so a
+// pixel something else painted over afterwards is left alone.
+const bare = new Uint8Array(NW * SH), inked = new Uint8Array(NW * SH), treeInk = (i, c) => { if (!bare[i]) bare[i] = g[i]; g[i] = inked[i] = c; };
+if (B) { g.set(B.g); mb.set(B.mb); zb.set(B.zb); painted.set(B.painted); bare.set(B.bare); } else {
 for (let y = 0; y < SH; y++) for (let x = 0; x < NW; x++) g[px(x, y)] = skyAt(x, y);
 // The far ranges, which really are a backdrop: pale, beyond the last of the ground.
 function farRow(u0, u1, baseY, env, seed, snowy, list) {
@@ -599,8 +603,10 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
 //   tarn at the glacier's toe and out of the bowl, so the edge follows the arms' crests. Water is routed
 //   downhill the standard way (a priority flood from the edge of a box round the bowl: lowest first, each
 //   spot draining to the spot it was reached from), which needs no hollow filled by hand.
+// The areas come from the bake when there is one; only bake.sh works them out.
+const dest = new Uint8Array(NW * SH), DEST = ['', 'lake', 'stack', 'spires'], destBox = DEST.map(() => ({ x0: NW, x1: -1, y0: SH, y1: -1 }));
 const reg = new Uint8Array(NW * VD);
-{ const box = (P, fn) => { for (let v = Math.max(0, Math.floor(P.v0)); v <= Math.min(VD - 1, Math.ceil(P.v1)); v++) for (let u = Math.max(0, Math.floor(P.u0)); u <= Math.min(NW - 1, Math.ceil(P.u1)); u++) fn(u, v, at(u, v)); };
+if (!B) { const box = (P, fn) => { for (let v = Math.max(0, Math.floor(P.v0)); v <= Math.min(VD - 1, Math.ceil(P.v1)); v++) for (let u = Math.max(0, Math.floor(P.u0)); u <= Math.min(NW - 1, Math.ceil(P.u1)); u++) fn(u, v, at(u, v)); };
   const [lu, , lru] = C.lakes[0], FIN = MATS.indexOf('fin'), WALL = MATS.indexOf('wall');
   box(C.bench, (u, v, i) => { const f = C.bench.fn(u, v); if ((f > 3 && hg[i] >= f - 3 && hg[i] < f + 10) || lakeAt(u, v) === 'lake') reg[i] = 1; });
   // The loop's band narrows to nothing over its last 60 to the west, so the country ends in a round end,
@@ -630,8 +636,8 @@ const reg = new Uint8Array(NW * VD);
     while (q.length) { const i = q.pop(), u = i % NW, v = (i - u) / NW; for (const [du, dv] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const uu = u + du, vv = v + dv; if (uu < A0 || uu > A1 || vv < mv || vv >= VD) continue; const j = at(uu, vv); if (reg[j] || !rock.has(mg[j])) continue; reg[j] = 3; q.push(j); } } } }
 // Then on the picture: each pixel takes the number of the spot of the map drawn there, plus 4 where it is
 // the landmark itself (the lake's water and island, the fin, the wall).
-const dest = new Uint8Array(NW * SH), DEST = ['', 'lake', 'stack', 'spires'], destBox = DEST.map(() => ({ x0: NW, x1: -1, y0: SH, y1: -1 }));
 { const WALL = MATS.indexOf('wall'), FIN = MATS.indexOf('fin'), LANDM = MATS.indexOf('land');
+  if (!B) {
   for (let y = 0; y < SH; y++) for (let x = 0; x < NW; x++) {
     const i = px(x, y), m = mb[i], v = zb[i]; if (m === 255 || !(v < VD)) continue;
     const core = m === FIN ? 2 : m === WALL ? 3 : m === LANDM && lakeAt(x, v) === 'lake' ? 1 : 0, k = core ? core | 4 : reg[at(x, Math.min(VD - 1, Math.round(v)))];
@@ -644,6 +650,8 @@ const dest = new Uint8Array(NW * SH), DEST = ['', 'lake', 'stack', 'spires'], de
     const i = px(x, y), k = dest[i] & 3; if (!k || dest[i + NW]) continue;
     for (let j = i + NW, n = 0; j < NW * SH && n < 160 && !dest[j] && zb[j] < VD && Math.abs(zb[j] - zb[j - NW]) < 0.34; j += NW, n++) dest[j] = k;
   }
+  }
+  if (B) dest.set(B.dest);
   for (let y = 0; y < SH; y++) for (let x = 0; x < NW; x++) { const k = dest[px(x, y)] & 3; if (!k) continue; const b = destBox[k]; if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y; } }
 // The landmarks keep a step of contrast and the dark edge of D12a: all round the lake and the fin; for the
 // Spires only the skyline and the foot of the wall, with no seam where it runs into the crest (TJ's
@@ -682,7 +690,7 @@ const riverFront = (u, v) => { if (coast(u, v) < -170) return false; for (let dv
     const w = foggy(x, v); if (w > 0 && bayer(x, y) < w && !water[at(x, Math.round(v))]) g[i] = white(x, y);
   }
   const rr = rng(2311);
-  const ink = (x, y, v, k) => { if (B || x < 0 || y < 0 || x >= NW || y >= SH) return; const i = px(x, y); if (zb[i] < v - 2) return; g[i] = RANK[clamp(Math.floor(k + 0.9 * (bayer(x + 3, y) - 0.5)), 0, 7)]; zb[i] = v; mb[i] = 0; };
+  const ink = (x, y, v, k) => { if (B || x < 0 || y < 0 || x >= NW || y >= SH) return; const i = px(x, y); if (zb[i] < v - 2) return; treeInk(i, RANK[clamp(Math.floor(k + 0.9 * (bayer(x + 3, y) - 0.5)), 0, 7)]); zb[i] = v; mb[i] = 0; };
   // A bare snag: a trunk that thickens low down, a broken top, and a few stubs that stick out unevenly.
   const snagAt = (x0, base, v, hgt, k) => {
     const top = base - Math.round(hgt), lean = (rr() - 0.5) * 0.22, at = d => Math.round(x0 + lean * d);
@@ -905,8 +913,9 @@ for (const th of things) {
 if (!B) for (const th of live) {
   if (!th.tree && !th.isTree) continue;
   const rx = (th.tree ? th.tree.w : th.bm.w) * 0.42;
-  for (let dy = -3; dy <= 3; dy++) for (let dx = -Math.ceil(rx); dx <= rx; dx++) { if (sq(dx / rx) + sq(dy / 3.2) > 1) continue; const x = th.x + dx + 2, y = th.y + dy - 1; if (x < 0 || y < 0 || x >= NW || y >= SH) continue; const i = px(x, y); if (Math.abs(zb[i] - th.v) < 5 && g[i] !== INK) g[i] = SHADE[g[i]]; }
+  for (let dy = -3; dy <= 3; dy++) for (let dx = -Math.ceil(rx); dx <= rx; dx++) { if (sq(dx / rx) + sq(dy / 3.2) > 1) continue; const x = th.x + dx + 2, y = th.y + dy - 1; if (x < 0 || y < 0 || x >= NW || y >= SH) continue; const i = px(x, y); if (Math.abs(zb[i] - th.v) < 5 && g[i] !== INK) { if (th.tree && th.tree.low) g[i] = SHADE[g[i]]; else treeInk(i, SHADE[g[i]]); } }
 }
+if (!B) for (let i = 0; i < bare.length; i++) if (bare[i] && g[i] !== inked[i]) bare[i] = 0;
 // Each footbridge's rails are things of their own: the far rail sorts behind him as he crosses and the
 // near rail in front, so he is seen to run between them.
 for (const br of BRIDGES) {
@@ -922,7 +931,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { g, depth: zb, mat: mb, dest, destBox, DEST, hg, mg, painted, falls: FALLS, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { g, depth: zb, mat: mb, bare, dest, destBox, DEST, hg, mg, painted, falls: FALLS, MATS, hAt, toY, things: live, C, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -943,7 +952,7 @@ export async function sourceSig() {
   }
   return h.toString(16);
 }
-export const BAKE_ROWS = 5 * SH + 4 * VD;
+export const BAKE_ROWS = 7 * SH + 4 * VD;
 async function readBake() {
   if (globalThis.__noBake) return null;
   try {
@@ -962,11 +971,11 @@ async function readBake() {
     if (px.length !== (w + 1) * h) return null;
     // One plane after another, each as wide as the map; every row starts with a 0 (stored as it is).
     let y0 = 0; const plane = rows => { const a = new Uint8Array(NW * rows); for (let y = 0; y < rows; y++) a.set(px.subarray((y0 + y) * (w + 1) + 1, (y0 + y + 1) * (w + 1)), y * NW); y0 += rows; return a; };
-    const g = plane(SH), zh = plane(SH), zl = plane(SH), mb = plane(SH), painted = plane(SH), hh = plane(VD), hl = plane(VD), mg = plane(VD), water = plane(VD);
+    const g = plane(SH), zh = plane(SH), zl = plane(SH), mb = plane(SH), painted = plane(SH), hh = plane(VD), hl = plane(VD), mg = plane(VD), water = plane(VD), bare = plane(SH), dest = plane(SH);
     const zb = new Float32Array(NW * SH), hg = new Float32Array(NW * VD);
     for (let i = 0; i < zb.length; i++) { const q = zh[i] << 8 | zl[i]; zb[i] = q === 65535 ? 1e9 : q / 64; }
     for (let i = 0; i < hg.length; i++) hg[i] = (hh[i] << 8 | hl[i]) / 32;
-    return { g, zb, mb, painted, hg, mg, water };
+    return { g, zb, mb, painted, hg, mg, water, bare, dest };
   } catch (e) { console.warn('ground.png could not be read', e); return null; }
 }
 export const LAND = buildLand(await readBake());
@@ -1134,7 +1143,7 @@ export function buildTerrain() {
   const open = (x, y) => { const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
   const nearTrail = (x, y, r) => { const v = vAt(x, y); return v < VD && H.tdist[Math.round(v) * NW + Math.round(x)] < r; };
   const flat = l => l.map(p => [p[0], p[1]]);
-  return { g: LAND.g, vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  return { g: LAND.g, bare: LAND.bare, vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the

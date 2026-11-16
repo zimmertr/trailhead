@@ -381,7 +381,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [x] D12a (TJ, 2026-11-15). About Lake, The Stack (Proficiency Peak) and the Sideproject Spires stand out from the world as places to go, as round 3's did: a dark outline round each, a step more colour and contrast than the land round it, and a soft lift when the pointer is over it or it is tapped. They stay part of the one world; nothing goes back to being a separate drawing.
 - [x] D13. Trail surfaces: dirt to rock to boot track blends as in round 3; footprints after a finished route.
 - [x] D14. The placement dice: new loops get their own start so later edits do not move earlier things.
-- [ ] D15. Trees switch still hides every tree; Mist and Clouds switches still work.
+- [x] D15. Trees switch still hides every tree; Mist and Clouds switches still work.
 - [ ] D16. Dusk on the whole map: alpenglow on Mount Monolith and the Spires' tips, night sky above.
 - [ ] D17. `./bake.sh` again; no stale warning.
 
@@ -651,6 +651,8 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
 - **D13, footprints (Opus).** His prints on a finished trail showed only on dirt; they now show on rock and ice too, a step darker. Pictures: `out/r4/d13-before.png`, `out/r4/d13-camp.png`, `out/r4/d13-stack-trail.png` (before and after).
 - **D14, the placement dice (Opus, 2026-11-15).** Fourteen of the placement loops in `land.js` (forest, meadow trees, the volcano's flanks, larches, aspen groves, pines, the burn, boulders, granite blocks, sage, ferns, logs, sea stacks) rolled one shared set of dice, so a roll added to one moved everything placed after it. Each now starts its own dice from its own seed (6101 to 6114), and the note above them says a new loop does the same. This re-rolled the placement once, at the same densities; side by side with the build before (`out/r4/d14-before-after.png`) the map reads the same, with single trees in other spots.
 - **D14, aspen groves by count (Opus).** The re-roll left almost no aspen groves in view east of the Spires, because the groves came from only 160 tries, each with a small chance, so their number hung on luck. The loop now places 36 groves, each where the aspen country is (picked by its share) and at least 26 apart, so the count holds whatever the dice.
+- **D15, the switches (Opus, 2026-11-15).** With Trees off every standing tree went, but the bare snags drawn into the fog stayed, the tree shadows stayed (a weak spot carried from round 3), and the flowers, bushes and sage went too, since D5a made them sway like trees. Now the ground keeps a record, in the bake, of what lay under each pixel a tree painted (a snag, a shadow) and shows that with Trees off, unless something else was painted over it later; and the switch skips the swaying flora (they were already marked `low`). Mist and Clouds still switch their layers off. Pictures: `out/r4/d15-switches.png` (the west with Trees off, then with Mist and Clouds off), `out/r4/d15-clouds.png`.
+- **D15, load time (Opus).** Measuring the switches showed the page ready in 1.2 s, against 0.85 s before D12a: the destinations' areas (D12a, D12b) were worked out on every load. They depend only on the land, so they are now baked with the ground (`dest`, one more layer of `ground.png`), and the page is ready in 0.70 s again.
 
 ## 10. The reference pictures TJ shared, described
 
@@ -703,5 +705,5 @@ The pictures themselves are other people's photographs and are not in the repo. 
 - Volcanoes drawn so far lean toward Fuji (smooth, even, pointed). Rainier is wide, lopsided and flat-topped.
 - Never heard by anyone yet: the seven tunes' second parts and the effects `tink`, `bang`, `slap`. Ask TJ to listen at a stop.
 - Not confirmed on the artifact host: that `ground.png` loads there and that the page's own files fetch back byte for byte, which the bake's check (`sourceSig`) needs. If either fails, the page is correct but takes about 3.5 s to be ready.
-- Known weak spots carried in from round 3: the swimmer's head sits upright and the wade-to-swim change is abrupt; some mist banks are long thin bands; chalk and rope stay bright white at Dusk; with Trees off, tree shadows painted into the ground remain; the icefall climb and the hevy-garmin-sync climb ran 17 and 15 seconds, the others under 10.
+- Known weak spots carried in from round 3: the swimmer's head sits upright and the wade-to-swim change is abrupt; some mist banks are long thin bands; chalk and rope stay bright white at Dusk; (fixed in D15: with Trees off, tree shadows painted into the ground remained); the icefall climb and the hevy-garmin-sync climb ran 17 and 15 seconds, the others under 10.
 - Usage: five parallel copies used up TJ's limit in a few hours. One stream of work only.
