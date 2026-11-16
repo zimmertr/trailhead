@@ -138,7 +138,8 @@ export const NAMES = {
   lakeside: { sign: 'Cold Start Cove', marmot: 'Hoary marmot', swim: 'Go for a swim', back: 'Swim back' },
   wall: { pika: 'Pika', ledge: 'Deadlock Ledge', roof: 'Rollback Roof', scree: 'Segfault Scree' },
   climb: { crevasse: 'Tech Debt Crevasse', ridge: 'Race Condition Ridge' },
-  offroute: { wand: 'The only wand for miles' }
+  offroute: { wand: 'The only wand for miles' },
+  larches: { goats: 'Nanny and kid', billy: 'On-call billy goat' }
 };
 // Every joke place name, for the legend on the trail map.
 const PLACE_NAMES = [...Object.values(SIGNS).filter(n => !n.includes(',')), NAMES.forest.sign, NAMES.forest.creek, NAMES.lakeside.sign, NAMES.wall.ledge, NAMES.wall.roof, NAMES.climb.crevasse, NAMES.climb.ridge, NAMES.lookout].filter((n, i, a) => a.indexOf(n) === i);

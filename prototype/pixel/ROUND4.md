@@ -481,7 +481,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [x] G2. Far layers: Enchantments peaks, a blue-ice glacier, sky; Proficiency Peak growing as he nears it.
 - [x] G3. Middle: granite slabs stepping up, a tarn with a reflection, a cascade.
 - [x] G4. Near: golden larches of several ages, needles on the ground, slab underfoot, cairns marking the way.
-- [ ] G5. Goats: a nanny and kid on a slab, one that watches him pass.
+- [x] G5. Goats: a nanny and kid on a slab, one that watches him pass.
 - [ ] G6. A gust now and then: larch needles blow across.
 - [ ] G7. One thing to find (suggestion: the pika, moved here from The Stack's talus).
 - [ ] G8. Day and Dusk, desktop and phone, and the cuts in and out filmed: he never stands still or sprints at a change.
@@ -857,6 +857,7 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
 - **G2, the far layers (Opus).** A pale back range with snow on its tops; in front, Enchantments spires of every size placed one by one (not a repeating row of teeth, which the first try was), each lit on its west face with snow in its gullies; a glacier hangs under the tallest, crevassed, ending in a blue ice front (a first try filled the gap between two spires and read as a flat block). Proficiency Peak is drawn from the outline the map draws it with (`PP`, now exported from `land.js` as `PROFICIENCY` and moved out of `buildLand`, so the ground was baked again): cool grey granite lit from the west, cracks and water streaks, near-white edges. Its foot is hidden behind the benches and it grows from 45% to 90% of the height above them as he nears it.
 - **G3, the middle (Opus).** Rounded granite benches in three steps, their tops lit and their faces in shade with joints running down them (a first try with vertical walls and even sheeting read as concrete), crowded with small larches; a tarn on one bench with the bench behind upside down in it, glinting; its outlet falls down the face below, the water running.
 - **G4, the near ground (Opus).** Heather and grass with granite slabs breaking through, the trail worn to dirt across it and pale where it crosses bare slab, a step up at each rise with a cairn on it, dark red huckleberry in patches (autumn), larches of four ages from seedlings to old ragged ones behind and in front of the trail with gold needles sprinkled under them, boulders. A first try was mostly bare grey slab with blotches of green and gold, well below round 3's lake shore meadow.
+- **G5, the goats (Opus, 2026-11-16).** Placed by rule: a nanny and her kid on the first slab below the trail past the scene's first third that is bare granite a few rows under their feet as well, and a billy on the verge above the trail at two thirds; larches and boulders keep clear of them. The nanny grazes and lifts her head as he comes within 70, the kid stands behind her facing her and hops now and then, and the billy turns to face him and watches from 160 away until he is past. Hover names in the tone of the other scenes' labels: "Nanny and kid" and "On-call billy goat" (he watches everything that goes by). The kid first stood in front of the grazing nanny and the two read as one white blob.
 
 ## 10. The reference pictures TJ shared, described
 

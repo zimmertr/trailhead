@@ -6,6 +6,8 @@ import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, DAY, INK, 
 import { Strip, drawStrip, baseline, shell } from './side.js';
 import { makeConifer, makeBoulder, makeCloud } from './sprites.js';
 import { makeRunner } from './tj.js';
+import { goat } from './fauna.js';
+import { NAMES } from './content.js';
 import { PROFICIENCY } from './land.js';
 
 // SW: the near strip's width; he walks LEN of it, from X0, in DUR seconds.
@@ -21,7 +23,7 @@ const META = {
   stops: () => [],
   elev: (arg, q) => -g(X0 + q * LEN) * 1.5
 };
-export const makeLarches = () => shell(META, buildLarches, ['enter', 'focus', 'draw']);
+export const makeLarches = () => shell(META, buildLarches, ['enter', 'focus', 'pick', 'draw']);
 
 // The Enchantments. Far back, a pale range with snow on its tops; in front, granite spires of every size
 // standing where they please (Dragontail, Little Annapurna and friends), each lit on its west face, with snow
@@ -131,11 +133,13 @@ function paintMid(S, rand) {
 
 // Near: heather and grass with granite slabs breaking through, the trail worn to dirt across it (pale
 // where it crosses bare slab), red huckleberry in autumn, and larch needles sprinkled gold under the trees.
+// Where bare granite breaks through the near ground (r: rows below the trail).
+const slabAt = (x, r) => fbm(x / 34, (g(x) + r) / 12, 630, 3) > 0.66 - 0.08 * smooth(10, -4, r);
 function paintMain(S, near) {
   for (let x = 0; x < S.w; x++) {
     const gy = g(x), step = g(x + 1) < gy;
     for (let y = gy - 14; y < S.h - S.up; y++) {
-      const r = y - gy, slab = fbm(x / 34, y / 12, 630, 3) > 0.66 - 0.08 * smooth(10, -4, r), n = hash(x, y, 638);
+      const r = y - gy, slab = slabAt(x, r), n = hash(x, y, 638);
       let c;
       if (slab) c = frac(x / 41 + y / 13 + vnoise(x / 30, y / 30, 634)) < 0.03 ? R.rock[1] : pick('rock', 0.74 + 0.16 * (fbm(x / 20, y / 9, 635, 3) - 0.5) + (n < 0.04 ? -0.25 : 0), x, y, 0.6);
       else if (r >= -2 && r <= 3) c = n < 0.08 ? R.rock[2] : pick('dirt', 0.6 - Math.abs(r - 0.5) * 0.06 + 0.25 * (vnoise(x / 5, y / 2, 633) - 0.5), x, y, 0.7);
@@ -182,7 +186,16 @@ function buildLarches() {
   const main = new Strip(SW, 20, 230); paintMain(main, (x, r) => { let a = 0; for (const [tx, ty, tw] of trees) { const d = Math.abs(x - tx) / (tw + 6) + Math.abs(r - ty) / 14; if (d < 1) a = Math.max(a, 1 - d); } return a; });
   for (let n = 0; n < 26; n++) { const x = Math.round(rand() * SW), y = (rand() < 0.5 ? -6 : 10 + rand() * 90) | 0; things.push({ bm: makeBoulder(660 + n, 3 + rand() * 6), x, y: g(x) + y }); }
   for (let x = X0 - 60; x < SW; x += 1) if (g(x + 1) < g(x) && g(x) >= g(x - 3)) { things.push({ bm: makeCairn(670 + x), x: x + 6, y: g(x) - 3 }); x += 60; }
-  let cam = 0;
+  // Goats (G5). A nanny and her kid (behind her, facing her) on the first broad slab below the trail past the scene's first third;
+  // a billy on the verge above it past two thirds, who turns to watch him go by.
+  const G = { stand: goat('stand'), look: goat('look'), graze: goat('graze'), kid: goat('stand', true), hop: goat('stand', true, 1) };
+  let nanny = null;
+  for (let x = X0 + LEN * 0.33; x < X0 + LEN * 0.8 && !nanny; x += 4) for (let r = 16; r < 44 && !nanny; r += 2) { let ok = true; for (let k = -24; k <= 18 && ok; k += 4) for (const d of [-3, 0, 4, 8]) ok = ok && slabAt(x + k, r + d); if (ok) nanny = { x: Math.round(x), y: g(x) + r }; }
+  if (!nanny) nanny = { x: X0 + LEN * 0.45, y: g(X0 + LEN * 0.45) + 24 };
+  const kidAt = { x: nanny.x - 21, y: nanny.y + 3 }, billy = { x: Math.round(X0 + LEN * 0.7), y: g(X0 + LEN * 0.7) - 7 };
+  // Larches and boulders keep clear of the goats.
+  for (let i = things.length - 1; i >= 0; i--) { const th = things[i]; if ([nanny, kidAt, billy].some(p => Math.abs(th.x - p.x) < 20 && Math.abs(th.y - p.y) < 14)) things.splice(i, 1); }
+  let cam = 0, last = { camX: 0, base: 0, dir: 1, VW: 0 };
   const list = [];
   const xOf = q => X0 + q * LEN;
 
@@ -190,6 +203,14 @@ function buildLarches() {
     ...META,
     enter(scr, arg, q) { cam = xOf(q); st.y = null; },
     focus: () => focus,
+    pick(sx, sy) {
+      if (last.dir < 0) sx = last.VW - 1 - sx;
+      const wx = sx + last.camX, wy = sy - last.base, near = (p, w, h) => Math.abs(wx - p.x) < w && wy > p.y - h && wy < p.y + 2;
+      const mx = v => last.dir < 0 ? last.VW - 1 - (v - last.camX) : v - last.camX;
+      if (near(nanny, 14, 20) || near(kidAt, 10, 15)) return { label: NAMES.larches.goats, x: mx(nanny.x - 10), y: last.base + nanny.y - 24 };
+      if (near(billy, 13, 22)) return { label: NAMES.larches.billy, x: mx(billy.x), y: last.base + billy.y - 26 };
+      return null;
+    },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t, tq } = env, dir = arg.dir < 0 ? -1 : 1;
       const mx = xOf(q), d = q * LEN, my = g(mx);
@@ -218,8 +239,13 @@ function buildLarches() {
 
       list.length = 0;
       for (const th of things) if (th.x > camX - 40 && th.x < camX + VW + 40) list.push(th);
+      // The nanny grazes and lifts her head as he comes by; the kid hops now and then; the billy watches.
+      const near = Math.abs(mx - nanny.x) < 70, hop = frac(t / 2.7) < 0.12;
+      list.push({ bm: near ? G.look : G.graze, x: nanny.x, y: nanny.y, flip: near && mx < nanny.x });
+      list.push({ bm: hop ? G.hop : G.kid, x: kidAt.x, y: kidAt.y - (hop ? 2 : 0), z: kidAt.y, flip: false });
+      list.push({ bm: Math.abs(mx - billy.x) < 160 ? G.look : G.stand, x: billy.x, y: billy.y, flip: mx < billy.x });
       list.push({ me: true, x: mx, y: my + 0.5 });
-      list.sort((a, b) => a.y - b.y);
+      list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
       for (const th of list) {
         const sx = th.x - camX, sy = base + th.y;
         if (th.me) {
@@ -228,8 +254,9 @@ function buildLarches() {
           scr.put(env.moving ? run.side[Math.floor(d / 4.2) % 6] : run.sideIdle[0], sx, base + my, false);
         } else if (th.tree) {
           for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
-        } else scr.put(th.bm, sx, sy, false);
+        } else scr.put(th.bm, sx, sy, !!th.flip);
       }
+      last = { camX, base, dir, VW };
       if (dir < 0) { mirror(fb, VW, VH); focus.x = VW - 1 - focus.x; }
     }
   };
