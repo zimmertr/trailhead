@@ -271,9 +271,13 @@ export function makeCritters(W, opts = {}) {
   const M = W.mist, FOG = R.fog, VEIL = veilTable(0.4), VEIL2 = veilTable(0.6), VEIL3 = veilTable(0.76), VEILS = [null, VEIL, VEIL2, VEIL3];
   // The fog bank out at sea is thicker stuff, and over water there is nothing to see through to.
   const SEAVEIL = [veilTable(0.3), veilTable(0.58), veilTable(0.84)];
+  // The weather (E5): how much of the fog is in over the sea (fogSea, 0 to 1), and over a spot of the land
+  // (fogAt). The bank rolls in from the west as it comes and the mist only drifts while it is in. The
+  // world scene sets both each frame; anything else that draws the critters sees the fog always in.
+  let fogSea = 1, fogAt = () => 1;
   // The fog bank's four stepped edges on one row of the world, in view columns: solid west of xs[3],
   // then three veils thinning to clear at xs[0]. Null where the bank does not reach.
-  function bankXs(wy, t, ox, VW = 1e6) { const sh = M.shore[wy]; if (wy >= NH || wy < M.y0 || !(sh >= 200)) return null; const xs = []; for (let j = 0; j < 4; j++) { const e = 9 * Math.sin(wy / 15 + t * 0.045 + j * 1.3) + 14 * (vnoise(wy / 1.6, j * 7 + Math.floor(t * 0.05), 134) - 0.5) + 12 * Math.abs(Math.sin(wy / 27 + t * 0.025 + j)); xs.push(Math.min(VW, Math.round(sh - [200, 235, 270, 310][j] - e * 1.2) - ox)); } for (let j = 2; j >= 0; j--) if (xs[j] < xs[j + 1]) xs[j] = xs[j + 1]; return xs; }
+  function bankXs(wy, t, ox, VW = 1e6) { const sh = M.shore[wy]; if (wy >= NH || wy < M.y0 || !(sh >= 200)) return null; const xs = []; for (let j = 0; j < 4; j++) { const e = 9 * Math.sin(wy / 15 + t * 0.045 + j * 1.3) + 14 * (vnoise(wy / 1.6, j * 7 + Math.floor(t * 0.05), 134) - 0.5) + 12 * Math.abs(Math.sin(wy / 27 + t * 0.025 + j)); xs.push(Math.min(VW, Math.round(sh - [200, 235, 270, 310][j] - e * 1.2 - (1 - fogSea) * 420) - ox)); } for (let j = 2; j >= 0; j--) if (xs[j] < xs[j + 1]) xs[j] = xs[j + 1]; return xs; }
   // Mist pools low: the tops of the tallest trees stand clear of it. (Only the tallest: in thick forest
   // the tops of the crowns are nearly all that shows of a tree.) This marks those rows as the map shows
   // them, nearer trees laid over the ones behind.
@@ -413,6 +417,7 @@ export function makeCritters(W, opts = {}) {
     },
     // The mist over the forest and the fog bank off the coast, laid over everything that stands. It parts
     // round him as it does round a sign.
+    weather(sea, at) { fogSea = sea; fogAt = at; },
     mist(scr, ox, oy, t, here) {
       const { VW, VH, fb } = scr;
       if (!M) return;
@@ -423,15 +428,15 @@ export function makeCritters(W, opts = {}) {
         const sy = w.y - oy; if (sy < -24 || sy > VH + 24) continue;
         if (w.sea) {
           // Out from the bank toward the land, thinning as it leaves the bank behind.
-          const far = M.shore[w.y], x = Math.round(far - 270 + (w.at + w.v * t) % 250), k = smooth(80, 150, far - x) * smooth(far - 270, far - 235, x);
+          const far = M.shore[w.y], x = Math.round(far - 270 + (w.at + w.v * t) % 250), k = smooth(80, 150, far - x) * smooth(far - 270, far - 235, x) * fogSea;
           if (k < 0.03 || x - w.len > ox + VW || x + w.len < ox) continue;
           for (const r of w.rows) { const s = clamp((k - r.need) / 0.3, 0, 1), y = sy + r.dy; if (s > 0 && y >= 0 && y < VH) veilRow(scr, x + Math.round(r.a * s) - ox, x + Math.round(r.b * s) - ox, y, r.edge); }
           continue;
         }
-        // The whole round trip starts inside the standing fog in the west, where it cannot be told from
+        // The whole round trip starts in the thick of the fog in the west, where it cannot be told from
         // the fog. It is thickest as it comes out and gone before the forest ends.
         const at = Math.round((w.at + w.v * t) % w.span) - 200, x = M.edge[w.y] + at + w.dx - ox;
-        const k = (w.bank ? smooth(290, 60, at) : smooth(400, 10, at)) * smooth(-200, -150, at);
+        const k = (w.bank ? smooth(290, 60, at) : smooth(400, 10, at)) * smooth(-200, -150, at) * fogAt(x + ox, w.y);
         if (k < 0.03 || x - w.len > VW || x + w.len < 0) continue;
         // It gets shorter as well as thinner as it fades, so what is left of it is a small puff and not
         // a long hair; and it loses its heavier parts first.
@@ -475,9 +480,9 @@ export function makeCritters(W, opts = {}) {
     // What flies over everything else.
     over(scr, ox, oy, t, env = {}) {
       const { VW, VH, fb } = scr, dusk = (env.mix || 0) > 0.5;
-      // The faint light deep in the fog: it wanders slowly round its spot, brightens and fades, and is
+      // The faint light deep in the fog, while the fog is in: it wanders slowly round its spot, brightens and fades, and is
       // gone for a while before it comes back.
-      if (spots.wisp) {
+      if (spots.wisp && fogAt(spots.wisp[0], spots.wisp[1]) > 0.4) {
         const c = frac(t / 31 + 0.3), k = smooth(0, 0.15, c) * smooth(0.62, 0.48, c);
         const x = Math.round(spots.wisp[0] + 34 * Math.sin(t * 0.07) + 8 * Math.sin(t * 0.23) - ox), y = Math.round(spots.wisp[1] - 6 + 5 * Math.sin(t * 0.11) + 2 * Math.sin(t * 0.37) - oy);
         if (k > 0.05 && x > 1 && y > 1 && x < VW - 2 && y < VH - 2) {
@@ -486,10 +491,11 @@ export function makeCritters(W, opts = {}) {
           if (k > 0.55) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if ((dx + dy + Math.floor(t * 3)) & 1 || k > 0.8) scr.set(x + dx, y + dy, halo);
         }
       }
-      // At Dusk, pairs of eyes far back in the fog. They blink, and a pair that is looked at for long
+      // At Dusk, while the fog is in, pairs of eyes far back in it. They blink, and a pair that is looked at for long
       // (the pointer resting near it, or with no pointer, sitting in the middle of the screen) blinks out
       // and stays gone for a while.
       if (dusk) (spots.eyes || []).forEach(([ex, ey], k) => {
+        if (fogAt(ex, ey) < 0.4) return;
         const st = eyeState[k], x = ex - ox, y = ey - 4 - oy; if (x < 2 || y < 1 || x >= VW - 3 || y >= VH - 1) return;
         const p = env.ptr, near = p ? Math.hypot(p[0] - x, p[1] - y) < 40 : Math.abs(x - VW / 2) < VW * 0.18 && Math.abs(y - VH / 2) < VH * 0.18;
         st.look = near ? st.look + (env.dt || 0) : Math.max(0, st.look - (env.dt || 0));

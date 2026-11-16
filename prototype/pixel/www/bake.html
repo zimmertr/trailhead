@@ -5,7 +5,7 @@
      the planes readBake in land.js expects, one under the other, to be written to ground.png: the
      ground picture, its depth (two bytes, in 64ths of a pixel), what each pixel is made of, which pixels
      are painted mountain, then the map's heights (two bytes, in 32nds), materials and water, and last what the ground shows with
-     the Trees switch off where a tree is painted into it, and which destination's country each pixel belongs to. -->
+     the Trees switch off where a tree is painted into it, which destination's country each pixel belongs to, and how thick the fog lies there when a shower brings it in. -->
 <script>globalThis.__noBake = true;</script>
 <script type="module">
 import { LAND, NW, NH as SH, VD, BAKE_ROWS, sourceSig } from './land.js';
@@ -15,7 +15,7 @@ for (let i = 0; i < n; i++) { const d = LAND.depth[i], q = d >= 1e8 ? 65535 : Ma
 let top = 0;
 for (let i = 0; i < m; i++) { const q = Math.round(LAND.hg[i] * 32); top = Math.max(top, q); all[5 * n + i] = q >> 8; all[5 * n + m + i] = q & 255; }
 if (top > 65535) throw new Error('a height is too great to bake: ' + top / 32);
-all.set(LAND.mg, 5 * n + 2 * m); all.set(LAND.water, 5 * n + 3 * m); all.set(LAND.bare, 5 * n + 4 * m); all.set(LAND.dest, 6 * n + 4 * m);
+all.set(LAND.mg, 5 * n + 2 * m); all.set(LAND.water, 5 * n + 3 * m); all.set(LAND.bare, 5 * n + 4 * m); all.set(LAND.dest, 6 * n + 4 * m); all.set(LAND.fogField, 7 * n + 4 * m);
 let s = ''; for (let i = 0; i < all.length; i += 32768) s += String.fromCharCode.apply(null, all.subarray(i, i + 32768));
 window.__bake = { w: NW, h: BAKE_ROWS, data: btoa(s), sig: await sourceSig() }; window.__ready = true;
 </script>

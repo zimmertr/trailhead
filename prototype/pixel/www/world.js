@@ -1,12 +1,12 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
 import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
-import { breeze } from './core.js';
+import { breeze, veilTable } from './core.js';
 import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
 import { makeRunner } from './tj.js';
-import { buildTerrain, loadBake, NW as WW, NH as WH, T } from './land.js';
+import { buildTerrain, loadBake, NW as WW, NH as WH, VD, T } from './land.js';
 // The height of the timeline bar in page pixels (32 of its own pixels), read again only when the page is resized.
 let barAt = -1, barH = 0;
 const barCss = () => { if (barAt !== innerWidth * 1e4 + innerHeight) { barAt = innerWidth * 1e4 + innerHeight; barH = 32 * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) || 2); } return barH; };
@@ -75,6 +75,93 @@ export function makeWorld(bake) {
       for (let dy = -Math.ceil(r); dy <= r * 0.6; dy++) for (let dx = -Math.ceil(r * 1.3); dx <= r * 1.3; dx++) { const d = Math.hypot(dx / 1.3, dy) / r; if (d > 1 || bayer(px + dx, py + dy - Math.round(age * 2)) >= al * (1.3 - d * d)) continue; dot(px + dx, py + dy - Math.round(age * 2), dy > r * 0.25 || d > 0.82 ? R.snow[1] : d < 0.5 ? R.white[1] : R.snow[3]); } }
     // The block itself, until it is lost in its own powder.
     if (a < 1.4) { const [bx, by] = path(a / 1.4); for (let i = -2; i <= 1; i++) { dot(bx + i, by - 1, R.white[1]); dot(bx + i, by, R.serac[i < 1 ? 2 : 1]); dot(bx + i, by + 1, R.serac[0]); } }
+  }
+  // ---- the weather in the west (E5) ----
+  // Every six minutes a shower comes in off the sea. Fog builds on the water first; then a front of rain
+  // and fog pushes east over the rainforest, wetting the ground, as far as a reach rolled for that shower,
+  // so about half of them get to About Lake and ring its water. The rain stops there, a short rainbow
+  // stands over the forest, the fog lingers, then burns off, and the west is clear and green until the
+  // next. The page opens a minute and a half before one. rain=<seconds> moves the clock on, for screenshots.
+  const RAIN = { cycle: 360, sea: 20, land: 60, stop: 95, dry: 105, lift: 130, gone: 160 };
+  const rainAhead = typeof location !== 'undefined' ? +(/[?&]rain=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
+  // About Lake's water (the core of its country), for the reach and the rings.
+  let lx0 = WW, lx1 = 0, ly0 = WH, ly1 = 0;
+  for (let i = 0; i < W.dest.length; i++) if (W.dest[i] === 5) { const x = i % WW, y = (i / WW) | 0; if (x < lx0) lx0 = x; if (x > lx1) lx1 = x; if (y < ly0) ly0 = y; if (y > ly1) ly1 = y; }
+  const weather = t => {
+    const T = t + rainAhead + RAIN.cycle - 90, n = Math.floor(T / RAIN.cycle), s = T - n * RAIN.cycle, reach = lerp(lx0 - 90, lx1 + 30, hash(n, 1, 5101));
+    return { n, s, reach,
+      front: s < RAIN.sea ? lerp(-80, 40, s / RAIN.sea) : lerp(40, reach, smooth(RAIN.sea, RAIN.land, s)),
+      fog: smooth(0, RAIN.sea, s) * smooth(RAIN.gone, RAIN.lift, s),
+      rain: smooth(RAIN.sea + 5, RAIN.sea + 15, s) * smooth(RAIN.dry, RAIN.stop, s),
+      wet: smooth(RAIN.sea + 5, RAIN.land, s) * smooth(RAIN.gone + 40, RAIN.dry, s),
+      bow: smooth(RAIN.stop, RAIN.stop + 6, s) * smooth(RAIN.lift, RAIN.stop + 20, s) };
+  };
+  // The front is not a straight line: row by row it bulges ahead and lags behind.
+  const frontAt = (wy, w) => w.front + 26 * Math.sin(wy / 37 + w.n) + 14 * Math.sin(wy / 11 + 2 * w.n);
+  // How much of the fog that lies at a spot is in: all of it behind the front, none a little ahead of it.
+  const fogIn = (wx, wy, w) => w.fog * clamp((frontAt(wy, w) + 70 - wx) / 90, 0, 1);
+  // Wet ground under the rain: a step darker through a dither, drying after. Water stays as it is.
+  const WATERY = KIND[R.water[3]];
+  function wetGround(scr, ox, oy, w) {
+    if (w.wet < 0.02) return;
+    const { VW, VH, fb } = scr, D = W.depth;
+    for (let y = Math.max(0, -oy); y < Math.min(VH, WH - oy); y++) {
+      const wy = y + oy, row = y * VW, lim = Math.min(VW, Math.ceil(frontAt(wy, w) - ox), WW - ox), by = (wy & 3) * 4, wrow = wy * WW, cut = w.wet * 0.5;
+      for (let x = Math.max(0, -ox); x < lim; x++) { const wx = x + ox; if (BAY[by + (wx & 3)] >= cut || D[wrow + wx] > 1e8 || KIND[fb[row + x]] === WATERY) continue; fb[row + x] = SHADE[fb[row + x]]; }
+    }
+  }
+  // The fog, laid on the way the mist is (each pixel swapped for its own colour seen through fog), in
+  // seven strengths and then plain white, by how thick it lies there (W.fog) and how much of it is in.
+  // Whatever stands (a tree's crown, an animal) shows through it three steps clearer than the ground
+  // under it, so the ranks stand out of the fog in the hollows, and the farther back the ground the
+  // thicker the fog in front of it, so each rank is paler than the one before it. Only the sea goes
+  // wholly white; over the land something always shows through. It parts round him as the mist does.
+  const FOGV = [0.12, 0.26, 0.4, 0.53, 0.65, 0.76, 0.86].map(veilTable), BAY = Array.from({ length: 16 }, (_, i) => bayer(i & 3, i >> 2));
+  function westFog(scr, ox, oy, w, here) {
+    if (w.fog < 0.01) return;
+    const { VW, VH, fb } = scr, F = W.fog, k8 = w.fog * 8 / 255;
+    for (let y = Math.max(0, -oy); y < Math.min(VH, WH - oy); y++) {
+      const wy = y + oy, row = y * VW, fr = frontAt(wy, w), lim = Math.min(VW, Math.ceil(fr + 70 - ox), WW - ox), his = here && wy > here.y - 23 && wy < here.y + 3, by = (wy & 3) * 4, wrow = wy * WW;
+      for (let x = Math.max(0, -ox); x < lim; x++) {
+        const wx = x + ox, f = F[wrow + wx]; if (!f || (his && wx > here.x - 9 && wx < here.x + 9)) continue;
+        const i = row + x, gate = fr + 70 - wx;
+        let l = Math.floor(f * k8 * (gate >= 90 ? 1 : gate / 90) + BAY[by + (wx & 3)] - 0.5) - (fb[i] !== ground[wrow + wx] ? 2 : 0); if (l <= 0) continue; if (l >= 8 && f < 230) l = 7;
+        fb[i] = l >= 8 ? (hash(wx >> 4, wy >> 2, 231) > 0.74 ? R.fog[1] : R.fog[2]) : FOGV[l - 1][fb[i]];
+      }
+    }
+  }
+  // The rain: short streaks slanting east with the wind, each falling for under half a second, over the
+  // land behind the front.
+  function rainfall(scr, ox, oy, t, w) {
+    if (w.rain < 0.02) return;
+    const { VW, VH, fb } = scr, D = W.depth, n = Math.round(1600 * w.rain), span = lx1 + 60;
+    for (let k = 0; k < n; k++) {
+      const life = t / 0.45 + frac(k * 0.618), c = Math.floor(life), h = hash(k, c, 5103), wx = Math.floor(h * span), wy = Math.floor(250 + frac(h * 7919) * (WH - 254) + (life - c) * 10);
+      if (wx - ox < -1 || wx - ox >= VW || wy - oy < 0 || wy - oy + 3 >= VH || wx >= frontAt(wy, w) || D[wy * WW + wx] > 1e8) continue;
+      for (let i = 0; i < 3; i++) { const x = wx + (i >> 1) - ox; if (x >= 0 && x < VW) fb[(wy + i - oy) * VW + x] = i < 2 ? R.fog[1] : R.fog[0]; }
+    }
+  }
+  // Rings on About Lake where the rain reaches it: a white drop that opens into a ring two steps lighter
+  // than the water, and is gone.
+  function rings(scr, ox, oy, t, w) {
+    if (w.rain < 0.1 || lx1 < lx0) return;
+    const { VW, VH, fb } = scr;
+    for (let k = 0; k < 22; k++) {
+      const life = t / 0.9 + hash(k, 4, 5105), c = Math.floor(life), age = life - c; if (age > 0.7) continue;
+      const x = Math.round(lx0 + hash(k, c, 5106) * (lx1 - lx0)), y = Math.round(ly0 + hash(k, c, 5107) * (ly1 - ly0));
+      if (W.dest[y * WW + x] !== 5 || x >= frontAt(y, w) || hash(k, c, 5108) > w.rain) continue;
+      for (const [dx, dy] of age < 0.25 ? [[0, 0]] : age < 0.45 ? [[1, 0], [-1, 0], [0, 1], [0, -1]] : [[2, 0], [-2, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+        const X = x + dx - ox, Y = y + dy - oy; if (X < 0 || Y < 0 || X >= VW || Y >= VH || W.dest[(y + dy) * WW + x + dx] !== 5) continue; const i = Y * VW + X; fb[i] = age < 0.25 ? R.white[1] : LIGHT[LIGHT[fb[i]]]; }
+    }
+  }
+  // The rainbow: a short arc standing on the forest behind the front and above the lake, violet inside,
+  // red outside, its foot and its upper end fading out. Not at night.
+  const BOW = [R.lupine[1], R.sky[0], R.grass[3], R.sun[2], R.blaze[2], R.red[1]];
+  function rainbow(scr, ox, oy, w, mix) {
+    const a = w.bow * (1 - mix); if (a < 0.02) return;
+    const cx = w.reach - 110, cy = ly0 - 120;
+    for (let deg = 196; deg <= 262; deg += 0.25) { const th = deg * Math.PI / 180, along = smooth(196, 206, deg) * smooth(262, 236, deg);
+      for (let b = 0; b < 6; b++) { const x = Math.round(cx + (150 + b) * Math.cos(th)), y = Math.round(cy + (150 + b) * Math.sin(th)); if (bayer(x, y) < a * along * 0.7) scr.set(x - ox, y - oy, BOW[b]); } }
   }
   const things = [];
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
@@ -221,6 +308,8 @@ export function makeWorld(bake) {
       }
       // With the Trees switch off, the snags and shadows painted into the ground give way to what lay under them.
       if (!DEBUG.trees) for (let y = Math.max(0, -oy); y < Math.min(VH, WH - oy); y++) { const wy = y + oy, row = y * VW; for (let x = Math.max(0, -ox); x < Math.min(VW, WW - ox); x++) { const c = W.bare[wy * WW + x + ox]; if (c) fb[row + x] = c; } }
+      const sky = weather(t); crit.weather(sky.fog, (x, y) => fogIn(x, y, sky));
+      if (DEBUG.clouds) wetGround(scr, ox, oy, sky);
       if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], H = TIP_H[n], k = 6 + n;
         for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = top[x]; if (y0 < 0) continue;
           for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { if (W.dest[y * WW + x] !== k) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8)) { const i = (y - oy) * VW + (x - ox); fb[i] = GLOW[fb[i]]; } } } }
@@ -297,6 +386,9 @@ export function makeWorld(bake) {
       }
       // The boot track on the glacier, then the mist over the forest and the fog bank off the coast.
       for (const [x, y, c] of trackPix) scr.set(x - ox, y - oy, c);
+      if (DEBUG.clouds) rings(scr, ox, oy, t, sky);
+      if (DEBUG.mist) westFog(scr, ox, oy, sky, env.hideMe ? null : here);
+      if (DEBUG.clouds) { rainfall(scr, ox, oy, t, sky); rainbow(scr, ox, oy, sky, env.mix || 0); }
       if (DEBUG.mist) crit.mist(scr, ox, oy, t, env.hideMe ? null : here);
       kit.drawOver(scr, ox, oy, t);
       // Smoke from the stove at base camp, drifting off with the wind.
