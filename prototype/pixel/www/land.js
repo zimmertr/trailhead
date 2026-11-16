@@ -248,11 +248,19 @@ if (B) water.set(B.water); else {
   const RW = NW >> 1, RH = VD >> 1, N = RW * RH, fill = new Float32Array(N), down = new Int32Array(N).fill(-2), flow = new Float32Array(N), hk = [], hi = [];
   const push = (k, i) => { let n = hk.length; hk.push(k); hi.push(i); while (n > 0) { const p = (n - 1) >> 1; if (hk[p] <= k) break; hk[n] = hk[p]; hi[n] = hi[p]; n = p; } hk[n] = k; hi[n] = i; };
   const pop = () => { const top = hi[0], k = hk.pop(), i = hi.pop(), len = hk.length; if (len) { let n = 0; for (;;) { let c = 2 * n + 1; if (c >= len) break; if (c + 1 < len && hk[c + 1] < hk[c]) c++; if (hk[c] >= k) break; hk[n] = hk[c]; hi[n] = hi[c]; n = c; } hk[n] = k; hi[n] = i; } return top; };
-  const rh = i => { const u = (i % RW) * 2, v = ((i / RW) | 0) * 2; return hg[at(u, v)] + 3 * (fbm(u / 40, v / 30, 410, 3) - 0.5); };
+  let dig = () => 0;
+  const rh = i => { const u = (i % RW) * 2, v = ((i / RW) | 0) * 2; return hg[at(u, v)] + 3 * (fbm(u / 40, v / 30, 410, 3) - 0.5) - dig(u, v); };
+  const flood = () => { fill.fill(0); down.fill(-2); flow.fill(0); hk.length = 0; hi.length = 0; routes.length = 0;
   for (let i = 0; i < N; i++) { const ru = i % RW, rv = (i / RW) | 0, u = ru * 2, v = rv * 2; if (coast(u, v) > 0) { down[i] = -1; fill[i] = 0; push(0, i); } else if ((rv === 0 || ru === RW - 1) && dryAmt(u, v) > 0.2) { down[i] = -1; fill[i] = rh(i); push(fill[i], i); } }
   while (hk.length) { const c = pop(), cu = c % RW, cv = (c / RW) | 0; for (let dv = -1; dv <= 1; dv++) for (let du = -1; du <= 1; du++) { const nu = cu + du, nv = cv + dv; if ((!du && !dv) || nu < 0 || nv < 0 || nu >= RW || nv >= RH) continue; const n = nv * RW + nu; if (down[n] !== -2) continue; fill[n] = Math.max(rh(n), fill[c] + (du && dv ? 0.0028 : 0.002)); down[n] = c; push(fill[n], n); } }
   // Follow each source down to an outlet, adding its water to every spot it passes.
   for (const s of C.src) { const lead = catmull(s.lead), [lu, lv] = lead[lead.length - 1], cells = []; let i = (Math.round(lv) >> 1) * RW + (Math.round(lu) >> 1), guard = 0; while (i >= 0 && guard++ < 8000) { cells.push(i); flow[i] += s.w; if (down[i] < 0) break; i = down[i]; } routes.push({ s, lead, cells }); }
+  };
+  flood();
+  // The lower west river reaches the sea at the bottom edge of the map, out of sight, so the land gives it
+  // a shallow valley of its own (D11): from where its trunk first comes within 150 of the near edge, it
+  // runs west, falling a little, to the beach. The water is routed again over that valley.
+  { const A = routes[1].cells.map(i => [(i % RW) * 2, ((i / RW) | 0) * 2]).find(([, v]) => v < 150); if (A) { const hA = hAt(A[0], A[1]), floor = u => hA * clamp((u - A[0] + 300) / 300, 0, 1) - 6; dig = (u, v) => u > A[0] + 8 ? 0 : Math.max(0, hAt(u, v) - floor(u)) * smooth(14, 4, Math.abs(v - A[1] + 0.06 * (A[0] - u))) * smooth(A[0] + 8, A[0] - 12, u); flood(); } }
   // Read from the land as it was before any stream cut its bed, so every stream sees the same ground.
   const hg0 = hg.slice(), h0 = (u, v) => hg0[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))];
   const flatFor = (u, v) => { let m = 0; for (const [du, dv] of [[0, 0], [12, 0], [-12, 0], [0, 10], [0, -10]]) m = Math.max(m, Math.hypot(h0(u + du + 3, v + dv) - h0(u + du - 3, v + dv), h0(u + du, v + dv + 3) - h0(u + du, v + dv - 3)) / 6); return m; };
@@ -268,8 +276,8 @@ if (B) water.set(B.water); else {
     // Its bed never climbs: where the way out of a hollow crosses higher ground the stream cuts a
     // notch through it, with banks that open out.
     let bed = 1e9;
-    for (const [pu, pv, pr] of r.pts) {
-      bed = Math.min(bed, hAt(pu, pv)); const W = Math.ceil(pr + 9);
+    for (let [pu, pv, pr] of r.pts) {
+      bed = Math.min(bed, hAt(pu, pv)); pr += 3.5 * smooth(-34, -4, coast(pu, pv)); const W = Math.ceil(pr + 9);
       for (let dv = -W; dv <= W; dv++) for (let du = -W; du <= W; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v), m = MATS[mg[i]], d = Math.hypot(du, dv); if (d > W || lipKeep[i] || (m !== 'land' && m !== 'moraine' && m !== 'gran')) continue; const t = Math.max(0.4, bed + Math.max(0, d - pr) * 0.9); if (hg[i] > t) hg[i] = t; if (d <= pr + 1 && hg[i] > 0) water[i] = Math.max(water[i], d <= pr ? 2 : 1); }
     }
   }
@@ -329,7 +337,7 @@ function colour(u, v, hh, x, y) {
   const cs = coast(u, v);
   if (cs > -15 && bayer(x, y) < seaFog(u, v) * 1.2 - 0.14) return fogInk(x, y, 9);
   if (cs > 0) return cs < 3 + 2 * vnoise(u / 9, v / 9, 85) ? R.sea[5] : pick('sea', 0.75 - smooth(0, 150, cs) * 0.6 + 0.12 * (vnoise(u / 14, v / 3, 86) - 0.5), x, y);
-  if (cs > -15 - 6 * vnoise(u / 20, v / 20, 87)) return water[i] ? R.water[3] : R.sand[cs > -4 ? 0 : hash(u, v, 88) < 0.25 ? 1 : 2];
+  if (cs > -24 - 8 * vnoise(u / 20, v / 20, 87)) return water[i] ? R.water[3] : R.sand[cs > -4 ? 0 : hash(u, v, 88) < 0.25 ? 1 : 2];
   const lk = lakeAt(u, v);
   if (lk === 'lake' && isle(u, v) < 1) return pick('grass', 0.55 + 0.3 * n1, x, y);
   if (lk) return lk === 'tarn' ? pick('tarn', 0.3 + 0.4 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
@@ -549,6 +557,7 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
 }
 }
 const FOGTREES = [];
+const riverFront = (u, v) => { if (coast(u, v) < -170) return false; for (let dv = 1; dv <= 34; dv += 3) for (let du = -8; du <= 8; du += 4) { const uu = Math.round(u + du), vv = Math.round(v + dv); if (uu >= 0 && vv >= 0 && uu < NW && vv < VD && water[at(uu, vv)] && coast(uu, vv) < 0) return true; } return false; };
 // ---- the fog in the rainforest --------------------------------------------------------------------
 // Drawn ridge by ridge, after TJ's photograph: ranks of conifers stand one behind another along the
 // forest's ridges, white fog lies in the hollows between them, and each rank is paler than the one in
@@ -580,7 +589,7 @@ const FOGTREES = [];
   const tree = (x0, base, v, hgt, half, k, snag) => {
     if (snag) return snagAt(x0, base, v, hgt * 1.25, k - 0.6);
     const want = (64 - 34 * smooth(0, VD, v)) * (0.8 + 0.4 * vnoise(x0 / 23, v / 17, 237)), n = SIZES.reduce((b, H, j) => Math.abs(H - want) < Math.abs(SIZES[b] - want) ? j : b, 0), set = kinds[n];
-    FOGTREES.push({ t: set[(rr() * set.length) | 0], x: x0, y: base, v, k });
+    const t = set[(rr() * set.length) | 0]; if (!riverFront(x0, v)) FOGTREES.push({ t, x: x0, y: base, v, k });
   };
   const flatTree = (x0, base, v, hgt, half, k) => {
     const top = base - Math.round(hgt), lean = (rr() - 0.5) * 0.14;
@@ -619,7 +628,7 @@ const FOGTREES = [];
   }
 }
 // ---- things that stand up -------------------------------------------------------------------------
-const things = [], put = (bm, u, v, f, tree) => things.push({ bm, u: Math.round(u), v: Math.round(v), fog: f, isTree: tree }), plant = (tree, u, v, f) => things.push({ tree, u: Math.round(u), v: Math.round(v), fog: f });
+const STACKS = [], things = [], put = (bm, u, v, f, tree) => things.push({ bm, u: Math.round(u), v: Math.round(v), fog: f, isTree: tree }), plant = (tree, u, v, f) => things.push({ tree, u: Math.round(u), v: Math.round(v), fog: f });
 const wet8 = (u, v) => { for (let dv = -3; dv <= 6; dv += 3) for (let du = -9; du <= 9; du += 3) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) return true; return false; };
 const slope = (u, v) => Math.hypot(hAt(u + 2, v) - hAt(u - 2, v), hAt(u, v + 2) - hAt(u, v - 2)) / 4;
 const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && coast(u, v) < -32 && !lakeAt(u, v) && !water[at(Math.round(u), Math.round(v))] && !wet8(Math.round(u), Math.round(v)) && slope(u, v) < max && !nearTrail(u, v, 9) && Math.hypot(u - TU, (v - TV) * 1.4) > 46;
@@ -646,7 +655,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     // Deeper in, the fog's own ranks take over (drawn above), so the planted forest thins out.
     if (f > 0.12 && rand() < smooth(0.12, 0.55, f)) continue;
     if (f < 0.2 && (nearTrail(u, v, 46) && rand() < 0.3 || rand() < 0.04)) { const b = any(bigleaf); if (glade(u, v)) continue; if (shrinkAt(u, v) >= 0.12) plant(sized({ h: 40 }, u, v), u, v, f); else put(b, u, v, f, true); continue; }
-    if (rand() < f * f * 0.5) { const sn = any(snags); if (shrinkAt(u, v) < 0.3) put(sn, u, v, f, true); } else { const t = r < 0.45 ? ((m) => f > 0.2 && hash(u | 0, v | 0, 5911) < 0.65 ? twisted[(hash(u | 0, v | 0, 5912) * twisted.length) | 0] : m)(any(maples)) : r < 0.88 ? any(spruces) : any(firs); if (glade(u, v)) continue; plant(sized(t, u, v), u, v, f); }
+    if (rand() < f * f * 0.5) { const sn = any(snags); if (shrinkAt(u, v) < 0.3) put(sn, u, v, f, true); } else { const t = r < 0.45 ? ((m) => f > 0.2 && hash(u | 0, v | 0, 5911) < 0.65 ? twisted[(hash(u | 0, v | 0, 5912) * twisted.length) | 0] : m)(any(maples)) : r < 0.88 ? any(spruces) : any(firs); if (glade(u, v) || riverFront(u, v)) continue; plant(sized(t, u, v), u, v, f); }
   }
   // Firs in clumps over the parkland, the meadows and the lower slopes of the crest.
   for (let n = 0; n < 5200; n++) {
@@ -729,9 +738,13 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   for (let n = 0; n < 400; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) { if (rand() < 0.5) put(any(burnt), u, v, 0, true); else plant(any(young), u, v); } }
   for (let n = 0; n < 4000; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.6 && fogAmt(u, v) < 0.25 && open(u, v, 1.1) && wooded(u, v)) things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); }
   for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && open(u, v, 0.8) && wooded(u, v)) put(any(logs), u, v); }
-  { const seen = []; for (let n = 0; n < 4000 && seen.length < 6; n++) { const u = rand() * 520, v = rand() * 420, c = coast(u, v); if (c < 22 || c > 110 || seen.some(([a, b]) => Math.hypot(a - u, b - v) < 70)) continue; seen.push([u, v]); const H = 16 + (rand() * 34 | 0); put(seaStack(seen.length, H, Math.round(H * 0.45)), u, v); } }
+  { const dr = rng(4730), drift = Array.from({ length: 4 }, (_, i) => { const b = makeLog(30 + i, true), o = new BM(b.w, b.h); o.ox = b.ox; o.oy = b.oy; for (let k = 0; k < b.d.length; k++) { const c = b.d[k]; o.d[k] = !c || c === INK ? c : R.gold[clamp(3 + Math.round((hash(k, i, 4732) - 0.3) * 2.4), 3, 5)]; } return o; }); // bleached by the sea
+    for (let n = 0; n < 1400; n++) { const u = dr() * 560, v = dr() * 460, k = (dr() * drift.length) | 0, c = coast(u, v); if (c > -20 && c < -9 && dr() < 0.2 && !water[at(Math.round(u), Math.round(v))]) put(drift[k], u, v); } }
+  { const seen = []; for (let n = 0; n < 4000 && seen.length < 6; n++) { const u = rand() * 520, v = rand() * 420, c = coast(u, v); if (c < 22 || c > 110 || seen.some(([a, b]) => Math.hypot(a - u, b - v) < 70)) continue; seen.push([u, v]); STACKS.push([u, v]); const H = 16 + (rand() * 34 | 0); put(seaStack(seen.length, H, Math.round(H * 0.45)), u, v); } }
   plant(any(firs), ISLE[0], ISLE[1]);
 }
+// Surf breaks white round the foot of each sea stack, broken into dashes (D11).
+if (!B) for (const [su, sv] of STACKS) { const fy = Math.round(SY - sv - hAt(su, sv)); for (let a = 0; a < 6.283; a += 0.05) { const x = Math.round(su + Math.cos(a) * 9), y = Math.round(fy + 1 + Math.sin(a) * 3); if (x < 0 || y < 0 || x >= NW || y >= SH || hash(Math.round(a * 9), 0, 4731) < 0.25) continue; const i = px(x, y); if (coast(x, zb[i]) > 0) g[i] = Math.sin(a) > 0 ? R.white[1] : R.white[0]; } }
 // Far first. A thing the fog touches, or that nearer ground partly hides, is painted into the ground
 // picture for good: clipped where it is hidden, its foot lost in the fog and the rest of it paled, the
 // more so the deeper into the fog it stands. Every other thing is handed to the scene whole, to be

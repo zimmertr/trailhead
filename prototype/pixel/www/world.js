@@ -7,6 +7,9 @@ import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, loadBake, NW as WW, NH as WH, T } from './land.js';
+// The height of the timeline bar in page pixels (32 of its own pixels), read again only when the page is resized.
+let barAt = -1, barH = 0;
+const barCss = () => { if (barAt !== innerWidth * 1e4 + innerHeight) { barAt = innerWidth * 1e4 + innerHeight; barH = 32 * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) || 2); } return barH; };
 // ---------------------------------------------------------------------------------------------
 // The world. Pixel coordinates, x east, y south. North is up the screen, so the three
 // destinations stand along the top of the meadow: the forest and About Lake on the left,
@@ -128,11 +131,14 @@ export function makeWorld(bake) {
       if (env.anchor && !env.fixed) { const a = env.anchor; cam.x = tx; cam.y = ty; env.look.x = a.wx - a.sx + VW / 2 - cam.x; env.look.y = a.wy - a.sy + VH / 2 - cam.y; env.anchor = null; }
       // How far a drag may take the view: the hard limits below keep the edge of the world out of sight,
       // and the last 26 pixels before them push back.
-      if (!env.fixed) { const M = 26, b = { x0: Math.min(0, VW / 2 + M - cam.x), x1: Math.max(0, WW - VW / 2 - M - cam.x), y0: Math.min(0, VH / 2 + M - cam.y), y1: Math.max(0, WH - VH / 2 - M - cam.y) }; if (VW >= WW) b.x0 = b.x1 = 0; if (VH >= WH) b.y0 = b.y1 = 0; env.lookBox = b; }
+      // The timeline bar covers the bottom of the view, so the view may go that much further down and the
+      // bottom of the map (the river's mouth, the dry corner) can be brought up above it (D11).
+      const bar = barCss() / scr.S;
+      if (!env.fixed) { const M = 26, b = { x0: Math.min(0, VW / 2 + M - cam.x), x1: Math.max(0, WW - VW / 2 - M - cam.x), y0: Math.min(0, VH / 2 + M - cam.y), y1: Math.max(0, WH - VH / 2 - M + bar - cam.y) }; if (VW >= WW) b.x0 = b.x1 = 0; if (VH >= WH) b.y0 = b.y1 = 0; env.lookBox = b; }
       let cx = cam.x + env.look.x, cy = cam.y + env.look.y;
       cx = VW >= WW ? WW / 2 : clamp(cx, VW / 2, WW - VW / 2);
       past += ((scr.narrow && env.home ? VH * 0.34 : 0) - past) * (env.fixed ? 0 : Math.min(1, dt * 4));
-      cy = VH >= WH ? WH / 2 : clamp(cy, VH / 2, WH - VH / 2 + past);
+      cy = VH >= WH ? WH / 2 : clamp(cy, VH / 2, WH - VH / 2 + past + bar);
       const ox = env.fixed ? env.fixed.x : Math.round(cx - VW / 2), oy = env.fixed ? env.fixed.y : Math.round(cy - VH / 2);
       last = { ox, oy, VW, VH };
       // The night sky is pinned to the world's own sky, laid out over a height that keeps the aurora in its dark upper part.
