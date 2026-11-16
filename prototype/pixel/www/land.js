@@ -11,8 +11,10 @@ import { makeFlowers, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa,
 const NW = 1920, SH = 1080, VD = 740, SY = SH + 52;
 const rdg = n => 1 - Math.abs(2 * n - 1);
 const prof = pts => x => { if (x <= pts[0][0]) return pts[0][1]; for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [xa, ha] = pts[i - 1], [xb, hb] = pts[i]; return lerp(ha, hb, (x - xa) / (xb - xa)); } return pts[pts.length - 1][1]; };
+// Proficiency Peak's outline, after Prusik's south face (used below and drawn again in the larch basin, larches.js).
+const PP = prof([[-75, 0], [-70, 0.14], [-63, 0.2], [-58, 0.34], [-51, 0.4], [-46, 0.58], [-41, 0.63], [-31, 0.62], [-27, 0.53], [-22, 0.62], [-16, 0.8], [-9, 0.9], [-5, 0.97], [-3, 1], [3, 1], [5, 0.94], [10, 0.9], [15, 0.8], [21, 0.76], [24, 0.68], [29, 0.71], [33, 0.6], [39, 0.62], [44, 0.5], [50, 0.53], [55, 0.4], [61, 0.36], [66, 0.2], [75, 0]]);
 
-export { NW, SH as NH, VD, SY };
+export { NW, SH as NH, VD, SY, PP as PROFICIENCY };
 // B is the bake (readBake, below): with it, the heights, the water and the picture are read, not worked out.
 export function buildLand(B = null) {
 // ---- the pieces a layout is made of ---------------------------------------------------------------
@@ -89,7 +91,6 @@ function spires(cu, cv, base, H, thin = 1, wide = 1) {
 // Proficiency Peak, after Prusik Peak's south face: a thin fin of granite that shows the camera its
 // wall. A lower flat-topped tower on the left, a prow to a small summit block, a serrated ridge right.
 let PF = null;
-const PP = prof([[-75, 0], [-70, 0.14], [-63, 0.2], [-58, 0.34], [-51, 0.4], [-46, 0.58], [-41, 0.63], [-31, 0.62], [-27, 0.53], [-22, 0.62], [-16, 0.8], [-9, 0.9], [-5, 0.97], [-3, 1], [3, 1], [5, 0.94], [10, 0.9], [15, 0.8], [21, 0.76], [24, 0.68], [29, 0.71], [33, 0.6], [39, 0.62], [44, 0.5], [50, 0.53], [55, 0.4], [61, 0.36], [66, 0.2], [75, 0]]);
 function proficiency(cu, cv, base, w, hgt) {
   PF = { cu, cv, base, w, hgt };
   add('fin', cu - w / 2 - 2, cu + w / 2 + 2, cv - 12, cv + 62, (u, v) => { const p = PP((u - cu) * 150 / w), f = v < cv ? smooth(cv - 8, cv, v) : smooth(cv + 58, cv + 10, v); return p <= 0 || f <= 0 ? 0 : base * smooth(0, 0.4, f) + (hgt * p + 2 * (vnoise(u / 3, 4, 900) - 0.5)) * f; });

@@ -12,9 +12,10 @@ const MAKERS = {
   wall: () => import('./wall.js').then(m => m.makeWall()),
   camp: () => import('./camp.js').then(m => m.makeCamp()),
   climb: () => import('./climb.js').then(m => m.makeClimb()),
-  offroute: () => import('./offroute.js').then(m => m.makeOffroute())
+  offroute: () => import('./offroute.js').then(m => m.makeOffroute()),
+  larches: () => import('./larches.js').then(m => m.makeLarches())
 };
-const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb', 'offroute'];
+const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb', 'offroute', 'larches'];
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
@@ -40,7 +41,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // they take, so the timeline runs at an even pace across scene changes.
   const ROUTES = {
     lake: () => [['world', { path: 'lake', from: 0, to: world.lakeIn }], ['forest', {}], ['lakeside', {}], ['world', { path: 'lake', from: world.lakeOut, to: 1 }]],
-    stack: () => [['world', { path: 'stack', from: 0, to: 1 }], ['wall', {}], ['world', { path: 'stack', from: 1, to: 0 }]],
+    // The larch basin runs the way the map's trail was heading over its last tenth (G1).
+    stack: () => [['world', { path: 'stack', from: 0, to: 1 }], ['larches', { dir: [0.9, 0.93, 0.96, 0.99].reduce((s, q) => s + world.paths.stack.at(q).dx, 0) < 0 ? -1 : 1 }], ['wall', {}], ['world', { path: 'stack', from: 1, to: 0 }]],
     spires: () => [['world', { path: 'spires', from: 0, to: 1 }], ['camp', {}]],
     'spires-home': () => [['world', { path: 'spires', from: 1, to: 0 }]],
     'off-route': () => [['offroute', {}]]
