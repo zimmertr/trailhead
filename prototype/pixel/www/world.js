@@ -136,6 +136,16 @@ function puffAt(fb, VW, VH, ox, oy, cx, cy, r, al, sq) {
     for (let dx = -Math.ceil(r * sq); dx <= r * sq; dx++) { const x = Math.round(cx + dx) - ox; if (x < 0 || x >= VW) continue; const d = Math.hypot(dx / sq, dy) / r; if (d > 1 || bayer(x + ox, y + oy) >= al * (1.3 - d * d)) continue;
       const f = (dy + r) / (1.7 * r) + 0.25 * (bayer(x + ox + 1, y + oy) - 0.5); fb[y * VW + x] = f < 0.36 ? R.snow[4] : f < 0.62 ? R.snow[3] : R.snow[2]; } }
 }
+// Every waterfall and rapid moves (E8a): white water streams down it in streaks that slide down the
+// screen, and at its foot the water churns. P and F: the falls' and the feet's pixels as x and y.
+function whiteWater(fb, VW, VH, ox, oy, P, F, t) {
+  const W1 = R.white[1], W3 = R.water[3], W4 = R.water[4], sh = t * 26;
+  for (let k = 0; k < P.x.length; k++) { const sx = P.x[k] - ox, sy = P.y[k] - oy; if (sx < 0 || sy < 0 || sx >= VW || sy >= VH) continue;
+    const s = frac((P.y[k] - sh) / P.p[k] + P.o[k]); fb[sy * VW + sx] = s < (P.e[k] ? 0.45 : 0.7) ? W1 : s < 0.9 ? W4 : W3; }
+  const beat = Math.floor(t * 7);
+  for (let k = 0; k < F.x.length; k++) { const sx = F.x[k] - ox, sy = F.y[k] - oy; if (sx < 1 || sy < 0 || sx >= VW - 1 || sy >= VH - 1) continue;
+    for (let d = 0; d < 3; d++) { const h = hash(F.x[k] * 3 + d, beat, 5201); if (h < 0.45) fb[(sy + (d >> 1)) * VW + sx + (d === 1 ? 1 : d === 2 ? -1 : 0)] = h < 0.3 ? W1 : W4; } }
+}
 
 export function makeWorld(bake) {
   const W = buildTerrain(), { g: ground, spots, forestAmt } = W;
@@ -338,6 +348,11 @@ export function makeWorld(bake) {
   put(makeJournal(), spots.journal[0], spots.journal[1]); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
   if (spots.lookout) put(makeLookout(), spots.lookout[0], spots.lookout[1]);
   for (const [x, y, c] of spots.tents) put(makeTent(c), x, y);
+  // The falls' and the feet's pixels, as x and y, with each column's own offset so the streaks are not in step.
+  // Each column streams at its own length (p) and phase (o); the fall's edges (e) show more blue.
+  const xy = (I, off) => { const n = I.length, x = new Int16Array(n), y = new Int16Array(n), o = new Float32Array(n), p = new Float32Array(n), e = new Uint8Array(n), S = new Set(I);
+    for (let k = 0; k < n; k++) { x[k] = I[k] % WW; y[k] = (I[k] / WW) | 0; if (off) { o[k] = hash(x[k], 0, 5202); p[k] = 7 + hash(x[k], 1, 5203) * 6; e[k] = !S.has(I[k] - 1) || !S.has(I[k] + 1) ? 1 : 0; } } return { x, y, o, p, e }; };
+  const WWP = W.whiteWater ? xy(W.whiteWater.fall, true) : null, WWF = W.whiteWater ? xy(W.whiteWater.foot) : null;
   // At Dusk the tents glow from inside (E8): the fabric warm, brightest low down and at the door.
   const tentGlow = spots.tents.map(([x, y, c]) => { const b = makeTent(c); for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) { const k = j * b.w + i, v = b.d[k]; if (!v || v === INK) continue; b.d[k] = v === R.ink[0] || (j > b.h * 0.55 && bayer(i, j) < (j / b.h - 0.4) * 1.6) ? R.lamp[1] : R.lamp[0]; } return { b, x, y }; });
   // Headlamps (E8): at Dusk a party of eight climbs the boot track from base camp up the Spires' glacier
@@ -519,7 +534,7 @@ export function makeWorld(bake) {
       if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], H = TIP_H[n], k = 6 + n;
         for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = top[x]; if (y0 < 0) continue;
           for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { if (W.dest[y * WW + x] !== k) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8)) { const i = (y - oy) * VW + (x - ox); fb[i] = GLOW[fb[i]]; } } } }
-      crit.sea(scr, ox, oy, t); crit.falls(scr, ox, oy, t);
+      crit.sea(scr, ox, oy, t); if (WWP) whiteWater(fb, VW, VH, ox, oy, WWP, WWF, t); crit.falls(scr, ox, oy, t);
       crit.update(dt, t, env.hideMe ? null : here);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
       if (DEBUG.clouds) lenticular(scr, ox, oy, t);

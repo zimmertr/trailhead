@@ -1351,7 +1351,16 @@ export function buildTerrain() {
     }
     for (let x = 0; x < X1; x++) for (let y = 1; y < SH; y++) { const i = y * NW + x; if (M[i] < 60 || M[i - NW]) continue; for (let k = 1; k <= 22 && y - k >= 0; k++) { const j = i - k * NW; if (M[j]) break; M[j] = Math.round(M[i] * (1 - k / 24)); } }
     return M; })();
-  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  // Every waterfall and rapid (E8a): the white water painted where a stream falls (white, or the pale blue
+  // beside white within two rows), over running water, found from the finished picture so it holds
+  // whether the ground was baked or worked out. fall: its pixels; foot: those with plain water below, where
+  // it churns.
+  const falls = (() => { const W1 = R.white[1], W4 = R.water[4], N = NW * SH, M = new Uint8Array(N);
+    for (let i = NW * 2; i < N - NW * 2; i++) { const c = LAND.g[i]; if (c !== W1 && c !== W4) continue; const v = LAND.depth[i]; if (v >= VD || !LAND.water[Math.round(v) * NW + (i % NW)]) continue;
+      if (c === W4 && ![-2, -1, 1, 2].some(d => LAND.g[i + d * NW] === W1)) continue; M[i] = 1; }
+    const fall = [], foot = []; for (let i = 0; i < N - NW; i++) if (M[i]) { fall.push(i); if (!M[i + NW]) { const v = LAND.depth[i + NW]; if (v < VD && LAND.water[Math.round(v) * NW + (i % NW)]) foot.push(i + NW); } }
+    return { fall: Int32Array.from(fall), foot: Int32Array.from(foot) }; })();
+  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, whiteWater: falls, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the
