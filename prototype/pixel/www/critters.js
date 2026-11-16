@@ -120,7 +120,21 @@ export function makeCritters(W, opts = {}) {
 
   // ---- marmots: sunning on a rock, up on their haunches when he is near or now and then ----
   const mar = { sun: marmot('sun'), up: marmot('up') };
-  spots.marmots.forEach(([x, y], n) => items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1) }));
+  // Each has a few rocks' worth of ground round its own (E5i, TJ: no animal just stands still): now and then
+  // it scurries a little way to sun somewhere else, and it still sits up when he comes by.
+  spots.marmots.forEach(([x, y], n) => items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, fx: x, fy: y, tx: x, ty: y, r: 16, st: 'sun', until: 4 + rand() * 10 }));
+  function scurry(a, dt, t, here) {
+    const up = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / 11 + a.n * 0.37) < 0.2;
+    if (a.st === 'run') {
+      const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
+      if (d < 0.8) { a.st = 'sun'; a.until = t + 6 + rand() * 12; a.hop = 0; }
+      else { const s = Math.min(d, 18 * dt); a.fx += dx / d * s; a.fy += dy / d * s; a.x = Math.round(a.fx); a.y = Math.round(a.fy); if (Math.abs(dx) > 0.5) a.flip = dx < 0; a.hop = Math.floor(t * 8) & 1; a.bm = mar.sun; return; }
+    }
+    a.bm = up ? mar.up : mar.sun;
+    if (up || t < a.until) return;
+    for (let k = 0; k < 6; k++) { const an = rand() * TAU, rr = a.r * (0.3 + 0.7 * rand()), tx = a.hx + Math.cos(an) * rr, ty = a.hy + Math.sin(an) * rr * 0.6; if (W.open(tx, ty) && way((x, y) => W.open(x, y), a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'run'; return; } }
+    a.until = t + 5;
+  }
 
   // For screenshots, sea=90 in the address starts the ferry's and the whale's clocks that many seconds on.
   // Each has its own, so the debug panel can start one without moving the other (E5f).
@@ -353,7 +367,7 @@ export function makeCritters(W, opts = {}) {
       for (const a of items) {
         if (a.walker) walk(a, dt, t);
         else if (a.dart) dart(a, dt, t, here);
-        else if (a.critter === 'marmot') a.bm = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / 11 + a.n * 0.37) < 0.2 ? mar.up : mar.sun;
+        else if (a.critter === 'marmot') scurry(a, dt, t, here);
       }
     },
     draw(scr, a, ox, oy, t) {
@@ -479,7 +493,9 @@ export function makeCritters(W, opts = {}) {
       if (hullMask) { for (const k of hullMarked) hullMask[k] = 0; hullMarked.length = 0; }
     },
     // Where each animal may wander and each flock circles, as ovals on the map, for the debug panel.
-    areas: () => [...items.filter(a => a.walker).map(a => ({ x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...FLOCKS.map(F => ({ x: F.cx, y: F.cy, rx: F.rx, ry: F.ry }))],
+    // Every animal that moves, for the debug panel's Roam areas: walkers, squirrels (they dart up to 28
+    // from home), marmots, and the flocks' circles.
+    areas: () => [...items.filter(a => a.walker || a.critter === 'marmot').map(a => ({ x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...items.filter(a => a.dart).map(a => ({ x: a.hx, y: a.hy, rx: 28, ry: 17 })), ...FLOCKS.map(F => ({ x: F.cx, y: F.cy, rx: F.rx, ry: F.ry }))],
     // What flies over everything else.
     over(scr, ox, oy, t, env = {}) {
       const { VW, VH, fb } = scr;

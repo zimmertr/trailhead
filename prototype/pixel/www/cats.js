@@ -3,7 +3,7 @@
 // again, so no two visits look the same. Clicking a cat gets an answer that depends on the cat
 // and on what she was doing.
 import { clamp, lerp, rng, hash, vnoise, R, INK, BM, outline, thick } from './core.js';
-import { T, KIOSK } from './land.js';
+import { T, KIOSK, LAND } from './land.js';
 import { NAMES } from './content.js';
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
@@ -83,10 +83,24 @@ const DO = {
   sit: [3, 7, 3, 3], groom: [3, 5.5, 2, 2], loaf: [6, 12, 2, 3], sleep: [10, 20, 1.2, 2], wander: [0, 0, 3, 3], stalk: [0, 0, 2.2, 1.4],
   roll: [2.4, 3.4, 1.4, 0.6], bat: [2, 3.2, 1.6, 1], chase: [0, 0, 1.2, 0.8], visit: [0, 0, 1, 1.6], perch: [8, 14, 1.2, 0]
 };
-// Where they roam: mostly the meadow below the junction, and now and then further off, up to the
-// trails and round the kiosk, which stands across the Spires trail from that meadow.
+// Where they roam (E5i, TJ): a patch of open meadow by the Trailhead, close to where he starts. The kiosk
+// and the signpost stand behind it, so the cats are always in front of both and never walk behind them
+// (the jump onto the kiosk's roof is the one trip out of it). It is cut back from every tree, bush and
+// rock in it or right round it, so no cat ever stands in one. Worked out from what stands there.
 const JX = T.x, JY = T.y;   // the junction, where he stands at the Trailhead
-const HOME = { x0: T.x - 52, x1: T.x + 82, y0: T.y - 30, y1: T.y + 58 }, LEFT = { x0: T.x - 48, x1: T.x + 38, y0: T.y + 12, y1: T.y + 56 }, ROOF = { x: KIOSK.x, y: KIOSK.y + 1, h: 25 };
+const HOME = (() => {
+  const post = LAND.toY(LAND.C.T[0] - 4, LAND.C.T[1] + 8), b = { x0: T.x - 60, x1: T.x + 70, y0: Math.max(KIOSK.y, post) + 6, y1: T.y + 56 };
+  const near = LAND.things.filter(th => { const h = th.tree ? th.tree.h : th.bm ? th.bm.h : 0; return h >= 10; }).sort((p, q) => Math.hypot(p.x - T.x, p.y - T.y) - Math.hypot(q.x - T.x, q.y - T.y));
+  for (const th of near) {
+    const h = th.tree ? th.tree.h : th.bm.h, w = (th.tree ? th.tree.w : th.bm.w) / 2 + (th.tree && !th.tree.low ? 8 : 2);
+    if (th.x + w < b.x0 || th.x - w > b.x1 || th.y + 8 < b.y0 || th.y - h - 4 > b.y1) continue;
+    // Cut the side that loses the least.
+    const cuts = [{ ...b, x0: th.x + w }, { ...b, x1: th.x - w }, { ...b, y1: th.y - h - 4 }, { ...b, y0: th.y + 8 }].filter(c => c.x1 - c.x0 >= 40 && c.y1 - c.y0 >= 16);
+    if (!cuts.length) continue;
+    Object.assign(b, cuts.reduce((p, q) => (q.x1 - q.x0) * (q.y1 - q.y0) > (p.x1 - p.x0) * (p.y1 - p.y0) ? q : p));
+  }
+  return b;
+})(), LEFT = HOME, ROOF = { x: KIOSK.x, y: KIOSK.y + 1, h: 25 };
 
 export const TRICKS = ['sit', 'groom', 'roll', 'bat', 'loaf', 'stretch', 'sleep'];
 
@@ -94,8 +108,8 @@ export function makeCats() {
   const S = {}; for (const n of ['tortie', 'nebel']) { S[n] = {}; for (const p in POSES) S[n][p] = build(n, POSES[p]); }
   const rand = rng((Date.now() >>> 0) % 100000 + 7);
   const cats = [
-    { id: 'tortie', x: T.x - 14, y: T.y + 18, flip: false, st: 'sit', t0: 0, dur: 3, k: 0 },
-    { id: 'nebel', x: T.x + 22, y: T.y + 16, flip: true, st: 'loaf', t0: 0, dur: 5, k: 1 }
+    { id: 'tortie', x: clamp(T.x - 14, HOME.x0, HOME.x1), y: clamp(T.y + 18, HOME.y0, HOME.y1), flip: false, st: 'sit', t0: 0, dur: 3, k: 0 },
+    { id: 'nebel', x: clamp(T.x + 22, HOME.x0, HOME.x1), y: clamp(T.y + 16, HOME.y0, HOME.y1), flip: true, st: 'loaf', t0: 0, dur: 5, k: 1 }
   ];
   const fx = [];   // hearts, notes and Zs that float up from a cat
   let fly = null, wasHome = true, greeted = -99, lastT = 0, narrow = false, floor = HOME.y1;
@@ -179,7 +193,7 @@ export function makeCats() {
       if (fly) { const up = fly.gone ? (t - fly.gone) * 22 : 0, x = Math.round(fly.x - ox + 3 * Math.sin(t * 2.3) + up * 0.6), y = Math.round(fly.y - oy + 2 * Math.sin(t * 3.1) - up), open = Math.floor(t * 9) & 1; scr.set(x, y, INK); scr.set(x - 1, y, R.blaze[2]); scr.set(x + 1, y, R.blaze[2]); if (open) { scr.set(x - 1, y - 1, R.blaze[1]); scr.set(x + 1, y - 1, R.blaze[1]); } }
     },
     // The two boxes the cats keep to, for the debug panel.
-    areas: () => [HOME, LEFT],
+    areas: () => [HOME],
     // For the workbench: put a cat into a state by name.
     force(id, st, t, extra) { go(cats.find(q => q.id === id), st, t, extra); },
     pick(wx, wy) {
