@@ -473,7 +473,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [x] F7. `prefers-reduced-motion`: cuts, no eases.
 - [x] F8. Phone upright: opens on the Trailhead with the Spires above; pinch works; the sign leaves the Spires visible.
 - [x] F9. Zoom limits: out to the whole map, in to twice the travelling size. Never past the point where the map fills the screen (TJ's bug, 2026-11-15): zoomed out until the screen is taller than the map, the view centres the map and fills the space below its bottom edge with an upside-down copy of the map's lowest rows (a dark mirrored sea and trails), and the ferry is cut off at that edge because nothing is drawn below it. TJ chose to limit the zoom so nothing past the map's edges ever shows, done here in F.
-- [ ] **CHECKPOINT 2.** Branch `pixel-r4-map`, publish a new artifact, carry on. The old wall, lake and camp scenes still run behind the new map (the wall recoloured to Proficiency Peak's granite, nothing more).
+- [x] **CHECKPOINT 2.** Branch `pixel-r4-map`, publish a new artifact, carry on. The old wall, lake and camp scenes still run behind the new map (the wall recoloured to Proficiency Peak's granite, nothing more).
 
 ### G. The larch basin scene (new, side-on, on the way to Proficiency Peak)
 
@@ -590,6 +590,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 | Working build, republished after each item (not a checkpoint) | `pixel-round4-opus` | https://claude.ai/artifact/QzAfYnTZGZr8L8wfh1EksH | 2026-11-15 |
 | Quality pass (section Q, Opus; not a checkpoint): mist back, Mount Monolith and the ranges redrawn, zoom out, opening view B | `pixel-r4-opus-quality` | https://claude.ai/artifact/Lx1MmJoRyTzRERRHwWL28f | 2026-11-15 |
 | 2a: the game runs on the new land (and the opening view candidates, `plan/opening-r4.html`) | `pixel-r4-land` | https://claude.ai/artifact/WVKKSA9g8uC5PDePJhjXnk and https://claude.ai/artifact/XsZEi9AqXxgXo9FNgHm9LP | 2026-11-15 |
+| 2: the whole map with its events, smooth zoom, the closer opening and its look round, the old scenes behind it | `pixel-r4-map` (branch) | https://claude.ai/artifact/USrZi6317Qi7j7AYQamUBu | 2026-11-16 |
 
 ## 8a. Where the build stands (2026-11-15, commit after `204dc5b`)
 
@@ -631,6 +632,8 @@ What the port needed, found by reading the code, kept for what is left:
 7. The bake (`bake.sh`, `loadBake`) must hold the ground, the depth and enough of the heights to place things, or the page takes seconds to be ready.
 
 TJ's standing rule is planning on Fable and building on Opus. The land was built on Fable in the session that planned it. The port is building work.
+
+**CHECKPOINT 2 (Opus, 2026-11-16; branch `pixel-r4-map` at `bf667ba`, https://claude.ai/artifact/USrZi6317Qi7j7AYQamUBu).** Sections D, E and F are done: the destinations and their countries, every timed event on the map with a start button each, and the camera. The zoom is continuous with no jump (F4); the page opens at twice one-to-one on a frame chosen by rule and, left alone, looks round at each destination (F5a); setting out and coming home hand the view over in 2 seconds (F6); reduced motion cuts every ease (F7); the phone opens with the Trailhead above its sign (F8); nothing past the map's foot shows, only ink under the bar and the sign (F9). The old wall, lake and camp scenes still run behind the map, the wall now in Proficiency Peak's grey granite. Still below round 3: the opening cannot hold all three places at once on a 1440 by 900 window or a phone (the look round is the answer, not a match), and the side scenes are round 3's until sections G onward. Frame time: about 9 ms at the opening and 13.8 ms zoomed all the way out by `frames.sh` (with its own 4 to 5 ms). Next: section G, the larch basin scene.
 
 ## 9. Calls made in round 4
 
