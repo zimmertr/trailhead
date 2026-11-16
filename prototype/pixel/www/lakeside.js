@@ -322,10 +322,13 @@ function buildLakeside() {
     pick(sx, sy) {
       const wx = sx + last.camX, wy = sy - last.base;
       if (Math.abs(wx - signX) < 8 && wy > g(signX) - 22 && wy < g(signX) - 2) return { label: NAMES.lakeside.sign, x: signX - last.camX, y: last.base + g(signX) - 24 };
-      if (Math.abs(wx - xMarmot) < 13 && wy > shore(xMarmot) - 32 && wy < shore(xMarmot) + 6) return { label: NAMES.lakeside.marmot, x: xMarmot - last.camX, y: last.base + shore(xMarmot) - 30, act: 'marmot' };
       const ax = Math.abs(sx - last.isle[0]), ay = sy - last.isle[1], onIsle = ay < 2 && (ay > -9 ? ax < 30 : ay > -42 && ax < 13);
-      // While he is out there, he and the island call him back. Otherwise the island and the water send him out.
-      if (swim > 0) return dir > 0 && (onIsle || (Math.abs(sx - last.me[0]) < 10 && sy > last.me[1] - 30 && sy < last.me[1] + 4)) ? { label: NAMES.lakeside.back, x: sx, y: sy - 6, act: 'back' } : null;
+      // While he is out there, he and the island call him back. Asked first, since from some spots on the
+      // shore the island stands right above the marmot's rock and a tap on it would wake the marmot instead.
+      if (swim > 0 && dir > 0 && (onIsle || (Math.abs(sx - last.me[0]) < 10 && sy > last.me[1] - 30 && sy < last.me[1] + 4))) return { label: NAMES.lakeside.back, x: sx, y: sy - 6, act: 'back' };
+      if (Math.abs(wx - xMarmot) < 13 && wy > shore(xMarmot) - 32 && wy < shore(xMarmot) + 6) return { label: NAMES.lakeside.marmot, x: xMarmot - last.camX, y: last.base + shore(xMarmot) - 30, act: 'marmot' };
+      // Otherwise the island and the water send him out.
+      if (swim > 0) return null;
       if (last.reach && (onIsle || (wy > FAR + 2 && wy < shore(wx) - 1))) return { label: NAMES.lakeside.swim, x: sx, y: sy - 6, act: 'swim' };
       return null;
     },
