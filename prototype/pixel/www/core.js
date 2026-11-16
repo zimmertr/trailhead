@@ -267,11 +267,19 @@ class Screen {
     const S0 = this.S0 = this.fixed ? 1 : Math.max(1, Math.min(Math.floor(Hd / 290), Math.floor(Wd / 280)));
     const S = this.S = this.fixed ? 1 : this.want || S0;
     const VW = this.VW = this.fixed ? this.fixed[0] : Math.ceil(Wd / S), VH = this.VH = this.fixed ? this.fixed[1] : Math.ceil(Hd / S);
-    this.canvas.width = VW; this.canvas.height = VH;
+    // The frame and the canvas are kept at the largest size asked for so far (capW by capH) and only their
+    // top-left VW by VH is drawn and shown, so a zoom, which changes the size every frame, reallocates
+    // nothing once it has been out that far (F2). Name tags and taps read S and the top-left corner, as before.
+    const grow = this.fixed || !this.capW || VW > this.capW || VH > this.capH;
+    if (grow) { this.capW = this.fixed ? VW : Math.max(this.capW || 0, VW); this.capH = this.fixed ? VH : Math.max(this.capH || 0, VH);
+      this.canvas.width = this.capW; this.canvas.height = this.capH; this.buf = new Uint8Array(this.capW * this.capH); this.img = this.ctx.createImageData(this.capW, this.capH); this.u32 = new Uint32Array(this.img.data.buffer); }
+    // What lies past the view in a canvas kept bigger than it is cleared, so a glide that shrinks the picture shows black there, not an old frame.
+    else if (VW < this.lastVW || VH < this.lastVH) this.ctx.clearRect(0, 0, this.capW, this.capH);
+    this.lastVW = VW; this.lastVH = VH;
     // The map may be shown at any size, not only whole pixels. Smaller than one screen pixel to a pixel,
     // the picture is smoothed rather than having pixels dropped.
-    if (!this.fixed) { this.canvas.style.width = (VW * S / dpr) + 'px'; this.canvas.style.height = (VH * S / dpr) + 'px'; this.canvas.style.imageRendering = S < 1 ? 'auto' : ''; }
-    this.fb = new Uint8Array(VW * VH); this.img = this.ctx.createImageData(VW, VH); this.u32 = new Uint32Array(this.img.data.buffer);
+    if (!this.fixed) { this.canvas.style.width = (this.capW * S / dpr) + 'px'; this.canvas.style.height = (this.capH * S / dpr) + 'px'; this.canvas.style.imageRendering = S < 1 ? 'auto' : ''; }
+    this.fb = this.buf.subarray(0, VW * VH);
     this.lastLut = -1;
     // A tall, narrow view (a phone held upright) has its panels across the bottom, so scenes
     // keep the action in the upper part.
@@ -373,9 +381,10 @@ class Screen {
       }
       lut[0] = lut[BLACK] = 0xff000000;
     }
-    const { fb, u32 } = this;
-    for (let i = 0; i < fb.length; i++) u32[i] = lut[fb[i]];
-    this.ctx.putImageData(this.img, 0, 0);
+    const { fb, u32, VW, VH, capW } = this;
+    if (VW === capW) for (let i = 0; i < fb.length; i++) u32[i] = lut[fb[i]];
+    else for (let y = 0; y < VH; y++) for (let s = y * VW, d = y * capW, e = s + VW; s < e; s++, d++) u32[d] = lut[fb[s]];
+    this.ctx.putImageData(this.img, 0, 0, 0, 0, VW, VH);
   }
 }
 const BLACK = 255;

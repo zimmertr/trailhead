@@ -84,8 +84,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // picture starts enlarged to where the old one was and settles.
   const GLIDE = 190;
   function snapshot() {
-    const c = document.createElement('canvas'); c.width = canvas.width; c.height = canvas.height; c.getContext('2d').drawImage(canvas, 0, 0);
-    c.style.cssText = 'position:fixed;left:0;top:0;z-index:0;pointer-events:none;image-rendering:pixelated;transform-origin:0 0;width:' + canvas.style.width + ';height:' + canvas.style.height;
+    // Only the part in view: the canvas may be kept bigger than the view (F2).
+    const c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1; c.width = scr.VW; c.height = scr.VH; c.getContext('2d').drawImage(canvas, 0, 0, scr.VW, scr.VH, 0, 0, scr.VW, scr.VH);
+    c.style.cssText = 'position:fixed;left:0;top:0;z-index:0;pointer-events:none;image-rendering:pixelated;transform-origin:0 0;width:' + (scr.VW * scr.S / dpr) + 'px;height:' + (scr.VH * scr.S / dpr) + 'px';
     return c;
   }
   function startGlide(g) {
