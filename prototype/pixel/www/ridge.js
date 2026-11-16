@@ -314,6 +314,19 @@ function gearOn(p) {
   if (p === 5) out.push({ d: MARK.bolt, kind: 'bolt', fixed: true });
   return out.sort((a, b) => a.d - b.d);
 }
+// Where the leader falls (H8): on the pitch with the longest run-out above its last piece on the face
+// (the slab), halfway up it. On a slab he slides rather than drops, and with nothing but the piton and
+// its backup at the slab's foot (TJ, section 5) he slides all the way down to them and hangs there,
+// just above the ledge, sitting in his harness with his feet on the rock.
+const FALL = (() => {
+  let best = null;
+  for (let p = 1; p <= 5; p++) {
+    const last = Math.max(...gearOn(p).map(g => g.d)); let e = last;
+    while (e < MARK[PITCH[p]] && posAt(e).where === 's') e++;
+    if (!best || e - last > best.run) best = { p, last, run: e - last };
+  }
+  return { p: best.p, from: best.last + 0.5 * best.run, to: best.last + 2 };
+})();
 // Where the woman slips once and is held (H7): the steepest stretch she follows on a pitch where TJ
 // belays her from above (pitches 2 to 5), halfway up it; ties go to the first.
 const SLIP = (() => {
@@ -331,7 +344,7 @@ const SLIP = (() => {
 const ANCHOR_KIT = { a1: ['block', 'cam', 'cam'], a2: ['horn', 'horn'], a3: ['cam', 'cam', 'cam'], a4: ['horn', 'cam', 'nut'], top: ['block'] };
 function makeScript() {
   const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [], anc = [];
-  let slipAt = -1;
+  let slipAt = -1, fallAt = -1;
   const pos = { tj: 0, lead: MARK.tie, red: dAtX(183) }, pose = { tj: 'walk', lead: 'rack', red: 'sit' }, clock = { tj: 0, lead: 0, red: 0 };
   const go = (k, to, p, dur, after) => { tr[k].push({ t0: clock[k], t1: clock[k] + dur, d0: pos[k], d1: to, pose: p }); clock[k] += dur; pos[k] = to; pose[k] = after || p; };
   const move = (k, to, p, v, after) => go(k, to, p, Math.max(0.8, Math.abs(to - pos[k]) / v), after);
@@ -355,11 +368,21 @@ function makeScript() {
       move('lead', Math.max(pos.lead, g.d - 15), 'lead', SPEED.lead); const s = clock.lead;
       go('lead', pos.lead, 'place', g.fixed ? 0.6 : 1.2); pro.push({ ...g, p, t0: s, t: s + (g.fixed ? 0 : 0.7), clip: s + (g.fixed ? 0.35 : 0.95), gone: Infinity });
     }
+    // On FALL's pitch he runs it out, comes off, slides down the slab past his last pieces until the rope
+    // comes tight on them, hangs, shakes out, and goes again.
+    if (p === FALL.p) {
+      move('lead', FALL.from, 'lead', SPEED.lead); fallAt = clock.lead;
+      go('lead', lerp(FALL.from, FALL.to, 0.35), 'fall', 0.35); go('lead', FALL.to, 'fall', 0.3);
+      go('lead', FALL.to, 'hang', 2.2); go('lead', FALL.to, 'rest', 1.6);
+    }
     // The anchor: each piece in turn, then the slings brought to one locking carabiner (te), then he
     // ties in to it and takes the followers in.
     move('lead', a, 'lead', SPEED.lead);
     { const kinds = ANCHOR_KIT[PITCH[p]], s0 = clock.lead; go('lead', a, 'anchor', 0.7 * kinds.length + 1.3, 'tbelay'); anc.push({ m: PITCH[p], kinds, t0: s0, te: s0 + 0.5 + 0.7 * kinds.length, gone: Infinity }); }
-    pose.tj = 'belay'; hold('tj', clock.lead); ropes.push({ a: 'tj', b: 'lead', t0, t1: clock.lead });
+    pose.tj = 'belay';
+    // TJ holds the fall: braced, leaning back, looking up the rope.
+    if (p === FALL.p) { hold('tj', fallAt + 0.5); go('tj', pos.tj, 'catch', 2.2, 'belay'); }
+    hold('tj', clock.lead); ropes.push({ a: 'tj', b: 'lead', t0, t1: clock.lead });
     const t1 = sync(), mine = pro.filter(g => g.p === p);
     // The woman comes last and takes the gear out as she reaches it; at the piton and the bolt she
     // only unclips the carabiner, and they stay in the rock.
@@ -398,7 +421,7 @@ function makeScript() {
     }
   }
   sync(); pose.tj = pose.lead = pose.red = 'stand'; for (const k of WHO) go(k, pos[k], 'stand', 4);
-  return { tr, ropes, stops, pro, anc, slipAt, bumpAt, dropAt: tr.tj[1].t0 + 0.5, dur: clock.tj };
+  return { tr, ropes, stops, pro, anc, slipAt, fallAt, bumpAt, dropAt: tr.tj[1].t0 + 0.5, dur: clock.tj };
 }
 const SCRIPT = makeScript(), DUR = SCRIPT.dur;
 // Each of them at a moment: where along the line, in what pose, how far through it, whether moving;
@@ -418,7 +441,7 @@ const META = {
   stops: () => SCRIPT.stops.map(s => ({ id: s.id, at: s.t / DUR })),
   elev: (arg, q) => posAt(stateAt(q * DUR).tj.d).h,
   // The fist bump, and a click of metal as each piece goes in.
-  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' }))]
+  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' }))]
 };
 
 // Every drawing one of them needs, in their own kit. On the ground: walking, standing, crouched,
@@ -444,10 +467,11 @@ function kitFrames(kit) {
     anchor: [0, 1].map(f => backFig(kit, { hands: [[-4, -14 + f], [4, -13 - f]], feet: [[-3, 12], [3, 12]] })),
     clean: [backFig(kit, { hands: [[-5, -13], [5, -9]], feet: [[-4, 12], [4, 11]] }), backFig(kit, { hands: [[-5, -13], [4, 1]], feet: [[-4, 12], [4, 11]], tool: holding(true) })],
     fall: [0, 1].map(f => backFig(kit, { hands: [[-8, -13 - f], [8, -14]], feet: [[-7, 9], [7, 8 + f]], tilt: 1 })),
-    // Shaking out an arm, hanging on the rope with both hands on it, and bracing to hold a fall.
+    // Shaking out an arm, hanging on the rope (sitting in the harness, knees up, feet on the rock, both
+    // hands on the rope), and bracing to hold a fall.
     rest: [0, 1].map(f => backFig(kit, { hands: [[-5, -13], [6 + f, 3 - f * 2]], feet: [[-4, 12], [4, 11]] })),
-    hang: backFig(kit, { hands: [[-2, -15], [2, -13]], feet: [[-4, 13], [3, 14]] }),
-    catch: sideFig(kit, { lean: -1, crouch: 2, look: 'down', hands: [[4, 4], [1, 8]] })
+    hang: backFig(kit, { hands: [[-2, -17], [3, -15]], feet: [[-6, 7], [5, 8]], tilt: -1 }),
+    catch: { down: sideFig(kit, { lean: -1, crouch: 2, look: 'down', hands: [[4, 4], [1, 8]] }), up: sideFig(kit, { lean: -2, crouch: 2, look: 'up', hands: [[4, 0], [1, 7]] }) }
   };
 }
 // A piece of gear on the rock: a cam's lobes across the crack with its sling hanging below, a tiny cam,
@@ -484,6 +508,16 @@ function anchorPiece(scr, q, kind, cx, rowOf) {
 function strap(scr, x0, y0, x1, y1, ramp) {
   const n = Math.max(1, Math.abs(x1 - x0), Math.abs(y1 - y0));
   for (let k = 0; k <= n; k++) { const x = Math.round(lerp(x0, x1, k / n)), y = Math.round(lerp(y0, y1, k / n)); scr.set(x, y + 1, ramp[0]); scr.set(x, y, ramp[ramp.length - 1]); }
+}
+// Grit sliding down the slab from where he came off: six grains, each a little behind the one before,
+// running down the slab beside his line faster and faster: tan chips of dirt and crystal, two pixels
+// square (dark ones vanished into the slab's own speckle).
+function grit(scr, e, cx, rowOf) {
+  for (let i = 0; i < 6; i++) {
+    const t = e - i * 0.08; if (t < 0) continue;
+    const p = posAt(FALL.from - 2 - 55 * t * t), x = Math.round(p.x + 9 + (i % 3) * 2) - cx, y = rowOf(p.h + 4 + (i & 1) * 2);
+    for (const [dx, dy, c] of [[0, 0, 1], [1, 0, 1], [0, 1, 0], [1, 1, 0]]) scr.set(x + dx, y + dy, R.dirt[c]);
+  }
 }
 // A pack lying on its side under the overhang, in its owner's colour.
 function makePack(ramp) {
@@ -559,7 +593,7 @@ function buildRidge() {
       // The camera holds on whoever is on the live end of a rope (between the two of them on pitch 1, and
       // between climber and belayer while someone hangs on the rope, so the catch is seen),
       // so it does not jump back to the belayer each time the climber stops; him the rest of the time.
-      const held = r => S[r.b].pose === 'slip' || S[r.b].pose === 'hang', mid = (p, q) => ({ x: (p.x + q.x) / 2, h: (p.h + q.h) / 2 });
+      const held = r => S[r.b].pose === 'slip' || S[r.b].pose === 'hang' || S[r.b].pose === 'fall', mid = (p, q) => ({ x: (p.x + q.x) / 2, h: (p.h + q.h) / 2 });
       const ends = S.ropes.length ? S.ropes.map(r => held(r) ? mid(posAt(S[r.a].d), posAt(S[r.b].d)) : posAt(S[r.b].d)) : [posAt(S.tj.d)], at = { x: ends.reduce((a, p) => a + p.x, 0) / ends.length, h: ends.reduce((a, p) => a + p.h, 0) / ends.length };
       camX += (at.x - camX) * k; camH += (at.h - camH) * k;
       const base = baseline(scr, env.shown && !String(env.shown).startsWith('wait:'), st) - Math.round(VH * (scr.narrow ? 0.2 : 0.24)), cx = clamp(Math.round(camX - VW * (scr.narrow ? 0.5 : 0.45)), 0, W - VW), rowOf = hh => Math.round(base + camH - hh);
@@ -598,7 +632,8 @@ function buildRidge() {
         if (s.pose === 'rest') { scr.put(fr.rest[Math.floor(t * 4) & 1], sx, sy - 12, false); return; }
         if (s.pose === 'slip') { scr.put(fr.fall[Math.floor(t * 20) & 1], sx, sy - 12, false); return; }
         if (s.pose === 'hang') { scr.put(fr.hang, sx, sy - 12, false); return; }
-        if (s.pose === 'catch') { const r = S.ropes.find(r => r.a === w), c = r && P[r.b]; scr.put(fr.catch, sx, sy, c ? c.x < s.x : true); return; }
+        // Holding a fall from below lifts him off his feet a moment as the rope comes tight (round 3's catch).
+        if (s.pose === 'catch') { const r = S.ropes.find(r => r.a === w), c = r && P[r.b]; const up = c && c.h > s.h; scr.put(fr.catch[up ? 'up' : 'down'], sx, sy - (up && u < 0.2 ? 2 : 0), c ? c.x < s.x : true); return; }
         if (s.pose === 'unclip') { scr.put(fr.clean[0], sx, sy - 12, false); return; }
         if (s.pose === 'clean') { scr.put(fr.clean[u < 0.55 ? 0 : 1], sx, sy - 12, false); return; }
         if (s.pose === 'anchor') { scr.put(fr.anchor[flick], sx, sy - 12, false); return; }
@@ -624,9 +659,9 @@ function buildRidge() {
       // behind the crest, over the crest along its upper hull.
       for (const r of S.ropes) {
         const a = P[r.a], c = P[r.b], lo = Math.min(a.d, c.d), hi = Math.max(a.d, c.d);
-        // A leader's rope also runs up to the piece he has just clipped above his waist and back down.
-        const top = c.pose === 'lead' || c.pose === 'place' ? hi + 20 : hi;
-        const via = []; for (let i = 0; i < pro.length; i++) if (lit(i) && pro[i].d > lo && pro[i].d < (c.d > a.d ? top : hi)) via.push(i);
+        // A leader's rope also runs up to the piece he has just clipped above his waist and back down,
+        // and after a fall up to the pieces that held him and back down to where he hangs.
+        const via = []; for (let i = 0; i < pro.length; i++) if (lit(i) && pro[i].d > lo && pro[i].d < (c.d > a.d ? hi + 80 : hi)) via.push(i);
         via.sort((i, j) => (pro[i].d - pro[j].d) * (c.d > a.d ? 1 : -1));
         const onRock = c.pose === 'lead' || c.pose === 'climb' || c.pose === 'place' || c.pose === 'clean' || c.pose === 'unclip' || c.pose === 'rest' || c.pose === 'slip' || c.pose === 'hang';
         const ends = [{ d: a.d, x: Math.round(a.x) + (c.x > a.x ? 5 : -5), h: a.h + 9 }, ...via.map(i => ({ d: pro[i].d, x: SPOT[i].x, h: SPOT[i].bi })), { d: c.d, x: Math.round(c.x), h: c.h + (onRock ? 12 : 9) }];
@@ -683,6 +718,8 @@ function buildRidge() {
         const e = smooth(g.t0 + 0.4, g.t, tau), hx = Math.round(P.lead.x) + 6, hh = P.lead.h + 27;
         drawPiece(scr, Math.round(lerp(hx, sp.x, e)) - cx, rowOf(Math.round(lerp(hh, sp.h, e))), g.kind, 0);
       }
+      // When he skates off the slab, grit his feet scraped loose skitters down it after him.
+      if (SCRIPT.fallAt > 0 && tau > SCRIPT.fallAt && tau < SCRIPT.fallAt + 1.6) grit(scr, tau - SCRIPT.fallAt, cx, rowOf);
       if (bumping) spark(scr, Math.round((P.tj.x + P.lead.x) / 2) - cx, rowOf(P.tj.h + 10), (P.tj.u - 0.45) * 0.8);
       const me = P.tj; focus.x = Math.round(me.x) - cx; focus.y = rowOf(me.h) - 14;
     }
