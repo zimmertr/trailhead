@@ -299,7 +299,9 @@ function colour(u, v, hh, x, y) {
     // east the same rock is a step paler and cleaner and holds less snow.
     const east = smooth(1240, 1600, u + 80 * (vnoise(u / 60, hh / 40, 840) - 0.5)), pale = bayer(x, y) < east * 0.9 ? 1 : 0;
     const flute = vnoise(x / 2.5, hh / 16, 813), rock = R.rock[clamp(Math.round(L * 2.6) + (flute > 0.64 ? 1 : flute < 0.34 ? -1 : 0), 0, 3) + pale], band = (x + (y >> 3) * 3) >> 2, row = hh / 7 + hash(band, 0, 814) * 7;
-    if (mat === 'crest') return hh > 62 + 34 * vnoise(x / 14, 3, 816) + 46 * east && vnoise(x / 5, hh / 11, 815) > 0.34 + 0.25 * smooth(110, 60, hh) + 0.2 * east ? R.snow[L > 0.55 ? 4 : L > 0.35 ? 3 : 2] : hh < 44 + 20 * vnoise(u / 20, v / 20, 827) ? pick('conifer', 0.2 + 0.5 * L, x, y) : rock;
+    // Snow lies in streaks down the gullies and on the ledges, more of it on the faces the light reaches.
+    const streak = 0.62 * vnoise(x / 2.6, hh / 18, 815) + 0.38 * vnoise(x / 8, hh / 8, 819), lie = 0.5 + 0.2 * smooth(120, 60, hh) + 0.18 * east - 0.16 * (L - 0.5) - 0.12 * smooth(1.2, 0.6, steep);
+    if (mat === 'crest') return hh > 62 + 34 * vnoise(x / 14, 3, 816) + 46 * east && streak > lie ? R.snow[L > 0.55 ? 4 : L > 0.35 ? 3 : 2] : hh < 44 + 20 * vnoise(u / 20, v / 20, 827) ? pick('conifer', 0.2 + 0.5 * L, x, y) : rock;
     // Snow gullies run up the wall from the ice to the notches between its summits.
     { const dx = (u - SP.cu) / SP.wide, up = hh - SP.base - under(SP.cu, SP.cv - 34) - 4; for (const [o, top, k] of GULLY) { const t = up / (top * SP.H); if (t > 0 && t < 1 && Math.abs(dx - o - 3 * Math.sin(hh / 9 + k)) < 1 + k * 0.5 + (3 + 2 * k) * sq(1 - t)) return R.snow[L > 0.4 ? 4 : 3]; } }
     if (steep < 0.9) return R.snow[L > 0.5 ? 4 : 3];
@@ -347,6 +349,8 @@ function colour(u, v, hh, x, y) {
     const slab = fbm(u / 22, v / 11, 96, 3);
     return slab > 0.4 ? pick('rock', 0.82 + 0.4 * (slab - 0.5) + 0.2 * n1, x, y, 0.7) : hash(u, v, 98) < 0.06 ? R.red[1] : pick('grass', 0.42 + 0.2 * n1, x, y, 0.4);
   }
+  // The ground behind the crest, glimpsed between its peaks against the sky, is more mountain, not meadow.
+  if (u > 760 && v > 684) return hh > 128 && vnoise(x / 3, hh / 12, 829) > 0.45 + 0.3 * smooth(1240, 1700, u) ? R.snow[L > 0.5 ? 4 : 3] : pick('rock', 0.3 + 0.45 * L + 0.15 * vnoise(x / 3, hh / 10, 97), x, y, 0.7);
   // Land. A step in it shows the rock of its own country.
   if (steep > 1.05) return dryAmt(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)]) : u > 1190 ? pick('rock', 0.36 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.15 * L, x, y, 0.7) : pick('rock', 0.12 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.2 * L, x, y, 0.7);
   const sh = (L - 0.5) * 0.5, blot = s => 0.5 + 0.85 * (fbm(u / 32, v / 21, s, 3) - 0.5) + 0.2 * n1;
@@ -369,15 +373,37 @@ for (let y = 0; y < SH; y++) for (let x = 0; x < NW; x++) g[px(x, y)] = skyAt(x,
 // The far ranges, which really are a backdrop: pale, beyond the last of the ground.
 function farRow(u0, u1, baseY, env, seed, snowy, list) {
   const r = rng(seed), peaks = list || []; if (!list) for (let cx = u0; cx < u1;) { const h = env(cx) * (0.75 + 0.5 * r()), w = h * (1.2 + 0.7 * r()); peaks.push([cx, h, w]); cx += w * (0.5 + 0.4 * r()); }
+  const F = R.far, FS = R.farsnow;
   for (let x = Math.max(0, u0 - 80); x < Math.min(NW, u1 + 80); x++) {
     let best = 0, bc = 0, bh = 1; for (const [cx, h, w] of peaks) { const t = h * Math.pow(Math.max(0, 1 - Math.abs(x - cx) / w), 0.85) + 1.5 * (vnoise(x / 4, cx, 700) - 0.5); if (t > best) { best = t; bc = cx; bh = h; } }
-    for (let y = Math.round(baseY - best); y <= baseY + 30 && y < SH; y++) { const d = y - (baseY - best), west = x < bc + (y - baseY + bh) * 0.12; g[px(x, y)] = d === 0 ? R.far[2] : snowy && d < bh * 0.55 ? (west ? R.farsnow[1] : R.farsnow[0]) : west ? R.far[3] : R.far[2]; }
+    // A row without snow is forested foothills: its skyline is a saw of tree tops.
+    if (!snowy) best += 2.2 * (1 - Math.abs(frac(x / 4 + 0.5 * hash(x >> 2, seed, 707)) - 0.5) * 2) - 1;
+    const top = Math.round(baseY - best);
+    for (let y = Math.max(0, top); y <= baseY + 30 && y < SH; y++) {
+      const d = y - top, dd = y - (baseY - bh), rel = dd / bh, b = bayer(x, y), side = x < bc ? -1 : 1;
+      // The main ridge runs down from each summit and wanders; spurs branch off it down both faces.
+      const rx = bc + dd * (0.1 + 0.18 * (hash(Math.round(bc), seed, 701) - 0.5)) + 6 * (vnoise(dd / 14, bc, 702) - 0.5), west = x < rx;
+      const spur = frac((x - rx) * 0.075 - side * dd * 0.055 + 0.35 * vnoise(x / 18, dd / 18, 703)), edge = spur < 0.1;
+      let c;
+      if (!snowy) c = d === 0 ? F[1] : (west ? (b < 0.7 ? F[2] : F[3]) : (b < 0.75 ? F[1] : F[2]));
+      else {
+        // Snow above a line that wanders, coming down lower in the gullies as glaciers; rock below,
+        // streaked with snow in its own gullies. Faces turned from the western light are blue.
+        const gully = vnoise(x / 10, dd / 16, 704), snowR = 0.46 + 0.12 * (vnoise(x / 30, seed, 705) - 0.5) + 0.22 * (0.5 - gully);
+        if (rel < snowR) c = west ? (edge ? F[3] : FS[1]) : (edge ? FS[1] : spur < 0.5 ? FS[0] : b < 0.5 ? FS[0] : F[3]);
+        else c = vnoise(x / 3, dd / 10, 706) > 0.66 ? FS[0] : west ? (edge ? F[3] : F[2]) : (edge ? F[2] : F[1]);
+        if (d === 0) c = F[1];
+      }
+      g[px(x, y)] = c;
+    }
   }
 }
 const HZ = SY - VD - 26;
 // The Legacy Range: a broad massif of several summits, with lower peaks in front of it and round it.
 farRow(0, 480, HZ - 22, null, 41, true, [[200, 86, 120], [128, 64, 90], [268, 70, 84], [330, 50, 80], [64, 48, 84], [4, 36, 80], [400, 34, 76]]);
 farRow(0, 600, HZ - 6, null, 45, false, [[40, 26, 60], [150, 22, 50], [245, 18, 40], [300, 28, 64], [430, 24, 60], [520, 30, 70]]);
+// A nearer rank of forested foothills, lower, so the range rises out of ridges of trees.
+farRow(0, 560, HZ + 6, null, 46, false, [[90, 16, 60], [210, 12, 50], [330, 17, 70], [470, 14, 60]]);
 farRow(520, 1700, HZ + 20, x => 46 + 20 * vnoise(x / 90, 2, 43), 43, true);
 farRow(1640, NW + 40, HZ + 24, x => 26, 44, false);
 // The ground and the mountains, one column at a time from the near edge to the far one. A spot is
@@ -533,7 +559,7 @@ const slope = (u, v) => Math.hypot(hAt(u + 2, v) - hAt(u - 2, v), hAt(u, v + 2) 
 const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && coast(u, v) < -32 && !lakeAt(u, v) && !water[at(Math.round(u), Math.round(v))] && !wet8(Math.round(u), Math.round(v)) && slope(u, v) < max && !nearTrail(u, v, 9) && Math.hypot(u - TU, (v - TV) * 1.4) > 46;
 {
   const rand = rng(2026), any = a => a[(rand() * a.length) | 0], land = (u, v) => MATS[mg[at(Math.round(u), Math.round(v))]] === 'land';
-  const wooded = (u, v) => { const i = at(Math.round(u), Math.round(v)), m = MATS[mg[i]], h = hg[i]; return m === 'land' ? h < 100 : m === 'volc' ? VP(Math.min(1, vrelief(u, v).d)) < 0.17 + 0.05 * vnoise(u / 30, v / 30, 588) : m === 'crest' ? h < 48 : false; };
+  const wooded = (u, v) => { const i = at(Math.round(u), Math.round(v)), m = MATS[mg[i]], h = hg[i]; return m === 'land' ? h < 100 && !(u > 760 && v > 684) : m === 'volc' ? VP(Math.min(1, vrelief(u, v).d)) < 0.17 + 0.05 * vnoise(u / 30, v / 30, 588) : m === 'crest' ? h < 48 : false; };
   const maples = Array.from({ length: 6 }, (_, i) => makeMaple(100 + i)), spruces = Array.from({ length: 6 }, (_, i) => makeSpruce(200 + i)), firs = Array.from({ length: 8 }, (_, i) => makeFir(300 + i));
   const bigleaf = Array.from({ length: 4 }, (_, i) => blobTree(800 + i, i & 1 ? 'larch' : 'sun', 36 + i * 2, 'bark', 5, 5.5));
   const larches = Array.from({ length: 6 }, (_, i) => { const r = rng(900 + i); return makeConifer(900 + i, 24 + (r() * 14 | 0), 10 + (r() * 4 | 0), 'larch', 6); });
@@ -564,7 +590,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   }
   for (let n = 0; n < 5200; n++) {
     const u = C.LB[0] - C.LB[2] - 50 + rand() * (C.LB[2] * 2 + 100), v = C.LB[1] - C.LB[3] - 40 + rand() * (C.LB[3] * 2 + 80), m = MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]], hi = m === 'gran';
-    if (m === 'fin' || rand() > larchAmt(u, v) * (hi ? (hAt(u, v) > 98 ? 0.16 : 0.5) : 0.8) || fbm(u / 40, v / 30, 120, 3) < (hi ? 0.5 : 0.52) || !open(u, v, 0.7)) continue;
+    if (m === 'fin' || m === 'crest' || rand() > larchAmt(u, v) * (hi ? (hAt(u, v) > 98 ? 0.16 : 0.5) : 0.8) || fbm(u / 40, v / 30, 120, 3) < (hi ? 0.5 : 0.52) || !open(u, v, 0.7)) continue;
     if (rand() < burnAmt(u, v) * 1.2) { if (rand() < 0.4) put(any(snags), u, v); continue; }
     plant(any(larches), u, v);
   }
