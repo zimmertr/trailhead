@@ -8,9 +8,11 @@ import { makeCritters } from './critters.js';
 import { makeEvents } from './events.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, loadBake, NW as WW, NH as WH, VD, T } from './land.js';
-// The height of the timeline bar in page pixels (32 of its own pixels), read again only when the page is resized.
+// How much of the bottom of the window the timeline bar covers, in page pixels: from its top edge down, measured
+// from its layout once it shows (F9; 32 of its own pixels, the old guess, was a third too tall on a big window and
+// let rows past the map's foot show above it). Read again only when the page is resized or the bar comes or goes.
 let barAt = -1, barH = 0;
-const barCss = () => { if (barAt !== innerWidth * 1e4 + innerHeight) { barAt = innerWidth * 1e4 + innerHeight; barH = 32 * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) || 2); } return barH; };
+const barCss = () => { const el = document.getElementById('bar'), up = !!el && !el.hidden && el.offsetHeight > 0, key = (innerWidth * 1e4 + innerHeight) * 2 + (up ? 1 : 0); if (barAt !== key) { barAt = key; barH = up ? innerHeight - el.offsetTop : 32 * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) || 2); } return barH; };
 // The opening frame (F5a). At twice one-to-one the Trailhead and the three destinations rarely all fit, so
 // the frame is the one that shows the most destination names, then the largest share of each destination's
 // country (each counts the same, however big), with the Trailhead and its name in view above the timeline bar. Ground under the junction

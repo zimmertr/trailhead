@@ -96,6 +96,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     c.style.cssText = 'position:fixed;left:0;top:0;z-index:0;pointer-events:none;image-rendering:pixelated;transform-origin:0 0;width:' + (scr.VW * scr.S / dpr) + 'px;height:' + (scr.VH * scr.S / dpr) + 'px';
     return c;
   }
+  // Below the map's foot (F9). The view may go past it only by what the timeline bar (and on a phone the junction
+  // sign) covers, so the foot can come up above them; what shows in the gaps round their planks is plain ink, the
+  // frame's colour, never the copy of the map's lowest rows that used to be drawn there.
+  function pastFoot() { const o = world.at(0, 0), y0 = Math.max(0, Math.ceil(world.WH - o.y)); if (y0 < scr.VH) scr.fb.fill(R.ink[0], y0 * scr.VW, scr.VH * scr.VW); }
   function startGlide(g) {
     const dpr = window.devicePixelRatio || 1, o1 = world.at(0, 0), S1 = scr.S, opts = { duration: GLIDE, easing: 'cubic-bezier(.22,.8,.3,1)', fill: 'forwards' };
     if (g.shot) {
@@ -287,6 +291,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     try {
       if (sabotage === drawn.s) throw new Error('Broken on purpose: ' + drawn.s);
       drawn.scene.draw(scr, env, drawn.arg, q);
+      if (drawn.s === 'world') pastFoot();
     } catch (err) { fail(drawn, err); return; }
     // The debug panel's tap targets: every other pixel that answers a tap or a hover, in any scene, goes pink.
     if (DEBUG.taps && !tr && drawn.scene.pick) { const { VW, VH, fb } = scr; for (let y = 0; y < VH; y++) for (let x = y & 1; x < VW; x += 2) if (drawn.scene.pick(x, y)) fb[y * VW + x] = R.pink[1]; }
