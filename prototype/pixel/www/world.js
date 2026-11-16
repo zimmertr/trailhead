@@ -503,8 +503,9 @@ export function makeWorld(bake) {
   };
   let past = 0, nowT = 0;
   const where = (leg, q) => { const P = paths[leg.path], a = P.at(lerp(leg.from, leg.to, q)), s = leg.to < leg.from ? -1 : 1; return { x: a.x, y: a.y, dx: a.dx * s, dy: a.dy * s, P }; };
-  const target = (scr, here) => {
-    const v = vista(scr), k = smooth(0, 60, Math.hypot(here.x - T.x, here.y - T.y));
+  const target = (scr, here, env) => {
+    // env.lead: the hand-off from the opening frame to following him, eased over 2 seconds in pixel.js (F6).
+    const v = vista(scr), k = !env || env.lead === undefined ? smooth(0, 60, Math.hypot(here.x - T.x, here.y - T.y)) : env.lead;
     return [lerp(v.x, here.x, k), lerp(v.y, here.y - 24, k)];
   };
 
@@ -560,7 +561,7 @@ export function makeWorld(bake) {
       if (env.home) facing = 'down';
 
       // Camera: the whole view from the Trailhead, then follow him.
-      let [tx, ty] = target(scr, here);
+      let [tx, ty] = target(scr, here, env);
       if (env.home && env.idle > 4 && !env.calm && Math.abs(env.look.x) + Math.abs(env.look.y) < 1) [tx, ty] = lookRound(scr, env.idle - 4, tx, ty);
       const damp = 1 - Math.exp(-dt * 3.2);
       cam.x += (tx - cam.x) * damp; cam.y += (ty - cam.y) * damp;

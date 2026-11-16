@@ -65,10 +65,17 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // zSet: the first change of size (from the page's own to the opening's) has happened. That one is not
   // anchored to the middle of the screen, so the opening view rests where the world frames it (E5h).
   let zT = 0, zC = 0, zAt = null, zLast = 0, zDir = 0, glide = null, zSet = false;
+  // The hand-off (F6). Setting out from the Trailhead, the view takes 2 seconds to go from the opening frame to
+  // following him and from the opening's size to the travelling size, while he is already running; coming home
+  // it does the same backwards. lead: 0 at home, 1 away (eased). A zoom of the visitor's own stops the size's
+  // part until the next hand-off (zUser).
+  const HAND = 2; let homeAt = 0, leadT = 0, leadTo = 0, zUser = false, zFrom = 0, zTo = 0;
+  const zOpen = () => scr.narrow ? scr.S0 : Math.min(scr.S0, 2 * (window.devicePixelRatio || 1));
   const calm = window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   const zoomRange = () => { const dpr = window.devicePixelRatio || 1, fit = Math.max(innerWidth * dpr / world.WW, innerHeight * dpr / world.WH); return [Math.min(scr.S0, fit), scr.S0 * 2]; };
   function zoomTo(z, at) {
     if (drawn.s !== 'world' || tr) return false;
+    zUser = true;
     const [lo, hi] = zoomRange(), was = zT || scr.S; zT = clamp(z, lo, hi); zAt = at || null; zLast = performance.now(); if (zT !== was) zDir = Math.sign(zT - was);
     return zT !== was;
   }
@@ -251,19 +258,26 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       // It opens at twice one-to-one (TJ, F5a: the one-to-one opening chosen at STOP 2a halved every movement
       // and turned the trees and destinations to noise), never larger than the travelling size; on a phone
       // held upright, at the size that suits it.
-      const [lo, hi] = zoomRange(); zT = clamp(zT || (scr.narrow ? scr.S0 : Math.min(scr.S0, 2 * (window.devicePixelRatio || 1))), lo, hi); if (!zC) zC = calm.matches ? zT : scr.S;
-      if (DEBUG.snap && dragging !== 'pinch' && performance.now() - zLast > 260 && zT > 1) { const w = zDir > 0 ? Math.ceil(zT - 0.15) : Math.floor(zT + 0.15); if (w >= lo && w <= hi) zT = w; }
+      const away = env.home ? 0 : 1;
+      if (away !== leadTo) { leadTo = away; zUser = false; zFrom = zT || zOpen(); zTo = away ? scr.S0 : zOpen(); }
+      leadT = calm.matches ? away : clamp(leadT + (away ? dt : -dt) / HAND, 0, 1);
+      const easing = leadT > 0 && leadT < 1 && !zUser; env.lead = leadT * leadT * (3 - 2 * leadT);
+      if (zT && !zUser && zSet) zT = away ? zFrom + (zTo - zFrom) * env.lead : zTo + (zFrom - zTo) * env.lead;
+      const [lo, hi] = zoomRange(); zT = clamp(zT || zOpen(), lo, hi); if (!zC) zC = calm.matches ? zT : scr.S;
+      if (DEBUG.snap && !easing && dragging !== 'pinch' && performance.now() - zLast > 260 && zT > 1) { const w = zDir > 0 ? Math.ceil(zT - 0.15) : Math.floor(zT + 0.15); if (w >= lo && w <= hi) zT = w; }
       zC = calm.matches ? zT : zC + (zT - zC) * (1 - Math.exp(-dt * 14)); if (Math.abs(zC - zT) < 0.003) zC = zT;
       if (zC !== scr.S) {
         const dpr = window.devicePixelRatio || 1, at = zAt || [innerWidth / 2, innerHeight / 2], w = world.at(at[0] * dpr / scr.S, at[1] * dpr / scr.S);
-        scr.setScale(zC); if (!tr && zSet) env.anchor = { wx: w.x, wy: w.y, sx: at[0] * dpr / zC, sy: at[1] * dpr / zC };
+        scr.setScale(zC); if (!tr && zSet && zUser) env.anchor = { wx: w.x, wy: w.y, sx: at[0] * dpr / zC, sy: at[1] * dpr / zC };
       }
     } else if (scr.S !== scr.S0) scr.setScale(scr.S0);
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
     env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
     env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
-    env.idle = env.home && dragging == null ? t - lastAct : 0; env.calm = calm.matches;
+    // Idle counts from his arrival home too, so the look round waits until the hand-off home has settled.
+    if (!env.home) homeAt = t;
+    env.idle = env.home && dragging == null ? t - Math.max(lastAct, homeAt) : 0; env.calm = calm.matches;
     if (env.moving || tr) stillAt = t;
     env.still = t - Math.max(stillAt, lastAct);
     // A scene that threw stays as it was last shown until the page has taken him somewhere else.
