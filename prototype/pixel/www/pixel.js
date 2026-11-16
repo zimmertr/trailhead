@@ -9,7 +9,8 @@ import { makeWorld, loadBake } from './world.js';
 const MAKERS = {
   forest: () => import('./forest.js').then(m => m.makeForest()),
   lakeside: () => import('./lakeside.js').then(m => m.makeLakeside()),
-  wall: () => import('./wall.js').then(m => m.makeWall()),
+  // ?ridge: the West Ridge being rebuilt (section H) in place of round 3's wall, until it can be climbed.
+  wall: () => new URLSearchParams(location.search).has('ridge') ? import('./ridge.js').then(m => m.makeRidge()) : import('./wall.js').then(m => m.makeWall()),
   camp: () => import('./camp.js').then(m => m.makeCamp()),
   climb: () => import('./climb.js').then(m => m.makeClimb()),
   offroute: () => import('./offroute.js').then(m => m.makeOffroute()),
