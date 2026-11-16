@@ -338,6 +338,25 @@ export function makeWorld(bake) {
   put(makeJournal(), spots.journal[0], spots.journal[1]); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
   if (spots.lookout) put(makeLookout(), spots.lookout[0], spots.lookout[1]);
   for (const [x, y, c] of spots.tents) put(makeTent(c), x, y);
+  // At Dusk the tents glow from inside (E8): the fabric warm, brightest low down and at the door.
+  const tentGlow = spots.tents.map(([x, y, c]) => { const b = makeTent(c); for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) { const k = j * b.w + i, v = b.d[k]; if (!v || v === INK) continue; b.d[k] = v === R.ink[0] || (j > b.h * 0.55 && bayer(i, j) < (j / b.h - 0.4) * 1.6) ? R.lamp[1] : R.lamp[0]; } return { b, x, y }; });
+  // Headlamps (E8): at Dusk a party of eight climbs the boot track from base camp up the Spires' glacier
+  // for an early start, already clear of camp when the light goes, two ropes of four, a step apart on the rope and a gap between the ropes, moving
+  // up for 6 s and stopping 4 s to rest, over and over; at the top of the track they fade out and the
+  // next party sets off from camp. A lamp turns away now and then and dims. Each climber is a dark figure
+  // under the light, since the snow still holds the afterglow and a light alone does not show on it.
+  // Hidden where the ground in front stands over the track.
+  const TRK = (() => { const P = W.trackUp || []; if (P.length < 2) return null; const s = [0]; for (let k = 1; k < P.length; k++) s.push(s[k - 1] + Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1])); return { P, s, L: s[s.length - 1] }; })();
+  const lampAt = d => { const { P, s } = TRK; let a = 0, b = s.length - 1; while (b - a > 1) { const m = (a + b) >> 1; if (s[m] < d) a = m; else b = m; } const q = (d - s[a]) / Math.max(1e-6, s[b] - s[a]); return [P[a][0] + (P[b][0] - P[a][0]) * q, P[a][1] + (P[b][1] - P[a][1]) * q, P[a][2] + (P[b][2] - P[a][2]) * q]; };
+  const GAP = [0, 5, 10, 15, 27, 32, 37, 42]; let duskT = null;
+  function headlamps(scr, ox, oy, t, mix) {
+    if (!TRK || mix < 0.5) { duskT = null; return; } if (duskT === null) duskT = t;
+    const r = Math.max(0, t - duskT - 4), cyc = Math.floor(r / 10), walk = cyc * 6 + Math.min(6, r - cyc * 10), lead = (50 + walk * 4) % (TRK.L + 60);
+    for (let k = 0; k < GAP.length; k++) { const d = lead - GAP[k]; if (d < 0 || d > TRK.L) continue; const [x, y, v] = lampAt(d), sx = Math.round(x) - ox, sy = Math.round(y) - 2 - oy;
+      if (sx < 0 || sy < 0 || sx >= scr.VW || sy >= scr.VH || W.depth[Math.round(y) * WW + Math.round(x)] < v - 4) continue;
+      const fade = smooth(TRK.L, TRK.L - 20, d) * smooth(0, 6, d) * smooth(0.5, 0.75, mix); if (bayer(sx + ox, sy + oy) > fade) continue;
+      const dim = hash(k, Math.floor(t * 1.3), 4901) < 0.12; scr.set(sx, sy + 1, INK); scr.set(sx, sy + 2, INK); scr.set(sx, sy, dim ? R.lamp[0] : R.lamp[1]); if (!dim) { const [ax, ay] = lampAt(Math.min(TRK.L, d + 3)); scr.set(Math.round(ax) - ox, Math.round(ay) - 2 - oy, R.lamp[0]); } }
+  }
   // The animals look after themselves: see critters.js. Where each one lives comes from land.js.
   const crit = makeCritters(W);
   const ev = makeEvents(W);
@@ -571,6 +590,8 @@ export function makeWorld(bake) {
       if (DEBUG.clouds && sky.drip > 0.02) drip(scr, ox, oy, t, sky, DRIPS, frontAt);
       if (DEBUG.clouds) { for (let k = 0; k < 4; k++) scr.blit(FAIR[k].bm, Math.round(fairX(k, t)) - FAIR[k].bm.ox - ox, FAIR[k].y - FAIR_ALT - FAIR[k].bm.oy - oy); }
       kit.drawOver(scr, ox, oy, t);
+      if (env.mix > 0.5) for (const g of tentGlow) { scr.put(g.b, g.x - ox, g.y - oy, false); for (let dx = -7; dx <= 7; dx++) for (let dy = 1; dy <= 2; dy++) if (bayer(g.x + dx, g.y + dy) < 0.4 * (1 - Math.abs(dx) / 8) * smooth(0.5, 0.8, env.mix)) scr.set(g.x + dx - ox, g.y + dy - oy, R.lamp[0]); }
+      headlamps(scr, ox, oy, t, env.mix);
       // Smoke from the stove at base camp, drifting off with the wind.
       for (let k = 0; k < 6; k++) {
         const age = frac(t * 0.35 + k / 6), x = Math.round(spots.tents[0][0] + 9 + age * 10 + Math.sin(age * 6 + k) * 1.5) - ox, y = Math.round(spots.tents[0][1] - age * 26) - oy;
