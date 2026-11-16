@@ -1187,6 +1187,9 @@ export const OX = 0, OY = 0;
 export const T = { x: C.T[0], y: LAND.toY(C.T[0], C.T[1]) };
 // The trail conditions board stands just north-east of the junction. The cats keep to it (cats.js).
 export const KIOSK = { x: C.T[0] + 28, y: LAND.toY(C.T[0] + 28, C.T[1] + 22) };
+// The trail register (L1) stands on the open meadow just west of the junction, level with him: far enough
+// out to clear the signpost's plank and the Trailhead's name tag over his head, short of the trail west.
+export const REG = { x: C.T[0] - 24, y: LAND.toY(C.T[0] - 24, C.T[1] + 2) };
 export async function loadBake() { return null; }
 // ---- where things live ----------------------------------------------------------------------------
 // Every sign and every animal on the map is placed by a rule read from the land: the kind of ground,
@@ -1313,7 +1316,7 @@ export function buildTerrain() {
   const H = habitat(), lake = C.lakes[0], peak = LAND.peak, sp = LAND.spires, shore = sxy(lake[0] + lake[2] + 8, lake[1] + 2);
   const flagOn = (x, v, kind) => { const y = LAND.toY(x, v); return { x: Math.round(x), y, lift: y - topOf(x, kind) }; };
   const spots = {
-    signpost: sxy(C.T[0] - 4, C.T[1] + 8), kiosk: [KIOSK.x, KIOSK.y],
+    signpost: sxy(C.T[0] - 4, C.T[1] + 8), kiosk: [KIOSK.x, KIOSK.y], register: [REG.x, REG.y],
     // Where a serac can break off (E4): the white top of a block in one of Mount Monolith's icefalls (its
     // serac blue just under snow), or the upper lip of the Spires' icefall (its glacier in glFall's
     // upper third), with ice or snow of the same ground for 40 pixels below to fall down. At least 46 apart; up to
@@ -1365,7 +1368,7 @@ export function buildTerrain() {
   const forestAmt = (x, y) => { const v = vAt(x, y); return v > VD ? 0 : LAND.forestAmt(x, v); };
   const coast = (x, y) => { const v = vAt(x, y); return v > VD ? -999 : LAND.coast(x, v); };
   // Nothing nearer stands in front of a sign's board or the trail conditions board.
-  for (const [sx, sy, , half = 7] of [...spots.signs, [KIOSK.x, KIOSK.y, 'kiosk', 15], ...(spots.lookout ? [[...spots.lookout, 'lookout', 9]] : [])]) for (let i = LAND.things.length - 1; i >= 0; i--) {
+  for (const [sx, sy, , half = 7] of [...spots.signs, [KIOSK.x, KIOSK.y, 'kiosk', 15], [REG.x, REG.y, 'register', 7], ...(spots.lookout ? [[...spots.lookout, 'lookout', 9]] : [])]) for (let i = LAND.things.length - 1; i >= 0; i--) {
     const th = LAND.things[i], w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h;
     if (th.y > sy - 3 && th.y - h < sy + 1 && Math.abs(th.x - sx) < w / 2 + half) LAND.things.splice(i, 1);
   }

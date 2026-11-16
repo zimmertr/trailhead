@@ -277,7 +277,7 @@ try {
       else if (e.type === 'say') say(e.text);
       else if (e.type === 'found' && FINDS[e.id]) { const n = Object.keys(api ? api.found() : {}).filter(k => FINDS[k]).length; if (e.id !== 'kiosk') { say(UI.found(FINDS[e.id][0], n, Object.keys(FINDS).length), 5200); audio.sfx('egg'); } }
       else if (e.type === 'hover') { tip.hidden = !e.label; if (e.label) { tip.textContent = e.label; const hw = tip.offsetWidth / 2 + 6; tip.style.left = Math.min(Math.max(e.x, hw), innerWidth - hw) + 'px'; tip.style.top = (e.y - 4) + 'px'; if (e.tap) { clearTimeout(tip._t); tip._t = setTimeout(() => { tip.hidden = true; }, 2200); } } }
-      else if (e.type === 'act') { if (e.id === 'kiosk') openSheet('kiosk'); else if (e.id.startsWith('spire:')) climb(e.id.slice(6)); else if (e.id.startsWith('dest:')) send(e.id.slice(5)); }
+      else if (e.type === 'act') { if (e.id === 'kiosk') openSheet('kiosk'); else if (e.id === 'register') openSheet('register'); else if (e.id.startsWith('spire:')) climb(e.id.slice(6)); else if (e.id.startsWith('dest:')) send(e.id.slice(5)); }
     }
   });
   $('intro').textContent = INTRO;

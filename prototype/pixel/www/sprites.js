@@ -436,6 +436,33 @@ function makeBush(seed, kind) {
   return b;
 }
 // A summit flag on a pole, in two frames so it can flutter.
+// The trail register (L1), after TJ's photographs: a small wooden box on a post, its lid sloping over a
+// pale plaque, its front a flap that folds down into a desk (the dark line is the hinge), rocks piled round
+// the foot of the post. Three pennants on the post, one for each destination (the lake blue, the peak
+// yellow, the Spires red), pale until that destination is done. mask: bit 0 the lake, 1 the peak, 2 the Spires.
+function makeRegister(mask) {
+  const b = new BM(15, 24); b.ox = 6; b.oy = 23;
+  // The lid, lit on the west, overhanging the front and the side.
+  for (let x = 3; x <= 11; x++) b.set(x, 1, x < 6 ? R.wood[4] : R.wood[3]);
+  for (let x = 2; x <= 12; x++) b.set(x, 2, x < 5 ? R.wood[4] : R.wood[3]);
+  for (let x = 1; x <= 13; x++) b.set(x, 3, R.wood[1]);
+  // The front (x 2 to 9) and its side in shade (x 10 to 12).
+  for (let y = 4; y <= 12; y++) for (let x = 2; x <= 12; x++) b.set(x, y, x > 9 ? (y === 12 ? R.wood[0] : R.wood[1]) : y === 12 ? R.wood[1] : x === 2 ? R.wood[3] : R.wood[2]);
+  // The plaque, lettered, and the hinge where the front folds down into a desk.
+  for (let x = 3; x <= 8; x++) { b.set(x, 5, R.white[1]); b.set(x, 6, x % 2 ? R.wood[1] : R.white[0]); b.set(x, 7, R.white[0]); }
+  for (let x = 2; x <= 9; x++) b.set(x, 10, R.wood[0]);
+  b.set(9, 9, R.rock[3]);
+  // The post and the rocks piled round its foot.
+  for (let y = 13; y <= 22; y++) { b.set(5, y, R.wood[3]); b.set(6, y, R.wood[1]); }
+  for (const [x, y, c] of [[2, 22, 2], [3, 21, 3], [3, 22, 1], [4, 22, 2], [7, 22, 2], [8, 22, 1], [8, 21, 3]]) b.set(x, y, R.rock[c]);
+  outline(b, INK);
+  // The pennants, after the outline so they stand clear of the post.
+  [[R.water[3], R.water[1]], [R.yellow[1], R.yellow[0]], [R.red[1], R.red[0]]].forEach(([lit, dark], k) => {
+    const on = mask >> k & 1, y = 13 + 3 * k, L = on ? lit : R.white[1], D = on ? dark : R.white[0];
+    for (let x = 8; x <= 10; x++) b.set(x, y, L); b.set(11, y, D); b.set(8, y + 1, D); b.set(9, y + 1, D);
+  });
+  return b;
+}
 function makeFlag(f, ramp = R.red) {
   const b = new BM(12, 16); b.ox = 2; b.oy = 15;
   for (let y = 1; y < 16; y++) b.set(2, y, R.shoe[1]);
@@ -444,4 +471,5 @@ function makeFlag(f, ramp = R.red) {
   return b;
 }
 
+export { makeRegister };
 export { makeSnag, makeBush, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };

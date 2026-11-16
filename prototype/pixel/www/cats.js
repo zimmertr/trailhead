@@ -3,7 +3,7 @@
 // again, so no two visits look the same. Clicking a cat gets an answer that depends on the cat
 // and on what she was doing.
 import { clamp, lerp, rng, hash, vnoise, R, INK, BM, outline, thick } from './core.js';
-import { T, KIOSK, LAND } from './land.js';
+import { T, KIOSK, REG, LAND } from './land.js';
 import { NAMES } from './content.js';
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
@@ -89,7 +89,7 @@ const DO = {
 // rock in it or right round it, so no cat ever stands in one. Worked out from what stands there.
 const JX = T.x, JY = T.y;   // the junction, where he stands at the Trailhead
 const HOME = (() => {
-  const post = LAND.toY(LAND.C.T[0] - 4, LAND.C.T[1] + 8), b = { x0: T.x - 60, x1: T.x + 70, y0: Math.max(KIOSK.y, post) + 6, y1: T.y + 56 };
+  const post = LAND.toY(LAND.C.T[0] - 4, LAND.C.T[1] + 8), b = { x0: T.x - 60, x1: T.x + 70, y0: Math.max(KIOSK.y, REG.y, post) + 6, y1: T.y + 56 };
   const near = LAND.things.filter(th => { const h = th.tree ? th.tree.h : th.bm ? th.bm.h : 0; return h >= 10; }).sort((p, q) => Math.hypot(p.x - T.x, p.y - T.y) - Math.hypot(q.x - T.x, q.y - T.y));
   for (const th of near) {
     const h = th.tree ? th.tree.h : th.bm.h, w = (th.tree ? th.tree.w : th.bm.w) / 2 + (th.tree && !th.tree.low ? 8 : 2);

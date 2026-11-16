@@ -147,3 +147,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **Spot yourself.** On trailhead's knife-edge a tap on the map far below could ring the place a visitor has been to most (or has not found yet) with a small blinking marker, the way you pick out your own house from a plane.
 - **Clip in yourself.** On yggdrasil a visitor could tap to move the lanyards past each anchor themselves, and he will not climb on until they have, never letting both come off at once.
 - **Probe the bridge.** On Kubernetes-Manifests he could prod the snow bridge with his axe before stepping on, the pole going in further than it should, the way a glacier party tests a bridge.
+- **A pencil that wears down.** The register's pencil on its string could get a little shorter each time someone signs, and a new one tied on when it is a stub.

@@ -1,11 +1,11 @@
 // Shows the round 4 map whole: relief.html?labels=1&crop=x,y&scale=k&trees=0
 import { DAY } from './core.js';
 import { LAND, buildTerrain, NW, NH, VD } from './land.js';
-import { makeSignpost, makeKiosk, makeTent } from './sprites.js';
+import { makeSignpost, makeKiosk, makeTent, makeRegister } from './sprites.js';
 
 const q = new URLSearchParams(location.search), L = LAND, W = buildTerrain(), g = L.g.slice();
 // The scene draws these each frame; here they are stamped on once, far to near.
-const S = W.spots, extra = [{ bm: makeSignpost(), x: S.signpost[0], y: S.signpost[1] }, { bm: makeKiosk(), x: S.kiosk[0], y: S.kiosk[1] }, ...S.tents.map(([x, y, c]) => ({ bm: makeTent(c), x, y }))];
+const S = W.spots, extra = [{ bm: makeSignpost(), x: S.signpost[0], y: S.signpost[1] }, { bm: makeKiosk(), x: S.kiosk[0], y: S.kiosk[1] }, { bm: makeRegister(0), x: S.register[0], y: S.register[1] }, ...S.tents.map(([x, y, c]) => ({ bm: makeTent(c), x, y }))];
 if (q.get('trees') !== '0') for (const th of [...L.things, ...extra].sort((a, b) => a.y - b.y)) {
   const stamp = (bm, sx, sy) => { for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i], x = sx + i, y = sy + j; if (c && x >= 0 && y >= 0 && x < NW && y < NH) g[y * NW + x] = c; } };
   if (th.tree) for (const p of th.tree.parts) stamp(p.bm, th.x + p.x, th.y + p.y); else stamp(th.bm, th.x - (th.bm.ox || 0), th.y - (th.bm.oy || 0));

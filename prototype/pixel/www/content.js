@@ -132,7 +132,7 @@ export const SIGNS = {
 };
 // The names of things you can point at inside a scene.
 export const NAMES = {
-  kiosk: 'Trail conditions', kayti: 'Kayti', lookout: 'Observability Lookout', tidepool: 'Tide pool: sea star, anemone, urchin',
+  kiosk: 'Trail conditions', register: 'Trail register', kayti: 'Kayti', lookout: 'Observability Lookout', tidepool: 'Tide pool: sea star, anemone, urchin',
   cats: { tortie: 'Doot Doot', nebel: 'Peevers' },
   forest: { sign: 'Legacy Grove', creek: 'Cache Miss Creek' },
   lakeside: { sign: 'Cold Start Cove', marmot: 'Hoary marmot', swim: 'Go for a swim', back: 'Swim back' },

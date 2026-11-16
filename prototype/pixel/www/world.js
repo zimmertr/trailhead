@@ -1,7 +1,7 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
 import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
 import { breeze, veilTable } from './core.js';
-import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
+import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag, makeRegister } from './sprites.js';
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
@@ -379,6 +379,7 @@ export function makeWorld(bake) {
   put(makeSignpost(), spots.signpost[0], spots.signpost[1]);
   for (const s of spots.signs) put(makeSmallSign(), s[0], s[1]);
   put(makeJournal(), spots.journal[0], spots.journal[1]); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
+  const REGS = [0, 1, 2, 3, 4, 5, 6, 7].map(makeRegister), regBox = { bm: REGS[0], x: spots.register[0], y: spots.register[1] }; things.push(regBox);
   if (spots.lookout) put(makeLookout(), spots.lookout[0], spots.lookout[1]);
   for (const [x, y, c] of spots.tents) put(makeTent(c), x, y);
   // The falls' and the feet's pixels, as x and y, with each column's own offset so the streaks are not in step.
@@ -534,6 +535,7 @@ export function makeWorld(bake) {
       for (const s of spots.signs) if (Math.abs(wx - s[0]) < 8 && wy > s[1] - 17 && wy < s[1] + 3) return { label: SIGNS[s[2]], x: s[0] - last.ox, y: s[1] - 18 - last.oy };
       const c = kit.pick(wx, wy); if (c) return { label: c.label, x: c.wx - last.ox, y: c.wy - last.oy, act: c.act };
       if (spots.lookout) { const [lx, ly] = spots.lookout; if (Math.abs(wx - lx) < 9 && wy > ly - 30 && wy < ly + 2) return { label: NAMES.lookout, x: lx - last.ox, y: ly - 31 - last.oy }; }
+      { const [rx, ry] = spots.register; if (Math.abs(wx - rx) < 6 && wy > ry - 21 && wy < ry + 2) return { label: NAMES.register, x: rx - last.ox, y: ry - 21 - last.oy, act: 'register' }; }
       { const [kx, ky] = spots.kiosk; if (Math.abs(wx - kx) < 14 && wy > ky - 27 && wy < ky + 3) return { label: NAMES.kiosk, x: kx - last.ox, y: ky - 27 - last.oy, act: 'kiosk' }; }
       // The tide pool to find (E7), only while the low water has left it.
       { const p = crit.findPool(nowT); if (p && Math.abs(wx - p.x) <= p.rx + 2 && Math.abs(wy - p.y) <= 4) return { label: NAMES.tidepool, x: p.x - last.ox, y: p.y - 6 - last.oy, act: 'pool' }; }
@@ -620,6 +622,7 @@ export function makeWorld(bake) {
       { const fh = crit.ferryHull(t, ox, oy, VW, VH); if (fh) mov.push({ ferryHull: true, y: fh.y }); }
       kit.update(env, here, scr.narrow && !env.fixed, env.home && !env.fixed ? oy + (scr.narrow ? VH * 0.56 : VH - 38) : 0);
       for (const it of kit.items()) mov.push(it);
+      regBox.bm = REGS[(env.done.lake ? 1 : 0) | (env.done.stack ? 2 : 0) | (env.done.spires ? 4 : 0)];
       standing(still, moves, mov, list, ox, oy, VW, VH, env.done);
       // A tree that nearer ground partly hides is drawn only where the land under each pixel is no
       // nearer than the tree itself (D6a), so it can sway and still stand behind the slope in front.
