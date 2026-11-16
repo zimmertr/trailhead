@@ -710,7 +710,7 @@ const META = {
   name: 'wall',
   dur: () => DUR,
   stops: () => SCRIPT.stops.map(s => ({ id: s.id, at: s.t / DUR })),
-  elev: (arg, q) => posAt(stateAt(q * DUR).tj.d).h,
+  elev: (arg, q) => { const tau = q * DUR, top = posAt(LEN).h; return tau < SCRIPT.descT ? posAt(stateAt(tau).tj.d).h : top * (1 - smooth(0, DESC_LEN, tau - SCRIPT.descT)); },
   // The fist bump, and a click of metal as each piece goes in.
   cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, ...FIVES.map(v => ({ at: (SCRIPT.sumT + v.at) / DUR, name: 'slap' })), { at: (SCRIPT.sumT + 4.4) / DUR, name: 'summit' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' })), ...[2.0, 2.8].map(v => ({ at: (SCRIPT.descT + v) / DUR, name: 'place' })), ...WHO.flatMap(w => [{ at: (SCRIPT.descT + DESC.turn[w] + 1.1) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.turn[w] + 1.55) / DUR, name: 'glissade' }]), { at: (SCRIPT.descT + DESC.under + UNDER.unclip - 0.4) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.under + UNDER.snag) / DUR, name: 'catch' }]
 };

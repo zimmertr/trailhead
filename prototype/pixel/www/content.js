@@ -53,7 +53,7 @@ export const CARDS = {
   },
   summit: {
     route: 'stack', slug: 'the-stack/summit', kind: 'summit', from: 'The summit', title: 'The top of The Stack', draft: true,
-    body: ['Three pitches, one flag. The whole route is written down in the two places below.'],
+    body: ['Five pitches, one flag. The whole route is written down in the two places below.'],
     links: ['resume', 'linkedin'], go: 'Rappel'
   },
   'base-camp': {
@@ -168,7 +168,7 @@ export const UI = {
     summit: top => 'On the summit: ' + top.toLowerCase(),
     egg: top => 'Click ' + top.toLowerCase().replace(/^a /, 'the ') + ' up there.',
     facts: ['Stars', 'Latest release', 'Language', 'License'], noRelease: 'none yet',
-    pitches: [['Pitch 1', 100, 'sent'], ['Pitch 2', 100, 'one fall, caught'], ['Pitch 3', 34, 'next']],
+    pitches: [['Pitch 1', 100, 'sent'], ['Pitch 2', 100, 'sent'], ['Pitch 3', 100, 'one fall, caught'], ['Pitch 4', 8, 'next']],
     github: 'GitHub', climbed: 'climbed', walkOut: 'Walk out to the Trailhead', glissade: 'Glissade to camp'
   },
   marks: { camp: 'Base camp', trailhead: 'Trailhead', summit: 'Summit' },
@@ -186,9 +186,10 @@ export const UI = {
     title: DEST_NAMES.trailhead, sub: 'TJ Zimmerman, Seattle, Washington',
     // The dots on the trail map take a card's title or a project's name, except these.
     dots: { summit: 'The summit', 'base-camp': 'Base camp' },
-    lake: [DEST_NAMES.lake, km => km + ' km loop, on foot'], stack: [DEST_NAMES.stack, km => km + ' km in, three pitches up'], spires: [DEST_NAMES.spires, km => km + ' km to base camp, six summits'],
+    lake: [DEST_NAMES.lake, km => km + ' km loop, on foot'], stack: [DEST_NAMES.stack, km => km + ' km in, five pitches up'], spires: [DEST_NAMES.spires, km => km + ' km to base camp, six summits'],
     elsewhere: 'TJ elsewhere', onMap: 'On this map', plain: 'Read as a page',
     settings: 'Settings', sound: 'Sound', onOff: ['on', 'off'], music: 'Music', playedOn: 'Played on', dusk: 'Day or dusk', clear: 'Clear my flags', cleared: 'Flags and footprints cleared.',
+    takes: s => Math.max(1, Math.round(s / 60)) + ' min',
     legend: 'The small signs in the world carry names: ' + PLACE_NAMES.slice(0, -1).join(', ') + ' and ' + PLACE_NAMES[PLACE_NAMES.length - 1] + '.'
   },
   kiosk: {

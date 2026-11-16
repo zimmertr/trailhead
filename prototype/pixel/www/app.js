@@ -282,6 +282,8 @@ try {
   $('intro').textContent = INTRO;
   const lengths = api.info().lengths;
   for (const d of DESTINATIONS) $('signs').append(el('li', {}, el('button', { class: 'plank choice', 'data-route': d.route, onclick: e => { e.currentTarget.blur(); travel(d.route); } }, el('i', { class: 'arrow ' + d.dir }), el('span', {}, el('span', { text: d.sign }), el('span', { class: 'where', text: d.about })), el('small', { text: d.route === 'lake' ? lengths.lake + ' km loop' : lengths[d.route] + ' km' }))));
+  // Each sign also says how long its route takes there and back, once its scenes are loaded.
+  for (const b of $('signs').querySelectorAll('[data-route]')) api.routeTime(b.dataset.route).then(sec => { if (sec > 1) b.querySelector('small').append(document.createElement('br'), UI.map.takes(sec)); });
   for (const id of ['top', 'bar']) $(id).hidden = false;
   buildMarks(); syncTop(); cursors();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(nudgeMarks);

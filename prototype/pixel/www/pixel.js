@@ -9,8 +9,8 @@ import { makeWorld, loadBake } from './world.js';
 const MAKERS = {
   forest: () => import('./forest.js').then(m => m.makeForest()),
   lakeside: () => import('./lakeside.js').then(m => m.makeLakeside()),
-  // ?ridge: the West Ridge being rebuilt (section H) in place of round 3's wall, until it can be climbed.
-  wall: () => new URLSearchParams(location.search).has('ridge') ? import('./ridge.js').then(m => m.makeRidge()) : import('./wall.js').then(m => m.makeWall()),
+  // The Stack is climbed by the West Ridge (section H); ?wall brings back round 3's wall to compare.
+  wall: () => new URLSearchParams(location.search).has('wall') ? import('./wall.js').then(m => m.makeWall()) : import('./ridge.js').then(m => m.makeRidge()),
   camp: () => import('./camp.js').then(m => m.makeCamp()),
   climb: () => import('./climb.js').then(m => m.makeClimb()),
   offroute: () => import('./offroute.js').then(m => m.makeOffroute()),
@@ -456,6 +456,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // Puts him at a milestone by name, with its card open.
     goto(id) { const s = stops.find(q => q.id === id); if (!s) return false; running = false; scrubbing = 0.16; p = s.at; shown = null; showStop(s); return true; },
     info: () => ({ lengths: world.lengths() }),
+    // How long a route takes from the junction and back, in seconds, for the junction sign.
+    async routeTime(r) { if (!ROUTES[r]) return 0; await need(ROUTES[r]().map(l => l[0])); return ROUTES[r]().filter(([n]) => scenes[n]).reduce((a, [n, arg]) => a + scenes[n].dur(arg), 0); },
     dispose() { alive = false; removeEventListener('resize', onResize); }
   };
   return api;
