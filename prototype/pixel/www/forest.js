@@ -212,7 +212,7 @@ const META = {
   elev: (arg, q) => -g(X0 - q * LEN) * 1.5,
   cues: () => [{ at: (D_SLUG - 11) / LEN, name: 'hop' }, { at: (D_JAY - 20) / LEN, name: 'jay' }]
 };
-export const makeForest = () => shell(META, buildForest, ['enter', 'focus', 'pick', 'draw']);
+export const makeForest = () => shell(META, buildForest, ['enter', 'focus', 'pick', 'draw', 'trigger']);
 function buildForest() {
   const rand = rng(31);
 
@@ -356,6 +356,14 @@ function buildForest() {
     ...META,
     enter(scr, arg, q) { cam = xOf(q); st.y = null; const d = q * LEN; jayGo = d >= JAY_AT ? -1e9 : null; bearGo = null; bearArmed = d < BEAR_AT; sasGo = null; },
     focus: () => focus,
+    // The debug panel's start buttons (E5f): the jay takes off from its stump, the bear leans out from
+    // its trunk, or Sasquatch steps out at the far edge of the view, even if he has been seen this visit.
+    trigger(name, t) {
+      if (name === 'jay') { jayGo = t; return true; }
+      if (name === 'bear') { bearGo = t; bearArmed = false; return true; }
+      if (name === 'sasquatch') { sasquatchSeen = false; sasGo = t; sasX = last.camX - 12; sasOn = 0; return true; }
+      return false;
+    },
     pick(sx, sy) {
       const wx = sx + last.camX, wy = sy - last.base;
       if (Math.abs(wx - signX) < 12 && wy > g(signX) - 34 && wy < g(signX) - 4) return { label: NAMES.forest.sign, x: signX - last.camX, y: last.base + g(signX) - 36 };

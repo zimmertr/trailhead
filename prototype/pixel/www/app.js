@@ -140,11 +140,17 @@ function openDebug(on) {
   const toggle = k => el('button', { class: 'plank', 'aria-pressed': String(DEBUG[k]), onclick: e => { DEBUG[k] = !DEBUG[k]; e.currentTarget.setAttribute('aria-pressed', String(DEBUG[k])); e.currentTarget.querySelector('small').textContent = onOff(k); document.body.classList.toggle('no-labels', !DEBUG.labels); audio.sfx('step'); } }, el('span', { text: D.toggles[k] }), el('small', { text: onOff(k) }));
   const cat = el('select', { 'aria-label': D.cats }, ...Object.keys(NAMES.cats).map(id => el('option', { value: id, text: NAMES.cats[id] })));
   const trick = el('select', { 'aria-label': D.set }, ...TRICKS.map(s => el('option', { value: s, text: s })));
+  // Time (E5f): how fast the scenes' clock runs, and a button for each timed event to start it now.
+  const speeds = api.speeds.map((k, n) => el('button', { class: 'plank', 'aria-pressed': String(api.speed() === k), onclick: e => { api.setSpeed(k); for (const b of e.currentTarget.parentNode.children) b.setAttribute('aria-pressed', String(b === e.currentTarget)); audio.sfx('step'); } }, el('span', { text: D.speeds[n] })));
+  const starts = ids => ids.map(id => el('button', { class: 'plank', onclick: () => { audio.sfx(api.trigger(id) ? 'step' : 'close'); } }, el('span', { text: D.events[id] })));
   debug.replaceChildren(
     el('h2', {}, el('span', { text: D.title }), el('button', { class: 'plank', style: 'width:auto', onclick: () => openDebug(false) }, el('span', { text: D.close }))),
     el('h3', { text: D.layers }), ...['trees', 'clouds', 'mist', 'labels', 'animals'].map(toggle),
     el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle),
-    el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, performance.now() / 1000, { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
+    el('h3', { text: D.speed }), el('div', { class: 'speeds' }, ...speeds),
+    el('h3', { text: D.startMap }), ...starts(['shower', 'breach', 'blow', 'ferry', 'serac', 'lens']),
+    el('h3', { text: D.startForest }), ...starts(['jay', 'bear', 'sasquatch']),
+    el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, api.now(), { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
     el('button', { class: 'plank', onclick: () => navigate('#off-route') }, el('span', { text: D.offRoute })),
     el('button', { class: 'plank', onclick: () => api.breakScene() }, el('span', { text: D.breakScene })),
     el('p', { class: 'legend', text: D.note }));
@@ -297,6 +303,8 @@ try {
   // Where a browser lets a page make sound unasked (Firefox says so), the music starts with the page.
   try { if (navigator.getAutoplayPolicy && navigator.getAutoplayPolicy('audiocontext') === 'allowed') audio.start(); } catch { /* not every browser can say */ }
   status.hidden = true;
+  // For screenshot scripts: the debug panel's controls (speed, start buttons) without clicking.
+  window.__api = api;
   window.__ready = true;
   try { console.log(...CONSOLE); } catch { /* no console */ }
 } catch (err) {

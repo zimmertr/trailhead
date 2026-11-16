@@ -123,7 +123,9 @@ export function makeCritters(W, opts = {}) {
   spots.marmots.forEach(([x, y], n) => items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1) }));
 
   // For screenshots, sea=90 in the address starts the ferry's and the whale's clocks that many seconds on.
+  // Each has its own, so the debug panel can start one without moving the other (E5f).
   const ahead = typeof location !== 'undefined' ? +(/[?&]sea=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
+  let whaleAhead = ahead, ferryAhead = ahead;
 
   // ---- the whale -------------------------------------------------------------------------------
   // Once in every 40 to 60 seconds it breaches: out, over and down in under three seconds, then the
@@ -148,7 +150,7 @@ export function makeCritters(W, opts = {}) {
     }
   }
   function drawWhale(scr, a, ox, oy, t) {
-    const T = t + ahead + T0, n = Math.floor(T / SLOT), u = T - n * SLOT - starts(n), wx = a.x - ox, wy = a.y - oy;
+    const T = t + whaleAhead + T0, n = Math.floor(T / SLOT), u = T - n * SLOT - starts(n), wx = a.x - ox, wy = a.y - oy;
     const white = R.white[1], pale = R.sea[5], ease = v => v * v * (3 - 2 * v);
     // The foam it leaves lies on the water, so it goes down first: a patch where it landed that thins
     // out, and a ring that spreads from it and breaks up. A small ring marks where it came out.
@@ -218,7 +220,7 @@ export function makeCritters(W, opts = {}) {
   // The course bows out to sea a little in the middle.
   const coursePt = s => { const b = 14 * Math.sin(Math.PI * clamp(s, 0, 1)); return [FA[0] + (FB[0] - FA[0]) * s - 0.56 * b, FA[1] + (FB[1] - FA[1]) * s + 0.83 * b]; };
   function drawWake(scr, ox, oy, t) {
-    const at = ferryAt(t + ahead); if (!at) return;
+    const at = ferryAt(t + ferryAhead); if (!at) return;
     const [s, dir] = at, [fx, fy] = coursePt(s), { VW, VH } = scr;
     if (fx - ox < -140 || fx - ox > VW + 140 || fy - oy < -120 || fy - oy > VH + 120) return;
     // Nothing of it shows past the edge of the map, where a wide screen has only a plain fill.
@@ -246,7 +248,7 @@ export function makeCritters(W, opts = {}) {
     }
   }
   // Where the hull is and the row its keel sits on, for sorting; null while it is away or off screen.
-  const hullAt = (t, ox, oy, VW, VH) => { const at = ferryAt(t + ahead); if (!at) return null; const [fx, fy] = coursePt(at[0]); if (fx - ox < -60 || fx - ox > VW + 60 || fy - oy < -40 || fy - oy > VH + 40) return null; return { x0: Math.round(fx) - ferryBM.ox, y0: Math.round(fy) - ferryBM.oy, y: Math.round(fy) - ferryBM.oy + ferryBM.h - 1, cx: Math.round(fx) }; };
+  const hullAt = (t, ox, oy, VW, VH) => { const at = ferryAt(t + ferryAhead); if (!at) return null; const [fx, fy] = coursePt(at[0]); if (fx - ox < -60 || fx - ox > VW + 60 || fy - oy < -40 || fy - oy > VH + 40) return null; return { x0: Math.round(fx) - ferryBM.ox, y0: Math.round(fy) - ferryBM.oy, y: Math.round(fy) - ferryBM.oy + ferryBM.h - 1, cx: Math.round(fx) }; };
   // In the fog bank the whole boat pales by one step, read at its middle, so no edge of the bank cuts
   // across it; in the bank's solid part it is lost in the white. The bank then leaves its pixels alone.
   let hullMask = null, hullMarked = [];
@@ -412,6 +414,13 @@ export function makeCritters(W, opts = {}) {
     // The mist over the forest and the fog bank off the coast, laid over everything that stands. It parts
     // round him as it does round a sign.
     weather(sea, at) { fogSea = sea; fogAt = at; },
+    // The debug panel's start buttons (E5f): the humpback breaches now, or rolls and blows now (its first
+    // blow after a breach), or the ferry sets out from the west end now.
+    trigger(name, t) {
+      if (name === 'breach' || name === 'blow') { const n = Math.floor((t + whaleAhead + T0) / SLOT) + (name === 'breach' ? 1 : 0); whaleAhead = n * SLOT + starts(n) + (name === 'blow' ? 16.6 : 0) - t - T0; return true; }
+      if (name === 'ferry') { ferryAhead = (((-(t + 0.12 * CROSS)) % ROUND) + ROUND) % ROUND; return true; }
+      return false;
+    },
     mist(scr, ox, oy, t, here) {
       const { VW, VH, fb } = scr;
       if (!M) return;

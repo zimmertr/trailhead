@@ -46,7 +46,7 @@ export function makeWorld(bake) {
   // forming five seconds after the page opens. Drawn with the drifting clouds' white and their blue underside.
   const LENS = { cycle: 90, form: 15, sit: 45, gone: 60 }, LAYERS = [[0, 1, 7], [-8, 0.8, 6], [-14, 0.56, 4]];
   // lens=<seconds> in the address starts the cloud that far into its cycle, for screenshots.
-  const lensAhead = typeof location !== 'undefined' ? +(/[?&]lens=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
+  let lensAhead = typeof location !== 'undefined' ? +(/[?&]lens=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
   function lenticular(scr, ox, oy, t) {
     const ph = (t + lensAhead + LENS.cycle - 5) % LENS.cycle, a = ph < LENS.form ? smooth(0, LENS.form, ph) : ph < LENS.sit ? 1 : ph < LENS.gone ? smooth(LENS.gone, LENS.sit, ph) : 0; if (a <= 0) return;
     const [sx, sy] = spots.summit, W0 = 66 * (0.55 + 0.45 * Math.min(1, ph / LENS.form)) * (ph > LENS.sit ? 1 + 0.12 * (ph - LENS.sit) / (LENS.gone - LENS.sit) : 1), cy = sy - 9;
@@ -61,7 +61,7 @@ export function makeWorld(bake) {
   // tumbles down the slope under it with a puff of powder following and spreading, and a low rumble comes
   // a moment later, as sound would from that far off. Never twice running from the same place.
   // serac=<seconds> in the address starts the clock that far on, for screenshots.
-  const SER = spots.seracs, serAhead = typeof location !== 'undefined' ? +(/[?&]serac=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0, SLOT = 40;
+  const SER = spots.seracs; let serAhead = typeof location !== 'undefined' ? +(/[?&]serac=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0; const SLOT = 40;
   const serAt = n => { let k = Math.floor(hash(0, 1, 4741) * SER.length); for (let m = 1; m <= n; m++) k = (k + 1 + Math.floor(hash(m, 2, 4741) * (SER.length - 1))) % SER.length; return k; };
   let rumbled = -1;
   function seracFall(scr, ox, oy, t, env) {
@@ -85,7 +85,7 @@ export function makeWorld(bake) {
   // there, the clouds drift on and break up, a low rainbow arch stands in the rain as it goes, the fog
   // lingers, then burns off. rain=<seconds> moves the clock on, for screenshots.
   const RAIN = { sea: 8, land: 26, stop: 46, dry: 52, lift: 62, gone: 76, gap: 30 }; RAIN.cycle = RAIN.gone + RAIN.gap;
-  const rainAhead = typeof location !== 'undefined' ? +(/[?&]rain=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
+  let rainAhead = typeof location !== 'undefined' ? +(/[?&]rain=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
   // About Lake's water (the core of its country), for the reach and the rings.
   let lx0 = WW, lx1 = 0, ly0 = WH, ly1 = 0;
   for (let i = 0; i < W.dest.length; i++) if (W.dest[i] === 5) { const x = i % WW, y = (i / WW) | 0; if (x < lx0) lx0 = x; if (x > lx1) lx1 = x; if (y < ly0) ly0 = y; if (y > ly1) ly1 = y; }
@@ -302,6 +302,14 @@ export function makeWorld(bake) {
       { const [kx, ky] = spots.kiosk; if (Math.abs(wx - kx) < 14 && wy > ky - 27 && wy < ky + 3) return { label: NAMES.kiosk, x: kx - last.ox, y: ky - 27 - last.oy, act: 'kiosk' }; }
       { const k = destUnder(wx, wy); if (k) return { label: DEST_NAMES[W.DEST[k]], named: true, x: sx, y: sy, act: 'dest:' + W.DEST[k] }; }
       return null;
+    },
+    // The debug panel's start buttons (E5f): each moves its event's clock so the event begins now.
+    trigger(name, t) {
+      const mod = (a, m) => ((a % m) + m) % m;
+      if (name === 'shower') { const n = Math.floor((t + rainAhead + RAIN.cycle - 10) / RAIN.cycle) + 1; rainAhead = n * RAIN.cycle - t - RAIN.cycle + 10; return true; }
+      if (name === 'serac') { if (SER.length < 2) return false; const n = Math.floor((t + serAhead + SLOT - 15) / SLOT) + 1; serAhead = n * SLOT + 10 * hash(n, 3, 4741) - t - SLOT + 15; return true; }
+      if (name === 'lens') { lensAhead = mod(-(t + LENS.cycle - 5), LENS.cycle); return true; }
+      return crit.trigger(name, t);
     },
     act(id, env) { if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
     draw(scr, env, leg, q) {

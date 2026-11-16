@@ -171,8 +171,14 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     if (p >= 1) finish();
   }
 
-  let last = performance.now(), alive = true, lastAct = performance.now() / 1000, dragging = null;
-  const acted = () => { lastAct = performance.now() / 1000; };
+  // The scenes' clock (E5f). It keeps time with the page at 1x; the debug panel can run it at 0 (paused)
+  // to 8 times, so every timed thing (the weather, the sea's animals, the forest's) comes round faster.
+  // He runs at the same speed, so a pause stops everything. The camera and the cuts between scenes keep
+  // the page's own time. speed=<k> in the address sets it, for screenshots.
+  const SPEEDS = [0, 0.5, 1, 2, 4, 8];
+  let simT = performance.now() / 1000, speed = (() => { const k = typeof location !== 'undefined' ? +(/[?&]speed=([\d.]+)/.exec(location.search) || [])[1] : NaN; return SPEEDS.includes(k) ? k : 1; })();
+  let last = performance.now(), alive = true, lastAct = simT, dragging = null;
+  const acted = () => { lastAct = simT; };
   addEventListener('pointerdown', acted); addEventListener('keydown', acted);
   const onResize = () => scr.resize();
   addEventListener('resize', onResize);
@@ -194,9 +200,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   }
   function frame(now) {
     if (sabotage === 'renderer') throw new Error('Broken on purpose: the renderer');
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    const t = now / 1000;
-    step(dt);
+    const raw = Math.max(0, (now - last) / 1000), dt = Math.min(0.05, raw); last = now;
+    simT += Math.min(raw, 1) * speed;
+    const t = simT, sdt = dt * speed;
+    step(sdt);
     mix += (mode - mix) * (1 - Math.exp(-dt * 3)); if (Math.abs(mix - mode) < 0.002) mix = mode;
     // A dragged view stays where it is left. Let go near the edge of what a scene lets you see and it
     // eases back inside; it returns to him only when he starts or stops moving.
@@ -248,7 +255,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       }
     } else if (scr.S !== scr.S0) scr.setScale(scr.S0);
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
-    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = dt; env.mix = mix;
+    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
     env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
     env.idle = env.home && dragging == null ? t - lastAct : 0;
@@ -324,6 +331,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     route: () => route,
     // For the debug panel: makes the scene he is in throw on its next frame.
     breakScene() { sabotage = drawn.s; },
+    // For the debug panel (E5f): the scenes' clock, its speed, and starting a timed event now in the
+    // scene he is in (false if that scene has no such event).
+    now: () => simT, speeds: SPEEDS, speed: () => speed, setSpeed(k) { if (SPEEDS.includes(k)) speed = k; },
+    trigger(name) { const s = drawn.scene; return !!(s.trigger && !tr && s.trigger(name, simT)); },
     async setRoute(r) {
       if (!ROUTES[r]) return;
       await need(ROUTES[r]().map(l => l[0]));
