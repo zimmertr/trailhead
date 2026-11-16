@@ -11,6 +11,31 @@ import { buildTerrain, loadBake, NW as WW, NH as WH, VD, T } from './land.js';
 // The height of the timeline bar in page pixels (32 of its own pixels), read again only when the page is resized.
 let barAt = -1, barH = 0;
 const barCss = () => { if (barAt !== innerWidth * 1e4 + innerHeight) { barAt = innerWidth * 1e4 + innerHeight; barH = 32 * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) || 2); } return barH; };
+// The opening frame (F5a). At twice one-to-one the Trailhead and the three destinations rarely all fit, so
+// the frame is the one that shows the most destination names, then the largest share of each destination's
+// country (each counts the same, however big), with the Trailhead and its name in view above the timeline bar. Ground under the junction
+// sign (sign: its box in map pixels from the view's corner) does not count. Ties go to the frame nearest
+// the Trailhead's own, so a screen that fits everything still centres on it.
+function openFrame(T, boxes, names, VW, VH, WW, WH, bar, sign) {
+  const x0 = Math.max(VW / 2, T.x - VW / 2 + 40), x1 = Math.min(WW - VW / 2, T.x + VW / 2 - 40);
+  // Down as far as his feet clear the bar by 14; up as far as his name stays 50 inside the top.
+  const y0 = Math.max(VH / 2, T.y + 14 + bar - VH / 2), y1 = Math.max(y0, Math.min(WH - VH / 2 + bar, T.y - 50 + VH / 2));
+  let best = -1, bx = T.x, by = T.y;
+  for (let cy = y0; cy <= y1; cy += 6) for (let cx = x0; cx <= x1; cx += 6) {
+    const ox = cx - VW / 2, oy = cy - VH / 2; let s = 0;
+    for (const b of boxes) {
+      if (b.x1 < b.x0) continue;
+      const w = Math.max(0, Math.min(b.x1, ox + VW) - Math.max(b.x0, ox)), h = Math.max(0, Math.min(b.y1, oy + VH - bar) - Math.max(b.y0, oy));
+      let a = w * h;
+      if (a && sign) { const sw = Math.max(0, Math.min(b.x1, ox + sign.x1) - Math.max(b.x0, ox + sign.x0)), sh = Math.max(0, Math.min(b.y1, oy + sign.y1) - Math.max(b.y0, oy + sign.y0)); a -= sw * sh; }
+      s += a / ((b.x1 - b.x0 + 1) * (b.y1 - b.y0 + 1));
+    }
+    for (const n of names) { const x = n.x - ox, y = n.y - oy; if (x > 30 && x < VW - 30 && y > 12 && y < VH - bar - 8 && !(sign && x > sign.x0 - 30 && x < sign.x1 + 30 && y > sign.y0 - 8 && y < sign.y1 + 8)) s += 4; }
+    s -= Math.hypot(cx - T.x, cy - T.y) * 1e-5;
+    if (s > best) { best = s; bx = cx; by = cy; }
+  }
+  return { x: bx, y: by };
+}
 // ---------------------------------------------------------------------------------------------
 // The world. Pixel coordinates, x east, y south. North is up the screen, so the three
 // destinations stand along the top of the meadow: the forest and About Lake on the left,
@@ -453,7 +478,29 @@ export function makeWorld(bake) {
   // map, so the meadow, the lake and all three destinations are in frame under the skyline.
   // Since E5h the Trailhead stands low in the meadow, so a wide view sets him just above the timeline bar
   // (about a fifth of the view up from its bottom), which leaves the skyline in frame above the destinations.
-  const vista = scr => scr.narrow ? { x: T.x, y: T.y + scr.VH * 0.06 } : { x: T.x, y: T.y - scr.VH / 2 + Math.min(176, scr.VH * 0.24) };
+  // Since F5a the wide view's rest is openFrame's, worked out again only when the view's size changes.
+  let openKey = -1, openAt = null;
+  const vista = scr => {
+    if (scr.narrow) return { x: T.x, y: T.y + scr.VH * 0.06 };
+    const key = scr.VW * 1e4 + scr.VH;
+    if (key !== openKey) {
+      openKey = key; const k = (window.devicePixelRatio || 1) / scr.S, el = document.getElementById('fork'), r = el && !el.hidden && el.getBoundingClientRect();
+      const sign = r && r.width ? { x0: r.left * k, x1: r.right * k, y0: r.top * k, y1: r.bottom * k } : null;
+      openAt = openFrame(T, W.destBox, PLACES.slice(1), scr.VW, scr.VH, WW, WH, barCss() * k, sign);
+    }
+    return openAt;
+  };
+  // Left alone at the Trailhead the view looks round (F5a; it was a sideways sway before): from the opening it
+  // goes to each destination in the order of the junction sign, rests there, and comes home, over and over.
+  // A destination's rest puts its name a little above the middle, right of the sign, so its peaks and its country show. Skipped when everything is in frame.
+  const ROUND = { hold: 5, go: 3.5 };
+  const lookRound = (scr, t, hx, hy) => {
+    const { VW, VH } = scr, stops = [[hx, hy]];
+    for (let k = 1; k <= 3; k++) { const b = W.destBox[k], p = PLACES[k], cx = (b.x0 + b.x1) / 2 - VW * 0.1, cy = p.y + VH * 0.06; if (p.x - hx < -VW / 2 + 40 || p.x - hx > VW / 2 - 40 || p.y - hy < -VH / 2 + 20 || p.y - hy > VH / 2 - 60) stops.push([cx, cy]); }
+    if (stops.length < 2) return [hx, hy];
+    const leg = ROUND.hold + ROUND.go, n = stops.length, i = Math.floor(t / leg) % n, u = smooth(ROUND.hold, leg, t % leg), a = stops[i], b = stops[(i + 1) % n];
+    return [lerp(a[0], b[0], u), lerp(a[1], b[1], u)];
+  };
   let past = 0, nowT = 0;
   const where = (leg, q) => { const P = paths[leg.path], a = P.at(lerp(leg.from, leg.to, q)), s = leg.to < leg.from ? -1 : 1; return { x: a.x, y: a.y, dx: a.dx * s, dy: a.dy * s, P }; };
   const target = (scr, here) => {
@@ -514,7 +561,7 @@ export function makeWorld(bake) {
 
       // Camera: the whole view from the Trailhead, then follow him.
       let [tx, ty] = target(scr, here);
-      if (env.home && env.idle > 4 && Math.abs(env.look.x) + Math.abs(env.look.y) < 1) tx += Math.sin((env.idle - 4) * 0.16) * Math.min(130, Math.max(0, (WW - VW) / 2 - Math.abs(tx - WW / 2))) * 0.9 * Math.min(1, (env.idle - 4) / 3);
+      if (env.home && env.idle > 4 && !env.calm && Math.abs(env.look.x) + Math.abs(env.look.y) < 1) [tx, ty] = lookRound(scr, env.idle - 4, tx, ty);
       const damp = 1 - Math.exp(-dt * 3.2);
       cam.x += (tx - cam.x) * damp; cam.y += (ty - cam.y) * damp;
       // A zoom step keeps one spot of the map under the pointer: the camera goes straight to its new rest and the dragged view makes up the difference.

@@ -248,9 +248,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     let gliding = null;
     if (drawn.s === 'world') {
       if (zC && zC === zT) zSet = true;
-      // It opens wide on a window wider than tall, one screen pixel to one pixel of the map (the opening
-      // view TJ chose at STOP 2a); on a phone held upright, at the size that suits it.
-      const [lo, hi] = zoomRange(); zT = clamp(zT || (scr.narrow ? scr.S0 : (window.devicePixelRatio || 1)), lo, hi); if (!zC) zC = calm.matches ? zT : scr.S;
+      // It opens at twice one-to-one (TJ, F5a: the one-to-one opening chosen at STOP 2a halved every movement
+      // and turned the trees and destinations to noise), never larger than the travelling size; on a phone
+      // held upright, at the size that suits it.
+      const [lo, hi] = zoomRange(); zT = clamp(zT || (scr.narrow ? scr.S0 : Math.min(scr.S0, 2 * (window.devicePixelRatio || 1))), lo, hi); if (!zC) zC = calm.matches ? zT : scr.S;
       if (DEBUG.snap && dragging !== 'pinch' && performance.now() - zLast > 260 && zT > 1) { const w = zDir > 0 ? Math.ceil(zT - 0.15) : Math.floor(zT + 0.15); if (w >= lo && w <= hi) zT = w; }
       zC = calm.matches ? zT : zC + (zT - zC) * (1 - Math.exp(-dt * 14)); if (Math.abs(zC - zT) < 0.003) zC = zT;
       if (zC !== scr.S) {
@@ -262,7 +263,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
     env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
-    env.idle = env.home && dragging == null ? t - lastAct : 0;
+    env.idle = env.home && dragging == null ? t - lastAct : 0; env.calm = calm.matches;
     if (env.moving || tr) stillAt = t;
     env.still = t - Math.max(stillAt, lastAct);
     // A scene that threw stays as it was last shown until the page has taken him somewhere else.

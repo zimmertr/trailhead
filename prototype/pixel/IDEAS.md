@@ -116,3 +116,4 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **Seen the avalanche.** A visitor who watched Mount Monolith's avalanche could find it noted in the trail register, as climbers note what they saw on the mountain that day.
 - **The creek follows the tide out.** At low water the rainforest's creek could run on across the bared flat in a braided channel to the water's new edge, as creeks do on Olympic beaches.
 - **The snout calves.** Now and then a slab of the Spires' ice cliff could break off into its lake with a splash, a ring of ripples and a new floe drifting out, with a start button in the debug menu like the other timed events.
+- **The look round says why.** While the view rests on a destination in the look round at the Trailhead, its plank on the junction sign could light up, so a visitor ties the place in view to the button that goes there.
