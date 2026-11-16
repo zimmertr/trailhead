@@ -35,7 +35,10 @@ const ROUTES = {
   // trailhead, the knife-edge (K5): over the notch (round 3's jump), up onto a crest so thin the whole map
   // shows far below it (`knife`), astride it where it is thinnest (`astride`), and on to the binoculars.
   trailhead: { kind: 'bridge', secs: 26, sx: 560, w: 1200, gap: [70, 96], knife: [150, 530], astride: [300, 420], pts: [[0, 0], [40, -14], [70, -30], [96, -34], [150, -80], [220, -96], [300, -104], [420, -116], [480, -128], [530, -140], [560, -150], [602, -150], [628, -112], [698, -12], [798, 108]] },
-  yggdrasil: { kind: 'ladder', secs: 4.5, gap: [130, 160], pts: [[0, 0], [70, -20], [130, -56], [160, -76], [220, -124], [262, -146], [304, -146], [330, -110], [400, -10], [500, 120]] },
+  // yggdrasil, the via ferrata (K6): dry rock all the way (`dry`), a steel cable from the start to `cable`,
+  // anchored every `anchor` of the way; iron rungs up the first wall and a fixed ladder up the second
+  // (`walls`), then unclipped over bare rock to the world tree.
+  yggdrasil: { kind: 'ladder', secs: 13, sx: 470, w: 1200, dry: true, cable: 430, anchor: 58, walls: [[200, 206, 'rungs'], [320, 326, 'ladder']], pts: [[0, 0], [50, -10], [120, -24], [200, -40], [206, -150], [260, -160], [320, -170], [326, -232], [380, -246], [430, -262], [470, -270], [512, -270], [538, -232], [608, -132], [708, -12]] },
   'kubernetes-manifests': { kind: 'wands', secs: 10.5, pts: [[0, 0], [90, -26], [170, -74], [230, -120], [262, -140], [304, -140], [330, -104], [400, 0], [500, 120]] }
 };
 // How slowly each kind of crossing is taken, as a multiple of the walking pace.
@@ -52,6 +55,7 @@ function sagAt(g, x, mx) {
 }
 // How much of the knife-edge there is at x: none off it, all of it along it.
 const knifeK = (cfg, x) => cfg.knife ? smooth(cfg.knife[0] - 30, cfg.knife[0] + 20, x) * (1 - smooth(cfg.knife[1] - 20, cfg.knife[1] + 30, x)) : 0;
+const wallAt = (cfg, x) => (cfg.walls || []).find(w => x > w[0] - 0.5 && x < w[1] + 0.5);
 const hOf = (pts, x) => { if (x <= 0) return 0; for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; return lerp(y0, y1, (x - x0) / (x1 - x0)); } return pts[pts.length - 1][1]; };
 
 // One column of a crevasse seen from the side, cut into the ground already painted there: a slot whose
@@ -71,12 +75,12 @@ function crevasse(S, sx, x, y0, [g0, g1], seed) {
 // Where the gully narrows: a wall of rock rises behind him and the ground in front of the line turns to
 // rock too, leaving only a ribbon of snow to climb. Both grow in from nothing at the ends of the narrows.
 // The rock is broken by slanting cracks and by ledges that hold a little snow (`crag()`).
-function crag(x, y, sx, seed, base) {
+function crag(x, y, sx, seed, base, dry) {
   const crack = Math.abs(frac((x + y * 0.55) / 27 + 0.9 * vnoise(x / 23, y / 17, seed + 47)) - 0.5) < 0.03 && vnoise(x / 8, y / 8, seed + 50) > 0.35;
   const ledge = frac(y / 15 + 0.9 * vnoise(x / 21, y / 30, seed + 48)), on = vnoise(x / 10, y / 14, seed + 51) > 0.5;
   if (crack) return R.granite[0];
   if (!on) return pick('granite', base + 0.28 * (fbm(x / 10, y / 7, seed + 42, 2) - 0.5), sx, y, 0.8);
-  if (ledge < 0.07) return vnoise(x / 5, y, seed + 49) > 0.45 ? R.snow[3] : R.granite[3];
+  if (ledge < 0.07) return !dry && vnoise(x / 5, y, seed + 49) > 0.45 ? R.snow[3] : R.granite[3];
   if (ledge < 0.14) return R.granite[1];
   return pick('granite', base + 0.28 * (fbm(x / 10, y / 7, seed + 42, 2) - 0.5) - ledge * 0.12, sx, y, 0.8);
 }
@@ -99,7 +103,7 @@ function paint(cfg, seed) {
     const y0 = Math.round(hOf(pts, x) + (x > 0 && x < sxOf(cfg) ? 1.5 * (vnoise(x / 7, 1, seed) - 0.5) : 0)), slope = hOf(pts, x + 3) - hOf(pts, x - 3);
     const far = slope > 2;
     tops[sx] = y0;
-    const kn = knifeK(cfg, x), kd = kn > 0 ? Math.round(lerp(DOWN, 30 + 26 * vnoise(x / 18, 7, seed + 61) + 8 * vnoise(x / 3, 8, seed + 62), kn)) : DOWN;
+    const kn = knifeK(cfg, x), kd = kn > 0 ? Math.round(lerp(DOWN, 30 + 26 * vnoise(x / 18, 7, seed + 61) + 8 * vnoise(x / 3, 8, seed + 62), kn)) : 1e9;
     for (let y = inGap ? y0 + 6 : y0; y < DOWN; y++) {
       const d = y - y0; let c;
       // Under the knife-edge its faces drop away and fade into the air above the valley.
@@ -109,6 +113,8 @@ function paint(cfg, seed) {
       else if (far && d > 3 + 5 * vnoise(sx / 5, y / 9, seed + 5) && vnoise(sx / 7, y / 26, seed + 10) > 0.3) c = Math.abs(frac(sx / 9 + vnoise(sx / 30, y / 30, seed + 11)) - 0.5) < 0.05 ? R.granite[0] : pick('granite', 0.34 + 0.3 * (vnoise(sx / 2.4, y / 14, seed + 6) - 0.5) - d * 0.0015, sx, y, 0.8);
       else if (!far && d > 9 && kind !== 'wands' && fbm((sx + y * 1.6) / 46, (y - sx * 0.25) / 9, seed + 5, 3) > 0.63) c = pick('granite', 0.62 - 0.5 * frac((y - sx * 0.25) / 9) + 0.2 * (vnoise(sx / 3, y / 3, seed + 6) - 0.5), sx, y, 0.8);
       else c = d < 1 ? R.snow[far ? 3 : 4] : far ? pick('glac', 0.72 - d * 0.004 + 0.12 * (vnoise(sx / 9, y / 4, seed + 7) - 0.5), sx, y, 0.6) : (Math.abs(frac((y + sx * 0.3) / 13 + 0.4 * vnoise(sx / 20, y / 20, seed + 8)) - 0.5) < 0.03 && d > 4 ? R.snow[2] : pick('snow', 0.86 + Math.max(-3, slope) * 0.02 - d * 0.002 + 0.14 * (vnoise(sx / 8, y / 5, seed + 9) - 0.5), sx, y, 0.5));
+      // Dry rock: big slabs paler and darker by turns, lit along the top, with lichen here and there.
+      if (cfg.dry) c = d < 1 ? R.granite[3] : d < 2 ? R.granite[2] : vnoise(x / 2.2, y / 2.2, seed + 82) > 0.86 && vnoise(x / 20, y / 20, seed + 83) > 0.55 ? R.ochre[1] : crag(x, y, sx, seed + 80, 0.32 + 0.4 * fbm(x / 46, y / 30, seed + 81, 2) + (d < 10 ? 0.12 : 0), true);
       if (kn > 0.3 && d >= 2) c = d < 3 && vnoise(x / 4, 9, seed + 63) > 0.5 ? R.snow[3] : crag(x, y, sx, seed + 70, 0.5 + (d / kd) * 0.25);
       S.set(sx, y, c);
     }
@@ -153,6 +159,8 @@ function paint(cfg, seed) {
     }
   }
   if (cfg.gully) narrows(S, cfg, seed);
+  // Tufts of grass in the cracks along the top of the dry rock, never on the walls.
+  if (cfg.dry) for (let x = 4; x < sxOf(cfg) + 40; x++) if (!wallAt(cfg, x) && !wallAt(cfg, x + 2) && hash(x, 1, seed + 84) > 0.88) { const y0 = Math.round(hOf(pts, x)) - 1; for (let k = 0; k < 3; k++) { const hgt = 1 + Math.round(hash(x, k + 2, seed + 84) * 2); for (let j = 0; j < hgt; j++) S.set(x + OFF + k - 1, y0 - j, j === hgt - 1 ? R.grass[3] : R.grass[1]); } }
   if (kind === 'ridge' && !cfg.sx) for (let x = 236; x < 300; x++) { const y0 = Math.round(hOf(pts, x)); for (let k = 0; k < 4 - Math.abs(x - 300) * 0.02; k++) S.set(x + OFF + k + 6, y0 + k + (x > 292 ? x - 292 : 0), R.snow[4]); }
   return S;
 }
@@ -378,6 +386,43 @@ function crossing(scr, X, Y, g, y0, y1, mx) {
   for (const [sx, sy] of [[a, ya], [b, yb]]) { for (let j = 1; j < 11; j++) scr.set(X(sx), Y(sy - j), j > 8 ? R.blaze[1] : R.rock[2]); scr.set(X(sx) + 1, Y(sy - 1), R.rock[3]); }
   for (let x = a + 1; x < b; x++) { const u = (x - a) / (b - a), y = lerp(ya, yb, u) - 9 + 3 * Math.sin(u * Math.PI) + sagAt(g, x, mx) * 0.7; scr.set(X(x), Y(y), R.blaze[0]); }
 }
+// The via ferrata. The cable's line at arc s: a hand's height above the ledges, and up the walls on the
+// face beside the rungs and the ladder.
+function cableAt(cfg, pts, a, xAt, s) {
+  const x = xAt(a, s), w = wallAt(cfg, x);
+  return w ? [w[0] - 1, hOf(pts, x) - 6] : [x, hOf(pts, x) - 11];
+}
+// The iron on the rock: rungs (staples sticking out of the first wall), a fixed ladder against the second,
+// the steel cable sagging a little between its anchors, and the anchors themselves.
+function ferrata(scr, X, Y, cfg, pts, pl, a, xAt, arcAt) {
+  for (const [w0, w1, k] of cfg.walls) {
+    const top = hOf(pts, w1), bot = hOf(pts, w0 - 1);
+    if (k === 'rungs') for (let y = bot - 5; y > top + 2; y -= 6) { for (let i = 1; i <= 4; i++) { scr.set(X(w0 - i), Y(y), R.rock[4]); scr.set(X(w0 - i), Y(y) + 1, R.rock[1]); } scr.set(X(w0 - 4), Y(y) - 1, R.rock[4]); }
+    else { for (let y = bot; y > top - 6; y--) { const lean = Math.round((bot - y) / (bot - top + 6) * 2); scr.set(X(w0 - 6 + lean), Y(y), R.rock[3]); scr.set(X(w0 - 2 + lean), Y(y), R.rock[2]); if (Math.round(bot - y) % 4 === 2) for (let i = -5; i <= -3; i++) scr.set(X(w0 + i + lean), Y(y), R.rock[4]); } }
+  }
+  const end = arcAt(a, cfg.cable);
+  for (let s = 6; s < end; s += 0.5) {
+    const [x, y] = cableAt(cfg, pts, a, xAt, s), prev = pl.anchors.filter(v => v <= s).pop() || 6, next = pl.anchors.find(v => v > s) || end, sag = wallAt(cfg, xAt(a, s)) ? 0 : 2.5 * Math.sin(Math.PI * (s - prev) / Math.max(1, next - prev));
+    scr.set(X(x), Y(y + sag), R.rock[3]);
+  }
+  for (const s of [6, ...pl.anchors]) { const [x, y] = cableAt(cfg, pts, a, xAt, s); scr.set(X(x), Y(y), R.rock[1]); scr.set(X(x), Y(y) + 1, R.rock[1]); scr.set(X(x) + 1, Y(y), R.rock[4]); }
+}
+// His two lanyards, orange and teal, from his harness to where each is clipped to the cable. At each
+// anchor the orange one comes off first, goes past in his hand and clips on beyond it, then the teal one,
+// so he is never off the cable. Past its end he is unclipped and they hang at his harness.
+function lanyards(scr, X, Y, cfg, pts, pl, a, xAt, arcAt, tau, hx, hy, me) {
+  const sMe = arcAt(a, me.x), hip = [hx, hy - 8], hand = [hx + 6, hy - 22], n = pl.clips.length;
+  [['a', R.blaze[1]], ['b', R.teal[2]]].forEach(([k, col], j) => {
+    const passed = pl.clips.filter(c => c[k] <= tau).length, moving = pl.clips.find(c => tau > (k === 'a' ? c.t0 : c.mid) && tau < c[k]);
+    let p;
+    if (passed >= n) p = [hip[0] + 1 + j, hip[1] + 5];
+    else if (moving) p = hand;
+    else { const lo = passed ? pl.clips[passed - 1].s + 2 + j : 6, hi = pl.clips[passed].s - 1 - j, [x, y] = cableAt(cfg, pts, a, xAt, clamp(sMe - 9 - j * 5, lo, Math.max(lo, hi))); p = [X(x), Y(y)]; }
+    const d = Math.hypot(p[0] - hip[0], p[1] - hip[1]), sl = Math.max(0, 8 - d * 0.3);
+    for (let i = 0; i <= 12; i++) { const u = i / 12; scr.set(Math.round(lerp(hip[0], p[0], u)), Math.round(lerp(hip[1], p[1], u) + sl * Math.sin(u * Math.PI)), col); }
+    scr.set(Math.round(p[0]), Math.round(p[1]) - 1, R.yellow[1]); scr.set(Math.round(p[0]) + 1, Math.round(p[1]) - 1, R.yellow[1]);
+  });
+}
 // The map at a third of its size, as wide as the whole map (1920) allows, its bottom just south of the
 // Trailhead and the country north of it (Mount Monolith, the lake, the Stack) above, never past its edges. Each call draws one screenful of the
 // map and keeps every third pixel of it, until the whole picture is built.
@@ -496,6 +541,10 @@ export function makeClimb() {
     // Astride the crest: sitting on it, one leg hanging down this side, both hands on the rock in front,
     // shuffling forward.
     astride: [0, 1].map(f => sideFig('alpine', { feet: [[2 + f, 13], [-1, 12]], crouch: 7, lean: 2 + f, hands: [[6 + 2 * f, 7], [3 + f, 7]], look: 'down' })),
+    // Up rungs or a ladder, side-on, facing the rock: hands and feet on the rungs, moving in turn.
+    climb: [0, 1].map(f => sideFig('alpine', { feet: f ? [[4, 3], [3, 8]] : [[3, 8], [4, 3]], hands: f ? [[4, -12], [4, -6]] : [[4, -6], [4, -12]], lean: 1, look: 'up' })),
+    // Reaching up to the cable with one hand to move a lanyard past an anchor.
+    reach: sideFig('alpine', { hands: [[5, -9], [2, 5]], lean: 1, look: 'up' }),
     // On top, looking at his watch.
     wrist: sideFig('alpine', { hands: [[4, 0], [3, 1]], lean: 1, look: 'down', elbowFwd: true }),
     // At the binoculars: both hands up on the viewer, leaning in to the eyepieces.
@@ -534,20 +583,26 @@ export function makeClimb() {
     walls.forEach((w, i) => { walk(w.x0); const leg = iceLeg(w, t, cfg.slip && cfg.slip[0] === i ? cfg.slip[1] : -1); legs.push(leg); t = leg.t1; x = w.xc; });
     // Stops on the way: a rest at the end of each set, the slip mid-set.
     const stops = (cfg.sets || []).map(([sx, d]) => ({ sx, d, k: 'rest' })); if (cfg.slipAt) stops.push({ sx: cfg.slipAt, d: 1.5, k: 'slip' });
-    for (const p of stops.sort((a, b) => a.sx - b.sx)) { walk(p.sx); legs.push({ t0: t, t1: t + p.d, x0: p.sx, x1: p.sx, [p.k]: true }); t += p.d; }
+    const anchors = []; if (cfg.cable) { const end = arcAt(a, cfg.cable); for (let s = 14; s < end - 20; s += cfg.anchor) anchors.push(s); anchors.push(end); anchors.forEach((s, i) => stops.push({ sx: xAt(a, s - 2), d: 0.8, k: 'clip', i })); }
+    for (const p of stops.sort((a, b) => a.sx - b.sx)) { walk(p.sx); legs.push({ t0: t, t1: t + p.d, x0: p.sx, x1: p.sx, [p.k]: true, i: p.i }); t += p.d; }
     walk(sxOf(cfg));
     if (cfg.beep) { legs.push({ t0: t, t1: t + 1.4, x0: x, x1: x, beep: true }); t += 1.4; }
-    return plans[id] = { legs, walls, tSum: t, tPush: t + T_STAND, tBot: t + T_STAND + T_SLIDE, dur: t + T_STAND + T_SLIDE + T_OUT };
+    // When each lanyard goes past each anchor: the first one in the first half of the stop, the second in the
+    // second half, so one of them is always on the cable.
+    const clips = legs.filter(l => l.clip).map(l => ({ s: anchors[l.i], t0: l.t0, a: l.t0 + 0.4 * (l.t1 - l.t0), b: l.t1 - 0.05, mid: l.t0 + 0.5 * (l.t1 - l.t0) }));
+    return plans[id] = { legs, walls, anchors, clips, tSum: t, tPush: t + T_STAND, tBot: t + T_STAND + T_SLIDE, dur: t + T_STAND + T_SLIDE + T_OUT };
   }
   function where(id, tau) {
     const cfg = ROUTES[id], pts = cfg.pts, pl = plan(id);
     if (tau < T_UP) { const x = -34 + 34 * tau / T_UP; return { ph: 'up', x, y: 0, mode: 'walk' }; }
     if (tau <= pl.tSum) {
       const leg = pl.legs.find(l => tau <= l.t1) || pl.legs[pl.legs.length - 1];
+      if (leg.clip) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: 'clip', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
       if (leg.rest || leg.slip || leg.beep) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: leg.rest ? 'rest' : leg.slip ? 'slip' : 'beep', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
       if (leg.ice) { const pose = icePose(leg, tau - leg.t0); return pose.walk ? { ph: 'up', x: pose.x, y: pose.y, mode: 'walk' } : { ph: 'up', x: pose.hx, y: leg.w.ya - pose.hh + STAND, mode: 'ice', pose, leg }; }
       const a = arc(id), x = xAt(a, lerp(arcAt(a, leg.x0), arcAt(a, leg.x1), clamp((tau - leg.t0) / Math.max(1e-6, leg.t1 - leg.t0), 0, 1))); let y = hOf(pts, x), mode = 'walk';
       if (cfg.kind === 'ridge') mode = 'wind';
+      if (wallAt(cfg, x)) mode = 'climb';
       if (cfg.knife && knifeK(cfg, x) > 0.5) mode = cfg.astride && x > cfg.astride[0] && x < cfg.astride[1] ? 'astride' : 'edge';
       const xg = xingAt(cfg, x, 3);
       if (xg) { y = lerp(hOf(pts, xg[0]), hOf(pts, xg[1]), clamp((x - xg[0]) / (xg[1] - xg[0]), 0, 1)) + sagAt(xg, x, x) - (xg[2] === 'snow' ? 0 : 1); if (xg[2] !== 'snow') mode = 'wind'; }
@@ -581,6 +636,7 @@ export function makeClimb() {
       for (const leg of pl.legs) {
         if (leg.slip) for (const a of [0, 0.55, 1.05]) out.push({ at: (leg.t0 + a) / D, name: 'step' });
         if (leg.beep) out.push({ at: (leg.t0 + 0.3) / D, name: 'beep' });
+        if (leg.clip) for (const a of [0.4, 0.95]) out.push({ at: (leg.t0 + a * (leg.t1 - leg.t0)) / D, name: 'tink' });
         if (cfg.sets && !leg.rest && !leg.slip && !leg.beep && leg.t1 > T_UP) for (let a = leg.t0 + 0.2; a < leg.t1; a += 0.42) out.push({ at: a / D, name: 'step' });
       }
       for (const leg of pl.legs) if (leg.ice) for (const h of leg.hit) out.push({ at: h.t / D, name: h.tool ? 'tink' : 'step' });
@@ -684,7 +740,8 @@ export function makeClimb() {
           const [g0, g1] = cfg.gap, y0 = hOf(pts, g0), y1 = hOf(pts, g1);
           for (let x = g0; x <= g1; x++) { const u = (x - g0) / (g1 - g0), by = lerp(y0, y1, u) + Math.sin(u * Math.PI) * 3; const drop = me.x > g0 - 2 ? Math.max(0, (me.x - g0 + 2) / (g1 - g0 + 4) - u * 0.5) * 120 * (0.5 + hash(x, 2, 248)) : 0; for (let j = 0; j < 5; j++) scr.set(X(x), Y(by + j + drop), j === 0 ? R.snow[4] : R.snow[2 + (j < 3 ? 1 : 0)]); }
         }
-        if (kind === 'ladder') { const [g0, g1] = cfg.gap, y0 = hOf(pts, g0), y1 = hOf(pts, g1); for (let x = g0 - 4; x <= g1 + 4; x++) { const u = (x - g0) / (g1 - g0), y = lerp(y0, y1, u); scr.set(X(x), Y(y), R.rock[4]); scr.set(X(x), Y(y + 2), R.rock[2]); if ((x - g0) % 4 === 0) scr.set(X(x), Y(y + 1), R.rock[3]); } for (const [x, y] of [[g0 - 5, y0], [g1 + 5, y1]]) { scr.set(X(x), Y(y - 3), R.blaze[1]); scr.set(X(x), Y(y - 2), R.rock[3]); scr.set(X(x), Y(y - 1), R.rock[3]); } }
+        if (cfg.cable) ferrata(scr, X, Y, cfg, pts, pl, arc(id), xAt, arcAt);
+        if (kind === 'ladder' && cfg.gap) { const [g0, g1] = cfg.gap, y0 = hOf(pts, g0), y1 = hOf(pts, g1); for (let x = g0 - 4; x <= g1 + 4; x++) { const u = (x - g0) / (g1 - g0), y = lerp(y0, y1, u); scr.set(X(x), Y(y), R.rock[4]); scr.set(X(x), Y(y + 2), R.rock[2]); if ((x - g0) % 4 === 0) scr.set(X(x), Y(y + 1), R.rock[3]); } for (const [x, y] of [[g0 - 5, y0], [g1 + 5, y1]]) { scr.set(X(x), Y(y - 3), R.blaze[1]); scr.set(X(x), Y(y - 2), R.rock[3]); scr.set(X(x), Y(y - 1), R.rock[3]); } }
         for (const g of cfg.xings || []) crossing(scr, X, Y, g, hOf(pts, g[0]), hOf(pts, g[1]), me.x);
         // The thing on the summit, and whatever it does when clicked.
         if (kind === 'icefall') {
@@ -741,6 +798,8 @@ export function makeClimb() {
         bm = fig.stand;
         if (u < 5) { if (kind === 'ice' && u > 0.4 && u < 4.2) { bm = null; scr.put(fig.press[Math.floor((u - 0.4) * 1.6) & 1], X(SXr + 24), Y(hOf(pts, SXr + 24) - 4), false); } else if (kind === 'wands' && u < 1.2) bm = fig.hit[u > 0.35 && u < 0.7 ? 1 : 0]; else if (kind === 'ridge' || kind === 'ladder') bm = u > 3 ? fig.cheer : fig.stand; }
       } else if (me.mode === 'sit') { bm = fig.sit[Math.floor(t * 8) & 1]; flip = true; dy = 2; for (let k = 0; k < 14; k++) { const a = frac(t * 2.4 + k / 14); scr.set(Math.round(sx + 6 + a * 30 + hash(k, 1, 251) * 6), Math.round(sy - 2 - a * (8 + hash(k, 2, 251) * 16) + a * a * 10), a < 0.6 ? R.white[1] : R.snow[3]); } }
+      else if (me.mode === 'climb' || (me.mode === 'clip' && wallAt(cfg, me.x))) { const w = wallAt(cfg, me.x); bm = fig.climb[me.mode === 'clip' ? 0 : Math.floor(-me.y / 5) & 1]; dx = X(w[0] - 5) - sx; }
+      else if (me.mode === 'clip') bm = fig.reach;
       else if (me.mode === 'edge') bm = fig.edge[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1];
       else if (me.mode === 'astride') { bm = fig.astride[env.moving ? Math.floor(Math.abs(d) / 2.5) & 1 : 0]; dy = 6; }
       else if (me.mode === 'rest') { const hard = cfg.gully && me.x > cfg.gully[0] ? 1.5 : 1; bm = fig.rest[Math.floor(t * 1.4 * hard) & 1]; breath(scr, sx + 6, sy - 16, t, hard); }
@@ -762,6 +821,7 @@ export function makeClimb() {
       else if (cfg.sets && me.ph === 'up' && me.x > 0) { bm = fig.wind[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1]; const a = frac(d / 7.2); if (env.moving && a < 0.3) chips(scr, sx + 6, sy - 1, a / 0.3, 4, Math.floor(d / 7.2)); }
       else { const rimed = cfg.brk && me.ph === 'up'; bm = ((me.mode === 'wind' && windK > 0.25) || (gust > 0.3 && up < 0.9) ? (rimed ? fig.windR : fig.wind) : (rimed ? fig.walkR : fig.walk))[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1]; flip = !!me.back; }
       if (bm) { scr.put(bm, sx + Math.round(dx), sy + dy, flip); }
+      if (cfg.cable && me.ph === 'up') lanyards(scr, X, Y, cfg, pts, pl, arc(id), xAt, arcAt, tau, sx + Math.round(dx), sy + dy, me);
       focus.x = sx; focus.y = sy - 14;
       if (bird) scr.put(bb[Math.floor(t * 10) & 1], bird.x, bird.y, bird.left);
       if (env.done['spire:' + id] && me.ph === 'up') scr.blit(flag[Math.floor(t * 5) & 1], X(SXr + 4), Y(hOf(pts, SXr + 4)) - 15);
