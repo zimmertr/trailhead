@@ -48,13 +48,22 @@ let VOLC = null;
 const VP = prof([[0, 1], [0.07, 0.985], [0.14, 0.94], [0.25, 0.8], [0.4, 0.58], [0.55, 0.4], [0.7, 0.25], [0.85, 0.11], [1, 0]]);
 // Its skyline from the south, as drawn for the first block-in: [offset from the summit, height].
 const VS = prof([[-236, 0], [-208, 0.09], [-176, 0.22], [-146, 0.38], [-118, 0.54], [-96, 0.67], [-80, 0.76], [-70, 0.815], [-62, 0.845], [-54, 0.85], [-48, 0.875], [-40, 0.93], [-32, 0.96], [-24, 0.975], [-16, 0.965], [-8, 0.985], [0, 1], [8, 0.995], [16, 0.98], [24, 0.985], [32, 0.96], [42, 0.92], [54, 0.87], [64, 0.85], [72, 0.78], [90, 0.67], [108, 0.585], [118, 0.56], [124, 0.585], [128, 0.6], [133, 0.545], [146, 0.47], [170, 0.33], [200, 0.18], [228, 0.07], [252, 0]]);
+// The ribs of rock (cleavers) that fan down from below the summit dome, with a glacier between each
+// pair. t is 1 on a rib's crest and 0 in the middle of a glacier; each rib has its own strength (amp)
+// and they wander a little as they come down, so no two are alike.
+function vrelief(u, v) {
+  const { cu, cv, ru, rv } = VOLC, du = (u - cu) / ru, dv = (v - cv) / rv, d = Math.hypot(du, dv), a = Math.atan2(dv, du);
+  const fan = a * 13 / TAU + 0.5 * (vnoise(du * 3 + 5, dv * 3 + 5, 571) - 0.5) + 0.35 * d * Math.sin(2 * a), k = Math.floor(fan);
+  return { d, k, t: 1 - Math.abs(frac(fan) - 0.5) * 2, amp: 0.55 + 0.9 * hash(k & 15, 3, 572), face: Math.abs(Math.sin(a)) };
+}
 function volcano(cu, cv, ru, rv, H) {
   VOLC = { cu, cv, ru, rv, H };
   add('volc', cu - ru, cu + ru, cv - rv, cv + rv, (u, v) => {
     const du = (u - cu) / ru, dv = (v - cv) / rv, d = Math.hypot(du, dv) + 0.04 * (vnoise(u / 40, v / 40, 559) - 0.5); if (d >= 1) return 0;
     // A round dome, stretched column by column so that what shows against the sky is the drawn outline.
     const round = VP(Math.abs(du)), want = VS((u - cu) * 250 / ru), fit = round > 0.06 ? clamp(want / round, 0.55, 1.5) : 1;
-    return H * VP(Math.max(0, d)) * lerp(1, fit, smooth(0.9, 0.3, Math.abs(dv))) * (1 + 0.03 * (vnoise(u / 18, v / 18, 560) - 0.5));
+    const Q = vrelief(u, v), rib = 0.07 * smooth(0.12, 0.3, Q.d) * smooth(0.98, 0.72, Q.d) * Q.amp * (Math.pow(Q.t, 3) - 0.25);
+    return H * VP(Math.max(0, d)) * lerp(1, fit, smooth(0.9, 0.3, Math.abs(dv))) * (1 + rib + 0.03 * (vnoise(u / 18, v / 18, 560) - 0.5));
   });
 }
 // Sideproject Spires, after the Southern Pickets: one wall with six blunt summits, in the order of
@@ -297,16 +306,41 @@ function colour(u, v, hh, x, y) {
     return frac(row) < 0.15 && hash(band, Math.floor(row), 815) < 0.26 ? R.snow[L > 0.4 ? 4 : 3] : rock;
   }
   if (mat === 'volc') {
-    const { cu, cv, ru, rv, H } = VOLC, e = hh / H, a = Math.atan2((v - cv) / rv, (u - cu) / ru), b = bayer(x, y);
-    if (e > 0.17 + 0.05 * vnoise(u / 20, v / 20, 568)) {
-      // Lit on the west and in blue shadow on the east, with a soft line between. Dark ribs of rock
-      // fan out below the summit dome and split the ice into glaciers.
-      const sh = (x - cu) / ru * 1.5 + 0.22 * (vnoise(x / 17, hh / 17, 561) - 0.5);
-      const fr = frac(a * 9 / TAU + 0.1 * vnoise(u / 30, v / 30, 561)), rib = e < 0.72 && e > 0.2 && Math.abs(fr - 0.5) < 0.04 + 0.13 * smooth(0.72, 0.2, e) && vnoise(x / 5, hh / 8, 562) > 0.2;
-      if (rib || (e > 0.8 && e < 0.86 && vnoise(x / 9, hh / 3, 563) > 0.72)) return sh < 0.15 ? R.far[1] : R.far[0];
-      if (e < 0.62 && frac(hh / 6 + 2 * a + 0.5 * vnoise(u / 9, v / 9, 566)) < 0.1 && vnoise(x / 5, hh / 4, 567) > 0.45) return R.glac[sh < 0.2 ? 3 : 2];
-      return sh < 0.02 ? R.farsnow[1] : sh < 0.3 ? (b < (sh - 0.02) / 0.28 ? R.farsnow[0] : R.farsnow[1]) : sh < 0.7 ? (b < (sh - 0.3) / 0.4 ? R.far[3] : R.farsnow[0]) : R.far[3];
+    // Lit from the west; the east flank turns away into blue shadow.
+    const { cu, ru, H } = VOLC, e = hh / H, b = bayer(x, y), Q = vrelief(u, v), ew = (u - cu) / ru;
+    const lit = clamp(L - 0.3 * smooth(0, 0.8, ew) + 0.12 * smooth(0, -0.8, ew), 0, 1), n2 = vnoise(x / 9, hh / 7, 574);
+    const rock = (dk = 0) => R.rock[clamp(Math.round(lit * 3.2 + (b - 0.5) * 0.9) - dk, 0, 3)];
+    const snow = () => R.snow[clamp(Math.round(lit * 4.2 + 0.3 + (b - 0.5) * 0.9), 1, 4)];
+    // The tooth low on the east flank, after Little Tahoma: dark rock standing out of the ice.
+    // It breaks the skyline as the bump on the mountain's right-hand outline.
+    const tu = cu + 128 * ru / 250, tq = Math.hypot((u - tu) / 22, (v - VOLC.cv - 0.05 * VOLC.rv) / 46);
+    if (e > 0.42 && tq < 1 - 0.25 * n2) return vnoise(x / 3, hh / 5, 581) > 0.72 && lit > 0.4 ? R.snow[3] : rock(1);
+    // Ribs of rock between the glaciers: thin near the top, wider low down, gone below the dome.
+    // A rib on the east or west flank is seen edge-on, so it is drawn thinner there.
+    const ribW = (Q.amp * 0.3 * smooth(0.82, 0.3, e) + 0.1 * (n2 - 0.5)) * (0.35 + 0.65 * Q.face);
+    // The snow comes down lowest in the middle of each glacier, as a tongue, and stops higher on the ribs.
+    // How far up the mountain's own slope a spot is, from its foot (0) to the summit (1): the height
+    // drawn also counts the raised ground it stands on, which would bring the ice down too far in front.
+    const el = VP(Math.min(1, Q.d));
+    // Each glacier reaches its own distance down, so the ice does not end along one line.
+    const snowE = 0.44 - (0.05 + 0.13 * hash(Q.k & 15, 7, 587)) * smooth(0.15, 0.85, 1 - Q.t) + 0.07 * (vnoise(u / 14, v / 14, 575) - 0.5);
+    if (el > snowE) {
+      if (e > 0.2 && Q.t > 1 - ribW) return vnoise(x / 2.5, hh / 4, 582) > 0.76 && lit > 0.35 ? R.snow[3] : rock(vnoise(x / 4, hh / 12, 583) > 0.62 ? 1 : 0);
+      // A crack round the dome where the summit snow pulls away (the bergschrund).
+      if (e > 0.812 && e < 0.826 && vnoise(x / 9, hh / 3, 563) > 0.6) return R.glac[lit > 0.45 ? 2 : 1];
+      // Two or three glaciers break over a step into an icefall of blue blocks.
+      const fall = hash(Q.k & 15, 5, 578), f0 = 0.4 + 0.14 * hash(Q.k & 15, 6, 578);
+      if (fall > 0.45 && Q.t < 0.62 && e > f0 && e < f0 + 0.09) { const row = Math.floor(hh / 3), k = hash((u + row * 5) >> 1, row, 579); return k < 0.2 ? R.glac[1] : k < 0.45 ? R.glac[lit > 0.4 ? 3 : 2] : k < 0.75 ? R.snow[3] : R.snow[4]; }
+      // Crevasses across the flow, short pale-blue dashes.
+      if (e > 0.24 && e < 0.78 && frac(hh / 4.5 + 3 * Q.t + 0.6 * vnoise(u / 10, v / 10, 576)) < 0.1 && vnoise(x / 4, hh / 3, 577) > 0.55) return R.glac[lit > 0.45 ? 3 : 2];
+      return snow();
     }
+    // The snout of each glacier: a band of dirty ice and rubble.
+    if (el > snowE - 0.025) return b < 0.5 ? R.glac[2] : rock();
+    // Below the ice, moraine and scree with dark streaks, then heather and meadow, then the forest.
+    if (el > Math.max(0.12, snowE - 0.07 - 0.04 * n2)) return vnoise(x / 4, hh / 9, 584) > 0.74 ? R.rock[0] : hash(u >> 1, v >> 1, 585) < smooth(snowE - 0.03, snowE - 0.08, el) * 0.8 ? pick('grass', 0.3 + 0.3 * lit, x, y) : pick('rock', 0.2 + 0.5 * lit + 0.15 * vnoise(x / 3, hh / 6, 580), x, y, 0.7);
+    if (forestAmt(u, v) > 0.4) return pick('moss', 0.2 + 0.35 * lit, x, y);
+    return hash(u, v, 586) < 0.05 ? R.red[1] : pick('grass', 0.4 + 0.35 * lit + 0.15 * n1, x, y, 0.4);
   }
   if (mat === 'gran' || mat === 'fin') {
     if (steep > 0.75 || mat === 'fin') { const crack = vnoise(x / 2.2, hh / 26, 902), streak = vnoise(x / 5, hh / 40, 903); const k = clamp(Math.round(1.5 + 2.9 * L + (streak > 0.62 ? -1.1 : 0) + (crack > 0.74 ? -1.4 : crack < 0.2 ? 0.5 : 0) + (b2(x, y) - 0.5) * 0.9), 0, 5); return k === 5 ? R.gold[6] : R.rock[k]; }
@@ -499,7 +533,7 @@ const slope = (u, v) => Math.hypot(hAt(u + 2, v) - hAt(u - 2, v), hAt(u, v + 2) 
 const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && coast(u, v) < -32 && !lakeAt(u, v) && !water[at(Math.round(u), Math.round(v))] && !wet8(Math.round(u), Math.round(v)) && slope(u, v) < max && !nearTrail(u, v, 9) && Math.hypot(u - TU, (v - TV) * 1.4) > 46;
 {
   const rand = rng(2026), any = a => a[(rand() * a.length) | 0], land = (u, v) => MATS[mg[at(Math.round(u), Math.round(v))]] === 'land';
-  const wooded = (u, v) => { const i = at(Math.round(u), Math.round(v)), m = MATS[mg[i]], h = hg[i]; return m === 'land' ? h < 100 : m === 'volc' ? h < VOLC.H * 0.16 : m === 'crest' ? h < 48 : false; };
+  const wooded = (u, v) => { const i = at(Math.round(u), Math.round(v)), m = MATS[mg[i]], h = hg[i]; return m === 'land' ? h < 100 : m === 'volc' ? VP(Math.min(1, vrelief(u, v).d)) < 0.17 + 0.05 * vnoise(u / 30, v / 30, 588) : m === 'crest' ? h < 48 : false; };
   const maples = Array.from({ length: 6 }, (_, i) => makeMaple(100 + i)), spruces = Array.from({ length: 6 }, (_, i) => makeSpruce(200 + i)), firs = Array.from({ length: 8 }, (_, i) => makeFir(300 + i));
   const bigleaf = Array.from({ length: 4 }, (_, i) => blobTree(800 + i, i & 1 ? 'larch' : 'sun', 36 + i * 2, 'bark', 5, 5.5));
   const larches = Array.from({ length: 6 }, (_, i) => { const r = rng(900 + i); return makeConifer(900 + i, 24 + (r() * 14 | 0), 10 + (r() * 4 | 0), 'larch', 6); });
@@ -520,6 +554,13 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     if (!wooded(u, v)) continue;
     if (rand() < Math.max(larchAmt(u, v), dryAmt(u, v) * 1.2, burnAmt(u, v), eastAmt(u, v) * 0.8)) continue;
     plant(any(firs), u, v);
+  }
+  // Mount Monolith's lower flanks: firs in clumps up to the meadows under the ice, spruce where the
+  // rainforest reaches round its west side.
+  for (let n = 0; n < 2600; n++) {
+    const u = VOLC.cu + (rand() * 2 - 1) * VOLC.ru, v = VOLC.cv + (rand() * 2 - 1) * VOLC.rv;
+    if (MATS[mg[at(Math.round(u), Math.round(v))]] !== 'volc' || !wooded(u, v) || fbm(u / 34, v / 26, 589, 3) < 0.5 || !open(u, v, 1.6)) continue;
+    plant(forestAmt(u, v) > 0.3 && rand() < 0.6 ? any(spruces) : any(firs), u, v, fogAmt(u, v));
   }
   for (let n = 0; n < 5200; n++) {
     const u = C.LB[0] - C.LB[2] - 50 + rand() * (C.LB[2] * 2 + 100), v = C.LB[1] - C.LB[3] - 40 + rand() * (C.LB[3] * 2 + 80), m = MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]], hi = m === 'gran';
@@ -552,8 +593,8 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   for (let n = 0; n < 300; n++) { const u = 1240 + rand() * 680, v = 380 + rand() * 320; if (MATS[mg[at(Math.round(u), Math.round(v))]] === 'gran' && open(u, v, 0.7) && rand() < 0.5) put(any(slabs), u, v); }
   for (let n = 0; n < 900; n++) { const u = 1300 + rand() * 620, v = rand() * 480; if (rand() < sageAmt(u, v) * 0.5 && open(u, v) && land(u, v)) put(any(sages), u, v); }
   for (let n = 0; n < 400; n++) { const u = 1690 + rand() * 230, v = 380 + rand() * 190; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) { if (rand() < 0.5) put(any(burnt), u, v, 0, true); else plant(any(young), u, v); } }
-  for (let n = 0; n < 4000; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.6 && fogAmt(u, v) < 0.25 && open(u, v, 1.1)) things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); }
-  for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && open(u, v, 0.8)) put(any(logs), u, v); }
+  for (let n = 0; n < 4000; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.6 && fogAmt(u, v) < 0.25 && open(u, v, 1.1) && wooded(u, v)) things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); }
+  for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && open(u, v, 0.8) && wooded(u, v)) put(any(logs), u, v); }
   { const seen = []; for (let n = 0; n < 4000 && seen.length < 6; n++) { const u = rand() * 520, v = rand() * 420, c = coast(u, v); if (c < 22 || c > 110 || seen.some(([a, b]) => Math.hypot(a - u, b - v) < 70)) continue; seen.push([u, v]); const H = 16 + (rand() * 34 | 0); put(seaStack(seen.length, H, Math.round(H * 0.45)), u, v); } }
   plant(any(firs), ISLE[0], ISLE[1]);
 }
