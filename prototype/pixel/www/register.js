@@ -125,17 +125,19 @@ function paintFront(fb, L, a, bounce) {
   for (let x = 0; x < VW; x++) fb[yH * VW + x] = x % 40 < 6 ? R.rock[3] : INK;
 }
 
-// The pencil on its string, lying on the desk, tied to a screw eye on the box's right side.
-function paintPencil(fb, L) {
-  const { VW, VH, yH, bx1, rim } = L, len = L.n ? 36 : 46;
-  const x0 = bx1 - (L.n ? 64 : 90), y0 = Math.min(VH - 6, yH + Math.round((VH - yH) * 0.62)), ang = -0.32, dx = Math.cos(ang), dy = Math.sin(ang);
+// The pencil on its string, tied to a screw eye low on the box's left side. It lies on the desk, point to
+// the right, until the visitor may sign; then it lies on the left-hand page, ready to write with (L4).
+function paintPencil(fb, L, onPage) {
+  const { VW, VH, yH, bx0, rim, left } = L, len = L.n ? 36 : 46;
+  const [x0, y0, ang] = onPage ? [left.x + Math.round(left.w * 0.72), left.y + Math.round(left.h * 0.66), Math.PI - 0.5] : [bx0 + (L.n ? 56 : 84), Math.min(VH - 6, yH + Math.round((VH - yH) * 0.55)), Math.PI + 0.3];
+  const dx = Math.cos(ang), dy = Math.sin(ang);
   for (let s = 0; s < len; s++) {
     const x = Math.round(x0 + dx * s), y = Math.round(y0 + dy * s);
     const c = s < 2 ? INK : s < 6 ? R.wood[4] : s < len - 6 ? R.yellow[1] : s < len - 3 ? R.rock[3] : R.pink[1];
     fb[y * VW + x] = c; fb[(y + 1) * VW + x] = s < 2 ? INK : s < 6 ? R.wood[3] : s < len - 6 ? R.yellow[0] : s < len - 3 ? R.rock[2] : R.pink[0];
     fb[(y + 2) * VW + x] = INK;
   }
-  const ex = Math.round(x0 + dx * len), ey = Math.round(y0 + dy * len), sx = VW - 1 - rim - 4, sy = yH - 3;
+  const ex = Math.round(x0 + dx * len), ey = Math.round(y0 + dy * len), sx = rim + 4, sy = yH - 3;
   fb[(sy - 1) * VW + sx] = R.rock[3]; fb[sy * VW + sx - 1] = R.rock[3]; fb[sy * VW + sx + 1] = R.rock[3]; fb[(sy + 1) * VW + sx] = R.rock[3];
   for (let k = 0; k <= 1; k += 1 / 120) { const x = Math.round(ex + (sx - ex) * k), y = Math.round(ey + (sy - ey) * k + Math.sin(k * Math.PI) * 4); if (y >= 0 && y < VH) fb[y * VW + x] = R.white[0]; }
 }
@@ -163,7 +165,7 @@ export function makeRegisterScene() {
       scr.fb.set(pic);
       const s = q * DUR, a = smooth(0, 1, clamp(s / SWING, 0, 1)), bounce = s > SWING && s < SWING + 0.25 ? Math.round(2 * Math.sin((s - SWING) / 0.25 * Math.PI)) : 0;
       paintFront(scr.fb, L, a, bounce);
-      if (a >= 1) paintPencil(scr.fb, L);
+      if (a >= 1) paintPencil(scr.fb, L, env.done && env.done.lake && env.done.stack && env.done.spires);
       focus.x = scr.VW >> 1; focus.y = scr.VH >> 1;
     }
   };

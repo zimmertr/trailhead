@@ -205,6 +205,8 @@ export const UI = {
     close: 'Close the book',
     // The printed headings of the book's right-hand page (L3), as on a Forest Service register form.
     book: { date: 'Date', who: 'Name, party and remarks' },
+    // TJ's note on the left-hand page until the visitor has done all three (L4). Draft copy for TJ to rewrite.
+    todo: { hi: 'Thanks for stopping by!', need: 'You can sign the register once you have finished all three:', spires: name => 'One summit in ' + name, after: 'Then come back, and this page is yours.', sig: 'TJ' },
     title: 'Summit register', sub: 'You did all three. Sign in.', open: 'open', locked: 'locked',
     lockedSay: 'The summit register opens once all three destinations are done.',
     pending: 'waiting for TJ to approve it', signed: 'Signed. Your entry waits for TJ to approve it.',

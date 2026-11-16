@@ -82,7 +82,19 @@ function fillBook() {
   const page = (g, cls) => el('div', { class: 'page ' + cls, style: 'left:' + g.x * k + 'px;top:' + g.y * k + 'px;width:' + g.w * k + 'px;height:' + g.h * k + 'px' });
   const right = page(R, 'right');
   right.append(el('span', { class: 'head', style: 'left:' + 3 * k + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.date }), el('span', { class: 'head', style: 'left:' + (col + 3 * k) + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.who }));
-  book.replaceChildren(page(P.left, 'left'), right);
+  const left = page(P.left, 'left');
+  book.replaceChildren(left, right);
+  // The left-hand page (L4): until the lake, the peak and one Spires summit are done, TJ's note of what is
+  // still to do, ticked off as each is done. After that it is blank, and the close-up lays the pencil on it.
+  const done = api.done(), T = UI.register.todo;
+  if (!(done.lake && done.stack && done.spires)) {
+    const st = "font-family:'Caveat',cursive;font-size:" + (pitch * 0.95).toFixed(1) + 'px;line-height:' + pitch + 'px;color:#1c1a24;--tilt:-0.4deg;--drop:' + (pitch * 0.14).toFixed(1) + 'px;left:' + 14 * k + 'px;right:' + 6 * k + 'px;';
+    let r = 0;
+    const line = (kids, cls = '') => { const p = el('p', { class: 'hand ' + cls, style: st + 'top:' + (top + r * pitch) + 'px' }, ...kids); left.append(p); r += Math.max(1, Math.round(p.offsetHeight / pitch)); };
+    line([T.hi]); line([T.need]);
+    for (const [id, name] of [['lake', DEST_NAMES.lake], ['stack', DEST_NAMES.stack], ['spires', T.spires(DEST_NAMES.spires)]]) line([el('span', { class: 'box' }), name], 'todo' + (done[id] ? ' done' : ''));
+    r++; line([T.after]); line([T.sig], 'sig');
+  }
   let mine = []; try { mine = JSON.parse(localStorage.getItem('trailhead.register') || '[]'); } catch { mine = []; }
   let row = 0;
   [...REGISTER, ...mine.map(e => ({ ...e, pending: true }))].forEach((e, i) => {
