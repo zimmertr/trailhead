@@ -346,10 +346,15 @@ function buildForest() {
   let cam = 0, last = { camX: 0, base: 0 }, wells = new Float32Array(0);
   const list = [];
   const xOf = q => X0 - q * LEN;
+  // The animals act on their own clock once he crosses their point, so they carry on when he stops and
+  // do not play backwards when the timeline is scrubbed. jayGo, bearGo, sasGo: when each began (null if
+  // not yet). The jay flies once a visit to the scene; the bear can lean out again on a later pass.
+  const JAY_AT = D_JAY - 46, BEAR_AT = D_BEAR + 26, SAS_AT = 0.66;
+  let jayGo = null, bearGo = null, bearArmed = true, sasGo = null, sasX = 0, sasOn = 0;
 
   return {
     ...META,
-    enter(scr, arg, q) { cam = xOf(q); st.y = null; },
+    enter(scr, arg, q) { cam = xOf(q); st.y = null; const d = q * LEN; jayGo = d >= JAY_AT ? -1e9 : null; bearGo = null; bearArmed = d < BEAR_AT; sasGo = null; },
     focus: () => focus,
     pick(sx, sy) {
       const wx = sx + last.camX, wy = sy - last.base;
@@ -390,12 +395,16 @@ function buildForest() {
       drawStrip(scr, main, camX, base, false, R.moss[1]);
       // Sasquatch strides through the undergrowth behind the trail, in front of the far trees and
       // behind every trunk, log and fern that stands nearer. Once a visit.
-      if (!sasquatchSeen && q > 0.66 && q < 0.9) {
-        const u = (q - 0.66) / 0.24;
+      // He steps out at the far edge of the view ahead and walks the other way at his own pace, so the
+      // two pass each other, and if the runner stops Sasquatch still crosses the whole view and is gone.
+      if (!sasquatchSeen && sasGo === null && q >= SAS_AT && q < 0.9) { sasGo = t; sasX = camX - 12; sasOn = 0; }
+      if (!sasquatchSeen && sasGo !== null) {
+        const wx = sasX + (t - sasGo) * 26, bm = sas[Math.floor((t - sasGo) * 2.6) & 1];
         // He stands a little up the bank, shin-deep in the ferns, so the low growth by the trail cannot hide him.
-        { const bm = sas[Math.floor(u * 14) & 1], sx = Math.round(VW * (anchor - 0.14 - u * 0.24)) - bm.ox, sy = base - 24 - bm.oy; for (let j = 0; j < bm.h - 5; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (c) scr.set(sx + i, sy + j, c); } }
-        if (q > 0.74 && env.running) env.found('sasquatch');
-        if (q > 0.88 && env.running) sasquatchSeen = true;
+        { const sx = Math.round(wx - camX) - bm.ox, sy = base - 24 - bm.oy; for (let j = 0; j < bm.h - 5; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + bm.w - 1 - i]; if (c) scr.set(sx + i, sy + j, c); } }
+        const seen = wx - camX > 0 && wx - camX < VW; if (seen) sasOn += env.dt;
+        if (sasOn > 1.2) env.found('sasquatch');
+        if (wx - camX > VW + 20 || t - sasGo > 40) sasquatchSeen = true;
       }
       // Sparkles on the stream where the light falls on it.
       for (let k = 0; k < 60; k++) {
@@ -408,9 +417,14 @@ function buildForest() {
       for (const th of things) { const w = th.tree ? 30 : th.bm.w; if (th.x + w > camX && th.x - w < camX + VW) list.push(th); }
       // The elk lifts his head while he passes; the bear leans out from behind its trunk once he has gone by.
       { const up = Math.abs(d - D_ELK + 20) < 90 || frac(t / 7) >= 0.7; list.push({ bm: up ? elkBM[frac(t / 2.9) < 0.07 ? 'ear' : 'up'] : elkBM[Math.floor(t * 2.2) & 1 ? 'bite' : 'graze'], x: elkX, y: elkY, flip: false }); }
-      if (bearTrunk) { const lean = smooth(D_BEAR + 26, D_BEAR + 64, d); if (lean > 0) list.push({ bm: bearBM[frac(t / 3.1) > 0.94 ? 1 : 0], x: bearTrunk.x + Math.round(bearTrunk.w * 0.2 + lean * (bearTrunk.w * 0.5 + 5)), y: bearTrunk.y - 1, z: bearTrunk.y - 0.5, flip: true }); }
+      // Once he has gone by, the bear leans out, has a good look for about four seconds and ducks back.
+      if (d < BEAR_AT && bearGo === null) bearArmed = true;
+      if (bearArmed && d >= BEAR_AT) { bearArmed = false; bearGo = t; }
+      if (bearGo !== null && t - bearGo > 6.4) bearGo = null;
+      if (bearTrunk && bearGo !== null) { const a = t - bearGo, lean = smooth(0, 1.2, a) * smooth(6.4, 5.4, a); if (lean > 0) list.push({ bm: bearBM[frac(t / 3.1) > 0.94 ? 1 : 0], x: bearTrunk.x + Math.round(bearTrunk.w * 0.2 + lean * (bearTrunk.w * 0.5 + 5)), y: bearTrunk.y - 1, z: bearTrunk.y - 0.5, flip: true }); }
       // The jay sits on the stump until he comes close, then takes off ahead of him.
-      const ju = (d - (D_JAY - 46)) / 150;
+      if (jayGo === null && d >= JAY_AT) jayGo = t;
+      const ju = jayGo === null ? -1 : (t - jayGo) / 1.9;
       if (ju < 0) list.push({ bm: jayBM.sit, x: stumpX + 2, y: g(stumpX) - 27, z: 999, flip: frac(t / 2.3) < 0.5 });
       else if (ju < 1.5) list.push({ bm: Math.floor(t * 9) & 1 ? jayBM.up : jayBM.down, x: stumpX + 2 - ju * 150, y: g(stumpX) - 27 - Math.sin(Math.min(1, ju) * 1.4) * 150, z: 999, flip: true });
       list.push({ bm: slugBM[Math.floor(t * 1.2) & 1], x: slugX, y: g(slugX) + 1, flip: true });
