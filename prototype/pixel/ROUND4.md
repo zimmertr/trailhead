@@ -487,7 +487,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [x] G8. Day and Dusk, desktop and phone, and the cuts in and out filmed: he never stands still or sprints at a change.
 - [x] G9. Its tune and ambience in `audio.js` (`PLACES`).
 - [x] G10. Read the five West Ridge sources in section 5, photographs included, and correct the draft pitch list there. (Done 2026-11-15, before the build, by an Opus subagent: four of the five, SummitPost refused. Report in `plan/west-ridge-beta.md`.)
-- [ ] **CHECKPOINT 3.** Branch `pixel-r4-larches`, publish a new artifact, carry on. (The West Ridge pitch list in section 5 was already confirmed by TJ on 2026-11-15.)
+- [x] **CHECKPOINT 3.** Branch `pixel-r4-larches`, publish a new artifact, carry on. (The West Ridge pitch list in section 5 was already confirmed by TJ on 2026-11-15.)
 
 ### H. The West Ridge climb (rebuild of `wall.js`)
 
@@ -591,6 +591,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 | Quality pass (section Q, Opus; not a checkpoint): mist back, Mount Monolith and the ranges redrawn, zoom out, opening view B | `pixel-r4-opus-quality` | https://claude.ai/artifact/Lx1MmJoRyTzRERRHwWL28f | 2026-11-15 |
 | 2a: the game runs on the new land (and the opening view candidates, `plan/opening-r4.html`) | `pixel-r4-land` | https://claude.ai/artifact/WVKKSA9g8uC5PDePJhjXnk and https://claude.ai/artifact/XsZEi9AqXxgXo9FNgHm9LP | 2026-11-15 |
 | 2: the whole map with its events, smooth zoom, the closer opening and its look round, the old scenes behind it | `pixel-r4-map` (branch) | https://claude.ai/artifact/USrZi6317Qi7j7AYQamUBu | 2026-11-16 |
+| 3: the larch basin, a new side scene between the map and the wall on the way to Proficiency Peak | `pixel-r4-larches` (branch) | https://claude.ai/artifact/SE9Zd6bFoTbpe7auBQNJoD | 2026-11-16 |
 
 ## 8a. Where the build stands (2026-11-15, commit after `204dc5b`)
 
@@ -634,6 +635,8 @@ What the port needed, found by reading the code, kept for what is left:
 TJ's standing rule is planning on Fable and building on Opus. The land was built on Fable in the session that planned it. The port is building work.
 
 **CHECKPOINT 2 (Opus, 2026-11-16; branch `pixel-r4-map` at `bf667ba`, https://claude.ai/artifact/USrZi6317Qi7j7AYQamUBu).** Sections D, E and F are done: the destinations and their countries, every timed event on the map with a start button each, and the camera. The zoom is continuous with no jump (F4); the page opens at twice one-to-one on a frame chosen by rule and, left alone, looks round at each destination (F5a); setting out and coming home hand the view over in 2 seconds (F6); reduced motion cuts every ease (F7); the phone opens with the Trailhead above its sign (F8); nothing past the map's foot shows, only ink under the bar and the sign (F9). The old wall, lake and camp scenes still run behind the map, the wall now in Proficiency Peak's grey granite. Still below round 3: the opening cannot hold all three places at once on a 1440 by 900 window or a phone (the look round is the answer, not a match), and the side scenes are round 3's until sections G onward. Frame time by `frames.sh` (which adds 4 to 5 ms of its own): 4.9 ms at the opening (it draws a quarter of the pixels it did at one-to-one) and 13.8 ms zoomed all the way out. Next: section G, the larch basin scene.
+
+**CHECKPOINT 3 (Opus, 2026-11-16; branch `pixel-r4-larches` at `ce1ad07`, https://claude.ai/artifact/SE9Zd6bFoTbpe7auBQNJoD).** Section G is done: the Stack route now runs map, larch basin, wall, map. The basin (`larches.js`, 9 seconds) has Enchantments spires and a hanging glacier far off, Proficiency Peak growing as he nears it, three granite benches with a tarn and its cascade, golden larches of four ages over heather, huckleberry and slab, cairns at each rise, a nanny goat and her kid on a slab and a billy who watches him pass, a gust of needles now and then (start button under "Start now, in the larch basin"), and the pika, moved here from the wall, with its eep now part of the basin's sound. It is mirrored when the map's trail runs west. Larch March plays there. 1.8 ms a frame. Checked in Day and Dusk, desktop and phone, cuts in and out filmed; the one fault found (a green band under the ground on tall phones) is fixed. Below round 3: nothing in the basin, which round 3 did not have; the wall, camp and climb after it are still round 3's scenes and are rebuilt in H to J. Not heard by anyone yet: the basin's bed and the nutcracker's `kraa`.
 
 ## 9. Calls made in round 4
 
