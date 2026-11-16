@@ -248,11 +248,10 @@ const larchAmt = (u, v) => smooth(1.2, 0.85, ell(C.LB, u, v) + wob(u, v, 204, 0.
 const burnAmt = (u, v) => { const a = u - 1850, b = v - 470; return smooth(1.1, 0.72, Math.hypot((a * 0.9 + b * 0.43) / 130, (a * -0.43 + b * 0.9) / 58) + wob(u, v, 210, 0.5)); };
 // The fog of the rainforest: nothing in the east, building westward until only white is left. It
 // lies in the hollows, so this is the height it fills the forest to.
-const fogAmt = (u, v) => smooth(edgeE + 20, 90, u + wob(u, v, 201, 70)) * (lakeAt(u, v) ? 0 : 1);
+const fogAmt = (u, v) => smooth(edgeE + 20, 90, u + wob(u, v, 201, 60) + 170 * (fbm(u / 150, v / 110, 236, 2) - 0.5)) * (lakeAt(u, v) ? 0 : 1);
 const fogTop = (u, v) => { const f = fogAmt(u, v); return f <= 0.02 ? -1 : hAt(u, v) - ridges(u, v) + 27 * f - 3 + 5 * f * (fbm(u / 50, v / 30, 220, 2) - 0.5); };
 const fogInk = (x, y, k) => k < 2.5 || vnoise(x / 26, y / 5, 221) > 0.64 ? R.fog[2] : R.fog[1];
 const seaFog = (u, v) => smooth(300, 30, u + wob(u, v, 201, 110)) * (0.75 + 0.5 * fbm(u / 90, v / 40, 226, 2));
-const FADE = [R.mist[0], R.mist[1], R.nebel[1], R.nebel[2], R.nebel[3], R.fog[0]];
 // The colour of one spot of ground. hh is the height of the bit being drawn, which on a cliff runs
 // from the cliff's foot to its lip.
 function colour(u, v, hh, x, y) {
@@ -366,6 +365,66 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
   const i = px(x, y), m = MATS[mb[i]]; if (m !== 'fin' && m !== 'wall') continue;
   if (zb[i - NW] > zb[i] + 14 || zb[i - 1] > zb[i] + 14 || zb[i + 1] > zb[i] + 14) g[i] = INK;
 }
+// ---- the fog in the rainforest --------------------------------------------------------------------
+// Drawn ridge by ridge, after TJ's photograph: ranks of conifers stand one behind another along the
+// forest's ridges, white fog lies in the hollows between them, and each rank is paler than the one in
+// front of it. It builds from nothing on the forest's east side to almost only white at the west edge,
+// where the ranks break up and bare snags stand against the fog.
+{
+  const RANK = [R.conifer[0], R.mist[0], R.nebel[0], R.nebel[1], R.nebel[2], R.nebel[3], R.fog[0], R.fog[1]];
+  const foggy = (u, v) => coast(u, v) < -18 ? smooth(0.16, 0.6, fogAmt(u, v) + 0.12 * (fbm(u / 40, v / 30, 235, 2) - 0.5)) * smooth(0.3, 0.5, forestAmt(u, v)) : 0;
+  const white = (x, y) => vnoise(x / 34, y / 5, 231) > 0.74 ? R.fog[1] : R.fog[2];
+  // The white first: the forest floor under the fog.
+  for (let y = 0; y < SH; y++) for (let x = 0; x < 660; x++) {
+    const i = px(x, y), v = zb[i]; if (v >= VD || mb[i] !== 0) continue;
+    const w = foggy(x, v); if (w > 0 && bayer(x, y) < w) g[i] = white(x, y);
+  }
+  const rr = rng(2311);
+  const ink = (x, y, v, k) => { if (x < 0 || y < 0 || x >= NW || y >= SH) return; const i = px(x, y); if (zb[i] < v - 2) return; g[i] = RANK[clamp(Math.floor(k + 0.9 * (bayer(x + 3, y) - 0.5)), 0, 7)]; zb[i] = v; mb[i] = 0; };
+  // A bare snag: a trunk that thickens low down, a broken top, and a few stubs that stick out unevenly.
+  const snagAt = (x0, base, v, hgt, k) => {
+    const top = base - Math.round(hgt), lean = (rr() - 0.5) * 0.22, at = d => Math.round(x0 + lean * d);
+    for (let d = 0; top + d <= base + 2; d++) { ink(at(d), top + d, v, k); if (d > hgt * 0.45) ink(at(d) + 1, top + d, v, k); }
+    for (let d = 3 + rr() * 3; d < hgt * 0.7; d += 3 + rr() * 6) { const side = rr() < 0.5 ? -1 : 1, len = 1 + Math.round(rr() * 2), y = top + Math.round(d); for (let j = 1; j <= len; j++) ink(at(d) + (side > 0 ? 1 : 0) + side * j, y - (j === len && rr() < 0.5 ? 1 : 0), v, k); }
+  };
+  // One tree of a rank: a conifer of stacked tiers.
+  const tree = (x0, base, v, hgt, half, k, snag) => {
+    if (snag) return snagAt(x0, base, v, hgt * 1.25, k - 0.6);
+    const top = base - Math.round(hgt), lean = (rr() - 0.5) * 0.14;
+    for (let y = Math.max(0, top); y <= Math.min(SH - 1, base + 2); y++) {
+      const d = y - top, hw = Math.min(half, 0.3 + (d % 4) * 0.42 + Math.floor(d / 4) * half * 3.4 / hgt);
+      const cx = x0 + lean * d;
+      for (let x = Math.round(cx - hw); x <= Math.round(cx + hw); x++) {
+        if (x < 0 || x >= NW) continue;
+        const i = px(x, y); if (zb[i] < v - 2) continue;
+        g[i] = RANK[clamp(Math.floor(k + 0.9 * (bayer(x + 3, y) - 0.5)), 0, 7)]; zb[i] = v; mb[i] = 0;
+      }
+    }
+  };
+  // The ranks, far to near. Each is a line across the forest at one distance from the camera. Its trees
+  // stand on the land, and below them the fog fills the hollow in front, hiding their feet.
+  for (let c = VD + 170; c > -60; c -= 26 + rr() * 12) {
+    const seed = Math.round(c), vOf = u => c - 0.25 * u + 10 * (vnoise(u / 60, seed, 232) - 0.5);
+    for (let u = 2 + rr() * 5; u < 660; u += 3 + rr() * 4) {
+      const v = vOf(u); if (v < 2 || v >= VD - 1) continue;
+      const w = foggy(u, v); if (w < 0.05) continue;
+      const f = fogAmt(u, v);
+      // Gaps open in the ranks toward the west, where the fog thins the forest out.
+      if (fbm(u / 26, seed / 7, 233, 2) < 0.17 + 0.2 * f || rr() > 0.25 + 0.75 * w) continue;
+      const k = 0.3 + 3.6 * smooth(0.3, 1, f) + 2.6 * v / VD + 0.6 * (rr() - 0.5), snag = f > 0.72 && rr() < 0.35 * (f - 0.72) / 0.28;
+      tree(Math.round(u), Math.round(SY - v - hAt(u, v)), v, (12 + 15 * rr()) * (0.65 + 0.35 * vnoise(u / 40, seed, 234)), 3.5 + 2.5 * rr(), k, snag);
+    }
+    for (let x = 0; x < 660; x++) {
+      const v = vOf(x); if (v < 2 || v >= VD - 1) continue;
+      const w = foggy(x, v); if (w < 0.05) continue;
+      const base = Math.round(SY - v - hAt(x, v));
+      for (let y = Math.max(0, base - 7); y <= Math.min(SH - 1, base + 12); y++) {
+        const i = px(x, y); if (zb[i] < v - 2) continue;
+        if (bayer(x, y) < smooth(base - 7, base + 1, y) * w) { g[i] = white(x, y); zb[i] = v; mb[i] = 0; }
+      }
+    }
+  }
+}
 // ---- things that stand up -------------------------------------------------------------------------
 const things = [], put = (bm, u, v, f) => things.push({ bm, u: Math.round(u), v: Math.round(v), fog: f }), plant = (tree, u, v, f) => things.push({ tree, u: Math.round(u), v: Math.round(v), fog: f });
 const wet8 = (u, v) => { for (let dv = -3; dv <= 6; dv += 3) for (let du = -9; du <= 9; du += 3) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) return true; return false; };
@@ -381,8 +440,8 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   for (let gv = -30; gv < VD; gv += 9) for (let gu = -10; gu < edgeE + 180; gu += 9) {
     const u = clamp(gu + rand() * 9, 3, NW - 4), v = clamp(gv + rand() * 9, 2, VD - 3), fa = forestAmt(u, v), r = rand(), f = fogAmt(u, v);
     if (rand() > fa * 0.78 || !open(u, v, 1.3) || !wooded(u, v)) continue;
-    // As the fog builds, trees keep to the crests of the ridges, so each ridge is one rank of crowns.
-    if (f > 0.15 && ridges(u, v) / RA < 0.25 + 0.42 * f) continue;
+    // Deeper in, the fog's own ranks take over (drawn above), so the planted forest thins out.
+    if (f > 0.12 && rand() < smooth(0.12, 0.55, f)) continue;
     if (rand() < f * f * 0.5) put(any(snags), u, v, f); else plant(r < 0.45 ? any(maples) : r < 0.88 ? any(spruces) : any(firs), u, v, f);
   }
   // Firs in clumps over the parkland, the meadows and the lower slopes of the crest.
@@ -421,7 +480,7 @@ things.sort((a, b) => b.v - a.v);
 const live = [];
 for (const th of things) {
   const h = hAt(th.u, th.v), fy = Math.round(SY - th.v - h), ft = th.fog ? fogTop(th.u, th.v) : -1;
-  const blit = (bm, sx, sy) => { for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i], x = sx + i, y = sy + j; if (!c || x < 0 || y < 0 || x >= NW || y >= SH || zb[px(x, y)] < th.v - 3) continue; const up = h + fy - y; g[px(x, y)] = th.fog > 0.02 && bayer(x, y) < (ft - up) / 5 + 0.15 ? fogInk(x, y, ft - up) : th.fog > 0.22 && bayer(x + 1, y) < (th.fog - 0.22) / 0.2 ? FADE[clamp(Math.floor((th.fog - 0.3) / 0.24 + 1.3 * smooth(150, 600, th.v) + 0.3 * (bayer(x, y) - 0.5) + (c === INK ? 0 : 0.4)), 0, 5)] : c; } };
+  const blit = (bm, sx, sy) => { for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i], x = sx + i, y = sy + j; if (!c || x < 0 || y < 0 || x >= NW || y >= SH || zb[px(x, y)] < th.v - 3) continue; const up = h + fy - y; g[px(x, y)] = th.fog > 0.02 && bayer(x, y) < (ft - up) / 5 + 0.15 ? fogInk(x, y, ft - up) : c; } };
   const each = fn => { if (th.tree) for (const p of th.tree.parts) fn(p.bm, th.u + p.x, fy + p.y); else fn(th.bm, th.u - (th.bm.ox || 0), fy - (th.bm.oy || 0)); };
   let n = 0, seen = 0;
   each((bm, sx, sy) => { for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { if (!bm.d[j * bm.w + i]) continue; n++; const x = sx + i, y = sy + j; if (x >= 0 && y >= 0 && x < NW && y < SH && zb[px(x, y)] >= th.v - 3) seen++; } });
