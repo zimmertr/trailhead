@@ -428,6 +428,10 @@ export function makeWorld(bake) {
 
   // Where the lake loop goes into the trees and where it comes back out by the lake.
   const lakeIn = (() => { const P = paths.lake; for (let q = 0; q < 1; q += 0.002) { const a = P.at(q); if (forestAmt(a.x, a.y) > 0.75) return q; } return 0.2; })();
+  // The walk to base camp leaves the map for its own side-on scene (section J) once the trail has done
+  // two fifths of its climb: from there on it is the high traverse and the moraine. Height on the map is
+  // read the way the land lays it out: a pixel's row plus its depth, less for higher ground.
+  const spiresIn = (() => { const P = paths.spires, h = q => { const a = P.at(q); return -(W.vAt(a.x, a.y) + a.y); }, h0 = h(0), h1 = h(1); for (let q = 0; q < 1; q += 0.002) if (h(q) - h0 >= 0.4 * (h1 - h0)) return q; return 0.5; })();
   const lakeOut = (() => { const P = paths.lake; let best = 0, bd = 1e9; for (let q = 0.5; q < 1; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - spots.lakeShore[0], a.y - spots.lakeShore[1]); if (d < bd) { bd = d; best = q; } } return best; })();
 
   // Where each place's name is pinned: over the signpost, on the lake's near shore, on the wall's rim, on the ice under the summits.
@@ -504,7 +508,7 @@ export function makeWorld(bake) {
   };
 
   return {
-    name: 'world', paths, lakeIn, lakeOut, T, WW, WH,
+    name: 'world', paths, lakeIn, lakeOut, spiresIn, T, WW, WH,
     lengths: () => ({ lake: 5.2, stack: Math.round(paths.stack.len * KM * 10) / 10, spires: Math.round(paths.spires.len * KM * 10) / 10 }),
     dur: leg => Math.abs(leg.to - leg.from) * paths[leg.path].len / RUN,
     stops: () => [],
