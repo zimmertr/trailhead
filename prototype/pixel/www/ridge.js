@@ -217,9 +217,11 @@ function paintGround(S, things) {
   // Dwarf pine in knee-high mats on the knob and in the cracks low on the ridge; larches below.
   for (let n = 0; n < 40; n++) { const x = 20 + rand() * 240, h = (x < 236 ? knob(x) : along(LOW, x)) - rand() * 6; things.push({ pine: 3 + rand() * 5, x: Math.round(x), h: Math.round(h) }); }
   for (let n = 0; n < 22; n++) { const x = 250 + rand() * 900, f = foot(x) - 34 - rand() * 160, H = 14 + rand() * 26; things.push({ tree: makeConifer(740 + n, Math.round(H), Math.round(H / 2.6), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: 0.2, droop: 0.6 }), x: Math.round(x), h: Math.round(f) }); }
-  things.push({ tree: makeConifer(739, 26, 10, 'larch', 8, { ragged: 0.3, droop: 0.6 }), x: 223, h: Math.round(knob(223)) + 1 });
+  flagLarch(S, 223, Math.round(knob(223)) - 1, 24, 739);
   // A few small larches rooted in cracks on the face, and grass in tufts along the crest and its ledges.
-  for (let x = 300 + rand() * 60; x < 960; x += 70 + rand() * 90) { const H = 9 + Math.round(rand() * 9); things.push({ tree: makeConifer(760 + Math.round(x), H, Math.round(H / 2.4), 'larch', Math.max(3, Math.round(H / 3)), { ragged: 0.4, droop: 0.6 }), x: Math.round(x), h: Math.round(along(LOW, x) - 18 - rand() * 70) }); }
+  // These are wind-flagged: a crooked trunk leaning east with its gold tufts mostly on the downwind side,
+  // painted into the rock so they read as trees clinging to a crack, not as small standing statues.
+  for (let x = 300 + rand() * 60; x < 960; x += 70 + rand() * 90) { const H = 9 + Math.round(rand() * 9); flagLarch(S, Math.round(x), Math.round(along(LOW, x) - 18 - rand() * 70), H, Math.round(x)); }
   for (let x = 250 + rand() * 20; x < 1000; x += 14 + rand() * 40) things.push({ tuft: 2 + Math.round(rand() * 3), x: Math.round(x), h: Math.round(along(LOW, x) + 2 - (rand() < 0.5 ? 0 : 20 + rand() * 80)) });
 }
 
@@ -231,6 +233,18 @@ function paintFar() {
     for (let y = Math.round(top); y < 10; y++) S.set(x, y, y - top < 3 + 4 * vnoise(x / 5, 3, 743) && top < -120 ? R.farsnow[1] : pick('far', 0.5 + 0.3 * (vnoise(x / 6, y / 14, 744) - 0.5) - (y - top) * 0.002, x, y));
   }
   return S;
+}
+
+// A small larch flagged by the wind, painted straight into the strip at x, h (its root).
+function flagLarch(S, x, h, H, seed) {
+  if (!S.get(x, -h)) return;
+  const lean = 1.5 + 2 * hash(seed, 1, 771);
+  for (let j = 0; j <= H; j++) { const tx = Math.round(x + lean * (j / H) ** 1.5); S.set(tx, -(h + j), j < H * 0.4 ? R.dirt[0] : INK); if (H > 16 && j < H * 0.5) S.set(tx + 1, -(h + j), R.dirt[1]); }
+  for (let j = Math.round(H * 0.3); j <= H; j++) {
+    if (hash(seed, j, 772) < 0.3 && j < H - 1) continue;
+    const tx = Math.round(x + lean * (j / H) ** 1.5), L = Math.round((H - j) * 0.45 + 1 + 2 * hash(seed, j, 773)), back = hash(seed, j, 774) < 0.4 ? 1 : 0;
+    for (let i = -back; i <= L; i++) { if (!i) continue; const c = j === H || i === L ? 4 : (i + j) & 1 ? 3 : 2; S.set(tx + i, -(h + j), R.larch[c]); S.set(tx + i, -(h + j - 1), S.get(tx + i, -(h + j - 1)) === R.larch[2] || S.get(tx + i, -(h + j - 1)) === R.larch[3] ? S.get(tx + i, -(h + j - 1)) : R.larch[1]); }
+  }
 }
 
 // The line of the climb, from the walk in to the summit. Each point is where the feet are: x, h, then
@@ -253,7 +267,7 @@ const ROUTE = [
   // Pitch 4: round the egg hugging it, astride the fins, the slabby down-climb on the north side, the
   // grassy walk to the big ledge.
   [712, 252, 's'], [731, 254, 's'], [752, 258, 's'], [766, 262, 'c'], [774, 269, 'c'], [786, 263, 'c'], [799, 272, 'c'], [811, 264, 'c'], [823, 269, 'c'],
-  [838, 258, 'n'], [856, 250, 'n'], [872, 247, 's'], [930, 247, 'c'], [960, 253, 'c', 'a4'],
+  [838, 258, 'n'], [856, 250, 'n'], [872, 247, 'c'], [930, 247, 'c'], [960, 253, 'c', 'a4'],
   // Pitch 5: the scramble, the off-width up the headwall to the bolt at its lip, the lieback flake, the
   // left chimney and the hole, the summit.
   [990, 271, 's'], [1002, 285, 's'], [1014, 290, 's'], [1018, 300, 's'], [1018, 382, 's'], [1022, 388, 's', 'bolt'], [1030, 396, 's'], [1038, 413, 's'], [1050, 416, 's'], [1050, 446, 's'], [1058, 460, 'c'], [1072, 477, 'c', 'top']
@@ -281,13 +295,16 @@ const dAtX = x => { for (let i = 1; i < ROUTE.length; i++) if (ROUTE[i][0] >= x)
 const AT = { tj: -7, lead: 0, red: -14 };
 const PACKS = dAtX(198), TIE = dAtX(231);
 const PITCH = ['tie', 'a1', 'a2', 'a3', 'a4', 'top'];
-// The gear on each pitch, by rule: so many pieces spread evenly up the pitch where the line is in
-// front of the rock, plus the fixed piton and bolt, which stay. Pitch 3 is the piton and one tiny cam
-// at the slab's foot and nothing above (the run-out is the point of the slab); pitch 4 has two.
+// The gear on each pitch, by rule: so many cams spread evenly over the stretches where the line is on
+// the face (never on the crest or behind it, where there is nothing to reach up to), plus the fixed
+// piton and bolt, which are in the rock from the start. Pitch 3 is the piton and one tiny cam at the
+// slab's foot and nothing above (the run-out is the point of the slab); pitch 4 has two, and the rope
+// runs over the fins between them.
 const GEAR = { 1: 4, 2: 4, 3: 0, 4: 2, 5: 4 };
 function gearOn(p) {
-  const d0 = MARK[PITCH[p - 1]], d1 = MARK[PITCH[p]], out = [];
-  for (let i = 0; i < GEAR[p]; i++) { let d = lerp(d0, d1, (i + 0.6) / (GEAR[p] + 0.4)); while (posAt(d).where === 'n' && d < d1) d += 3; out.push({ d, kind: 'cam' }); }
+  const d0 = MARK[PITCH[p - 1]], d1 = MARK[PITCH[p]], face = [], out = [];
+  for (let d = d0 + 10; d < d1 - 8; d++) if (posAt(d).where === 's' && posAt(d - 10).where === 's') face.push(d);
+  for (let i = 0; i < GEAR[p]; i++) out.push({ d: face[Math.floor(face.length * (i + 0.5) / GEAR[p])], kind: 'cam' });
   if (p === 3) out.push({ d: MARK.piton + 2, kind: 'piton', fixed: true }, { d: MARK.piton + 6, kind: 'tiny' });
   if (p === 5) out.push({ d: MARK.bolt, kind: 'bolt', fixed: true });
   return out.sort((a, b) => a.d - b.d);
@@ -312,12 +329,17 @@ function makeScript() {
     const a = MARK[PITCH[p]], t0 = sync(), gear = gearOn(p);
     // The leader climbs on TJ's belay, stopping at each piece to place it (or clip it, if fixed), then
     // builds the anchor and takes the followers on belay from above.
-    for (const g of gear) { move('lead', Math.max(pos.lead, g.d - 10), 'lead', SPEED.lead); go('lead', pos.lead, 'place', g.fixed ? 0.5 : 0.9); pro.push({ ...g, p, t: clock.lead - (g.fixed ? 0.2 : 0.4), gone: Infinity }); }
+    // A cam goes from the rack to his hand to the crack (in at t), then the rope is clipped (clip).
+    for (const g of gear) {
+      move('lead', Math.max(pos.lead, g.d - 15), 'lead', SPEED.lead); const s = clock.lead;
+      go('lead', pos.lead, 'place', g.fixed ? 0.6 : 1.2); pro.push({ ...g, p, t0: s, t: s + (g.fixed ? 0 : 0.7), clip: s + (g.fixed ? 0.35 : 0.95), gone: Infinity });
+    }
     move('lead', a, 'lead', SPEED.lead); go('lead', a, 'anchor', 2.5, 'tbelay');
     pose.tj = 'belay'; hold('tj', clock.lead); ropes.push({ a: 'tj', b: 'lead', t0, t1: clock.lead });
     const t1 = sync(), mine = pro.filter(g => g.p === p);
-    // The woman comes last and takes the gear out as she reaches it (the fixed pieces stay).
-    const clean = () => { for (const g of mine) { if (g.fixed) continue; move('red', Math.max(pos.red, g.d - 8), 'climb', SPEED.follow); go('red', pos.red, 'clean', 0.8); g.gone = clock.red - 0.3; } move('red', a + AT.red, 'climb', SPEED.follow, 'stand'); };
+    // The woman comes last and takes the gear out as she reaches it; at the piton and the bolt she
+    // only unclips the carabiner, and they stay in the rock.
+    const clean = () => { for (const g of mine) { move('red', Math.max(pos.red, g.d - 8), 'climb', SPEED.follow); go('red', pos.red, 'clean', g.fixed ? 0.5 : 0.8); g.gone = clock.red - 0.3; } move('red', a + AT.red, 'climb', SPEED.follow, 'stand'); };
     if (p === 1) {
       // Pitch 1: both followers at once on two ropes, the woman a few moves behind.
       move('tj', a + AT.tj, 'climb', SPEED.follow, 'stand'); stops.push({ id: CARD.a1, t: clock.tj });
@@ -374,26 +396,28 @@ function kitFrames(kit) {
     belay: [sideFig(kit, { lean: 0, look: 'up', hands: [[4, -2], [0, 6]] }), sideFig(kit, { lean: 0, look: 'up', hands: [[5, 1], [1, 5]] })],
     tbelay: [sideFig(kit, { lean: 2, look: 'down', hands: [[5, 1], [2, 6]] }), sideFig(kit, { lean: 2, look: 'down', hands: [[3, 5], [5, 2]] })],
     climb: [0, 1, 2, 3].map(climb),
-    place: [0, 1].map(f => backFig(kit, { hands: [[-5, -13], [7, -9 - f * 2]], feet: [[-4, 12], [4, 11]], tool: holding(!f) })),
+    place: [backFig(kit, { hands: [[-5, -13], [7, -9]], feet: [[-4, 12], [4, 11]], tool: holding(true) }), backFig(kit, { hands: [[-5, -12], [6, -16]], feet: [[-4, 12], [4, 11]] })],
     anchor: [0, 1].map(f => backFig(kit, { hands: [[-4, -14 + f], [4, -13 - f]], feet: [[-3, 12], [3, 12]] })),
     clean: [backFig(kit, { hands: [[-5, -13], [6, -4]], feet: [[-4, 12], [4, 11]] }), backFig(kit, { hands: [[-5, -13], [4, 1]], feet: [[-4, 12], [4, 11]], tool: holding(true) })],
     fall: [0, 1].map(f => backFig(kit, { hands: [[-8, -13 - f], [8, -14]], feet: [[-7, 9], [7, 8 + f]], tilt: 1 }))
   };
 }
-// A piece of gear on the rock: a cam's lobes in the crack with its sling and carabiner hanging below, a
-// tiny cam, the rusty piton or the bolt's hanger, each with its carabiner.
-function drawPiece(scr, x, y, kind) {
-  if (kind === 'piton') { scr.set(x - 1, y, INK); scr.set(x, y, R.tent[0]); scr.set(x + 1, y, R.dirt[1]); scr.set(x + 1, y + 1, R.dirt[0]); }
-  else if (kind === 'bolt') { scr.set(x - 1, y, INK); scr.set(x, y, R.shoe[2]); scr.set(x, y + 1, R.shoe[1]); scr.set(x + 1, y + 1, INK); }
-  else {
-    // Lobes in the crack, the stem, and the sling in the cam's colour.
-    const sl = kind === 'tiny' ? R.teal : R.red, w = kind === 'tiny' ? 1 : 2;
-    for (let i = -w + 1; i < w; i++) { scr.set(x + i, y - 1, INK); scr.set(x + i, y, R.rock[4]); }
-    scr.set(x, y + 1, R.rock[3]); scr.set(x - 1, y + 2, sl[2]); scr.set(x, y + 2, sl[1]); scr.set(x - 1, y + 3, sl[1]); scr.set(x, y + 3, sl[0]);
-  }
-  // The carabiner the rope runs through.
-  scr.set(x, y + 4, R.shoe[2]); scr.set(x + 1, y + 5, R.shoe[1]); scr.set(x, y + 6, R.shoe[2]); scr.set(x - 1, y + 5, INK);
+// A piece of gear on the rock: a cam's lobes across the crack with its sling hanging below, a tiny cam,
+// the rusty piton or the bolt's hanger. `open` is how far the lobes are spread (shut while it is
+// carried, open once it is in), and the carabiner on the sling is drawn after the rope so the rope
+// is seen running through it.
+function drawPiece(scr, x, y, kind, open = 1) {
+  if (kind === 'piton') { scr.set(x - 1, y, INK); scr.set(x, y, R.tent[0]); scr.set(x + 1, y, R.dirt[1]); scr.set(x + 1, y + 1, R.dirt[0]); return; }
+  if (kind === 'bolt') { scr.set(x - 1, y, INK); scr.set(x, y, R.shoe[2]); scr.set(x, y + 1, R.shoe[1]); scr.set(x + 1, y + 1, INK); return; }
+  // Silver lobes with a dark rim (spread across the crack once in), the stem, and a sling in the cam's
+  // colour long enough to read as a coloured tick from far off.
+  const sl = kind === 'tiny' ? R.teal : R.red, w = kind === 'tiny' || !open ? 1 : 2;
+  for (let i = -w; i <= w; i++) { scr.set(x + i, y - 1, INK); scr.set(x + i, y, Math.abs(i) === w ? INK : (i + w) & 1 ? R.rock[4] : R.white[1]); }
+  scr.set(x - 1, y + 1, INK); scr.set(x, y + 1, R.rock[3]); scr.set(x + 1, y + 1, INK);
+  for (let j = 2; j < 5; j++) { scr.set(x - 1, y + j, sl[j < 4 ? 2 : 1]); scr.set(x, y + j, sl[1]); scr.set(x + 1, y + j, INK); }
 }
+// The carabiner: a small ring the rope passes through, at x, y (its middle).
+function drawBiner(scr, x, y) { scr.set(x, y - 1, R.shoe[2]); scr.set(x + 1, y, R.shoe[1]); scr.set(x, y + 1, R.shoe[2]); scr.set(x - 1, y, INK); }
 // A pack lying on its side under the overhang, in its owner's colour.
 function makePack(ramp) {
   const b = new BM(10, 7); b.ox = 5; b.oy = 6;
@@ -409,6 +433,16 @@ function buildRidge() {
   // The crest: the highest rock in every column, which the rope lies over where the route goes north.
   const CREST = new Int16Array(W);
   for (let x = 0; x < W; x++) { let y = 0; while (y < main.h && !ID[y * W + x]) y++; CREST[x] = main.up - y; }
+  // Where each piece sits: in the nearest crack or joint (a dark pixel with rock above it and on both
+  // sides, so never the outline against the sky) within reach of the spot above and beside his feet,
+  // so every cam is seen in a real crack; failing that, on the rock below the spot. bi is the
+  // carabiner's height.
+  const SPOT = SCRIPT.pro.map(g => {
+    const p = posAt(g.d), x0 = Math.round(p.x) + 4, h0 = Math.round(p.h + 14), dz = g.fixed ? 3 : 6;
+    for (let r = 0; r < 8; r++) for (const dx of r ? [-r, r] : [0]) for (const dh of [0, 1, -1, 2, -2]) { const x = x0 + dx, y = -(h0 + dh); if (main.get(x, y) === INK && main.get(x, y - 2) && main.get(x - 2, y) && main.get(x + 2, y)) return { x: x0 + dx, h: h0 + dh, bi: h0 + dh - dz }; }
+    let h = h0; while (h > p.h - 4 && !main.get(x0, -h)) h--;
+    return { x: x0, h, bi: h - dz };
+  });
   const far = paintFar(), clouds = [0, 1, 2].map(i => ({ bm: makeCloud(745 + i), x: i * 190, y: 20 + i * 46, v: 3 + i }));
   const pair = makeCragPair(), st = {}, focus = { x: 0, y: 0 };
   const F = { tj: kitFrames('wall'), lead: kitFrames(PAIR[0]), red: kitFrames(PAIR[1]) };
@@ -451,7 +485,7 @@ function buildRidge() {
         if (s.pose === 'tie') { scr.put(fr.tie[Math.floor(t * 6) & 1], sx, sy, false); return; }
         if (s.pose === 'bump') { scr.put(u < 0.2 || u > 0.85 ? fr.idle : fr.bump[u > 0.45 && u < 0.7 ? 1 : 0], sx, sy, w !== 'tj'); return; }
         if (s.pose === 'lead' || s.pose === 'climb') { scr.put(fr.climb[Math.floor(s.d / 6) & 3], sx, sy - 12, false); return; }
-        if (s.pose === 'place') { scr.put(fr.place[u < 0.6 ? 0 : 1], sx, sy - 12, false); return; }
+        if (s.pose === 'place') { scr.put(fr.place[u < 0.2 ? 0 : 1], sx, sy - 12, false); return; }
         if (s.pose === 'clean') { scr.put(fr.clean[u < 0.55 ? 0 : 1], sx, sy - 12, false); return; }
         if (s.pose === 'anchor') { scr.put(fr.anchor[flick], sx, sy - 12, false); return; }
         if (s.pose === 'fall') { scr.put(fr.fall[Math.floor(t * 20) & 1], sx, sy - 12, false); return; }
@@ -470,25 +504,42 @@ function buildRidge() {
       }
       // The packs under the overhanging rock: theirs from the start, his once he has put it down.
       { const px = Math.round(posAt(PACKS).x) - cx + 2, py = rowOf(posAt(PACKS).h - 1); scr.put(packs[0], px - 6, py, false); scr.put(packs[1], px + 3, py + 1, true); if (tau > dropAt) scr.put(packs[2], px + 12, py + 1, false); }
-      // The gear on the rock: in from when it is placed until the woman takes it out (the piton and the bolt stay).
-      for (const g of SCRIPT.pro) if (tau >= g.t && tau < g.gone) { const p = posAt(g.d); drawPiece(scr, Math.round(p.x) - cx + 4, rowOf(p.h + 14), g.kind); }
-      // The live ropes, from the belayer's hands along the line to the climber's waist; over the crest
-      // where the line goes north, along its upper hull.
+      const pro = SCRIPT.pro, lit = i => tau >= pro[i].clip && tau < pro[i].gone;
+      // The live ropes, from the belayer's hands through the carabiner of every piece clipped between
+      // them, in order, to the climber's waist; where the line between two of those goes along or
+      // behind the crest, over the crest along its upper hull.
       for (const r of S.ropes) {
         const a = P[r.a], c = P[r.b], lo = Math.min(a.d, c.d), hi = Math.max(a.d, c.d);
+        // A leader's rope also runs up to the piece he has just clipped above his waist and back down.
+        const top = c.pose === 'lead' || c.pose === 'place' ? hi + 20 : hi;
+        const via = []; for (let i = 0; i < pro.length; i++) if (lit(i) && pro[i].d > lo && pro[i].d < (c.d > a.d ? top : hi)) via.push(i);
+        via.sort((i, j) => (pro[i].d - pro[j].d) * (c.d > a.d ? 1 : -1));
+        const onRock = c.pose === 'lead' || c.pose === 'climb' || c.pose === 'place' || c.pose === 'clean';
+        const ends = [{ d: a.d, x: Math.round(a.x) + (c.x > a.x ? 5 : -5), h: a.h + 9 }, ...via.map(i => ({ d: pro[i].d, x: SPOT[i].x, h: SPOT[i].bi })), { d: c.d, x: Math.round(c.x), h: c.h + (onRock ? 12 : 9) }];
         ropePts.length = 0;
-        ropePts.push(Math.round(a.x) - cx + (c.x > a.x ? 5 : -5), rowOf(a.h + 9));
-        let run = [];
-        const flush = () => { if (!run.length) return; for (const [x, h] of overHull(run)) ropePts.push(x - cx, rowOf(h)); run = []; };
-        const samples = []; for (let s = lo + 3; s < hi - 1; s += 3) samples.push(s);
-        if (a.d > c.d) samples.reverse();
-        for (const s of samples) { const p = posAt(s); if (p.where === 'n') { const x = Math.round(p.x); run.push([x, CREST[x] + 1]); } else { flush(); ropePts.push(Math.round(p.x) - cx, rowOf(p.h + 6)); } }
-        flush();
-        ropePts.push(Math.round(c.x) - cx, rowOf(c.h + (c.pose === 'lead' || c.pose === 'climb' || c.pose === 'place' || c.pose === 'clean' ? 12 : 9)));
+        for (let k = 0; k < ends.length; k++) {
+          if (k) ropeOver(ropePts, ends[k - 1], ends[k], CREST, cx, rowOf);
+          ropePts.push(ends[k].x - cx, rowOf(ends[k].h));
+        }
         rope(scr, ropePts);
       }
+      // The gear on the rock, over the rope so its sling shows and the rope runs into its carabiner, and
+      // behind whoever is in front of it: a cam from when it is in until the woman takes it out; the
+      // piton and the bolt always, with a carabiner from when he clips them until she unclips it.
+      for (let i = 0; i < pro.length; i++) {
+        const g = pro[i], sp = SPOT[i];
+        if (g.fixed || (tau >= g.t && tau < g.gone)) drawPiece(scr, sp.x - cx, rowOf(sp.h), g.kind);
+        if (g.fixed ? lit(i) : tau >= g.t && tau < g.gone) drawBiner(scr, sp.x - cx, rowOf(sp.bi));
+      }
       for (const w of WHO) if (P[w].where !== 'n') draw1(w);
-      if (bumping) spark(scr, Math.round((P.tj.x + P.lead.x) / 2) - cx, rowOf(P.tj.h + 10), (u - 0.45) * 0.8);
+      // While he places a cam: in his raised hand, lobes shut, then pushed up into the crack.
+      for (let i = 0; i < pro.length; i++) {
+        const g = pro[i], sp = SPOT[i];
+        if (g.fixed || tau < g.t0 + 0.25 || tau >= g.t) continue;
+        const e = smooth(g.t0 + 0.4, g.t, tau), hx = Math.round(P.lead.x) + 6, hh = P.lead.h + 27;
+        drawPiece(scr, Math.round(lerp(hx, sp.x, e)) - cx, rowOf(Math.round(lerp(hh, sp.h, e))), g.kind, 0);
+      }
+      if (bumping) spark(scr, Math.round((P.tj.x + P.lead.x) / 2) - cx, rowOf(P.tj.h + 10), (P.tj.u - 0.45) * 0.8);
       const me = P.tj; focus.x = Math.round(me.x) - cx; focus.y = rowOf(me.h) - 14;
     }
   };
@@ -499,6 +550,18 @@ function overHull(pts) {
   const out = [];
   for (const p of [...pts].sort((a, b) => a[0] - b[0])) { while (out.length > 1 && (out[out.length - 1][0] - out[out.length - 2][0]) * (p[1] - out[out.length - 2][1]) - (out[out.length - 1][1] - out[out.length - 2][1]) * (p[0] - out[out.length - 2][0]) >= 0) out.pop(); out.push(p); }
   return out;
+}
+
+// Between two points the rope passes (A then B, each with its distance d along the line): where the
+// line between them goes along or behind the crest, the rope lies over the crest's top, so the points
+// of the upper hull of the crest between them go in, in order from A to B. On the face it runs straight.
+function ropeOver(out, A, B, CREST, cx, rowOf) {
+  const lo = Math.min(A.d, B.d), hi = Math.max(A.d, B.d), x0 = Math.min(A.x, B.x), x1 = Math.max(A.x, B.x), run = [];
+  for (let s = lo + 2; s < hi - 1; s += 3) { const p = posAt(s), x = Math.round(p.x); if (p.where !== 's' && p.where !== 'w' && x > x0 && x < x1) run.push([x, CREST[x] + 1]); }
+  if (!run.length) return;
+  const hull = overHull([[A.x, A.h], ...run, [B.x, B.h]]).slice(1, -1);
+  if (A.x > B.x) hull.reverse();
+  for (const [x, h] of hull) out.push(x - cx, rowOf(h));
 }
 
 // A rope through a list of screen points: dark edges, a bright core with a fleck every few pixels.
