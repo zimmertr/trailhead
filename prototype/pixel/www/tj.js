@@ -75,6 +75,8 @@ function head(b, k, cx, cy, view, look) {
     const ry = y - cy;
     if (k.bare) { if (ry <= -3 || (ry === -2 && !(view === 'side' && nx > 0.45))) return hr[ry <= -4 && nx < 0.1 && hr[2] ? 2 : 1]; }
     else if (ry <= -2 || (helmet && ry <= -1 && view !== 'back')) return ry <= -4 ? k.hat[nx < 0.1 ? 2 : 1] : ry === -2 && !helmet ? k.hat[0] : k.hat[nx < -0.3 ? 2 : 1];
+    // A hood up under the helmet (the West Ridge's wind): it hides the hair and frames the face.
+    if (k.hood && ry > -2) { if (view === 'back') return k.top[Math.abs(nx) > 0.7 ? 0 : 1]; if (view === 'side' && nx < 0.2) return k.top[nx > 0.02 || nx < -0.6 ? 0 : 1]; if (view === 'front' && Math.abs(nx) > 0.62) return k.top[0]; }
     if (view === 'back') return ry >= 3 && !k.long ? R.skin[1] : hr[ry >= 2 ? 0 : 1];
     if (view === 'side') {
       if (nx < -0.4) return ry >= 2 && !k.long ? R.skin[1] : hr[k.long && nx < -0.78 ? 0 : 1];
@@ -89,9 +91,9 @@ function head(b, k, cx, cy, view, look) {
   if (view === 'side') {
     if (k.brim) for (let x = cx + 3; x <= cx + 6; x++) b.set(x, cy - 2 + (look === 'up' ? -1 : 0), k.hat[0]);
     if (k.shades === false) b.set(cx + 3, cy + dy, INK); else { b.set(cx + 2, cy + dy, INK); b.set(cx + 3, cy + dy, INK); b.set(cx + 4, cy + dy, INK); b.set(cx + 1, cy + dy, R.navy[1]); }
-    if (!k.long) b.set(cx - 1, cy + 1, R.skin[0]);
+    if (!k.long && !k.hood) b.set(cx - 1, cy + 1, R.skin[0]);
     // Long hair falls down the back.
-    if (k.long) for (let y = cy + 3; y <= cy + 4 + k.long; y++) for (let x = cx - 5; x <= cx - 3; x++) b.set(x + (y > cy + 5 ? 1 : 0), y, x === cx - 5 ? hr[0] : y === cy + 4 + k.long ? hr[0] : hr[1]);
+    if (k.long && !k.hood) for (let y = cy + 3; y <= cy + 4 + k.long; y++) for (let x = cx - 5; x <= cx - 3; x++) b.set(x + (y > cy + 5 ? 1 : 0), y, x === cx - 5 ? hr[0] : y === cy + 4 + k.long ? hr[0] : hr[1]);
   } else if (view === 'front') {
     if (k.shades === false) { b.set(cx - 2, cy, INK); b.set(cx + 2, cy, INK); } else for (let x = -3; x <= 3; x++) b.set(cx + x, cy, x === 0 ? R.navy[1] : INK);
     b.set(cx, cy + 2, R.skin[1]);

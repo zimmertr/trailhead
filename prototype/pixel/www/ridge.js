@@ -11,7 +11,7 @@
 import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline } from './core.js';
 import { Strip, drawStrip, baseline, shell } from './side.js';
 import { makeConifer, makeCloud } from './sprites.js';
-import { sideFig, frontFig, backFig, FEET, HANDS } from './tj.js';
+import { sideFig, frontFig, backFig, FEET, HANDS, KITS } from './tj.js';
 import { makeCragPair, PAIR } from './people.js';
 
 const W = 1500, UP = 520, DOWN = 380;
@@ -314,6 +314,9 @@ const dAtX = x => { for (let i = 1; i < ROUTE.length; i++) if (ROUTE[i][0] >= x)
 const AT = { tj: -14, lead: 0, red: -28 };
 const PACKS = dAtX(198), TIE = dAtX(231);
 const PITCH = ['tie', 'a1', 'a2', 'a3', 'a4', 'top'];
+// The wind (H11) comes from the west across the ridge, nothing at the foot and strong at the top. Above
+// the flake belay at the slab's top, where the ridge turns exposed, everyone has their hood up.
+const windy = h => smooth(140, 470, h), HOOD_H = posAt(MARK.a3).h;
 // The holds (H10), as round 3 had them: two rows up the face, one for each hand, a hold every HC along
 // the line. Each limb takes them in turn: a hand stays on its hold while the body rises past it, then
 // reaches for the next, and a foot takes the hold its hand had two moves before; going down, the same
@@ -573,7 +576,7 @@ function kitFrames(kit) {
   const tying = f => frontFig(kit, { held: (b, cx, y) => { knot(b, cx, y); for (const [dx, dy] of f ? [[-2, 6], [2, 7]] : [[-2, 7], [2, 6]]) { b.set(cx + dx, y + dy, R.skin[2]); b.set(cx + dx + (dx < 0 ? -1 : 1), y + dy, R.teal[1]); } } });
   const holding = cam => (b, x, y) => { if (!cam || x < 22) return; b.set(x + 1, y, R.rock[4]); b.set(x + 2, y, R.rock[3]); b.set(x + 1, y + 1, R.red[1]); b.set(x + 1, y + 2, R.red[1]); };
   return {
-    side, idle: sideFig(kit, { lean: 0 }), crouch: sideFig(kit, { crouch: 4, lean: 5, hands: [[6, 9], [3, 8]], look: 'down', feet: [[3, 8.5], [-3, 8.5]] }),
+    side, idle: sideFig(kit, { lean: 0 }), blow: [sideFig(kit, { lean: 0, hands: [[6, -4], [6, -2]] }), sideFig(kit, { lean: 0, hands: [[5, -2], [6, -5]] })], crouch: sideFig(kit, { crouch: 4, lean: 5, hands: [[6, 9], [3, 8]], look: 'down', feet: [[3, 8.5], [-3, 8.5]] }),
     rack: [sideFig(kit, { lean: 1, hands: [[3, 5], [1, 6]], look: 'down' }), sideFig(kit, { lean: 1, hands: [[2, 6], [3, 4]], look: 'down' })],
     tie: [tying(0), tying(1)],
     bump: [sideFig(kit, { lean: 0, hands: [[1, 4], [-1, 6]] }), sideFig(kit, { lean: 1, hands: [[6, 4], [-1, 6]] })],
@@ -652,6 +655,48 @@ function makePack(ramp) {
 // Hands meeting: a small star where they touch.
 const spark = (scr, x, y, a) => { if (a < 0 || a > 0.22) return; const r = a < 0.08 ? 2 : 3; scr.set(x, y, R.white[1]); for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) { scr.set(x + dx, y + dy, R.white[1]); scr.set(x + dx * r, y + dy * r, R.yellow[1]); } };
 
+// Cartoon wind lines: pale streaks with a curl at the front, blowing east across the view (TJ's
+// reference: pale blue pixel swirls). More of them and faster the higher the camera, twice as many in
+// a gust. Each lives 1.8 s: it draws itself in from the tail, travels, and wipes out from the tail.
+function windLines(scr, t, W, g) {
+  const { VW, VH } = scr, LIFE = 1.8, MAX = 12, n = Math.min(MAX, Math.round((1 + 5 * W) * (1 + g)));
+  if (W < 0.08 && g === 0) return;
+  for (let i = 0; i < n; i++) {
+    const tt = t + i * LIFE / MAX, slot = Math.floor(tt / LIFE), age = tt - slot * LIFE, k = hash(slot, i, 796);
+    const L = 22 + 22 * hash(slot, i, 797), v = 90 + 120 * W + 80 * g, x0 = Math.round(-40 + (VW + 40) * k + age * v - L), y0 = Math.round(12 + (VH - 70) * hash(slot, i, 798)), ph = 6 * k;
+    const show = Math.min(1, age / 0.35), hide = Math.max(0, (age - LIFE + 0.5) / 0.5), r = 3 + 1.5 * k;
+    windLine(scr, x0, y0, L, r, ph + t * 3, show, hide);
+  }
+}
+function windLine(scr, x0, y0, L, r, ph, show, hide) {
+  const N = L + 15, ex = x0 + L, ey = y0 + 1.6 * Math.sin(L / 7 + ph);
+  for (let j = 0; j < N; j++) {
+    const u = j / N; if (u > show || u < hide) continue;
+    let x, y;
+    if (j <= L) { x = x0 + j; y = y0 + 1.6 * Math.sin(j / 7 + ph); } else { const a = 0.3 + (j - L) * 0.35, rr = r * (1 - (j - L) / 19); x = ex + rr * Math.sin(a); y = ey - r + rr * Math.cos(a); }
+    scr.set(Math.round(x), Math.round(y), u < 0.3 ? R.ice[3] : u < 0.65 ? R.farsnow[1] : R.white[1]);
+  }
+}
+// A corner of a jacket snapping downwind, and loose hair streaming out from under a helmet.
+function flap(scr, x, y, ramp, t, W, g, seed) {
+  const len = Math.round((2 + 2.5 * W + 2 * g) * (0.6 + 0.4 * Math.sin(t * 17 + seed)));
+  for (let i = 1; i <= len; i++) {
+    const y1 = y + ((Math.floor(t * 12 + seed + i) & 1) && i > 1 ? 1 : 0);
+    scr.set(x + i, y1 - 1, ramp[1]); if (i < len) scr.set(x + i, y1, ramp[0]); if (i === len) scr.set(x + i, y1, INK);
+  }
+}
+function hair(scr, x, y, ramp, t, W, g, seed) {
+  for (let row = 0; row < 3; row++) { const len = Math.round((3 + 3 * W + 3 * g - row) * (0.7 + 0.3 * Math.sin(t * 11 + seed + row))); for (let i = 1; i <= len; i++) scr.set(x + i, y + row + Math.round(0.8 * Math.sin(t * 14 + i + row * 2)), ramp[row === 1 ? 1 : row ? 0 : 2]); }
+}
+// Breath blown on cold hands, carried off downwind.
+function puff(scr, x, y, u, t) {
+  // Two breaths a blow, each a small cloud that swells as it drifts off and thins out.
+  for (const b of [0.15, 0.6]) {
+    const v = (u - b) / 0.4; if (v < 0 || v > 1) continue;
+    const cx = x + Math.round(v * 10), cy = y - Math.round(v * 2 + 0.6 * Math.sin(t * 6)), r = 1 + Math.round(v * 1.5);
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (dx * dx + dy * dy <= r * r + 0.5 && (v < 0.6 || ((dx + dy + Math.floor(t * 8)) & 1))) scr.set(cx + dx, cy + dy, dx * dx + dy * dy < r * r * 0.4 && v < 0.5 ? R.white[1] : R.farsnow[1]);
+  }
+}
 function buildRidge() {
   const main = new Strip(W, UP, DOWN), things = [];
   const ID = paintRidge(main); paintGround(main, things);
@@ -704,27 +749,35 @@ function buildRidge() {
   // On the ridge all three wear helmets, one colour each with their hair showing below: his green, the
   // leader's red, the woman's white over her red hair. The leader carries the rack on his harness.
   const KIT = { tj: 'wall', lead: { ...PAIR[0], bare: false, hat: R.red, rack: true }, red: { ...PAIR[1], bare: false, hat: [R.white[0], R.white[1], R.white[1]] } };
-  const F = { tj: kitFrames(KIT.tj), lead: kitFrames(KIT.lead), red: kitFrames(KIT.red) };
+  const KO = w => typeof KIT[w] === 'string' ? KITS[KIT[w]] : KIT[w], KH = {};
+  for (const w of WHO) KH[w] = { ...KO(w), hood: true };
+  const F = { tj: kitFrames(KIT.tj), lead: kitFrames(KIT.lead), red: kitFrames(KIT.red) }, FH = { tj: kitFrames(KH.tj), lead: kitFrames(KH.lead), red: kitFrames(KH.red) };
   // On the face their hands and feet are on the holds (H10). The drawings are made as they are needed
   // and kept: the limbs fall on whole pixels, so the same few come round again and again. right, when
   // given, is where the right hand is busy (placing, clipping, cleaning, shaking out) instead.
   const figs = new Map();
-  const figAt = (w, lb, right, tool) => {
+  const figAt = (w, lb, right, tool, hood) => {
     const l = { hands: [lb.hands[0], right || lb.hands[1]], feet: lb.feet };
-    const key = w + l.hands.join() + ';' + l.feet.join() + (tool ? 't' : '');
+    const key = w + l.hands.join() + ';' + l.feet.join() + (tool ? 't' : '') + (hood ? 'h' : '');
     let b = figs.get(key);
-    if (!b) { if (figs.size > 900) figs.clear(); b = backFig(KIT[w], { ...l, tool: tool ? F[w].holding : undefined }); figs.set(key, b); }
+    if (!b) { if (figs.size > 900) figs.clear(); b = backFig(hood ? KH[w] : KIT[w], { ...l, tool: tool ? F[w].holding : undefined }); figs.set(key, b); }
     return b;
   };
   const packs = [makePack(R.teal), makePack(R.red), makePack([R.mustard[0], R.mustard[1], R.mustard[2]])], dropAt = SCRIPT.dropAt;
   const ropePts = [];
   let camX = 0, camH = 0;
+  // A gust now and then: one in each 9 seconds, at a random point in its first 4, lasting 3; and the
+  // debug menu's gust, now.
+  const GUSTR = { slot: 9, len: 3 };
+  let gustGo = -1e9, gustHeard = null;
+  const gustAt = t => { if (t - gustGo >= 0 && t - gustGo < GUSTR.len) return [t - gustGo, 'go' + gustGo]; const n = Math.floor(t / GUSTR.slot), u = t - n * GUSTR.slot - 4 * hash(n, 3, 795); return u >= 0 && u < GUSTR.len ? [u, n] : null; };
   return {
     ...META,
     enter(scr, arg, q) { const p = posAt(stateAt(q * DUR).tj.d); camX = p.x; camH = p.h; st.y = null; },
     focus: () => focus,
     pick: () => null,
     act: () => false,
+    trigger(name, t) { if (name === 'ridgegust') { gustGo = t; return true; } return false; },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t } = env, tau = q * DUR, S = stateAt(tau), k = env.calm ? 1 : Math.min(1, env.dt * 5);
       // The camera holds on whoever is on the live end of a rope (between the two of them on pitch 1, and
@@ -733,6 +786,10 @@ function buildRidge() {
       const held = r => S[r.b].pose === 'slip' || S[r.b].pose === 'hang' || S[r.b].pose === 'fall', mid = (p, q) => ({ x: (p.x + q.x) / 2, h: (p.h + q.h) / 2 });
       const ends = S.ropes.length ? S.ropes.map(r => held(r) ? mid(posAt(S[r.a].d), posAt(S[r.b].d)) : posAt(S[r.b].d)) : [posAt(S.tj.d)], at = { x: ends.reduce((a, p) => a + p.x, 0) / ends.length, h: ends.reduce((a, p) => a + p.h, 0) / ends.length };
       camX += (at.x - camX) * k; camH += (at.h - camH) * k;
+      // The wind where the camera is, and the gust's strength; a whoosh as each gust arrives, louder
+      // high up (none at the foot, where there is no wind to speak of).
+      const gu = gustAt(t), g = gu ? Math.sin(Math.PI * gu[0] / GUSTR.len) : 0, wnd = windy(camH), wob = 2.5 * wnd * (0.35 + g);
+      if (gu && gu[1] !== gustHeard) { gustHeard = gu[1]; if (wnd > 0.12 || typeof gu[1] === 'string') env.sfx(wnd > 0.55 ? 'windHi' : 'wind'); }
       const base = baseline(scr, env.shown && !String(env.shown).startsWith('wait:'), st) - Math.round(VH * (scr.narrow ? 0.2 : 0.24)), cx = clamp(Math.round(camX - VW * (scr.narrow ? 0.5 : 0.45)), 0, W - VW), rowOf = hh => Math.round(base + camH - hh);
       const sb = R.skyband;
       for (let y = 0; y < VH; y++) {
@@ -747,6 +804,7 @@ function buildRidge() {
       for (const w of WHO) { const s = S[w], p = posAt(s.d); P[w] = { ...s, ...p, steep: p.where === 's' && Math.abs(p.dh) > Math.abs(p.dx) * 0.8 }; }
       if (P.red.where === 's' && P.red.moving) P.red.x += 1.5 * Math.sin(P.red.d / 7);
       // On the face, hands and feet on the holds, and the hips between them.
+      for (const w of WHO) { P[w].hood = P[w].h >= HOOD_H; P[w].fig = null; }
       for (const w of WHO) { const s = P[w], on = ['lead', 'climb', 'place', 'clean', 'unclip', 'rest'].includes(s.pose) && !styleAt(s.d); s.lb = on ? limbs(w, s.d) : null; s.bx = on ? s.lb.bx : 0; }
       // At a belay on the face the followers hang staggered, each lower and further across the face from
       // the leader (never out over the air beside the ridge's edge), instead of one under the other's
@@ -758,34 +816,37 @@ function buildRidge() {
       const bumping = S.tj.pose === 'bump';
       const rateOf = w => { const r = S.ropes.find(r => r.a === w); return r && S[r.b].moving; };
       const draw1 = w => {
-        const s = P[w], fr = F[w], sx = Math.round(s.x) - cx, sy = rowOf(s.h);
+        const s = P[w], fr = (s.hood ? FH : F)[w], sx = Math.round(s.x) - cx, sy = rowOf(s.h);
+        const put = (bm, x, y, f) => { scr.put(bm, x, y, f); s.fig = { x, y, f, back: bm.oy === 28, side: bm.oy === 36 }; };
         const u = s.u, flick = Math.floor(t * 3) & 1;
         if (s.pose === 'sit') { pair.snack(scr, 1, sx, sy, t, 0); return; }
-        if (s.pose === 'walk' || (s.moving && !s.steep && s.pose !== 'drop')) { scr.put(env.moving && s.moving ? fr.side[Math.floor(s.d / 4.2) % 6] : fr.idle, sx, sy, s.dir < 0); return; }
-        if (s.pose === 'drop') { scr.put(u < 0.25 || u > 0.85 ? fr.idle : fr.crouch, sx, sy, true); return; }
-        if (s.pose === 'rack') { scr.put(fr.rack[Math.floor(t * 1.5) & 1], sx, sy, true); return; }
-        if (s.pose === 'tie') { scr.put(fr.tie[Math.floor(t * 6) & 1], sx, sy, false); return; }
-        if (s.pose === 'bump') { scr.put(u < 0.2 || u > 0.85 ? fr.idle : fr.bump[u > 0.45 && u < 0.7 ? 1 : 0], sx, sy, w !== 'tj'); return; }
-        if (s.pose === 'lead' || s.pose === 'climb') { const st = styleAt(s.d); if (st || !s.lb) scr.put(st ? fr[st][Math.floor(s.d / 4) & 1] : fr.anchor[0], sx, sy - 12, false); else scr.put(figAt(w, s.lb), sx + s.bx, sy - 12, false); return; }
+        if (s.pose === 'walk' || (s.moving && !s.steep && s.pose !== 'drop')) { put(env.moving && s.moving ? fr.side[Math.floor(s.d / 4.2) % 6] : fr.idle, sx, sy, s.dir < 0); return; }
+        if (s.pose === 'drop') { put(u < 0.25 || u > 0.85 ? fr.idle : fr.crouch, sx, sy, true); return; }
+        if (s.pose === 'rack') { put(fr.rack[Math.floor(t * 1.5) & 1], sx, sy, true); return; }
+        if (s.pose === 'tie') { put(fr.tie[Math.floor(t * 6) & 1], sx, sy, false); return; }
+        if (s.pose === 'bump') { put(u < 0.2 || u > 0.85 ? fr.idle : fr.bump[u > 0.45 && u < 0.7 ? 1 : 0], sx, sy, w !== 'tj'); return; }
+        if (s.pose === 'lead' || s.pose === 'climb') { const st = styleAt(s.d); if (st || !s.lb) put(st ? fr[st][Math.floor(s.d / 4) & 1] : fr.anchor[0], sx, sy - 12, false); else put(figAt(w, s.lb, null, 0, s.hood), sx + s.bx, sy - 12, false); return; }
         // Placing, clipping, cleaning and shaking out on the face: the left hand and both feet stay on
         // their holds while the right hand works.
         if (s.lb && (s.pose === 'place' || s.pose === 'clean' || s.pose === 'unclip' || s.pose === 'rest')) {
           const f = Math.floor(t * 4) & 1, R2 = s.pose === 'place' ? (u < 0.2 ? [[7, -9], 1] : [[6, -16], 0]) : s.pose === 'rest' ? [[6 + f, 3 - f * 2], 0] : s.pose === 'clean' && u >= 0.55 ? [[4, 1], 1] : [[5, -9], 0];
-          scr.put(figAt(w, s.lb, R2[0], R2[1]), sx + s.bx, sy - 12, false); return;
+          put(figAt(w, s.lb, R2[0], R2[1], s.hood), sx + s.bx, sy - 12, false); return;
         }
-        if (s.pose === 'place') { scr.put(fr.place[u < 0.2 ? 0 : 1], sx, sy - 12, false); return; }
-        if (s.pose === 'rest') { scr.put(fr.rest[Math.floor(t * 4) & 1], sx, sy - 12, false); return; }
-        if (s.pose === 'slip') { scr.put(fr.fall[Math.floor(t * 20) & 1], sx, sy - 12, false); return; }
-        if (s.pose === 'hang') { scr.put(fr.hang, sx, sy - 12, false); return; }
+        if (s.pose === 'place') { put(fr.place[u < 0.2 ? 0 : 1], sx, sy - 12, false); return; }
+        if (s.pose === 'rest') { put(fr.rest[Math.floor(t * 4) & 1], sx, sy - 12, false); return; }
+        if (s.pose === 'slip') { put(fr.fall[Math.floor(t * 20) & 1], sx, sy - 12, false); return; }
+        if (s.pose === 'hang') { put(fr.hang, sx, sy - 12, false); return; }
         // Holding a fall from below lifts him off his feet a moment as the rope comes tight (round 3's catch).
-        if (s.pose === 'catch') { const r = S.ropes.find(r => r.a === w), c = r && P[r.b]; const up = c && c.h > s.h; scr.put(fr.catch[up ? 'up' : 'down'], sx, sy - (up && u < 0.2 ? 2 : 0), c ? c.x < s.x : true); return; }
-        if (s.pose === 'unclip') { scr.put(fr.clean[0], sx, sy - 12, false); return; }
-        if (s.pose === 'clean') { scr.put(fr.clean[u < 0.55 ? 0 : 1], sx, sy - 12, false); return; }
-        if (s.pose === 'anchor') { scr.put(fr.anchor[flick], sx, sy - 12, false); return; }
-        if (s.pose === 'fall') { scr.put(fr.fall[Math.floor(t * 20) & 1], sx, sy - 12, false); return; }
+        if (s.pose === 'catch') { const r = S.ropes.find(r => r.a === w), c = r && P[r.b]; const up = c && c.h > s.h; put(fr.catch[up ? 'up' : 'down'], sx, sy - (up && u < 0.2 ? 2 : 0), c ? c.x < s.x : true); return; }
+        if (s.pose === 'unclip') { put(fr.clean[0], sx, sy - 12, false); return; }
+        if (s.pose === 'clean') { put(fr.clean[u < 0.55 ? 0 : 1], sx, sy - 12, false); return; }
+        if (s.pose === 'anchor') { put(fr.anchor[flick], sx, sy - 12, false); return; }
+        if (s.pose === 'fall') { put(fr.fall[Math.floor(t * 20) & 1], sx, sy - 12, false); return; }
         // Belaying: side-on, facing whoever is on the rope; paying out from below, taking in from above.
-        if (s.pose === 'belay' || s.pose === 'tbelay') { const r = S.ropes.find(r => r.a === w), c = r && P[r.b], face = c ? c.x < s.x : s.pose === 'tbelay'; scr.put(fr[s.pose][rateOf(w) ? flick : 0], sx, sy, face); return; }
-        scr.put(fr.idle, sx, sy, false);
+        if (s.pose === 'belay' || s.pose === 'tbelay') { const r = S.ropes.find(r => r.a === w), c = r && P[r.b], face = c ? c.x < s.x : s.pose === 'tbelay'; put(fr[s.pose][rateOf(w) ? flick : 0], sx, sy, face); return; }
+        // High up, someone waiting at a stance blows on their hands now and then, and the breath blows away.
+        if (s.hood && !s.moving && s.pose === 'stand') { const kk = frac((t + 2.9 * WHO.indexOf(w)) / 7); if (kk < 0.32) { put(fr.blow[Math.floor(t * 3) & 1], sx, sy, false); puff(scr, sx + 8, sy - 18, kk / 0.32, t); return; } }
+        put(fr.idle, sx, sy, false);
       };
       for (const w of WHO) if (P[w].where === 'n') draw1(w);
       drawStrip(scr, main, cx, base + camH, false, R.grass[0]);
@@ -822,7 +883,7 @@ function buildRidge() {
           const x = ends[k].x - cx, y = rowOf(ends[k].h);
           if (k) {
             const n = ropePts.length; ropeOver(ropePts, ends[k - 1], ends[k], CREST, cx, rowOf);
-            if (ropePts.length === n && !tight) sagTo(ropePts, x, y, lead ? 0.07 : 0.03, k === ends.length - 1 ? loop : 0);
+            if (ropePts.length === n && !tight) sagTo(ropePts, x, y, lead ? 0.07 : 0.03, k === ends.length - 1 ? loop : 0, wob, t);
           }
           ropePts.push(x, y);
         }
@@ -856,6 +917,12 @@ function buildRidge() {
         drawBiner(scr, mx, my); scr.set(mx, my, R.white[1]);
       });
       for (const w of WHO) if (P[w].where !== 'n') draw1(w);
+      // Jackets snap downwind and loose hair streams from under a helmet once there is wind.
+      if (wnd > 0.15) for (const w of WHO) {
+        const s = P[w], fg = s.fig, ko = KO(w), sd = WHO.indexOf(w) * 2.3; if (!fg || s.where === 'n') continue;
+        if (fg.back) { flap(scr, fg.x + 5, fg.y - 1, ko.top, t, wnd, g, sd); if (!s.hood && ko.long && ko.hair) hair(scr, fg.x + 4, fg.y - 13, ko.hair, t, wnd, g, sd); }
+        else if (fg.side) { flap(scr, fg.x + 3, fg.y - 9, ko.top, t, wnd, g, sd); if (!s.hood && ko.long && ko.hair && fg.f) hair(scr, fg.x + 5, fg.y - 17, ko.hair, t, wnd, g, sd); }
+      }
       // While he places a cam: in his raised hand, lobes shut, then pushed up into the crack.
       for (let i = 0; i < pro.length; i++) {
         const g = pro[i], sp = SPOT[i];
@@ -866,6 +933,7 @@ function buildRidge() {
       // When he skates off the slab, grit his feet scraped loose skitters down it after him.
       if (SCRIPT.fallAt > 0 && tau > SCRIPT.fallAt && tau < SCRIPT.fallAt + 1.6) grit(scr, tau - SCRIPT.fallAt, cx, rowOf);
       if (bumping) spark(scr, Math.round((P.tj.x + P.lead.x) / 2) - cx, rowOf(P.tj.h + 10), (P.tj.u - 0.45) * 0.8);
+      windLines(scr, t, wnd, g);
       const me = P.tj; focus.x = Math.round(me.x) - cx; focus.y = rowOf(me.h) - 14;
     }
   };
@@ -894,11 +962,12 @@ function ropeOver(out, A, B, CREST, cx, rowOf) {
 // slack times its length deep (at least a pixel and a half, so it is never ruler-straight, and at most
 // 22). A steep span bows out sideways instead, away from the rock, as a slack rope up a crack does.
 // loop is extra rope in pixels hanging straight down, below the lower end if need be.
-function sagTo(out, x1, y1, slack, loop = 0) {
+function sagTo(out, x1, y1, slack, loop = 0, wob = 0, wt = 0) {
   const x0 = out[out.length - 2], y0 = out[out.length - 1], dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
   if (len < 6) return;
   const s = Math.min(22, Math.max(1.5, slack * len)), n = Math.ceil(len / 3) + Math.round(loop / 2), fy = Math.abs(dx) / len, fx = Math.abs(dy) / len * 0.6;
-  for (let i = 1; i < n; i++) { const u = i / n, b = 4 * u * (1 - u), o = s * b; out.push(Math.round(x0 + dx * u - o * fx), Math.round(y0 + dy * u + o * fy + loop * Math.sqrt(b))); }
+  // In the wind a free span flaps: a wave across it, biggest in the middle.
+  for (let i = 1; i < n; i++) { const u = i / n, b = 4 * u * (1 - u), o = s * b, f = wob * b * Math.sin(wt * 9 + u * 7 + x0 * 0.13); out.push(Math.round(x0 + dx * u - o * fx - dy / len * f), Math.round(y0 + dy * u + o * fy + loop * Math.sqrt(b) + dx / len * f)); }
 }
 
 // A rope through a list of screen points: dark edges, a bright core with a fleck every few pixels.
@@ -913,4 +982,4 @@ function rope(scr, pts, two) {
   for (let i = 0; i < px.length; i += 2) scr.set(px[i], px[i + 1], (i >> 1) % 5 ? (two ? R.blaze[1] : R.teal[2]) : R.white[1]);
 }
 
-export const makeRidge = () => shell(META, buildRidge, ['enter', 'focus', 'pick', 'act', 'draw']);
+export const makeRidge = () => shell(META, buildRidge, ['enter', 'focus', 'pick', 'act', 'draw', 'trigger']);

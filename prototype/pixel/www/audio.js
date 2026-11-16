@@ -193,6 +193,8 @@ export function makeAudio() {
     glissade: t => { noise(fx, t, 2.2, 0.2, 2600, 0.5, 'bandpass'); tone(fx, 'triangle', 700, t, 2.1, 0.1, 180); },
     crack: t => { noise(fx, t, 0.35, 0.3, 500, 1, 'lowpass'); tone(fx, 'square', 160, t, 0.2, 0.18, 60); },
     wind: t => noise(fx, t, 1.4, 0.12, 700, 1.4, 'bandpass'),
+    // The same whoosh high on the West Ridge: louder, longer and lower.
+    windHi: t => { noise(fx, t, 2.2, 0.26, 520, 1.1, 'bandpass'); noise(fx, t + 0.3, 1.6, 0.12, 1100, 2, 'bandpass'); },
     egg: t => [784, 988, 1175, 1568].forEach((f, i) => tone(fx, 'square', f, t + i * 0.06, 0.1, 0.16)),
     meow: t => { tone(fx, 'square', 620, t, 0.12, 0.16, 940); tone(fx, 'square', 940, t + 0.12, 0.2, 0.16, 520); },
     purr: t => { for (let i = 0; i < 14; i++) tone(fx, 'triangle', 52, t + i * 0.045, 0.03, 0.5); },

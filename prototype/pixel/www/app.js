@@ -152,6 +152,7 @@ function openDebug(on) {
     el('h3', { text: D.startMap }), ...starts(['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'salmon', 'osprey', 'serac', 'avalanche', 'lens', 'heron', 'tumble', 'devil', 'star', 'plane']),
     el('h3', { text: D.startForest }), ...starts(['jay', 'bear', 'sasquatch', 'eyeshine']),
     el('h3', { text: D.startLarches }), ...starts(['gust']),
+    el('h3', { text: D.startRidge }), ...starts(['ridgegust']),
     el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, api.now(), { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
     el('button', { class: 'plank', onclick: () => navigate('#off-route') }, el('span', { text: D.offRoute })),
     el('button', { class: 'plank', onclick: () => api.breakScene() }, el('span', { text: D.breakScene })),
