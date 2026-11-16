@@ -496,7 +496,7 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 | 1 again: three layouts with real height (pictures) | `pixel-r4-relief` | https://claude.ai/artifact/HkLDn3zFk3fyYgagGVWQSA | 2026-11-15 |
 | 1 again: layout 1, second pass (pictures) | `pixel-r4-relief2` | https://claude.ai/artifact/SJGQUzqPa1i1RDd23pc56t | 2026-11-15 |
 | Progress, not a stop: the land of section 4a built (pictures) | `pixel-r4-landshape` | https://claude.ai/artifact/KJ2YvMaK4V8pLyoSSJxmGa | 2026-11-15 |
-| 2a: the game runs on the new land | `pixel-r4-land` | GAME_LINK | 2026-11-15 |
+| 2a: the game runs on the new land (and the opening view candidates, `plan/opening-r4.html`) | `pixel-r4-land` | https://claude.ai/artifact/WVKKSA9g8uC5PDePJhjXnk and https://claude.ai/artifact/MqQCQ7DNPiZnWcG8pk5GPY | 2026-11-15 |
 
 ## 8a. Where the build stands (2026-11-15, commit after `204dc5b`)
 
