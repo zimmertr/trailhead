@@ -187,8 +187,17 @@ export function makeCritters(W, opts = {}) {
       if (edge && hash(i, beat, 66) < 0.45) scr.set(px, y - 1, R.white[1]);
     }
   }
+  // Where it comes up (E6a): a different spot for each breach and each blow, picked by rule from open
+  // water in view (clear of the page's buttons along the top and the timeline along the bottom): well out
+  // past the low-water line, clear of the stacks, with room for the spray.
+  let OPEN = null;
+  const openWater = () => OPEN || (OPEN = (() => { const out = []; for (let y = SEA.y0 + 30; y < SEA.y0 + SEA.h - 12; y += 6) for (let x = 60; x < SEA.w - 16; x += 6) {
+    if (csAt(x, y) < EBB + 48 || [-56, -28, 12].some(d => csAt(x + d, y) < EBB + 34) || stacks.some(s => Math.abs(s.x - x) < 70 && Math.abs(s.y - y) < 26)) continue; out.push([x, y]); } return out; })());
+  const pickOpen = (key, ox, oy, VW, VH) => { const all = openWater(); if (!all.length) return spots.whale; const seen = all.filter(([x, y]) => x - 60 > ox && x + 16 < ox + VW && y - 46 > oy + 40 && y + 10 < oy + VH - 130), from = seen.length ? seen : all; return from[Math.floor(hash(key, 7, 6201) * from.length)]; };
   function drawWhale(scr, a, ox, oy, t) {
-    const T = t + whaleAhead + T0, n = Math.floor(T / SLOT), u = T - n * SLOT - starts(n), wx = a.x - ox, wy = a.y - oy;
+    const T = t + whaleAhead + T0, n = Math.floor(T / SLOT), u = T - n * SLOT - starts(n);
+    if (a.slot !== n) { a.slot = n; [a.x, a.y] = n ? pickOpen(n, ox, oy, scr.VW, scr.VH) : spots.whale; a.blows = [null, null]; }
+    const wx = a.x - ox, wy = a.y - oy;
     const white = R.white[1], pale = R.sea[5], ease = v => v * v * (3 - 2 * v);
     // The foam it leaves lies on the water, so it goes down first: a patch where it landed that thins
     // out, and a ring that spreads from it and breaks up. A small ring marks where it came out.
@@ -231,10 +240,11 @@ export function makeCritters(W, opts = {}) {
       const x0 = -50 + 56 * hash(k, 2, 74), vx = (hash(k, 3, 74) - 0.5) * 36 + (x0 + 22) * 0.6, vy = 26 + 44 * hash(k, 4, 74);
       drop(Math.round(wx + x0 + vx * age), Math.round(wy - vy * age + 46 * age * age), hash(k, 5, 74) < 0.5);
     }
-    // The roll and the blow, at a different spot each time.
-    for (const [at, dx, dy] of [[17, -24, 2], [31, 8, -8]]) {
-      const v = u - at; if (v <= 0 || v >= 3) continue;
-      const bx = wx + dx + 6 - Math.round(v * 4), by = wy + dy, up = Math.round(v < 0.6 ? 5 * (1 - ease(v / 0.6)) : v > 2.2 ? 5 * ease((v - 2.2) / 0.8) : 0);
+    // The roll and the blow, each at a spot of its own, picked when it begins.
+    for (const [b, at] of [[0, 17], [1, 31]]) {
+      const v = u - at; if (v <= 0 || v >= 3) { if (v >= 3) a.blows[b] = null; continue; }
+      const P = a.blows[b] || (a.blows[b] = pickOpen(n * 3 + b + 1, ox, oy, scr.VW, scr.VH));
+      const bx = P[0] - ox + 6 - Math.round(v * 4), by = P[1] - oy, up = Math.round(v < 0.6 ? 5 * (1 - ease(v / 0.6)) : v > 2.2 ? 5 * ease((v - 2.2) / 0.8) : 0);
       for (let j = 0; j < back.h - up; j++) for (let i = 0; i < back.w; i++) { const c = back.d[j * back.w + i]; if (c) scr.set(bx - back.ox + i, by - back.oy + up + j, c); }
       for (let i = -9; i <= 9; i += 2) scr.set(bx + i, by + 1, white);
       if (v > 0.5 && v < 1.6) { const hgt = Math.round(9 * Math.min(1, (v - 0.5) / 0.3)), fade = v > 1.2; for (let j = 0; j < hgt; j++) { if (fade && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 4 ? Math.round((j - hgt + 4) * 0.8) : 0; scr.set(bx + 5 - sp, by - 5 - j, white); scr.set(bx + 5 + sp, by - 5 - j, white); } }
@@ -274,6 +284,48 @@ export function makeCritters(W, opts = {}) {
       if (show > 0.7) { const a = P.pools[0], b = P.pools[P.pools.length - 1], q = 0.5 + 0.5 * Math.sin(t * 0.35 + P.s.x), stop = frac(t * 0.5) < 0.3, x = Math.round(a.x + (b.x - a.x) * q) - ox, y = Math.round(a.y + (b.y - a.y) * q) - oy + 2;
         scr.set(x, y, R.red[0]); scr.set(x + 1, y, R.red[0]); scr.set(x - 1, y - (stop ? 0 : (Math.floor(t * 6) & 1)), R.red[1]); scr.set(x + 2, y - (stop ? 0 : (Math.floor(t * 6 + 1) & 1)), R.red[1]); }
     }
+  }
+  // ---- the orca pod (E6a) ----
+  // Four orcas cruise down the coast together, out past the farthest stacks (100 to 110 from the
+  // high-water line), where they read as orcas and not as rocks by the beach. Each surfaces every few seconds
+  // in its own rhythm, the black back rolling up and the tall fin rising and sinking with it (the bull's
+  // straight and tall, the cows' smaller and curved), a blow now and then as one comes up, and once a pass
+  // one of them spyhops: head up out of the water, white eye patch and chin, to look about. A pass takes
+  // about 100 s, every 160 s, the first 30 s after the page opens.
+  const POD = [{ c: 66, lag: 0, bull: true }, { c: 71, lag: 18, bull: false }, { c: 62, lag: 31, bull: false }, { c: 68, lag: 45, bull: false }];
+  const ORCA = { slot: 160, first: 30, speed: 6.5 }; let orcaAhead = ahead;
+  const isoX = new Map(), isoAt = c => { let a = isoX.get(c); if (a) return a; a = new Int16Array(SEA.h).fill(-1);
+    for (let r = 0; r < SEA.h; r++) for (let x = SEA.w - 1; x >= 0; x--) if (SEA.cs[r * SEA.w + x] >= c + 4) { a[r] = x; break; } isoX.set(c, a); return a; };
+  function orcas(scr, ox, oy, t) {
+    const T = t + orcaAhead - ORCA.first, n = Math.floor(T / ORCA.slot), s = T - n * ORCA.slot, dur = (SEA.h + 80) / ORCA.speed; if (T < 0 || s > dur) return;
+    const spy = Math.floor(hash(n, 1, 6301) * POD.length), spyAt = 30 + 30 * hash(n, 2, 6301), sv = s - spyAt;
+    POD.forEach((o, i) => {
+      const row = Math.round(s * ORCA.speed - 20 - o.lag); if (row < 0 || row >= SEA.h) return; const x0 = isoAt(o.c)[row]; if (x0 < 0) return;
+      const x = x0 - ox, y = SEA.y0 + row - oy; if (x < -20 || x > scr.VW + 20 || y < -20 || y > scr.VH + 6) return;
+      if (i === spy && sv > 0 && sv < 3.2) return spyhop(scr, x, y, sv / 3.2, t);
+      const ph = frac(s / 4.2 + i * 0.31), q = ph / 0.55; if (q >= 1) return; const h = Math.sin(Math.PI * q);
+      orcaBack(scr, x, y, h, o.bull, t, i);
+      // A blow as it comes up, now and then.
+      if (q < 0.45 && hash(Math.floor(s / 4.2), i, 6302) < 0.35) { const k = q / 0.45, hgt = Math.round(3 + 4 * k); for (let j = 0; j < hgt; j++) { if (k > 0.6 && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 3 ? 1 : 0; scr.set(x + 3 - sp, y - 3 - j, R.white[1]); if (sp) scr.set(x + 3 + sp, y - 3 - j, R.white[1]); } }
+    });
+  }
+  // The back above the water by h (0 to 1): a black arc with the grey saddle behind the fin, the fin on
+  // top, and white water where it cuts the surface.
+  function orcaBack(scr, x, y, h, bull, t, i) {
+    for (let dx = -8; dx <= 8; dx++) { const top = Math.round(h * 3.6 * (1 - (dx / 8.6) ** 2)); for (let j = 1; j <= top; j++) scr.set(x + dx, y - j, j === top ? INK : (dx === -3 || dx === -4) && j >= top - 2 && j < top && h > 0.6 ? R.rock[4] : R.navy[0]); }
+    const fh = Math.round((bull ? 11 : 6) * h), base = y - Math.round(h * 3.6);
+    for (let j = 1; j <= fh; j++) { const lean = bull ? 0 : -Math.round(1.5 * (j / fh) ** 1.5), w = j < fh * 0.55 ? 2 : 1; for (let k = 0; k < w; k++) scr.set(x + 1 + lean - k, base - j, INK); }
+    if (h > 0.5) for (let dx = 4; dx <= 5; dx++) scr.set(x + dx, y - 1, R.white[1]);
+    const beat = Math.floor(t * 6);
+    for (let dx = -11; dx <= 11; dx++) if (Math.abs(dx) > 7 - h * 3 && hash(dx, beat + i * 9, 6303) < 0.55) scr.set(x + dx, y, R.white[1]);
+  }
+  // A spyhop: the head rises straight up out of the water, holds and slides back down.
+  function spyhop(scr, x, y, v, t) {
+    const up = Math.round(13 * Math.sin(Math.PI * Math.min(1, v * 1.25)) ** 0.7);
+    for (let j = 0; j < up; j++) { const fromTop = up - 1 - j, yy = y - 1 - j;
+      for (let dx = -1; dx <= 1; dx++) { if (fromTop === 0 && dx) continue; let c = R.navy[0];
+        if ((fromTop === 3 || fromTop === 4) && dx === 1) c = R.white[1]; else if (fromTop >= 6 && fromTop <= 9 && dx === 0) c = R.white[1]; else if (dx === -1 || fromTop === 0) c = INK; scr.set(x + dx, yy, c); } }
+    const beat = Math.floor(t * 6); for (let dx = -4; dx <= 4; dx++) if (Math.abs(dx) > 1 && hash(dx, beat, 6304) < 0.7) scr.set(x + dx, y, R.white[1]);
   }
   // A fixed dither for the pools coming into view as the water leaves them.
   const bayerish = (x, y, k) => hash(x, y, k + 6107);
@@ -477,6 +529,7 @@ export function makeCritters(W, opts = {}) {
         }
       }
       tidePools(scr, ox, oy, t, ebb);
+      orcas(scr, ox, oy, t);
       drawWake(scr, ox, oy, t);
       spots.jelly.forEach(([jx, jy, pale], k) => {
         const J = jellyOut[k], need = Math.max(0, ebb + 8 - J.c0);
@@ -507,6 +560,7 @@ export function makeCritters(W, opts = {}) {
     trigger(name, t) {
       if (name === 'breach' || name === 'blow') { const n = Math.floor((t + whaleAhead + T0) / SLOT) + (name === 'breach' ? 1 : 0); whaleAhead = n * SLOT + starts(n) + (name === 'blow' ? 16.6 : 0) - t - T0; return true; }
       if (name === 'heron') { if (!herItem || herItem.st !== 'stand') return false; takeOff(herItem, t, null); return true; }
+      if (name === 'orcas') { orcaAhead = (((ORCA.first - t) % ORCA.slot) + ORCA.slot) % ORCA.slot; return true; }
       if (name === 'tide') { tideAhead = (((8 - t) % TIDE) + TIDE) % TIDE; return true; }
       if (name === 'ferry') { ferryAhead = (((-(t + 0.12 * CROSS)) % ROUND) + ROUND) % ROUND; return true; }
       return false;
