@@ -349,6 +349,18 @@ Section 4a is the brief. Round 3's `terrain.js` stays untouched until C19, so th
 - [ ] C21. Pictures: the whole map Day and Dusk, trees off, each destination close, three candidate opening views on a 1440 by 900 screen and the phone's slice. Compare with `out/r4/w1.png` and list the weak points honestly.
 - [x] **STOP 2a (reached 2026-11-15 with C7 to C9, C19 and C20 still open, see section 8a; TJ: the land is right, carry on; opening view B, one screen pixel to one map pixel with the three destinations in frame, `out/r4/o-b.png` is `relief.html?crop=330,180` at 1440 by 900).** Tag `pixel-r4-land`, publish the game (the old wall, lake and camp scenes still run behind the new map). Ask TJ: is the land right, and which opening view.
 
+### Q. Quality pass (TJ, 2026-11-15: the game looked "half baked" beside round 3; do these before anything else)
+
+Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`, or a fresh render from tag `pixel-r3-final`) beside the new one with `./sheet.sh` and look. Anything worse than round 3 is fixed, not ticked.
+
+- [x] Q1. Round 3's ground detail on the new land: grass texture, tufts, flower clumps with stems, forest floor, river glints, boulders, bushes, slabs, sage, ferns, logs, gold maples, sea stacks, driftwood, the island, the lake's mirror, tree shadows.
+- [x] Q2. Fog trees are the forest's own spruce and firs, paled by the fog rank by rank. Shores round the lake and tarns.
+- [ ] Q3. The moving mist is back (it was switched off without asking): `W.mist` from `land.js`, the wisps and the sea fog re-fitted to the new coast and forest instead of round 3's fixed rows. The Mist switch works.
+- [ ] Q4. Mount Monolith drawn properly (C7): rock, snow, glaciers, cleavers, icefalls and shading at round 3's level, not flat stand-in colour.
+- [ ] Q5. The Legacy Range drawn properly (C8) and the crest's back row (C9), the same way.
+- [ ] Q6. Zoom out to the whole map again (F1 and F2 brought forward, F9 if it helps): wheel and pinch go smoothly from the close view out until the whole map fits.
+- [ ] Q7. Side by side with round 3: whole map, opening view, Trailhead close, forest, lakeside, Day and Dusk, desktop and phone. Tag `pixel-r4-opus-quality`, publish a new artifact, write the honest list of what is still below round 3 in section 8a.
+
 ### D. What grows and stands on the land
 
 - [x] D1. Every country re-laid on the new land, each thinning into the next across a wide, slanted, uneven edge. No bands.
