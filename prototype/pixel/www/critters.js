@@ -257,7 +257,6 @@ export function makeCritters(W, opts = {}) {
   // Mist pools low: the tops of the tallest trees stand clear of it. (Only the tallest: in thick forest
   // the tops of the crowns are nearly all that shows of a tree.) This marks those rows as the map shows
   // them, nearer trees laid over the ones behind.
-  // On round 4's map the fog is drawn into the land, and there is no drifting mist (W.mist is null).
   const TOPW = M ? M.x1 : 0, tops = new Uint8Array(M ? TOPW * (NH - M.y0) : 0);
   if (M) for (const th of W.things.filter(th => th.x < TOPW + 40 && th.y > M.y0).sort((a, b) => a.y - b.y)) {
     const parts = th.tree ? th.tree.parts.map(p => [p.bm, th.x + p.x, th.y + p.y]) : [[th.bm, th.x - th.bm.ox, th.y - th.bm.oy]];
@@ -273,7 +272,7 @@ export function makeCritters(W, opts = {}) {
   // length or height. Light wisps drift further in. Every row of a shape lists its stretches of light
   // mist, then of middle, then of heavy.
   const wisps = [];
-  {
+  if (M) {
     const r = rng(131);
     const merge = segs => { segs.sort((p, q) => p[0] - q[0]); const out = []; for (const g of segs) { const l = out[out.length - 1]; if (l && g[0] <= l[1] + 1) l[1] = Math.max(l[1], g[1]); else out.push([g[0], g[1]]); } return out; };
     // The stretch of a row that an oval covers. Ovals are flatter underneath, as mist lies on what is below it.
@@ -288,24 +287,27 @@ export function makeCritters(W, opts = {}) {
       }
       return rows;
     };
-    for (let k = 0; k < 24; k++) {
+    // Fewer than round 3 had: the forest it drifts over is narrower here.
+    for (let k = 0; k < 15; k++) {
       const len = 90 + r() * 210, tall = 9 + r() * 15, n = 2 + Math.round(len / 55 + r() * 2), ovals = [];
       for (let i = 0; i < n; i++) { const u = n === 1 ? 0 : i / (n - 1) * 2 - 1; ovals.push({ x: u * len * 0.34 + (r() - 0.5) * len * 0.14, y: (r() - 0.5) * tall * 1.1, rx: len * (0.5 + 0.5 * r()) / n + 12, ry: tall * (0.4 + 0.45 * r()) * (1 - 0.3 * u * u) }); }
       for (const side of [-1, 1]) for (let j = 0; j < 2; j++) if (r() < 0.8) ovals.push({ x: side * len * (0.4 + 0.25 * r()), y: (r() - 0.5) * tall * 0.9, rx: len * (0.1 + 0.14 * r()), ry: 0.9 + r() * 1.3, tail: true });
       // The heavy heart: a small oval low inside the biggest lobe, and in a long bank a second one.
       const big = ovals.filter(o => !o.tail && o.ry >= 3.5).sort((p, q) => q.rx * q.ry - p.rx * p.ry).slice(0, len > 170 ? 2 : 1);
       const cores = big.map(o => ({ x: o.x + (r() - 0.5) * o.rx * 0.3, y: o.y + o.ry * 0.12, rx: o.rx * 0.42, ry: o.ry * 0.36 }));
-      const y = Math.round(470 + r() * (NH - 480));
-      wisps.push({ y, len, rows: shape(ovals, cores, tall), bank: true, span: 560, at: r() * 560, v: 0.5 + 0.9 * vnoise(y / 40, 3, 132), dx: Math.round((r() - 0.5) * 110) });
+      const y = Math.round(M.y0 + 14 + r() * (NH - M.y0 - 24));
+      wisps.push({ y, len, rows: shape(ovals, cores, tall), bank: true, span: 600, at: r() * 560, v: 0.5 + 0.9 * vnoise(y / 40, 3, 132), dx: Math.round((r() - 0.5) * 110) });
     }
-    for (let k = 0; k < 100; k++) {
-      const y = Math.round(458 + r() * (NH - 462)), len = 36 + r() * 80, tall = 1.5 + r() * 3.2;
+    for (let k = 0; k < 64; k++) {
+      const y = Math.round(M.y0 + 4 + r() * (NH - M.y0 - 8)), len = 36 + r() * 80, tall = 1.5 + r() * 3.2;
       const ovals = [{ x: 0, y: 0, rx: len / 2, ry: tall }, { x: (r() - 0.5) * len * 0.7, y: (r() - 0.5) * tall, rx: len * (0.2 + 0.2 * r()), ry: tall * 0.7 }];
       wisps.push({ y, len, rows: shape(ovals, [], tall), bank: false, span: 760, at: r() * 760, v: 1.6 + 2.6 * vnoise(y / 40, 3, 132), dx: 0 });
     }
     // A few fingers of the fog bank, out over the water in front of it: plain lens shapes.
-    for (let k = 0; k < 9; k++) {
-      const y = Math.round(915 + r() * 160), len = 50 + r() * 70, n = 4 + (r() * 5 | 0), rows = [];
+    // Only on rows where the sea is wide enough for one to cross.
+    const seaRows = []; for (let y = M.y0; y < NH - 4; y++) if (M.shore[y] > 200) seaRows.push(y);
+    for (let k = 0; k < (seaRows.length ? 9 : 0); k++) {
+      const y = seaRows[Math.floor(r() * seaRows.length)], len = 50 + r() * 70, n = 4 + (r() * 5 | 0), rows = [];
       for (let i = 0; i < n; i++) { const f = i / (n - 1) * 2 - 1, half = len / 2 * Math.sqrt(1 - f * f * 0.86) * (0.9 + 0.1 * r()), off = (r() - 0.5) * len * 0.1; rows.push({ dy: i - (n >> 1), a: off - half, b: off + half, edge: i === 0 || i === n - 1, need: Math.abs(f) * 0.35 }); }
       wisps.push({ y, len, rows, sea: true, at: r() * 400, v: 0.8 + 1.2 * r() });
     }
@@ -387,15 +389,15 @@ export function makeCritters(W, opts = {}) {
         const sy = w.y - oy; if (sy < -24 || sy > VH + 24) continue;
         if (w.sea) {
           // Out from the bank toward the land, thinning as it leaves the bank behind.
-          const far = (w.y - 700) / 0.68, x = Math.round(far - 420 + (w.at + w.v * t) % 400), k = smooth(130, 210, w.y - 700 - x * 0.68) * smooth(far - 420, far - 380, x);
+          const far = M.shore[w.y], x = Math.round(far - 270 + (w.at + w.v * t) % 250), k = smooth(80, 150, far - x) * smooth(far - 270, far - 235, x);
           if (k < 0.03 || x - w.len > ox + VW || x + w.len < ox) continue;
           for (const r of w.rows) { const s = clamp((k - r.need) / 0.3, 0, 1), y = sy + r.dy; if (s > 0 && y >= 0 && y < VH) veilRow(scr, x + Math.round(r.a * s) - ox, x + Math.round(r.b * s) - ox, y, r.edge); }
           continue;
         }
-        // The whole round trip starts out of sight beyond the map's west edge. The mist is thickest
-        // there and gone by the middle of the forest.
-        const at = Math.round((w.at + w.v * t) % w.span) - 160, x = at + w.dx - ox;
-        const k = (w.bank ? smooth(370, 130, at) : smooth(560, 70, at)) * smooth(-160, -110, at);
+        // The whole round trip starts inside the standing fog in the west, where it cannot be told from
+        // the fog. It is thickest as it comes out and gone before the forest ends.
+        const at = Math.round((w.at + w.v * t) % w.span) - 200, x = M.edge[w.y] + at + w.dx - ox;
+        const k = (w.bank ? smooth(290, 60, at) : smooth(400, 10, at)) * smooth(-200, -150, at);
         if (k < 0.03 || x - w.len > VW || x + w.len < 0) continue;
         // It gets shorter as well as thinner as it fades, so what is left of it is a small puff and not
         // a long hair; and it loses its heavier parts first.
@@ -426,9 +428,9 @@ export function makeCritters(W, opts = {}) {
       }
       // The fog bank off the coast: solid far out and thinner in three steps toward the land. The edge
       // of each step rolls slowly at its own pace, so the bank has no hard face.
-      for (let y = Math.max(0, 880 - oy); y < VH; y++) {
-        const wy = y + oy, row = y * VW, xs = [];
-        for (let j = 0; j < 4; j++) { const e = 9 * Math.sin(wy / 15 + t * 0.045 + j * 1.3) + 14 * (vnoise(wy / 1.6, j * 7 + Math.floor(t * 0.05), 134) - 0.5) + 12 * Math.abs(Math.sin(wy / 27 + t * 0.025 + j)); xs.push(Math.min(VW, Math.round((wy - 700 - [195, 235, 275, 320][j] - e) / 0.68) - ox)); }
+      for (let y = Math.max(0, M.y0 - oy); y < VH; y++) {
+        const wy = y + oy, row = y * VW, xs = [], sh = M.shore[wy]; if (wy >= NH || sh < 200) continue;
+        for (let j = 0; j < 4; j++) { const e = 9 * Math.sin(wy / 15 + t * 0.045 + j * 1.3) + 14 * (vnoise(wy / 1.6, j * 7 + Math.floor(t * 0.05), 134) - 0.5) + 12 * Math.abs(Math.sin(wy / 27 + t * 0.025 + j)); xs.push(Math.min(VW, Math.round(sh - [200, 235, 270, 310][j] - e * 1.2) - ox)); }
         for (let j = 2; j >= 0; j--) if (xs[j] < xs[j + 1]) xs[j] = xs[j + 1];
         const x0 = Math.max(0, -ox); if (xs[0] <= x0) continue;
         const lit = vnoise(wy / 2.6, Math.floor(t * 0.02), 133) > 0.56 ? FOG[2] : FOG[1];

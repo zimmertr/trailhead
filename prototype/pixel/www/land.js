@@ -741,5 +741,45 @@ export function buildTerrain() {
   const open = (x, y) => { const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
   const nearTrail = (x, y, r) => { const v = vAt(x, y); return v < VD && H.tdist[Math.round(v) * NW + Math.round(x)] < r; };
   const flat = l => l.map(p => [p[0], p[1]]);
-  return { g: LAND.g, vAt, things: LAND.things, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: null, flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  return { g: LAND.g, vAt, things: LAND.things, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+}
+
+// Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the
+// west, drifts east over the forest and thins away before the forest ends, so what it needs from the
+// land is, for each screen row, where the standing fog gives out (edge) and where the sea meets the
+// beach (shore, -1 on rows with no sea), and a coarse picture, two pixels to a cell, of where it may
+// lie: 0 anywhere in the forest, 1 only thinly (over the trail, just in from the beach, over open
+// ground), 2 not at all (the sea and the beach, the sky, the mountains).
+function mistBox(H) {
+  const at = (x, y) => y * NW + x, landMat = LAND.MATS.indexOf('land');
+  const isFoggy = (x, y) => { const v = LAND.depth[at(x, y)]; return v < VD && LAND.fogAmt(x, v) > 0.35 && LAND.coast(x, v) < -10; };
+  const woods = (x, y) => { const v = LAND.depth[at(x, y)]; return v < VD && LAND.forestAmt(x, v) > 0.3; };
+  // The rows the forest covers, and how far east the mist can reach on any of them.
+  let y0 = SH; for (let y = 0; y < SH && y0 === SH; y += 2) for (let x = 0; x < 700; x += 3) if (woods(x, y)) { y0 = Math.max(0, y - 16); break; }
+  const raw = new Float32Array(SH).fill(-1), edge = new Int16Array(SH), shore = new Int16Array(SH).fill(-1);
+  // Every other row and every other column is plenty for an edge that is smoothed anyway.
+  for (let y = y0; y < SH; y++) {
+    if ((y - y0) & 1) { shore[y] = shore[y - 1]; continue; }
+    for (let x = 0; x < 760; x += 2) if (woods(x, y) && !isFoggy(x, y)) { raw[y] = x; break; }
+    const v0 = LAND.depth[at(0, y)];
+    if (v0 < VD && LAND.coast(0, v0) > 0) for (let x = 1; x < 760; x += 2) { const v = LAND.depth[at(x, y)]; if (v < VD && LAND.coast(x, v) < 0) { shore[y] = x; break; } }
+  }
+  // The fog's edge is smoothed over 41 rows so a bank keeps its shape as it leaves the fog.
+  for (let y = y0; y < SH; y++) { let s = 0, n = 0; for (let d = -20; d <= 20; d++) { const r = raw[y + d]; if (y + d >= y0 && y + d < SH && r >= 0) { s += r; n++; } } edge[y] = n ? Math.round(s / n) : 0; }
+  let x1 = 0; for (let y = y0; y < SH; y++) x1 = Math.max(x1, edge[y] + 340); x1 = Math.min(NW, x1 + (x1 & 1));
+  const M = { x1, y0, w: x1 >> 1, h: Math.ceil((SH - y0) / 2), edge, shore };
+  M.gate = new Uint8Array(M.w * M.h);
+  for (let cy = 0; cy < M.h; cy++) for (let cx = 0; cx < M.w; cx++) {
+    const x = cx * 2 + 1, y = Math.min(SH - 1, y0 + cy * 2 + 1), i = at(x, y), v = LAND.depth[i];
+    let g = 0;
+    if (v >= VD || LAND.mat[i] !== landMat) g = 2;
+    else {
+      const cs = LAND.coast(x, v) + 16 * vnoise(y / 6, 5, 135);
+      // Over the standing fog it adds nothing but grey, so it lies there thinly or not at all.
+      const f = LAND.fogAmt(x, v);
+      if (cs > -10 || f > 0.62) g = 2; else if (cs > -42 || f > 0.4 || LAND.forestAmt(x, v) < 0.25 || LAND.lakeAt(x, v) || H.tdist[Math.round(v) * NW + x] < 7) g = 1;
+    }
+    M.gate[cy * M.w + cx] = g;
+  }
+  return M;
 }
