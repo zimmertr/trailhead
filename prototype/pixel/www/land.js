@@ -143,7 +143,7 @@ for (const [cu, cv, ru, rv, H] of [[150, 600, 170, 80, 58], [40, 690, 150, 60, 3
 volcano(640, 600, 300, 150, 290);
 // Foothills round the volcano's foot, so it rises out of forest and not off a lawn.
 for (const [cu, cv, ru, rv, H] of [[500, 478, 96, 44, 42], [770, 474, 84, 40, 38], [858, 530, 70, 52, 46], [420, 540, 80, 52, 44]]) horn('land', cu, cv, ru, rv, H, { pow: 1.15 });
-plateau('land', 640, 436, 112, 34, 30, 0.1);
+plateau('land', 640, 436, 112, 34, 30, 0.1); C.bench = F[F.length - 1];
 C.lakes.push([640, 440, 46, 14, 'lake']);
 // Its west end rises gently from behind Little Tahoma, so no peak of it stands alone beside the tooth.
 range('crest', 800, NW + 60, 716, u => (112 + 20 * vnoise(u / 70, 1, 64)) * lerp(0.35, 1, smooth(820, 930, u)), 64, { front: 40, back: 18 });
@@ -167,7 +167,7 @@ plateau('moraine', 1020, 526, 22, 8, 44, 0.35);
 lift = null;
 C.lakes.push([1080, 496, 13, 4, 'silt']);
 // The granite country: three steps. Larches from the second step up, Proficiency Peak on the second.
-plateau('gran', 1745, 598, 150, 42, 110, 0.08); plateau('gran', 1471, 574, 205, 50, 84, 0.08);
+plateau('gran', 1745, 598, 150, 42, 110, 0.08); plateau('gran', 1471, 574, 205, 50, 84, 0.08); C.step2 = F[F.length - 1];
 plateau('land', 1446, 480, 215, 50, 46, 0.1); plateau('land', 1712, 492, 150, 38, 54, 0.1);
 proficiency(1430, 594, 84, 164, 132);
 // Tarns: milky on the top step, turquoise on the second, clear on the first.
@@ -561,30 +561,81 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
   if (zb[i - NW] > zb[i] + 14 || zb[i - 1] > zb[i] + 14 || zb[i + 1] > zb[i] + 14) g[i] = INK;
 }
 }
-// Which pixels of the picture belong to each destination (D12a): 1 About Lake (its water, island and
-// shore, inside the lake's own outline), 2 Proficiency Peak (the fin), 3 the Spires (their wall). It is
-// worked out from the planes the bake already holds, so it costs nothing to keep.
+// Each destination and its country (D12a, D12b), worked out from the heights, materials and depth the
+// bake already holds, so it costs nothing to keep. First on the map, by rules from the land:
+// 1 About Lake: the lake, the bench it lies on (where the bench is the ground), and the lake loop's last
+//   300 or so through the trees on its way in and out, with the ground between its two stretches.
+// 2 Proficiency Peak: the fin and the second granite step it stands on (where the step is the ground; the
+//   higher step behind is not). Its cliff is added on the picture, below.
+// 3 The Spires: the wall, and the glacier's watershed: every spot from which water runs down past the
+//   tarn at the glacier's toe and out of the bowl, so the edge follows the arms' crests. Water is routed
+//   downhill the standard way (a priority flood from the edge of a box round the bowl: lowest first, each
+//   spot draining to the spot it was reached from), which needs no hollow filled by hand.
+const reg = new Uint8Array(NW * VD);
+{ const box = (P, fn) => { for (let v = Math.max(0, Math.floor(P.v0)); v <= Math.min(VD - 1, Math.ceil(P.v1)); v++) for (let u = Math.max(0, Math.floor(P.u0)); u <= Math.min(NW - 1, Math.ceil(P.u1)); u++) fn(u, v, at(u, v)); };
+  const [lu, , lru] = C.lakes[0], FIN = MATS.indexOf('fin'), WALL = MATS.indexOf('wall');
+  box(C.bench, (u, v, i) => { const f = C.bench.fn(u, v); if ((f > 3 && hg[i] >= f - 3 && hg[i] < f + 10) || lakeAt(u, v) === 'lake') reg[i] = 1; });
+  // The loop's band narrows to nothing over its last 60 to the west, so the country ends in a round end,
+  // and every column of it is filled between its highest and lowest spot: the ground between the stretches.
+  { const W0 = lu - 300, top = new Int16Array(NW).fill(VD), bot = new Int16Array(NW).fill(-1);
+    for (const [pu, pv] of catmull(C.trails[0])) { if (pu >= lu + lru || pu < W0) continue; const r = 22 * Math.sqrt(smooth(W0, W0 + 60, pu)), r2 = r * r; for (let dv = -22; dv <= 22; dv++) for (let du = -22; du <= 22; du++) { if (du * du + dv * dv > r2) continue; const u = Math.round(pu + du), v = Math.round(pv + dv); if (u >= 0 && v >= 0 && u < NW && v < VD) { reg[at(u, v)] = 1; top[u] = Math.min(top[u], v); bot[u] = Math.max(bot[u], v); } } }
+    for (let u = 0; u < NW; u++) for (let v = top[u] + 1; v < bot[u]; v++) if (!reg[at(u, v)]) reg[at(u, v)] = 1; }
+  box(C.step2, (u, v, i) => { const f = C.step2.fn(u, v); if ((f > 3 && hg[i] >= f - 3 && hg[i] < f + 16) || mg[i] === FIN) reg[i] = 2; });
+  { const tarn = C.lakes.find(l => l[4] === 'silt'), X0 = Math.max(0, Math.round(SP.cu - 330)), X1 = Math.min(NW - 1, Math.round(SP.cu + 330)), Y0 = Math.max(0, tarn[1] - 80), w = X1 - X0 + 1, h = VD - Y0;
+    const key = new Float32Array(w * h), from = new Int32Array(w * h).fill(-1), done = new Uint8Array(w * h), order = [], heap = [];
+    const push = k => { heap.push(k); let n = heap.length - 1; while (n > 0) { const p = (n - 1) >> 1; if (key[heap[p]] <= key[k]) break; heap[n] = heap[p]; n = p; } heap[n] = k; };
+    const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { let n = 0; const kl = key[last]; for (;;) { const l = 2 * n + 1, r = l + 1; let m = -1, km = kl; if (l < heap.length && key[heap[l]] < km) { m = l; km = key[heap[l]]; } if (r < heap.length && key[heap[r]] < km) m = r; if (m < 0) break; heap[n] = heap[m]; n = m; } heap[n] = last; } return top; };
+    for (let b = 0; b < h; b++) for (let a = 0; a < w; a++) if (a === 0 || b === 0 || a === w - 1 || b === h - 1) { const k = b * w + a; key[k] = hg[at(X0 + a, Y0 + b)]; done[k] = 1; push(k); }
+    while (heap.length) { const k = pop(), a = k % w, b = (k - a) / w; order.push(k); for (let db = -1; db <= 1; db++) for (let da = -1; da <= 1; da++) { const aa = a + da, bb = b + db; if (aa < 0 || bb < 0 || aa >= w || bb >= h) continue; const n = bb * w + aa; if (done[n]) continue; done[n] = 1; from[n] = k; key[n] = Math.max(hg[at(X0 + aa, Y0 + bb)], key[k] + 1e-4); push(n); } }
+    // The bowl's mouth: from the tarn's lowest spot, follow the water down until it is 60 nearer the camera
+    // than the tarn. A spot belongs if it drains, sooner or later, to the mouth: walked in the order the
+    // flood reached them, each spot after the one it drains to.
+    let mouth = -1; for (const k of order) { const a = k % w, b = (k - a) / w; if (lakeAt(X0 + a, Y0 + b) === 'silt') { mouth = k; break; } }
+    while (mouth >= 0 && from[mouth] >= 0 && Y0 + Math.floor(mouth / w) > tarn[1] - 60) mouth = from[mouth];
+    const inn = new Uint8Array(w * h);
+    for (const k of order) { const a = k % w, b = (k - a) / w; inn[k] = k === mouth || (from[k] >= 0 && inn[from[k]]) ? 1 : 0; if (inn[k] && !reg[at(X0 + a, Y0 + b)]) reg[at(X0 + a, Y0 + b)] = 3; }
+    for (let i = 0; i < reg.length; i++) if (mg[i] === WALL) reg[i] = 3;
+    // The bowl's bare ground goes with it too (ice, moraine and the arms' rock between the wall's two ends,
+    // above the mouth), so a face of an arm that sheds its water the other way does not stay behind.
+    const rock = new Set(['ice', 'moraine', 'crest'].map(m => MATS.indexOf(m))), A0 = Math.round(SP.cu - 170 * SP.wide), A1 = Math.round(SP.cu + 170 * SP.wide), mv = Y0 + Math.floor(mouth / w), q = [];
+    for (let v = mv; v < VD; v++) for (let u = A0; u <= A1; u++) if (reg[at(u, v)] === 3) q.push(at(u, v));
+    while (q.length) { const i = q.pop(), u = i % NW, v = (i - u) / NW; for (const [du, dv] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const uu = u + du, vv = v + dv; if (uu < A0 || uu > A1 || vv < mv || vv >= VD) continue; const j = at(uu, vv); if (reg[j] || !rock.has(mg[j])) continue; reg[j] = 3; q.push(j); } } } }
+// Then on the picture: each pixel takes the number of the spot of the map drawn there, plus 4 where it is
+// the landmark itself (the lake's water and island, the fin, the wall).
 const dest = new Uint8Array(NW * SH), DEST = ['', 'lake', 'stack', 'spires'], destBox = DEST.map(() => ({ x0: NW, x1: -1, y0: SH, y1: -1 }));
 { const WALL = MATS.indexOf('wall'), FIN = MATS.indexOf('fin'), LANDM = MATS.indexOf('land');
   for (let y = 0; y < SH; y++) for (let x = 0; x < NW; x++) {
-    const i = px(x, y), m = mb[i]; let k = m === FIN ? 2 : m === WALL ? 3 : 0;
-    if (!k && m === LANDM && zb[i] < VD && lakeAt(x, zb[i]) === 'lake') k = 1;
-    if (!k) continue; dest[i] = k; const b = destBox[k]; if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y;
-  } }
-// Each one is a step brighter in its own colours than the land round it, and has a dark edge: all round
-// the lake and the fin; for the Spires only the skyline (above) and the foot of the wall, so there is no
-// seam where the wall runs into the crest (TJ's choice).
+    const i = px(x, y), m = mb[i], v = zb[i]; if (m === 255 || !(v < VD)) continue;
+    const core = m === FIN ? 2 : m === WALL ? 3 : m === LANDM && lakeAt(x, v) === 'lake' ? 1 : 0, k = core ? core | 4 : reg[at(x, Math.min(VD - 1, Math.round(v)))];
+    if (k) dest[i] = k;
+  }
+  // A face that drops from a country (the step's cliff, the bench's bank) belongs to it down to its foot:
+  // down each column from the country's lowest pixel, for as long as the ground there is near upright
+  // (the depth changes by less than a third of a pixel from one row to the next).
+  for (let x = 0; x < NW; x++) for (let y = 0; y < SH - 1; y++) {
+    const i = px(x, y), k = dest[i] & 3; if (!k || dest[i + NW]) continue;
+    for (let j = i + NW, n = 0; j < NW * SH && n < 160 && !dest[j] && zb[j] < VD && Math.abs(zb[j] - zb[j - NW]) < 0.34; j += NW, n++) dest[j] = k;
+  }
+  for (let y = 0; y < SH; y++) for (let x = 0; x < NW; x++) { const k = dest[px(x, y)] & 3; if (!k) continue; const b = destBox[k]; if (x < b.x0) b.x0 = x; if (x > b.x1) b.x1 = x; if (y < b.y0) b.y0 = y; if (y > b.y1) b.y1 = y; } }
+// The landmarks keep a step of contrast and the dark edge of D12a: all round the lake and the fin; for the
+// Spires only the skyline and the foot of the wall, with no seam where it runs into the crest (TJ's
+// choice). A country gets a dark edge only where it already has a real one: against something farther
+// behind it (a skyline, a ridge crest) or at the foot of a face (a cliff, a bank). Across meadow and
+// forest it has none; the lift and the shadow under it show where it ends.
 if (!B) {
   const out = new Uint8Array(NW * SH), CREST = MATS.indexOf('crest');
   for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
-    const i = px(x, y), k = dest[i]; if (!k) continue;
-    if (k === 1) { if (dest[i - 1] !== 1 || dest[i + 1] !== 1 || dest[i - NW] !== 1 || dest[i + NW] !== 1) out[i] = 1; continue; }
-    const below = i + NW; if (dest[below] !== k && zb[below] < zb[i] - 1 && !(k === 3 && mb[below] === CREST)) out[i] = 1;
+    const i = px(x, y), d = dest[i]; if (!d) continue; const k = d & 3, same = j => (dest[j] & 3) === k;
+    if (d === 5) { if (dest[i - 1] !== 5 || dest[i + 1] !== 5 || dest[i - NW] !== 5 || dest[i + NW] !== 5) out[i] = 1; continue; }
+    const below = i + NW;
+    if (d & 4 && dest[below] !== d && zb[below] < zb[i] - 1 && !(k === 3 && mb[below] === CREST)) out[i] = 1;
+    if ((!same(i - NW) && zb[i - NW] > zb[i] + 14) || (!same(i - 1) && zb[i - 1] > zb[i] + 14) || (!same(i + 1) && zb[i + 1] > zb[i] + 14)) out[i] = 1;
+    if (!same(below) && zb[below] < zb[i] - 1 && Math.abs(zb[i] - zb[i - NW]) < 0.5) out[i] = 1;
   }
   // The lake is only brightened: deepening its dark steps as well turned the water navy, and round 3's
   // lake read as a bright sheet. The rock of the fin and the wall gets both, lit faces up and gullies down.
   const bolder = c => { const n = R[RAMP_OF[c]].length, s = STEP_OF[c]; return s >= n * 0.45 ? LIGHT[c] : s <= n * 0.25 ? SHADE[c] : c; };
-  for (let i = 0; i < dest.length; i++) if (dest[i]) g[i] = out[i] ? INK : g[i] === INK ? INK : dest[i] === 1 ? LIGHT[g[i]] : bolder(g[i]);
+  for (let i = 0; i < dest.length; i++) { const d = dest[i]; if (!d) continue; g[i] = out[i] || g[i] === INK ? INK : d === 5 ? LIGHT[g[i]] : d & 4 ? bolder(g[i]) : g[i]; }
 }
 const FOGTREES = [];
 const riverFront = (u, v) => { if (coast(u, v) < -170) return false; for (let dv = 1; dv <= 34; dv += 3) for (let du = -8; du <= 8; du += 4) { const uu = Math.round(u + du), vv = Math.round(v + dv); if (uu >= 0 && vv >= 0 && uu < NW && vv < VD && water[at(uu, vv)] && coast(uu, vv) < 0) return true; } return false; };

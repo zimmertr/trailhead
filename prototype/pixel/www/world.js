@@ -1,5 +1,5 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
-import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
+import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
 import { breeze } from './core.js';
 import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeTent, makeJournal, makeBird, makeFlag } from './sprites.js';
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
@@ -70,20 +70,26 @@ export function makeWorld(bake) {
   // How far from the camera he is on a trail, from the trail's own points.
   const vOn = (path, x, y) => { let best = 0, bd = 1e9; for (const p of W.lines[path]) { const d = Math.abs(p[0] - x) + Math.abs(p[1] - y); if (d < bd) { bd = d; best = p[2]; } } return best; };
   const saved = new Uint8Array(25 * 34);
-  // The destinations rise a little when the pointer rests on one or it is tapped (D12a).
+  // The destinations rise a little, each with its whole country, when the pointer rests on one or it is
+  // tapped (D12a, D12b). W.dest holds the destination's number (1 to 3) and 4 on the landmark itself.
   const lifted = [0, 0, 0, 0]; let tapped = 0, tapUntil = 0;
-  const destUnder = (wx, wy) => { wx = Math.round(wx); wy = Math.round(wy); return wx < 0 || wy < 0 || wx >= WW || wy >= WH ? 0 : W.dest[wy * WW + wx]; };
+  const destUnder = (wx, wy) => { wx = Math.round(wx); wy = Math.round(wy); return wx < 0 || wy < 0 || wx >= WW || wy >= WH ? 0 : W.dest[wy * WW + wx] & 3; };
+  // How far something standing at a spot is raised: as much as the ground under its feet.
+  const liftAt = (x, y) => { if (x === undefined) return 0; const k = destUnder(x, y); return k ? Math.round(2 * lifted[k]) : 0; };
   // Redraws destination k d pixels higher, from what the ground pass put in the frame. Rows are read top
   // to bottom, so a row is always read before anything is written over it. Where it has left its foot
-  // the ground goes dark, softer one row further down: a shadow under a place that has stepped up.
+  // the ground goes dark, softer one row further down: a shadow under a place that has stepped up. While
+  // it is up the country round the landmark is a step brighter; the landmark has its contrast already.
+  // A step brighter, except the two lightest steps of a colour, which would go flat white (the ice did).
+  const BRIGHT = new Uint8Array(256).map((_, c) => c && R[RAMP_OF[c]] && STEP_OF[c] < R[RAMP_OF[c]].length - 2 ? LIGHT[c] : c);
   function liftDest(scr, k, d, ox, oy) {
     const { VW, VH, fb } = scr, b = W.destBox[k], D = W.dest;
     const x0 = Math.max(b.x0, ox), x1 = Math.min(b.x1, ox + VW - 1), y0 = Math.max(b.y0, oy + d), y1 = Math.min(b.y1, oy + VH - 1);
-    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { if (D[y * WW + x] !== k) continue; fb[(y - oy - d) * VW + (x - ox)] = fb[(y - oy) * VW + (x - ox)]; }
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const m = D[y * WW + x]; if ((m & 3) !== k) continue; const c = fb[(y - oy) * VW + (x - ox)]; fb[(y - oy - d) * VW + (x - ox)] = m & 4 ? c : BRIGHT[c]; }
     for (let y = Math.max(b.y0, oy); y <= Math.min(b.y1 + 1, oy + VH - 1); y++) for (let x = x0; x <= x1; x++) {
-      const w = y * WW + x; if (y >= WH) continue; const here = D[w] === k, under = y + d < WH && D[w + d * WW] === k;
+      const w = y * WW + x; if (y >= WH) continue; const here = (D[w] & 3) === k, under = y + d < WH && (D[w + d * WW] & 3) === k;
       if (here && !under) { const i = (y - oy) * VW + (x - ox); fb[i] = SHADE[SHADE[fb[i]]]; }
-      else if (!here && y > 0 && D[w - WW] === k && ((x + y) & 1)) { const i = (y - oy) * VW + (x - ox); fb[i] = SHADE[fb[i]]; }
+      else if (!here && y > 0 && (D[w - WW] & 3) === k && ((x + y) & 1)) { const i = (y - oy) * VW + (x - ox); fb[i] = SHADE[fb[i]]; }
     }
   }
   const cam = { x: T.x, y: 0 };
@@ -172,11 +178,11 @@ export function makeWorld(bake) {
         if (b > a) fb.set(ground.subarray(wy * WW + a, wy * WW + b), row + (a - ox));
       }
       crit.sea(scr, ox, oy, t); crit.falls(scr, ox, oy, t);
-      { const over = env.ptr && !env.fixed ? destUnder(env.ptr[0] + ox, env.ptr[1] + oy) : 0, want = over || (t < tapUntil ? tapped : 0);
-        for (let k = 1; k < 4; k++) { lifted[k] += ((k === want ? 1 : 0) - lifted[k]) * Math.min(1, dt * 9); const d = Math.round(2 * lifted[k]); if (d > 0) liftDest(scr, k, d, ox, oy); } }
       crit.update(dt, t, env.hideMe ? null : here);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
       for (const k in prints) if (env.done[k]) for (const [x, y] of prints[k]) { const sx = x - ox, sy = y - oy; if (sx >= 0 && sy >= 0 && sx < VW && sy < VH && KIND[fb[sy * VW + sx]] === 3) fb[sy * VW + sx] = R.dirt[0]; }
+      { const over = env.ptr && !env.fixed ? destUnder(env.ptr[0] + ox, env.ptr[1] + oy) : 0, want = over || (t < tapUntil ? tapped : 0);
+        for (let k = 1; k < 4; k++) { lifted[k] += ((k === want ? 1 : 0) - lifted[k]) * Math.min(1, dt * 9); const d = Math.round(2 * lifted[k]); if (d > 0) liftDest(scr, k, d, ox, oy); } }
 
       // Everything that stands, back to front.
       list.length = 0;
@@ -194,8 +200,9 @@ export function makeWorld(bake) {
       list.sort((a, b) => a.y - b.y);
       // A tree that nearer ground partly hides is drawn only where the land under each pixel is no
       // nearer than the tree itself (D6a), so it can sway and still stand behind the slope in front.
-      const DEP = W.depth, clipBlit = (bm, sx, sy, v) => { sx = Math.round(sx); sy = Math.round(sy); const lim = v - 3; for (let j = 0; j < bm.h; j++) { const y = sy + j, vy = y - oy; if (vy < 0 || vy >= VH || y < 0 || y >= WH) continue; for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (!c) continue; const x = sx + i, vx = x - ox; if (vx < 0 || vx >= VW || x < 0 || x >= WW || DEP[y * WW + x] < lim) continue; fb[vy * VW + vx] = c; } } };
+      const OY = oy, DEP = W.depth, clipBlit = (bm, sx, sy, v, dy = 0) => { sx = Math.round(sx); sy = Math.round(sy); const lim = v - 3; for (let j = 0; j < bm.h; j++) { const y = sy + j, vy = y - oy - dy; if (vy < 0 || vy >= VH || y < 0 || y >= WH) continue; for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (!c) continue; const x = sx + i, vx = x - ox; if (vx < 0 || vx >= VW || x < 0 || x >= WW || DEP[y * WW + x] < lim) continue; fb[vy * VW + vx] = c; } } };
       for (const th of list) {
+        const dl = liftAt(th.x, th.y), oy = OY + dl;
         if (th.me) {
           const set = env.moving ? (facing === 'side' ? runner.side : facing === 'up' ? runner.up : runner.down) : (facing === 'side' ? runner.sideIdle : facing === 'up' ? runner.upIdle : runner.downIdle);
           const bm = set[Math.floor(Math.abs(leg.to - leg.from) * q * here.P.len / (facing === 'side' ? 4.2 : 5)) % set.length];
@@ -204,7 +211,7 @@ export function makeWorld(bake) {
           { let n = 0; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) saved[n++] = fb[y * VW + x]; }
           scr.shadow(X, Y, 5, 2);
           scr.put(bm, th.x - ox, th.y - oy, flip && facing === 'side');
-          { let n = 0; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++, n++) if (W.vAt(x + ox, y + oy) < vMe - 3) fb[y * VW + x] = saved[n]; }
+          { let n = 0; for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++, n++) if (W.vAt(x + ox, y + OY) < vMe - 3) fb[y * VW + x] = saved[n]; }
           focus = { x: Math.round(th.x - ox), y: Math.round(th.y - oy) - 14 };
         } else if (th.ferryHull) {
           crit.drawHull(scr, ox, oy, t);
@@ -214,7 +221,7 @@ export function makeWorld(bake) {
           const { tree, x, y, clip, v } = th.t;
           for (const part of tree.parts) {
             const [wx, wy] = breeze(x + (part.lx || 0), y + part.y, tq, part.sway);
-            if (clip) clipBlit(part.bm, x + part.x + wx, y + part.y + wy, v); else scr.blit(part.bm, x + part.x + wx - ox, y + part.y + wy - oy);
+            if (clip) clipBlit(part.bm, x + part.x + wx, y + part.y + wy, v, dl); else scr.blit(part.bm, x + part.x + wx - ox, y + part.y + wy - oy);
           }
         } else if (th.critter) {
           crit.draw(scr, th, ox, oy, t);
@@ -222,11 +229,11 @@ export function makeWorld(bake) {
           const [wx] = breeze(th.x, th.y, tq, 0.6);
           scr.blit(th.bm, th.x - th.bm.ox + wx - ox, th.y - th.bm.oy - oy);
         } else if (th.flag) {
-          scr.blit(flags[Math.floor(t * 5) & 1], th.x - 2 - ox, th.y - th.lift - 15 - oy - Math.round(2 * lifted[W.DEST.indexOf(th.flag)]));
+          scr.blit(flags[Math.floor(t * 5) & 1], th.x - 2 - ox, th.y - th.lift - 15 - oy);
         } else if (th.lift) {
           scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.lift - th.bm.oy - oy);
           if (th.rope) for (let j = 1; j < 12; j++) scr.set(th.x + Math.round(j * 0.25) - ox, th.y - 70 + j - oy, R.yellow[0]);
-        } else if (th.clip) clipBlit(th.bm, th.x - th.bm.ox, th.y - th.bm.oy, th.v); else scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.bm.oy - oy);
+        } else if (th.clip) clipBlit(th.bm, th.x - th.bm.ox, th.y - th.bm.oy, th.v, dl); else scr.blit(th.bm, th.x - th.bm.ox - ox, th.y - th.bm.oy - oy);
       }
 
       // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge.
