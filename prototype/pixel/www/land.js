@@ -230,7 +230,7 @@ C.lakes.push([1790, 592, 16, 5, 'milk'], [1702, 600, 20, 6, 'milk'], [1752, 620,
 // Where water starts. Each has a first stretch drawn by hand (off a lake, over a lip, tarn to tarn),
 // after which it finds its own way downhill. w is how much water it carries.
 C.src = [
-  { w: 3, lead: [[678, 434], [690, 420], [697, 406], [701, 392]] },
+  { w: 3, lead: null }, // set by rule below: off Reflection Lake's lowest shore (E8b)
   { w: 2, lead: [[1082, 493], [1083, 484]] },
   { w: 0.6, lead: [[952, 536], [950, 520]] },
   { w: 0.8, lead: [[806, 512], [812, 498]] },
@@ -243,7 +243,6 @@ C.src = [
 // east creek out through the dry country.
 C.dig = [
   { d: 6, w: 46, pts: [[1086, 474], [1062, 442], [1014, 406], [988, 366], [934, 338], [906, 292], [852, 262], [800, 268], [748, 232], [692, 216], [642, 176], [586, 166], [522, 130], [472, 96], [412, 86], [352, 60]], end: 0.5 },
-  { d: 5, w: 40, pts: [[701, 388], [714, 360], [746, 326], [772, 292], [800, 268]] },
   { d: 6, w: 46, pts: [[1420, 440], [1386, 400], [1332, 372], [1302, 330], [1322, 286], [1376, 262], [1440, 250], [1500, 232]], end: 11 }
 ];
 C.coulee = [[1500, 232], [1556, 204], [1612, 176], [1662, 130], [1726, 106], [1782, 64], [1852, 40], [1926, 8]];
@@ -293,14 +292,28 @@ const lakeRim = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) { cons
 const lakeAt = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) if (Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5) < 1) return kind; return null; };
 // The talus fan stands a little proud of the step, highest against the wall.
 if (!B && PF) for (let v = PF.cv - 45; v <= PF.cv; v++) for (let u = PF.cu - 110; u <= PF.cu + 110; u++) { const t = talusAt(u, v); if (t > 0 && MATS[mg[at(u, v)]] === 'gran') hg[at(u, v)] += 6 * t * t; }
-if (!B) for (const [cu, cv, ru, rv] of C.lakes) { const lv = hAt(cu, cv - rv); for (let v = Math.floor(cv - rv - 2); v <= cv + rv + 2; v++) for (let u = Math.floor(cu - ru - 2); u <= cu + ru + 2; u++) if (lakeAt(u, v)) hg[at(u, v)] = lv; }
+// Reflection Lake's bench tips down to the west, toward the forest's stream (E8b, TJ: its low end looks to
+// be the west side), so the lake's lowest shore is its west end and it drains from there.
+const BENCH_TILT = 4;
+if (!B) { const [cu, , ru] = C.lakes[0], b = C.bench, u0 = b.u0, u1 = b.u1; for (let v = Math.max(0, Math.floor(b.v0)); v < Math.min(VD, b.v1); v++) for (let u = Math.max(0, Math.floor(u0)); u < Math.min(NW, u1); u++) { const i = at(u, v); if (MATS[mg[i]] !== 'land') continue; hg[i] -= BENCH_TILT * clamp((cu + ru - u) / (cu + ru - u0), 0, 1) * smooth(22, 29, hg[i]); } }
+// A lake's level is its lowest shore.
+const lowShore = (cu, cv, ru, rv) => { let m = 1e9; for (let a = 0; a < 360; a += 3) { const t = a * Math.PI / 180; m = Math.min(m, hAt(cu + Math.cos(t) * (ru + 2), cv + Math.sin(t) * (rv + 2))); } return m; };
+if (!B) for (const [cu, cv, ru, rv] of C.lakes) { const lv = cu === C.lakes[0][0] ? lowShore(cu, cv, ru, rv) : hAt(cu, cv - rv); for (let v = Math.floor(cv - rv - 2); v <= cv + rv + 2; v++) for (let u = Math.floor(cu - ru - 2); u <= cu + ru + 2; u++) if (lakeAt(u, v)) hg[at(u, v)] = lv; }
 // Reflection Lake spills over a step (D4): the ground in front of its outlet's lip is dropped, so the
 // stream falls instead of running down a slope. The drop fades out sideways and far ahead, where the
 // land falls away on its own. lipKeep stops the stream wearing the lip back into a notch.
-const FALL = 10, LIP = (() => { const P = catmull(C.src[0].lead); let k = 0; while (k < P.length - 1 && lakeAt(P[k][0], P[k][1])) k++; return P[Math.min(P.length - 1, k + 5)].map(Math.round); })();
+// The outlet is at the bench's low (west) end. From there the stream takes the shortest way to the
+// bench's front edge and spills over it (LIP), heading out that way (LIPD), so the fall faces the eye:
+// a fall off the west edge is seen side-on, a grey seam with no water in it.
+let LIPD = [0, -1];
+const LIP = (() => { const [cu, cv, ru] = C.lakes[0], lvl = hAt(cu, cv), su = cu - ru + 2, sv = cv; let best = null;
+  for (let a = 245; a <= 295; a += 5) { const t = a * Math.PI / 180, du = Math.cos(t), dv = Math.sin(t); let d = 0; while (d < 120 && hAt(su + du * d, sv + dv * d) >= lvl - 0.5) d++; if (!best || d < best.d) best = { d, du, dv }; }
+  const { d, du, dv } = best; LIPD = [du, dv]; C.src[0].lead = [[su + 8, sv], [su, sv], [su + du * (d - 4), sv + dv * (d - 4)], [su + du * (d + 6), sv + dv * (d + 6)]];
+  return [Math.round(su + du * (d - 1)), Math.round(sv + dv * (d - 1))]; })();
+const FALL = 10;
 const lipKeep = new Uint8Array(NW * VD);
-if (!B) { const [lu, lv] = LIP; for (let v = Math.max(0, lv - 80); v <= lv + 12; v++) for (let u = lu - 44; u <= lu + 44; u++) {
-  const i = at(u, v), side = Math.abs(u - lu), ahead = lv - v + 1.5 * (vnoise(u / 5, 1, 444) - 0.5); if (MATS[mg[i]] !== 'land' || lakeAt(u, v)) continue;
+if (!B) { const [lu, lv] = LIP, [du, dv] = LIPD; for (let v = Math.max(0, lv - 84); v <= Math.min(VD - 1, lv + 84); v++) for (let u = Math.max(0, lu - 84); u <= Math.min(NW - 1, lu + 84); u++) {
+  const i = at(u, v), ru = u - lu, rv = v - lv, side = Math.abs(ru * dv - rv * du), ahead = ru * du + rv * dv + 1.5 * (vnoise((u * -dv + v * du) / 5, 1, 444) - 0.5); if (MATS[mg[i]] !== 'land' || lakeAt(u, v)) continue;
   if (ahead > 0) hg[i] = Math.max(0.5, hg[i] - FALL * smooth(40, 20, side) * smooth(0, 1.5, ahead) * smooth(76, 26, ahead)); else if (side < 16 && ahead > -10) lipKeep[i] = 1;
 } }
 // ---- water finds its own way ----------------------------------------------------------------------
@@ -323,6 +336,9 @@ if (B) water.set(B.water); else {
   // The stream in the rainforest (E5b2) starts as snowmelt at the foot of the Legacy Range, on the east
   // flank of the largest foothill, and finds its own way down between the hills to the sea.
   { const A = hillList()[0], su = Math.round(A.cu + A.ru * 0.8); C.src.find(s => !s.lead).lead = [[su, VD - 6], [su - 7, VD - 40], [su - 14, VD - 80]]; }
+  // The stream under the Spires' west arm (E8b, E on TJ's map) seeps out at the foot of the glacier's west
+  // moraine, as melt water does: from where it rose before, along its row to the moraine.
+  { const s = C.src[2], [u0, v0] = s.lead[0]; let u = u0; while (u < u0 + 120 && MATS[mg[at(u, v0)]] !== 'moraine') u++; if (u < u0 + 120) s.lead = [[u - 3, v0], [Math.round((u + u0) / 2), v0 - 5], ...s.lead.slice(1)]; }
   flood();
   // The lower west river reaches the sea at the bottom edge of the map, out of sight, so the land gives it
   // a shallow valley of its own (D11): from where its trunk first comes within 150 of the near edge, it
@@ -341,6 +357,11 @@ if (B) water.set(B.water); else {
     // On ground that stays flat for some way round, a river wanders from side to side (D6). The swing
     // is read from where the water is, not how far it has run, so two streams sharing a bed swing as one.
     r.pts = r.pts.map((p, n) => { if (n < r.lead.length || n < 4 || n > r.pts.length - 5) return p; const [u, v] = p, a = r.pts[n - 4], b = r.pts[n + 4], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1, s = wander(u, v); return s ? [u - dy / L * s, v + dx / L * s * 0.7, p[2]] : p; });
+    // The water keeps a strip of grass between itself and the foot of a cliff (E8b, H on TJ's map): on
+    // level ground with a rise of 6 or more within 10 behind it, the channel moves out toward the eye, eased
+    // in and out along the stream so the course itself is unchanged and a fall still leaves its lip.
+    { const out = r.pts.map(([u, v], n) => { if (n < r.lead.length) return 0; const h = h0(u, v); if (Math.abs(h0(u, v + 2) - h0(u, v - 2)) > 3) return 0; let s = 0; for (let k = 2; k <= 10; k += 2) if (h0(u, v + k) - h - k * 0.6 > 6) s = Math.max(s, 13 - k); return s; });
+      r.pts = r.pts.map((p, n) => { let t = 0, c = 0; for (let m = n - 6; m <= n + 6; m++) if (m >= 0 && m < out.length) { t += out[m]; c++; } const o = t / c; return o ? [p[0], p[1] - o, p[2]] : p; }); }
     // Its bed never climbs: where the way out of a hollow crosses higher ground the stream cuts a
     // notch through it, with banks that open out.
     let bed = 1e9;
@@ -362,8 +383,8 @@ if (B) water.set(B.water); else {
 // The heights are kept to 32nds of a pixel, baked or not, so the map read from a bake is the same map.
 if (!B) for (let i = 0; i < hg.length; i++) hg[i] = Math.round(hg[i] * 32) / 32;
 // The waterfall off the lake's lip, in picture terms: its column, where it leaves the lip and where it lands.
-const FALLS = (() => { const [lu, lv] = LIP, top = hAt(lu, lv + 1); let v = lv; while (v > lv - 14 && hAt(lu, v - 1) < hAt(lu, v) - 0.4) v--; const bot = hAt(lu, v);
-  return top - bot < 3 ? [] : [{ x: lu, y0: Math.round(SY - lv - top), y1: Math.round(SY - v - bot), v }]; })();
+const FALLS = (() => { const [lu, lv] = LIP, [du, dv] = LIPD, top = hAt(lu - du, lv - dv); let k = 0; while (k < 14 && hAt(lu + du * (k + 1), lv + dv * (k + 1)) < hAt(lu + du * k, lv + dv * k) - 0.4) k++; const eu = Math.round(lu + du * k), ev = Math.round(lv + dv * k), bot = hAt(eu, ev);
+  return top - bot < 3 ? [] : [{ x: Math.round(lu + du * k / 2), y0: Math.round(SY - lv - top), y1: Math.round(SY - ev - bot), v: ev }]; })();
 function stamp(mask, pts, r0, r1) { pts.forEach(([pu, pv], n) => { const rr = lerp(r0, r1, n / (pts.length - 1)), R2 = Math.ceil(rr + 1); for (let dv = -R2; dv <= R2; dv++) for (let du = -R2; du <= R2; du++) { const d = Math.hypot(du, dv), u = Math.round(pu + du), v = Math.round(pv + dv), k = d <= rr ? 2 : d <= rr + 1 ? 1 : 0; if (k && u >= 0 && v >= 0 && u < NW && v < VD && mask[at(u, v)] < k) mask[at(u, v)] = k; } }); }
 // The way from the Trailhead to each trail's own country (E5h; TJ chose to lay all three out again when
 // the Trailhead moved): the easiest way over the land, worked out on a grid of 4 by 4. Steep ground costs
@@ -664,6 +685,15 @@ for (let u = 0; u < NW; u++) {
     else if (zb[i] > cv) { g[i] = c; zb[i] = cv; mb[i] = VI; painted[i] = 1; }
   }
 }
+
+// The stream below Mount Monolith's east foot (E8b, D on TJ's map) comes out of a glacier: from where
+// its water first shows on the land, straight up the picture to the painting's band of moraine under the
+// nearest snout, a thread of melt water wanders down the meadow, white where it tumbles. Its column and
+// its foot are read from the land; nothing is planted on it.
+{ const r = routes[3]; const hd = r && r.pts.find(([u, v]) => water[at(Math.round(u), Math.round(v))] && MATS[mg[at(Math.round(u), Math.round(v))]] === 'land');
+  if (hd) { const x0 = Math.round(hd[0]), y0 = Math.round(SY - hd[1] - hAt(hd[0], hd[1])); let y1 = y0 - 1, x1 = x0;
+    find: for (; y1 > y0 - 160; y1--) for (const dx of [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6]) if (painted[px(x0 + dx, y1)]) { x1 = x0 + dx; break find; }
+    if (y1 > y0 - 160) for (let y = y1 + 1; y <= y0; y++) { const t = (y - y1) / (y0 - y1), x = Math.round(lerp(x1, x0, t) + 2.2 * Math.sin(y / 7) * Math.sin(t * Math.PI)); for (let dx = 0; dx <= 1; dx++) { const i = px(x + dx, y); g[i] = hash(x + dx, y >> 1, 471) < 0.3 ? R.white[1] : dx ? R.water[2] : R.water[3]; painted[i] = 1; } g[px(x - 1, y)] = R.water[1]; g[px(x + 2, y)] = R.water[1]; } } }
 
 // ---- detail on the ground, as round 3 had it ------------------------------------------------------
 // These work on the finished picture. A pixel belongs to the ground at one spot (zb, its depth), so
