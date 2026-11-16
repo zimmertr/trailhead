@@ -572,6 +572,13 @@ const ANCHOR_KIT = { a1: ['block', 'cam', 'cam'], a2: ['horn', 'horn'], a3: ['ca
 // The summit's moves, in seconds after all three are up: TJ walks up beside the leader, they high five;
 // she walks up below TJ and the two of them high five; she sits down.
 const SUMMIT_LEN = 5.6, FIVES = [{ a: 'tj', b: 'lead', at: 1.9 }, { a: 'red', b: 'tj', at: 3.5 }], WALKS = { tj: [0, 1.2], red: [1.6, 2.9] };
+// The descent (H16), in seconds after the summit: the leader walks over to the east edge of the top,
+// slings a block there and throws the rope down; then one after another (the leader, the woman, TJ last)
+// each steps to the edge, clips in, and zips down the first rappel into the cloud. Each next one sets
+// off as the one before sinks out of sight. The scene ends as TJ goes under, and the round window
+// closes to the map. The other rappels down the north side are in the cloud, unseen.
+const ZIP = 2.6, DESC = { walk: { lead: [0, 1.2], tj: [1.0, 2.2], red: [1.6, 3.0] }, rig: [1.2, 3.4], toss: [3.4, 4.2], turn: { lead: 4.2, red: 7.6, tj: 11.0 } };
+const DESC_LEN = DESC.turn.tj + 1.5 + 0.8 * ZIP + 0.4;
 function makeScript() {
   const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [], anc = [];
   let slipAt = -1, fallAt = -1;
@@ -662,8 +669,9 @@ function makeScript() {
   // next block and the card opens. The moves are drawn from SUMMIT_MOVES; the script only holds them.
   const sumT = sync(); for (const k of WHO) go(k, pos[k], 'summit', SUMMIT_LEN);
   stops.push({ id: 'summit', t: sumT + SUMMIT_LEN - 0.4 });
-  sync(); pose.tj = pose.lead = pose.red = 'stand'; for (const k of WHO) go(k, pos[k], 'stand', 4);
-  return { tr, ropes, stops, pro, anc, slipAt, fallAt, bumpAt, sumT, dropAt: tr.tj[1].t0 + 0.5, dur: clock.tj };
+  // The summit anchor comes down as they set off for the edge.
+  const descT = sync(); for (const k of WHO) go(k, pos[k], 'desc', DESC_LEN); anc[anc.length - 1].gone = descT + 0.6;
+  return { tr, ropes, stops, pro, anc, slipAt, fallAt, bumpAt, sumT, descT, dropAt: tr.tj[1].t0 + 0.5, dur: clock.tj };
 }
 const SCRIPT = makeScript(), DUR = SCRIPT.dur;
 // Each of them at a moment: where along the line, in what pose, how far through it, whether moving;
@@ -683,7 +691,7 @@ const META = {
   stops: () => SCRIPT.stops.map(s => ({ id: s.id, at: s.t / DUR })),
   elev: (arg, q) => posAt(stateAt(q * DUR).tj.d).h,
   // The fist bump, and a click of metal as each piece goes in.
-  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, ...FIVES.map(v => ({ at: (SCRIPT.sumT + v.at) / DUR, name: 'slap' })), { at: (SCRIPT.sumT + 4.4) / DUR, name: 'summit' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' }))]
+  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, ...FIVES.map(v => ({ at: (SCRIPT.sumT + v.at) / DUR, name: 'slap' })), { at: (SCRIPT.sumT + 4.4) / DUR, name: 'summit' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' })), ...[2.0, 2.8].map(v => ({ at: (SCRIPT.descT + v) / DUR, name: 'place' })), ...WHO.flatMap(w => [{ at: (SCRIPT.descT + DESC.turn[w] + 1.1) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.turn[w] + 1.55) / DUR, name: 'glissade' }])]
 };
 
 // Every drawing one of them needs, in their own kit. On the ground: walking, standing, crouched,
@@ -720,7 +728,15 @@ function kitFrames(kit) {
     // hands on the rope), and bracing to hold a fall.
     rest: [0, 1].map(f => backFig(kit, { hands: [[-5, -13], [6 + f, 3 - f * 2]], feet: [[-4, 12], [4, 11]] })),
     hang: backFig(kit, { hands: [[-2, -17], [3, -15]], feet: [[-6, 7], [5, 8]], tilt: -1 }),
-    catch: { down: sideFig(kit, { lean: -1, crouch: 2, look: 'down', hands: [[4, 4], [1, 8]] }), up: sideFig(kit, { lean: -2, crouch: 2, look: 'up', hands: [[4, 0], [1, 7]] }) }
+    catch: { down: sideFig(kit, { lean: -1, crouch: 2, look: 'down', hands: [[4, 4], [1, 8]] }), up: sideFig(kit, { lean: -2, crouch: 2, look: 'up', hands: [[4, 0], [1, 7]] }) },
+    // The descent: crouched at a block slinging it; throwing the rope out; at the edge, back to the drop,
+    // threading the rope into the device at the harness; and rappelling, seen side-on, sitting back in
+    // the harness with the legs straight out against the rock, the top hand on the rope above and the
+    // brake hand low behind the hip, then bounding out with the knees bent.
+    rig: [0, 1].map(f => sideFig(kit, { crouch: 4, lean: 4, look: 'down', hands: [[6, 7 - f], [4 + f, 6]], feet: [[3, 8.5], [-3, 8.5]] })),
+    toss: sideFig(kit, { lean: 2, hands: [[7, -1], [6, 1]] }),
+    clip: [0, 1].map(f => sideFig(kit, { lean: 1, look: 'down', hands: [[3, 4 - f], [2, 5]] })),
+    rap: [sideFig(kit, { lean: -2, hands: [[3, -4], [-3, 6]], feet: [[8, 1], [7, 3]] }), sideFig(kit, { lean: -1, hands: [[3, -5], [-3, 6]], feet: [[6, 2], [5, 4]] })]
   };
 }
 // A piece of gear on the rock: a cam's lobes across the crack with its sling hanging below, a tiny cam,
@@ -876,6 +892,39 @@ function buildRidge() {
   // woman on the block just below it to the west, each on the rock's top there.
   const TOPX = ROUTE[ROUTE.length - 1][0], SUMMIT = { lead: TOPX + 7, tj: TOPX - 8, red: TOPX - 25 };
   for (const k in SUMMIT) { const x = SUMMIT[k]; SUMMIT[k] = { x, h: CREST[x] }; }
+  // The descent (H16), placed by rule. The lip: going east from the top, the first place the rock
+  // falls away more than 25 below within 6 across. EASTF: for each height, the rock's east edge there,
+  // which the rappels go down. The anchor: the highest rock a few steps back from the lip, slung, with a
+  // ring under it. Where each waits: back from the lip along the top. The cloud's top, as the camera
+  // will frame the rappel, and from it how far each one drops, so they sink out of sight 80 % of the way
+  // through their rappel.
+  const LIPX = (() => { for (let x = TOPX + 10; x < TOPX + 120; x++) if (CREST[x + 6] < CREST[x] - 25) return x; return TOPX + 30; })(), LIPH = CREST[LIPX];
+  const EASTF = new Int16Array(UP); for (let h = 0; h < UP; h++) { let x = Math.min(W - 1, LIPX + 160); while (x > LIPX - 12 && !ID[(main.up - h) * W + x]) x--; EASTF[h] = x; }
+  const EAST = h => EASTF[clamp(Math.round(h), 0, UP - 1)];
+  const RAPA = (() => {
+    let x = LIPX - 5; for (let i = LIPX - 12; i <= LIPX - 5; i++) if (CREST[i] > CREST[x]) x = i;
+    const loop = []; for (let i = -3; i <= 3; i++) loop.push([x + i, CREST[x + i] + 1]);
+    return { x, h: CREST[x], loop, bot: Math.min(loop[0][1], loop[6][1]) - 3 };
+  })();
+  const EDGE = { x: LIPX - 1, h: CREST[LIPX - 1] }, WAIT = { lead: LIPX - 3, tj: LIPX - 15, red: LIPX - 26 };
+  for (const k in WAIT) WAIT[k] = { x: WAIT[k], h: CREST[WAIT[k]] };
+  const CAMD = LIPH - 50, CLOUDH = 0.88 * CAMD - 15 + 31 * smooth(220, 430, CAMD) + 10, HIP0 = EDGE.h + 4;
+  const zease = u => u + 0.05 * Math.sin(6 * Math.PI * u), DROP = (HIP0 + 13 - (CLOUDH - 6)) / zease(0.8);
+  // Where one of them is v seconds into the descent, in what pose (dp), facing which way (left).
+  const descAt = (w, v) => {
+    const T = DESC.turn[w], wk = DESC.walk[w], wt = WAIT[w];
+    if (v < T) {
+      if (v < wk[1]) { const x = lerp(SUMMIT[w].x, wt.x, smooth(wk[0], wk[1], v)); return { x, h: CREST[Math.round(x)], dp: v > wk[0] ? 'walk' : 'stand', left: false }; }
+      if (w === 'lead') return { x: wt.x, h: wt.h, dp: v < DESC.rig[1] ? 'rig' : v < DESC.toss[1] ? 'toss' : 'stand', left: v < DESC.rig[1] };
+      return { x: wt.x, h: wt.h, dp: 'stand', left: false };
+    }
+    const a = v - T;
+    if (a < 0.7) { const x = lerp(wt.x, EDGE.x, smooth(0, 0.7, a)); return { x, h: CREST[Math.round(x)], dp: w === 'lead' ? 'stand' : 'walk', left: false }; }
+    if (a < 1.5) return { x: EDGE.x, h: EDGE.h, dp: 'clip', left: true };
+    const u = Math.min(1.6, (a - 1.5) / ZIP), hip = HIP0 - DROP * zease(u), e = smooth(0, 0.14, u);
+    const out = 3 * Math.abs(Math.sin(3 * Math.PI * u)) ** 3 * smooth(0.05, 0.2, u);
+    return { x: lerp(EDGE.x, EAST(hip) + 8 + out, e), h: lerp(EDGE.h, hip - 8, e), dp: 'zip', push: out > 1, left: true, zu: u };
+  };
   const GOAT = { stand: goat('stand'), look: goat('look') }, goatAt = (() => {
     const e = LANDMARKS.egg.reduce((m, q) => (q.h + q.b > m.h + m.b ? q : m)), x = Math.round(e.x);
     return { x, h: CREST[x] };
@@ -910,6 +959,23 @@ function buildRidge() {
   const GUSTR = { slot: 9, len: 3 };
   let gustGo = -1e9, gustHeard = null;
   const gustAt = t => { if (t - gustGo >= 0 && t - gustGo < GUSTR.len) return [t - gustGo, 'go' + gustGo]; const n = Math.floor(t / GUSTR.slot), u = t - n * GUSTR.slot - 4 * hash(n, 3, 795); return u >= 0 && u < GUSTR.len ? [u, n] : null; };
+  // The rappel rope: from the ring over the lip; while someone is on it, tight to their device and the
+  // tail hanging below them; otherwise lying down the rock's east edge. Thrown, it uncoils down the edge.
+  const rp = [];
+  function descRope(scr, dv, P, cx, rowOf) {
+    rp.length = 0;
+    const lip = [LIPX + 1 - cx, rowOf(LIPH + 1)];
+    rp.push(RAPA.x - cx, rowOf(RAPA.bot), ...lip);
+    let on = null; for (const w of WHO) { const s = P[w]; if (s.dp === 'zip' && s.zu < 1 && (!on || s.zu < on.zu)) on = s; }
+    if (on && on.zu > 0.02) {
+      const dx = Math.round(on.x) - cx - 2, hh = on.h + 8; rp.push(dx, rowOf(hh));
+      for (let h = hh - 6; h > hh - 260; h -= 6) rp.push(Math.max(dx, EAST(h) + 1 - cx), rowOf(h));
+    } else {
+      const e = smooth(DESC.toss[0], DESC.toss[1], dv), len = 260 * e;
+      for (let d = 6; d < len; d += 6) { const h = LIPH - d, sw = 5 * (1 - e) * Math.sin(d / 9 + dv * 12) * (d / 60); rp.push(EAST(h) + 1 + Math.round(sw) - cx, rowOf(h)); }
+    }
+    rope(scr, rp, false);
+  }
   return {
     ...META,
     enter(scr, arg, q) { const p = posAt(stateAt(q * DUR).tj.d); camX = p.x; camH = p.h; st.y = null; },
@@ -924,6 +990,8 @@ function buildRidge() {
       // so it does not jump back to the belayer each time the climber stops; him the rest of the time.
       const held = r => S[r.b].pose === 'slip' || S[r.b].pose === 'hang' || S[r.b].pose === 'fall', mid = (p, q) => ({ x: (p.x + q.x) / 2, h: (p.h + q.h) / 2 });
       const ends = S.ropes.length ? S.ropes.map(r => held(r) ? mid(posAt(S[r.a].d), posAt(S[r.b].d)) : posAt(S[r.b].d)) : [posAt(S.tj.d)], at = { x: ends.reduce((a, p) => a + p.x, 0) / ends.length, h: ends.reduce((a, p) => a + p.h, 0) / ends.length };
+      const dv = tau - SCRIPT.descT;
+      if (dv >= 0) { at.x = LIPX + 6; at.h = CAMD; }
       camX += (at.x - camX) * k; camH += (at.h - camH) * k;
       // The wind where the camera is, and the gust's strength; a whoosh as each gust arrives, louder
       // high up (none at the foot, where there is no wind to speak of).
@@ -938,7 +1006,8 @@ function buildRidge() {
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (VW + 140)) - 70, c.y + camH * 0.12 - 20);
       drawStrip(scr, far, 120 + cx * 0.15, base + camH * 0.08 + 60, false, R.far[1]);
       drawStrip(scr, basin, 300 + cx * 0.4, base + camH * 0.12 - 25, false, R.far[1]);
-      { const L = base + camH * 0.12 - 25, cl = smooth(220, 430, camH); cloudSea(scr, L + 40 - 31 * cl, cl, t, Math.round(300 + cx * 0.4)); }
+      const seaC = smooth(220, 430, camH), seaTop = base + camH * 0.12 - 25 + 40 - 31 * seaC, seaX = Math.round(300 + cx * 0.4);
+      cloudSea(scr, seaTop, seaC, t, seaX);
 
       // One of them, in the pose the script gives, at their place on the line.
       const P = {};
@@ -949,6 +1018,7 @@ function buildRidge() {
       // On the summit each eases over to their spot as they walk up to it.
       const sv = tau - SCRIPT.sumT;
       if (sv >= 0) for (const w of WHO) { const wk = WALKS[w], e = wk ? smooth(wk[0], wk[1], sv) : 1; P[w].x = lerp(P[w].x, SUMMIT[w].x, e); P[w].h = lerp(P[w].h, SUMMIT[w].h, e); P[w].sv = sv; }
+      if (dv >= 0) for (const w of WHO) Object.assign(P[w], descAt(w, dv));
       for (const w of WHO) { const s = P[w], on = ['lead', 'climb', 'place', 'clean', 'unclip', 'rest'].includes(s.pose) && !styleAt(s.d); s.lb = on ? limbs(w, s.d) : null; s.bx = on ? s.lb.bx : 0; }
       // At a belay on the face the followers hang staggered, each lower and further across the face from
       // the leader (never out over the air beside the ridge's edge), instead of one under the other's
@@ -971,6 +1041,15 @@ function buildRidge() {
           if (w === 'red' && v > 4.0) { put(fr.sit, sx, sy, false); return; }
           // Before her turn, TJ and the leader face each other; after the fives they face out, east.
           put(fr.idle, sx, sy, v < 1.4 && w === 'lead' ? true : v < 4.0 && w === 'red' ? false : false); return;
+        }
+        if (s.pose === 'desc') {
+          if (s.dp === 'walk') { put(fr.side[Math.floor(t * 9) % 6], sx, sy, s.left); return; }
+          if (s.dp === 'rig') { put(fr.rig[Math.floor(t * 3) & 1], sx, sy, true); return; }
+          if (s.dp === 'toss') { put(fr.toss, sx, sy, false); return; }
+          if (s.dp === 'clip') { put(fr.clip[Math.floor(t * 4) & 1], sx, sy, true); return; }
+          if (s.dp === 'zip') { put(fr.rap[s.push ? 1 : 0], sx, sy, true); return; }
+          // Waiting their turn, they watch the edge.
+          put(fr.idle, sx, sy, s.left); return;
         }
         if (s.pose === 'walk' || (s.moving && !s.steep && s.pose !== 'drop')) { put(env.moving && s.moving ? fr.side[Math.floor(s.d / 4.2) % 6] : fr.idle, sx, sy, s.dir < 0); return; }
         if (s.pose === 'drop') { put(u < 0.25 || u > 0.85 ? fr.idle : fr.crouch, sx, sy, true); return; }
@@ -1068,6 +1147,11 @@ function buildRidge() {
         }
         drawBiner(scr, mx, my); scr.set(mx, my, R.white[1]);
       });
+      if (dv > DESC.rig[0] + 0.8) {
+        anchorPiece(scr, RAPA, 'block', cx, rowOf);
+        if (dv > DESC.rig[0] + 1.6) { const rx = RAPA.x - cx, ry = rowOf(RAPA.bot); drawBiner(scr, rx, ry); }
+      }
+      if (dv > DESC.toss[0]) descRope(scr, dv, P, cx, rowOf);
       if (DEBUG.animals) { const gx = goatAt.x - cx, near = Math.abs(P.tj.x - goatAt.x) < 160; if (gx > -30 && gx < VW + 30) scr.put(near ? GOAT.look : GOAT.stand, gx, rowOf(goatAt.h) + 1, P.tj.x < goatAt.x); }
       for (const w of WHO) if (P[w].where !== 'n') draw1(w);
       // Jackets snap downwind and loose hair streams from under a helmet once there is wind.
@@ -1076,6 +1160,8 @@ function buildRidge() {
         if (fg.back) { flap(scr, fg.x + 5, fg.y - 1, ko.top, t, wnd, g, sd); if (!s.hood && ko.long && ko.hair) hair(scr, fg.x + 4, fg.y - 13, ko.hair, t, wnd, g, sd); }
         else if (fg.side) { flap(scr, fg.x + 3, fg.y - 9, ko.top, t, wnd, g, sd); if (!s.hood && ko.long && ko.hair && fg.f) hair(scr, fg.x + 5, fg.y - 17, ko.hair, t, wnd, g, sd); }
       }
+      // The cloud wells up the tower as they come down, in front of the rock, until its top is the sea's.
+      if (dv > 0.5) cloudSea(scr, seaTop + (1 - smooth(0.5, 4.0, dv)) * VH, seaC, t, seaX);
       // While he places a cam: in his raised hand, lobes shut, then pushed up into the crack.
       for (let i = 0; i < pro.length; i++) {
         const g = pro[i], sp = SPOT[i];

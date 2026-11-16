@@ -126,3 +126,5 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **The raven rolls.** Ravens play in the wind: now and then it could flip onto its back for a beat and roll upright again, which climbers love to see and which would reward a visitor who waits at a belay.
 - **A hood that reads as a hood.** Seen side-on at this size a hood up under the helmet can read as long hair; a hood that stands a pixel proud of the head at the back, with its own outline, would read as fabric.
 - **The summit register.** A small tin box under the top boulder that TJ opens to sign, the way many summits keep a register, with the list of earlier names as a place to put credits or thanks.
+- **Under the cloud.** Below an inversion the light goes grey and flat and it is often drizzling. The stuck rope (H16a) could play out under the cloud deck, the sea's underside a grey ceiling over the north side, so coming out of the bright sea into the gloom is its own little moment.
+- **Call "Rope!"** Before throwing a rappel rope climbers shout "Rope!" so nobody below gets hit. A one-word bubble from the leader as he throws would teach it.
