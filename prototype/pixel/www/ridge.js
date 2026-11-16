@@ -516,10 +516,21 @@ function buildRidge() {
         via.sort((i, j) => (pro[i].d - pro[j].d) * (c.d > a.d ? 1 : -1));
         const onRock = c.pose === 'lead' || c.pose === 'climb' || c.pose === 'place' || c.pose === 'clean';
         const ends = [{ d: a.d, x: Math.round(a.x) + (c.x > a.x ? 5 : -5), h: a.h + 9 }, ...via.map(i => ({ d: pro[i].d, x: SPOT[i].x, h: SPOT[i].bi })), { d: c.d, x: Math.round(c.x), h: c.h + (onRock ? 12 : 9) }];
+        // Between two points it hangs free it sags: a leader's rope more (the belayer pays out ahead of
+        // him), with a loop below him for a moment after each clip (he pulled up an armful to clip);
+        // a follower's rope, taken in from above, only a little. Where it lies over the crest it does
+        // not sag, and on a fall or a held follower it comes tight and straight.
+        const lead = c.d > a.d, tight = c.pose === 'fall' || c.pose === 'hang' || c.pose === 'slip';
+        let lastClip = -Infinity; for (const i of via) if (pro[i].clip <= tau) lastClip = Math.max(lastClip, pro[i].clip);
+        const loop = lead ? 10 * smooth(0, 1, Math.max(0, 1 - (tau - lastClip) / 2.2)) : 0;
         ropePts.length = 0;
         for (let k = 0; k < ends.length; k++) {
-          if (k) ropeOver(ropePts, ends[k - 1], ends[k], CREST, cx, rowOf);
-          ropePts.push(ends[k].x - cx, rowOf(ends[k].h));
+          const x = ends[k].x - cx, y = rowOf(ends[k].h);
+          if (k) {
+            const n = ropePts.length; ropeOver(ropePts, ends[k - 1], ends[k], CREST, cx, rowOf);
+            if (ropePts.length === n && !tight) sagTo(ropePts, x, y, lead ? 0.07 : 0.03, k === ends.length - 1 ? loop : 0);
+          }
+          ropePts.push(x, y);
         }
         rope(scr, ropePts);
       }
@@ -562,6 +573,17 @@ function ropeOver(out, A, B, CREST, cx, rowOf) {
   const hull = overHull([[A.x, A.h], ...run, [B.x, B.h]]).slice(1, -1);
   if (A.x > B.x) hull.reverse();
   for (const [x, h] of hull) out.push(x - cx, rowOf(h));
+}
+
+// The points of a rope sagging from the last point in out to x1, y1: a curve below the straight line,
+// slack times its length deep (at least a pixel and a half, so it is never ruler-straight, and at most
+// 22). A steep span bows out sideways instead, away from the rock, as a slack rope up a crack does.
+// loop is extra rope in pixels hanging straight down, below the lower end if need be.
+function sagTo(out, x1, y1, slack, loop = 0) {
+  const x0 = out[out.length - 2], y0 = out[out.length - 1], dx = x1 - x0, dy = y1 - y0, len = Math.hypot(dx, dy);
+  if (len < 6) return;
+  const s = Math.min(22, Math.max(1.5, slack * len)), n = Math.ceil(len / 3) + Math.round(loop / 2), fy = Math.abs(dx) / len, fx = Math.abs(dy) / len * 0.6;
+  for (let i = 1; i < n; i++) { const u = i / n, b = 4 * u * (1 - u), o = s * b; out.push(Math.round(x0 + dx * u - o * fx), Math.round(y0 + dy * u + o * fy + loop * Math.sqrt(b))); }
 }
 
 // A rope through a list of screen points: dark edges, a bright core with a fleck every few pixels.
