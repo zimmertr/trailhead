@@ -4,6 +4,17 @@ Status: **TJ said "begin" on 2026-11-15.** Work the checklist in section 7 from 
 
 This file is written so that someone with no memory of the conversation can do the work. Read all of it once, then work the checklist from the top.
 
+## 0. Checkpoint: Fable hands over to Opus (2026-11-15)
+
+**Tag `pixel-r4-checkpoint-fable`** marks the last commit made by Fable. TJ switched to Opus here and asked for a checkpoint he can come back to with Fable if he does not like what Opus does.
+
+- **Where Fable left off.** STOP 2a is closed: the game runs on the new land (section 8a), TJ said the land is right and chose opening view B. Checklist sections C7 to C9, C19 and C20 are still open (mountain drawing, deleting `terrain.js`, the bake). Next in order is section D (what grows and stands on the land), then E (animals and timed events), then F (camera, zoom and opening view B).
+- **What Fable was doing at the handover.** Reading `www/critters.js` to plan section E. TJ prefers animals placed by rule over positions written as numbers (section 8a). `critters.js` already has a `walker` with a rule for where each kind may go; the numbers live in `spots` (start positions), `SEA`, the mist's box (`W.mist`) and `FLOCKS`. The drawings for the ferry, whale, sheep and squirrels are still inside `buildTerrain` in `terrain.js` and must move out first.
+- **Where Opus works.** On a new branch, `pixel-round4-opus`, cut from this tag. `pixel-round4` stays exactly at the checkpoint, so nothing ever needs a force push.
+- **To keep Opus's work:** fast-forward `pixel-round4` to `pixel-round4-opus`.
+- **To go back to Fable's checkpoint:** start the next session on `pixel-round4` (it is still at the tag) and ignore `pixel-round4-opus`. Read this section, then section 8a, then work the checklist from the first unticked item.
+- Artifacts at the checkpoint: the game https://claude.ai/artifact/WVKKSA9g8uC5PDePJhjXnk, the opening views https://claude.ai/artifact/XsZEi9AqXxgXo9FNgHm9LP, the land https://claude.ai/artifact/KJ2YvMaK4V8pLyoSSJxmGa. All of them are frozen: never publish over them.
+
 ## 1. Why this round exists
 
 The world began as three landmarks huddled in the middle of a small map. The map then grew biomes around them, but the landmarks never moved into the biomes they belong to, and the skyline collected eight unrelated kinds of mountain. TJ's words: "The Tale Grew in the Telling". Round 4 moves each destination into its own country and cuts the mountains down to four kinds.
