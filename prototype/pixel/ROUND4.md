@@ -358,7 +358,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [x] Q3. The moving mist is back (it was switched off without asking): `W.mist` from `land.js`, the wisps and the sea fog re-fitted to the new coast and forest instead of round 3's fixed rows. The Mist switch works.
 - [x] Q4. Mount Monolith drawn properly (C7): rock, snow, glaciers, cleavers, icefalls and shading at round 3's level, not flat stand-in colour.
 - [x] Q5. The Legacy Range drawn properly (C8) and the crest's back row (C9), the same way.
-- [ ] Q6. Zoom out to the whole map again (F1 and F2 brought forward, F9 if it helps): wheel and pinch go smoothly from the close view out until the whole map fits.
+- [x] Q6. Zoom out to the whole map again (F1 and F2 brought forward, F9 if it helps): wheel and pinch go smoothly from the close view out until the whole map fits.
 - [ ] Q7. Side by side with round 3: whole map, opening view, Trailhead close, forest, lakeside, Day and Dusk, desktop and phone. Tag `pixel-r4-opus-quality`, publish a new artifact, write the honest list of what is still below round 3 in section 8a.
 
 ### D. What grows and stands on the land
@@ -397,7 +397,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 
 ### F. Camera, zoom and the opening
 
-- [ ] F1. Zoom is a continuous number. Wheel and pinch change it smoothly about the pointer; no thresholds, no steps.
+- [x] F1 (done with Q6). Zoom is a continuous number. Wheel and pinch change it smoothly about the pointer; no thresholds, no steps.
 - [ ] F2. While the size is between whole numbers the picture is drawn at the next whole size and scaled, so nothing is reallocated per frame; name tags and tap targets follow exactly.
 - [ ] F3. Debug switch: at rest, stay where let go, or ease to the nearest whole size. Both work.
 - [ ] F4. Film a slow zoom all the way out and in (`frames.sh`): no jump between any two frames.
@@ -591,6 +591,9 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
 - Still weaker than it could be: a plain green slope low on the volcano's west side, under the forest, has no texture or trees; the right-hand glaciers seen side-on read as flat overlapping sheets.
 - **Q5, the Legacy Range and the back row (Opus, 2026-11-15).** The Legacy Range stays a painted backdrop (`farRow` in `land.js`), now drawn like round 3's ranges: each summit has a main ridge that wanders down from it and spurs off both faces, snow above a wandering line that comes lower in the gullies as glaciers, rock below streaked with snow, blue faces away from the western light, and a dark outline. In front of it, two ranks of forested foothills with a saw of tree tops on their skylines (a new nearer rank added). The crest's snow lies in streaks down the gullies and on the ledges, more on lit faces, instead of round blots that looked like spots; it still thins toward the dry east with no seam. The ground behind the crest, which showed as green blocks between the peaks, is rock with some snow, and no trees are planted on it; larches are no longer planted on the crest's peaks. No new colours.
 - Weak point kept: the eastern back row's peaks are all the same grey spire with the same texture; they differ in outline only.
+- **Q6, zoom out to the whole map (Opus, 2026-11-15).** The map's pixel size is now any number, not whole steps (`zoomTo` in `pixel.js`). It eases toward the size asked for and keeps the spot under the pointer (or between two fingers) in place. The wheel scales it smoothly. Pinch follows the fingers instead of stepping by a third. The + and - keys still step to the next whole size. It goes out until the map fills the window one way: on a 1440 by 900 window the whole height and 90% of the width show. On a phone held upright that is the whole height. It goes in to twice the size that suits the window, as before. Left alone for a quarter of a second, it settles on the whole size in the direction it was going, so pixels are crisp at rest; `?debug=-snap` leaves it where it stops (half of F3). Below one screen pixel to a pixel the picture is smoothed by the browser, not pixel-dropped. Round 3's glide between whole sizes is no longer used: nothing jumps now.
+- F2 is not done: while the size changes, the picture's buffer is made again every frame. It has not stuttered in the Docker browser; check on a phone.
+- With the map zoomed out, the fog bank at sea (Q3) sits under the timeline bar at the bottom of the page, so it is barely seen; it does no harm there.
 
 ## 10. The reference pictures TJ shared, described
 
