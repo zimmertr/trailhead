@@ -202,6 +202,7 @@ export const UI = {
     checklist: (n, of) => 'Field checklist: ' + n + ' of ' + of + ' found', notFound: 'Not found yet', got: 'Found'
   },
   register: {
+    close: 'Close the book',
     title: 'Summit register', sub: 'You did all three. Sign in.', open: 'open', locked: 'locked',
     lockedSay: 'The summit register opens once all three destinations are done.',
     pending: 'waiting for TJ to approve it', signed: 'Signed. Your entry waits for TJ to approve it.',

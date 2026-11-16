@@ -148,3 +148,5 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **Clip in yourself.** On yggdrasil a visitor could tap to move the lanyards past each anchor themselves, and he will not climb on until they have, never letting both come off at once.
 - **Probe the bridge.** On Kubernetes-Manifests he could prod the snow bridge with his axe before stepping on, the pole going in further than it should, the way a glacier party tests a bridge.
 - **A pencil that wears down.** The register's pencil on its string could get a little shorter each time someone signs, and a new one tied on when it is a stub.
+- **The map behind glass, up close.** A tap on the little map in the register box could open the trail map sheet, the way a visitor leans in to read it.
+- **Something left in the box.** Real register boxes collect a lost glove or a sticker; one small object in the corner of the box could change with the season or the time of day.

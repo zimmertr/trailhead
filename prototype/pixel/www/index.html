@@ -101,6 +101,9 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #fork h1 { padding-right: max(calc(var(--px) * 8), 28px); }
 /* What is left of a closed placard: a small tab at the bottom left that opens it again. */
 #tab { position: fixed; z-index: 2; left: max(18px, env(safe-area-inset-left, 0px)); bottom: calc(var(--px) * 38 + env(safe-area-inset-bottom, 0px)); min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); max-width: calc(100% - 36px); }
+/* The register's close-up (L2): only the book and the way out of it. */
+#book-x { position: fixed; z-index: 3; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(var(--px) * 4 + env(safe-area-inset-bottom, 0px)); min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
+.in-book #bar, .in-book #fork, .in-book #tab, .in-book #names, .in-book #tip { display: none; }
 #tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The junction sign: the placard on top, three planks under it on one post. */
 #fork { background: none; border: 0; box-shadow: none; padding: 0; gap: 0; width: min(420px, calc(100% - 36px)); }
@@ -330,6 +333,7 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   <button id="card-go" class="plank go"><i class="arrow go"></i><span></span></button>
 </section>
 
+<button id="book-x" class="plank" hidden><span>Close the book</span></button>
 <button id="tab" class="plank" hidden><i class="arrow up"></i><span></span></button>
 <div id="names"></div>
 <div id="tip" class="name" hidden></div>

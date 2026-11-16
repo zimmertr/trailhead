@@ -59,9 +59,13 @@ function showCard(id) {
   audio.sfx(id === 'summit' ? 'summit' : pr ? 'flag' : 'stop');
 }
 function hideCard() { shown = null; cardShut = false; card.hidden = true; audio.focus(0); }
-async function home() { hideCard(); await api.setRoute('lake'); audio.place('world'); lastScene = 'world'; buildMarks(); setAddress(''); checkRegister(); }
+async function home() { inBook(false); hideCard(); await api.setRoute('lake'); audio.place('world'); lastScene = 'world'; buildMarks(); setAddress(''); checkRegister(); }
 async function travel(route) { audio.start(); audio.sfx('select'); await api.setRoute(route); buildMarks(); api.start(); }
 async function climb(id) { audio.sfx('select'); hideCard(); await api.setRoute('spire:' + id); buildMarks(); api.start(); }
+// The register (L2): he walks to the box and folds its front down, and the scene changes to the book.
+async function openBook() { audio.start(); audio.sfx('select'); hideCard(); closeSheet(); tip.hidden = true; document.documentElement.classList.add('in-book'); await api.setRoute('register'); buildMarks(); api.start(); }
+// The book's way out shows once it is open; the map's tags and the route bar go as he sets off for it.
+function inBook(on) { document.documentElement.classList.toggle('in-book', on); $('book-x').hidden = !on; }
 async function walkOut() { audio.sfx('select'); hideCard(); await api.setRoute('spires-home'); buildMarks(); api.start(); }
 // A name on the map sends him there from wherever he is on it.
 async function send(dest) { audio.start(); const how = await api.go(dest); if (how === 'start') return travel(dest); if (how === 'home') forkShut = false; if (how) { audio.sfx('select'); if (how === 'turn') buildMarks(); } }
@@ -271,13 +275,13 @@ try {
       if (e.type === 'broken') washedOut(e);
       else if (e.type === 'stop') { if (isWait(e.id)) { waiting = true; say(UI.wait[e.id.slice(5)] || UI.wait.go, 600000); } else { if (waiting) { waiting = false; toast.hidden = true; } showCard(e.id); } }
       else if (e.type === 'leave') { hideCard(); if (waiting) { waiting = false; toast.hidden = true; } }
-      else if (e.type === 'end') { if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
+      else if (e.type === 'end') { if (e.route === 'register') inBook(true); else if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
       else if (e.type === 'sfx') audio.sfx(e.name);
-      else if (e.type === 'scene') { audio.ambience(e.name); audio.place(e.name === 'world' && lastScene !== 'world' ? 'out' : e.name); lastScene = e.name; syncTop(); }
+      else if (e.type === 'scene') { audio.ambience(e.name === 'register' ? 'world' : e.name); audio.place(e.name === 'world' && lastScene !== 'world' ? 'out' : e.name); lastScene = e.name; syncTop(); }
       else if (e.type === 'say') say(e.text);
       else if (e.type === 'found' && FINDS[e.id]) { const n = Object.keys(api ? api.found() : {}).filter(k => FINDS[k]).length; if (e.id !== 'kiosk') { say(UI.found(FINDS[e.id][0], n, Object.keys(FINDS).length), 5200); audio.sfx('egg'); } }
       else if (e.type === 'hover') { tip.hidden = !e.label; if (e.label) { tip.textContent = e.label; const hw = tip.offsetWidth / 2 + 6; tip.style.left = Math.min(Math.max(e.x, hw), innerWidth - hw) + 'px'; tip.style.top = (e.y - 4) + 'px'; if (e.tap) { clearTimeout(tip._t); tip._t = setTimeout(() => { tip.hidden = true; }, 2200); } } }
-      else if (e.type === 'act') { if (e.id === 'kiosk') openSheet('kiosk'); else if (e.id === 'register') openSheet('register'); else if (e.id.startsWith('spire:')) climb(e.id.slice(6)); else if (e.id.startsWith('dest:')) send(e.id.slice(5)); }
+      else if (e.type === 'act') { if (e.id === 'kiosk') openSheet('kiosk'); else if (e.id === 'register') openBook(); else if (e.id.startsWith('spire:')) climb(e.id.slice(6)); else if (e.id.startsWith('dest:')) send(e.id.slice(5)); }
     }
   });
   $('intro').textContent = INTRO;
@@ -338,6 +342,7 @@ addEventListener('blur', () => { if (press.down) { press.down = false; clearTime
   // Pressed from the keyboard there is no pointer: it is a plain start or stop.
   run.addEventListener('click', e => { if (e.detail === 0) { audio.start(); api.toggle(); } });
   run.addEventListener('contextmenu', e => e.preventDefault()); }
+$('book-x').addEventListener('click', () => { audio.sfx('close'); home(); });
 $('fork-x').addEventListener('click', () => { forkShut = true; audio.sfx('close'); });
 $('card-x').addEventListener('click', () => { cardShut = true; card.hidden = true; audio.focus(0); audio.sfx('close'); });
 tab.addEventListener('click', e => { e.currentTarget.blur(); if (shown && cardShut) { cardShut = false; card.hidden = false; audio.focus(1); } else forkShut = false; audio.sfx('open'); });

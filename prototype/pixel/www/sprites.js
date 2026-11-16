@@ -440,7 +440,7 @@ function makeBush(seed, kind) {
 // pale plaque, its front a flap that folds down into a desk (the dark line is the hinge), rocks piled round
 // the foot of the post. Three pennants on the post, one for each destination (the lake blue, the peak
 // yellow, the Spires red), pale until that destination is done. mask: bit 0 the lake, 1 the peak, 2 the Spires.
-function makeRegister(mask) {
+function makeRegister(mask, open = false) {
   const b = new BM(15, 24); b.ox = 6; b.oy = 23;
   // The lid, lit on the west, overhanging the front and the side.
   for (let x = 3; x <= 11; x++) b.set(x, 1, x < 6 ? R.wood[4] : R.wood[3]);
@@ -452,6 +452,12 @@ function makeRegister(mask) {
   for (let x = 3; x <= 8; x++) { b.set(x, 5, R.white[1]); b.set(x, 6, x % 2 ? R.wood[1] : R.white[0]); b.set(x, 7, R.white[0]); }
   for (let x = 2; x <= 9; x++) b.set(x, 10, R.wood[0]);
   b.set(9, 9, R.rock[3]);
+  // Open (L2): the front is down as a desk standing out toward you, the book showing inside.
+  if (open) {
+    for (let y = 4; y <= 10; y++) for (let x = 2; x <= 9; x++) b.set(x, y, y >= 8 ? (x === 5 ? R.gold[4] : R.white[1]) : y === 7 ? R.white[0] : R.wood[0]);
+    for (let y = 11; y <= 13; y++) for (let x = 1; x <= 10; x++) b.set(x, y, y === 13 ? R.wood[2] : R.wood[4]);
+    b.set(1, 7, R.rock[3]); b.set(10, 7, R.rock[3]);
+  }
   // The post and the rocks piled round its foot.
   for (let y = 13; y <= 22; y++) { b.set(5, y, R.wood[3]); b.set(6, y, R.wood[1]); }
   for (const [x, y, c] of [[2, 22, 2], [3, 21, 3], [3, 22, 1], [4, 22, 2], [7, 22, 2], [8, 22, 1], [8, 21, 3]]) b.set(x, y, R.rock[c]);

@@ -15,9 +15,10 @@ const MAKERS = {
   climb: () => import('./climb.js').then(m => m.makeClimb()),
   offroute: () => import('./offroute.js').then(m => m.makeOffroute()),
   larches: () => import('./larches.js').then(m => m.makeLarches()),
-  approach: () => import('./approach.js').then(m => m.makeApproach())
+  approach: () => import('./approach.js').then(m => m.makeApproach()),
+  register: () => import('./register.js').then(m => m.makeRegisterScene())
 };
-const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb', 'offroute', 'larches', 'approach'];
+const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb', 'offroute', 'larches', 'approach', 'register'];
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
@@ -49,7 +50,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // runs the way the map's trail was heading where it hands over.
     spires: () => [['world', { path: 'spires', from: 0, to: world.spiresIn }], ['approach', { dir: [-0.03, -0.01, 0.01, 0.03].reduce((s, d) => s + world.paths.spires.at(clamp(world.spiresIn + d, 0, 1)).dx, 0) < 0 ? -1 : 1 }], ['camp', {}]],
     'spires-home': () => [['world', { path: 'spires', from: 1, to: 0 }]],
-    'off-route': () => [['offroute', {}]]
+    'off-route': () => [['offroute', {}]],
+    // The register (L2): he walks the few steps to the box (the first 55% of 1.3 s), stands at it while
+    // its front comes down, then the close-up of the book.
+    register: () => [['world', { path: 'register', from: 0, to: 1, secs: 1.3, walkTo: 0.55 }], ['register', {}]]
   };
   for (const id of SPIRES) ROUTES['spire:' + id] = () => [['climb', { id }]];
   // One stretch of map walked for its own sake: back to the junction from part way along a trail.
@@ -273,7 +277,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       // It opens at twice one-to-one (TJ, F5a: the one-to-one opening chosen at STOP 2a halved every movement
       // and turned the trees and destinations to noise), never larger than the travelling size; on a phone
       // held upright, at the size that suits it.
-      const away = env.home ? 0 : 1;
+      const away = env.home || route === 'register' ? 0 : 1;
       if (away !== leadTo) { leadTo = away; zUser = false; zFrom = zT || zOpen(); zTo = away ? scr.S0 : zOpen(); }
       leadT = calm.matches ? away : clamp(leadT + (away ? dt : -dt) / HAND, 0, 1);
       const easing = leadT > 0 && leadT < 1 && !zUser; env.lead = leadT * leadT * (3 - 2 * leadT);

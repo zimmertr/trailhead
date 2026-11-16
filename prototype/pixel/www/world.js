@@ -197,6 +197,10 @@ function whiteWater(fb, VW, VH, ox, oy, P, F, t) {
 export function makeWorld(bake) {
   const W = buildTerrain(), { g: ground, spots, forestAmt } = W;
   const paths = {}; for (const k of ['lake', 'stack', 'spires']) paths[k] = makePath({ pts: W.trails[k], stops: [] });
+  // The few steps from the junction to the register's east side, where he stands to fold its front down (L2).
+  { const [rx, ry] = W.spots.register; paths.register = makePath({ pts: [[T.x, T.y], [(T.x + rx + 9) / 2, (T.y + ry + 1) / 2 + 1], [rx + 9, ry + 1]], stops: [] });
+    // Its points with their depth, as the trails carry, so ground nearer than him still stands in front.
+    W.lines.register = [...Array(9).keys()].map(k => { const p = paths.register.at(k / 8); return [p.x, p.y, W.vAt(p.x, p.y)]; }); }
   // Shafts of light slant through the forest, and give out where the mist takes over in the west.
   const shaftMask = new Uint8Array(WW * WH);
   for (let y = 300; y < WH; y++) for (let x = 0; x < 760; x++) {
@@ -379,7 +383,7 @@ export function makeWorld(bake) {
   put(makeSignpost(), spots.signpost[0], spots.signpost[1]);
   for (const s of spots.signs) put(makeSmallSign(), s[0], s[1]);
   put(makeJournal(), spots.journal[0], spots.journal[1]); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
-  const REGS = [0, 1, 2, 3, 4, 5, 6, 7].map(makeRegister), regBox = { bm: REGS[0], x: spots.register[0], y: spots.register[1] }; things.push(regBox);
+  const REGS = [...Array(16).keys()].map(k => makeRegister(k & 7, k > 7)), regBox = { bm: REGS[0], x: spots.register[0], y: spots.register[1] }; things.push(regBox);
   if (spots.lookout) put(makeLookout(), spots.lookout[0], spots.lookout[1]);
   for (const [x, y, c] of spots.tents) put(makeTent(c), x, y);
   // The falls' and the feet's pixels, as x and y, with each column's own offset so the streaks are not in step.
@@ -501,7 +505,8 @@ export function makeWorld(bake) {
     return [lerp(a[0], b[0], u), lerp(a[1], b[1], u)];
   };
   let past = 0, nowT = 0;
-  const where = (leg, q) => { const P = paths[leg.path], a = P.at(lerp(leg.from, leg.to, q)), s = leg.to < leg.from ? -1 : 1; return { x: a.x, y: a.y, dx: a.dx * s, dy: a.dy * s, P }; };
+  // walkTo: a leg that is walked over that part of its time and then stood still (the register, L2).
+  const where = (leg, q) => { if (leg.walkTo) q = Math.min(1, q / leg.walkTo); const P = paths[leg.path], a = P.at(lerp(leg.from, leg.to, q)), s = leg.to < leg.from ? -1 : 1; return { x: a.x, y: a.y, dx: a.dx * s, dy: a.dy * s, P }; };
   const target = (scr, here, env) => {
     // env.lead: the hand-off from the opening frame to following him, eased over 2 seconds in pixel.js (F6).
     const v = vista(scr), k = !env || env.lead === undefined ? smooth(0, 60, Math.hypot(here.x - T.x, here.y - T.y)) : env.lead;
@@ -511,7 +516,7 @@ export function makeWorld(bake) {
   return {
     name: 'world', paths, lakeIn, lakeOut, spiresIn, T, WW, WH,
     lengths: () => ({ lake: 5.2, stack: Math.round(paths.stack.len * KM * 10) / 10, spires: Math.round(paths.spires.len * KM * 10) / 10 }),
-    dur: leg => Math.abs(leg.to - leg.from) * paths[leg.path].len / RUN,
+    dur: leg => leg.secs || Math.abs(leg.to - leg.from) * paths[leg.path].len / RUN,
     stops: () => [],
     // North on the map is uphill, which is all the profile along the bottom needs.
     elev: (leg, q) => (T.y - where(leg, q).y) * 0.8,
@@ -622,7 +627,8 @@ export function makeWorld(bake) {
       { const fh = crit.ferryHull(t, ox, oy, VW, VH); if (fh) mov.push({ ferryHull: true, y: fh.y }); }
       kit.update(env, here, scr.narrow && !env.fixed, env.home && !env.fixed ? oy + (scr.narrow ? VH * 0.56 : VH - 38) : 0);
       for (const it of kit.items()) mov.push(it);
-      regBox.bm = REGS[(env.done.lake ? 1 : 0) | (env.done.stack ? 2 : 0) | (env.done.spires ? 4 : 0)];
+      // Once he is at the box, its front is down (L2).
+      regBox.bm = REGS[(env.done.lake ? 1 : 0) | (env.done.stack ? 2 : 0) | (env.done.spires ? 4 : 0) | (leg.path === 'register' && q > 0.8 ? 8 : 0)];
       standing(still, moves, mov, list, ox, oy, VW, VH, env.done);
       // A tree that nearer ground partly hides is drawn only where the land under each pixel is no
       // nearer than the tree itself (D6a), so it can sway and still stand behind the slope in front.
@@ -630,7 +636,7 @@ export function makeWorld(bake) {
       for (const th of list) {
         const dl = liftAt(th.x, th.y), oy = OY + dl;
         if (th.me) {
-          const set = env.moving ? (facing === 'side' ? runner.side : facing === 'up' ? runner.up : runner.down) : (facing === 'side' ? runner.sideIdle : facing === 'up' ? runner.upIdle : runner.downIdle);
+          const set = env.moving && !(leg.walkTo && q > leg.walkTo) ? (facing === 'side' ? runner.side : facing === 'up' ? runner.up : runner.down) : (facing === 'side' ? runner.sideIdle : facing === 'up' ? runner.upIdle : runner.downIdle);
           const bm = set[Math.floor(Math.abs(leg.to - leg.from) * q * here.P.len / (facing === 'side' ? 4.2 : 5)) % set.length];
           // Ground nearer the camera than he is stands in front of him: what was there is put back over him.
           const X = Math.round(th.x - ox), Y = Math.round(th.y - oy), vMe = vOn(leg.path, th.x, th.y), x0 = Math.max(0, X - 12), x1 = Math.min(VW - 1, X + 12), y0 = Math.max(0, Y - 30), y1 = Math.min(VH - 1, Y + 3);
