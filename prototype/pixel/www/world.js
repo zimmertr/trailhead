@@ -5,6 +5,7 @@ import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTen
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
+import { makeEvents } from './events.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, loadBake, NW as WW, NH as WH, VD, T } from './land.js';
 // The height of the timeline bar in page pixels (32 of its own pixels), read again only when the page is resized.
@@ -257,6 +258,7 @@ export function makeWorld(bake) {
   for (const [x, y, c] of spots.tents) put(makeTent(c), x, y);
   // The animals look after themselves: see critters.js. Where each one lives comes from land.js.
   const crit = makeCritters(W);
+  const ev = makeEvents(W);
   for (const it of crit.items) things.push(it);
   const birds = [makeBird(0), makeBird(1)];
   const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 330 + 40, y: 50 + (i & 1) * 70 + i * 18, v: 3 + (i % 4) }));
@@ -360,7 +362,7 @@ export function makeWorld(bake) {
       if (name === 'shower') { const n = Math.floor((t + rainAhead + RAIN.cycle - 10) / RAIN.cycle) + 1; rainAhead = n * RAIN.cycle - t - RAIN.cycle + 10; return true; }
       if (name === 'serac') { if (SER.length < 2) return false; const n = Math.floor((t + serAhead + SLOT - 15) / SLOT) + 1; serAhead = n * SLOT + 10 * hash(n, 3, 4741) - t - SLOT + 15; return true; }
       if (name === 'lens') { lensAhead = mod(-(t + LENS.cycle - 5), LENS.cycle); return true; }
-      return crit.trigger(name, t);
+      return ev.trigger(name, t) || crit.trigger(name, t);
     },
     act(id, env) { if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
     draw(scr, env, leg, q) {
@@ -460,6 +462,7 @@ export function makeWorld(bake) {
         else drawStill(scr, th, tq, ox, oy, dl, clipBlit, flags, t);
       }
 
+      ev.draw(scr, ox, oy, t, env.mix || 0);
       if (env.mix > 0.02) duskHills(fb, VW, VH, ox, oy, HLIT, gNow, env.mix, WARM);
       // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge. Each is
       // cast by a small fair-weather cloud drifting above it (E5a), drawn after the mist.

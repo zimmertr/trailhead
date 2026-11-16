@@ -1191,6 +1191,11 @@ function habitat() {
   // In the sea: jellyfish not far out, the whale farther out, the ferry's course past both.
   const clearSea = new Set(R.sea), sea = (lo, hi) => (u, v) => { const c = S.coast(u, v); return c > lo && c < hi && S.toY(u, v) < SH - 50 && shows(u, v, 4) && clearSea.has(S.g[S.toY(u, v) * NW + Math.round(u)]) && clearSea.has(S.g[(S.toY(u, v) - 6) * NW + Math.round(u)]); };
   const jelly = find(8, sea(14, 80), 26), whale = best(sea(90, 150), (u, v) => -Math.abs(S.coast(u, v) - 115) + 6 * rnd());
+  // The timed events of E5k. Tumbleweeds start in open sage with 120 of firm ground east of them, the way
+  // the wind rolls them; dust devils spin up on bare dry flats. The float plane lands on About Lake
+  // (events.js).
+  const tumbles = find(3, (u, v) => S.sageAmt(u, v) > 0.6 && firm(u, v, 0.5) && shows(u, v, 6) && [30, 60, 90, 120].every(d => firm(u + d, v, 0.9)), 60);
+  const devils = find(2, (u, v) => S.dryAmt(u, v) > 0.6 && S.sageAmt(u, v) > 0.3 && firm(u, v, 0.4) && shows(u, v, 26), 120);
   const out = (u, v) => [Math.round(u), S.toY(u, v)];
   // The rainforest's owl, faint light and eyes left the map in E5b (too small to find among the trees);
   // E5d puts them in the forest scene. Crows still circle over the forest's sunny edge, and keep to low forest on plain ground, so they circle against trees and not the mountain's ice.
@@ -1214,6 +1219,8 @@ function habitat() {
     jelly: jelly.map((p, n) => [...out(...p), n % 3 ? 0 : 1]),
     whale: whale ? out(...whale) : [0, 0],
     ferry,
+    tumbles: tumbles.map(([u, v]) => ({ x: Math.round(u), ys: Int16Array.from({ length: 141 }, (_, d) => S.toY(u + d, v)) })),
+    devils: devils.map(p => out(...p)),
     // Birds circle over the elk's parkland, the dry corner and the granite; gulls over the sea by the beach.
     flocks: [
       crows && { cx: out(...crows)[0], cy: out(...crows)[1], rx: 40, ry: 14, n: 4, lift: 26, w: 0.33 },
@@ -1256,7 +1263,7 @@ export function buildTerrain() {
     // A flag for each finished destination: at the lake shore, on Proficiency Peak, on the Spires' highest summit.
     flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
     // Signs and animals, each placed by its rule (habitat, above).
-    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, jelly: H.jelly, whale: H.whale, ferry: H.ferry,
+    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
     // The fire lookout on its cleared summit (E5j), and the heron in the oxbow: the still water's pixel
     // nearest the oxbow's middle.
     lookout: LAND.lookout ? sxy(...LAND.lookout) : null,
