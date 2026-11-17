@@ -119,7 +119,7 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #book .legend { position: absolute; margin: 0; font-family: var(--small); font-size: 12px; color: #8a5a4a; }
 #book .sig { text-align: right; padding-right: 1.5em; }
 #book .pending { font-family: var(--small); font-size: 12px; margin-left: .6em; color: #b0502c; white-space: nowrap; }
-.in-book #bar, .in-book #fork, .in-book #tab, .in-book #names, .in-book #tip { display: none; }
+.in-book #bar, .in-book #fork, .in-book #tab, .in-book #names, .in-book #tip, .in-book #hint { display: none; }
 #tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The junction sign: the placard on top, three planks under it on one post. */
 #fork { background: none; border: 0; box-shadow: none; padding: 0; gap: 0; width: min(420px, calc(100% - 36px)); }
@@ -201,6 +201,11 @@ button.name { pointer-events: auto; }
 .debug-sign { margin-top: calc(var(--px) * 4); opacity: .55; }
 .side .debug-sign.plank { display: inline-flex; min-height: 0; padding: 0 calc(var(--px) * 2); font-size: 12px; width: max-content; align-self: flex-start; }
 button.name:hover, .name.done { background: var(--moss); }
+/* The first-visit hint (P1): one small plank low in the middle, above the timeline, until he first moves. The
+   page moves it off him (app.js), and on a phone, where the sign fills the bottom, it stands over his head. */
+#hint { position: fixed; z-index: 1; left: 50%; bottom: calc(var(--px) * 40 + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); min-height: 0; padding: calc(var(--px) * 1) calc(var(--px) * 4); font-size: 15px; white-space: nowrap; pointer-events: none; transition: opacity .6s steps(4); }
+#hint.top { bottom: auto; white-space: normal; text-wrap: balance; text-align: center; width: max-content; max-width: calc(100% - 48px); font-size: 13px; }
+#hint.gone { opacity: 0; }
 #toast { position: fixed; z-index: 4; left: 50%; top: calc(var(--px) * 16); transform: translateX(-50%); max-width: calc(100% - 32px); padding: calc(var(--px) * 1) calc(var(--px) * 4); font-size: 20px; background: var(--paper); border: var(--px) solid var(--ink); box-shadow: var(--px) var(--px) 0 var(--shade); text-align: center; }
 
 /* The route along the bottom: its profile, a flag at each milestone, a marker for him. */
@@ -355,6 +360,7 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
 <div id="names"></div>
 <div id="tip" class="name" hidden></div>
 <div id="toast" role="status" hidden></div>
+<div id="hint" class="plank" hidden></div>
 
 <nav id="bar" aria-label="Route" hidden>
   <button id="run" class="plank">Start</button>

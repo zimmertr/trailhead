@@ -434,7 +434,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] B8. T37: TJ's facing no longer flips on diagonals (check every trail on the map at 2x speed with `frames.sh`).
 - [x] B9. T1: the first frame is centred on TJ (desktop and phone, with fonts slow to load).
 - [x] B10. T36: space does nothing until a destination is chosen. Tap toggles, hold doubles.
-- [ ] B11. P1: the first-visit hint, gone after the first move.
+- [x] B11. P1: the first-visit hint, gone after the first move.
 
 ### C. Engine pieces that later items stand on
 
@@ -570,7 +570,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **B8 done.** His facing comes from where the trail takes him over the next 32 pixels, with some give before he turns, so diagonals and the zigzag up the wall no longer flip him. `facing.sh` counts his turns on each route (`__info.pose` reports the facing): round 4's logic turned him 25 times in the first 2 % of the Proficiency Peak route, now 5; Spires 9 to 6, lake 9 to 2.
 - **B9 done.** The page opens on its resting view with no pan and no zoom settling, on desktop and phone: the sign is shown before the first frame, the first frame takes the opening's size at once, and while the page settles (a new view size, the sign coming up or growing as its font loads, in the first 3 seconds or while the fonts load) the camera goes straight to its rest.
 - **B10 done.** At the Trailhead the space bar does nothing until a destination is picked. Then a tap stops or starts him and holding it doubles his pace (round 4's press and hold, unchanged), on the map and in every scene.
-- Next: B11.
+- **B11 done.** Until he first moves, a small plank says "Click a sign or a trail to start walking." ("Tap ..." on a touch screen). On desktop it sits low in the room right of the sign, above the timeline, and steps left of him if it would cover him; on a phone it stands over his head, above his name tag. It hides while the idle tour runs and fades out for good on the first move. `api.touring()` and `api.me()` tell the page about the tour and where he stands.
+- Next: C1.
 
 ## 11. Calls made in round 5
 
@@ -592,6 +593,8 @@ One line each, newest last: the item, what was decided, and why.
 - B9: read "centred on him from the start" as "the first frame is the resting frame". The resting frame itself is round 4's: on desktop it frames him with the three destinations (he stands low and right), on a phone it is nearly centred on him above the sign. Centring him exactly on desktop would push the destinations off the screen, so that is a change for TJ to ask for.
 - B9: a font that arrives after 3 seconds, once the fonts report loaded, eases the camera as before, since by then the visitor may be looking round.
 - B10: anything that takes the page off the opening counts as a choice (he runs, the timeline moves, a card shows, another route is set), and so does an address with a route or a hash. The Start button on the bar still starts him from the Trailhead: it says Start, so pressing it is a choice.
+- B11: on a phone the bottom is the sign, so "low, above the timeline" has no room; the hint stands over his head instead, which is also where a new visitor looks. The copy promises trail clicks, which C5 brings later this round.
+- B11: a touch screen is told apart by `(hover: none)`, so a laptop with a touch screen and a mouse gets "Click".
 
 ## 12. The reference pictures
 

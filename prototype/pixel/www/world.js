@@ -615,7 +615,8 @@ export function makeWorld(bake) {
 
       // Camera: the whole view from the Trailhead, then follow him.
       let [tx, ty] = target(scr, here, env);
-      if (env.home && env.idle > 4 && !env.calm && Math.abs(env.look.x) + Math.abs(env.look.y) < 1) [tx, ty] = lookRound(scr, env.idle - 4, tx, ty);
+      env.touring = env.home && env.idle > 4 && !env.calm && Math.abs(env.look.x) + Math.abs(env.look.y) < 1;
+      if (env.touring) [tx, ty] = lookRound(scr, env.idle - 4, tx, ty);
       if (born === null) born = t;
       const size = VW + 'x' + VH + (scr.narrow ? 'n' : ''), jump = env.home && (size !== sized || ((t - born < 3 || (document.fonts && document.fonts.status === 'loading')) && openKey !== seenKey)); sized = size; seenKey = openKey;
       const damp = env.calm || jump ? 1 : 1 - Math.exp(-dt * 3.2);

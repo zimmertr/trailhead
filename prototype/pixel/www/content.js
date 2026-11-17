@@ -152,6 +152,8 @@ export const SET_NAMES = ['Console', 'Handheld', 'Music box'];
 // The words of the interface itself: buttons, headings and messages. A function takes the numbers it needs.
 export const UI = {
   name: 'TJ Zimmerman',
+  // The first-visit hint (P1), a draft for TJ: with a mouse, then on a touch screen.
+  hint: ['Click a sign or a trail to start walking.', 'Tap a sign or a trail to start walking.'],
   run: ['Start', 'Stop'], home: ['Trailhead', 'Camp'], sound: ['Sound on', 'Sound off'], theme: ['Dusk', 'Day'],
   // On the Sound button until the first click, tap or key: a browser plays nothing before one. With a mouse, then with a finger.
   soundWaits: ['Click for sound', 'Tap for sound'],

@@ -410,6 +410,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     boost(on) { fast = !!on; },
     toggle() { if (running) running = false; else api.start(); },
     running: () => running,
+    // The idle tour is running (the first-visit hint keeps out of its way, P1).
+    touring: () => drawn.s === 'world' && !!env.touring,
+    // Where he stands on the page, in CSS pixels (the first-visit hint keeps off him, P1).
+    me: () => { const f = drawn.scene.focus(), k = scr.S / (window.devicePixelRatio || 1); return [f.x * k, f.y * k]; },
     progress: () => p,
     scrub(f) {
       p = clamp(f, 0, 1); running = false; scrubbing = 0.16;
