@@ -247,3 +247,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Feathers on the Rock** (round 5, E5). After the eagle has eaten, a few pale specks could be left on the stack's top until the next rain washes them off.
 - **A Young Eagle** (round 5, E5). A mottled brown bird with no white head could sit on a lower stack and watch the adult fish.
 - **The Splash Has a Sound** (round 5, E5). The osprey's plunge deserves a short slap and hiss, heard only when the lake is on screen.
+- **The Avalanche Seen From the Lake** (round 5, E6). The lake scene knows when a face slides on the map. It could show the slide too: a small white cloud pouring down the far mountain, and the rumble arriving late across the water.
+- **Fresh Debris on the Glacier** (round 5, E6). The fan of snow at a glacier's foot could stay as a paler patch until the next snowfall, so a visitor can tell which face went last.
+- **Climbers Wait It Out** (round 5, E6). Two tiny headlamps or dots on the summit dome could stop and wait while a face below them slides, then go on.
+- **A Slide That Sets Off Its Neighbour** (round 5, E6). Now and then the cloud from one face could shake a cornice loose on the next, a small sluff a few seconds later that does not bare it.
+- **The Order Tells a Story** (round 5, E6). The east face gets the morning sun first, so in the Day's first half it could be the likeliest to go, and the west face the likeliest toward Dusk.

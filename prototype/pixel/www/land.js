@@ -918,35 +918,40 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
   if (zb[i - NW] > zb[i] + 14 || zb[i - 1] > zb[i] + 14 || zb[i + 1] > zb[i] + 14) g[i] = INK;
 }
 }
-// Mount Monolith's middle icefall and the snow that covers it until the avalanche (E5c). The ground
-// keeps the bare blue seracs; the scene draws the cover over them. The painting is worked out again here,
-// since a bake holds only the finished picture, and lined up with the picture by where its icefall
-// matches the ground best. Each pixel keeps the plain snow that would lie there and how far down the
-// icefall it is (0 to 255). foot is where the snow runs out below it, down the glacier.
-// Where the snow runs out below the icefall, down the glacier, from the covered pixels.
-function coverFoot(at, snow, q, x0, x1, y0, y1, sx, sn) {
-  const cx = Math.round(sn ? sx / sn : (x0 + x1) / 2); let fy = y1, miss = 0;
-  while (fy < SH - 1 && miss < 3) { fy++; const k = RAMP_OF[g[px(cx, fy)]]; miss = k === 'snow' || k === 'serac' ? 0 : miss + 1; }
-  return { at: Int32Array.from(at), snow: Uint8Array.from(snow), q: Uint8Array.from(q), x0, x1, y0, y1, cx, foot: [cx, fy - 3] };
+// Mount Monolith's icefalls and the snow that covers each until its avalanche (E5c; all of them since round
+// 5, T11). The ground keeps the bare blue seracs; the scene draws the cover over them. The painting is worked
+// out again here, since a bake holds only the finished picture, and lined up with the picture by where its
+// icefalls match the ground best. Each covered pixel keeps the plain snow that would lie there, which
+// icefall it is in and how far down it (monolith.js packs the last two into one byte).
+// One face for each icefall with enough of it showing, west to east. q: how far down the face each pixel is
+// (0 to 252). top and low: the middle of its top and of its foot, and (ux, uy) the way from one to the other,
+// which is the way its snow slides. foot: where that snow runs out, on down the glacier along the same line.
+function coverFaces(at, snow, qf) {
+  const faces = [];
+  for (let k = 0; k < 4; k++) {
+    const A = [], S = [], Q = []; let x0 = NW, x1 = 0, y0 = SH, y1 = 0, tx = 0, ty = 0, tn = 0, bx = 0, by = 0, bn = 0;
+    for (let j = 0; j < at.length; j++) { if (qf[j] >> 6 !== k) continue; const q = (qf[j] & 63) * 4, x = at[j] % NW, y = (at[j] / NW) | 0;
+      A.push(at[j]); S.push(snow[j]); Q.push(q); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      if (q < 50) { tx += x; ty += y; tn++; } if (q > 200) { bx += x; by += y; bn++; } }
+    // A sliver of an icefall that shows from behind a ridge (under 400 pixels) is no face: it stays as painted.
+    if (A.length < 400 || !tn || !bn) continue;
+    const top = [tx / tn, ty / tn], low = [bx / bn, by / bn], L = Math.hypot(low[0] - top[0], low[1] - top[1]) || 1, ux = (low[0] - top[0]) / L, uy = (low[1] - top[1]) / L;
+    let d = 0, miss = 0, last = 0; while (d < 170 && miss < 3) { d++; const x = Math.round(low[0] + ux * d), y = Math.round(low[1] + uy * d); if (x < 1 || y < 1 || x >= NW - 1 || y >= SH - 1) break; const r = RAMP_OF[g[px(x, y)]]; if (r === 'snow' || r === 'serac') { miss = 0; last = d; } else miss++; }
+    faces.push({ k, at: Int32Array.from(A), snow: Uint8Array.from(S), q: Uint8Array.from(Q), x0, x1, y0, y1, cx: Math.round(low[0]), top, low, ux, uy, foot: [Math.round(low[0] + ux * last), Math.round(low[1] + uy * last)] });
+  }
+  return faces.sort((a, b) => a.cx - b.cx);
 }
 const MONO_COVER = (() => {
-  // From the bake (M3): the plain snow and the depth down the icefall of each covered pixel, kept as two
-  // planes, so the painting is not worked out again at every start.
-  if (B && B.monoSnow) {
-    const at = [], snow = [], q = []; let x0 = NW, x1 = 0, y0 = SH, y1 = 0, sx = 0, sn = 0;
-    for (let i = 0; i < NW * SH; i++) { const c = B.monoSnow[i]; if (!c) continue; const x = i % NW, y = (i / NW) | 0;
-      at.push(i); snow.push(c); q.push(B.monoQ[i]); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); if (B.monoQ[i] > 200) { sx += x; sn++; } }
-    return at.length < 50 ? null : coverFoot(at, snow, q, x0, x1, y0, y1, sx, sn);
-  }
-  const P = paintMonolith(), ox = VOLC.cu - PMCX, n = P.cover.length / 3; if (!n) return null;
+  // From the bake (M3): the plain snow and the packed byte of each covered pixel, kept as two planes, so the
+  // painting is not worked out again at every start.
+  if (B && B.monoSnow) { const at = [], snow = [], qf = []; for (let i = 0; i < NW * SH; i++) if (B.monoSnow[i]) { at.push(i); snow.push(B.monoSnow[i]); qf.push(B.monoQ[i]); } return coverFaces(at, snow, qf); }
+  const P = paintMonolith(), ox = VOLC.cu - PMCX, n = P.cover.length / 3; if (!n) return [];
   const fit = oy => { let m = 0; for (let j = 0; j < n; j += 5) { const k = P.cover[3 * j], x = ox + k % PMW, y = oy + ((k / PMW) | 0); if (x >= 0 && y >= 0 && x < NW && y < SH && g[px(x, y)] === P.d[k]) m++; } return m; };
   const guess = Math.round(SY - VOLC.cv - VOLC.H - PTOPY); let oy = guess, best = -1;
   for (let o = guess - 200; o <= guess + 200; o++) { const m = fit(o); if (m > best) { best = m; oy = o; } }
-  const at = [], snow = [], q = []; let x0 = NW, x1 = 0, y0 = SH, y1 = 0, sx = 0, sn = 0;
-  for (let j = 0; j < n; j++) { const k = P.cover[3 * j], x = ox + k % PMW, y = oy + ((k / PMW) | 0); if (x < 0 || y < 0 || x >= NW || y >= SH || g[px(x, y)] !== P.d[k]) continue;
-    at.push(px(x, y)); snow.push(P.cover[3 * j + 1]); q.push(P.cover[3 * j + 2]); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); if (P.cover[3 * j + 2] > 200) { sx += x; sn++; } }
-  if (at.length < 50) return null;
-  return coverFoot(at, snow, q, x0, x1, y0, y1, sx, sn);
+  const at = [], snow = [], qf = [];
+  for (let j = 0; j < n; j++) { const k = P.cover[3 * j], x = ox + k % PMW, y = oy + ((k / PMW) | 0); if (x < 0 || y < 0 || x >= NW || y >= SH || g[px(x, y)] !== P.d[k]) continue; at.push(px(x, y)); snow.push(P.cover[3 * j + 1]); qf.push(P.cover[3 * j + 2]); }
+  return coverFaces(at, snow, qf);
 })();
 // Each destination and its country (D12a, D12b), worked out from the heights, materials and depth the
 // bake already holds, so it costs nothing to keep. First on the map, by rules from the land:
@@ -1500,13 +1505,16 @@ export function buildTerrain() {
     // Where a serac can break off (E4): the white top of a block in one of Mount Monolith's icefalls (its
     // serac blue just under snow), or the upper lip of the Spires' icefall (its glacier in glFall's
     // upper third), with ice or snow of the same ground for 40 pixels below to fall down. At least 46 apart; up to
-    // five on the volcano, which the opening view shows, and three on the Spires.
+    // two on each of the volcano's icefalls, which the opening view shows, and three on the Spires.
     seracs: (() => { const VI = LAND.MATS.indexOf('volc'), ICE = LAND.MATS.indexOf('ice'), r = rng(4740), out = [];
       const ICY = { snow: 1, serac: 1, glac: 1, ice: 1 }, below = (x, y, m) => { for (let d = 1; d <= 40; d++) { const j = (y + d) * NW + x; if (y + d >= SH || LAND.mat[j] !== m || !ICY[RAMP_OF[LAND.g[j]]]) return false; } return true; };
       const onMono = (x, y) => { const i = y * NW + x; return LAND.mat[i] === VI && RAMP_OF[LAND.g[i]] === 'snow' && RAMP_OF[LAND.g[i + NW]] === 'serac' && RAMP_OF[LAND.g[i + 3 * NW]] === 'serac' && below(x, y, VI); };
       const onSpires = (x, y) => { const i = y * NW + x, v = LAND.depth[i]; return LAND.mat[i] === ICE && v > LAND.glFall[1] - 8 && v <= LAND.glFall[1] && RAMP_OF[LAND.g[i]] === 'glac' && below(x, y, ICE); };
-      for (const [fit, most] of [[onMono, 5], [onSpires, 3]]) { const mine = [];
-        for (let n = 0; n < 60000 && mine.length < most; n++) { const x = 4 + (r() * (NW - 8)) | 0, y = 8 + (r() * (SH - 60)) | 0; if (fit(x, y) && !out.some(([a, b]) => Math.hypot(a - x, b - y) < 46)) { out.push([x, y]); mine.push(1); } } }
+      // On the volcano, two on each icefall that can slide (round 5, T11: a face drops seracs only once its snow
+      // has gone, so every face needs its own), at least 20 apart and in the upper two thirds of the face, so the block tumbles down over the ice. Then three
+      // on the Spires, 46 apart.
+      for (const A of LAND.monoCover) { let mine = 0; for (let n = 0; n < 8000 && mine < 2; n++) { const j = (r() * A.at.length) | 0, i = A.at[j], x = i % NW, y = (i / NW) | 0; if (A.q[j] < 170 && onMono(x, y) && !out.some(([a, b]) => Math.hypot(a - x, b - y) < 20)) { out.push([x, y]); mine++; } } }
+      { let mine = 0; for (let n = 0; n < 60000 && mine < 3; n++) { const x = 4 + (r() * (NW - 8)) | 0, y = 8 + (r() * (SH - 60)) | 0; if (onSpires(x, y) && !out.some(([a, b]) => Math.hypot(a - x, b - y) < 46)) { out.push([x, y]); mine++; } } }
       return out; })(),
     // Mount Monolith's summit: the highest pixel of the painted volcano, where the lenticular cloud sits (E3).
     summit: (() => { let best = [LAND.volc.cu, 1e9]; for (let x = Math.round(LAND.volc.cu - 160); x <= LAND.volc.cu + 160; x += 2) { const y = topOf(x, 'volc'); if (y > 0 && y < best[1]) best = [x, y]; } return best; })(),

@@ -226,7 +226,7 @@ function openDebug(on) {
   const fillPlaces = () => { const k = kinds[+animal.value]; place.replaceChildren(...k.homes.map((h, n) => el('option', { value: n, text: h })), el('option', { value: 'all', text: D.spawnAll })); };
   animal.addEventListener('change', fillPlaces); fillPlaces();
   // The timed events of the scene on screen (E5f): the map's, or the scene's own.
-  const SCENE_EVENTS = { world: ['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'serac', 'avalanche', 'lens', 'tumble', 'devil', 'star'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
+  const SCENE_EVENTS = { world: ['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'lens', 'tumble', 'devil', 'star'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
   const here = api.scene(), events = SCENE_EVENTS[here] || [];
   const starts = ids => ids.map(id => el('button', { class: 'plank', onclick: () => { audio.sfx(api.trigger(id) ? 'step' : 'close'); } }, el('span', { text: D.events[id] })));
   debug.replaceChildren(

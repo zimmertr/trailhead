@@ -19,8 +19,9 @@ all.set(LAND.mg, 5 * n + 2 * m); all.set(LAND.water, 5 * n + 3 * m); all.set(LAN
 // Then the hills' evening light and the cloud deck, which buildTerrain works out from all of the above.
 // And the mist's layout (packMist in land.js).
 { const W = buildTerrain(); all.set(W.hillLight, 8 * n + 4 * m); all.set(W.deck, 9 * n + 4 * m); packMist(W.mist, all.subarray(12 * n + 4 * m)); }
-// Then Mount Monolith's snow cover: the plain snow under each covered pixel and how far down the icefall it is.
-{ const M = LAND.monoCover; if (M) for (let j = 0; j < M.at.length; j++) { all[10 * n + 4 * m + M.at[j]] = M.snow[j]; all[11 * n + 4 * m + M.at[j]] = M.q[j]; } }
+// Then Mount Monolith's snow cover: the plain snow under each covered pixel, and one byte for which icefall
+// it is in and how far down it (as monolith.js packs them).
+for (const M of LAND.monoCover) for (let j = 0; j < M.at.length; j++) { all[10 * n + 4 * m + M.at[j]] = M.snow[j]; all[11 * n + 4 * m + M.at[j]] = (M.k << 6) | (M.q[j] >> 2); }
 let s = ''; for (let i = 0; i < all.length; i += 32768) s += String.fromCharCode.apply(null, all.subarray(i, i + 32768));
 window.__bake = { w: NW, h: BAKE_ROWS, data: btoa(s), sig: await sourceSig(), falls: JSON.stringify(LAND.falls) }; window.__ready = true;
 </script>

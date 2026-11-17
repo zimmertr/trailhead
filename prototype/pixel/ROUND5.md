@@ -98,7 +98,7 @@ The site is a brag and resume site for TJ first and a game second. Every change 
 - `core.js`: the indexed-colour renderer. `ramp(name, [day...], [dusk...])` adds palette entries (`R.<name>[i]`), plus `BM` bitmaps, `pick()` with dither, `Screen` (`put`, `blit`, `iris`, `night`, `present`), the `DEBUG` flags, `breeze()`, `windAt()` and `veilTable` (cached since round 4). New ramps go just before `const INK`.
 - `land.js`: the map. It holds the land's heights and materials, the rivers and lakes (`C.lakes`, `LIP`, `FALLS`), the trails (`C.trails`, routed by least cost from the Trailhead `C.T`; the `trailPts` and `track` masks), the footbridges (`BRIDGES`), the coast (`SHORE`, `SHV`), the dry edge (`BORDER`), the glacier (`GL`), every planted thing (`things`, `STACKS`), the fire lookout (`LOOK`), the flower drifts (`DRIFT`, `parkAmt`), animal homes (`habitat()`) and `buildTerrain()`.
 - `bake.html`, `bake.sh`, `ground.png`: the ground worked out ahead of time. **Run `./bake.sh` after any change to `land.js`, `core.js` or anything `land.js` imports.** On localhost the page prints "ground.png is missing or no longer matches the map" when the bake is stale. Treat that warning as a failed check. Today's bake rows are `13 * SH + 4 * VD`.
-- `monolith.js`: Mount Monolith, a painted piece (glacier by glacier), with its avalanche scars and refill.
+- `monolith.js`: Mount Monolith, a painted piece (glacier by glacier), with the snow that covers each ice fall until its avalanche (`cover`) and which ice falls are under snow now (`faceSnow`, shared by the map and the lake scene).
 - `world.js`: the map scene (`makeWorld`): drawing order, taps (`pick`), name tags, camera and opening (`lookRound`), the night sky, Dusk.
 - `critters.js`: everything on the map that moves: herds and `walker`s, the bear, squirrels, whale, orcas, ferry, sea and tide (`SEA`, `EBB`, `seaRow`), jellyfish, the bald eagle and the osprey, surf, mist and birds. `mapfauna.js` and `scenery.js` hold map drawings. `events.js` holds timed map events (tumbleweed, dust devil, float plane and others).
 - Side scenes: `forest.js` and `lakeside.js` (the lake loop, built on `side.js`), `larches.js` (the larch basin), `ridge.js` (the West Ridge climb of Proficiency Peak; `wall.js` is round 3's wall behind `?wall`), `approach.js` (the walk to Spires base camp), `camp.js` (base camp), `climb.js` (the six Spires climbs), `register.js` (the register close-up), `offroute.js` (the 404).
@@ -535,7 +535,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] E3. T33: the tide pool twice the size, with animated animals.
 - [x] E4. T14: the marine layer's rain belongs to the world.
 - [x] E5. T28, T16, T19: the bald eagle on the stacks, the osprey at Reflection Lake, the salmon removed. Debug buttons.
-- [ ] E6. T11: all three ice falls snowy at the start, avalanches every 60 to 120 s one at a time, serac falls only on bare faces.
+- [x] E6. T11: all three ice falls snowy at the start, avalanches every 60 to 120 s one at a time, serac falls only on bare faces.
 - [ ] E7. T20: the summit squall when all three are bare.
 - [ ] E8. T13: dust devils in the north and centre of the dry corner.
 - [ ] E9. T34, T44: the fixed bear family in its clearing, and the random bear with two cubs. Both in the spawn menu.
@@ -675,7 +675,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **E3 done.** The tide pool to find is a basin 27 by 13 px (it was 11 by 5), beside the north stack of the two the low water bares: a rim of rock, lit on its far side and dark on its near side, with barnacles, round clear teal water that is paler in the shallows. In it: a purple and an orange sea star whose arm tips shift so their shapes slowly change, two green anemones whose tentacles lean one way and then the other, a purple urchin whose spines bristle, and a sculpin that lies still and then darts to another spot. A red crab goes sideways along the sand in front, legs working, and stops. A glint wanders on the water. The small pools are basins too, each with one small animal that moves, and the south stack's crab walks beside its pools. The find still opens on a tap at low water, with the same label.
 - **E4 done.** The marine layer's drizzle is placed in the world: the map is divided into patches of 20 by 13 px, each with one streak that falls in its own patch, so the rain stays over the same land when the view pans or zooms (`drizzle` in `world.js`). With the clock stopped and the view dragged 100 px, no pixel over the same land changes (round 4: 14,320 do). Zoomed out, the rain now keeps its density, where round 4 spread the same 900 streaks thin over the whole view. `check.sh E4 E3` passed: 11.9 ms, nothing moved.
 - **E5 done.** A bald eagle sits on top of the tallest sea stack (white head and tail, dark body, yellow beak, 8 by 11 px). Every 40 to 70 s it lifts off, circles the stacks' tops two or three times, glides out, swoops with its wings high and its feet down, takes a fish with a splash and carries it home, where it eats for ten seconds. The osprey is at Reflection Lake every 50 to 80 s, 19 px across (it was 13): in from the forest, twice round over the water, a hover on fast wings, a feet-first plunge with a two-ring splash, up with a fish and a shake, and away. The salmon leap and its button are gone. Debug: "Eagle fishes" and "Osprey dives" start one now, both birds are in the Spawn menu and in Roam areas. `check.sh E5 E4` passed: 12.0 ms (four runs, 11.9 to 12.2).
-- Next: E6.
+- **E6 done.** All three of Mount Monolith's ice falls start a visit under snow. The first avalanche comes about 40 s in, then one every 60 to 120 s, each on a face still under snow, picked at random, never two at once. A face that has slid shows its blue seracs and can drop them; a face under snow drops none. When all three are bare the old plumes off the summit build the snow up again on all of them together (E7 replaces that with the summit squall). Debug: "Avalanche" (a random snowy face) and one button for each face; "Serac fall" picks among bare ice. The lake scene paints the same mountain: an ice fall is under snow there while it is on the map. `check.sh E6 E5` passed: 12.0 ms; the serac spots moved (two on each face now).
+- Next: E7.
 
 ## 11. Calls made in round 5
 
@@ -842,99 +843,12 @@ One line each, newest last: the item, what was decided, and why.
 - E5, the Spawn menu's names for the eagle's stacks come from the menu's own rule (the nearest named place), so two of the five read "west of Reflection Lake" and "Cache Miss Cove". Left as the rule gives them.
 - E5, no sound was added for either bird. Ideas for them are in `IDEAS.md`.
 - E5, `window.__crit.birds(t)` says where each bird lives and how far into its flight it is, for checks. `check.sh` starts the eagle in place of the salmon.
-- E3, checks: `check.sh E3 E2` passed, 11.9 ms a frame zoomed out at Dusk, lint clean, nothing moved more than 8 px. Filmed close up over 8 frames, looked at by day and at Dusk beside round 4's build, and the find tapped at low water in the browser ("Found: The tide pool").
-
-## 12. The reference pictures
-
-**TJ's screenshots for this round** are on a private page, https://claude.ai/artifact/C3vp7qfxAtoHGnTioe2sNs, each under its note's number with the description below. They were in `plan/round5/` until S3b took them out of the repo (19 MB), so every `plan/round5/<name>` in this file now means the picture of that name on the page. To look at one from a clone: `git show cc882c6:prototype/pixel/plan/round5/<name> > out/<name>`, since that commit still holds them. The file name starts with the note's number:
-
-- `06-trail-rework-magenta-new-red-removed.png`: the whole map, zoomed out. Magenta lines are new trails, and red X's mark stretches to remove (section 5.3). The second red X is on the lower trail by the elk bridges, not on the lakeshore trail.
-- `07-ferry-through-sea-stack.png`, `07-orca-beside-sea-stack.png`: the ferry drawn over the tall sea stack, and an orca's fin right against it.
-- `08-driftwood-blob.png`: a pale grey rounded lozenge on the sand, no texture.
-- `11-monolith-three-icefalls.png`: Monolith's upper slopes. The middle ice fall is snow-covered, and the two either side are bare blue seracs.
-- `15-orcas-near-shore-at-low-tide.png`, `15-ferry-aground-at-low-tide.png`: orcas in the shallows by the bared flat, and the ferry sitting on the sand.
-- `17-lake-outflow-not-joining-fall.png`: Reflection Lake close up. The outflow runs to the cliff's top, and the waterfall below starts apart from it.
-- `21-flower-density-red-most-blue-medium-green-small.png`: the map with a red outline (the band from Monolith's foot round the lake to the Spires valley), blue lines along the rivers (the central meadow and the right-hand river corridors), and green outlines (the Trailhead's meadow and a patch at the bottom left).
-- `22-enchantments-plateau-larches.png`: the plateau below Proficiency Peak with goats, tarns, slabs and a few larches.
-- `23-aspens-in-the-palouse.png`: aspens standing on the dry yellow ground.
-- `24-river-outlet-gap-on-beach.png`: a river reaching the sand with a separate blue patch below it on the beach.
-- `27-legacy-range-too-blue.png`: the far range as pale blue snowy peaks behind the forest.
-- `28-oxbow-and-heron.png`: a crescent of still water beside a stream, with the heron in it.
-- `29-marmot-on-glacier.png`: a marmot on the crevassed ice beside the camp's tents.
-- `30-moraine-lakes-and-bigger-reflection-lake.png`: cyan sketch of two moraine lakes under Monolith's ice tongues, streams from each down to a much larger outline round Reflection Lake.
-- `34-fixed-bear-family-clearing.png`: a cyan box round an open patch in the dense conifers north-east of the Trailhead, between the Spires' outflow waterfall and the Proficiency trail.
-- `35-moose-red-box-sheep-to-coulees.png`: a red box on the aspen and pine woods along the river below the Enchantments cliff (the moose), a cyan box on the bighorn's current spot at the dry edge, and cyan lines pointing right to the coulee benches.
-- `37-tj-facing-flip-a.png`, `37-tj-facing-flip-b.png`: TJ at a trail fork, facing one way and then the other a frame later.
-- `38-owl-to-limb-remove-jay.png`: the forest. A red box round the owl with an arrow to the big trunk behind the stump on the right, and the jay on that trunk crossed out.
-- `44-random-bear-on-map.png`: the random bear by a stream below the elk near the forest.
-- `45-sign-arrows-swapped.png`: the opening view with the sign's three planks (Reflection Lake left, Proficiency Peak up, Sideproject Spires right).
-- `48-walk-to-camp-on-moraine.png`, `48-walk-end-tents-on-moraine-49-teal-pack.png`, `48-camp-on-glacier-49-two-tents.png`: the walk on the grey moraine with the Spires far off; the walk's end with two tents, Kayti and her teal pack on the moraine; camp on its rock island in the glacier, close under the Spires.
-- `53-two-ice-walls-to-one.png`: TJ on the first of two ice steps on TJs-Kubernetes-Service, with the ladder over the crevasse beyond.
-- `57-spire-heights-trailhead-to-be-highest.png`: camp's backdrop. hevy-garmin-sync is the highest summit and trailhead lower.
-- `58-knife-edge-broken-graphics.png`, `58-knife-edge-sinking-into-rock.png`: the knife-edge with the map pasted under the rock, and TJ sunk to the waist in the ridge while straddling.
-- `61-kubernetes-manifests-clipped.png`: the Kubernetes-Manifests name tag pointing at a summit hidden behind the foreground rock.
-- `64-cliff-path-broken-and-wide.png`, `64-path-hook-at-cliff-top.png`: the map's trail up the plateau's cliff, wide and smeared, and its hook right then left at the top.
-- `65-red-ground-looks-like-blood.png`: the larch basin's ground with flat dark red splotches.
-- `67-floating-rocks-and-larch.png`, `67-floating-larches-at-dusk.png`: rocks and a larch above the ground near the basin's end, and larches floating at Dusk.
-- `70-sparse-background-add-tarn.png`: the West Ridge high up, with an empty blue background.
-- `71-caterpillar-second-rope-missing.png`: TJ tied to the leader's rope, and the red-haired woman tied to nothing.
-- `73-off-width.png`: the leader on the pale headwall's off-width, with the other two below.
-- `74-inversion-at-rappel-start.png`, `74-higher-inversion-fills-in.png`: the summit with a cloud sea already below, then a second, higher one filling in.
-- `78-off-route-add-404-in-fog.png`: the off-route page's pink fog with the lone wand and sign.
-
-**Still useful from round 4** (`ROUND4.md` section 10 has the full descriptions): Prusik Peak's south face and the West Ridge topo, the Southern Pickets (for the Spires and the crest), Rainier over Reflection Lake and Glacier Peak over Image Lake (for the lake scene), turquoise water through dark trunks (the forest's end), deer eyeshine at night, pixel wind lines, the three-piece anchor and the slung horn, the trail registers, a glacier ending in its lake (for T30's moraine lakes), forested foothills, inversions by day and night (for T62 and T74), and the Olympic Peninsula's forest maps.
-
-**New references to find by name** (describe them in section 11 when used; never copy them): Shield Lake below Prusik Peak (T70); the iron rungs on the trail above Snow Lake into the Enchantments (T64); a 3:1 haul system (T73); old man's beard lichen on Hoh rainforest branches (T39); a bald eagle on a sea stack, and an osprey's plunge (T28); moon jellyfish (T26); ochre sea stars, green anemones and shore crabs in a tide pool (T33); a pika in talus (T47); a bull moose with a calf (T35); the Bluebird Forecast app's look (T50, from https://github.com/zimmertr/bluebird); a Garmin watch face showing laps and heart rate (T55).
-
-## 13. TJ's words, to get the details right
-
-Round 5 (2026-11-16):
-
-- On the bar: "Round 4 is better than round 3. But we are still striving for improved quality that exceeds round 4."
-- On the opening: "This looks glitchy and it should center on him from the start." The tour "is cool, but I think it starts too soon. This feature should be reserved as an idle animation that doesn't trigger until no movement has been detected for a few minutes."
-- On collision: "I think we need to program in boundaries for some objects like these sea stacks that the game knows other objects like animals and ferries cannot move through or a collission occurs."
-- On the loop: "I didn't mean to break the loop for the forest/reflection lake by deleting a trail. Lets keep it a loop and keep teh out trail."
-- On direction: he enters the forest from the right, "So he can't start walking to the right after entering the forest", and he leaves the lake on its right side when he comes back to the map.
-- On camp: "Then suddenly camp is surrounded by nunataks, situated on teh glacier, and much closer to the spires. How do we solve this continuity problem?"
-- On the climbs: "The weather clearing is a nice touch though." "The weighted sets don't make sense. And I don't ski."
-- On the cairn: "I don't like the easter egg of him kicing over the cairn, it doesn't feel very nice."
-- On the off-width: "In real life, I wasn't able to climb the off-width at the end."
-- On the climbing speed: "I played htis scene at 4x and it felt more natural/interesting to watch."
-- On Dusk: "The nighttime/dusk sequence is beautiful."
-- On the debug menu: "Right now, it is mostly just fun stuff and I don't see why we can't enable it publicly."
-- On ideas: "Keep adding your ideas to IDEAS.md as you have them though. I notice you haven't commited to that file in a while, don't hold back with your ideas."
-- On the moose: "So that one can have antlers even if it's unusual."
-- On the knife-edge: "IF we cant figure out how to write htis better, we might need to switch it for something else that is easier to depict from a side angle."
-
-Still true from round 4 (`ROUND4.md` section 11 has the rest):
-
-- "Glaciers are beautiful btw, so emphasis on those."
-- On the Spires: "they are not daggers or a serrated knife blade. They are imperfect and uneven. And don't come to perfect points. Mountains are not perfect, they are broken. Fragmented. Dangerous."
-- On the forest's west edge: "Eerie, nothign scary."
-- "Rivers don't do that. They wander, oxbow, etc. And take the path of least resistance along lowest-elevation." (Round 5 removes the one oxbow TJ found wrong. Rivers still wander.)
-- "the higher up the tarns are, the more milky/teal/green they should be."
-- On the rope: "the rope isnt just a perfect straight up line, but wanders and weighs from gravity between carabiner attachenment points."
-- "Followers should climb differently and have unique *personalities*, speed, etc. If one falls the other doesn't at the same time."
-- "adding more of these 'timed' events is a good idea to make the world feel lived in."
-- "People don't *have* to finish anything, the website is just supposed to be impressive an informative in the end."
-
-## 14. Things learned the hard way in rounds 3 and 4
-
-- **Look at every picture you make, critically, beside the last round's.** The mist, the aspens and the river mouth each came back wrong the first time in round 3 because nobody looked. In round 4, side-by-sides that compared stills missed motion and readability. Film what moves, compare at the zoom a visitor sees, and ask "would TJ wince".
-- **Never call a regression "rough".** Name it as worse than the last round, and fix it or list it.
-- **Never switch off or remove a feature TJ did not ask to lose.** Round 4 turned the moving mist off for a reason of its own, and TJ asked why.
-- **Never invent a find.** Round 4 added ice worms, and TJ had them removed ("Did I approve that?").
-- **Never put back an earlier round's work across scenes on your own.** TJ called that dangerous. List it instead.
-- **Place by rule.** Round 3's written map positions broke on round 4's map. Everything placed by rule survived.
-- **When TJ says an earlier version looked better, port that version's code** instead of rebuilding its idea from scratch.
-- **Run `./bake.sh` after touching `land.js`, `core.js` or their imports.** A stale bake means the page builds the ground live and takes about 3.5 s to be ready.
-- **`shot.sh` steps are separated by semicolons.** With commas, the screenshot is taken at load, mid-fade, and shows a bug that is not there. Eval steps cannot contain semicolons.
-- **Publishing the same file path again goes to the same artifact** unless a `url` is given. That once put a new build over a frozen one. This round republishes one artifact on purpose, so always publish from the round's own export folder and never from a round 4 folder.
-- **The map's `draw()` is too big for the browser to optimise.** Every per-pixel loop goes in its own small function outside it. Frame time is measured, not guessed.
-- **Load time is measured too.** Round 4 accepted 1.2 s as the cost of a bigger map, then found it was a regression and brought it back to 0.8 s by caching the bake's planes and making the sea's rows lazy. Measure after any change to the bake or to start-up.
-- **Volcanoes drift toward Fuji.** Rainier is wide, lopsided and flat-topped. Procedural passes at Monolith stalled. A painted piece composed glacier by glacier worked.
-- **The fog's ranks of trees could not be made by rules** (tried four times). They are drawn ridge by ridge.
-- **Mid-session questions.** When a question to TJ is wrong, he says so. Explaining a choice with a small ASCII sketch of the map got a clear answer where words alone did not.
-- **Parallel copies of the agent used up TJ's limit** in a few hours in round 3. One stream of work only.
-- **Sounds nobody has heard yet:** the seven tunes' second parts, the effects `tink`, `bang`, `slap` and `kraa`, the larch basin's bed, and every sound added this round. List them in the final report for TJ to listen to.
-- **Confirmed on the artifact host (S2c, 2026-11-17):** the page's own files fetch back byte for byte, which the bake's check (`sourceSig`) needs, so the published page reads the ground from the bake. The Debug panel's first line says which it did.
+- E6, how. The painting (`monolith.js`) now keeps the plain snow for every ice fall, not only the middle one, and tags each pixel with its ice fall. The land turns that into one face for each ice fall with enough showing (`coverFaces` in `land.js`), and the map scene keeps a state for each face (`FACE` in `world.js`). The avalanche itself is round 4's, unchanged: filmed beside round 4's on the middle face, the frames match.
+- E6, each face slides down its own line (from the middle of its top to the middle of its foot), so the west face's slab and cloud go down and to the left and the east face's down and to the right, each down its own glacier. Round 4's went straight down the screen, which was right only for the middle one.
+- E6, three faces, not four. The painting has a fourth ice fall on the glacier behind the rock peak east of the summit. On the map 146 pixels of it show. TJ counts three, so a sliver under 400 pixels is no face: it stays bare as painted and never slides.
+- E6, timing. The first avalanche is 40 s in, as in round 4, so a short visit still sees one. After that the gap from one start to the next is 60 to 120 s (TJ's "every 1 to 2 minutes"). A slide and its cloud are over in about 25 s and its debris fades over a minute, so two never run together.
+- E6, the refill is interim. Round 4's plumes now wait until every face is bare and then build the snow up on all three together, which takes about four minutes. E7 replaces them with the summit squall TJ asked for (T20).
+- E6, serac falls. Each fall picks, as it starts, among the spots on bare ice: the Spires' ice fall (always bare) and any face of Monolith that has slid. Round 4 chose from a fixed list and skipped a turn when the choice was under snow, which left gaps. The spots themselves are now two on each face, in its upper two thirds (round 4's five were scattered, two of them on crevasses above the ice falls and none on the west face). At the very start, with all three faces under snow, every serac fall is on the Spires.
+- E6, the debug buttons. "Avalanche" slides a random face that is under snow (any face, covered again first, when none is). "Avalanche, west face", "Avalanche, middle face" and "Avalanche, east face" slide that one (words: drafts for TJ). `?start=ava0` to `ava2` do the same from the address.
+- E6, the lake scene. Round 4's lake scene always painted all the ice falls bare, even the middle one the map had under snow. With all three under snow on the map that would be three mismatches, and this round's law says a scene shows what the map shows. So the lake scene now reads the same state and repaints its mountain when a face changes. **For TJ to check:** on a short visit the mountain behind Reflection Lake is plainer than round 4's, since the blue ice falls only show once they have slid. If he would rather keep them always bare there, it is one condition in `paintPeak` (`lakeside.js`).
+- E6, the bake's second snow plane now packs which ice fall (two bits) with how far down it the pixel is (six bits); the bake was written again.

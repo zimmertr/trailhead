@@ -9,7 +9,7 @@ import { marmot, speck } from './fauna.js';
 import { makeRunner, sideFig, cheerFig, swimFig } from './tj.js';
 import { NAMES } from './content.js';
 import { drawLens, startLens } from './events.js';
-import { paintMonolith, moraineLakes, MW as PMW, MH as PMH, TOPY as PTOPY } from './monolith.js';
+import { paintMonolith, moraineLakes, faceSnow, MW as PMW, MH as PMH, TOPY as PTOPY } from './monolith.js';
 
 // Round 5 (T30): the lake on the map is about 1.6 times as wide, so the shore he runs along is longer
 // than round 4's (624 over 8 s), at the same pace.
@@ -50,14 +50,19 @@ const MS = 0.75, PH = Math.round((PMH - PTOPY) * MS), PW = Math.round(PMW * MS);
 // The streams out of the moraine lakes (T30), as columns of the peak's strip: each comes down through the
 // far forest into the lake straight below its glacier. The crater (picture column 330) is column 600.
 const INFLOW = moraineLakes().map(e => Math.round(600 + (e.mid - 330) * MS));
+// The painting, and for each pixel of an icefall the plain snow that covers it until its avalanche and
+// which icefall it is (one more than its place, 0: none). An icefall the map has under snow now
+// (faceSnow, round 5) is painted as snow here too.
+let PEAK = null;
 function paintPeak(S) {
+  if (!PEAK) { const P = paintMonolith(), plain = new Uint8Array(PMW * PMH), face = new Uint8Array(PMW * PMH); for (let j = 0; j < P.cover.length; j += 3) { plain[P.cover[j]] = P.cover[j + 1]; face[P.cover[j]] = (P.cover[j + 2] >> 6) + 1; } PEAK = { P, plain, face }; }
   // The crater (x 330 in the picture) lands on column 600 of the strip.
-  const P = paintMonolith(), sx = 600 - Math.round(330 * MS);
+  const { P, plain, face } = PEAK, sx = 600 - Math.round(330 * MS);
   for (let x = 0; x < PW; x++) {
     const u = Math.min(PMW - 1, Math.floor((x + 0.5) / MS));
     let first = -1;
     for (let y = 0; y < PH; y++) {
-      const v = PTOPY + Math.floor((y + 0.5) / MS), c = v < PMH ? P.d[v * PMW + u] : 0;
+      const v = PTOPY + Math.floor((y + 0.5) / MS), i = v * PMW + u, c = v < PMH ? (face[i] && faceSnow.on[face[i] - 1] ? plain[i] : P.d[i]) : 0;
       if (!c) continue;
       if (first < 0) first = y;
       S.set(sx + x, y - PH, c);
@@ -142,7 +147,7 @@ function buildLakeside() {
     const top = -52 - 46 * fbm(x / 70, 1.3, 134, 4) - 10 * Math.sin(x / 41);
     for (let y = Math.round(top); y < 4; y++) { const sl = fbm((x + 2) / 70, 1.3, 134, 4) - fbm((x - 2) / 70, 1.3, 134, 4); range.set(x, y, y - top < 4 + 3 * vnoise(x / 5, 1, 135) && top < -74 ? R.farsnow[sl > 0 ? 1 : 0] : pick('far', 0.5 + sl * 9 + (y - top) * -0.004, x, y)); }
   }
-  const peak = new Strip(1240, PH + 4, 2); paintPeak(peak);
+  const peak = new Strip(1240, PH + 4, 2); paintPeak(peak); let peakRev = faceSnow.rev;
   const farS = new Strip(1400, 60, 4);
   for (let x = 0; x < 1400; x++) {
     const top = -9 - 9 * fbm(x / 36, 2, 136, 3) - 6 * Math.max(0, Math.sin(x / 57 + 1));
@@ -394,6 +399,7 @@ function buildLakeside() {
       const peakX = 0.2 * (camX - (X0 + D_MAP - VW * anchor)) + 600 - VW * 0.5;
       // The summit stays clear of the buttons along the top; the foot sinks behind the far shore as far as it has to.
       const sink = clamp(PH + 26 - hor, 0, 140);
+      if (peakRev !== faceSnow.rev) { peakRev = faceSnow.rev; paintPeak(peak); }
       drawStrip(scr, peak, peakX, hor + sink);
       // The lenticular cloud, when it stands over the summit on the map, stands over it here at the same moment.
       if (DEBUG.clouds) drawLens(scr, 600 - Math.round(peakX), hor + sink - PH + 2, t, MS);

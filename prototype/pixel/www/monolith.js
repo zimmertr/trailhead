@@ -37,8 +37,14 @@ const RIDGES = [
 // as a range of distance from the summit.
 const SNOUT = [266, 300, 296, 334, 290, 316, 282, 306, 268];
 const FALLS = { 2: [128, 186], 3: [150, 214], 4: [96, 150], 7: [120, 160] };
-// The middle icefall, the large one low in the centre, is the one the avalanche bares (E5c).
+// The middle icefall, the large one low in the centre. Round 4's avalanche bared only this one (E5c); since
+// round 5 (T11) every icefall starts under snow and any of them can slide. FALL_IDS: the glaciers that have
+// one, west to east.
 export const MID_FALL = 3;
+const FALL_IDS = Object.keys(FALLS).map(Number);
+// Which icefalls lie under snow now, by their place in FALL_IDS. The map keeps this up to date as its
+// avalanches run and the lake scene reads it, so both show the same mountain. rev counts the changes.
+export const faceSnow = { on: FALL_IDS.map(() => true), rev: 0 };
 const SUM = [324, 70];
 const rOf = (x, y) => Math.hypot((x - SUM[0]) * 0.72, y - SUM[1]);
 // The summit snowfield: above this the glaciers have not begun.
@@ -74,8 +80,9 @@ export function paintMonolith() {
   // own marks the mountain proper; the meadow at its foot is only a stand-in for the mockup, and in the
   // game the land's own meadow, trees and flowers are drawn there instead.
   const own = new Uint8Array(MW * MH), d = new Uint8Array(MW * MH), snow = R.snow, ice = R.serac, rock = R.mauve;
-  // For each pixel of the middle icefall: its index, the plain snow that would lie there with no icefall,
-  // and how far down the icefall it is (0 at its top, 1 at its foot).
+  // For each pixel of an icefall: its index, the plain snow that would lie there with no icefall, and one
+  // byte saying which icefall (its place in FALL_IDS, in the top two bits) and how far down the icefall the
+  // pixel is (0 at its top to 63 at its foot, in the low six).
   const cover = [];
   // The relief: each cleaver is a ridge with a sharp crest and slopes either side; between them the
   // glaciers lie in troughs. It is only used for light, so it is worked out at every pixel of the picture.
@@ -180,7 +187,7 @@ export function paintMonolith() {
         const topH = 0.22 + 0.25 * hash(col, row, 926);
         d[i] = fy < topH ? snow[blk < 0.2 ? 3 : 4] : fy > 0.86 ? ice[0] : fx > 0.75 ? ice[1] : fx < 0.2 ? ice[4] : blk < 0.12 ? snow[3] : ice[L > 0.5 ? 3 : 2];
       } else if (edge > 0.25) d[i] = blk < 0.85 ? ice[fy > 0.5 ? 0 : 1] : snowC(L - 0.2, x, y);
-      if (d[i] !== before) { if (gi === MID_FALL) cover.push(i, plain(), Math.round(255 * clamp((rr - f0) / (f1 - f0), 0, 1))); continue; }
+      if (d[i] !== before) { cover.push(i, plain(), (FALL_IDS.indexOf(gi) << 6) | Math.round(63 * clamp((rr - f0) / (f1 - f0), 0, 1))); continue; }
     }
     // Crevasses: short arcs across the ice, not everywhere: in bands where the glacier bends or steepens.
     d[i] = plain();
