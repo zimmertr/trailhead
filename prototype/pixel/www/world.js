@@ -184,10 +184,35 @@ function slabPass(fb, VW, VH, ox, oy, A, a) {
 // A round cloud of powder, lit from above: white on top, blue-grey snow shade under, with no outline so
 // that puffs laid over each other merge into one billowing cloud. Used for the avalanche's cloud and the
 // plume off the summit.
-function puffAt(fb, VW, VH, ox, oy, cx, cy, r, al, sq) {
+function puffAt(fb, VW, VH, ox, oy, cx, cy, r, al, sq, heavy) {
   for (let dy = -Math.ceil(r); dy <= r * 0.7; dy++) { const y = Math.round(cy + dy) - oy; if (y < 0 || y >= VH) continue;
-    for (let dx = -Math.ceil(r * sq); dx <= r * sq; dx++) { const x = Math.round(cx + dx) - ox; if (x < 0 || x >= VW) continue; const d = Math.hypot(dx / sq, dy) / r; if (d > 1 || bayer(x + ox, y + oy) >= al * (1.3 - d * d)) continue;
-      const f = (dy + r) / (1.7 * r) + 0.25 * (bayer(x + ox + 1, y + oy) - 0.5); fb[y * VW + x] = f < 0.36 ? R.snow[4] : f < 0.62 ? R.snow[3] : R.snow[2]; } }
+    for (let dx = -Math.ceil(r * sq); dx <= r * sq; dx++) { const x = Math.round(cx + dx) - ox; if (x < 0 || x >= VW) continue; const d2 = (dx * dx / (sq * sq) + dy * dy) / (r * r); if (d2 > 1 || bayer(x + ox, y + oy) >= al * (1.3 - d2)) continue;
+      const f = (dy + r) / (1.7 * r) + 0.25 * (bayer(x + ox + 1, y + oy) - 0.5); fb[y * VW + x] = heavy ? (f < 0.26 ? R.snow[4] : f < 0.46 ? R.snow[3] : f < 0.72 ? R.snow[2] : R.snow[1]) : f < 0.36 ? R.snow[4] : f < 0.62 ? R.snow[3] : R.snow[2]; } }
+}
+// The summit squall's curtain of falling snow (round 5, T20): a haze of pale snow colours laid through a
+// dither over the mountain under the cloud, thickest under the middle of the cloud and thinning to the sides
+// and downward. It hangs from the cloud's base (y0) as half an oval rx wide and ry deep, leaning east with
+// the wind, in slanting bands that slide down it, so it is seen to fall. (A first try with the fog's colours
+// tinted the snow green.)
+// (Frame time: each row is walked only between the curtain's own edges, the bands come from a table of sines
+// and each column's share of the wave is worked out once a frame. Done pixel by pixel with two sines each it
+// cost 3 ms.)
+const SINE = new Float32Array(256).map((_, i) => Math.sin(i / 256 * 6.283185)), COLW = new Float32Array(4096);
+function squallVeil(fb, VW, VH, ox, oy, cx, y0, rx, ry, den, t) {
+  const ya = Math.max(0, Math.round(y0) - oy), yb = Math.min(VH, Math.round(y0 + ry) - oy), K = 256 / 6.283185, sh = t * 30, S2 = R.snow[2], S3 = R.snow[3];
+  for (let x = 0; x < VW && x < 4096; x++) { const wx = x + ox; COLW[x] = (wx * 0.5 / 4.5 + 2 * Math.sin(wx / 17)) * K; }
+  for (let y = ya; y < yb; y++) { const wy = y + oy, v = (wy - y0) / ry, row = y * VW, mid = cx + 0.25 * (wy - y0), half = rx * Math.sqrt(Math.max(0, 1 - v * v * 0.8)), rowW = (wy - sh) / 4.5 * K, v2 = v * v * 0.8;
+    for (let x = Math.max(0, Math.ceil(mid - half) - ox), xb = Math.min(VW, Math.floor(mid + half) - ox); x < xb; x++) { const wx = x + ox, u = (wx - mid) / rx, bay = bayer(wx, wy);
+      const al = den * (1 - u * u - v2) * (0.62 + 0.38 * SINE[(rowW + COLW[x]) & 255]) * 0.7; if (bay >= al) continue;
+      fb[row + x] = bay < al * 0.45 ? S3 : S2; } }
+}
+// The flakes in it: each falls down its own line of the curtain and starts again at the cloud, drawn in a
+// colour that shows on what is behind it (FLAKE: grey-blue on snow, white on rock and sky).
+const FLK = 1500, FLH = new Float32Array(FLK * 3).map((_, i) => hash(Math.floor(i / 3), 1 + i % 3, 4811));
+function squallFlakes(fb, VW, VH, ox, oy, FLAKE, cx, y0, rx, ry, den, t) {
+  const n = Math.round(FLK * den);
+  for (let k = 0; k < n; k++) { const fall = frac(FLH[3 * k + 1] + t * (0.15 + 0.1 * FLH[3 * k + 2])), wy = y0 + fall * ry, wx = cx + (FLH[3 * k] * 2 - 1) * rx * Math.sqrt(Math.max(0, 1 - fall * fall * 0.8)) + 0.25 * (wy - y0) + 2 * SINE[(t * 80 + k * 41) & 255];
+    const x = Math.round(wx) - ox, y = Math.round(wy) - oy; if (x < 0 || y < 0 || x >= VW || y >= VH - 1) continue; fb[y * VW + x] = FLAKE[fb[y * VW + x]]; if (k & 1) fb[(y + 1) * VW + x] = FLAKE[fb[(y + 1) * VW + x]]; }
 }
 // Every waterfall and rapid moves (E8a): white water streams down it in streaks that slide down the
 // screen, and at its foot the water churns. P and F: the falls' and the feet's pixels as x and y.
@@ -271,44 +296,54 @@ export function makeWorld() {
   // pixel or two, a few bits trickling off its foot, a breath, and then it goes: the slab breaks and slides,
   // a cloud of powder pours down the glacier and billows, a deep rumble, a fan of debris at the glacier's
   // foot that fades over a minute. Never two at once. The blue seracs a slide leaves can fall like any
-  // other icefall's; a face still under snow drops none. Once every face is bare, plumes of spindrift
-  // stream off the summit now and then and drift down onto them, each one leaving them whiter, until they
-  // are buried again and the round starts over. It lives as long as the page does, through scene changes; a
-  // reload starts every face covered.
+  // other icefall's; a face still under snow drops none.
+  // The summit squall (round 5, T20) puts the snow back. It comes only when every face is bare, 60 to 120 s
+  // after the last one slid: a bank of cloud builds on the summit and hides it, snow falls from it over the
+  // upper mountain for about 15 s, the bare faces whiten under the falling snow from their tops down, and
+  // the cloud thins and lifts off east with a banner of spindrift streaming from the summit. Then every face
+  // is under snow and the round starts over. (Round 4 built the snow up a little at a time from plumes off
+  // the summit; TJ: "The way the snow just accumulates on it again looks a bit strange.")
+  // It all lives as long as the page does, through scene changes; a reload starts every face covered.
   const AVS = (W.avalanche || []).map((A, f) => { const n = A.at.length, AX = new Int16Array(n), AY = new Int16Array(n), thr = new Float32Array(n);
     for (let j = 0; j < n; j++) { AX[j] = A.at[j] % WW; AY[j] = (A.at[j] / WW) | 0; thr[j] = Math.min(0.999, 0.55 * hash(AX[j], AY[j], 4790) + 0.44 * A.q[j] / 255); }
     return { ...A, f, AX, AY, thr, set: new Set(A.at) }; });
   // Each face: 'covered', 'falling' (from its warning until its debris has faded) or 'bare'.
   const FACE = AVS.map(() => ({ phase: 'covered', start: 0, cover: 1, gone: false }));
-  const AVA = { next: 40, count: 0, plume: -1, nextPlume: 0 };
-  const AV_RELEASE = 4.2, AV_LONG = 75, AV_GAP = [60, 120], PLUMES = 7;
+  const AVA = { next: 40, count: 0, last: 0, squall: -1, squallAt: -1 };
+  const AV_RELEASE = 4.2, AV_LONG = 75, AV_GAP = [60, 120];
+  // The squall, in seconds from its start: the cloud has built by build, the faces whiten over white, the
+  // snow stops and the cloud starts to clear at clear, and all is over at end.
+  const SQ = { build: 6, white: [10, 21], clear: 21, end: 30 };
+  // A face with no snow on it, or with its slab already gone.
+  const bareNow = F => F.phase === 'bare' || (F.phase === 'falling' && F.gone);
   const snowyFaces = () => FACE.map((F, f) => F.phase === 'covered' ? f : -1).filter(f => f >= 0);
   // What the lake scene shows of the same mountain (monolith.js): an icefall is under snow there while its
   // face here is more than half covered. An icefall that is no face on the map stays bare, as it is painted.
   const tellLake = () => { const on = faceSnow.on.map((_, k) => { const f = AVS.findIndex(A => A.k === k); return f >= 0 && FACE[f].cover > 0.5; }); if (on.some((v, k) => v !== faceSnow.on[k])) { faceSnow.on = on; faceSnow.rev++; } };
   tellLake();
-  const slide = (f, t) => { const F = FACE[f]; F.phase = 'falling'; F.start = t; F.gone = false; F.cover = 1; AVA.count++; AVA.next = t + lerp(AV_GAP[0], AV_GAP[1], hash(AVA.count, 6, 4792)); };
+  const slide = (f, t) => { const F = FACE[f]; F.phase = 'falling'; F.start = t; F.gone = false; F.cover = 1; AVA.count++; AVA.last = t; AVA.next = t + lerp(AV_GAP[0], AV_GAP[1], hash(AVA.count, 6, 4792)); };
   // Which face a serac's spot is on (-1: none of Monolith's, so the Spires' icefall, which is always bare).
   const serFace = SER.map(([x, y]) => AVS.findIndex(A => [0, 1, 2, 3].some(d => A.set.has((y + d) * WW + x))));
+  function startSquall(t, env, ox, oy, VW, VH) { AVA.squall = t; const [sx, sy] = spots.summit; if (env && sx - ox > -60 && sx - ox < VW + 60 && sy - oy > -80 && sy - oy < VH) env.sfx('wind'); }
   function avalancheStep(t, env, ox, oy, VW, VH) {
     if (!AVS.length) return;
     if (t >= AVA.next) { const snowy = snowyFaces(); if (snowy.length) slide(snowy[Math.floor(hash(AVA.count, 5, 4792) * snowy.length)], t); }
     FACE.forEach((F, f) => { if (F.phase !== 'falling') return; const a = t - F.start, A = AVS[f];
       if (a >= AV_RELEASE && !F.gone) { F.gone = true; F.cover = 0; if (A.cx - ox > -40 && A.cx - ox < VW + 40 && A.y0 - oy > -60 && A.y0 - oy < VH) env.sfx('avalanche'); }
-      if (a > AV_LONG) { F.phase = 'bare'; if (FACE.every(G => G.phase === 'bare')) AVA.nextPlume = t + 15; } });
-    // Every face bare: the plumes build the cover up again on all of them together.
-    if (FACE.every(F => F.phase === 'bare')) {
-      if (AVA.plume < 0 && t >= AVA.nextPlume) AVA.plume = t;
-      if (AVA.plume >= 0 && t - AVA.plume > 9) { AVA.plume = -1; AVA.nextPlume = t + 18 + 10 * hash(Math.floor(t), 2, 4791);
-        for (const F of FACE) F.cover = Math.min(1, F.cover + 1 / PLUMES);
-        if (FACE[0].cover >= 0.999) { for (const F of FACE) { F.cover = 1; F.phase = 'covered'; } AVA.next = t + lerp(AV_GAP[0], AV_GAP[1], hash(AVA.count, 7, 4792)); } }
-    }
+      if (a > AV_LONG) F.phase = 'bare'; });
+    // Every face bare: the squall is due 60 to 120 s after the last slide began.
+    if (AVA.squall < 0) { if (!FACE.every(bareNow)) AVA.squallAt = -1; else { if (AVA.squallAt < 0) AVA.squallAt = AVA.last + lerp(AV_GAP[0], AV_GAP[1], hash(AVA.count, 9, 4792)); if (t >= AVA.squallAt) startSquall(t, env, ox, oy, VW, VH); } }
+    if (AVA.squall >= 0) { const q = t - AVA.squall, w = smooth(SQ.white[0], SQ.white[1], q);
+      // Every face that is not under snow whitens together, and is a covered face again once it is white.
+      for (const F of FACE) if (F.phase !== 'covered' && (F.phase !== 'falling' || F.gone)) { F.cover = Math.max(F.cover, w); if (w >= 1) { F.cover = 1; F.phase = 'covered'; } }
+      if (q >= SQ.end) { AVA.squall = -1; AVA.squallAt = -1; AVA.next = t + lerp(AV_GAP[0], AV_GAP[1], hash(AVA.count, 7, 4792)); } }
     tellLake();
   }
   function avalancheCover(fb, VW, VH, ox, oy, t) {
     AVS.forEach((A, f) => { const F = FACE[f]; if (F.cover <= 0 || A.x1 < ox || A.x0 > ox + VW || A.y1 + 4 < oy || A.y0 > oy + VH) return;
       let crack = 0, creep = 0;
-      if (F.phase === 'falling') { const a = t - F.start; if (a >= AV_RELEASE) return; crack = smooth(0, 1.4, a); creep = a < 1.6 ? 0 : a < 2.2 ? 1 : 2; }
+      // (A face whose slab has gone has cover again only once the squall is whitening it.)
+      if (F.phase === 'falling' && !F.gone) { const a = t - F.start; crack = smooth(0, 1.4, a); creep = a < 1.6 ? 0 : a < 2.2 ? 1 : 2; }
       coverPass(fb, VW, VH, ox, oy, A, F.cover, crack, creep, R.serac[0]); });
   }
   // One face's slide, a seconds after its warning began.
@@ -330,14 +365,19 @@ export function makeWorld() {
     if (!AVS.length) return;
     const { fb, VW, VH } = scr;
     FACE.forEach((F, f) => { if (F.phase === 'falling') slideFx(scr, ox, oy, AVS[f], t - F.start); });
-    // The plume: spindrift torn off the summit by the wind, streaming east against the sky as a banner
-    // (white on the snow would not show), and a fall of fine snow sinking out of it onto the icefalls.
-    if (AVA.plume >= 0) { const p = t - AVA.plume, [sx, sy] = spots.summit, head = Math.min(1, p / 4), al = smooth(0, 1.2, p) * smooth(9, 6.5, p);
-      for (let k = 0; k <= 20; k++) { const u = k / 20; if (u > head) break; const x = sx + 6 + 120 * u + p * 3, y = sy - 4 + 14 * u * u + 2 * Math.sin(u * 9 + p);
-        puffAt(fb, VW, VH, ox, oy, x, y, 2 + 6 * u, al * (0.9 - 0.45 * u), 2.4); }
-      for (let k = 0; k < 60; k++) { const h = hash(k, 7, 4805), born = 1 + 6 * h, q = (p - born) / 3; if (q < 0 || q > 1) continue; const u = 0.15 + 0.6 * hash(k, 8, 4805), A = AVS[k % AVS.length];
-        const x0 = sx + 6 + 120 * u, y0 = sy + 14 * u * u, tx = A.x0 + (A.x1 - A.x0) * hash(k, 9, 4805), x = Math.round(lerp(x0, tx, q) + 3 * Math.sin(q * 7 + k)) - ox, y = Math.round(lerp(y0, A.y0 + 4, q)) - oy;
-        if (x >= 0 && y >= 0 && x < VW && y < VH && al > 0.3) fb[y * VW + x] = (k & 1) ? R.snow[2] : R.snow[1]; } }
+    if (AVA.squall < 0) return;
+    const q = t - AVA.squall, [sx, sy] = spots.summit, grow = smooth(0, SQ.build, q), fade = smooth(SQ.end, SQ.clear, q), den = smooth(SQ.build - 3, SQ.build + 2, q) * smooth(SQ.clear + 2, SQ.clear - 3, q);
+    // The snow falling under the cloud, from its base down past the foot of the lowest face.
+    if (den > 0.02) { const y0 = sy + 4, ry = Math.max(...AVS.map(A => A.y1)) + 30 - y0; squallVeil(fb, VW, VH, ox, oy, sx, y0, 150, ry, den, t); squallFlakes(fb, VW, VH, ox, oy, FLAKE, sx, y0, 150, ry, den, t); }
+    // The cloud: a bank that builds on the summit and hides it down to the dome's shoulders, heavier under
+    // than a fair-weather cloud and slowly churning. As it clears it thins, lifts and moves off east.
+    if (grow * fade > 0.02) { const off = 1 - fade, wide = 0.4 + 0.6 * grow, big = 0.55 + 0.45 * grow, al = grow * fade;
+      // Its base, low on the dome's shoulders, then its bright top over the summit.
+      for (let k = 0; k < 12; k++) { const u = k / 11 * 2 - 1, h = hash(k, 1, 4812); puffAt(fb, VW, VH, ox, oy, sx + u * 122 * wide + 5 * Math.sin(t * 0.45 + k * 1.7) + off * 34, sy + 12 + 20 * u * u + (h - 0.5) * 8 - off * 18, (13 + 9 * (1 - u * u) + 4 * h) * big, al * (0.85 + 0.15 * (1 - Math.abs(u))), 1.9, true); }
+      for (let k = 0; k < 9; k++) { const u = k / 8 * 2 - 1, h = hash(k, 2, 4812); puffAt(fb, VW, VH, ox, oy, sx + u * 88 * wide + 4 * Math.sin(t * 0.6 + k * 2.3) + off * 40, sy - 5 + 11 * u * u + (h - 0.5) * 8 - off * 22, (12 + 10 * (1 - u * u) + 3 * h) * big, al * (0.85 + 0.15 * (1 - Math.abs(u))), 1.9); } }
+    // As it clears, spindrift is torn off the summit by the wind and streams east against the sky as a banner.
+    const p = q - SQ.clear + 2; if (p > 0) { const head = Math.min(1, p / 4), al = smooth(0, 1.2, p) * smooth(SQ.end - SQ.clear + 2, SQ.end - SQ.clear - 1, p);
+      for (let k = 0; k <= 20; k++) { const u = k / 20; if (u > head) break; puffAt(fb, VW, VH, ox, oy, sx + 6 + 120 * u + p * 3, sy - 4 + 14 * u * u + 2 * Math.sin(u * 9 + p), 2 + 6 * u, al * (0.9 - 0.45 * u), 2.4); } }
   }
   // ---- the weather in the west: the marine layer (E5e) ----
   // Rain in the Northwest seldom comes as a storm. A low grey deck rolls in off the sea ten seconds after
@@ -392,6 +432,8 @@ export function makeWorld() {
   const VEIL = new Uint8Array(7 * 256); FOGV.forEach((t, k) => VEIL.set(t, k * 256));
   // A drizzle streak's colour over each colour: grey over light ones, pale over dark ones.
   const STREAK = new Uint8Array(256).map((_, c) => { const p = DAY[c] || [0, 0, 0]; return 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2] > 150 ? R.nebel[1] : R.fog[1]; });
+  // A snowflake's colour over each colour (the summit squall): grey-blue over light ones, white over dark ones.
+  const FLAKE = new Uint8Array(256).map((_, c) => { const p = DAY[c] || [0, 0, 0]; return 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2] > 170 ? R.snow[1] : R.white[1]; });
   // A cloud drawn in pixels: rounded lobes along a flat base, tallest in the middle, white with the sky's
   // blue underneath (the fair-weather clouds).
   const puff = (w, h, seed) => {
@@ -658,7 +700,9 @@ export function makeWorld() {
       // is), or on the face asked for (ava0 is the westernmost).
       if (name === 'avalanche' || /^ava\d$/.test(name)) { let f = name === 'avalanche' ? -1 : +name[3]; if (!AVS.length || f >= AVS.length) return false;
         if (f < 0) { const snowy = snowyFaces(), pool = snowy.length ? snowy : AVS.map((_, k) => k); f = pool[Math.floor(hash(Math.floor(t * 10), 8, 4792) * pool.length)]; }
-        AVA.plume = -1; slide(f, t); return true; }
+        AVA.squall = -1; slide(f, t); return true; }
+      // The summit squall now: it puts the snow back on every bare face.
+      if (name === 'squall') { if (!AVS.length) return false; startSquall(t); return true; }
       if (name === 'serac') { if (SER.length < 2) return false; const n = Math.floor((t + serAhead + SLOT - 15) / SLOT) + 1; serAhead = n * SLOT + 10 * hash(n, 3, 4741) - t - SLOT + 15; return true; }
       if (name === 'lens') return startLens(t);
       return ev.trigger(name, t) || crit.trigger(name, t);

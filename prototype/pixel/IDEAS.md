@@ -252,3 +252,9 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Climbers Wait It Out** (round 5, E6). Two tiny headlamps or dots on the summit dome could stop and wait while a face below them slides, then go on.
 - **A Slide That Sets Off Its Neighbour** (round 5, E6). Now and then the cloud from one face could shake a cornice loose on the next, a small sluff a few seconds later that does not bare it.
 - **The Order Tells a Story** (round 5, E6). The east face gets the morning sun first, so in the Day's first half it could be the likeliest to go, and the west face the likeliest toward Dusk.
+- **The Squall From the Lake** (round 5, E7). The lake scene could show the cloud bank on the far summit and the snow falling from it, and its reflection going grey on the water.
+- **The Squall Darkens the Meadow** (round 5, E7). While the cloud sits on the summit its shadow could dim the flower parkland below for those 20 seconds.
+- **Graupel at the Trailhead** (round 5, E7). When the squall is at its height a few flakes could drift as far as the Trailhead and melt on the board.
+- **A Snow Line That Moves** (round 5, E7). After a squall the snow could reach a few rows lower on the cleavers' rock for a minute and then draw back as it melts.
+- **Thunder Snow** (round 5, E7). Once in a long while, one soft flash inside the cloud and a rumble a few seconds later.
+- **The Lenticular Cloud Becomes the Squall** (round 5, E7). When the lenticular cloud is standing as a squall is due, it could thicken and sink onto the summit and become the squall's cloud, as cap clouds do before weather.

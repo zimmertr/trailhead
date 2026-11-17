@@ -18,7 +18,7 @@ SMOKE=$(make -C "$D/../.." prototype-smoke 2>&1)
 if echo "$SMOKE" | grep -q '^ *[0-9]* passed' && ! echo "$SMOKE" | grep -q '^ *[0-9]* failed'; then echo "browser:$(echo "$SMOKE" | grep '^ *[0-9]* passed')"; else echo "browser:"; echo "$SMOKE" | grep -v '^npm\|^$' | tail -40; FAILED="$FAILED browser"; fi
 
 # 13.5 ms is what round 4's final build took here, 16.7 ms is one frame at 60 a second.
-EV='start=shower,breach,blow,ferry,tide,orcas,eagle,osprey,serac,avalanche,lens,tumble,devil,star&dusk=1'
+EV='start=shower,breach,blow,ferry,tide,orcas,eagle,osprey,serac,avalanche,squall,lens,tumble,devil,star&dusk=1'
 OUT='wheel=720,200,240;wheel=720,200,240;wheel=720,200,240;wheel=720,200,240;wheel=720,200,240;wait=1500'
 MS=$("$D/frames.sh" check/time.png "$EV" 1440 900 "wait=4000;$OUT;time=800" 1 '0,0,10,10' 1 10 2>&1 | sed -n 's/^time: \([0-9.]*\) ms.*/\1/p')
 case "$MS" in
