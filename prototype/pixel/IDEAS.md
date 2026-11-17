@@ -226,3 +226,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Ferry Sounds Its Horn at the Corner** (round 5, E1). Where its lane bends round the bared flats at low water, one long blast, as a real ferry gives on a blind turn.
 - **A Calf in the Pod** (round 5, E1). A fifth, small orca could keep to one cow's side, on the same lane a little inshore of her, and surface twice as often.
 - **Lanes for the Birds** (round 5, E1). The same two-lane idea would let a line of pelicans or cormorants fly the coast just outside the surf at any tide.
+- **A Bloom of Jellies** (round 5, E2). Once in a long while forty small jellyfish could drift through together on the current, a pale cloud in the water that the ferry parts.
+- **Jellies That Glow at Dusk** (round 5, E2). At Dusk each jellyfish could carry one soft light pixel that pulses with its bell.
+- **A Sea Turtle After the Jellies** (round 5, E2). A leatherback could surface near a jellyfish now and then, as they do off this coast in late summer, and the jellyfish would be gone when it dives.
+- **Stranded on the Flats** (round 5, E2). When the tide goes out, one jellyfish could be left on the wet sand as a clear blob, there until the water comes back.

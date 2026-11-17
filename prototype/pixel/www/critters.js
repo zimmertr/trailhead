@@ -72,7 +72,7 @@ function riverOnFlat(SEA, g, EBB, csAt) {
 export function makeCritters(W, opts = {}) {
   const { spots, sea: SEA, g } = W, items = [];
   // The sea stacks, found among the things that stand in the water, for the white water round their feet.
-  const stacks = W.things.filter(th => !th.tree && th.bm && th.bm.h >= 14 && th.x < SEA.w && W.coast(th.x, th.y) > 14).map(th => ({ x: th.x, y: th.y, half: th.bm.w / 2, cs: W.coast(th.x, th.y) }));
+  const stacks = W.things.filter(th => !th.tree && th.bm && th.bm.h >= 14 && th.x < SEA.w && W.coast(th.x, th.y) > 14).map(th => ({ x: th.x, y: th.y, half: th.bm.w / 2, tall: th.bm.h, cs: W.coast(th.x, th.y) }));
   // The tide (E6). Every 100 s the sea draws back off the beach and comes in again: out over 36 s, low for
   // 16 s, in over 36 s, high for 12 s; the first low is 44 s after the page opens. At low water the line
   // stands far enough out that the two sea stacks nearest the beach stand on the bared flat with tide
@@ -92,9 +92,27 @@ export function makeCritters(W, opts = {}) {
   // for the lowest, and is somewhere between the two as the tide stands, so it moves out and back with the
   // water without a jump. (Until round 5 each was pushed clear afresh every frame, which at low water threw
   // the ferry 20 px from one frame to the next and now and then left it aground.)
+  function onSeaAt(x, y) { x = Math.round(x); y = Math.round(y); return x >= 0 && x < SEA.w && y >= SEA.y0 && y < SEA.y0 + SEA.h; }
   const lane = (raw, sign, k1, k2) => { const n = raw.length, far = raw.map((v, i) => { if (v == null) return null; let m = v; for (let j = Math.max(0, i - k1); j <= Math.min(n - 1, i + k1); j++) if (raw[j] != null && sign * raw[j] > sign * m) m = raw[j]; return m; });
     return far.map((v, i) => { if (v == null) return null; let t = 0, c = 0; for (let j = Math.max(0, i - k2); j <= Math.min(n - 1, i + k2); j++) if (far[j] != null) { t += far[j]; c++; } return t / c; }); };
-  const onSea = (x, y) => { x = Math.round(x); y = Math.round(y); return x >= 0 && x < SEA.w && y >= SEA.y0 && y < SEA.y0 + SEA.h; };
+  // The jellyfish (round 5, T26) work the same way with two homes each: where it floats at high water (its
+  // own spot, or the nearest water round it with 8 px to spare, since it drifts up to 6 from there) and where it floats at the
+  // lowest (the nearest such water from there that it can reach in a straight line with room all the way as
+  // the tide falls, so it never drifts through a stack or over the flats). The tide picks the point between.
+  const JELLY = spots.jelly.map(([jx, jy]) => {
+    // Nor may it float where a stack's drawing stands over the water behind its foot: there it showed as a
+    // jelly stuck to the side of the rock.
+    const hidden = (x, y) => stacks.some(s => Math.abs(x - s.x) < s.half + 4 && y < s.y + 2 && y > s.y - s.tall - 4);
+    const room1 = (x, y, ebb) => onSeaAt(x, y) && !hidden(x, y) ? col.room('floater', x, y, { ebb }, 2) : -1, DRIFT = [[5, 0], [-5, 0], [0, 2.5], [0, -2.5], [5, 2.5], [-5, 2.5], [5, -2.5], [-5, -2.5]];
+    // The room at a spot, or -1 if any point of the drift round it is short of water.
+    const room = (x, y, ebb) => DRIFT.every(([a, b]) => room1(x + a, y + b, ebb) >= 1) ? room1(x, y, ebb) : -1, ring = (cx, cy, fits) => { for (let r = 0; r <= 150; r += 3) for (let a = 0; a < (r ? 16 : 1); a++) { const x = cx + r * Math.cos(a * TAU / 16), y = cy + r * Math.sin(a * TAU / 16); if (fits(x, y)) return [x, y]; } return null; };
+    const lowFrom = hi => ring(hi[0], hi[1], (x, y) => { if (room(x, y, EBB) < 8) return false; const n = Math.ceil(Math.hypot(x - hi[0], y - hi[1])); for (let k = 1; k < n; k++) if (room(lerp(hi[0], x, k / n), lerp(hi[1], y, k / n), EBB * k / n) < 7) return false; return true; });
+    // A high-water home with no clear way out (a pocket between two stacks) is passed over for the next nearest.
+    // None is nearer the shore than 50 from the high-water line, the nearest their own spots may be (land.js).
+    let lo = null; const hi = ring(jx, jy, (x, y) => W.coast(x, y) >= 50 && room(x, y, 0) >= 8 && !!(lo = lowFrom([x, y])));
+    return hi && { hi, lo }; });
+  const jellyAt = (k, t) => { const J = JELLY[k]; if (!J) return null; const e = ebbAt(t) / EBB, x = lerp(J.hi[0], J.lo[0], e) + 5 * Math.sin(t * 0.05 + k * 2), y = lerp(J.hi[1], J.lo[1], e) + 2.5 * Math.sin(t * 0.07 + k); return col.canBe('floater', x, y, t, 2) ? [x, y] : null; };
+  const onSea = (x, y) => onSeaAt(x, y);
   // The map animals the debug menu can place (C4), and the homes each one's own rule chose for it (habitat in land.js).
   const SPAWN = ['elk', 'goat', 'sheep', 'bear', 'marmot', 'squirrel'];
   const homesOf = k => k === 'elk' ? [spots.elk[0].slice(0, 2)] : k === 'goat' ? spots.goats.filter(g => !g[2]).map(g => g.slice(0, 2)) : k === 'bear' ? [spots.bear.slice(0, 2)] : (k === 'squirrel' ? spots.squirrels : spots[k === 'sheep' ? 'sheep' : 'marmots']).map(g => g.slice(0, 2));
@@ -630,6 +648,7 @@ export function makeCritters(W, opts = {}) {
       if (T >= 0 && s <= ORCA.dur) POD.forEach((o, i) => { const d = s * ORCA.speed - 20 - o.lag, L = LANES[i]; if (d < 0 || d >= L.len[SEA.h - 1]) return; const p = orcaAt(i, s, t);
         if (p) { out.push({ kind: 'orca', i, x: p[0], y: p[1], room: col.room('swimmer', p[0], p[1], t, 4) }); return; }
         let row = L.r0; while (row < SEA.h - 1 && L.len[row + 1] <= d) row++; const a = L.hi[row], b = L.lo[row]; if (a != null && lerp(a, b == null ? -12 : b, ebbAt(t) / EBB) >= 1) out.push({ kind: 'orca', i, lost: true, row }); });
+      spots.jelly.forEach((j, k) => { const p = jellyAt(k, t); out.push(p ? { kind: 'jelly', i: k, x: p[0], y: p[1], room: col.room('floater', p[0], p[1], t, 2), cs: W.coast(p[0], p[1]) } : { kind: 'jelly', i: k, lost: true }); });
       return out;
     },
     // The shared rules of where each kind of mover may be, for the debug overlay and the timed events.
@@ -688,10 +707,10 @@ export function makeCritters(W, opts = {}) {
       tidePools(scr, ox, oy, t, ebb);
       orcas(scr, ox, oy, t);
       drawWake(scr, ox, oy, t);
-      // Moon jellies drift slowly in open water beyond the surf (T26), each round its own spot, and are pushed
-      // out ahead of a falling tide by the floater rule.
-      spots.jelly.forEach(([jx, jy, pale], k) => {
-        const at = col.clear('floater', jx + 5 * Math.sin(t * 0.05 + k * 2), jy + 2.5 * Math.sin(t * 0.07 + k), t, 2); if (!at) return;
+      // Moon jellies drift slowly in open water beyond the surf (T26), each round its own spot, and move out
+      // ahead of a falling tide and back in with it (jellyAt, above).
+      spots.jelly.forEach(([, , pale], k) => {
+        const at = jellyAt(k, t); if (!at) return;
         const x = Math.round(at[0]) - ox, y = Math.round(at[1] + 1.5 * Math.sin(t * 0.5 + k)) - oy;
         if (x < -4 || y < -6 || x > VW + 4 || y > VH) return;
         const c = pale ? R.white[1] : R.pink[2], d = R.pink[1], shut = frac(t * 0.3 + k * 0.37) < 0.3;

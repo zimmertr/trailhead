@@ -531,7 +531,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 - [x] E0. **Room for the animals.** On 2026-11-16 the zoomed-out map took 14.9 ms a frame at Dusk and 15.5 ms through the sunset blend, against a limit of 16.7 ms (round 4: 13.5 ms at Dusk). Before any animal is added, find what the round has cost so far (profile C1's collision, C3's clock and blend, C4's overlays when off) and bring both views to 13.5 ms or under. If that cannot be done, log what was tried and what each new animal may cost, and carry on.
 - [x] E1. T15: the ferry and the orcas keep to deep water at every tide (check through a whole tide cycle on film).
-- [ ] E2. T26: jellyfish offshore.
+- [x] E2. T26: jellyfish offshore.
 - [ ] E3. T33: the tide pool twice the size, with animated animals.
 - [ ] E4. T14: the marine layer's rain belongs to the world.
 - [ ] E5. T28, T16, T19: the bald eagle on the stacks, the osprey at Reflection Lake, the salmon removed. Debug buttons.
@@ -671,7 +671,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **D4 done, and with it section D.** Every place where water meets water on the map was looked at, 28 joins in all, and each has its picture on the notes page (https://claude.ai/artifact/C3vp7qfxAtoHGnTioe2sNs, under "The water audit"). Two were broken and are fixed. Reflection Lake's fall was drawn twice, 7 px apart: now it is one fall, joined to the stream above and the river below. The pond on the east creek showed only as a V of water in a trench: now it is a level pool with the creek running in and the fall running out. The other 26 were whole, the river mouths at every tide.
 - **E0 done, with no code changed.** The zoomed-out map with every event running takes 11.8 to 11.9 ms a frame at Dusk and 12.0 to 12.5 ms through the sunset blend, both under the 13.5 ms target, and round 4's own build takes 12.3 to 12.4 ms at Dusk on the same machine today. The 14.9 and 15.5 ms of 2026-11-16 were taken while other renders were running. That leaves about 4 ms under the 16.7 ms limit for section E's animals.
 - **E1 done.** The ferry and the orcas keep to deep water at every tide. Each now has a lane for high water and a lane for the lowest water, worked out once when the map opens, and is somewhere between the two as the tide stands, so it moves out and back with the water without a jump. Checked two ways: a sweep of 8000 s of tides at four looks a second (the ferry never has less than 2.5 px of room to spare, the orcas never less than 6, and nothing moves more than 5.5 px between two looks), and a film of a whole tide with the no-go water tinted. The pod also swims at one speed round the corner of the coast now, where it used to race.
-- Next: E2.
+- **E2 done.** The eight jellyfish float in open water at every tide. Each has a home at high water, 50 px or more out from the high-water line, and a home at the lowest water, out beyond the bared flats, and sits between the two as the tide stands, drifting a few pixels round that point. None is ever against the beach, in the pocket between two stacks or behind a stack's drawing. The sweep (8000 s, four looks a second, 256,000 looks) finds every one of them drawn every time, never short of water, never nearer the high-water line than 43 px, and never moving more than a third of a pixel between two looks.
+- Next: E3.
 
 ## 11. Calls made in round 5
 
@@ -810,6 +811,11 @@ One line each, newest last: the item, what was decided, and why.
 - E1, what is left: for 20 of 77,970 looks an orca moves 5 to 5.5 px in a quarter second, in the first 10 px inside the map's west edge, as it comes on while the tide is changing. Not worth more rules.
 - E1. The whale and the jellyfish still use the frame-by-frame push. The whale keeps to water that is deep at the lowest tide, so it never needs it. The jellyfish are E2.
 - E1, checks: `check.sh E1 D4` passed, 11.9 ms a frame zoomed out at Dusk, lint clean, nothing moved more than 8 px. Round 4's build has no shared rule to sweep, so the comparison is the same sweep on this round's code before and after.
+- E2, what was there. C1 had already put the jellyfish's spots 50 to 110 px out and pushed each clear of shallow water afresh every frame. The sweep, with the jellyfish added to `seaMovers`, showed what that left: one jellyfish (in a pocket between two stacks) was not drawn at all for 8347 of 256,000 looks, and others jumped up to 19 px in a quarter second where the push flipped from one side of a stack to the other.
+- E2, the fix, the same idea as E1's lanes: two homes for each (`JELLY` in `critters.js`), found once when the map opens. The high-water home is its own spot, or the nearest water round it that is 50 or more from the high-water line and has 8 px of room, since it drifts up to 6 from its home. The low-water home is the nearest such water it can reach from there in a straight line with room all the way as the tide falls, so it never crosses a stack or the flats on its way out. A home with no such way out is passed over for the next nearest. Every corner of the drift is checked, not only the home.
+- E2. One more rule, from looking at the picture: a jellyfish may not float where a stack's drawing stands over the water behind its foot. One sat there and showed as a pink dot stuck to the side of the rock.
+- E2. Their look (three pixels wide, pink or pale, pulsing) is unchanged: TJ's note was about where they are.
+- E2, checks: `check.sh E2 E1` passed, 11.7 ms a frame zoomed out at Dusk, lint clean, nothing moved more than 8 px. Laid beside round 4's build at high and low water: round 4 had them along the beach's edge and against the stacks.
 
 ## 12. The reference pictures
 
