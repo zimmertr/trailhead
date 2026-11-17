@@ -557,7 +557,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
             const before = legs[j], after = legs[k], P = world.paths[before ? before.arg.path : r];
             if (before && after && before.arg.to !== after.arg.from) {
               let t = 0, T = 0; for (let m = j + 1; m < k; m++) { if (m < i) t += legs[m].dur; else if (m === i) t += st.at * legs[m].dur; T += legs[m].dur; }
-              const a = P.at(lerp(before.arg.to, after.arg.from, t / T)); pt = [a.x, a.y];
+              // On the lake loop each scene has its own part of the hidden trail: the forest as far as the lake's
+              // outlet, the lakeshore from there on. A stop sits along its own scene's part, by time (round 5, F5).
+              const part = r === 'lake' && l.n === 'forest' ? [before.arg.to, world.lakeMid] : r === 'lake' && l.n === 'lakeside' ? [world.lakeMid, after.arg.from] : null;
+              const a = P.at(part ? lerp(part[0], part[1], st.at) : lerp(before.arg.to, after.arg.from, t / T)); pt = [a.x, a.y];
             } else if (r === 'stack') {
               // Stops on the climb, spaced evenly from the foot of the ridge to the summit in their order, stepping
               // left and right of the line as a route zigzags up, so their dots stand clear of each other.

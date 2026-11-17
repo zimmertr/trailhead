@@ -303,3 +303,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Mirror Breaks in Wind** (round 5, F3). A gust now and then that ruffles the whole lake for a few seconds, wiping out the mountain's mirror until it settles.
 - **A Limb as a Frame** (round 5, F4). One mossy limb reaching in along the top of the map stop's view, so the forest still frames the lake without a trunk crossing it.
 - **The Stop's View by Window Width** (round 5, F4). Clear the forest edge's giants by how wide the window is, so a very wide screen's stop is as clean as a laptop's.
+- **The Legs on the Map** (round 5, F5). The map's trail climbing beside the outflow fall in a small zig-zag, so the map shows the switchbacks the scene walks.
+- **Leaning on the Rail** (round 5, F5). If he stops on the lip's footbridge, he leans on the handrail and looks down the fall.
+- **Spray on the Footbridge** (round 5, F5). The planks of the lower footbridge darker and shining where the fall's spray wets them.
+- **Scenes Named on the Trail Map** (round 5, F5). The trail map's hidden stretch drawn as two parts with small labels, forest and lakeshore, now that each scene has its own part of it.

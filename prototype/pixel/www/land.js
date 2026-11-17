@@ -1568,6 +1568,9 @@ export function buildTerrain() {
     // One tent (round 5, T49: "TJ and Kayti share tents"), on the island in the glacier (T48).
     tents: [[...sxy(C.isle[0] - 3, C.isle[1] - 2), 'tent']],
     journal: sxy(lake[0] + lake[2] + 16, lake[1] - 6), lakeShore: shore,
+    // Just off the lake's west end, where the outflow leaves it: the forest's part of the loop ends there and the
+    // lakeshore's begins (round 5, F5).
+    lakeWest: sxy(lake[0] - lake[2] - 8, lake[1] + 2),
     // The osprey (round 5, T16): Reflection Lake as an oval on the picture, and where it dives: the middle of
     // the lake's widest open water, half way from the island to the east shore and a third of the way from
     // the lake's middle to its near shore.

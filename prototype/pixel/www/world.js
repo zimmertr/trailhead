@@ -510,6 +510,9 @@ export function makeWorld() {
   // read the way the land lays it out: a pixel's row plus its depth, less for higher ground.
   const spiresIn = (() => { const P = paths.spires, h = q => { const a = P.at(q); return -(W.vAt(a.x, a.y) + a.y); }, h0 = h(0), h1 = h(1); for (let q = 0; q < 1; q += 0.002) if (h(q) - h0 >= 0.4 * (h1 - h0)) return q; return 0.5; })();
   const lakeOut = (() => { const P = paths.lake; let best = 0, bd = 1e9; for (let q = 0.5; q < 1; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - spots.lakeShore[0], a.y - spots.lakeShore[1]); if (d < bd) { bd = d; best = q; } } return best; })();
+  // Between the two the map is not shown: the forest scene stands for the trail from lakeIn to the lake's outlet
+  // (lakeMid: where the trail comes nearest the lake's west end) and the lakeshore scene for the rest (round 5, F5).
+  const lakeMid = (() => { const P = paths.lake; let best = lakeIn, bd = 1e9; for (let q = lakeIn; q < lakeOut; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - spots.lakeWest[0], a.y - spots.lakeWest[1]); if (d < bd) { bd = d; best = q; } } return best; })();
 
   // Where each place's name is pinned: over the junction, a little to his left so it clears the register's box
   // beside the board (round 5 B2), on the lake's near shore, on the wall's rim, on the ice under the summits.
@@ -642,7 +645,7 @@ export function makeWorld() {
     return { kind, name: UI.debug.animals[kind] || kind, homes: names.map(n => names.filter(m => m === n).length > 1 ? n + ' ' + (seen[n] = (seen[n] || 0) + 1) : n) }; });
 
   return {
-    name: 'world', paths, spawnList, spawn: (kind, i) => { const ok = crit.spawn(kind, i); for (const it of crit.items) if (!things.includes(it)) { things.push(it); still = null; } return ok; }, lakeIn, lakeOut, spiresIn, T, WW, WH,
+    name: 'world', paths, spawnList, spawn: (kind, i) => { const ok = crit.spawn(kind, i); for (const it of crit.items) if (!things.includes(it)) { things.push(it); still = null; } return ok; }, lakeIn, lakeMid, lakeOut, spiresIn, T, WW, WH,
     // For the trail map sheet (L9): the peak's summit and the six Spires summits on the map, and the picture's
     // frame: the box round the Trailhead and the three destinations' countries with a margin, widened to the
     // sheet's shape (8 by 5) and kept on the map.
