@@ -213,3 +213,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Log Jam at the River's Mouth** (round 5, D13). Where the biggest river meets the sea, a dozen logs could pile against each other, the way they do at the mouth of a real coastal river.
 - **Walk the Logs** (round 5, D13). In a free explore mode TJ could balance along a driftwood log, arms out, and hop off its end.
 - **Logs That Float on a High Tide** (round 5, D13). On the highest tide one or two logs nearest the water could lift, drift a few pixels and settle somewhere new when the water goes out.
+- **Wands Across the Ice** (round 5, D14). The boot track from the moraine to the island could be marked with a few bamboo wands with small flags, as a real glacier crossing is, so the way reads at a glance.
+- **TJ and Kayti at the Tent on the Map** (round 5, D14). When the Spires walk is finished, two tiny figures could sit by the tent on the island, and the stove's smoke would have someone to cook for.
+- **A Camp Light You Can See From the Trailhead** (round 5, D14). At Dusk the tent's glow could be the one warm light on the whole glacier, bright enough to pick out from the opening view.
+- **Goats on the Island** (round 5, D14). A goat could wander onto the island for the salt while nobody is home, as the camp scene's goats keep to their knoll.

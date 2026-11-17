@@ -524,7 +524,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] D11. T31: Little Tahoma's tip a touch blunter.
 - [x] D12. T64 (map part): iron rungs up the cliff below the plateau, and the hook straightened into an arc.
 - [x] D13. T8: driftwood redrawn.
-- [ ] D14. T48 (map part): the tent moved up the glacier onto a rock island. T49: one yellow-orange tent on the map.
+- [x] D14. T48 (map part): the tent moved up the glacier onto a rock island. T49: one yellow-orange tent on the map.
 - [ ] D4. T17, T24: the water audit. Every join is listed, fixed and pictured. **Moved to the end of section D on 2026-11-16**, because every D item after it changes the land and the water with it. Three fixes are already in (the lake's outflow runs over its lip into the fall, the west river's channel on the sand joins the river, and a stream that drops off a cliff gets a fall down the face). Run the whole audit from the start. Its pictures go on the notes artifact (S3b), not into the repo.
 
 ### E. Events and animals on the map
@@ -667,7 +667,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **D11 done.** Little Tahoma's tip is two pixels across with a small step on its east side, where it was a single pixel standing two high. It is still a sharp tooth, on the map and in the lake's view.
 - **D12 done.** On the map the Proficiency trail climbs the cliff below the plateau by a ladder of thirteen iron rungs, as wide as the trail, and runs on from the cliff's top to the foot of the peak in one gentle line. The wide grey smear on the face and the hook at the top are gone. The larch walk's part of the note is item I1.
 - **D13 done.** The driftwood on the beach is redrawn. Each log is a long, pale, sun-bleached trunk with grain lines along its length, a darker underside, a splintered far end, one or two branch stubs, and on about half of them a root wad at the butt. Each lies at its own angle above the high-water line and has a shadow on the sand. There are eight different logs, and fourteen lie along the coast where there were four. The small sticks painted into the sand are bleached too.
-- Next: D14.
+- **D14 done.** On the map base camp is one yellow-orange tent on a low island of rock in the middle of the Spires' glacier, just below the icefall. The red tent is gone from the map. The trail's tread still ends on the west moraine, where the tents stood. From there a boot track crosses the ice to the island, and the track up the icefall to the wall now starts at the island, as do the headlamps at Dusk, the tent's glow and the stove's smoke. The walk scene and the camp scene still show two tents: those are G1 and G2.
+- Next: D4.
 
 ## 11. Calls made in round 5
 
@@ -783,6 +784,12 @@ One line each, newest last: the item, what was decided, and why.
 - D13, how many: the first four keep their places, drawn from the same dice as before. Ten more lie on dice of their own, in the same band above the high-water line, each 26 px or more from the next so they do not pile up. Fourteen on the coast is my number: enough that every stretch of beach has one or two, as on a real Olympic beach, without a log jam. TJ may want more or fewer.
 - D13. One log's butt comes within a few pixels of the sign at the beach's south end. The sign is drawn in front and reads clearly, so the log stays where the rule put it.
 - D13, checks: `check.sh D13 D12` passed, 12.0 ms a frame zoomed out at Dusk, lint clean, nothing moved more than 8 px. Looked at by day and at Dusk at 4x beside round 4's build and TJ's picture for note 8.
+- D14, where the island is: in the middle of the glacier's tongue, ten map rows below the foot of the icefall, placed from the glacier's own numbers (`NUN` in `land.js`). The camp scene shows the tents on flat ice with the icefall rising behind them to the towers and rock on either side, so that is where the map now has them. The other choice was the white snowfield above the icefall, right under the wall. That would have put the icefall below camp, which the camp scene does not show, and left the headlamps almost no track to climb. TJ may still prefer it: it is one number.
+- D14, the island: a flat-topped piece of bare rock 30 px wide that stands 3 to 6 px out of the ice, with no grass on it. It is the moraine's material, so nothing else needed to learn a new kind of ground.
+- D14, the trail: `C.camp` is still where the tread ends on the moraine, since the trail's route and the flower drift toward camp are steered by it. `C.island` is a new point on the same trail. The walk's line on the map now runs to the island, so the distance to base camp on the signs grows by the width of the crossing. The boot track runs straight across the tongue and starts to switch back and forth only above the island.
+- D14, two things moved that TJ did not ask for, both by their own rules. The "scope-creep" sign is placed on moraine beside the last part of this trail. The trail's last part changed, so the sign went from the rim of the glacier's lake to the moraine beside the tread, 57 px away. The marmot that sat by the old tents was within the sign's clear space there, so it took the next spot its rule allows, 17 px away on the moraine's crest. I left both where the rules put them. Holding them would have meant writing their old places in by hand.
+- D14. The shelf on the moraine where the tents stood is left as it is, with its boulder: taking it out would re-route the trail and move more.
+- D14, checks: `check.sh D14 D13` passed, 12.1 ms a frame zoomed out at Dusk, lint clean. Moved: the trail by up to 28 px at the crossing, the tent, and the sign and marmot above. Looked at by day and at Dusk at 4x beside the build before.
 
 ## 12. The reference pictures
 

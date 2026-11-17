@@ -178,6 +178,12 @@ const plate = (u, v) => { const raw = 34 * smooth(0.02, 0.4, dryS0(u, v)) + 10 *
 // starts under the Spires' wall, breaks over a rock step (the icefall) and ends in a broad snout in its
 // lake (E8c), not a point.
 const GL = { top: 616, toe: 503, fall: [556, 578], cu: v => 1072 + 7 * Math.sin((v - 500) / 24), w: v => lerp(30, 112, smooth(522, 592, v)) * smooth(498, 506, v), h: v => 28 + 0.3 * (v - 500) + 10 * smooth(556, 576, v) };
+// Base camp's rock island (round 5, T48, TJ: "suddenly camp is surrounded by nunataks, situated on teh
+// glacier"): a low island of rock in the middle of the tongue, ten below the foot of the icefall, so the
+// map's camp is where the camp scene shows it: on the ice, the icefall behind it, rock either side.
+const NUN = (() => { const v = GL.fall[0] - 10; return [Math.round(GL.cu(v)), v, 15, 6]; })();
+const isleAt = (u, v) => Math.hypot((u - NUN[0]) / NUN[2], (v - NUN[1]) / NUN[3]) + 0.2 * (vnoise(u / 5, v / 4, 861) - 0.5);
+C.isle = NUN; C.island = [NUN[0] + 9, NUN[1] - 3];
 const glD = (u, v) => Math.abs(u - GL.cu(v)) + 6 * (vnoise(u / 9, v / 9, 9) - 0.5);
 // Between the volcano and the granite the whole ground climbs to the foot of the Spires, so the crest
 // is one mass with its neighbours. The glacier's bed is cut into it.
@@ -206,6 +212,7 @@ range('crest', 1232, 1300, 664, crestH(1070, 120, 60), 62);
 range('crest', 1336, NW + 40, 676, u => (112 + 24 * vnoise(u / 90, 2, 65)) * (1 - 0.42 * Math.exp(-sq((u - 1430) / 90))), 63, { pow: 1.25, jag: 6, front: 50 });
 lift = under;
 add('ice', 940, 1204, GL.toe - 2, GL.top + 6, (u, v) => { const w = GL.w(v), d = glD(u, v); return v < GL.toe || v > GL.top + 4 || d >= w ? 0 : GL.h(v) - 6 * sq(d / w) - 8 * smooth(GL.toe + 8, GL.toe, v); });
+add('moraine', NUN[0] - 20, NUN[0] + 20, NUN[1] - 10, NUN[1] + 10, (u, v) => { const e = isleAt(u, v); return e >= 1 ? 0 : GL.h(NUN[1]) + 2 + 2.5 * smooth(1, 0.6, e); });
 // What holds the ice in: rock arms of the Spires high up, a moraine on each side lower down. Each
 // stands above the ice at its edge and runs out into the slope beyond.
 const rim = hi => (u, v) => {
@@ -261,7 +268,7 @@ C.dig = [
 C.coulee = [[1500, 232], [1556, 204], [1612, 176], [1662, 130], [1726, 106], [1782, 64], [1852, 40], [1926, 8]];
 C.trails = [
   [[880, 392], [830, 388], [770, 386], [725, 384], [700, 384], [668, 380], [630, 376], [590, 378], [540, 390], [490, 384], [440, 360], [390, 354], [340, 370], [300, 410], [270, 450], [262, 490], [290, 520], [330, 530], [380, 515], [420, 500], [460, 492], [496, 470], [530, 448], [560, 436], [590, 434], [640, 424], [676, 420], [712, 424], [748, 426], [772, 414], [800, 402], [840, 394], [880, 392]],
-  [[978, 438], [962, 462], [984, 482], [1004, 498], [1018, 512], [1022, 526], [1040, 534], [1056, 546], [1066, 560], [1070, 578], [1068, 600]],
+  [[978, 438], [962, 462], [984, 482], [1004, 498], [1018, 512], [1022, 526], [1040, 534], [1062, 540], C.island, [1080, 560], [1072, 578], [1068, 600]],
   [[1340, 410], [1372, 436], [1392, 450], [1378, 462], [1402, 474], [1422, 500], [1434, 516], [1432, 524], [1432, 532], [1430, 546], [1432, 562], [1436, 578]]
 ];
 // The lake grew (T30), so the loop's points along its south shore step back to keep 5 clear of the water.
@@ -471,21 +478,24 @@ C.lead = [];
   C.trails[1] = join(route(C.T, w1, true), route(w1, w2, true), route(w2, spires0[iA], true), spires0.slice(iA));
   C.lead[1] = 0;
   C.trails[2] = join(stackLead, C.trails[2]); C.lead[2] = stackLead.length - 1; }
-// The Spires trail ends at base camp. Beyond it the way goes on as a boot track up the ice (D13), as in
-// round 3: it switches back and forth up the fall line, a trench as wide as the trail that narrows toward
-// the wall, and over its last fifth breaks up into single prints. track: 2 on its floor, 1 on its edge.
-// trackF: how far up it a spot is, 1 at camp to 201 at its end. TRACK_UP: its middle line from camp up, for
-// the headlamps (E8).
+// The Spires trail's tread ends on the moraine, where it meets the ice (C.camp, where the tents stood until
+// round 5). Beyond it the way goes on as a boot track: straight across the tongue to base camp on its
+// island (C.island), and from there up the ice (D13), as in round 3: it switches back and forth up the fall
+// line, a trench as wide as the trail that narrows toward the wall, and over its last fifth breaks up into
+// single prints. track: 2 on its floor, 1 on its edge. trackF: how far along it a spot is, 1 where it
+// leaves the moraine to 201 at its end. TRACK_UP: its middle line from the island up, for the headlamps (E8).
 const TRACK_UP = [], trailPts = [], track = new Uint8Array(NW * VD), trackF = new Uint8Array(NW * VD);
 C.trails.forEach((t, k) => {
   const ci = k === 1 ? t.findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]) : -1;
   const all = catmull(ci > 0 ? t.slice(0, ci + 1) : t); stamp(trail, all, 1.9, 1.9); trailPts.push(...all);
   if (ci <= 0) return;
   const up = catmull(t.slice(ci)), L = up.reduce((s, p, n) => n ? s + Math.hypot(p[0] - up[n - 1][0], p[1] - up[n - 1][1]) : 0, 0); let len = 0;
+  const far = p => Math.hypot(p[0] - C.island[0], p[1] - C.island[1]), isl = up.reduce((m, p, n) => far(p) < far(up[m]) ? n : m, 0); let fI = 0;
   up.forEach(([pu, pv], n) => {
     if (n) len += Math.hypot(pu - up[n - 1][0], pv - up[n - 1][1]);
-    const f = len / L, zz = 6 * (4 * Math.abs(frac(len / 26 + 0.25) - 0.5) - 1) * smooth(0, 0.15, f), rr = lerp(1.9, 0.8, f), R2 = Math.ceil(rr + 1);
-    TRACK_UP.push([pu + zz, pv]);
+    if (n === isl) fI = len / L;
+    const f = len / L, zz = n < isl ? 0 : 6 * (4 * Math.abs(frac((len - fI * L) / 26 + 0.25) - 0.5) - 1) * smooth(fI + 0.03, fI + 0.18, f), rr = lerp(1.9, 0.8, f), R2 = Math.ceil(rr + 1);
+    if (n >= isl) TRACK_UP.push([pu + zz, pv]);
     for (let dv = -R2; dv <= R2; dv++) for (let du = -R2; du <= R2; du++) { const d = Math.hypot(du, dv), u = Math.round(pu + zz + du), v = Math.round(pv + dv), kk = d <= rr ? 2 : d <= rr + 1 ? 1 : 0; if (kk && u >= 0 && v >= 0 && u < NW && v < VD && track[at(u, v)] < kk) { track[at(u, v)] = kk; trackF[at(u, v)] = 1 + Math.round(f * 200); } }
   });
 });
@@ -606,7 +616,9 @@ function colour(u, v, hh, x, y) {
     if (v >= GL.fall[0]) { const row = Math.floor((v * 2 + hh) / 4), k = hash((u + row * 5) >> 2, row, 855); return k < 0.24 ? R.glac[1] : k < 0.5 ? R.glac[3] : k < 0.8 ? R.glac[4] : R.snow[4]; }
   }
   if (mat === 'ice') return frac((v * 0.9 + 0.3 * u) / 7 + 0.4 * vnoise(u / 8, v / 8, 817)) < 0.14 ? R.glac[2] : pick('glac', 0.45 + 0.4 * L + 0.2 * vnoise(u / 6, v / 4, 818), x, y, 0.6);
-  if (mat === 'moraine') return steep > 0.7 ? pick('rock', 0.12 + 0.4 * vnoise(x / 3, hh / 10, 97), x, y, 0.7) : hash(u >> 1, v >> 1, 12) < 0.25 ? pick('grass', 0.4, x, y) : pick('rock', 0.2 + 0.7 * hash(u >> 1, v >> 1, 13), x, y);
+  // Base camp's island: bare rock, its top in the light and its face in shade, a dark line where it meets the ice.
+  if (mat === 'moraine' && isleAt(u, v) < 1.4) { const e = isleAt(u, v); return hg[i] - hh > 0.8 ? R.rock[hash(x >> 1, y, 14) < 0.35 ? 1 : 0] : e > 0.62 && v < NUN[1] - 1 ? R.rock[hash(x >> 1, y, 14) < 0.3 ? 2 : 1] : R.rock[hash(x >> 1, y >> 1, 13) < 0.3 ? 3 : 4]; }
+  if (mat === 'moraine') return steep > 0.7 ? pick('rock', 0.12 + 0.4 * vnoise(x / 3, hh / 10, 97), x, y, 0.7) : hash(u >> 1, v >> 1, 12) < 0.25 && isleAt(u, v) > 1.4 ? pick('grass', 0.4, x, y) : pick('rock', 0.2 + 0.7 * hash(u >> 1, v >> 1, 13), x, y);
   if (mat === 'wall' || mat === 'crest') {
     // Dark rock; snow lies where the slope lets it, and on the ledges of the walls. Toward the dry
     // east the same rock is a step paler and cleaner and holds less snow.
@@ -1173,7 +1185,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   const ferns = Array.from({ length: 6 }, (_, i) => makeFern(400 + i)), logs = Array.from({ length: 6 }, (_, i) => makeLog(i));
   const meadowy = (u, v) => forestAmt(u, v) < 0.3 && burnAmt(u, v) < 0.3 && dryAmt(u, v) < 0.3 && Math.hypot(u - TU, (v - TV) * 1.4) > 40;
   rand = rng(6108);
-  for (let n = 0; n < 700; n++) { const u = 420 + rand() * 1200, v = rand() * 640; if (!open(u, v) || !meadowy(u, v)) continue; const m = MATS[mg[at(Math.round(u), Math.round(v))]]; if (m !== 'land' && m !== 'moraine') continue; const rock = m === 'moraine' || rand() < 0.3; if (rock) put(any(boulders), u, v); else plant(SWAY.get(any(bushes)), u, v); }
+  for (let n = 0; n < 700; n++) { const u = 420 + rand() * 1200, v = rand() * 640; if (!open(u, v) || !meadowy(u, v)) continue; const m = MATS[mg[at(Math.round(u), Math.round(v))]]; if ((m !== 'land' && m !== 'moraine') || isleAt(u, v) < 1.4) continue; const rock = m === 'moraine' || rand() < 0.3; if (rock) put(any(boulders), u, v); else plant(SWAY.get(any(bushes)), u, v); }
   // The parkland's heather grows in clumps where the drifts leave room for it, and a few boulders lie
   // about (D5). Their own dice, so nothing planted before them moves, and the boulders have theirs (round 5, T21).
   const soil = (u, v) => { const m = MATS[mg[at(Math.round(u), Math.round(v))]]; return m === 'land' || m === 'volc'; };
@@ -1464,9 +1476,9 @@ export function buildTerrain() {
   // Each trail as points on the picture, close together, each with its depth.
   const line = pts => catmull(pts).filter((_, n, a) => n % 6 === 0 || n === a.length - 1).map(([u, v]) => [u, LAND.toY(u, v), v]);
   // The lake loop ends where it began: back along its first stretch to the junction. The Spires trail
-  // ends at base camp; what lies beyond is the boot track on the ice.
+  // ends at base camp on its island; what lies beyond is the boot track up the ice.
   // The lake loop runs from the Trailhead round to the Trailhead (T6), so it needs no way home added.
-  const camp = C.trails[1].findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]) + 1;
+  const camp = C.trails[1].findIndex(p => p[0] === C.island[0] && p[1] === C.island[1]) + 1;
   const lines = { lake: line(C.trails[0]), stack: line(C.trails[2]), spires: line(C.trails[1].slice(0, camp)) };
   const H = habitat(), lake = C.lakes[0], peak = LAND.peak, sp = LAND.spires, shore = sxy(lake[0] + lake[2] + 8, lake[1] + 2);
   const flagOn = (x, v, kind) => { const y = LAND.toY(x, v); return { x: Math.round(x), y, lift: y - topOf(x, kind) }; };
@@ -1485,7 +1497,8 @@ export function buildTerrain() {
       return out; })(),
     // Mount Monolith's summit: the highest pixel of the painted volcano, where the lenticular cloud sits (E3).
     summit: (() => { let best = [LAND.volc.cu, 1e9]; for (let x = Math.round(LAND.volc.cu - 160); x <= LAND.volc.cu + 160; x += 2) { const y = topOf(x, 'volc'); if (y > 0 && y < best[1]) best = [x, y]; } return best; })(),
-    tents: [[...sxy(C.camp[0], C.camp[1]), 'tent'], [...sxy(C.camp[0] + 18, C.camp[1] - 6), 'red']],
+    // One tent (round 5, T49: "TJ and Kayti share tents"), on the island in the glacier (T48).
+    tents: [[...sxy(C.isle[0] - 3, C.isle[1] - 2), 'tent']],
     journal: sxy(lake[0] + lake[2] + 16, lake[1] - 6), lakeShore: shore,
     // Where each destination's name is pinned: on the lake, on Proficiency Peak's wall, on the ice under the Spires.
     places: { lake: [lake[0], LAND.toY(lake[0], lake[1]) - 8], stack: [peak.cu, topOf(peak.cu, 'fin') + 44], spires: [sp.cu + 10, LAND.toY(sp.cu, 598)] },
