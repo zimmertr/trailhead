@@ -535,6 +535,9 @@ function letters(scr, word, x, y, c) { [...word].forEach((ch, i) => (GLYPH[ch] |
 // and one word under it. u runs from 0 to 1 over the time he looks at it: rain at first, then (at
 // `turn`) the slider runs forward, the cloud moves off the sun, and the word changes.
 const PHONE = { w: 72, h: 100, turn: 0.6 };
+// The bluebird's visit, in seconds after the station is clicked: when its circling ends, when it has
+// landed, when it sings, when it takes off, and when it is surely off the picture.
+const BIRD = { loop: 3.7, land: 4.6, calls: [5.1, 5.8, 6.6], off: 7.7, gone: 11 };
 function phoneApp(scr, x, y, u, t) {
   const { w, h, turn } = PHONE, k = smooth(turn - 0.1, turn + 0.08, u), box = (x0, y0, x1, y1, c) => { for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) scr.set(x + i, y + j, c); };
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const cx = Math.min(i, w - 1 - i), cy = Math.min(j, h - 1 - j); if (cx + cy < 3) continue; scr.set(x + i, y + j, cx === 0 || cy === 0 || cx + cy === 3 ? INK : cx < 3 || cy < 3 ? R.rock[0] : R.navy[0]); }
@@ -643,7 +646,7 @@ export function makeClimb() {
   fig.ledge = [[[3, 8.5], [-2, 8.5], [5, 1], [2, 4]], [[1, 8.5], [-3, 7.5], [5, 2], [3, 3]], [[-1, 8.5], [2, 7.5], [4, 1], [2, 4]], [[2, 8.5], [-1, 8.5], [5, 2], [3, 3]]].map(([f0, f1, h0, h1]) => sideFig('alpine', { feet: [f0, f1], hands: [h0, h1], lean: 4, crouch: 2, look: 'up' }));
   fig.shelter = sideFig('alpine', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: [[3, 3], [2, 3]] });
   fig.phone = sideFig('alpine', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: [[4, 1], [2, 3]], look: 'down', elbowFwd: true, held: phone });
-  const tent = makeTent('tent'), flag = [makeFlag(0), makeFlag(1)], bb = [bluebird(0), bluebird(1)];
+  const tent = makeTent('tent'), flag = [makeFlag(0), makeFlag(1)], bb = [0, 1, 2, 3].map(bluebird), bbSit = [bluebird('sit'), bluebird('call')];
   const squirrel = (() => { const b = new BM(7, 5); b.ox = 3; b.oy = 4; b.set(1, 2, R.blaze[0]); b.set(2, 2, R.blaze[1]); b.set(3, 2, R.blaze[1]); b.set(4, 1, R.blaze[1]); b.set(5, 1, INK); b.set(0, 0, R.blaze[2]); b.set(0, 1, R.blaze[1]); b.set(1, 1, R.blaze[1]); b.set(2, 3, R.blaze[0]); b.set(4, 3, R.blaze[0]); return b; })();
   // Colours pale enough that a white flake or a white gust line would vanish on them.
   const pale = new Uint8Array(256); for (const c of [R.snow[3], R.snow[4], R.white[0], R.white[1], R.glac[4], R.glac[5], R.farsnow[0], R.farsnow[1]]) pale[c] = 1;
@@ -761,7 +764,7 @@ export function makeClimb() {
       if (cfg.kind === 'ridge' && x > 100 && x < sxOf(cfg) - 12 && Math.abs(y - hOf(cfg.pts, x)) < 8) return { label: NAMES.climb.ridge, x: sx, y: sy - 8 };
       return null;
     },
-    act(id, env) { if (id === 'egg' && env.shown && env.t - egg > 6) { egg = env.t; env.sfx('egg'); env.found('egg:' + last.id); return true; } return false; },
+    act(id, env) { if (id === 'egg' && env.shown && env.t - egg > (ROUTES[last.id].kind === 'ridge' ? BIRD.gone : 6)) { egg = env.t; env.sfx('egg'); env.found('egg:' + last.id); return true; } return false; },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t } = env, id = arg.id, cfg = ROUTES[id], kind = cfg.kind, pl = plan(id), SXr = sxOf(cfg);
       const tau = q * pl.dur, me = where(id, tau), S = me.ph === 'up' ? get(id) : slope.S, pts = me.ph === 'up' ? cfg.pts : slope.cfg.pts;
@@ -892,17 +895,19 @@ export function makeClimb() {
         else if (kind !== 'wands') scr.put((tops[kind] = tops[kind] || TOPS[kind]()), X(tx), Y(ty), false);
         if (kind === 'wands') { tops.wands = tops.wands || TOPS.wands(); scr.put(tops.wands, X(tx), Y(ty), false); const off = u < 3.4; if (off && u > 0.5) { const a = clamp((u - 0.5) / 0.6, 0, 1), back = clamp((u - 2.4) / 0.7, 0, 1), px = lerp(tx + 2, tx + 16, a - back), py = ty - 14 + (a - back) * 13 - Math.sin((a < 1 ? a : back) * Math.PI) * (a < 1 ? 5 : 12); scr.put(stone, X(px), Y(py), false); } else scr.put(stone, X(tx + 2), Y(ty - 14), false); }
         if (kind === 'ladder') { scr.put(speck(u < 4.5 && u > 3 ? Math.floor(t * 8) & 1 : 0), X(tx), Y(ty - 64), false); if (u < 6) { const lit = Math.floor(clamp(u / 3, 0, 1) * 9), sq2 = clamp(u / 3, 0, 1); for (let k = 0; k < 9; k++) { const a = k / 9, lx = tx + Math.sin(k * 2.1) * (3 + a * 13), ly = ty - 6 - a * 52; if (k < lit && (u < 4.6 || (Math.floor(t * 6) & 1))) { scr.set(X(lx), Y(ly), R.white[1]); scr.set(X(lx) - 1, Y(ly), R.yellow[1]); scr.set(X(lx) + 1, Y(ly), R.yellow[1]); scr.set(X(lx), Y(ly) - 1, R.yellow[1]); scr.set(X(lx), Y(ly) + 1, R.yellow[1]); } } if (u < 3) scr.put(squirrel, X(tx + Math.sin(sq2 * 9 * 2.1 / 1) * (3 + sq2 * 10)), Y(ty - 4 - sq2 * 54), Math.cos(sq2 * 19) < 0); } }
-        // The bluebird comes in from beyond the right edge, circles his head, and leaves the way it came,
-        // climbing, until it is off the picture.
-        // On the long ridge it comes on its own over the last stretch, as well as when the station is clicked.
-        const ub = u < 20 ? u : cfg.brk ? tau - (pl.tSum - 3.4) : -1;
-        if (kind === 'ridge' && ub >= 0 && ub < 20) { const u = ub;
-          const hx = X(me.x), hy = Y(me.y) - 26, ring = a => [hx + Math.cos(a * 3.2) * 14, hy + Math.sin(a * 3.2) * 6];
-          let p, left;
-          if (u < 1.1) { const k = smooth(0, 1.1, u), to = ring(1.1); p = [lerp(VW + 14, to[0], k), lerp(hy - 52, to[1], k) - 10 * Math.sin(k * Math.PI)]; left = true; }
-          else if (u < 3.6) { p = ring(u); left = Math.sin(u * 3.2) > 0; }
-          else { const a = u - 3.6, from = ring(3.6); p = [from[0] + 50 * a + 70 * a * a, from[1] - 26 * a - 6 * Math.sin(a * 5)]; left = false; }
-          if (p[0] < VW + 14) bird = { x: Math.round(p[0]), y: Math.round(p[1]), left };
+        // The bluebird is the weather station's find, and comes only when the station is clicked (round 5,
+        // T51). It flies in from beyond the right edge, circles his head, lands on the station's white
+        // box, sings three times, and leaves the way it came, climbing, until it is off the picture.
+        if (kind === 'ridge' && u >= 0 && u < BIRD.gone) {
+          const hx = X(me.x), hy = Y(me.y) - 40, ring = a => [hx + Math.cos(a * 2.6) * 24, hy + Math.sin(a * 2.6) * 7], perch = [X(tx) - 5, Y(ty) - 19], { loop, land, off } = BIRD;
+          let p, left, bm = bb[Math.floor(t * 12) & 3];
+          if (u < 1.3) { const k = smooth(0, 1.3, u), to = ring(1.3); p = [lerp(VW + 20, to[0], k), lerp(hy - 60, to[1], k) - 12 * Math.sin(k * Math.PI)]; left = true; }
+          else if (u < loop) { p = ring(u); left = Math.sin(u * 2.6) > 0; }
+          else if (u < land) { const k = smooth(loop, land, u), from = ring(loop); p = [lerp(from[0], perch[0], k), lerp(from[1], perch[1] - 8, k) - 9 * Math.sin(k * Math.PI) + 8 * k * k]; left = perch[0] < from[0]; if (k > 0.6) bm = bb[k > 0.85 ? 0 : 1]; }
+          else if (u < off) { const n = BIRD.calls.filter(c => u > c).length, call = BIRD.calls.some(c => u > c && u < c + 0.32); if (n > (st.sang || 0)) env.sfx('warble'); st.sang = n; p = perch; left = u < off - 0.7; bm = bbSit[call ? 1 : 0]; }
+          else { const a = u - off; p = [perch[0] + 55 * a + 70 * a * a, perch[1] - 8 - 34 * a - 6 * Math.sin(a * 5)]; left = false; }
+          if (u < BIRD.calls[0]) st.sang = 0;
+          if (p[0] < VW + 20) bird = { bm, x: Math.round(p[0]), y: Math.round(p[1]), left };
         }
       } else {
         // Camp at the bottom of the glissade.
@@ -973,7 +978,7 @@ export function makeClimb() {
         for (let n = 1; n < 9; n++) scr.set(Math.round(lerp(sx + 8, px + 4, n / 9)), Math.round(lerp(sy - 15, py + PHONE.h * k, n / 9)), n & 1 ? INK : R.white[1]);
         phoneApp(k === 1 ? scr : { set: (i, j, c) => { const x = px + (i - px) * 2, y = py + (j - py) * 2; scr.set(x, y, c); scr.set(x + 1, y, c); scr.set(x, y + 1, c); scr.set(x + 1, y + 1, c); } }, px, py, (me.u - 0.1) / 0.83, t);
       }
-      if (bird) scr.put(bb[Math.floor(t * 10) & 1], bird.x, bird.y, bird.left);
+      if (bird) scr.put(bird.bm, bird.x, bird.y, bird.left);
       if (env.done['spire:' + id] && me.ph === 'up') scr.blit(flag[Math.floor(t * 5) & 1], X(SXr + 4), Y(hOf(pts, SXr + 4)) - 15);
 
       // Spindrift tearing across the ridge until the weather breaks.

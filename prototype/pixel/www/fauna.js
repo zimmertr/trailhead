@@ -189,11 +189,30 @@ function goat(pose, kid, step = 0) {
   return b;
 }
 
-// A bluebird, for the summit of Bluebird Forecast. Two wing frames.
+// A mountain bluebird, for the summit of Bluebird Forecast (redrawn larger in round 5, T51): sky blue
+// above, paler on the breast and white under the tail, with dark wing tips, a thin dark bill and a dark
+// eye. Flying, it has four wing frames (0 to 3: up, level, down, level). 'sit' is perched and 'call' is
+// perched with its bill open and its tail flicked. All face right.
+const BIRD = {
+  body: ['...............MMMM', '..............MLLLLL', '.........MMMMMLLLLKLGG', '.DD....MMLLLLLLLLLLLL', 'DMMMMMMLLLLLLLLLLLPP', '.DMMMMLLLLLLLLPPPPPP', 'DD...LLLLPPPPPPPPPP', '.......WWPPPPPPPP', '.........WWWPP'],
+  up: ['...DD', '...DLLM', '....DLLM', '....LLLLM', '.....LLLLM', '.....LLLLLM', '......LLLLLM', '......LLLLLLM', '.......LLLLLL'],
+  down: ['.......LLLLLL', '......LLLLLLM', '......LLLLLM', '.....LLLLLM', '.....LLLLM', '....LLLLM', '....DLLM', '...DLLM', '...DD'],
+  level: ['...DDMMMMMMMMM', '......LLLLLLLL'],
+  sit: ['.....MMMM', '....MLLLLL', '....LLLLKLGG', '....LLLLLPP', '...MLLLPPPP', '..MMLLPPPPPP', '..MMLLPPPPPP', '..MMMLPPPPPP', '..DMMLLPPPWW', '..DMMMLPPWWW', '..DDMMLLWWW', '..DDMM.LWW', '.DDM...G.G', '.DD....G.G', 'DD.....GG.GG'],
+};
 function bluebird(f) {
-  const b = new BM(9, 7); b.ox = 4; b.oy = 3;
-  b.set(3, 3, R.jay[3]); b.set(4, 3, R.jay[3]); b.set(5, 3, R.jay[2]); b.set(6, 3, R.jay[3]); b.set(7, 3, INK); b.set(4, 4, R.blaze[2]); b.set(5, 4, R.blaze[2]); b.set(2, 3, R.jay[1]); b.set(1, 4, R.jay[1]);
-  if (f) { b.set(4, 2, R.jay[2]); b.set(4, 1, R.jay[2]); b.set(3, 0, R.jay[3]); } else { b.set(4, 5, R.jay[2]); b.set(3, 6, R.jay[2]); }
+  const ink = { K: INK, D: R.jay[1], M: R.jay[2], L: R.jay[3], P: R.ice[3], W: R.white[1], G: R.rock[0] };
+  const put = (b, rows, x, y) => rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== '.') b.set(x + i, y + j, ink[ch]); }));
+  if (f === 'sit' || f === 'call') {
+    const b = new BM(16, 18); b.ox = 8; b.oy = 16; put(b, BIRD.sit, 1, 1);
+    // Calling: its bill opens and its head goes up a little.
+    if (f === 'call') { b.set(11, 3, 0); b.set(12, 3, 0); b.set(11, 2, ink.G); b.set(12, 1, ink.G); b.set(11, 4, ink.G); }
+    outline(b, INK);
+    return b;
+  }
+  const b = new BM(26, 22); b.ox = 13; b.oy = 12; put(b, BIRD.body, 1, 8);
+  if (f === 0) put(b, BIRD.up, 1, 2); else if (f === 2) put(b, BIRD.down, 1, 12); else put(b, BIRD.level, 1, f === 1 ? 10 : 11);
+  outline(b, INK);
   return b;
 }
 

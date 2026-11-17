@@ -561,7 +561,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 - [x] H1. T57: trailhead is the highest summit, everywhere the six are drawn. T61: Kubernetes-Manifests framed clear of the nunatak.
 - [x] H2. T50: Bluebird Forecast as the weather window: drizzle, the phone pop-up, the clearing, the hands-on scramble, a sunny summit with no inversion.
-- [ ] H3. T51: no bluebird on arrival. A bigger, better bluebird when its find is triggered.
+- [x] H3. T51: no bluebird on arrival. A bigger, better bluebird when its find is triggered.
 - [ ] H4. T53: one ice wall on TJs-Kubernetes-Service.
 - [ ] H5. T55, T56: hevy-garmin-sync as a trail run with the watch pop-up and the Hevy sync at the bench. A barbell with plates on the bench.
 - [ ] H6. T58: the knife-edge redrawn, with no sinking into the rock. The two alternatives go into `IDEAS.md`.
@@ -692,7 +692,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **G4 done. Section G is done.** Three pika live on the moraine, each on a rock with a smaller rock beside it. As he comes within about 70 px a pika sits bolt upright, gives the "eep" and bolts into the gap between its two rocks. Once he is 60 px past it looks out of the gap, and when he is 130 px away it hops back up onto its rock. A click on one makes it call and bolt too. The behaviour is one function (`shyPika` in `fauna.js`), ready for the larch basin's pika in I3.
 - **H1 done.** trailhead is the highest of the six summits at camp, in the walk to camp (which paints the same wall) and on the map, where the Spires' flag now flies from it. hevy-garmin-sync is second, and the rest keep their order. At camp the Kubernetes-Manifests summit stands whole with its name tag, clear of the east wall, at 1440x900, 1920x1080 and on a phone.
 - **H2 done.** Bluebird Forecast is the weather window. It drizzles under a grey lid at the foot. He walks to a boulder the size of a small hut, sits under its prow with his knees up and takes out his phone. Its screen is shown large beside him: the Bluebird Forecast app in its own dark slate and sky blue, with its mark and name, a rain cloud, the time slider with its play button, and the word DRIZZLE. The slider runs forward, the cloud moves off a sun and the word turns to CLEARING, with a chime. Then the sky does it: the rain stops, the lid breaks up over the other peaks, and he goes up dry slabs on hands and feet, ledge by ledge, to a sunny top with the weather station. No axe, no storm, no inversion, and no bluebird unless the station is clicked. The climb takes 13 s after a 7.5 s wait (the snow ridge took 25). Frame time at 1920x1080: 7.9 ms in the rain, 2.2 ms on the scramble (before: 7.3 and 6.5).
-- Next: H3.
+- **H3 done.** No bluebird is on Bluebird Forecast's summit when he arrives (H2 took out the one that came on its own). Clicking the weather station brings a mountain bluebird drawn about two and a half times the old size: sky blue above, a pale breast, white under the tail, dark wing tips, a thin bill and a dark eye, with four wing frames. It flies in from the right, circles above his hat, lands on the station's white box, sings three times with its bill open, turns and flies off climbing. The visit lasts about 10 s, and the station cannot be clicked again until it is over.
+- Next: H4.
 
 ## 11. Calls made in round 5
 
@@ -990,3 +991,10 @@ One line each, newest last: the item, what was decided, and why.
 - H2, found on the way and fixed for all six climbs: on a phone held upright the view reached 80 px below the painted rock at the foot of every climb and at the end of every way down, and showed a pale band there (round 4 had it too). The picture now sits lower by what is missing on a narrow screen, unless a card is open.
 - H2, not changed: the way down (the snow glissade and the camp at its foot), the station, its find and its bluebird (H3 redraws the bird).
 - H2, the check passed with nothing moved. `ground.png` was baked again and is the same file.
+- H3, the bird (`fauna.js`, `bluebird`, `BIRD`). The old one was 9 by 7 px with two frames and an orange belly (a western bluebird's). The new one is placed pixel by pixel from rows of letters: 22 by 9 px in flight (wings up, level, down, level, twelve frames a second), 12 by 15 perched, and a perched frame with its bill open. My first try built it from ellipses and it read as a fish, so it is hand-placed. It uses blues the game already has (the jay's ramp, the ice's pale blue, white).
+- H3, its visit (`climb.js`, `BIRD`). In over 1.3 s, circling until 3.7 s (the circle sits 40 px above his feet so it clears his hat; at 32 it crossed his face), landed at 4.6 s on the station's white box, singing at 5.1, 5.8 and 6.6 s, off at 7.7 s. Landing on the station and singing are additions: TJ asked for a bigger, better bird that comes only for the find, and a bird this size circling for the whole visit hid him.
+- H3, the second click. The station could be clicked again after 6 s, which would have snapped the bird from its perch back to the edge of the screen. On this summit the wait is now 11 s. The other summits keep 6.
+- H3, sound (`audio.js`, `warble`): three soft slurred notes each time it sings. Not listened to, like H2's.
+- H3, size. It is far bigger than a real bluebird beside him (as the pika and marmots are): TJ's note was that it was too small to see.
+- H3, the workbench page `sheet.html` has a `bluebird` set (all six frames, enlarged).
+- H3, no words were added. The check passed with nothing moved. `ground.png` was baked again and its pixels are the same.

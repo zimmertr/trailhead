@@ -335,3 +335,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Other Shelterers Under the Boulder** (round 5, H2). A pika or a marmot is already sitting out the rain under the prow and shuffles over for him.
 - **Big Pixel Words on Small Screens** (round 5, H2). A phone held sideways still draws scene words (BANG!, the forecast) at one screen pixel a dot. Draw every in-scene word at twice the size whenever a scene pixel is one screen pixel.
 - **Rain on the Other Climbs** (round 5, H2). The drizzle can come over any climb now and then, by the same dice as the map's weather.
+- **The Bluebird Lands on His Hat** (round 5, H3). On a second click it skips the station and perches on his beanie, and he looks up.
+- **A Pair of Bluebirds** (round 5, H3). The female, grey with blue in her wings and tail, follows a second behind and takes the other box.
+- **Bluebirds on the Map in Fair Weather** (round 5, H3). When the map's weather is clear, one sits on the Spires' signpost, and it is gone when the weather turns.
+- **The Bird Reads the Station** (round 5, H3). While it sits on the box the anemometer stops, and it starts again when the bird leaves.
