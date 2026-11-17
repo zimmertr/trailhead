@@ -429,7 +429,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] B3. T45: swap the sign's arrows. (The distances wait for D1.)
 - [x] B4. T12: remove the float plane and its debug button.
 - [x] B5. T41: remove the standing bear from the forest, with its debug event.
-- [ ] B6. T38: remove the Steller's jay from the stump, and move the owl to a limb on the trunk behind it.
+- [x] B6. T38: remove the Steller's jay from the stump, and move the owl to a limb on the trunk behind it.
 - [ ] B7. T77: rename "Played on" to "Music style".
 - [ ] B8. T37: TJ's facing no longer flips on diagonals (check every trail on the map at 2x speed with `frames.sh`).
 - [ ] B9. T1: the first frame is centred on TJ (desktop and phone, with fonts slow to load).
@@ -565,7 +565,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **B3 done.** The sign's arrows match the map: Reflection Lake left, Proficiency Peak right, Sideproject Spires up. The distances still wait for D1.
 - **B4 done.** The float plane, its flight over Reflection Lake and its debug button are gone.
 - **B5 done.** The bear that stood up behind a giant in the forest is gone: its lean-out in `forest.js`, its drawing (`bear()` in `fauna.js`), its frames on the sprite sheet page and the "Bear" start button in the debug menu's forest group. No find depended on it. The bear on the map is a different animal and stays.
-- Next: B6.
+- **B6 done.** The Steller's jay, its flight, its call, its cue and its "Steller's jay" debug button are gone, and the trail map's wildlife line no longer mentions it. The owl sits on a mossy limb of the giant right behind the stump, high enough to clear the young trees in front. The gray jay of the snack break stays. `shot.sh` takes `WWW=<folder>` to render any view from another build, such as round 4's.
+- Next: B7.
 
 ## 11. Calls made in round 5
 
@@ -582,6 +583,7 @@ One line each, newest last: the item, what was decided, and why.
 - B3: kept the planks in their order (lake, peak, Spires) and swapped only the arrows, so the order still matches the trail map, the timeline and the 1, 2, 3 keys. A real signpost often groups its planks by direction; that would be a reorder for TJ to ask for.
 - B4: also took the plane out of the trail map's "Also seen" line. `PROGRESS.md` still lists it, as the record of round 4.
 - B5: the giant the bear leaned out from stays where it was (now `D_GIANT`), because moving it would shift every tree after it and the owl's perch. The map's "some days a bear" line in the trail map stays: it is about the map's bear (T44).
+- B6: the owl's giant is the one nearest the stump, worked out from the trunks, so it follows if the forest moves. Its limb went up from 52 to 84 pixels above the giant's foot, because at 52 the owl sat against a young spruce's top. The jay's palette ramp in `core.js` and the `'steller'` kind in `fauna.js` stay unused for now: dropping the ramp would renumber the palette.
 
 ## 12. The reference pictures
 

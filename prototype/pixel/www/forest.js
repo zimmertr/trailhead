@@ -11,7 +11,7 @@ import { NAMES } from './content.js';
 
 const SW = 1640, UP = 480, DOWN = 240;
 const X0 = SW - 500, LEN = 640, DUR = 8.2;
-const D_SIGN = 300, D_SLUG = 372, D_ELK = 452, D_GIANT = 524, D_JAY = 132;
+const D_SIGN = 300, D_SLUG = 372, D_ELK = 452, D_GIANT = 524, D_STUMP = 132;
 let sasquatchSeen = false;
 
 // How far the forest has thinned out: 0 in the thick of it, 1 where it ends at the lake, and 1 again
@@ -247,7 +247,7 @@ const META = {
   dur: () => DUR,
   stops: () => [{ id: 'who', at: D_SIGN / LEN }],
   elev: (arg, q) => -g(X0 - q * LEN) * 1.5,
-  cues: () => [{ at: (D_SLUG - 11) / LEN, name: 'hop' }, { at: (D_JAY - 20) / LEN, name: 'jay' }]
+  cues: () => [{ at: (D_SLUG - 11) / LEN, name: 'hop' }]
 };
 export const makeForest = () => shell(META, buildForest, ['enter', 'focus', 'pick', 'draw', 'trigger']);
 function buildForest() {
@@ -342,18 +342,17 @@ function buildForest() {
   const TRAIL_LOGS = [[590, 0, -12], [206, 1, -15], [-150, 0, -14], [840, 1, -11]];
   for (const [d, k, by] of TRAIL_LOGS) { const x = X0 - d; things.push({ bm: logs[k], x, y: g(x) + by }); }
   for (let n = 0; n < 9; n++) { const x = n * 190 + rand() * 120; things.push({ bm: logs[n & 1], x: Math.round(x), y: g(x) + nearBank(x) + 26 + Math.round(rand() * 110), flip: n % 3 === 0 }); }
-  const stump = makeStump(5), stumpX = X0 - D_JAY;
+  const stump = makeStump(5), stumpX = X0 - D_STUMP;
   things.push({ bm: stump, x: stumpX, y: g(stumpX) - 9 });
   const signX = X0 - D_SIGN - 15;
   things.push({ bm: makeTrailSign(), x: signX, y: g(signX) - 6 });
   // The eerie corner of the rainforest (E5d), by rule, with no turns of the dice so nothing else moves.
-  // The owl: on a low limb of the giant in the thick of the forest that stands farthest from every other
-  // animal and sign along the run, with no tree in front of it to hide it.
-  const busy = [D_SIGN, D_SLUG, D_ELK, D_GIANT, D_JAY];
-  let owlT = null, owlScore = -1;
-  for (const t of trunks) { const d = X0 - t.x; if (!t.bm || t === giant || d < 40 || d > LEN - 40 || thinAt(t.x) > 0.05 || things.some(th => th.tree && Math.abs(th.x - t.x) < 44)) continue;
-    const s = Math.min(...busy.map(b => Math.abs(d - b))); if (s > owlScore) { owlScore = s; owlT = t; } }
-  const perch = owlT && (() => { const bm = makeLimb(2900, 28, 1), x = owlT.x + Math.round(owlT.w / 2 - 2), y = owlT.y - 52, col = bm.ox + 14; let top = 0; while (top < bm.h && !bm.d[top * bm.w + col]) top++;
+  // The owl: on a mossy limb of the giant right behind the stump (TJ, round 5 T38). The Steller's jay that sat
+  // on the stump is gone, so the owl has the middle of the run to itself. The limb is high enough to clear
+  // the young trees in front of the giant.
+  const busy = [D_SIGN, D_SLUG, D_ELK, D_GIANT, D_STUMP];
+  const owlT = trunks.filter(t => t.bm).reduce((a, t) => !a || Math.abs(t.x - stumpX) < Math.abs(a.x - stumpX) ? t : a, null);
+  const perch = owlT && (() => { const bm = makeLimb(2900, 28, 1), x = owlT.x + Math.round(owlT.w / 2 - 2), y = owlT.y - 84, col = bm.ox + 14; let top = 0; while (top < bm.h && !bm.d[top * bm.w + col]) top++;
     things.push({ bm, x, y, z: owlT.y + 0.1 }); return { x: x + 14, y: y - bm.oy + top, z: owlT.y + 0.2 }; })();
   const owlBM = { r: owl('r'), f: owl('f'), l: owl('l'), rb: owl('r', 1), fb: owl('f', 1), lb: owl('l', 1) };
   // Foxfire: on the nurse log by the trail that lies deepest in the forest, glowing in clusters along
@@ -401,7 +400,7 @@ function buildForest() {
   const run = makeRunner('trail');
   const sit = [0, 1].map(f => sideFig('trail', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: f ? [[4, -2], [2, 3]] : [[3, 3], [2, 3]] }));
   const elkBM = { up: elk('up'), ear: elk('up', 0, 1), graze: elk('graze'), bite: elk('graze', 0, 1) }, sas = [sasquatch(0), sasquatch(1)];
-  const jayBM = { sit: jay('steller', 'sit'), up: jay('steller', 'up'), down: jay('steller', 'down') }, gray = { sit: jay('gray', 'sit'), up: jay('gray', 'up'), down: jay('gray', 'down') };
+  const gray = { sit: jay('gray', 'sit'), up: jay('gray', 'up'), down: jay('gray', 'down') };
   const slugBM = [slug(0), slug(1)], slugX = X0 - D_SLUG;
   const elkX = X0 - D_ELK, elkY = g(elkX) - 13;
 
@@ -410,20 +409,18 @@ function buildForest() {
   const list = [];
   const xOf = q => X0 - q * LEN;
   // The animals act on their own clock once he crosses their point, so they carry on when he stops and
-  // do not play backwards when the timeline is scrubbed. jayGo, sasGo: when each began (null if not yet).
-  // The jay flies once a visit to the scene.
-  const JAY_AT = D_JAY - 46, SAS_AT = 0.66;
-  let jayGo = null, sasGo = null, sasX = 0, sasOn = 0;
+  // do not play backwards when the timeline is scrubbed. sasGo: when he began (null if not yet).
+  const SAS_AT = 0.66;
+  let sasGo = null, sasX = 0, sasOn = 0;
   // The deer's eyes at Dusk: 8 s in every 26, or when the debug button says.
   const EYES = { slot: 26, dur: 8 }; let eyeGo = null;
 
   return {
     ...META,
-    enter(scr, arg, q) { cam = xOf(q); st.y = null; const d = q * LEN; jayGo = d >= JAY_AT ? -1e9 : null; sasGo = null; },
+    enter(scr, arg, q) { cam = xOf(q); st.y = null; const d = q * LEN; sasGo = null; },
     focus: () => focus,
-    // The debug panel's start buttons (E5f): the jay takes off from its stump, or Sasquatch steps out at the far edge of the view, even if he has been seen this visit.
+    // The debug panel's start button (E5f): Sasquatch steps out at the far edge of the view, even if he has been seen this visit.
     trigger(name, t) {
-      if (name === 'jay') { jayGo = t; return true; }
       if (name === 'eyeshine') { eyeGo = t; return true; }
       if (name === 'sasquatch') { sasquatchSeen = false; sasGo = t; sasX = last.camX - 12; sasOn = 0; return true; }
       return false;
@@ -483,11 +480,6 @@ function buildForest() {
       for (const th of things) { const w = th.tree ? 30 : th.bm.w; if (th.x + w > camX && th.x - w < camX + VW) list.push(th); }
       // The elk lifts his head while he passes.
       { const up = Math.abs(d - D_ELK + 20) < 90 || frac(t / 7) >= 0.7; list.push({ bm: up ? elkBM[frac(t / 2.9) < 0.07 ? 'ear' : 'up'] : elkBM[Math.floor(t * 2.2) & 1 ? 'bite' : 'graze'], x: elkX, y: elkY, flip: false }); }
-      // The jay sits on the stump until he comes close, then takes off ahead of him.
-      if (jayGo === null && d >= JAY_AT) jayGo = t;
-      const ju = jayGo === null ? -1 : (t - jayGo) / 1.9;
-      if (ju < 0) list.push({ bm: jayBM.sit, x: stumpX + 2, y: g(stumpX) - 27, z: 999, flip: frac(t / 2.3) < 0.5 });
-      else if (ju < 1.5) list.push({ bm: Math.floor(t * 9) & 1 ? jayBM.up : jayBM.down, x: stumpX + 2 - ju * 150, y: g(stumpX) - 27 - Math.sin(Math.min(1, ju) * 1.4) * 150, z: 999, flip: true });
       list.push({ bm: slugBM[Math.floor(t * 1.2) & 1], x: slugX, y: g(slugX) + 1, flip: true });
       // The owl turns its head to follow him: looking right as he comes, at you as he passes under, then left.
       if (perch) { const rel = mx - perch.x, f = rel > 26 ? 'r' : rel < -26 ? 'l' : 'f'; list.push({ bm: owlBM[frac(t / 4.3) < 0.04 ? f + 'b' : f], x: perch.x, y: perch.y, z: perch.z }); }

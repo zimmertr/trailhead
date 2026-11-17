@@ -205,7 +205,6 @@ export function makeAudio() {
     meow: t => { tone(fx, 'square', 620, t, 0.12, 0.16, 940); tone(fx, 'square', 940, t + 0.12, 0.2, 0.16, 520); },
     purr: t => { for (let i = 0; i < 14; i++) tone(fx, 'triangle', 52, t + i * 0.045, 0.03, 0.5); },
     chirp: t => { tone(fx, 'square', 2600, t, 0.05, 0.07, 3400); tone(fx, 'square', 3000, t + 0.08, 0.05, 0.07, 2400); },
-    jay: t => { for (let i = 0; i < 3; i++) noise(fx, t + i * 0.12, 0.08, 0.12, 3000, 6, 'bandpass'); },
     bark: t => noise(fx, t, 0.2, 0.2, 300, 1, 'lowpass'),
     // A Clark's nutcracker in the larches: a harsh, drawn-out kraa, twice.
     kraa: t => { for (let i = 0; i < 2; i++) { noise(fx, t + i * 0.3, 0.22, 0.1, 1300, 4, 'bandpass'); tone(fx, 'square', 520, t + i * 0.3, 0.2, 0.03, 430); } },

@@ -185,3 +185,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Cloud shadows** drifting across the map on the wind, slow and soft, darker over the meadow, so the land never sits completely still.
 
 - **A Flag on the Register** (round 5, B2). Once a visitor has finished all three and can sign, the register's lid stands open a crack or a small red flag goes up on its post, like a mailbox, so they know without opening it.
+- **The Owl Answers** (round 5, B6). Clicking the owl on its limb turns its head all the way round and gives a soft two-note hoot, and at Dusk its eyes catch the light like the deer's.
