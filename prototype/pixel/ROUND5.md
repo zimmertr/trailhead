@@ -577,7 +577,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] I2. T65: the red huckleberry drawn as shrubs.
 - [x] I3. T66: the larch basin's pika squeak and hide.
 - [x] I4. T67: nothing floats in the larch basin, in Day or at Dusk.
-- [ ] I5. T68: the walk-in at normal pace, and helmets in about 2 s.
+- [x] I5. T68: the walk-in at normal pace, and helmets in about 2 s.
 - [ ] I6. T72, T71: the climbing order (leader, woman, TJ) and the second rope from the woman to TJ, on every pitch.
 - [ ] I7. T69: climbing at about 4 times the speed, with fewer pieces.
 - [ ] I8. T70: a large tarn far below, like Shield Lake.
@@ -705,7 +705,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **I2 done.** The red patches on the ground are gone, in the larch basin and at the foot of the climb. In their place the red huckleberry is drawn as low shrubs: a heap of leaves in its own shade, stems fanning out with leaves in pairs, crimson below and orange above with pale tips, and a dark line where each meets the ground. They stand in clumps of three to five, a big one with smaller ones round it, where the red used to be.
 - **I3 done.** The larch basin's pika now behaves like the ones on the moraine. When TJ comes within about 70 px it sits bolt upright on its rock, gives its "eep" and bolts into the gap between its two rocks. Once he has gone by it looks out of the gap, and when he is well away it comes back to its rock. While he is far off it still goes back and forth with flowers for its haystack, as in round 4.
 - **I4 done.** Nothing floats in the larch basin now. Near the end of the walk the trail, its cairns, two rocks and the larches on the verge used to stand in the air in front of the grey bench, above a ground that stopped in a flat line. The ground now rises with the trail to the end of the scene, and everything on it stands on it, in Day and at Dusk.
-- Next: I5.
+- **I5 done.** At Proficiency Peak TJ now walks in to the foot of the climb at the pace he walks the larch basin, about three times as fast as before. He drops his pack in passing, and helmets and knots are one beat of under 2 s: hands up to the helmet, the chin strap, the knot. The woman eats bare-headed and her helmet goes on in that beat, where it used to appear when she stood up. They are ready and waiting for Space about 6 s sooner.
+- Next: I6.
 
 ## 11. Calls made in round 5
 
@@ -1096,3 +1097,8 @@ One line each, newest last: the item, what was decided, and why.
 - I4, the fix is to the rule and not to the things: the strip is now as tall as the ground it holds, measured from the ground itself. Nothing was moved.
 - I4, what it changes to the eye: on the last third of the walk the meadow and the dirt trail now cover the lower part of the grey bench behind, where the bench used to show down to a flat green line. The far tarn, the bench's top and its larches still show above.
 - I4, looked at from the top of the rungs to the last step, close up and whole, in Day and at Dusk, on a phone and at 1920 wide, beside the build before. Frame time in the scene is unchanged at about 2 ms. The check passed with nothing moved.
+- I5, what was slow (`ridge.js`): the walk-in went at 24 px a second, against 78 in the larch basin just before it. The pack drop took 0.9 s and the knots 1.4 s. No helmet was ever put on: the woman sat bare-headed and had her helmet the moment she stood, 1.3 s before TJ arrived. I read TJ's "too much time putting helmets on" as the whole stand-about at the foot of the climb.
+- I5, the fix: `SPEED.walk` is 78, and the woman walks over at the same pace (it was 30). The pack drop is 0.6 s. Gearing up is 1.8 s in all: 0.7 s with the hands at the helmet (rim, then chin strap), then 1.1 s on the knot. From his first step to the wait for Space is 5.7 s, where it was 11.7 s.
+- I5, a call: the woman now stays bare-headed until that beat, so one helmet is seen going on. TJ and the leader arrive with theirs on, as before: TJ's whole kit changes between the two scenes, which I left alone.
+- I5, a call: the wait for Space at the foot of the climb and the fist bump after it are unchanged. The scene is 6 s shorter (440 s), so every stop in it sits a little earlier on the timeline. Nothing else in the scene's script was touched.
+- I5, looked at second by second beside round 4, close up on the helmet beat, in Day and at Dusk, and on a phone both ways. Frame time there is about 3 ms. The check passed with nothing moved.

@@ -384,3 +384,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Second Pika Answers** (round 5, I3). When this one calls, another calls back from the talus further up, heard and not seen.
 - **A Check for Things in the Air** (round 5, I4). Each side scene can list what it places, and the check script tests that the pixel under every tree, rock and cairn is painted ground.
 - **Strips That Size Themselves** (round 5, I4). `Strip` grows upward when a scene paints above its top, so no scene can cut its own ground off.
+- **Gearing Up Seen** (round 5, I5). The leader racks cams onto his harness one at a time while the others walk over, and each one is on the rack he climbs with.
+- **A Kit Change at the Packs** (round 5, I5). TJ arrives in his trail clothes and cap, and swaps the cap for his helmet at the packs, so his kit does not change between scenes.
+- **Rope Flaked Out** (round 5, I5). The woman flakes the rope into a pile at the foot of the climb before anyone ties in, and the pile shrinks as the leader climbs.

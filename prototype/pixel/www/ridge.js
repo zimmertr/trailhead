@@ -436,7 +436,8 @@ const below = d => { let k = 0; for (let i = 0; i < ANCHORS.length; i++) if (MAR
 // The two followers climb differently (H7): TJ quick and steady, straight up the line, never stopping
 // to rest; the woman slower and careful, wandering a little either side of it and stopping once a
 // pitch to shake out an arm.
-const SPEED = { walk: 24, lead: 11, tj: 17, red: 13 };
+// On the ground they walk at the pace he came through the larch basin at (round 5, T68).
+const SPEED = { walk: 78, lead: 11, tj: 17, red: 13 };
 const WHO = ['tj', 'lead', 'red'];
 const dAtX = x => { for (let i = 1; i < ROUTE.length; i++) if (ROUTE[i][0] >= x) return lerp(DIST[i - 1], DIST[i], clamp((x - ROUTE[i - 1][0]) / (ROUTE[i][0] - ROUTE[i - 1][0]), 0, 1)); return LEN; };
 // Where each of them stands at an anchor: the leader on it, TJ a stride below, the woman a stride below
@@ -621,9 +622,12 @@ function makeScript() {
   // He walks in over the knob past the balanced rock, puts his pack under the overhanging rock with
   // theirs, walks on to the start tree and ties in beside the leader, who is racking up; the woman,
   // eating by the packs, gets up and ties in too. Then he waits for Space, and they bump fists.
-  move('tj', PACKS, 'walk', SPEED.walk, 'stand'); go('tj', PACKS, 'drop', 0.9, 'stand'); move('tj', TIE, 'walk', SPEED.walk, 'stand');
-  hold('red', clock.tj - 1.3); move('red', dAtX(214), 'walk', 30, 'stand');
-  sync(); go('tj', TIE, 'tie', 1.4, 'belay'); go('red', pos.red, 'tie', 1.4, 'stand');
+  move('tj', PACKS, 'walk', SPEED.walk, 'stand'); go('tj', PACKS, 'drop', 0.6, 'stand'); move('tj', TIE, 'walk', SPEED.walk, 'stand');
+  hold('red', clock.tj - 0.8); move('red', dAtX(214), 'walk', SPEED.walk, 'stand');
+  // Helmets on and tied in, as one quick beat of about 2 s (round 5, T68): hands to the head, her helmet
+  // on at `lidAt`, then the knots.
+  const lidAt = sync() + 0.35; for (const k of ['tj', 'red']) go(k, pos[k], 'lid', 0.7, 'stand');
+  go('tj', TIE, 'tie', 1.1, 'belay'); go('red', pos.red, 'tie', 1.1, 'stand');
   stops.push({ id: 'wait:belay', t: sync() });
   const bumpAt = clock.tj; go('tj', TIE, 'bump', 1.0, 'belay'); go('lead', pos.lead, 'bump', 1.0, 'lead');
   const CARD = { a1: 'platform-engineering', a3: 'site-reliability-engineering', a4: 'software-engineering' };
@@ -697,7 +701,7 @@ function makeScript() {
   stops.push({ id: 'summit', t: sumT + SUMMIT_LEN - 0.4 });
   // The summit anchor comes down as they set off for the edge.
   const descT = sync(); for (const k of WHO) go(k, pos[k], 'desc', DESC_LEN); anc[anc.length - 1].gone = descT + 0.6;
-  return { tr, ropes, stops, pro, anc, slipAt, fallAt, bumpAt, sumT, descT, dropAt: tr.tj[1].t0 + 0.5, dur: clock.tj };
+  return { tr, ropes, stops, pro, anc, slipAt, fallAt, bumpAt, sumT, descT, lidAt, dropAt: tr.tj[1].t0 + 0.35, dur: clock.tj };
 }
 const SCRIPT = makeScript(), DUR = SCRIPT.dur;
 // Each of them at a moment: where along the line, in what pose, how far through it, whether moving;
@@ -734,6 +738,12 @@ function kitFrames(kit) {
     side, idle: sideFig(kit, { lean: 0 }), blow: [sideFig(kit, { lean: 0, hands: [[6, -4], [6, -2]] }), sideFig(kit, { lean: 0, hands: [[5, -2], [6, -5]] })], crouch: sideFig(kit, { crouch: 4, lean: 5, hands: [[6, 9], [3, 8]], look: 'down', feet: [[3, 8.5], [-3, 8.5]] }),
     rack: [sideFig(kit, { lean: 1, hands: [[3, 5], [1, 6]], look: 'down' }), sideFig(kit, { lean: 1, hands: [[2, 6], [3, 4]], look: 'down' })],
     tie: [tying(0), tying(1)],
+    // A helmet going on: both hands up at its rim, then at the chin strap. The hands are drawn again over
+    // the head, which would otherwise hide them.
+    lid: [1, 0].map(up => sideFig(kit, { lean: 0, hands: up ? [[3, -5], [-1, -5]] : [[3, -2], [1, -3]], held: (b, sh) => {
+      const k = typeof kit === 'string' ? KITS[kit] : kit;
+      for (const [x, y, c] of up ? [[4, -5, k.top[1]], [4, -6, k.top[1]], [4, -7, k.top[2]], [4, -8, k.hand[1]], [4, -9, k.hand[1]], [-2, -8, k.hand[0]], [-2, -9, k.hand[0]]] : [[3, -2, k.hand[1]], [2, -2, k.hand[0]], [3, -1, k.top[2]]]) b.set(sh[0] + x, sh[1] + y, c);
+    } })),
     // A high five, one hand up and forward; sitting on a block's edge with the legs forward.
     five: sideFig(kit, { lean: 0, hands: [[5, -6], [1, 5]] }), sit: sideFig(kit, { crouch: 6, lean: 2, hands: [[5, 3], [3, 4]], feet: [[6, 8.5], [3, 8.5]] }),
     bump: [sideFig(kit, { lean: 0, hands: [[1, 4], [-1, 6]] }), sideFig(kit, { lean: 1, hands: [[6, 4], [-1, 6]] })],
@@ -1022,6 +1032,8 @@ function buildRidge() {
   const KIT = { tj: 'wall', lead: { ...PAIR[0], bare: false, hat: R.red, rack: true }, red: { ...PAIR[1], bare: false, hat: [R.white[0], R.white[1], R.white[1]] } };
   const KO = w => typeof KIT[w] === 'string' ? KITS[KIT[w]] : KIT[w], KH = {};
   for (const w of WHO) KH[w] = { ...KO(w), hood: true };
+  // She sits and eats bare-headed, and her helmet goes on with his at the foot of the climb.
+  const BARE = kitFrames(PAIR[1]);
   const F = { tj: kitFrames(KIT.tj), lead: kitFrames(KIT.lead), red: kitFrames(KIT.red) }, FH = { tj: kitFrames(KH.tj), lead: kitFrames(KH.lead), red: kitFrames(KH.red) };
   // On the face their hands and feet are on the holds (H10). The drawings are made as they are needed
   // and kept: the limbs fall on whole pixels, so the same few come round again and again. right, when
@@ -1161,7 +1173,7 @@ function buildRidge() {
       const bumping = S.tj.pose === 'bump';
       const rateOf = w => { const r = S.ropes.find(r => r.a === w); return r && S[r.b].moving; };
       const draw1 = w => {
-        const s = P[w], fr = (s.hood ? FH : F)[w], sx = Math.round(s.x) - cx, sy = rowOf(s.h);
+        const s = P[w], fr = w === 'red' && tau < SCRIPT.lidAt ? BARE : (s.hood ? FH : F)[w], sx = Math.round(s.x) - cx, sy = rowOf(s.h);
         const put = (bm, x, y, f) => { scr.put(bm, x, y, f); s.fig = { x, y, f, back: bm.oy === 28, side: bm.oy === 36 }; };
         const u = s.u, flick = Math.floor(t * 3) & 1;
         if (s.pose === 'sit') { pair.snack(scr, 1, sx, sy, t, 0); return; }
@@ -1188,6 +1200,7 @@ function buildRidge() {
         if (s.pose === 'walk' || (s.moving && !s.steep && s.pose !== 'drop')) { put(env.moving && s.moving ? fr.side[Math.floor(s.d / 4.2) % 6] : fr.idle, sx, sy, s.dir < 0); return; }
         if (s.pose === 'drop') { put(u < 0.25 || u > 0.85 ? fr.idle : fr.crouch, sx, sy, true); return; }
         if (s.pose === 'rack') { put(fr.rack[Math.floor(t * 1.5) & 1], sx, sy, true); return; }
+        if (s.pose === 'lid') { put(fr.lid[tau < SCRIPT.lidAt ? 0 : 1], sx, sy, false); return; }
         if (s.pose === 'tie') { put(fr.tie[Math.floor(t * 6) & 1], sx, sy, false); return; }
         if (s.pose === 'bump') { put(u < 0.2 || u > 0.85 ? fr.idle : fr.bump[u > 0.45 && u < 0.7 ? 1 : 0], sx, sy, w !== 'tj'); return; }
         if (s.pose === 'lead' || s.pose === 'climb') { const st = styleAt(s.d); if (st || !s.lb) put(st ? fr[st][Math.floor(s.d / 4) & 1] : fr.anchor[0], sx, sy - 12, false); else put(figAt(w, s.lb, null, 0, s.hood), sx + s.bx, sy - 12, false); return; }
