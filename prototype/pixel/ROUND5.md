@@ -419,7 +419,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
   - If, at any later item, #31 has been merged: close #22 with a comment (the Renovate rule landed in #31), tag `pixel-round4-opus` as `archive/pixel-round4-opus` and delete the branch, rebase `pixel-round5` onto `origin/main`, and point #32 at `main`.
 - [x] A0b. **File the nine issues** listed in section 5.13, one per idea, with the `create-issue` skill (its six sections, the hemingway and humanizer passes, the labels it requires, and this repo's `CLAUDE.md` Issues section). TJ asked for all nine, so no further okay is needed. Put each issue's link in section 10.
 - [x] A0c. **Rewrite #8 and #14 to #17 for the pixel site** (as it stands now and as round 5 leaves it), in the `create-issue` skill's format and with its passes. Edit each issue in place with `gh issue edit` (title, body and labels). Save each old title and body first in `plan/issue-rewrites-old.md`, so nothing is lost. TJ asked for the issues to be updated, not drafted (2026-11-16). List the links in the report.
-- [ ] A1. Rebase `pixel-round5` onto `origin/main` if #31 has merged (see A0). Create the round's artifact from the first build and put its link in section 10.
+- [x] A1. Rebase `pixel-round5` onto `origin/main` if #31 has merged (see A0). Create the round's artifact from the first build and put its link in section 10.
 - [ ] A2. Render round 4's reference set from tag `archive/pixel-r4-final` into `out/r4/`: every view in section 7, the opening on desktop and phone, every stop of every route, Day and Dusk, plus films of the map events. These are the pictures every item is compared with.
 
 ### B. Quick fixes and removals
@@ -555,12 +555,12 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 ## 10. Where the build stands
 
 - **2026-11-16, before any work.** `pixel-round5` was cut from `pixel-round4-opus` at the round 4 PR's head and holds this plan and TJ's screenshots. The game is exactly round 4's final build (`archive/pixel-r4-final` plus the docs commits on #31).
-- The round's artifact: (created at A1).
+- The round's artifact: https://claude.ai/artifact/1VdS5Q3uSMTpEuGEm39SZr (created at A1 from `pixel-round5`, exported to the scratchpad's `r5-working/`; republish from that folder only).
 - The round's PR: https://github.com/zimmertr/trailhead/pull/32 (draft, stacked on #31 until #31 merges).
 - Round 4's PR: https://github.com/zimmertr/trailhead/pull/31, every check green and ready for TJ to merge (A0, commit `46dfa56`). `pixel-round5` is rebased on it.
 - Issues filed at A0b (label `8d20dfc8`): menus and hotkeys https://github.com/zimmertr/trailhead/issues/33, words out of the source https://github.com/zimmertr/trailhead/issues/34, Strava and Peakbagger in the world https://github.com/zimmertr/trailhead/issues/35, forest light beams https://github.com/zimmertr/trailhead/issues/36, art from the GPU https://github.com/zimmertr/trailhead/issues/37, engine rules https://github.com/zimmertr/trailhead/issues/38, free explore https://github.com/zimmertr/trailhead/issues/39, the forest maze https://github.com/zimmertr/trailhead/issues/40, purging working files https://github.com/zimmertr/trailhead/issues/41.
 - Issues rewritten at A0c for the pixel world: https://github.com/zimmertr/trailhead/issues/8 (the build plan), https://github.com/zimmertr/trailhead/issues/14 (Reflection Lake, the Trailhead and the shared parts, served by `web`), https://github.com/zimmertr/trailhead/issues/15 (Proficiency Peak), https://github.com/zimmertr/trailhead/issues/16 (Sideproject Spires, numbers from `api`), https://github.com/zimmertr/trailhead/issues/17 (the things to find). Old text: `plan/issue-rewrites-old.md`.
-- Next: A1.
+- Next: A2.
 
 ## 11. Calls made in round 5
 
@@ -570,6 +570,7 @@ One line each, newest last: the item, what was decided, and why.
 - A0, A0b: no game change, so the round's artifact waits for A1 to be created.
 - A0b: priorities P2 for what likely comes next (menus #33, words #34, GPU art #37, engine rules #38, forest maze #40) and P3 for the rest (#35, #36, #39, #41). #35 is blocked by #6. #39 needs a decision record amending 0014 and 0007. The session label is the short id `8d20dfc8`, as the create-issue skill now asks.
 - A0c: each rewritten issue describes the prototype as round 5 leaves it (marked so), and turns the task into bringing that part into the `web` service. #14 recommends serving the prototype's modules from `web` with words from `content/`, over a TypeScript port, and carries the decision record and the PRD and README update for the pixel world. Kept the old full-session label and added the short one. Labels and priorities otherwise unchanged.
+- A1: #31 is still open, so no rebase onto main yet. The page title now says round 5. The round's artifact is published from `r5-working/`, a folder used for nothing else.
 
 ## 12. The reference pictures
 
