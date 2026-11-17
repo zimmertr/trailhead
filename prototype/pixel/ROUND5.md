@@ -532,7 +532,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] E0. **Room for the animals.** On 2026-11-16 the zoomed-out map took 14.9 ms a frame at Dusk and 15.5 ms through the sunset blend, against a limit of 16.7 ms (round 4: 13.5 ms at Dusk). Before any animal is added, find what the round has cost so far (profile C1's collision, C3's clock and blend, C4's overlays when off) and bring both views to 13.5 ms or under. If that cannot be done, log what was tried and what each new animal may cost, and carry on.
 - [x] E1. T15: the ferry and the orcas keep to deep water at every tide (check through a whole tide cycle on film).
 - [x] E2. T26: jellyfish offshore.
-- [ ] E3. T33: the tide pool twice the size, with animated animals.
+- [x] E3. T33: the tide pool twice the size, with animated animals.
 - [ ] E4. T14: the marine layer's rain belongs to the world.
 - [ ] E5. T28, T16, T19: the bald eagle on the stacks, the osprey at Reflection Lake, the salmon removed. Debug buttons.
 - [ ] E6. T11: all three ice falls snowy at the start, avalanches every 60 to 120 s one at a time, serac falls only on bare faces.
@@ -672,7 +672,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **E0 done, with no code changed.** The zoomed-out map with every event running takes 11.8 to 11.9 ms a frame at Dusk and 12.0 to 12.5 ms through the sunset blend, both under the 13.5 ms target, and round 4's own build takes 12.3 to 12.4 ms at Dusk on the same machine today. The 14.9 and 15.5 ms of 2026-11-16 were taken while other renders were running. That leaves about 4 ms under the 16.7 ms limit for section E's animals.
 - **E1 done.** The ferry and the orcas keep to deep water at every tide. Each now has a lane for high water and a lane for the lowest water, worked out once when the map opens, and is somewhere between the two as the tide stands, so it moves out and back with the water without a jump. Checked two ways: a sweep of 8000 s of tides at four looks a second (the ferry never has less than 2.5 px of room to spare, the orcas never less than 6, and nothing moves more than 5.5 px between two looks), and a film of a whole tide with the no-go water tinted. The pod also swims at one speed round the corner of the coast now, where it used to race.
 - **E2 done.** The eight jellyfish float in open water at every tide. Each has a home at high water, 50 px or more out from the high-water line, and a home at the lowest water, out beyond the bared flats, and sits between the two as the tide stands, drifting a few pixels round that point. None is ever against the beach, in the pocket between two stacks or behind a stack's drawing. The sweep (8000 s, four looks a second, 256,000 looks) finds every one of them drawn every time, never short of water, never nearer the high-water line than 43 px, and never moving more than a third of a pixel between two looks.
-- Next: E3.
+- **E3 done.** The tide pool to find is a basin 27 by 13 px (it was 11 by 5), beside the north stack of the two the low water bares: a rim of rock, lit on its far side and dark on its near side, with barnacles, round clear teal water that is paler in the shallows. In it: a purple and an orange sea star whose arm tips shift so their shapes slowly change, two green anemones whose tentacles lean one way and then the other, a purple urchin whose spines bristle, and a sculpin that lies still and then darts to another spot. A red crab goes sideways along the sand in front, legs working, and stops. A glint wanders on the water. The small pools are basins too, each with one small animal that moves, and the south stack's crab walks beside its pools. The find still opens on a tap at low water, with the same label.
+- Next: E4.
 
 ## 11. Calls made in round 5
 
@@ -816,6 +817,12 @@ One line each, newest last: the item, what was decided, and why.
 - E2. One more rule, from looking at the picture: a jellyfish may not float where a stack's drawing stands over the water behind its foot. One sat there and showed as a pink dot stuck to the side of the rock.
 - E2. Their look (three pixels wide, pink or pale, pulsing) is unchanged: TJ's note was about where they are.
 - E2, checks: `check.sh E2 E1` passed, 11.7 ms a frame zoomed out at Dusk, lint clean, nothing moved more than 8 px. Laid beside round 4's build at high and low water: round 4 had them along the beach's edge and against the stacks.
+- E3, size. TJ asked for "about twice the size": the find pool is 2.4 times as wide and as tall, which is what it took to seat two 5 px sea stars, two anemones, an urchin and a fish without crowding. At the default zoom it is 54 by 26 screen pixels and its animals read as separate things. The small pools went from 7 to 11 px wide by 5 tall to 9 to 13 wide by 7 tall.
+- E3, where. The big basin sits beside the first of the two stacks that has room: on sand the lowest water bares from end to end, clear of every stack's drawing (`BIG` in `critters.js`). That is the same stack the find was at. The small pools are placed after it and keep clear of it, of each other and of the stacks' drawings. One of round 4's small pools half hid behind a stack: that cannot happen now. There are five pools in all where round 4 had seven. They are fewer because they are bigger.
+- E3, the animals are drawn from a few pixels each by small functions (`starAt`, `smallStar`, `anemoneAt`, `urchinAt`, `crabAt`, `sculpinAt`), each on its own slow clock, so no two move together. The crab's place comes from how far it has gone, so it truly stands still while stopped. Colours are all from the palette (the lupine purple, the trail blaze orange, moss greens, the reds): no new colour.
+- E3, the label. It still reads "Tide pool: sea star, anemone, urchin", so I kept an urchin in the pool beside the animals TJ listed. No words changed.
+- E3. The pools still appear through a dither as the water leaves them and are hidden at high water, tied to the tide at their stack as before.
+- E3, checks: `check.sh E3 E2` passed, 11.9 ms a frame zoomed out at Dusk, lint clean, nothing moved more than 8 px. Filmed close up over 8 frames, looked at by day and at Dusk beside round 4's build, and the find tapped at low water in the browser ("Found: The tide pool").
 
 ## 12. The reference pictures
 

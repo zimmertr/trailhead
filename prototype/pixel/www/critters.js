@@ -345,20 +345,52 @@ export function makeCritters(W, opts = {}) {
   const CHAN = riverOnFlat(SEA, g, EBB, csAt);
   // How far up the bared sand the last of each wave's wash runs, in the same units as the tide.
   const up0 = (wx, wy, tw) => { const u = frac((7 * Math.sin(wx / 37 + wy / 61) + tw) / 24), surge = u < 0.2 ? u / 0.2 : 1 - (u - 0.2) / 0.8; return 0.4 + 2.2 * surge + 0.7 * Math.sin(wx / 7 + wy / 9); };
+  // The tide pools' animals (round 5, T33, TJ: "animate teh animals inside. Not just red blobs painted on
+  // the map"). Each is drawn from a few pixels and moves on its own slow clock; k tells two of a kind apart.
+  // A sea star, 5 px across: each arm's tip shifts a pixel now and then, so its shape slowly changes.
+  const TIPS = [[[0, -2], [1, -2]], [[-2, 0], [-2, -1]], [[2, 0], [2, -1]], [[-2, 2], [-1, 2]], [[2, 2], [2, 1]]];
+  const starAt = (scr, x, y, c, t, k) => { for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [-1, 1], [1, 1]]) scr.set(x + dx, y + dy, c[1]); scr.set(x, y, c[2]);
+    TIPS.forEach(([p, q], n) => { const [dx, dy] = frac(t / (5 + n * 1.3) + k * 0.37 + n * 0.21) < 0.35 ? q : p; scr.set(x + dx, y + dy, c[0]); }); };
+  // A small one for the small pools, 3 px across: a plus that turns to a cross and back.
+  const smallStar = (scr, x, y, c, t, k) => { const turn = frac(t / 7 + k * 0.43) < 0.4; scr.set(x, y, c[2]); for (const [dx, dy] of turn ? [[-1, -1], [1, -1], [-1, 1], [1, 1]] : [[-1, 0], [1, 0], [0, -1], [0, 1]]) scr.set(x + dx, y + dy, c[1]); };
+  // A green anemone: a short column with its mouth, and tentacles that lean one way and then the other.
+  const anemoneAt = (scr, x, y, t, k) => { const s = Math.round(1.2 * Math.sin(t * 1.1 + k * 1.7)), M = R.moss;
+    for (let dx = -1; dx <= 1; dx++) { scr.set(x + dx, y, dx ? M[4] : M[1]); scr.set(x + dx, y + 1, M[2]); }
+    scr.set(x, y - 1, M[6]); for (const [dx, dy] of [[-2, -1], [-1, -2], [1, -2], [2, -1]]) scr.set(x + dx + (dy === -2 ? s : Math.sign(dx) === Math.sign(s) ? 0 : s), y + dy, M[5]); };
+  // A purple urchin: its spines bristle.
+  const urchinAt = (scr, x, y, t, k) => { const out = frac(t * 0.45 + k * 0.3) < 0.5; scr.set(x, y, R.lupine[1]); for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) scr.set(x + dx, y + dy, R.lupine[0]); for (const [dx, dy] of out ? [[-1, -1], [1, 1]] : [[1, -1], [-1, 1]]) scr.set(x + dx, y + dy, R.mauve[0]); };
+  // A crab, 5 px across: it goes sideways for a couple of seconds, legs working, and stops for a couple.
+  // along(t): how far it has gone in all, so it stands still while it is stopped.
+  const crabGone = (t, k) => { const T = t + k * 1.9, n = Math.floor(T / 4.2); return { d: (n * 2.4 + Math.min(T - n * 4.2, 2.4)) * 4, going: T - n * 4.2 < 2.4 }; };
+  const crabAt = (scr, x, y, going, t) => { const leg = going ? Math.floor(t * 9) & 1 : 0;
+    for (let dx = -1; dx <= 1; dx++) { scr.set(x + dx, y, R.red[1]); scr.set(x + dx, y + 1, R.red[0]); }
+    scr.set(x - 2, y - 1, R.red[2]); scr.set(x + 2, y - 1, R.red[2]); scr.set(x - 2, y + 1 - leg, R.red[0]); scr.set(x + 2, y + leg, R.red[0]); };
+  // A sculpin, 4 px long: it lies still on the bottom, then darts to another spot.
+  const sculpinAt = (scr, px, py, spots, t) => { const u = frac(t / 5.5), n = Math.floor(t / 5.5), a = spots[n % spots.length], b = spots[(n + 1) % spots.length], f = smooth(0.92, 1, u), x = Math.round(lerp(a[0], b[0], f)) + px, y = Math.round(lerp(a[1], b[1], f)) + py, d = b[0] >= a[0] ? 1 : -1;
+    scr.set(x + d, y, R.ochre[0]); scr.set(x, y, R.ochre[0]); scr.set(x - d, y, R.ochre[1]); scr.set(x - 2 * d, y, R.ochre[0]); scr.set(x, y + 1, R.ochre[1]); };
+  const STAR_C = [R.lupine, R.blaze, [R.pink[0], R.pink[1], R.pink[2]]];
   function tidePools(scr, ox, oy, t, ebb) {
-    for (const P of pools) { const e = ebb - P.s.cs; if (e < 3) continue; const show = smooth(3, 9, e), sx = P.s.x - ox, sy = P.s.y - oy; if (sx < -40 || sx > scr.VW + 40 || sy < -20 || sy > scr.VH + 20) continue;
+    for (const P of pools) { const e = ebb - P.s.cs; if (e < 3) continue; const show = smooth(3, 9, e), sx = P.s.x - ox, sy = P.s.y - oy; if (sx < -60 || sx > scr.VW + 60 || sy < -30 || sy > scr.VH + 30) continue;
       // Mussels in a dark band round the foot of the rock, barnacles white on them.
       for (let dx = -Math.ceil(P.s.half) - 1; dx <= P.s.half + 1; dx++) for (let dy = -1; dy <= 1; dy++) { if (bayerish(dx, dy, P.s.x) > show) continue; scr.set(sx + dx, sy + dy, hash(dx, dy, P.s.x + 6105) < 0.25 ? R.white[0] : R.jay[0]); }
-      for (const p of P.pools) { const px = p.x - ox, py = p.y - oy;
-        for (let dy = -p.ry; dy <= p.ry; dy++) for (let dx = -p.rx; dx <= p.rx; dx++) { const q = (dx / (p.rx + 0.5)) ** 2 + (dy / (p.ry + 0.5)) ** 2; if (q > 1 || bayerish(dx, dy, p.x) > show) continue; scr.set(px + dx, py + dy, dy === -p.ry ? R.sea[1] : q < 0.4 && ((dx + dy) & 1) ? R.sea[3] : R.sea[2]); }
-        if (show < 0.7) continue;
-        if (p.life === 3) { for (const [dx, dy] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) scr.set(px - 1 + dx, py + dy, R.red[1]); scr.set(px + 2, py, R.moss[5]); scr.set(px + 2, py - 1, R.moss[4]); scr.set(px + 1, py + 1, R.jay[1]); scr.set(px + 2, py + 1, R.jay[1]); }
-        else if (p.life === 0) { const c = hash(p.x, p.y, 6106) < 0.5 ? R.red[1] : R.pink[0]; scr.set(px, py, c); scr.set(px - 1, py, c); scr.set(px + 1, py, c); scr.set(px, py - 1, c); scr.set(px, py + 1, c); }
-        else if (p.life === 1) { scr.set(px, py, R.moss[5]); scr.set(px - 1, py, R.moss[4]); scr.set(px + 1, py, R.moss[4]); }
-        else { scr.set(px, py, R.jay[1]); scr.set(px + 1, py, R.jay[1]); scr.set(px, py - 1, R.pink[0]); } }
-      // A crab sidles over the sand from pool to pool, stopping now and then.
-      if (show > 0.7) { const a = P.pools[0], b = P.pools[P.pools.length - 1], q = 0.5 + 0.5 * Math.sin(t * 0.35 + P.s.x), stop = frac(t * 0.5) < 0.3, x = Math.round(a.x + (b.x - a.x) * q) - ox, y = Math.round(a.y + (b.y - a.y) * q) - oy + 2;
-        scr.set(x, y, R.red[0]); scr.set(x + 1, y, R.red[0]); scr.set(x - 1, y - (stop ? 0 : (Math.floor(t * 6) & 1)), R.red[1]); scr.set(x + 2, y - (stop ? 0 : (Math.floor(t * 6 + 1) & 1)), R.red[1]); }
+      P.pools.forEach((p, k) => { const px = p.x - ox, py = p.y - oy;
+        for (const [dx, dy, c] of p.px) if (bayerish(dx, dy, p.x) <= show) scr.set(px + dx, py + dy, c);
+        if (show < 0.7) return;
+        // Light on the water: a glint or two that wanders.
+        { const n = Math.floor(t / 1.6), gx = Math.round((hash(n, k, 6111) - 0.5) * p.rx * 1.2), gy = Math.round((hash(n, k, 6112) - 0.5) * p.ry); if (frac(t / 1.6) < 0.5 && p.wet(gx, gy) && p.wet(gx + 1, gy)) { scr.set(px + gx, py + gy, R.sea[5]); scr.set(px + gx + 1, py + gy, R.sea[5]); } }
+        if (p.life === 3) {
+          // The pool to find: two sea stars, two anemones, an urchin, a sculpin, and a crab along its near rim.
+          sculpinAt(scr, px, py, [[1, 1], [-4, -3], [8, -3], [2, 4], [-9, 3]], t);
+          starAt(scr, px - 7, py, R.lupine, t, 0); starAt(scr, px + 5, py + 1, R.blaze, t, 1);
+          anemoneAt(scr, px - 1, py - 1, t, 0); anemoneAt(scr, px + 10, py, t, 1); urchinAt(scr, px - 2, py + 3, t, 0);
+          const g = crabGone(t, 0), L = 2 * p.rx - 6, q = g.d % (2 * L), cx = px - p.rx + 3 + (q < L ? q : 2 * L - q); crabAt(scr, Math.round(cx), py + p.ry + 5, g.going, t);
+        } else if (p.life === 0) smallStar(scr, px, py, STAR_C[(k + (P.s.x & 1)) % 3], t, k + P.s.x);
+        else if (p.life === 1) anemoneAt(scr, px, py + 1, t, k + P.s.x);
+        else urchinAt(scr, px, py, t, k + P.s.x); });
+      // Where there is no big pool, a crab sidles over the sand beside the pools, from the first to the last,
+      // stopping now and then.
+      if (show > 0.7 && !P.pools.some(p => p.life === 3)) { const a = P.pools[0], b = P.pools[P.pools.length - 1], side = Math.max(...P.pools.map(p => p.x + p.rx)) + 5, g = crabGone(t, 3), L = Math.max(6, Math.abs(b.y - a.y) + 6), q = g.d % (2 * L), f = (q < L ? q : 2 * L - q) / L;
+        crabAt(scr, side - ox + Math.round(3 * f), Math.round(lerp(Math.min(a.y, b.y) - 3, Math.max(a.y, b.y) + 3, f)) - oy, g.going, t); }
     }
   }
   // ---- the orca pod (E6a) ----
@@ -456,14 +488,36 @@ export function makeCritters(W, opts = {}) {
   // living in it (a starfish, an anemone, an urchin), a band of mussels and barnacles round the foot of
   // the rock, and a crab picking over the sand between. A pool goes only where the low water bares the
   // sand well and where the rock does not stand over it (beside it or in front, never behind).
-  const pools = POOLED.map((s, n) => { const list = [];
-    for (let k = 0; k < 40 && list.length < 5; k++) { const a = hash(k, n, 6101) * TAU, rr = s.half + 4 + 9 * hash(k, n, 6102), x = Math.round(s.x + Math.cos(a) * rr), y = Math.round(s.y + 1 + Math.sin(a) * rr * 0.4);
-      if (csAt(x, y) - 4 > EBB - 8 || (Math.abs(x - s.x) <= s.half + 3 && y <= s.y) || list.some(p => Math.abs(p.x - x) < 7 && Math.abs(p.y - y) < 4)) continue;
-      list.push({ x, y, rx: 3 + Math.round(2 * hash(k, n, 6103)), ry: 2, life: list.length % 3 }); }
-    return { s, pools: list }; }).filter(P => P.pools.length >= 2);
-  // The pool to find (E7): the biggest of them all, with an ochre star, a green anemone and a purple
-  // urchin in it together; it can be tapped once the water has left it.
-  const FIND = (() => { let best = null; for (const P of pools) for (const p of P.pools) if (!best || p.rx > best.p.rx) best = { P, p }; if (best) best.p.life = 3; return best; })();
+  // Round 5 (T33, TJ: "too small and hard to see. Make them larger"): each pool is a basin with a rim of
+  // rock round clear water, drawn once into p.px as [dx, dy, colour]: the far rim in the light with
+  // barnacles on it, the near rim in shade, a dark line of water under the far rim, pale shallows inside
+  // the rim and deeper water in the middle. Its outline wobbles, so no two are the same oval.
+  const basin = (x, y, rx, ry, life) => { const s1 = hash(x, y, 6113) * TAU, s2 = hash(x, y, 6114) * TAU, W2 = 2 * rx + 9, at = new Map(), key = (dx, dy) => (dy + ry + 4) * W2 + dx + rx + 4;
+    const rr = (dx, dy) => { const a = Math.atan2(dy / ry, dx / rx); return Math.hypot(dx / (rx + 0.5), dy / (ry + 0.5)) / (1 + 0.06 * Math.sin(3 * a + s1) + 0.04 * Math.sin(5 * a + s2)); }, wet = (dx, dy) => rr(dx, dy) <= 1;
+    const px = [];
+    for (let dy = -ry - 4; dy <= ry + 4; dy++) for (let dx = -rx - 4; dx <= rx + 4; dx++) {
+      if (wet(dx, dy)) { const r = rr(dx, dy), edge = !wet(dx - 1, dy) || !wet(dx + 1, dy) || !wet(dx, dy + 1), under = !wet(dx, dy - 1);
+        px.push([dx, dy, under ? R.sea[1] : edge ? R.sea[4] : r < 0.5 && ((dx + dy) & 1) ? R.sea[2] : R.sea[3]]); at.set(key(dx, dy), 1); continue; }
+      let near = false; for (let b = -2; b <= 2 && !near; b++) for (let a = -2; a <= 2; a++) if (Math.abs(a) + Math.abs(b) <= 3 && wet(dx + a, dy + b)) { near = true; break; }
+      if (!near) { if (wet(dx, dy - 3) || wet(dx - 1, dy - 3) || wet(dx + 1, dy - 3)) px.push([dx, dy, R.sand[0]]); continue; }
+      const far = wet(dx, dy + 1) || wet(dx, dy + 2), front = wet(dx, dy - 1) || wet(dx, dy - 2), k = hash(x + dx, y + dy, 6115);
+      px.push([dx, dy, far ? (k < 0.12 ? R.white[0] : wet(dx, dy + 1) ? R.rock[3] : R.rock[4]) : front ? (k < 0.07 ? R.white[0] : wet(dx, dy - 1) ? R.rock[1] : R.rock[0]) : R.rock[k < 0.5 ? 2 : 1]]); }
+    return { x, y, rx, ry, life, px, wet }; };
+  const bared = (x, y) => { const c = csAt(x, y); return c >= 6 && c - 4 <= EBB - 8; };
+  // The pool to find (E7, and round 5's T33: "about twice the size"): one big basin, 27 by 13, beside the
+  // first of the two stacks with room for it, on sand the low water bares from end to end, clear of the
+  // rock's drawing. It can be tapped once the water has left it.
+  const BIG = (() => { const RX = 13, RY = 6;
+    for (const s of POOLED) for (const side of [1, -1]) for (const dy of [3, 6, 0, 9]) for (const gap of [4, 7, 10, 14]) { const x = Math.round(s.x + side * (s.half + RX + gap)), y = s.y + dy;
+      if ([[-RX - 3, 0], [RX + 3, 0], [0, -RY - 3], [0, RY + 5], [-RX, -RY], [RX, -RY], [-RX, RY + 3], [RX, RY + 3]].every(([a, b]) => bared(x + a, y + b)) && !stacks.some(o => Math.abs(o.x - x) < o.half + RX + 4 && y - RY < o.y + 2 && y + RY > o.y - o.tall)) return { s, x, y, rx: RX, ry: RY, life: 3 }; }
+    return null; })();
+  // The small pools keep clear of it and of each other.
+  const pools = POOLED.map((s, n) => { const list = BIG && BIG.s === s ? [BIG] : [];
+    for (let k = 0; k < 80 && list.length < 4; k++) { const a = hash(k, n, 6101) * TAU, rr = s.half + 7 + 22 * hash(k, n, 6102), x = Math.round(s.x + Math.cos(a) * rr), y = Math.round(s.y + 2 + Math.sin(a) * rr * 0.5), rx = 4 + Math.round(2 * hash(k, n, 6103));
+      if (!bared(x - rx - 2, y) || !bared(x + rx + 2, y) || stacks.some(o => Math.abs(x - o.x) < o.half + rx + 4 && y - 4 < o.y + 2 && y + 4 > o.y - o.tall) || list.some(p => Math.abs(p.x - x) < p.rx + rx + 5 && Math.abs(p.y - y) < p.ry + 3 + (p.life === 3 ? 2 : 4))) continue;
+      list.push({ x, y, rx, ry: 3, life: list.filter(p => p.life !== 3).length % 3 }); }
+    return { s, pools: list.map(p => basin(p.x, p.y, p.rx, p.ry, p.life)) }; }).filter(P => P.pools.length >= 2 || P.pools.some(p => p.life === 3));
+  const FIND = (() => { for (const P of pools) { const p = P.pools.find(q => q.life === 3); if (p) return { P, p }; } return null; })();
 
   // ---- the ferry -----------------------------------------------------------------------------
   // It sails the length of the water outside the sea stacks, is gone past the edge of the map for half
@@ -637,6 +691,8 @@ export function makeCritters(W, opts = {}) {
     },
     tideAt: t => ebbAt(t) / EBB,
     findPool: t => FIND && ebbAt(t) - FIND.P.s.cs >= 9 ? FIND.p : null,
+    // For the checks: every tide pool, by the stack it lies beside.
+    pools: () => pools.map(P => ({ stack: [P.s.x, P.s.y, P.s.half, P.s.cs], pools: P.pools.map(p => [p.x, p.y, p.rx, p.ry, p.life]) })),
     // The water: swells roll in toward the beach, the wash runs up the sand and back, jellyfish pulse.
     ferryHull(t, ox, oy, VW, VH) { return hullAt(t, ox, oy, VW, VH); },
     // For the checks (round 5, T15): the ferry and each orca at time t, with the least room the shared rule

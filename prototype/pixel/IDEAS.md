@@ -230,3 +230,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Jellies That Glow at Dusk** (round 5, E2). At Dusk each jellyfish could carry one soft light pixel that pulses with its bell.
 - **A Sea Turtle After the Jellies** (round 5, E2). A leatherback could surface near a jellyfish now and then, as they do off this coast in late summer, and the jellyfish would be gone when it dives.
 - **Stranded on the Flats** (round 5, E2). When the tide goes out, one jellyfish could be left on the wet sand as a clear blob, there until the water comes back.
+- **Look Into the Pool** (round 5, E3). Tapping the tide pool could open a close view of it, the way a climb opens its wall: the same animals drawn large, with a hermit crab changing shells.
+- **An Oystercatcher at the Pools** (round 5, E3). A black bird with a long orange bill could work the flats at low water, walk from pool to pool and fly off as the tide turns.
+- **The Anemones Close** (round 5, E3). When a glint or the crab passes over an anemone it could pull its tentacles in for a few seconds and open again.
+- **Sea Stars That Walk** (round 5, E3). Over a whole low tide a sea star could cross a few pixels of its pool, too slowly to see unless you come back.
+- **A Different Pool Each Visit** (round 5, E3). The big pool's animals could be dealt from a longer list each visit (a nudibranch, a chiton, a gunnel), so it is worth checking again.
