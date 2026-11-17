@@ -5,7 +5,7 @@ import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, INK, p
 import { Strip, drawStrip, baseline } from './side.js';
 import { makeTent, makeFlag, clump, makeCloud } from './sprites.js';
 import { bluebird, speck } from './fauna.js';
-import { sideFig, frontFig, backFig } from './tj.js';
+import { sideFig, frontFig, backFig, makeRunner } from './tj.js';
 import { T as JUNCTION } from './land.js';
 import { NAMES, FINDS, UI } from './content.js';
 
@@ -30,11 +30,12 @@ const ROUTES = {
   // ladders lashed end to end. `xings` lists
   // the crevasses by the x of their two lips and what crosses each.
   tks: { kind: 'icefall', secs: 17, sx: 600, w: 1300, ice: [[336, 340]], slip: [0, 5], xings: [[96, 116, 'snow'], [196, 226, 'ladder'], [468, 532, 'lashed']], pts: [[0, 0], [40, -6], [96, -14], [116, -16], [160, -24], [196, -34], [226, -36], [270, -46], [336, -55], [340, -131], [376, -137], [420, -146], [468, -156], [532, -160], [566, -170], [600, -176], [642, -176], [668, -138], [738, -38], [838, 82]] },
-  // hevy-garmin-sync, the gully as a workout (K4): he kicks steps in sets and rests on his axe between them,
-  // breathing hard. `sets` lists where each set ends and how long the rest after it is; `slipAt` is where a
-  // foot goes and is kicked in twice; `gully` is where it narrows between rock walls; `beep` stops him on
-  // top to look at his watch.
-  'hevy-garmin-sync': { kind: 'ice', secs: 15, sx: 520, w: 1200, sets: [[150, 1.6], [330, 1.8], [410, 1.4], [450, 1.6], [488, 1.9]], slipAt: 268, gully: [372, 506], beep: true, pts: [[0, 0], [60, -10], [130, -30], [200, -52], [260, -80], [320, -112], [380, -140], [430, -172], [480, -204], [520, -220], [562, -220], [588, -182], [658, -82], [758, 38]] },
+  // hevy-garmin-sync, a trail run (K4, redone in round 5 for T55): in his running kit he runs the
+  // switchbacks up the spire's grassy flank, his watch counting laps and heart rate, and at the bench on
+  // top the watch shows the workout coming over from Hevy. `zig` is the trail, corner by corner: it lies on
+  // the face under the skyline (`pts`), and he turns round at each corner. `beep` is how long he looks at
+  // his watch on top.
+  'hevy-garmin-sync': { kind: 'run', secs: 15, sx: 520, w: 1200, beep: 2.6, zig: [[0, 0], [560, -50], [264, -78], [560, -112], [374, -136], [540, -166], [462, -187], [520, -220]], pts: [[0, 0], [60, -10], [130, -30], [200, -52], [260, -80], [320, -112], [380, -140], [430, -172], [480, -204], [520, -220], [562, -220], [588, -182], [658, -82], [758, 38]] },
   // trailhead, the knife-edge (K5): over the notch (round 3's jump), up onto a crest so thin the whole map
   // shows far below it (`knife`), astride it where it is thinnest (`astride`), and on to the binoculars.
   trailhead: { kind: 'bridge', secs: 26, sx: 560, w: 1200, gap: [70, 96], knife: [150, 530], astride: [300, 420], pts: [[0, 0], [40, -14], [70, -30], [96, -34], [150, -80], [220, -96], [300, -104], [420, -116], [480, -128], [530, -140], [560, -150], [602, -150], [628, -112], [698, -12], [798, 108]] },
@@ -79,9 +80,7 @@ function crevasse(S, sx, x, y0, [g0, g1], seed) {
   }
 }
 
-// Where the gully narrows: a wall of rock rises behind him and the ground in front of the line turns to
-// rock too, leaving only a ribbon of snow to climb. Both grow in from nothing at the ends of the narrows.
-// The rock is broken by slanting cracks and by ledges that hold a little snow (`crag()`).
+// Rock, broken by slanting cracks and by ledges that hold a little snow unless it is `dry`.
 function crag(x, y, sx, seed, base, dry) {
   const crack = Math.abs(frac((x + y * 0.55) / 27 + 0.9 * vnoise(x / 23, y / 17, seed + 47)) - 0.5) < 0.03 && vnoise(x / 8, y / 8, seed + 50) > 0.35;
   const ledge = frac(y / 15 + 0.9 * vnoise(x / 21, y / 30, seed + 48)), on = vnoise(x / 10, y / 14, seed + 51) > 0.5;
@@ -91,18 +90,6 @@ function crag(x, y, sx, seed, base, dry) {
   if (ledge < 0.14) return R.granite[1];
   return pick('granite', base + 0.28 * (fbm(x / 10, y / 7, seed + 42, 2) - 0.5) - ledge * 0.12, sx, y, 0.8);
 }
-function narrows(S, cfg, seed) {
-  const [g0, g1] = cfg.gully, pts = cfg.pts;
-  for (let x = g0 - 24; x < g1 + 14; x++) {
-    const k = smooth(g0 - 24, g0 + 6, x) * (1 - smooth(g1 - 8, g1 + 14, x)), sx = x + OFF, y0 = Math.round(hOf(pts, x));
-    if (k <= 0) continue;
-    const top = Math.round(y0 - 4 - k * (30 + 36 * fbm(x / 30, 1, seed + 40, 3)) - 2 * vnoise(x / 7, 2, seed + 41));
-    for (let y = top; y < y0 - 1; y++) { const d = y - top; S.set(sx, y, d === 0 ? INK : d < 2 ? R.snow[3] : crag(x, y, sx, seed, 0.6)); }
-    const rib = 3 + Math.round(2 * vnoise(x / 6, 5, seed + 44)), bot = y0 + rib + k * (30 + 40 * fbm(x / 20, 3, seed + 45, 2));
-    for (let y = y0 + rib; y < bot; y++) S.set(sx, y, y === y0 + rib ? INK : y === y0 + rib + 1 ? R.granite[3] : crag(x, y, sx, seed + 9, 0.42));
-  }
-}
-
 // The boulder he sits the rain out under (round 5, T50): a block the size of a small hut that leans out
 // over the slope on its uphill side, so the ground under its prow stays dry. `roofAt` is the underside
 // of the prow at x (the rain stops there), or null where there is none.
@@ -118,6 +105,37 @@ function shelter(S, cfg, seed) {
       const d = y - top, e = under - y;
       S.set(x + OFF, y, d === 0 || x === x1 || x === x0 || (roof != null && e === 0) ? INK : roof != null && e < 6 ? R.granite[e < 3 ? 0 : 1] : d < 2 ? R.granite[4] : crag(x, y, x + OFF, seed + 131, 0.78 - 0.5 * d / (under - top + 1), true));
     }
+  }
+}
+
+// The spire's sunny flank, where the trail run goes (round 5, T55): a high fellfield. Dull turf, paler on
+// the swells and deeper in the hollows, broken by slabs of granite that take over toward the top, with
+// old snow lying in the hollows up there and a few flowers lower down.
+function turf(x, y, sx, d, seed) {
+  if (d < 1) return R.grass[3]; if (d < 3) return R.grass[2];
+  const rib = fbm((x + y * 0.9) / 64, (y - x * 0.22) / 15, seed + 86, 3) - 0.0017 * y;
+  if (y < -120 && rib > 0.8 && fbm(x / 30, y / 9, seed + 93, 2) > 0.56) return pick('snow', 0.8 + 0.3 * (vnoise(x / 9, y / 4, seed + 94) - 0.5), sx, y, 0.5);
+  if (rib > 0.64) return crag(x, y, sx, seed + 87, 0.42 + (rib - 0.64) * 1.2, true);
+  if (rib > 0.615) return R.grass[0];
+  if (y > -150 && hash(x, y, seed + 90) > 0.9965) return [R.white[1], R.yellow[1], R.white[1], R.blaze[2]][(x + y) & 3];
+  const v = 0.3 + 0.3 * (fbm(x / 44, y / 13, seed + 88, 2) - 0.5) + 0.14 * (vnoise(sx / 5, y / 3, seed + 89) - 0.5) - d * 0.0005;
+  // Dry, straw-coloured grass on the swells.
+  return v > 0.4 && vnoise(x / 26, y / 7, seed + 95) > 0.6 ? pick('dirt', 0.62 + (v - 0.4), sx, y, 0.6) : pick('grass', v, sx, y, 0.6);
+}
+// The trail: a tread of beaten dirt four pixels deep, cut into the slope, with the bank's shadow along its
+// uphill side, a worn patch at each corner and a stone here and there on its edge.
+function switchbacks(S, cfg, seed) {
+  const z = cfg.zig;
+  for (let i = 1; i < z.length; i++) {
+    const [x0, y0] = z[i - 1], [x1, y1] = z[i], n = Math.abs(x1 - x0);
+    for (let k = 0; k <= n; k++) {
+      const x = Math.round(lerp(x0, x1, k / n)), y = Math.round(lerp(y0, y1, k / n)), sx = x + OFF;
+      S.set(sx, y - 2, R.grass[0]); S.set(sx, y - 1, R.dirt[1]);
+      for (let j = 0; j < 3; j++) S.set(sx, y + j, vnoise(x / 3, j + i * 7, seed + 91) > 0.62 ? R.dirt[2] : R.dirt[3]);
+      S.set(sx, y + 3, R.dirt[1]);
+      if (hash(x, i, seed + 92) > 0.94) { S.set(sx, y + 3, R.rock[3]); S.set(sx + 1, y + 3, R.rock[2]); }
+    }
+    if (i < z.length - 1) for (let dy = -3; dy <= 4; dy++) for (let dx = -5; dx <= 5; dx++) if (sq(dx / 5.5) + sq((dy - 0.5) / 3.8) <= 1) S.set(x1 + dx + OFF, y1 + dy, dy === -3 ? R.dirt[1] : R.dirt[dy > 2 ? 2 : 3]);
   }
 }
 
@@ -144,6 +162,7 @@ function paint(cfg, seed) {
       else c = d < 1 ? R.snow[far ? 3 : 4] : far ? pick('glac', 0.72 - d * 0.004 + 0.12 * (vnoise(sx / 9, y / 4, seed + 7) - 0.5), sx, y, 0.6) : (Math.abs(frac((y + sx * 0.3) / 13 + 0.4 * vnoise(sx / 20, y / 20, seed + 8)) - 0.5) < 0.03 && d > 4 ? R.snow[2] : pick('snow', 0.86 + Math.max(-3, slope) * 0.02 - Math.max(0, y - soft) * 0.002 + 0.14 * (vnoise(sx / 8, y / 5, seed + 9) - 0.5), sx, y, 0.5));
       // Dry rock: big slabs paler and darker by turns, lit along the top, with lichen here and there.
       if (cfg.dry) c = d < 1 ? R.granite[3] : d < 2 ? R.granite[2] : vnoise(x / 2.2, y / 2.2, seed + 82) > 0.86 && vnoise(x / 20, y / 20, seed + 83) > 0.55 ? R.ochre[1] : crag(x, y, sx, seed + 80, 0.32 + 0.4 * fbm(x / 46, y / 30, seed + 81, 2) + (d < 10 ? 0.12 : 0), true);
+      if (cfg.zig) c = turf(x, y, sx, d, seed);
       if (kn > 0.3 && d >= 2) c = d < 3 && vnoise(x / 4, 9, seed + 63) > 0.5 ? R.snow[3] : crag(x, y, sx, seed + 70, 0.5 + (d / kd) * 0.25);
       S.set(sx, y, c);
     }
@@ -187,13 +206,10 @@ function paint(cfg, seed) {
       }
     }
   }
-  if (cfg.gully) narrows(S, cfg, seed);
   if (cfg.wait) shelter(S, cfg, seed);
-  // The gully's apron is old avalanche debris, a fan of it spreading down the slope below the gully: lumps
-  // of snow, lit on top, blue beneath, thickest near the line and thinning out lower down.
-  if (cfg.sets) { const rd = rng(seed + 90); for (let k = 0; k < 160; k++) { const x = Math.round(rd() * (cfg.gully[0] - 20)), dep = Math.pow(rd(), 1.6) * (30 + x * 0.25), r = 1.5 + rd() * 2.8 * (1 - dep / 140), cx = x, cy = Math.round(hOf(pts, x) + dep - r * 0.6); for (let dy = -Math.ceil(r); dy <= Math.ceil(r); dy++) for (let dx = -Math.ceil(r); dx <= Math.ceil(r); dx++) { const q = (dx * dx + dy * dy) / (r * r); if (q > 1) continue; S.set(cx + dx + OFF, cy + dy, q > 0.7 ? (dy > 0 ? R.snow[1] : R.snow[2]) : dy < -r * 0.3 ? R.snow[4] : dy > r * 0.3 ? R.snow[2] : R.snow[3]); } } }
+  if (cfg.zig) switchbacks(S, cfg, seed);
   // Tufts of grass in the cracks along the top of the dry rock, never on the walls.
-  if (cfg.dry) for (let x = 4; x < sxOf(cfg) + 40; x++) if (!wallAt(cfg, x) && !wallAt(cfg, x + 2) && hash(x, 1, seed + 84) > 0.88) { const y0 = Math.round(hOf(pts, x)) - 1; for (let k = 0; k < 3; k++) { const hgt = 1 + Math.round(hash(x, k + 2, seed + 84) * 2); for (let j = 0; j < hgt; j++) S.set(x + OFF + k - 1, y0 - j, j === hgt - 1 ? R.grass[3] : R.grass[1]); } }
+  if (cfg.dry || cfg.zig) for (let x = 4; x < sxOf(cfg) + 40; x++) if (!wallAt(cfg, x) && !wallAt(cfg, x + 2) && hash(x, 1, seed + 84) > 0.88) { const y0 = Math.round(hOf(pts, x)) - 1; for (let k = 0; k < 3; k++) { const hgt = 1 + Math.round(hash(x, k + 2, seed + 84) * 2); for (let j = 0; j < hgt; j++) S.set(x + OFF + k - 1, y0 - j, j === hgt - 1 ? R.grass[3] : R.grass[1]); } }
   if (kind === 'ridge' && !cfg.sx) for (let x = 236; x < 300; x++) { const y0 = Math.round(hOf(pts, x)); for (let k = 0; k < 4 - Math.abs(x - 300) * 0.02; k++) S.set(x + OFF + k + 6, y0 + k + (x > 292 ? x - 292 : 0), R.snow[4]); }
   return S;
 }
@@ -310,7 +326,16 @@ const TOPS = {
     if (snow) for (let x = 2; x < 26; x++) for (let y = 5 + (x < 4 || x > 23 ? 1 : 0) - (x > 8 && x < 17 ? 1 : 0); y < 8 + (x > 21 ? x - 21 : 0); y++) b.set(x, y, y < 6 || x < 12 ? R.snow[4] : R.snow[3]);
     outline(b, INK); return b;
   },
-  ice() { const b = new BM(34, 20); b.ox = 17; b.oy = 19; for (let x = 6; x < 26; x++) { b.set(x, 13, R.navy[2]); b.set(x, 14, R.navy[1]); } for (const x of [8, 23]) for (let y = 15; y < 20; y++) b.set(x, y, R.rock[2]); for (const x of [5, 6]) for (let y = 3; y < 20; y++) b.set(x, y, R.rock[3]); b.set(7, 4, R.rock[3]); b.set(4, 4, R.rock[3]); outline(b, INK); return b; },
+  // The weight bench, with two uprights. `racked` puts the barbell on them, a pair of plates on each end
+  // (round 5, T56): without it the bench was hard to tell for one. He lifts the bar off when he lies down.
+  run(racked) {
+    const b = new BM(34, 27); b.ox = 17; b.oy = 26;
+    for (let x = 6; x < 26; x++) { b.set(x, 20, R.navy[2]); b.set(x, 21, R.navy[1]); }
+    for (const x of [8, 23]) for (let y = 22; y < 27; y++) b.set(x, y, R.rock[2]);
+    for (const x of [6, 25]) { for (let y = 5; y < 27; y++) b.set(x, y, R.rock[3]); b.set(x - 1, 5, R.rock[3]); b.set(x + 1, 5, R.rock[3]); b.set(x - 1, 4, R.rock[3]); }
+    if (racked) barbell(b, 4);
+    outline(b, INK); return b;
+  },
   // A pair of coin-operated binoculars on a post, the kind bolted to a viewpoint: the eyepieces face him
   // and the lenses look out and down over the far side.
   bridge() {
@@ -332,6 +357,11 @@ const TOPS = {
 const stone = (() => { const b = new BM(7, 6); b.ox = 3; b.oy = 5; ell(b, 3, 3, 2.6, 1.8, (nx, ny, x, y) => pick('rock', 0.7 - ny * 0.4, x, y)); outline(b, INK); return b; })();
 // How tall each summit's thing is, for the label over it and the place to click.
 const TALL = { ladder: 66, icefall: 40 };
+// A barbell seen along the bench, at height y: the bar, and on each end a big plate with a small one outside it.
+function barbell(b, y) {
+  for (let x = 1; x < 33; x++) b.set(x, y, R.rock[4]);
+  for (const [x, h, c] of [[3, 4, R.navy[0]], [4, 4, R.navy[1]], [2, 2, R.red[1]], [29, 4, R.navy[0]], [28, 4, R.navy[1]], [30, 2, R.red[1]]]) for (let j = -h; j <= h; j++) b.set(x, y + j, c);
+}
 
 // A serac: a tower of glacier ice broken into blocks that lean on one another. Each block is a slab
 // with a tilted top, lit on its left face and blue in shadow on its right, split from the next by a dark
@@ -498,10 +528,6 @@ function breath(scr, x, y, t, hard) {
     for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) { const q = dx * dx + dy * dy; if (q <= r * r && bayer(Math.round(px + dx), Math.round(py + dy)) > a * 0.85) scr.set(Math.round(px + dx), Math.round(py + dy), q > (r - 1) * (r - 1) && r > 1.5 ? R.snow[2] : R.white[1]); }
   }
 }
-// Snow kicked loose: n bits thrown back and down the slope from (x, y), a from 0 to 1 over their flight.
-function chips(scr, x, y, a, n, seed) {
-  for (let k = 0; k < n; k++) { const r1 = hash(k, seed, 297), r2 = hash(k, seed, 298); scr.set(Math.round(x - (4 + 14 * r1) * a), Math.round(y - (3 + 6 * r2) * a + 14 * a * a), k % 3 ? R.snow[2] : R.snow[1]); }
-}
 // Rime on a figure: on most rows the pixel just inside its right edge (the windward side when he walks
 // right) turns white, and now and then one more beside it; the top of his hat goes white too.
 function rimeOn(bm) {
@@ -533,13 +559,50 @@ const GLYPH = { A: [14, 17, 17, 31, 17, 17, 17], B: [30, 17, 17, 30, 17, 17, 30]
   N: [17, 25, 25, 21, 19, 19, 17], O: [14, 17, 17, 17, 17, 17, 14], P: [30, 17, 17, 30, 16, 16, 16], Q: [14, 17, 17, 17, 21, 18, 13], R: [30, 17, 17, 30, 20, 18, 17], S: [15, 16, 16, 14, 1, 1, 30], T: [31, 4, 4, 4, 4, 4, 4], U: [17, 17, 17, 17, 17, 17, 14], V: [17, 17, 17, 17, 17, 10, 4], W: [17, 17, 17, 21, 21, 27, 17], X: [17, 17, 10, 4, 10, 17, 17], Y: [17, 17, 10, 4, 4, 4, 4], Z: [31, 1, 2, 4, 8, 16, 31],
   0: [14, 17, 19, 21, 25, 17, 14], 1: [4, 12, 4, 4, 4, 4, 14], 2: [14, 17, 1, 2, 4, 8, 31], 3: [30, 1, 1, 14, 1, 1, 30], 4: [2, 6, 10, 18, 31, 2, 2], 5: [31, 16, 30, 1, 1, 17, 14], 6: [6, 8, 16, 30, 17, 17, 14], 7: [31, 1, 2, 4, 8, 8, 8], 8: [14, 17, 17, 14, 17, 17, 14], 9: [14, 17, 17, 15, 1, 2, 12], '!': [4, 4, 4, 4, 4, 0, 4], ':': [0, 4, 4, 0, 4, 4, 0], '.': [0, 0, 0, 0, 0, 12, 12], '-': [0, 0, 0, 31, 0, 0, 0] };
 // A word drawn in pixels, capitals only: each letter 5 wide and 7 high, a pixel between them.
-function letters(scr, word, x, y, c) { [...word].forEach((ch, i) => (GLYPH[ch] || []).forEach((bits, j) => { for (let b = 0; b < 5; b++) if (bits & (16 >> b)) scr.set(x + i * 6 + b, y + j, c); })); }
+// k is the size of a dot: 2 writes it twice as large.
+function letters(scr, word, x, y, c, k = 1) { [...word].forEach((ch, i) => (GLYPH[ch] || []).forEach((bits, j) => { for (let b = 0; b < 5; b++) if (bits & (16 >> b)) for (let v = 0; v < k * k; v++) scr.set(x + (i * 6 + b) * k + v % k, y + j * k + Math.floor(v / k), c); })); }
 
 // His phone, held up large enough to read (round 5, T50): the Bluebird Forecast app in its own dark
 // slate and sky blue. Its mark and name, the weather drawn large, the time slider with its play button,
 // and one word under it. u runs from 0 to 1 over the time he looks at it: rain at first, then (at
 // `turn`) the slider runs forward, the cloud moves off the sun, and the word changes.
 const PHONE = { w: 72, h: 100, turn: 0.6 };
+// His watch, shown large in the corner of the picture while he runs hevy-garmin-sync (round 5, T55): a
+// round sports watch with a dark face. Running, it shows the lap, the time and his heart rate, with a
+// ring round the face filling as he climbs. At the bench it shows two arrows turning, then a tick and
+// the words that say what the project does. w: { lap, secs, bpm, prog, sync } (sync below 0 while he runs).
+const WATCH = { r: 42, strap: 9 };
+function watchFace(scr, x, y, w, t) {
+  const { r, strap } = WATCH, cx = x + r, cy = y + strap + r;
+  for (let j = 0; j < strap + 8; j++) for (let i = -15; i <= 15; i++) { const c = Math.abs(i) === 15 || j === 0 ? INK : j % 5 === 3 ? R.rock[0] : R.rock[1]; scr.set(cx + i, y + j, c); scr.set(cx + i, y + 2 * (strap + r) - j, c); }
+  for (const a of [-0.5, 0.45, 2.6, 3.14, 3.7]) for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) scr.set(Math.round(cx + Math.cos(a) * (r + 1)) + i, Math.round(cy + Math.sin(a) * (r + 1)) + j, Math.abs(i) === 2 || Math.abs(j) === 2 ? INK : R.rock[3]);
+  for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) { const d = Math.hypot(i, j); if (d <= r + 0.5) scr.set(cx + i, cy + j, d > r - 1.2 ? INK : d > r - 6 ? R.rock[d > r - 3 ? 1 : 2] : d > r - 7.2 ? INK : R.navy[0]); }
+  for (let k = 0; k < 260 * w.prog; k++) { const a = -Math.PI / 2 + k / 260 * Math.PI * 2; for (const q of [r - 3, r - 4]) scr.set(Math.round(cx + Math.cos(a) * q), Math.round(cy + Math.sin(a) * q), R.kit[2]); }
+  const mid = (word, yy, c, k = 1) => letters(scr, word, cx - Math.round((word.length * 6 - 1) * k / 2), yy, c, k);
+  if (w.sync < 0) {
+    mid(UI.watch.lap + ' ' + w.lap, cy - 27, R.rock[4]);
+    mid(String(Math.floor(w.secs / 60)).padStart(2, '0') + ':' + String(Math.floor(w.secs % 60)).padStart(2, '0'), cy - 12, R.white[1], 2);
+    // His heart, beating at its rate, and the rate.
+    const big = frac(t * w.bpm / 60) < 0.3, hx = cx - 19, hy = cy + 12;
+    for (const [i, j] of [[1, 0], [2, 0], [4, 0], [5, 0], [0, 1], [1, 1], [2, 1], [3, 1], [4, 1], [5, 1], [6, 1], [0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2], [6, 2], [1, 3], [2, 3], [3, 3], [4, 3], [5, 3], [2, 4], [3, 4], [4, 4], [3, 5]]) if (big || (i > 0 && i < 6 && j > 0 && j < 5)) scr.set(hx + i, hy + j, R.red[1]);
+    letters(scr, String(w.bpm), cx - 8, cy + 11, R.white[1]);
+    return;
+  }
+  const iy = cy - 23;
+  if (w.sync < 0.45) {
+    // Two arrows chasing each other round, large in the middle of the face.
+    const rot = Math.floor(t * 9) * 0.5;
+    for (const h of [0, Math.PI]) {
+      for (let a = 0; a <= 2.3; a += 0.05) for (const q of [12, 13]) scr.set(Math.round(cx + Math.cos(rot + h + a) * q), Math.round(cy + Math.sin(rot + h + a) * q), R.jay[3]);
+      for (let q = 8; q <= 17; q++) for (let v = 0; v <= 17 - q && v <= q - 8; v++) scr.set(Math.round(cx + Math.cos(rot + h + 2.3 + v * 0.07) * q), Math.round(cy + Math.sin(rot + h + 2.3 + v * 0.07) * q), R.jay[3]);
+    }
+    return;
+  }
+  for (let j = -8; j <= 8; j++) for (let i = -8; i <= 8; i++) if (Math.hypot(i, j) <= 8.3) scr.set(cx + i, iy + j, R.kit[1]);
+  for (const [i, j] of [[-4, 0], [-3, 1], [-2, 2], [-1, 3], [0, 2], [1, 1], [2, 0], [3, -1], [4, -2]]) { scr.set(cx + i, iy + j, R.white[1]); scr.set(cx + i, iy + j + 1, R.white[1]); }
+  UI.watch.synced.forEach((line, n) => mid(line, cy - 8 + n * 10, n === 2 ? R.jay[3] : R.white[1]));
+}
+
 // The bluebird's visit, in seconds after the station is clicked: when its circling ends, when it has
 // landed, when it sings, when it takes off, and when it is surely off the picture.
 const BIRD = { loop: 3.7, land: 4.6, calls: [5.1, 5.8, 6.6], off: 7.7, gone: 11 };
@@ -618,11 +681,6 @@ export function makeClimb() {
     walkR: null, windR: null,
     hit: [sideFig('alpine', { hands: [[-3, -2], [-1, 6]], lean: 0 }), sideFig('alpine', { hands: [[7, 1], [-1, 6]], lean: 2 })],
     watch: sideFig('alpine', { lean: 0 }),
-    // Resting on the axe between sets: bent over it, both hands on its head, heaving.
-    rest: [1, 2].map(c => sideFig('alpine', { feet: [[3, 7], [-3, 8.5]], hands: [[5, 2 + c], [4, 3 + c]], lean: 4, crouch: c, look: 'down', held: axe })),
-    // A foot gone from under him, and kicking it back in.
-    slip: sideFig('alpine', { feet: [[4, 7], [-8, 9]], hands: [[6, 6], [2, 7]], lean: 5, crouch: 2, look: 'down', held: axe }),
-    kick: sideFig('alpine', { feet: [[7, 5], [-2, 8.5]], hands: [[5, 4], [2, 6]], lean: 4, look: 'down', held: axe }),
     // Upright along the knife-edge, arms out to either side for balance.
     edge: [0, 1, 2, 3, 4, 5].map(f => sideFig('alpine', { feet: [WALK[f], WALK[(f + 3) % 6]], hands: [[7, 1 + (f % 3 === 0 ? 1 : 0)], [-6, 2 - (f % 3 === 1 ? 1 : 0)]], bob: f % 3 === 1 ? -1 : 0, lean: 0, look: 'down' })),
     // Astride the crest: sitting on it, one leg hanging down this side, both hands on the rock in front,
@@ -634,13 +692,15 @@ export function makeClimb() {
     reach: sideFig('alpine', { hands: [[5, -9], [2, 5]], lean: 1, look: 'up' }),
     // Stopped at the edge of a crevasse, looking down into it.
     peer2: sideFig('alpine', { hands: [[3, 5], [-2, 6]], lean: 3, look: 'down', held: axe }),
-    // On top, looking at his watch.
-    wrist: sideFig('alpine', { hands: [[4, 0], [3, 1]], lean: 1, look: 'down', elbowFwd: true }),
     // At the binoculars: both hands up on the viewer, leaning in to the eyepieces.
     peer: sideFig('alpine', { hands: [[5, -4], [4, -2]], lean: 2, head: [1, 1], elbowFwd: true }),
-    press: [0, 1].map(f => { const b = new BM(34, 22); b.ox = 17; b.oy = 21; for (let x = 8; x < 22; x++) { b.set(x, 13, R.kit[1]); b.set(x, 12, R.kit[2]); b.set(x, 14, R.kit[0]); } for (let x = 22; x < 28; x++) b.set(x, 13, R.rock[1]); thick(b, 26, 13, 29, 19, 2, R.rock[0]); b.set(30, 20, R.bark[1]); disc(b, 6, 11, 3, (nx, ny) => ny < -0.2 ? R.kit[2] : R.skin[2]); const by = f ? 3 : 8; thick(b, 12, 11, 12, by + 1, 2, R.kit[1]); thick(b, 16, 11, 16, by + 1, 2, R.kit[0]); for (let x = 3; x < 26; x++) b.set(x, by, R.rock[4]); for (const x of [3, 4, 24, 25]) for (let y = by - 3; y <= by + 3; y++) b.set(x, y, R.navy[0]); outline(b, INK); return b; })
   };
   fig.walkR = fig.walk.map(rimeOn); fig.windR = fig.wind.map(rimeOn);
+  // hevy-garmin-sync (round 5, T55), in the running kit he wears on the map: running, stood still, on top,
+  // looking at his watch, sliding down, and on the bench with the bar in his hands.
+  const runner = makeRunner('trail'), press = (top, hat) => [0, 1].map(f => { const b = new BM(34, 22); b.ox = 17; b.oy = 21; for (let x = 8; x < 22; x++) { b.set(x, 13, top[1]); b.set(x, 12, top[2]); b.set(x, 14, top[0]); } for (let x = 22; x < 28; x++) b.set(x, 13, R.rock[1]); thick(b, 26, 13, 29, 19, 2, R.rock[0]); b.set(30, 20, R.bark[1]); disc(b, 6, 11, 3, (nx, ny) => ny < -0.2 ? hat[1] : R.skin[2]); const by = f ? 4 : 9; thick(b, 12, 11, 12, by + 1, 2, top[1]); thick(b, 16, 11, 16, by + 1, 2, top[0]); barbell(b, by); outline(b, INK); return b; });
+  const figT = { run: runner.side, idle: runner.sideIdle[0], stand: frontFig('trail'), wrist: sideFig('trail', { hands: [[4, 0], [3, 1]], lean: 1, look: 'down', elbowFwd: true }),
+    sit: [0, 1].map(f => sideFig('trail', { feet: [[8, 3], [7, 4 + f]], crouch: 6, lean: -2, hands: [[2, 4], [-4, 2 - f]] })), press: press(R.sun, R.blaze) };
   // Bluebird Forecast (round 5, T50), with nothing in his hands. Walking a ledge; up a slab on hands and
   // feet, a hand and the other foot moving in turn; sat under the boulder with his knees up; and the
   // same with his phone out, its screen lit.
@@ -675,13 +735,20 @@ export function makeClimb() {
   function plan(id) {
     if (plans[id]) return plans[id];
     const cfg = ROUTES[id], pts = cfg.pts, a = arc(id), legs = [];
+    // A run up switchbacks: one leg for each straight of the trail, all at the same pace, then the watch on top.
+    if (cfg.zig) {
+      const z = cfg.zig, len = z.slice(1).map((q, i) => Math.hypot(q[0] - z[i][0], q[1] - z[i][1])), all = len.reduce((u, v) => u + v, 0); let t = T_UP, d0 = 0;
+      len.forEach((l, i) => { legs.push({ t0: t, t1: t + cfg.secs * l / all, zig: i, d0, len: l }); t += cfg.secs * l / all; d0 += l; });
+      legs.push({ t0: t, t1: t + cfg.beep, x0: sxOf(cfg), x1: sxOf(cfg), beep: true }); t += cfg.beep;
+      return plans[id] = { legs, walls: [], anchors: [], clips: [], tRun: t - cfg.beep, tSum: t, tPush: t + T_STAND, tBot: t + T_STAND + T_SLIDE, dur: t + T_STAND + T_SLIDE + T_OUT };
+    }
     const walls = (cfg.ice || []).map(([xa, xb]) => ({ xa, xb, ya: hOf(pts, xa), x0: xa - 3, xc: xa + MID, top: hOf(pts, xa + MID) }));
     let dist = 0, x = 0; for (const w of walls) { dist += arcAt(a, w.x0) - arcAt(a, x); x = w.xc; } dist += a[a.length - 1] - arcAt(a, x);
     const speed = dist / cfg.secs; let t = T_UP; x = 0;
     const walk = x1 => { const d = arcAt(a, x1) - arcAt(a, x); legs.push({ t0: t, t1: t + d / speed, x0: x, x1 }); t += d / speed; x = x1; };
     walls.forEach((w, i) => { walk(w.x0); const leg = iceLeg(w, t, cfg.slip && cfg.slip[0] === i ? cfg.slip[1] : -1); legs.push(leg); t = leg.t1; x = w.xc; });
-    // Stops on the way: a rest at the end of each set, the slip mid-set.
-    const stops = (cfg.sets || []).map(([sx, d]) => ({ sx, d, k: 'rest' })); if (cfg.slipAt) stops.push({ sx: cfg.slipAt, d: 1.5, k: 'slip' });
+    // Stops on the way.
+    const stops = [];
     const anchors = []; if (cfg.cable) { const end = arcAt(a, cfg.cable); for (let s = 14; s < end - 20; s += cfg.anchor) anchors.push(s); anchors.push(end); anchors.forEach((s, i) => stops.push({ sx: xAt(a, s - 2), d: 0.8, k: 'clip', i })); }
     if (cfg.dead) stops.push({ sx: cfg.dead[0], k: 'dead' });
     if (cfg.wait) stops.push({ sx: cfg.wait[0], d: cfg.wait[1], k: 'wait' });
@@ -706,11 +773,12 @@ export function makeClimb() {
     if (tau < T_UP) { const x = -34 + 34 * tau / T_UP; return { ph: 'up', x, y: 0, mode: 'walk' }; }
     if (tau <= pl.tSum) {
       const leg = pl.legs.find(l => tau <= l.t1) || pl.legs[pl.legs.length - 1];
+      if (leg.zig != null) { const A = cfg.zig[leg.zig], B = cfg.zig[leg.zig + 1], k = clamp((tau - leg.t0) / (leg.t1 - leg.t0), 0, 1); return { ph: 'up', x: lerp(A[0], B[0], k), y: lerp(A[1], B[1], k), mode: 'run', back: B[0] < A[0], lap: leg.zig + 1, d: leg.d0 + k * leg.len }; }
       if (leg.look) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: 'look', back: leg.away };
       if (leg.back) { const x = lerp(leg.x0, leg.x1, (tau - leg.t0) / (leg.t1 - leg.t0)); return { ph: 'up', x, y: hOf(pts, x), mode: 'walk', back: true }; }
       if (leg.cut) { const v = (tau - leg.t0) / (leg.t1 - leg.t0), x = v < 0.5 ? leg.x0 : leg.x1; return { ph: 'up', x, y: hOf(pts, x), mode: 'look', cut: v, back: v < 0.5 }; }
       if (leg.clip) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: 'clip', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
-      if (leg.rest || leg.slip || leg.beep || leg.wait) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: leg.rest ? 'rest' : leg.slip ? 'slip' : leg.wait ? 'wait' : 'beep', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
+      if (leg.beep || leg.wait) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: leg.wait ? 'wait' : 'beep', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
       if (leg.ice) { const pose = icePose(leg, tau - leg.t0); return pose.walk ? { ph: 'up', x: pose.x, y: pose.y, mode: 'walk' } : { ph: 'up', x: pose.hx, y: leg.w.ya - pose.hh + STAND, mode: 'ice', pose, leg }; }
       const a = arc(id), x = xAt(a, lerp(arcAt(a, leg.x0), arcAt(a, leg.x1), clamp((tau - leg.t0) / Math.max(1e-6, leg.t1 - leg.t0), 0, 1))); let y = hOf(pts, x), mode = 'walk';
       // On Bluebird Forecast's dry rock he walks the ledges and goes up the slabs on hands and feet.
@@ -749,11 +817,11 @@ export function makeClimb() {
       for (const g of cfg.xings || []) if (g[2] !== 'open') for (let tau = T_UP; tau < pl.tSum; tau += 0.02) if (where(arg.id, tau).x > g[0] - 3) { out.push({ at: tau / D, name: g[2] === 'lashed' || g[2] === 'sag' ? 'creak' : g[2] === 'jump' ? 'jump' : 'step' }); break; }
       // The storm on the wanded route is heard as it arrives, and again as it closes in.
       if (cfg.kind === 'wands') for (const u of [0.09, 0.3, 0.5, 0.66]) out.push({ at: (T_UP + u * (pl.tSum - T_UP)) / D, name: 'wind' });
+      // The run: a footfall three times a second, and the watch's blip at the start and at each corner.
+      if (cfg.zig) { out.push({ at: T_UP / D, name: 'beep' }); for (const leg of pl.legs) if (leg.zig != null) { if (leg.zig) out.push({ at: leg.t0 / D, name: 'lap' }); for (let a = leg.t0 + 0.15; a < leg.t1; a += 0.3) out.push({ at: a / D, name: 'step' }); } const bl = pl.legs.find(l => l.beep); out.push({ at: (bl.t0 + 0.5 * cfg.beep) / D, name: 'chime' }); }
       for (const leg of pl.legs) {
-        if (leg.slip) for (const a of [0, 0.55, 1.05]) out.push({ at: (leg.t0 + a) / D, name: 'step' });
         if (leg.beep) out.push({ at: (leg.t0 + 0.3) / D, name: 'beep' });
         if (leg.clip) for (const a of [0.4, 0.95]) out.push({ at: (leg.t0 + a * (leg.t1 - leg.t0)) / D, name: 'tink' });
-        if (cfg.sets && !leg.rest && !leg.slip && !leg.beep && leg.t1 > T_UP) for (let a = leg.t0 + 0.2; a < leg.t1; a += 0.42) out.push({ at: a / D, name: 'step' });
       }
       for (const leg of pl.legs) if (leg.ice) for (const h of leg.hit) out.push({ at: h.t / D, name: h.tool ? 'tink' : 'step' });
       return out;
@@ -855,12 +923,11 @@ export function makeClimb() {
       // As the snow thickens, everything dark goes behind it (rock, the far wands, the edge of the slope) while the snow at his feet stays.
       if (heavy > 0.02) veil(scr, heavy * 0.85, [R.snow[1], R.snow[2]], X(me.x), Y(me.y) - 12, pale);
       // His tracks stay in the snow behind him: boot prints on the way up, one long groove on the way down.
-      // On the gully the tracks are a staircase of kicked steps.
-      if (me.ph === 'up' && cfg.sets) for (let x = 2; x < me.x - 3; x += 4) { const y = Y(hOf(pts, x)); scr.set(X(x), y + 1, R.snow[1]); scr.set(X(x) + 1, y + 1, R.snow[1]); scr.set(X(x) + 2, y, R.snow[2]); scr.set(X(x), y, R.snow[2]); }
-      else if (me.ph === 'up' && !cfg.wait) { for (let x = -30; x < me.x - 3; x += 4) { if (cfg.gap && x > cfg.gap[0] - 6 && x < cfg.gap[1] + 6) continue; if (xingAt(cfg, x, 6)) continue; if (pl.walls.some(w => x > w.x0 + 2 && x < w.xc + 2)) continue; const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[1]); scr.set(X(x) + 1, Y(y) + 2, R.snow[2]); } }
+      // None on dry rock or on the trail.
+      if (me.ph === 'up' && !cfg.wait && !cfg.zig) { for (let x = -30; x < me.x - 3; x += 4) { if (cfg.gap && x > cfg.gap[0] - 6 && x < cfg.gap[1] + 6) continue; if (xingAt(cfg, x, 6)) continue; if (pl.walls.some(w => x > w.x0 + 2 && x < w.xc + 2)) continue; const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[1]); scr.set(X(x) + 1, Y(y) + 2, R.snow[2]); } }
       else if (me.mode === 'sit') for (let x = Math.ceil(me.x) + 4; x < 400; x++) { const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[2]); if (x & 1) scr.set(X(x), Y(y) + 3, R.snow[3]); }
       // Spindrift blows off the top.
-      if (me.ph === 'up' && white < 0.3 && !cfg.wait) for (let k = 0; k < 34; k++) { const a = frac(t * (0.5 + storm) + k / 34), x0 = SXr + 38 + (k % 5) * 3, y0 = hOf(pts, x0) - 1; const x = X(x0 + a * (46 + 30 * storm) + 4 * Math.sin(a * 9 + k)), y = Y(y0 - a * 13 - 3 * Math.sin(a * 5 + k * 2)); if (bayer(x, y) > a * 0.9) scr.set(x, y, a < 0.4 ? R.white[1] : R.snow[3]); }
+      if (me.ph === 'up' && white < 0.3 && !cfg.wait && !cfg.zig) for (let k = 0; k < 34; k++) { const a = frac(t * (0.5 + storm) + k / 34), x0 = SXr + 38 + (k % 5) * 3, y0 = hOf(pts, x0) - 1; const x = X(x0 + a * (46 + 30 * storm) + 4 * Math.sin(a * 9 + k)), y = Y(y0 - a * 13 - 3 * Math.sin(a * 5 + k * 2)); if (bayer(x, y) > a * 0.9) scr.set(x, y, a < 0.4 ? R.white[1] : R.snow[3]); }
       // Snow driven flat across everything while the storm lasts.
       // Drizzle: fine slanting streaks, none of them under the boulder's prow, and a sparkle of splashes
       // where they land on the rock.
@@ -897,6 +964,7 @@ export function makeClimb() {
           const a = t - st.banged; if (a < 0.9) for (let k = 0; k < 18; k++) { const px = tx - 11 + (k * 23 % 24) + (hash(k, 1, 249) - 0.5) * 30 * a, py = ty - 36 - 30 * hash(k, 2, 249) * a + 110 * a * a; if (py < ty + 1) { scr.set(X(px), Y(py), R.snow[4]); scr.set(X(px) + 1, Y(py), R.snow[k & 1 ? 4 : 3]); if (k % 3 === 0) scr.set(X(px), Y(py) + 1, R.snow[3]); } }
         }
         else if (kind === 'ridge') scr.put(TOPS.ridge(Math.floor(t * (storm > 0.3 ? 14 : 5)) & 3), X(tx), Y(ty), false);
+        else if (kind === 'run') { const racked = !(u > 0.4 && u < 4.2), key = racked ? 'run' : 'bare'; scr.put((tops[key] = tops[key] || TOPS.run(racked)), X(tx), Y(ty), false); }
         else if (kind !== 'wands') scr.put((tops[kind] = tops[kind] || TOPS[kind]()), X(tx), Y(ty), false);
         if (kind === 'wands') { tops.wands = tops.wands || TOPS.wands(); scr.put(tops.wands, X(tx), Y(ty), false); const off = u < 3.4; if (off && u > 0.5) { const a = clamp((u - 0.5) / 0.6, 0, 1), back = clamp((u - 2.4) / 0.7, 0, 1), px = lerp(tx + 2, tx + 16, a - back), py = ty - 14 + (a - back) * 13 - Math.sin((a < 1 ? a : back) * Math.PI) * (a < 1 ? 5 : 12); scr.put(stone, X(px), Y(py), false); } else scr.put(stone, X(tx + 2), Y(ty - 14), false); }
         if (kind === 'ladder') { scr.put(speck(u < 4.5 && u > 3 ? Math.floor(t * 8) & 1 : 0), X(tx), Y(ty - 64), false); if (u < 6) { const lit = Math.floor(clamp(u / 3, 0, 1) * 9), sq2 = clamp(u / 3, 0, 1); for (let k = 0; k < 9; k++) { const a = k / 9, lx = tx + Math.sin(k * 2.1) * (3 + a * 13), ly = ty - 6 - a * 52; if (k < lit && (u < 4.6 || (Math.floor(t * 6) & 1))) { scr.set(X(lx), Y(ly), R.white[1]); scr.set(X(lx) - 1, Y(ly), R.yellow[1]); scr.set(X(lx) + 1, Y(ly), R.yellow[1]); scr.set(X(lx), Y(ly) - 1, R.yellow[1]); scr.set(X(lx), Y(ly) + 1, R.yellow[1]); } } if (u < 3) scr.put(squirrel, X(tx + Math.sin(sq2 * 9 * 2.1 / 1) * (3 + sq2 * 10)), Y(ty - 4 - sq2 * 54), Math.cos(sq2 * 19) < 0); } }
@@ -933,6 +1001,7 @@ export function makeClimb() {
       }
 
       // Himself.
+      const T = cfg.zig ? figT : null;
       const d = me.x, stopId = env.shown && !env.moving ? env.shown : null, acting = me.ph === 'up' && u < (BUSY[kind] || 0);
       let bm, flip = false, dy = 0, dx = 0;
       if (acting && kind === 'bridge') {
@@ -943,22 +1012,15 @@ export function makeClimb() {
         dx = 6 * (smooth(0, 0.12, u) - smooth(1.3, 1.5, u));
         bm = u < 0.12 ? fig.walk[1] : u < 0.36 ? fig.hit[0] : u < 0.62 ? fig.hit[1] : fig.watch;
       } else if (stopId || me.mode === 'stand') {
-        bm = fig.stand;
-        if (u < 5) { if (kind === 'ice' && u > 0.4 && u < 4.2) { bm = null; scr.put(fig.press[Math.floor((u - 0.4) * 1.6) & 1], X(SXr + 24), Y(hOf(pts, SXr + 24) - 4), false); } else if (kind === 'wands' && u < 1.2) bm = fig.hit[u > 0.35 && u < 0.7 ? 1 : 0]; else if (kind === 'ridge' || kind === 'ladder') bm = u > 3 ? fig.cheer : fig.stand; }
-      } else if (me.mode === 'sit') { bm = fig.sit[Math.floor(t * 8) & 1]; flip = true; dy = 2; for (let k = 0; k < 14; k++) { const a = frac(t * 2.4 + k / 14); scr.set(Math.round(sx + 6 + a * 30 + hash(k, 1, 251) * 6), Math.round(sy - 2 - a * (8 + hash(k, 2, 251) * 16) + a * a * 10), a < 0.6 ? R.white[1] : R.snow[3]); } }
+        bm = (T || fig).stand;
+        if (u < 5) { if (kind === 'run' && u > 0.4 && u < 4.2) { bm = null; scr.put(figT.press[Math.floor((u - 0.4) * 1.6) & 1], X(SXr + 24), Y(hOf(pts, SXr + 24) - 4), false); } else if (kind === 'wands' && u < 1.2) bm = fig.hit[u > 0.35 && u < 0.7 ? 1 : 0]; else if (kind === 'ridge' || kind === 'ladder') bm = u > 3 ? fig.cheer : fig.stand; }
+      } else if (me.mode === 'sit') { bm = (T || fig).sit[Math.floor(t * 8) & 1]; flip = true; dy = 2; for (let k = 0; k < 14; k++) { const a = frac(t * 2.4 + k / 14); scr.set(Math.round(sx + 6 + a * 30 + hash(k, 1, 251) * 6), Math.round(sy - 2 - a * (8 + hash(k, 2, 251) * 16) + a * a * 10), a < 0.6 ? R.white[1] : R.snow[3]); } }
       else if (me.mode === 'look') { bm = fig.peer2; flip = !!me.back; }
       else if (me.mode === 'climb' || (me.mode === 'clip' && wallAt(cfg, me.x))) { const w = wallAt(cfg, me.x); bm = fig.climb[me.mode === 'clip' ? 0 : Math.floor(-me.y / 5) & 1]; dx = X(w[0] - 5) - sx; }
       else if (me.mode === 'clip') bm = fig.reach;
       else if (me.mode === 'edge') bm = fig.edge[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1];
       else if (me.mode === 'astride') { bm = fig.astride[env.moving ? Math.floor(Math.abs(d) / 2.5) & 1 : 0]; dy = 6; }
-      else if (me.mode === 'rest') { const hard = cfg.gully && me.x > cfg.gully[0] ? 1.5 : 1; bm = fig.rest[Math.floor(t * 1.4 * hard) & 1]; breath(scr, sx + 6, sy - 16, t, hard); }
-      else if (me.mode === 'slip') {
-        const v = me.u; dx = -2 * smooth(0, 0.18, v) + 2 * smooth(0.3, 0.45, v);
-        bm = v < 0.33 ? fig.slip : (v > 0.36 && v < 0.6) || (v > 0.7 && v < 0.88) ? fig.kick : fig.wind[1];
-        if (v < 0.4) chips(scr, sx - 6, sy, v / 0.4, 10, 1); else if (v < 0.66) chips(scr, sx + 7, sy - 1, (v - 0.4) / 0.26, 5, 2); else chips(scr, sx + 7, sy - 1, (v - 0.66) / 0.3, 5, 3);
-        breath(scr, sx + 6, sy - 16, t, 1.2);
-      }
-      else if (me.mode === 'beep') { bm = fig.wrist; if (me.u > 0.2 && me.u < 0.75 && (Math.floor(t * 8) & 1)) { scr.set(sx + 5, sy - 13, R.teal[2]); scr.set(sx + 6, sy - 13, R.white[1]); } breath(scr, sx + 6, sy - 16, t, 0.8); }
+      else if (me.mode === 'beep') { bm = figT.wrist; if (me.u > 0.2 && me.u < 0.75 && (Math.floor(t * 8) & 1)) { scr.set(sx + 5, sy - 13, R.teal[2]); scr.set(sx + 6, sy - 13, R.white[1]); } breath(scr, sx + 6, sy - 16, t, 0.8); }
       else if (me.mode === 'ice') {
         const p = me.pose, w = me.leg.w;
         scr.put(iceFig(p), X(p.rx), Y(p.ry), false);
@@ -969,13 +1031,23 @@ export function makeClimb() {
       else if (me.mode === 'scramble' || me.mode === 'ledge') bm = fig[me.mode][env.moving ? Math.floor(Math.abs(d) / 3) & 3 : 0];
       else if (me.mode === 'jump') bm = fig.jump;
       else if (me.mode === 'crawl') bm = fig.crawl[Math.floor(d / 4) & 1];
-      else if (cfg.sets && me.ph === 'up' && me.x > 0) { bm = fig.wind[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1]; const a = frac(d / 7.2); if (env.moving && a < 0.3) chips(scr, sx + 6, sy - 1, a / 0.3, 4, Math.floor(d / 7.2)); }
+      else if (T) {
+        // Running, in his running kit: a puff of dust behind his heel at each stride.
+        const run = me.d != null ? me.d : Math.abs(d); bm = env.moving ? T.run[Math.floor(run / 4.5) % 6] : T.idle; flip = !!me.back;
+        if (env.moving && me.mode === 'run') { const a = frac(run / 13.5), s = flip ? 1 : -1; if (a < 0.5) for (let k = 0; k < 3; k++) scr.set(sx + s * Math.round(5 + a * 10 + k * 2), sy - Math.round(a * 6 + hash(k, Math.floor(run / 13.5), 297) * 3), R.dirt[a < 0.25 ? 3 : 4]); }
+      }
       else if (cfg.wait && me.ph === 'up') bm = fig.hike[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1];
       else { const rimed = cfg.brk && me.ph === 'up'; bm = ((me.mode === 'wind' && windK > 0.25) || (gust > 0.3 && up < 0.9) ? (rimed ? fig.windR : fig.wind) : (rimed ? fig.walkR : fig.walk))[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1]; flip = !!me.back; }
       if (bm) { scr.put(bm, sx + Math.round(dx), sy + dy, flip); }
       if (me.cut != null) whiteOut(scr, smooth(0, 0.35, me.cut) * (1 - smooth(0.65, 1, me.cut)));
       if (cfg.cable && me.ph === 'up') lanyards(scr, X, Y, cfg, pts, pl, arc(id), xAt, arcAt, tau, sx + Math.round(dx), sy + dy, me);
       focus.x = sx; focus.y = sy - 14;
+      // His watch, in the corner of the picture for the whole run and for as long as he is on top.
+      if (cfg.zig && me.ph === 'up' && tau > T_UP * 0.6) {
+        const k = scr.narrow ? 2 : 1, wx = 12, wy = scr.narrow ? 54 : 30, prog = clamp((tau - T_UP) / (pl.tRun - T_UP), 0, 1);
+        const w = { lap: me.lap || (prog < 0.5 ? 1 : cfg.zig.length - 1), secs: prog * 1640, bpm: Math.round(94 + 82 * Math.pow(prog, 0.7) + 2 * Math.sin(t * 1.7)), prog, sync: tau < pl.tRun ? -1 : (tau - pl.tRun) / cfg.beep };
+        watchFace(k === 1 ? scr : { set: (i, j, c) => { const x = wx + (i - wx) * 2, y = wy + (j - wy) * 2; scr.set(x, y, c); scr.set(x + 1, y, c); scr.set(x, y + 1, c); scr.set(x + 1, y + 1, c); } }, wx, wy, w, t);
+      }
       // His phone's screen, shown large beside him while he reads it, with a line down to the phone itself.
       if (me.mode === 'wait' && me.u > 0.1 && me.u < 0.93) {
         // On a narrow screen a scene pixel is too small to read letters by, so it is drawn at twice the size.

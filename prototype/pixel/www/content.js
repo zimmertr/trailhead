@@ -162,6 +162,8 @@ export const UI = {
   bang: 'BANG!',
   // On his phone on Bluebird Forecast: the app's name in two lines, and the one word under the weather, before and after it turns. Drawn in pixels, capitals only.
   forecast: { app: ['BLUEBIRD', 'FORECAST'], wet: 'DRIZZLE', clear: 'CLEARING' },
+  // On his watch on hevy-garmin-sync: the word before the lap's number, and the three lines it shows at the bench. Drawn in pixels, capitals only.
+  watch: { lap: 'LAP', synced: ['WORKOUT', 'SYNCED', 'FROM HEVY'] },
   found: (name, n, of) => 'Found: ' + name + '. ' + n + ' of ' + of + ' on the kiosk checklist.',
   allDone: 'All three done. The trail register at the Trailhead is yours to sign.',
   fail: 'The world could not be drawn here. The trail map has everything as text.',

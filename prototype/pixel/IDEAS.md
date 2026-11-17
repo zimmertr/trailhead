@@ -342,3 +342,9 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **An Ice Screw Half Way Up** (round 5, H4). On the tall wall he stops once, places a screw and clips it, and the rope trails below him to the top.
 - **Ice Chips Land on the Bench** (round 5, H4). The chips his tools knock off pile up as a small heap at the wall's foot while he climbs.
 - **A Second Line on the Wall** (round 5, H4). On a return visit he takes the wall's other side, so the climb is not the same film twice.
+- **The Watch Shows TJ's Real Last Workout** (round 5, H5). The watch's sync screen names the routine and the date of the last workout hevy-garmin-sync really moved, read from Hevy when the site is live.
+- **Sets on the Watch at the Bench** (round 5, H5). While he presses, the watch counts the reps and shows the set, as a Garmin strength workout does.
+- **Cut the Switchback** (round 5, H5). Tapping a corner makes him cut straight up to the next straight, and a marmot whistles at him for it.
+- **Other Runners on the Trail** (round 5, H5). Now and then a runner comes down the switchbacks the other way, and they pass on a straight.
+- **A Trail Kit for Every Fair-Weather Scene** (round 5, H5). The kit he wears could follow the weather: shorts on dry ground, the alpine kit on snow, changed at camp.
+- **Fellfield on the Map Under hevy-garmin-sync** (round 5, H5). On the map the spire's south side could show the same turf and the zigzag of the trail, so the climb is announced before he starts it.

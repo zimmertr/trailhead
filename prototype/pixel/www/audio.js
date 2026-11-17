@@ -192,6 +192,8 @@ export function makeAudio() {
     drizzle: t => { noise(fx, t, 3.2, 0.06, 5200, 0.7, 'bandpass'); for (let i = 0; i < 9; i++) noise(fx, t + 0.2 + i * 0.33 + Math.random() * 0.2, 0.03, 0.05, 2600 + Math.random() * 1800, 5, 'bandpass'); },
     // A bluebird's song: three soft, slurred notes.
     warble: t => [[2300, 1900], [2000, 2500], [2400, 2050]].forEach(([a, b], i) => tone(fx, 'sine', a, t + i * 0.09, 0.08, 0.1, b)),
+    // His watch marking a lap: one short blip.
+    lap: t => tone(fx, 'square', 1760, t, 0.06, 0.07),
     // A phone's notice: two soft rising notes.
     chime: t => { tone(fx, 'sine', 880, t, 0.12, 0.16); tone(fx, 'sine', 1319, t + 0.11, 0.22, 0.16); },
     fall: t => { tone(fx, 'square', 900, t, 0.3, 0.2, 140); noise(fx, t, 0.1, 0.12, 2400, 1, 'bandpass'); },
