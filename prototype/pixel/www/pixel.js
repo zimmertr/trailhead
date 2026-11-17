@@ -505,7 +505,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       return false;
     },
     done: () => ({ ...done }),
-    forget() { for (const k in done) delete done[k]; saveDone(); for (const k in found) delete found[k]; try { localStorage.removeItem('trailhead.found'); } catch { /* private window */ } },
+    forget() { for (const k in done) delete done[k]; saveDone(); for (const k in found) delete found[k]; try { localStorage.removeItem('trailhead.found'); localStorage.removeItem('trailhead.cairn'); } catch { /* private window */ } },
     found: () => ({ ...found }),
     find,
     // For test scripts (L11): where in the view, in CSS pixels, the first thing that answers to a click named

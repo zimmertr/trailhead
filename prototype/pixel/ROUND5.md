@@ -568,7 +568,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] H7. T59: the binoculars pan round the cats and close only on space or the back button.
 - [x] H8. T60: yggdrasil with half the clip-ins.
 - [x] H9. T62: Kubernetes-Manifests climbs out of the whiteout above a sea of cloud.
-- [ ] H10. T63: the cairn takes a stone a visit, capped at 12. The kick is gone.
+- [x] H10. T63: the cairn takes a stone a visit, capped at 12. The kick is gone.
 - [ ] H11. T52: each summit's timeline stop is named for its project. T54: the six clue lines in the project cards.
 
 ### I. The way to Proficiency Peak and its climb
@@ -699,7 +699,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **H7 done.** The binoculars on trailhead open on the cats as before and then stay open. The arrow keys, WASD or a drag move the view within a box round the cats (110 px either way, 80 up, 46 down), and it stops at the box's edges. Space closes it, and so does a BACK button drawn under the view. Under the button a line says how: "ARROWS: LOOK   SPACE: BACK" where there is a keyboard, "DRAG TO LOOK" where there is not. It never closes by itself, except when he is taken off the summit by dragging the timeline.
 - **H8 done.** yggdrasil's cable has an anchor every 116 px of the way, where it had one every 58. He stops to move his lanyards past an anchor 7 times, where he stopped 13 times. The whole climb takes 24.7 s (29.5 before), and he is on top after 21.1 s (25.9 before).
 - **H9 done.** On Kubernetes-Manifests he now climbs out of the top of the whiteout. The cloud overhead tears open from the top of the picture down, the sun shows through it as a pale disc, and then he is in clear air on the last of the slope with a sea of cloud below him. The lower slope, the crevasses and the feet of the other peaks are under it. The spires and the crests of the far range stand out of it. It is the same from Day to Dusk and on a phone. The whiteout before it did not change.
-- Next: H10.
+- **H10 done.** The kick is gone. A click on the cairn on Kubernetes-Manifests now makes him bend for a stone, carry it over in both hands, set it on top and stand back to look. The cairn keeps the stone: the count is saved in the visitor's browser and the pile is one stone taller each time he comes back to the summit, up to 12 added stones. A second click on the same visit, or any click on a full cairn, makes him walk over and pat it. The find counts from the first click.
+- Next: H11.
 
 ## 11. Calls made in round 5
 
@@ -1046,3 +1047,10 @@ One line each, newest last: the item, what was decided, and why.
 - H9, call: the glissade down is one picture shared by all six climbs and still shows clear sky and whole mountains. He leaves the summit through the same white cut as before, which now reads as dropping back into the cloud.
 - H9, removed: the two lines that drew the old ridge inversion for `brk`, which no route has had since H2. The rest of the `brk` code (the rime, the rimed figures) is still in the file and never runs.
 - H9, measured: 14.0 ms a frame while it clears (round 4: 13.3) and 4.1 ms on top, at 1920 by 1080. The climb is still 29.5 s. The check passed with nothing moved.
+- H10, how (`climb.js`): `CAIRN` holds the cap, the timings and the storage key `trailhead.cairn`. `STACK` is the pile, stone by stone: which of five stone shapes and how far off centre. Each stone sits 3 px above the last, so a full cairn is 36 px taller, about twice his height. The count is read when the climb is entered and again at each click.
+- H10, call: a visit is one time on the summit, from entering the climb to leaving it. So a visitor who climbs twice in one sitting adds two stones. TJ's words were "one stone taller on each visit". The other reading, one stone a page load, would have made it slow for TJ to see it grow.
+- H10, call: the cap is 12 added stones, on top of the six the cairn starts with.
+- H10, call: on a pile taller than his reach he lets the stone go at head height and it travels the rest in a short arc. Stretching or climbing the pile was more than the item needed.
+- H10, call: the "Clear my flags" button in the settings also takes the stones away (`pixel.js`, `forget`), so the cairn can be seen growing again from nothing. In a private window the count lasts for that page only.
+- H10, new sound: `clack`, one stone set on another. Not listened to. The find's own sound still plays at the click.
+- H10, tested in the lab by setting the count in the browser's storage first: the first stone, the sixth, the twelfth, the pat on a full cairn and the pat on a second click, and the twelve-stone cairn on a desktop and a phone screen. The click box grows with the pile. The check passed with nothing moved.

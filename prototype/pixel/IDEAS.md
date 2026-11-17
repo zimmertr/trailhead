@@ -365,3 +365,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Other Summits by Name** (round 5, H9). The peaks that stand out of the cloud are the other five climbs, each with its own shape and the thing on its top, so the view from one summit shows the rest.
 - **A Brocken Spectre** (round 5, H9). At the cloud's top, with the sun behind him, his shadow falls on the cloud below inside a ring of colour.
 - **Cloud Sea From the Map** (round 5, H9). On the days the map's weather is low cloud, the spires on the map stand out of it too.
+- **A Cairn Everyone Builds** (round 5, H10). The count lives on the server and not in one browser, so every visitor's stone is on the same pile and the card says how many people have been up.
+- **A Cairn That Widens** (round 5, H10). Past six stones the pile grows at its foot as well as its top, so a full cairn is a broad cone and not a thin stack.
+- **The Cairn on the Map** (round 5, H10). The spire's summit on the map and on camp's backdrop shows the cairn at the height this visitor has built it.
+- **A Stone From Each Place** (round 5, H10). The stone he adds is the colour of the last place he visited: basalt from the sea stack, granite from the lake, red rock from the Palouse.

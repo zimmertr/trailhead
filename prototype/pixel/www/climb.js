@@ -368,7 +368,16 @@ const TOPS = {
   ladder() { const rand = rng(77), b = new BM(64, 66); b.ox = 32; b.oy = 65; for (let y = 22; y < 66; y++) { const hw = 3 + (y > 56 ? (y - 56) * 0.8 : 0) + Math.sin(y / 5); for (let dx = -hw; dx <= hw; dx++) b.set(32 + dx + Math.round(2 * Math.sin(y / 9)), y, dx < -0.5 ? R.moss[3] : pick('bark', 0.6 - dx / hw * 0.4, dx | 0, y)); } for (const [dx, dy, len] of [[-1, 30, 16], [1, 34, 14], [-1, 40, 10], [1, 26, 18]]) thick(b, 32, dy, 32 + dx * len, dy - len * 0.6, 2, R.bark[1]); outline(b, INK); for (let k = 0; k < 11; k++) { const a = k / 11 * 6.283, r = k < 3 ? 6 : 17, c = clump(5.5 + rand() * 3, 'moss', rand, 0); const px = Math.round(32 + Math.cos(a) * r * 1.25 - c.cx), py = Math.round(17 + Math.sin(a) * r * 0.62 - c.cy); for (let j = 0; j < c.h; j++) for (let i = 0; i < c.w; i++) { const v = c.d[j * c.w + i]; if (v) b.set(px + i, py + j, v); } } return b; },
   wands() { const b = new BM(20, 20); b.ox = 10; b.oy = 19; for (const [x, y, r, s] of [[10, 16, 5, 1], [6, 16, 3.4, 2], [14, 16, 3, 3], [9, 11, 3.6, 4], [12, 7, 2.8, 5]]) ell(b, x, y, r, r * 0.62, (nx, ny, px, py) => pick('rock', 0.62 - ny * 0.4 - nx * 0.2 + s * 0.02, px, py)); outline(b, INK); return b; }
 };
-const stone = (() => { const b = new BM(7, 6); b.ox = 3; b.oy = 5; ell(b, 3, 3, 2.6, 1.8, (nx, ny, x, y) => pick('rock', 0.7 - ny * 0.4, x, y)); outline(b, INK); return b; })();
+// The cairn on Kubernetes-Manifests grows (round 5, T63): on each visit to the summit he may set one stone
+// on top, up to `cap` of them, and the number is kept in the visitor's browser. `stone` and `pat` are how
+// long each of the two things he does takes, and `land` is when the stone comes to rest. STACK is the pile
+// from the cairn's own top stone upward: which stone, and how far off centre it sits.
+const CAIRN = { key: 'trailhead.cairn', cap: 12, rise: 3, stone: 2.4, pat: 1.6, land: 1.45 };
+const STONES = [[3.6, 2], [3, 1.9], [2.6, 1.8], [2.2, 1.6], [1.8, 1.5]].map(([rx, ry], i) => { const b = new BM(9, 6); b.ox = 4; b.oy = 5; ell(b, 4, 3, rx, ry, (nx, ny, x, y) => pick('rock', 0.7 - ny * 0.4 + (i & 1 ? 0.05 : 0), x, y)); outline(b, INK); return b; });
+const STACK = [[2, 0], [0, -1], [2, 1], [1, 0], [3, -1], [1, 1], [2, 0], [3, 1], [1, -1], [3, 0], [2, 1], [4, 0], [3, -1]];
+let cairnMem = 0;
+const cairnGet = () => { try { const v = localStorage.getItem(CAIRN.key); cairnMem = v == null ? 0 : clamp(parseInt(v, 10) || 0, 0, CAIRN.cap); } catch { /* private window: the count lasts this visit only */ } return cairnMem; };
+const cairnSet = n => { cairnMem = n; try { localStorage.setItem(CAIRN.key, String(n)); } catch { /* private window */ } };
 // How tall each summit's thing is, for the label over it and the place to click.
 const TALL = { ladder: 66, icefall: 40 };
 // A barbell seen along the bench, at height y: the bar, and on each end a big plate with a small one outside it.
@@ -687,6 +696,12 @@ export function makeClimb() {
     walkR: null, windR: null,
     hit: [sideFig('alpine', { hands: [[-3, -2], [-1, 6]], lean: 0 }), sideFig('alpine', { hands: [[7, 1], [-1, 6]], lean: 2 })],
     watch: sideFig('alpine', { lean: 0 }),
+    // At the cairn: bent to the snow for a stone, carrying it in both hands, reaching up to set it on top, and
+    // a hand patting the pile.
+    stoop: sideFig('alpine', { hands: [[5, 8], [3, 8]], lean: 6, crouch: 4, look: 'down' }),
+    carry: [0, 1, 2, 3, 4, 5].map(f => sideFig('alpine', { feet: [WALK[f], WALK[(f + 3) % 6]], hands: [[5, 3], [4, 4]], bob: f % 3 === 1 ? -1 : 0, lean: 2 })),
+    lift: sideFig('alpine', { hands: [[6, -7], [4, -6]], lean: 1, look: 'up' }),
+    pat: [sideFig('alpine', { hands: [[7, -1], [-1, 6]], lean: 1 }), sideFig('alpine', { hands: [[7, 1], [-1, 6]], lean: 1 })],
     // Upright along the knife-edge, arms out to either side for balance.
     edge: [0, 1, 2, 3, 4, 5].map(f => sideFig('alpine', { feet: [WALK[f], WALK[(f + 3) % 6]], hands: [[7, 1 + (f % 3 === 0 ? 1 : 0)], [-6, 2 - (f % 3 === 1 ? 1 : 0)]], bob: f % 3 === 1 ? -1 : 0, lean: 0, look: 'down' })),
     // Astride the crest: sat on top of it with his hips on the rock, the near leg hanging down the face in
@@ -813,7 +828,8 @@ export function makeClimb() {
   let bino = null;
   const VIEW = { x0: -110, x1: 110, y0: -80, y1: 46, speed: 80, open: 1.35, shut: 1.2 };
   const shutView = t => { if (bino && bino.close == null && t - egg > VIEW.open) bino.close = t; };
-  const busy = t => last.ph === 'up' && ROUTES[last.id] && (!!bino || t - egg < (BUSY[ROUTES[last.id].kind] || 0));
+  const busyFor = kind => kind === 'wands' ? CAIRN[st.did] || 0 : BUSY[kind] || 0;
+  const busy = t => last.ph === 'up' && ROUTES[last.id] && (!!bino || t - egg < busyFor(ROUTES[last.id].kind));
 
   return {
     name: 'climb',
@@ -838,7 +854,7 @@ export function makeClimb() {
       for (const leg of pl.legs) if (leg.ice) for (const h of leg.hit) out.push({ at: h.t / D, name: h.tool ? 'tink' : 'step' });
       return out;
     },
-    enter(scr, arg, q) { const w = where(arg.id, q * plan(arg.id).dur); cam.x = w.x; cam.y = w.y; st.y = null; st.lift = null; egg = -99; bino = null; st.fixed = false; st.banged = -99; },
+    enter(scr, arg, q) { const w = where(arg.id, q * plan(arg.id).dur); cam.x = w.x; cam.y = w.y; st.y = null; st.lift = null; egg = -99; bino = null; st.fixed = false; st.banged = -99; st.cairn = cairnGet(); st.did = null; st.left = false; st.clack = -99; },
     focus: () => focus,
     hold: env => busy(env.t),
     // While the binoculars are open the keys are theirs: the arrows and WASD move the view, space closes it.
@@ -853,7 +869,7 @@ export function makeClimb() {
       // Through the binoculars only the BACK button can be pressed, and a tap elsewhere does nothing.
       if (bino) { const b = last.back; return b && sx >= b[0] && sx <= b[2] && sy >= b[1] && sy <= b[3] ? { named: true, x: sx, y: sy, act: 'back' } : { named: true, x: sx, y: sy }; }
       if (last.ph !== 'up' || last.away) return null;
-      const cfg = ROUTES[last.id], SXr = sxOf(cfg), x = sx + last.camX - OFF, y = sy - last.base, ty = hOf(cfg.pts, SXr + 24), tall = TALL[cfg.kind] || 34;
+      const cfg = ROUTES[last.id], SXr = sxOf(cfg), x = sx + last.camX - OFF, y = sy - last.base, ty = hOf(cfg.pts, SXr + 24), tall = cfg.kind === 'wands' ? Math.max(34, 24 + CAIRN.rise * (st.cairn || 0)) : TALL[cfg.kind] || 34;
       if (Math.abs(x - SXr - 24) < 20 && y < ty + 3 && y > ty - tall) return { label: FINDS['egg:' + last.id][0], x: SXr + 24 + OFF - last.camX, y: last.base + ty - tall - 2, act: 'egg' };
       if (cfg.kind === 'bridge' && Math.abs(x - 163) < 14 && Math.abs(y + 60) < 30) return { label: NAMES.climb.crevasse, x: sx, y: sy - 8 };
       if (cfg.kind === 'ridge' && x > 100 && x < sxOf(cfg) - 12 && Math.abs(y - hOf(cfg.pts, x)) < 8) return { label: NAMES.climb.ridge, x: sx, y: sy - 8 };
@@ -862,6 +878,14 @@ export function makeClimb() {
     act(id, env) {
       if (id === 'back') { shutView(env.t); return true; }
       if (id === 'egg' && env.shown && ROUTES[last.id].kind === 'bridge' && !bino && env.t - egg > 6) { egg = env.t; bino = { close: null, keys: {} }; env.look.x = env.look.y = 0; env.sfx('egg'); env.found('egg:' + last.id); return true; }
+      // The cairn: one stone a visit to the summit, until it holds its full dozen. After that, and on a second
+      // click the same visit, he pats it.
+      if (id === 'egg' && env.shown && ROUTES[last.id].kind === 'wands') {
+        if (env.t - egg < busyFor('wands') + 0.3) return false;
+        st.cairn = cairnGet(); st.did = !st.left && st.cairn < CAIRN.cap ? 'stone' : 'pat';
+        if (st.did === 'stone') { st.left = true; cairnSet(++st.cairn); }
+        egg = env.t; env.sfx('egg'); env.found('egg:' + last.id); return true;
+      }
       if (id === 'egg' && env.shown && env.t - egg > (ROUTES[last.id].kind === 'ridge' ? BIRD.gone : 6)) { egg = env.t; env.sfx('egg'); env.found('egg:' + last.id); return true; } return false; },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t } = env, id = arg.id, cfg = ROUTES[id], kind = cfg.kind, pl = plan(id), SXr = sxOf(cfg);
@@ -991,7 +1015,7 @@ export function makeClimb() {
         else if (kind === 'ridge') scr.put(TOPS.ridge(Math.floor(t * (storm > 0.3 ? 14 : 5)) & 3), X(tx), Y(ty), false);
         else if (kind === 'run') { const racked = !(u > 0.4 && u < 4.2), key = racked ? 'run' : 'bare'; scr.put((tops[key] = tops[key] || TOPS.run(racked)), X(tx), Y(ty), false); }
         else if (kind !== 'wands') scr.put((tops[kind] = tops[kind] || TOPS[kind]()), X(tx), Y(ty), false);
-        if (kind === 'wands') { tops.wands = tops.wands || TOPS.wands(); scr.put(tops.wands, X(tx), Y(ty), false); const off = u < 3.4; if (off && u > 0.5) { const a = clamp((u - 0.5) / 0.6, 0, 1), back = clamp((u - 2.4) / 0.7, 0, 1), px = lerp(tx + 2, tx + 16, a - back), py = ty - 14 + (a - back) * 13 - Math.sin((a < 1 ? a : back) * Math.PI) * (a < 1 ? 5 : 12); scr.put(stone, X(px), Y(py), false); } else scr.put(stone, X(tx + 2), Y(ty - 14), false); }
+        if (kind === 'wands') { tops.wands = tops.wands || TOPS.wands(); scr.put(tops.wands, X(tx), Y(ty), false); const n = st.cairn - (st.did === 'stone' && u < CAIRN.land ? 1 : 0); for (let k = 0; k <= n; k++) scr.put(STONES[STACK[k][0]], X(tx + 2 + STACK[k][1]), Y(ty - 14 - CAIRN.rise * k), false); }
         if (kind === 'ladder') { scr.put(speck(u < 4.5 && u > 3 ? Math.floor(t * 8) & 1 : 0), X(tx), Y(ty - 64), false); if (u < 6) { const lit = Math.floor(clamp(u / 3, 0, 1) * 9), sq2 = clamp(u / 3, 0, 1); for (let k = 0; k < 9; k++) { const a = k / 9, lx = tx + Math.sin(k * 2.1) * (3 + a * 13), ly = ty - 6 - a * 52; if (k < lit && (u < 4.6 || (Math.floor(t * 6) & 1))) { scr.set(X(lx), Y(ly), R.white[1]); scr.set(X(lx) - 1, Y(ly), R.yellow[1]); scr.set(X(lx) + 1, Y(ly), R.yellow[1]); scr.set(X(lx), Y(ly) - 1, R.yellow[1]); scr.set(X(lx), Y(ly) + 1, R.yellow[1]); } } if (u < 3) scr.put(squirrel, X(tx + Math.sin(sq2 * 9 * 2.1 / 1) * (3 + sq2 * 10)), Y(ty - 4 - sq2 * 54), Math.cos(sq2 * 19) < 0); } }
         // The bluebird is the weather station's find, and comes only when the station is clicked (round 5,
         // T51). It flies in from beyond the right edge, circles his head, lands on the station's white
@@ -1029,8 +1053,8 @@ export function makeClimb() {
 
       // Himself.
       const T = cfg.zig ? figT : null;
-      const d = me.x, stopId = env.shown && !env.moving ? env.shown : null, acting = me.ph === 'up' && (kind === 'bridge' ? !!bino : u < (BUSY[kind] || 0));
-      let bm, flip = false, dy = 0, dx = 0;
+      const d = me.x, stopId = env.shown && !env.moving ? env.shown : null, acting = me.ph === 'up' && (kind === 'bridge' ? !!bino : u < busyFor(kind));
+      let bm, flip = false, dy = 0, dx = 0, held = null;
       if (acting && kind === 'bridge') {
         // He walks over to the binoculars, leans in, and afterwards walks back.
         dx = 10 * (shut < 0 ? smooth(0, 0.5, u) : 1 - smooth(0.65, 1.15, shut));
@@ -1038,9 +1062,24 @@ export function makeClimb() {
       } else if (acting && kind === 'icefall') {
         dx = 6 * (smooth(0, 0.12, u) - smooth(1.3, 1.5, u));
         bm = u < 0.12 ? fig.walk[1] : u < 0.36 ? fig.hit[0] : u < 0.62 ? fig.hit[1] : fig.watch;
+      } else if (acting && kind === 'wands' && st.did === 'stone') {
+        // He bends for a stone, carries it over in both hands, reaches up and sets it on top of the pile,
+        // looks at it, and walks back. On a tall pile the last of the way is a gentle toss.
+        const n = st.cairn, to = [X(tx + 2 + STACK[n][1]), Y(ty - 14 - CAIRN.rise * n)];
+        dx = 11 * (smooth(0.35, 0.95, u) - smooth(1.9, 2.4, u));
+        if (u < 0.35) { bm = fig.stoop; held = [sx + 12, sy - Math.round(4 * smooth(0.22, 0.35, u))]; }
+        else if (u < 0.95) { bm = fig.carry[Math.floor(dx / 2.4) % 6]; held = [sx + Math.round(dx) + 9, sy - 9]; }
+        else if (u < CAIRN.land) { const v = (u - 0.95) / (CAIRN.land - 0.95), raise = smooth(0, 0.3, v), go = smooth(0.3, 1, v), hx = sx + 11 + 9, hy = sy - 9 - 10 * raise; bm = fig.lift; held = [Math.round(lerp(hx, to[0], go)), Math.round(lerp(hy, to[1], go) - 6 * Math.sin(go * Math.PI))]; }
+        else if (u < 1.9) bm = fig.watch;
+        else { bm = fig.walk[Math.floor(dx / 2.4) % 6]; flip = true; }
+        if (u >= CAIRN.land && st.clack < egg) { st.clack = t; env.sfx('clack'); }
+      } else if (acting && kind === 'wands') {
+        // He walks over and pats it twice.
+        dx = 11 * (smooth(0, 0.4, u) - smooth(1.2, 1.6, u));
+        if (u < 0.4) bm = fig.walk[Math.floor(dx / 2.4) % 6]; else if (u < 1.2) bm = fig.pat[Math.floor((u - 0.4) / 0.2) & 1]; else { bm = fig.walk[Math.floor(dx / 2.4) % 6]; flip = true; }
       } else if (stopId || me.mode === 'stand') {
         bm = (T || fig).stand;
-        if (u < 5) { if (kind === 'run' && u > 0.4 && u < 4.2) { bm = null; scr.put(figT.press[Math.floor((u - 0.4) * 1.6) & 1], X(SXr + 24), Y(hOf(pts, SXr + 24) - 4), false); } else if (kind === 'wands' && u < 1.2) bm = fig.hit[u > 0.35 && u < 0.7 ? 1 : 0]; else if (kind === 'ridge' || kind === 'ladder') bm = u > 3 ? fig.cheer : fig.stand; }
+        if (u < 5) { if (kind === 'run' && u > 0.4 && u < 4.2) { bm = null; scr.put(figT.press[Math.floor((u - 0.4) * 1.6) & 1], X(SXr + 24), Y(hOf(pts, SXr + 24) - 4), false); } else if (kind === 'ridge' || kind === 'ladder') bm = u > 3 ? fig.cheer : fig.stand; }
       } else if (me.mode === 'sit') { bm = (T || fig).sit[Math.floor(t * 8) & 1]; flip = true; dy = 2; for (let k = 0; k < 14; k++) { const a = frac(t * 2.4 + k / 14); scr.set(Math.round(sx + 6 + a * 30 + hash(k, 1, 251) * 6), Math.round(sy - 2 - a * (8 + hash(k, 2, 251) * 16) + a * a * 10), a < 0.6 ? R.white[1] : R.snow[3]); } }
       else if (me.mode === 'look') { bm = fig.peer2; flip = !!me.back; }
       else if (me.mode === 'climb' || (me.mode === 'clip' && wallAt(cfg, me.x))) { const w = wallAt(cfg, me.x); bm = fig.climb[me.mode === 'clip' ? 0 : Math.floor(-me.y / 5) & 1]; dx = X(w[0] - 5) - sx; }
@@ -1066,6 +1105,7 @@ export function makeClimb() {
       else if (cfg.wait && me.ph === 'up') bm = fig.hike[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1];
       else { const rimed = cfg.brk && me.ph === 'up'; bm = ((me.mode === 'wind' && windK > 0.25) || (gust > 0.3 && up < 0.9) ? (rimed ? fig.windR : fig.wind) : (rimed ? fig.walkR : fig.walk))[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1]; flip = !!me.back; }
       if (bm) { scr.put(bm, sx + Math.round(dx), sy + dy, flip); }
+      if (held) scr.put(STONES[STACK[st.cairn][0]], held[0], held[1], false);
       if (me.cut != null) whiteOut(scr, smooth(0, 0.35, me.cut) * (1 - smooth(0.65, 1, me.cut)));
       if (cfg.cable && me.ph === 'up') lanyards(scr, X, Y, cfg, pts, pl, arc(id), xAt, arcAt, tau, sx + Math.round(dx), sy + dy, me);
       focus.x = sx; focus.y = sy - 14;

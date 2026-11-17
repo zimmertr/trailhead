@@ -224,6 +224,8 @@ export function makeAudio() {
     slap: t => { noise(fx, t, 0.035, 0.26, 2200, 1.1, 'bandpass'); noise(fx, t, 0.02, 0.1, 5200, 2, 'bandpass'); },
     // A sports watch: two short high beeps.
     beep: t => { tone(fx, 'square', 2100, t, 0.07, 0.04, 2100); tone(fx, 'square', 2100, t + 0.14, 0.07, 0.04, 2100); },
+    // One stone set down on another: a short dry knock and its echo.
+    clack: t => { noise(fx, t, 0.03, 0.2, 1700, 2.5, 'bandpass'); tone(fx, 'triangle', 420, t, 0.04, 0.12, 300); noise(fx, t + 0.06, 0.02, 0.06, 2400, 2.5, 'bandpass'); },
     tink: t => { noise(fx, t, 0.02, 0.09, 6200, 3, 'bandpass'); tone(fx, 'square', 2400, t, 0.03, 0.05, 1900); },
     bang: t => { tone(fx, 'triangle', 150, t, 0.3, 0.7, 42); noise(fx, t, 0.16, 0.4, 320, 0.8, 'lowpass'); noise(fx, t + 0.01, 0.07, 0.2, 2600, 2, 'bandpass'); tone(fx, 'square', 520, t + 0.03, 0.2, 0.08, 470); },
     // Ice breaking far off: a long low roll, a second wave of it, and a deep note under both (E4).
