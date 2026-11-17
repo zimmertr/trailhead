@@ -405,15 +405,6 @@ if (B) water.set(B.water); else {
       for (let dv = -W; dv <= W; dv++) for (let du = -W; du <= W; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v), m = MATS[mg[i]], d = Math.hypot(du, dv); if (d > W || lipKeep[i] || (m !== 'land' && m !== 'moraine' && m !== 'gran')) continue; const t = Math.max(0.4, bed + Math.max(0, d - pr) * 0.9); if (hg[i] > t) hg[i] = t; if (d <= pr + 1 && (hg[i] > 0 || coast(u, v) > -40)) water[i] = Math.max(water[i], d <= pr ? 2 : 1); }
     }
   }
-  // An oxbow: a loop the river left behind, a crescent of still water just outside its widest swing in
-  // the flat of the meadow, the swing nearest the Trailhead (D6). A swing counts if it is a real one (over
-  // 4 pixels); E5j dropped the old score's cut-off, which found none once the Trailhead moved in E5h.
-  { let best = null, bs = 0; for (const r of routes) r.pts.forEach(([u, v], n) => { if (n < r.lead.length) return; const wv = Math.abs(wander(u, v)); if (wv < 4) return; const s = wv * smooth(520, 120, Math.hypot(u - TU, (v - TV) * 1.4)) * smooth(TV - 120, TV - 40, v); if (s > bs) { bs = s; best = [r, n]; } });
-    if (best && bs > 0.4) { const [r, n] = best, P = r.pts, [u0, v0] = P[n], a = P[Math.max(0, n - 6)], b = P[Math.min(P.length - 1, n + 6)], L = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, sg = Math.sign(wander(u0, v0)), nu = -(b[1] - a[1]) / L * sg, nv = (b[0] - a[0]) / L * sg, out = Math.atan2(nv, nu), cu = u0 + nu * 32, cv = v0 + nv * 32 * 0.7;
-      // Still water: it keeps clear of the running river, and its surface is one level, so it reads calm.
-      const near = (u, v) => { for (let dv = -4; dv <= 4; dv++) for (let du = -6; du <= 6; du++) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) return true; return false; }, ox = new Map();
-      for (let t = 0; t <= 80; t++) { const e = (t / 80) * 2 - 1, ang = out + e * 2.0, w = 2.4 * (1 - e * e) + 0.6, u = cu + Math.cos(ang) * 16, v = cv + Math.sin(ang) * 10; for (let dv = -3; dv <= 3; dv++) for (let du = -4; du <= 4; du++) { const d = Math.hypot(du, dv * 1.4), uu = Math.round(u + du), vv = Math.round(v + dv), i = at(clamp(uu, 0, NW - 1), clamp(vv, 0, VD - 1)); if (d > w + 1 || hg[i] <= 0 || near(uu, vv)) continue; ox.set(i, Math.max(ox.get(i) || 0, d <= w ? 2 : 1)); } }
-      const hs = [...ox.keys()].map(i => hg[i]).sort((a, b) => a - b), lvl = hs[hs.length >> 1]; for (const [i, k] of ox) { water[i] = k === 2 ? 3 : 1; hg[i] = Math.min(hg[i], lvl); } } }
 }
 // The heights are kept to 32nds of a pixel, baked or not, so the map read from a bake is the same map.
 if (!B) for (let i = 0; i < hg.length; i++) hg[i] = Math.round(hg[i] * 32) / 32;
@@ -561,8 +552,6 @@ function colour(u, v, hh, x, y) {
   if (lk) return lk === 'tarn' ? pick('tarn', 0.3 + 0.4 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
   // Where a trail crosses water there is a footbridge: a deck of planks with a dark edge.
   if (water[i] && trail[i] && mat !== 'ice') return trail[i] === 2 ? ((u + 2 * v) % 3 === 0 ? R.dirt[1] : R.dirt[2]) : R.dirt[0];
-  // 3 is still water (the oxbow): never white, whatever the bank does round it.
-  if (water[i] === 3) return hash(x, y, 9) < 0.05 ? R.glint[(x + y) & 3] : R.water[y & 1 ? 2 : 3];
   // White water where the stream itself falls, read from the water's own surface, not from its banks,
   // so a low river between high banks near the sea stays blue (D11).
   const wh = (a, b) => water[at(a, b)] ? hg[at(a, b)] : hg[at(uu, vv)], fall = water[i] ? Math.hypot(wh(uu + 1, vv) - wh(uu - 1, vv), wh(uu, vv + 1) - wh(uu, vv - 1)) / 2 : 0;
@@ -1432,12 +1421,8 @@ export function buildTerrain() {
     flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
     // Signs and animals, each placed by its rule (habitat, above).
     signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
-    // The fire lookout on its cleared summit (E5j), and the heron in the oxbow: the still water's pixel
-    // nearest the oxbow's middle.
-    lookout: LAND.lookout ? sxy(...LAND.lookout) : null,
-    heron: (() => { const Wt = LAND.water, ox = []; for (let i = 0; i < Wt.length; i++) if (Wt[i] === 3) ox.push([i % NW, (i / NW) | 0]); if (!ox.length) return null;
-      const mu = ox.reduce((s, p) => s + p[0], 0) / ox.length, mv = ox.reduce((s, p) => s + p[1], 0) / ox.length, [bu, bv] = ox.reduce((b, p) => Math.hypot(p[0] - mu, p[1] - mv) < Math.hypot(b[0] - mu, b[1] - mv) ? p : b);
-      return sxy(bu, bv); })()
+    // The fire lookout on its cleared summit (E5j).
+    lookout: LAND.lookout ? sxy(...LAND.lookout) : null
   };
   // The light on the foothills at Dusk (E5j), after the evening light in TJ's photographs: the sun is low
   // in the west, so a hill's crest and the west end of its skyline catch it and the rest is in shade.

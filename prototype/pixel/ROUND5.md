@@ -449,7 +449,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 - [x] D1. T6: the trail rework: the new direct Spires trail, the new bottom trail, the two removed stretches and their bridges, the loop kept. Update the routes, `lakeIn`, `lakeOut` and `spiresIn`, the trail map sheet, the sign's distances (T45) and click to move.
 - [x] D2. T30: Reflection Lake about 1.6 times wider, two moraine lakes under Monolith's ice, and the second river. Both streams flow into the lake.
-- [ ] D3. T28: remove the oxbow and the heron.
+- [x] D3. T28: remove the oxbow and the heron.
 - [ ] D4. T17, T24: the water audit. Every join is listed, fixed and pictured.
 - [ ] D5. T25: rivers carry on across the beach at low tide.
 - [ ] D6. T79a: the river mouth shows through the sea fog.
@@ -579,7 +579,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **C6 done.** The debug menu's Sounds group plays every effect by its name in `audio.js`, each tune's two parts on their own (A and B, round and round until "Music back to Auto"), and each place's background sound. `audio.preview(k, part)` and `audio.endPreview()` do it.
 - **D1 done.** Three trails leave the Trailhead: the new bottom trail west along the foot of the meadow to the forest edge, the old trail north-west (the lake loop's way home), and the new Spires trail up and round the east side of the big fir stand to base camp; the Proficiency trail goes right as before. The junction-to-Spires stretch and the lower elk stretch are gone with their footbridges. The sign now reads 12.3 km (lake) and 5.3 km (Spires), the trail map's loop 16.4 km, all measured from the trails. Click to move, the routes, lakeIn, lakeOut and spiresIn follow the new lines without code changes; facing counts are unchanged from B8 (lake 2, Spires 6, Proficiency 5).
 - **D2 done.** Reflection Lake is 1.6 times as wide (74 by 18, was 46 by 14) on a widened bench, its south shore where it was so the lakeshore trail still runs along it; the island and the fall are kept. Two milky moraine lakes sit where two of Monolith's glaciers end, the ice meeting the water, each held by a grey rim with a notch. A new stream runs from the left one and the old east-foot stream from the right one, and both run into the lake, which keeps its one outflow at the fall. The lake scene's shore walk is longer in proportion (760 over 9.75 s, was 624 over 8 s) and shows the two inflows coming down the far shore under their glaciers.
-- Next: D3.
+- **D3 done.** The oxbow and the heron are gone: the rule that cut a crescent of still water beside the river's widest swing, its still-water colour, the heron's spot, drawing, behaviour and debug button, and the heron in the Wildlife note. The rivers still wander over flat ground as in round 4.
+- Next: D4.
 
 ## 11. Calls made in round 5
 
@@ -624,6 +625,8 @@ One line each, newest last: the item, what was decided, and why.
 - D2: neither stream's route reached the lake on its own: both ran along a low strip behind the bench and down its east side. A stream marked to end in the lake now goes the last stretch straight into it once its route comes within 100 of the lake's ends and 50 of its shores, and stops there. The old east-foot stream also gets a shallow valley from its head toward the lake's east end.
 - D2: the old east-foot stream used to run on south past the lake through the meadow; that stretch is gone now that it ends in the lake, with the footbridges where trails crossed it. The lake's outflow carries on down the fall as before.
 - D2: glacierEnd() first said the glacier east of the Steamboat Prow reached as far down as the one beside it, though the painting gives those rows to its neighbour; the right lake was drawn floating in the snow. A glacier whose west cleaver stops above its snout row now has no end of its own.
+- D3: after D2 the meadow's streams had already changed so much that the oxbow rule found no swing to cut it beside, so the D2 build showed neither oxbow nor heron; D3 removes the code so it cannot come back. The map is otherwise unchanged (side by side with the D2 build).
+- D3: the Wildlife note lost only its heron clause ("A heron in the oxbow, an owl in the forest" now reads "An owl in the forest"); its salmon and osprey clause is left for the items that change those.
 
 ## 12. The reference pictures
 

@@ -102,31 +102,6 @@ function marmot(pose) {
   return b;
 }
 
-// A great blue heron (E5j), facing right. pose: 'stand' (still in the shallows, neck in an S), 'fly0' and
-// 'fly1' (slow wingbeats up and down, neck drawn in, legs trailing behind).
-function heron(pose) {
-  if (pose === 'stand') {
-    const b = new BM(13, 16); b.ox = 5; b.oy = 15;
-    ell(b, 4.5, 8, 3.4, 2.1, (nx, ny) => ny < -0.3 ? R.nebel[2] : R.nebel[1]); b.set(2, 9, R.nebel[0]); b.set(1, 9, R.nebel[0]);
-    for (const [x, y] of [[7, 7], [7, 6], [8, 5], [8, 4], [7, 3]]) b.set(x, y, R.white[0]);
-    b.set(8, 6, R.nebel[2]); b.set(8, 2, R.white[1]); b.set(9, 2, R.white[1]); b.set(7, 2, INK); b.set(6, 2, INK);
-    outline(b, INK);
-    b.set(10, 2, R.yellow[0]); b.set(11, 2, R.yellow[0]); b.set(12, 3, R.yellow[0]);
-    for (let y = 10; y <= 15; y++) { b.set(4, y, R.ochre[1]); b.set(5, y, R.ochre[0]); }
-    return b;
-  }
-  const up = pose === 'fly0', b = new BM(17, 11); b.ox = 8; b.oy = 10;
-  ell(b, 8, 5, 4.2, 1.6, (nx, ny) => ny < 0 ? R.nebel[2] : R.nebel[1]);
-  b.set(12, 4, R.white[0]); b.set(13, 4, R.white[1]); b.set(13, 3, INK);
-  // The broad wing, beating slowly: its dark flight feathers at the tip.
-  if (up) { thick(b, 9, 4, 6, 0, 2, R.nebel[2]); b.set(5, 0, R.nebel[0]); b.set(6, 0, R.nebel[0]); }
-  else { thick(b, 9, 6, 6, 10, 2, R.nebel[1]); b.set(5, 10, R.nebel[0]); b.set(6, 10, R.nebel[0]); }
-  outline(b, INK);
-  b.set(14, 4, R.yellow[0]); b.set(15, 4, R.yellow[0]);
-  for (let x = 0; x < 4; x++) b.set(x, 5, R.ochre[0]);
-  return b;
-}
-
 // A pika with a mouthful of flowers for its haystack.
 function pika(f) {
   const b = new BM(11, 8); b.ox = 5; b.oy = 7;
@@ -174,4 +149,4 @@ function bluebird(f) {
 // A little bird far off: a pair of wing strokes.
 function speck(f) { const b = new BM(7, 4); b.ox = 3; b.oy = 2; (f ? [0, 1, 2, 2, 2, 1, 0] : [2, 2, 1, 2, 1, 2, 2]).forEach((y, x) => b.set(x, y, INK)); return b; }
 
-export { ell, elk, sasquatch, jay, slug, owl, marmot, heron, pika, goat, bluebird, speck };
+export { ell, elk, sasquatch, jay, slug, owl, marmot, pika, goat, bluebird, speck };
