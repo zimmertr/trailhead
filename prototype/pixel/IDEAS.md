@@ -197,3 +197,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Channel Moves With the Flow** (round 5, D5). The water in the beach channel and in the rivers could drift downstream a pixel at a time, so a river reads as running and not as a blue road.
 - **The Fog Parts Along the Water** (round 5, D6). As the marine layer comes in, the fog could reach up each river valley first and lie along the water in the morning, then lift off the rivers last, the way valley fog does.
 - **A Foghorn in the Marine Layer** (round 5, D6). While the fog lies on the sea, the ferry or a far lighthouse sounds a low horn now and then, so the weather can be heard as well as seen.
+- **Someone Keeps the Lookout** (round 5, D7). A keeper could stand on the lookout's catwalk with binoculars by day and go in at Dusk when the window lights, and wave if TJ is in sight.
+- **A Trail to the Lookout** (round 5, D7). A side trail could climb Off By One Peak to the tower, as a fourth short walk with the widest view on the map and a logbook in the cab.
+- **Smoke on the Horizon** (round 5, D7). Once in a long while a thin smoke rises from the burn, and a light blinks from the lookout until it is out.
+

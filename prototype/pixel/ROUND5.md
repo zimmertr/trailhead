@@ -517,7 +517,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] D3. T28: remove the oxbow and the heron.
 - [x] D5. T25: rivers carry on across the beach at low tide.
 - [x] D6. T79a: the river mouth shows through the sea fog.
-- [ ] D7. T10: the fire lookout on Off By One Peak.
+- [x] D7. T10: the fire lookout on Off By One Peak.
 - [ ] D8. T21: flower density from one field, with the four levels.
 - [ ] D9. T22: more larches on the upper plateau. T23: no aspens on the dry side.
 - [ ] D10. T27: the Legacy Range in grey rock with high snow.
@@ -660,7 +660,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **Section 0 is done** (2026-11-17): every check on https://github.com/zimmertr/trailhead/pull/32 passed on `main` as its base.
 - **D5 done.** Both rivers that reach the beach now carry on across the sand the tide bares: at river width where they leave the dry sand, then swinging and splitting into two and three shallow threads with bars between, to the water's edge. The channel grows as the tide goes out and the sea covers it again from the far end as it comes in. At high tide nothing has changed.
 - **D6 done.** When the marine layer is in, the upper river now shows as clear blue water across the sand to the sea, under the cloud deck and under the fog that follows it. The fog on the sea, on the rest of the beach and in the forest is as it was. The lower river's mouth was already clear of the fog and has not changed.
-- Next: D7.
+- **D7 done.** The fire lookout stands on the crest of Off By One Peak, against the Legacy Range, on a summit cleared of trees. It shows on the first screen, top left. The old site on the smaller hill by Reflection Lake is forest again.
+- Next: D8.
 
 ## 11. Calls made in round 5
 
@@ -749,6 +750,9 @@ One line each, newest last: the item, what was decided, and why.
 - D6. Since round 4's E5 the fog is weather, so there is no standing sea fog on the beach any more: the note is about the marine layer (`start=shower`), which pales the upper river's last reach twice, first under its cloud deck (about 35 to 55 s in) and then under its fog. Both are thinned along the river by one rule in `land.js` (`MOUTHS` and `mouthFog`), found from the rivers themselves, so it follows a river if the land changes. Both are baked, so `ground.png` was made again.
 - D6. Three things I tried were worse and are not in: thinning out over the tidal flat cut a hard-edged dark patch into the fog on the sea (the thinning now stops at the water's edge, so at low tide the channel on the flat stays under the sea's fog like the rest of the flat); a clear strip 30 px wide read as a hole in the cloud (it is now 4 to 15 px, the river and its banks); and thinning the reach inside the forest showed at Dusk as a dark line through the pale fog (it now ends where the river comes out of the trees).
 - D6, checks: `check.sh D6 D5` passed, 12.4 ms a frame zoomed out at Dusk, nothing moved, lint clean. Filmed at both mouths through the deck and the fog beside the build before the change, by Day and at Dusk. Round 4 has the same fog over the river as the build before the change.
+- D7. The lookout's rule now takes the highest foothill, not the smallest, and that hill is the one Off By One Peak's sign already stands on. The first try put it on the hill's highest ground, which the picture shows halfway down the hill's face with forest standing above it: the hill runs back into the Legacy Range, so its crest on the picture lies behind its highest ground. It did not read as the top. The rule now takes the spot that stands highest on the picture, which is the crest. The lookout's ground there is 83 high against 99 at the hill's highest.
+- D7. The clearing reaches further behind the tower than in front (24 against 14), so no tree crown stands against its cab on the skyline. The old clearing needed no work: the cleared ground and the missing trees both follow the lookout's place. The sign for Off By One Peak has not moved and stands on the face below the tower.
+- D7, checks: `check.sh D7 D6` passed, 12.1 ms a frame zoomed out at Dusk, only the lookout moved (from 490,784 to 313,325), lint clean. Looked at by Day and at Dusk (its window is lit), on the whole map with the page's buttons showing, and at the old site. Round 4 has it in a clearing on the smaller hill.
 
 ## 12. The reference pictures
 

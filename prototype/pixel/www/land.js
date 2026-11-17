@@ -501,21 +501,24 @@ for (const t of C.trails) {
   end();
 }
 const nearTrail = (u, v, r) => { for (let i = 0; i < trailPts.length; i += 3) { const p = trailPts[i]; if (Math.abs(p[0] - u) < r && Math.abs(p[1] - v) < r) return true; } return false; };
-// The fire lookout (E5j, TJ: on a small summit cleared of trees): the top of the smallest foothill whose
-// summit the camera sees and no trail crosses. Seen means no nearer ground on its column stands higher
-// on the picture. Its top is cleared: grass and a little rock, and nothing that grows stands on it.
+// The fire lookout (E5j, TJ: on a summit cleared of trees; round 5, T10: on Off By One Peak): the top of the
+// highest foothill, where no trail crosses. The top is the hill's crest as the picture shows it, the spot
+// that stands highest on the picture, not its highest ground: the big hill runs back into the Legacy Range,
+// so its highest ground lies halfway down its face as drawn. Its top is cleared: grass and a little rock,
+// and nothing that grows stands on it.
 const LOOK = (() => {
-  for (const h of [...hillList()].sort((a, b) => a.H - b.H)) {
+  for (const h of [...hillList()].sort((a, b) => b.H - a.H)) {
     let top = null, hi = -1;
-    for (let v = Math.round(h.cv - h.rv * 0.6); v <= h.cv + h.rv * 0.6; v += 2) for (let u = Math.round(h.cu - h.ru * 0.6); u <= h.cu + h.ru * 0.6; u += 2) {
-      if (u < 8 || v < 8 || u >= NW - 8 || v >= VD - 8 || water[at(u, v)] || nearTrail(u, v, 16)) continue; const y = hAt(u, v); if (y > hi) { hi = y; top = [u, v]; } }
+    for (let v = Math.round(h.cv - h.rv * 0.6); v <= Math.min(VD - 16, h.cv + h.rv * h.back); v += 2) for (let u = Math.round(h.cu - h.ru * 0.6); u <= h.cu + h.ru * 0.6; u += 2) {
+      if (u < 8 || v < 8 || u >= NW - 8 || water[at(u, v)] || nearTrail(u, v, 16)) continue; const y = v + hAt(u, v); if (y > hi) { hi = y; top = [u, v]; } }
     if (!top) continue;
-    const [u, v] = top; let seen = true; for (let w = 0; w < v - 2 && seen; w++) if (w + hAt(u, w) >= v + hi) seen = false;
+    const [u, v] = top; let seen = true; for (let w = 0; w < v - 2 && seen; w++) if (w + hAt(u, w) >= hi) seen = false;
     if (seen) return top;
   }
   return null;
 })();
-const lookAmt = (u, v) => LOOK ? smooth(1.05, 0.65, Math.hypot((u - LOOK[0]) / 21, (v - LOOK[1]) / 14)) : 0;
+// The clearing reaches further behind the tower than in front, so no crown stands against its cab on the skyline.
+const lookAmt = (u, v) => LOOK ? smooth(1.05, 0.65, Math.hypot((u - LOOK[0]) / 21, (v - LOOK[1]) / (v > LOOK[1] ? 24 : 14))) : 0;
 
 // ---- what the ground is made of -------------------------------------------------------------------
 const wob = (u, v, s, a) => a * (fbm(u / 70, v / 60, s, 3) - 0.5);
