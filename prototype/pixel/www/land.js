@@ -383,7 +383,9 @@ if (B) water.set(B.water); else {
   // Read from the land as it was before any stream cut its bed, so every stream sees the same ground.
   const hg0 = hg.slice(), h0 = (u, v) => hg0[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))];
   const flatFor = (u, v) => { let m = 0; for (const [du, dv] of [[0, 0], [12, 0], [-12, 0], [0, 10], [0, -10]]) m = Math.max(m, Math.hypot(h0(u + du + 3, v + dv) - h0(u + du - 3, v + dv), h0(u + du, v + dv + 3) - h0(u + du, v + dv - 3)) / 6); return m; };
-  const wander = (u, v) => { const i = at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1)); if (MATS[mg[i]] !== 'land' || hg0[i] > 40 || coast(u, v) > -24) return 0; const k = smooth(0.5, 0.18, flatFor(u, v)); return k && 13 * k * (2 * fbm(u / 34, v / 26, 455, 2) - 1); };
+  const wander = (u, v) => { const i = at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1)); if (MATS[mg[i]] !== 'land' || hg0[i] > 40 || coast(u, v) > -24) return 0; const k = smooth(0.5, 0.18, flatFor(u, v)) * smooth(-24, -64, coast(u, v)); return k && 13 * k * (2 * fbm(u / 34, v / 26, 455, 2) - 1); };
+  // T24: the swing fades out over the last stretch before the beach. It used to stop dead where the sand
+  // began, and the channel on the sand jumped sideways off the end of the river, a patch of water on its own.
   const wide = f => 0.5 + 0.8 * Math.sqrt(f), flowAt = (u, v) => { let f = 0; const ru = Math.round(u) >> 1, rv = Math.round(v) >> 1; for (let dv = -1; dv <= 1; dv++) for (let du = -1; du <= 1; du++) { const nu = ru + du, nv = rv + dv; if (nu >= 0 && nv >= 0 && nu < RW && nv < RH) f = Math.max(f, flow[nv * RW + nu]); } return f; };
   for (const r of routes) {
     const sparse = r.cells.filter((_, n) => n % 4 === 0 || n === r.cells.length - 1).map(i => [(i % RW) * 2, ((i / RW) | 0) * 2]);
@@ -402,7 +404,7 @@ if (B) water.set(B.water); else {
     let bed = 1e9;
     for (let [pu, pv, pr] of r.pts) {
       bed = Math.min(bed, hAt(pu, pv)); pr += 1.5 * smooth(-36, 0, coast(pu, pv)); const W = Math.ceil(pr + 9);
-      for (let dv = -W; dv <= W; dv++) for (let du = -W; du <= W; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v), m = MATS[mg[i]], d = Math.hypot(du, dv); if (d > W || lipKeep[i] || (m !== 'land' && m !== 'moraine' && m !== 'gran')) continue; const t = Math.max(0.4, bed + Math.max(0, d - pr) * 0.9); if (hg[i] > t) hg[i] = t; if (d <= pr + 1 && (hg[i] > 0 || coast(u, v) > -40)) water[i] = Math.max(water[i], d <= pr ? 2 : 1); }
+      for (let dv = -W; dv <= W; dv++) for (let du = -W; du <= W; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v), m = MATS[mg[i]], d = Math.hypot(du, dv); if (d > W || (m !== 'land' && m !== 'moraine' && m !== 'gran')) continue; const t = Math.max(0.4, bed + Math.max(0, d - pr) * 0.9); if (hg[i] > t && !lipKeep[i]) hg[i] = t; /* T17: the lip keeps its height, but the stream still runs over it to the fall */ if (d <= pr + 1 && (hg[i] > 0 || coast(u, v) > -40)) water[i] = Math.max(water[i], d <= pr ? 2 : 1); }
     }
   }
 }
@@ -768,6 +770,20 @@ let MONO_OY = 0;
     const x0 = Math.round(hd[0]), y0 = Math.round(SY - hd[1] - hAt(hd[0], hd[1])), [x1, y1] = t.notch;
     if (y1 < y0) for (let y = y1; y <= y0; y++) { const q = (y - y1) / (y0 - y1), x = Math.round(lerp(x1, x0, q) + (4 * Math.sin(y / 13 + t.src) + 1.6 * Math.sin(y / 5)) * Math.sin(q * Math.PI)); for (let dx = 0; dx <= 1; dx++) paint(x + dx, y, hash(x + dx, y >> 1, 471) < 0.3 ? R.white[1] : dx ? R.water[2] : R.water[3]); paint(x - 1, y, R.water[1]); paint(x + 2, y, R.water[1]); }
   } }
+
+// Where a stream runs off a cliff (T17): two points of its course that both show water, the lower one far
+// down the picture from the upper for the little way between them, have the cliff face between. A fall is
+// painted down that face, white streaks on blue, as wide as the stream, so the water above and the water
+// below are one stream. The lake's own fall (FALLS) is drawn and moved by the map, so it is left alone.
+{ const seen = (u, v) => { const ui = Math.round(u), vi = Math.round(v); return ui >= 0 && vi >= 0 && ui < NW && vi < VD && water[at(ui, vi)] > 0; };
+  const yOf = (u, v) => Math.round(SY - v - hAt(u, v));
+  for (const r of routes) { const P = r.pts; for (let n = 1; n < P.length; n++) {
+    const [u0, v0, w0] = P[n - 1], [u1, v1] = P[n], x0 = Math.round(u0), x1 = Math.round(u1), y0 = yOf(u0, v0), y1 = yOf(u1, v1), step = Math.hypot(u1 - u0, v1 - v0);
+    if (y1 - y0 < step + 4 || !seen(u0, v0) || !seen(u1, v1)) continue;
+    if (FALLS.some(f => Math.abs(f.x - (x0 + x1) / 2) < 10 && y1 > f.y0 - 6 && y0 < f.y1 + 6)) continue;
+    const half = Math.max(1, Math.round((w0 || 1) * 0.8));
+    for (let y = y0; y <= y1; y++) { const q = (y - y0) / Math.max(1, y1 - y0), x = Math.round(lerp(x0, x1, q)); for (let dx = -half; dx <= half; dx++) { if (x + dx < 0 || x + dx >= NW || y < 0 || y >= SH) continue; const i = px(x + dx, y); g[i] = hash(x + dx, (y + 2 * dx) >> 1, 472) < 0.45 ? R.white[1] : Math.abs(dx) === half ? R.water[2] : R.water[3]; } }
+  } } }
 
 // The snout's face: the ice standing at the snout's own depth just above the water is a blue and white
 // ice cliff, streaked down its height, darker where it meets the lake.
