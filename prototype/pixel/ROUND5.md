@@ -57,7 +57,7 @@ TJ, 2026-11-16: "Why do we need a wait? I want to run overnight end to end." So 
   2. If that is empty (the usual case: `main` is exactly round 4's last commit), run `git merge -s ours origin/main` on `pixel-round5`. It records the merge and changes no file. Check that `git diff ORIG_HEAD HEAD` is empty.
   3. If it is not empty, something else reached `main` in between. Run `git merge -X ours origin/main`, then check that `git diff --stat ORIG_HEAD HEAD` lists the same files as step 1 and nothing more. A file round 5 deleted on purpose may have come back: delete it again. If the lists still differ, `git reset --hard ORIG_HEAD` and work out why before trying again.
   4. Push. Never rebase `pixel-round5` here: each of round 4's 100 commits would conflict with the squash.
-- [ ] S2b. Run the lint over round 5's own code and fix what it finds. Bake. Every check on #32 passes, "Prototype Smoke" included. Add round 5's new addresses to the spec if it lacks them.
+- [x] S2b. Run the lint over round 5's own code and fix what it finds. Bake. Every check on #32 passes, "Prototype Smoke" included. Add round 5's new addresses to the spec if it lacks them.
 - [x] S2c. **Find out whether the baked ground loads on the artifact host** (open since round 4). Add `baked: true|false` to `window.__info`, publish, open the round's artifact with Claude in Chrome and read the value. Log it in section 11. If it is false, find out why and log that too. Do not halt for it.
 
 **If `main` moves again during the round** (a Renovate merge, a CI fix): at the start of the next item, merge `origin/main` into `pixel-round5` in the ordinary way, with no `-X ours`, and resolve any conflict by reading it.
