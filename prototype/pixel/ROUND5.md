@@ -1,6 +1,6 @@
 # Round 5: TJ's 78 notes on round 4
 
-Status: **planned, not started.** TJ answered every question on 2026-11-16. Start only when he says so. Then work the checklist in section 8 from the first unticked item, one item at a time, straight through to the end. Round 5 has no checkpoints (section 2).
+Status: **planned; TJ starts the loop on 2026-11-16 and goes AFK.** He answered every question that day. Then work the checklist in section 8 from the first unticked item, one item at a time, straight through to the end. Round 5 has no checkpoints (section 2).
 
 This file is written so that someone with no memory of the conversation can do the work exactly as TJ and the planner understood it. Read all of it once, then work the checklist from the top. Where this file and `ROUND4.md` disagree, this file wins.
 
@@ -21,7 +21,7 @@ The site is a brag and resume site for TJ first and a game second. Every change 
 **Where things are**
 
 - Repo: https://github.com/zimmertr/trailhead. Work only in a clone inside the session's scratchpad directory (under `~/.claude/tmp`), never in `~/git`, never in `/tmp`.
-- Branch: `pixel-round5`. It was cut from `pixel-round4-opus` while https://github.com/zimmertr/trailhead/pull/31 (round 4 into main) was open. Once #31 is squash-merged, rebase `pixel-round5` onto `origin/main` (allowed without asking: it is our own branch). Everything lives in `prototype/pixel/`. Touch nothing outside `prototype/` except to keep the README and `CLAUDE.md` true.
+- Branch: `pixel-round5`. It was cut from `pixel-round4-opus` while https://github.com/zimmertr/trailhead/pull/31 (round 4 into main) was open. Once #31 is squash-merged, rebase `pixel-round5` onto `origin/main` (allowed without asking: it is our own branch). Everything lives in `prototype/pixel/`. Touch nothing outside `prototype/` except to keep the README and `CLAUDE.md` true, and except what item A0 needs to make CI pass.
 - **One draft PR for the whole round** (TJ's rule: one PR per piece of work, even a large one), opened at the first commit, from `pixel-round5` into `main`. Never merge it yourself.
 - **One artifact for the whole round, republished after every item** (TJ, 2026-11-16: "Commits to one branch, one versioned artifact"). Create it at the first publish and add its link to section 10. Never publish over a round 4 artifact.
 - Frozen: `main` (reached only through the PR), every `archive/*` and `pixel-r*` tag, and every artifact in `ROUND4.md` section 8 and `PROGRESS.md`. Round 4's final build is tag `archive/pixel-r4-final`. The old branches were deleted on 2026-11-16 after being tagged `archive/<branch name>`.
@@ -411,7 +411,15 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 ### A. Setup
 
-- [ ] A1. Rebase `pixel-round5` onto `origin/main` if #31 has merged. Open the round's draft PR. Create the round's artifact from the first build and put its link in section 10.
+- [ ] A0. **Make https://github.com/zimmertr/trailhead/pull/31 (round 4 into main) pass CI.** Four checks failed on 2026-11-16: `CodeQL`, `Lint / semgrep`, `Static Checks` and `Unit Tests`. Every other check passed.
+  - Read each failure: `gh pr checks 31`, then `gh run view --job <job id> --log-failed`.
+  - The likely cause is the repo's own linters, tests and scanners now reaching `prototype/` (plain browser JS, a Dockerfile, shell scripts, big generated files), which they were never set up for. Prefer excluding `prototype/` in each tool's own config, with a one-line comment saying why: it is a throwaway prototype, checked by renders, not by the site's tests. Fix the prototype's code instead only where a finding is a real bug (for example a real security finding from semgrep or CodeQL). Never weaken a check for the rest of the repo.
+  - Work on `pixel-round4-opus`: commit, push, wait for CI and repeat until every required check passes. Then mark #31 ready for review (`gh pr ready 31`). **Never merge it. TJ merges.** Then rebase `pixel-round5` onto `pixel-round4-opus` and push (a force push to our own `pixel-round5` is fine).
+  - Re-check CI on https://github.com/zimmertr/trailhead/pull/32 (round 5's draft PR, stacked on #31) after the rebase.
+  - If, at any later item, #31 has been merged: close #22 with a comment (the Renovate rule landed in #31), tag `pixel-round4-opus` as `archive/pixel-round4-opus` and delete the branch, rebase `pixel-round5` onto `origin/main`, and point #32 at `main`.
+- [ ] A0b. **File the nine issues** listed in section 5.13, one per idea, with the `create-issue` skill (its six sections, the hemingway and humanizer passes, the labels it requires, and this repo's `CLAUDE.md` Issues section). TJ asked for all nine, so no further okay is needed. Put each issue's link in section 10.
+- [ ] A0c. **Draft the rewrites of #8 and #14 to #17** for the pixel site, as it now stands and as round 5 leaves it, into `plan/issue-rewrites.md`, in the `create-issue` skill's format. **Do not edit the issues.** TJ reads the drafts first. List them in the report.
+- [ ] A1. Rebase `pixel-round5` onto `origin/main` if #31 has merged (see A0). Create the round's artifact from the first build and put its link in section 10.
 - [ ] A2. Render round 4's reference set from tag `archive/pixel-r4-final` into `out/r4/`: every view in section 7, the opening on desktop and phone, every stop of every route, Day and Dusk, plus films of the map events. These are the pictures every item is compared with.
 
 ### B. Quick fixes and removals
@@ -542,13 +550,14 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 The loop prompt TJ can start round 5 with (paste it after `/loop`):
 
-> Round 5 of the trailhead pixel prototype, unattended. Every firing: work in the scratchpad clone of https://github.com/zimmertr/trailhead on branch pixel-round5 (clone it into the session scratchpad if it is gone, never /tmp, never ~/git). Fetch first. Read prototype/pixel/ROUND5.md sections 2, 3, 10 and 14, and the part of section 5 for the item. Take the first unticked item in section 8 and finish it by the steps in section 9. Round 4's final build is the floor, not the goal: compare every change with it side by side and fix anything worse before ticking. After each item: tick it, log every call in section 11, keep section 10 current, add every idea to IDEAS.md, commit and push, and republish the round's one artifact with a short label. There are no checkpoints. Follow every rule in section 2. Do not ask questions: make the call, log it and carry on. After K6, write the full report and end the loop.
+> Round 5 of the trailhead pixel prototype, unattended. Every firing: work in the scratchpad clone of https://github.com/zimmertr/trailhead on branch pixel-round5 (clone it into the session scratchpad if it is gone, never /tmp, never ~/git). Fetch first. Read prototype/pixel/ROUND5.md sections 2, 3, 10 and 14, and the part of section 5 for the item. Take the first unticked item in section 8 and finish it by the steps in section 9. Round 4's final build is the floor, not the goal: compare every change with it side by side and fix anything worse before ticking. After each item: tick it, log every call in section 11, keep section 10 current, add every idea to IDEAS.md, commit and push, and republish the round's one artifact with a short label. There are no checkpoints. Follow every rule in section 2. Items A0 to A0c come first: they make PR #31 pass CI (never merge it), file the nine issues, and draft the issue rewrites without editing the issues. Do not ask questions: make the call, log it and carry on. After K6, write the full report and end the loop.
 
 ## 10. Where the build stands
 
 - **2026-11-16, before any work.** `pixel-round5` was cut from `pixel-round4-opus` at the round 4 PR's head and holds this plan and TJ's screenshots. The game is exactly round 4's final build (`archive/pixel-r4-final` plus the docs commits on #31).
 - The round's artifact: (created at A1).
-- The round's PR: (opened at A1).
+- The round's PR: https://github.com/zimmertr/trailhead/pull/32 (draft, stacked on #31 until #31 merges).
+- Round 4's PR: https://github.com/zimmertr/trailhead/pull/31 (draft; four checks failing, item A0).
 
 ## 11. Calls made in round 5
 
