@@ -328,3 +328,10 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Far Crest Kept Under the Six** (round 5, H1). On the map a crest behind the Spires shows over the wall between the second and third summits and reads as a seventh top. Lower it there so only the six break the skyline.
 - **Heights on the Name Tags** (round 5, H1). Each summit's tag at camp shows a made-up height, trailhead's the greatest, so the order can be read as well as seen.
 - **A Summit Cairn You Can See From Camp** (round 5, H1). A tiny cairn on each top he has stood on, beside the flag, growing with the cairn in that climb.
+- **The Forecast Phone Is the Real App** (round 5, H2). The pop-up shows the app's real hour-by-hour strip for the next day at the Spires, fetched from Bluebird Forecast itself when the site is live.
+- **Tap the Phone to Play the Forecast** (round 5, H2). Tapping the play button on his phone runs the slider forward early, and the weather clears early with it.
+- **Wet Rock That Dries** (round 5, H2). The slabs are a shade darker while it rains and dry in patches from the top down as he climbs.
+- **A Rainbow as the Lid Breaks** (round 5, H2). For a few seconds after the rain stops, a faint arc stands over the far peaks.
+- **Other Shelterers Under the Boulder** (round 5, H2). A pika or a marmot is already sitting out the rain under the prow and shuffles over for him.
+- **Big Pixel Words on Small Screens** (round 5, H2). A phone held sideways still draws scene words (BANG!, the forecast) at one screen pixel a dot. Draw every in-scene word at twice the size whenever a scene pixel is one screen pixel.
+- **Rain on the Other Climbs** (round 5, H2). The drizzle can come over any climb now and then, by the same dice as the map's weather.

@@ -188,6 +188,10 @@ export function makeAudio() {
     splash: t => { noise(fx, t, 0.5, 0.3, 1400, 0.8, 'bandpass'); tone(fx, 'triangle', 500, t, 0.2, 0.2, 120); },
     whistle: t => { tone(fx, 'square', 2100, t, 0.16, 0.12, 2500); tone(fx, 'square', 2100, t + 0.2, 0.16, 0.12, 2500); },
     eep: t => tone(fx, 'square', 1800, t, 0.09, 0.14, 2400),
+    // Drizzle on rock: a few seconds of soft hiss with a patter in it.
+    drizzle: t => { noise(fx, t, 3.2, 0.06, 5200, 0.7, 'bandpass'); for (let i = 0; i < 9; i++) noise(fx, t + 0.2 + i * 0.33 + Math.random() * 0.2, 0.03, 0.05, 2600 + Math.random() * 1800, 5, 'bandpass'); },
+    // A phone's notice: two soft rising notes.
+    chime: t => { tone(fx, 'sine', 880, t, 0.12, 0.16); tone(fx, 'sine', 1319, t + 0.11, 0.22, 0.16); },
     fall: t => { tone(fx, 'square', 900, t, 0.3, 0.2, 140); noise(fx, t, 0.1, 0.12, 2400, 1, 'bandpass'); },
     catch: t => { tone(fx, 'triangle', 110, t, 0.2, 0.5, 70); tone(fx, 'square', 330, t + 0.12, 0.08, 0.14); },
     place: t => { noise(fx, t, 0.03, 0.14, 5000); tone(fx, 'square', 1400, t + 0.02, 0.04, 0.1); },

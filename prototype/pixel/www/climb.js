@@ -20,9 +20,11 @@ const T_UP = 0.5, T_STAND = 0.5, T_SLIDE = 2.4, T_OUT = 0.7;
 // what kind of ground it is, and how many seconds of walking it holds. `ice` lists the walls of ice
 // by the x of their foot and their top; `slip` names the wall and the move on which a foot will not stick.
 const ROUTES = {
-  // Bluebird Forecast, the weather window (K2): a long snow ridge, climbed in cloud and wind; the deck
-  // thins and he breaks out (at brk of the way up) above an inversion into still blue air.
-  bluebird: { kind: 'ridge', secs: 25, sx: 1080, w: 1700, brk: 0.6, pts: [[0, 0], [60, -12], [140, -40], [220, -58], [300, -90], [380, -104], [460, -140], [540, -160], [620, -178], [700, -210], [780, -226], [860, -252], [940, -266], [1010, -288], [1080, -300], [1122, -300], [1150, -262], [1220, -160], [1320, -20], [1420, 120]] },
+  // Bluebird Forecast, the weather window (K2, redone in round 5 for T50): drizzle and low cloud at the
+  // foot. He sits it out under a boulder (`wait`: where he sits, and for how many seconds) with the
+  // forecast open on his phone. The rain stops and the cloud lifts as it said, and he scrambles up dry
+  // rock on hands and feet, slab after slab with a ledge between, to a clear and sunny summit.
+  bluebird: { kind: 'ridge', secs: 13, sx: 600, w: 1300, dry: true, wait: [54, 7.5], pts: [[0, 0], [40, -4], [76, -10], [98, -30], [116, -32], [142, -54], [154, -57], [176, -78], [196, -80], [218, -102], [232, -104], [258, -124], [278, -127], [300, -150], [314, -152], [338, -170], [356, -173], [378, -196], [394, -198], [420, -218], [434, -221], [456, -244], [474, -246], [498, -266], [514, -269], [540, -288], [566, -294], [600, -300], [642, -300], [670, -262], [740, -160], [840, -20], [940, 120]] },
   // TJs-Kubernetes-Service, the icefall (K3): among leaning seracs, over a snow bridge, across a ladder laid
   // over a crevasse, up two steps of ice with tools, and over two ladders lashed end to end. `xings` lists
   // the crevasses by the x of their two lips and what crosses each.
@@ -100,6 +102,24 @@ function narrows(S, cfg, seed) {
   }
 }
 
+// The boulder he sits the rain out under (round 5, T50): a block the size of a small hut that leans out
+// over the slope on its uphill side, so the ground under its prow stays dry. `roofAt` is the underside
+// of the prow at x (the rain stops there), or null where there is none.
+const roofAt = (cfg, x) => { const at = cfg.wait[0]; return x < at - 10 || x > at + 18 ? null : hOf(cfg.pts, at - 10) - 11 - (x - at + 10) * 1.3; };
+function shelter(S, cfg, seed) {
+  const at = cfg.wait[0], pts = cfg.pts, x0 = at - 82, x1 = at + 18, g0 = hOf(pts, x0);
+  for (let x = x0; x <= x1; x++) {
+    const u = (x - x0) / (x1 - x0), roof = roofAt(cfg, x);
+    // A round shoulder on its downhill side, a top that tilts up toward the prow, and a blunt nose.
+    const top = Math.round(g0 - (44 + 20 * u) * Math.sqrt(1 - sq(1 - Math.min(1, u / 0.24))) + 6 * sq(smooth(0.9, 1, u)) + 2.5 * vnoise(x / 7, 3, seed + 95));
+    const under = roof == null ? Math.round(hOf(pts, x)) + 3 : Math.round(roof + 1.5 * vnoise(x / 4, 5, seed + 97));
+    for (let y = top; y <= under; y++) {
+      const d = y - top, e = under - y;
+      S.set(x + OFF, y, d === 0 || x === x1 || x === x0 || (roof != null && e === 0) ? INK : roof != null && e < 6 ? R.granite[e < 3 ? 0 : 1] : d < 2 ? R.granite[4] : crag(x, y, x + OFF, seed + 131, 0.78 - 0.5 * d / (under - top + 1), true));
+    }
+  }
+}
+
 function paint(cfg, seed) {
   const SW = wOf(cfg), S = new Strip(SW, UP, DOWN), { pts, kind, gap } = cfg, tops = new Int16Array(SW);
   for (let sx = 0; sx < SW; sx++) {
@@ -146,7 +166,7 @@ function paint(cfg, seed) {
   });
   // On the long ridge, rocks stand out of the snow crest, and rime has grown on their windward side (the
   // wind comes from the right): white feathers pointing into it. Their tips are kept to glitter later.
-  if (kind === 'ridge' && cfg.sx) {
+  if (kind === 'ridge' && cfg.brk) {
     S.rime = [];
     const rr = rng(seed + 30);
     for (let x = 50; x < cfg.sx - 30; x += 40 + rr() * 60) {
@@ -163,6 +183,7 @@ function paint(cfg, seed) {
     }
   }
   if (cfg.gully) narrows(S, cfg, seed);
+  if (cfg.wait) shelter(S, cfg, seed);
   // The gully's apron is old avalanche debris, a fan of it spreading down the slope below the gully: lumps
   // of snow, lit on top, blue beneath, thickest near the line and thinning out lower down.
   if (cfg.sets) { const rd = rng(seed + 90); for (let k = 0; k < 160; k++) { const x = Math.round(rd() * (cfg.gully[0] - 20)), dep = Math.pow(rd(), 1.6) * (30 + x * 0.25), r = 1.5 + rd() * 2.8 * (1 - dep / 140), cx = x, cy = Math.round(hOf(pts, x) + dep - r * 0.6); for (let dy = -Math.ceil(r); dy <= Math.ceil(r); dy++) for (let dx = -Math.ceil(r); dx <= Math.ceil(r); dx++) { const q = (dx * dx + dy * dy) / (r * r); if (q > 1) continue; S.set(cx + dx + OFF, cy + dy, q > 0.7 ? (dy > 0 ? R.snow[1] : R.snow[2]) : dy < -r * 0.3 ? R.snow[4] : dy > r * 0.3 ? R.snow[2] : R.snow[3]); } } }
@@ -503,7 +524,47 @@ function inversion(scr, y0, camX, t, a) {
 }
 
 // The word in the burst over the rack, five pixels wide and seven tall, a row of bits per line.
-const GLYPH = { B: [30, 17, 17, 30, 17, 17, 30], A: [14, 17, 17, 31, 17, 17, 17], N: [17, 25, 25, 21, 19, 19, 17], G: [15, 16, 16, 23, 17, 17, 14], '!': [4, 4, 4, 4, 4, 0, 4] };
+const GLYPH = { A: [14, 17, 17, 31, 17, 17, 17], B: [30, 17, 17, 30, 17, 17, 30], C: [14, 17, 16, 16, 16, 17, 14], D: [30, 17, 17, 17, 17, 17, 30], E: [31, 16, 16, 30, 16, 16, 31], F: [31, 16, 16, 30, 16, 16, 16], G: [15, 16, 16, 23, 17, 17, 14], H: [17, 17, 17, 31, 17, 17, 17], I: [14, 4, 4, 4, 4, 4, 14], J: [7, 2, 2, 2, 2, 18, 12], K: [17, 18, 20, 24, 20, 18, 17], L: [16, 16, 16, 16, 16, 16, 31], M: [17, 27, 21, 21, 17, 17, 17],
+  N: [17, 25, 25, 21, 19, 19, 17], O: [14, 17, 17, 17, 17, 17, 14], P: [30, 17, 17, 30, 16, 16, 16], Q: [14, 17, 17, 17, 21, 18, 13], R: [30, 17, 17, 30, 20, 18, 17], S: [15, 16, 16, 14, 1, 1, 30], T: [31, 4, 4, 4, 4, 4, 4], U: [17, 17, 17, 17, 17, 17, 14], V: [17, 17, 17, 17, 17, 10, 4], W: [17, 17, 17, 21, 21, 27, 17], X: [17, 17, 10, 4, 10, 17, 17], Y: [17, 17, 10, 4, 4, 4, 4], Z: [31, 1, 2, 4, 8, 16, 31],
+  0: [14, 17, 19, 21, 25, 17, 14], 1: [4, 12, 4, 4, 4, 4, 14], 2: [14, 17, 1, 2, 4, 8, 31], 3: [30, 1, 1, 14, 1, 1, 30], 4: [2, 6, 10, 18, 31, 2, 2], 5: [31, 16, 30, 1, 1, 17, 14], 6: [6, 8, 16, 30, 17, 17, 14], 7: [31, 1, 2, 4, 8, 8, 8], 8: [14, 17, 17, 14, 17, 17, 14], 9: [14, 17, 17, 15, 1, 2, 12], '!': [4, 4, 4, 4, 4, 0, 4], ':': [0, 4, 4, 0, 4, 4, 0], '.': [0, 0, 0, 0, 0, 12, 12], '-': [0, 0, 0, 31, 0, 0, 0] };
+// A word drawn in pixels, capitals only: each letter 5 wide and 7 high, a pixel between them.
+function letters(scr, word, x, y, c) { [...word].forEach((ch, i) => (GLYPH[ch] || []).forEach((bits, j) => { for (let b = 0; b < 5; b++) if (bits & (16 >> b)) scr.set(x + i * 6 + b, y + j, c); })); }
+
+// His phone, held up large enough to read (round 5, T50): the Bluebird Forecast app in its own dark
+// slate and sky blue. Its mark and name, the weather drawn large, the time slider with its play button,
+// and one word under it. u runs from 0 to 1 over the time he looks at it: rain at first, then (at
+// `turn`) the slider runs forward, the cloud moves off the sun, and the word changes.
+const PHONE = { w: 72, h: 100, turn: 0.6 };
+function phoneApp(scr, x, y, u, t) {
+  const { w, h, turn } = PHONE, k = smooth(turn - 0.1, turn + 0.08, u), box = (x0, y0, x1, y1, c) => { for (let j = y0; j <= y1; j++) for (let i = x0; i <= x1; i++) scr.set(x + i, y + j, c); };
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const cx = Math.min(i, w - 1 - i), cy = Math.min(j, h - 1 - j); if (cx + cy < 3) continue; scr.set(x + i, y + j, cx === 0 || cy === 0 || cx + cy === 3 ? INK : cx < 3 || cy < 3 ? R.rock[0] : R.navy[0]); }
+  // The mark: a white bird on a blue tile. Then the name, in two lines beside it.
+  box(6, 6, 15, 15, R.jay[2]); box(6, 6, 15, 6, R.jay[3]);
+  for (const [i, j] of [[8, 13], [9, 12], [10, 11], [11, 10], [12, 9], [13, 8], [9, 10], [10, 9], [11, 8], [12, 11], [13, 11]]) scr.set(x + i, y + j, R.white[1]);
+  letters(scr, UI.forecast.app[0], x + 19, y + 5, R.white[1]); letters(scr, UI.forecast.app[1], x + 19, y + 14, R.rock[3]);
+  // The weather, on its card: the sun comes out from behind the cloud as the cloud moves off and thins.
+  const X0 = 6, Y0 = 26, X1 = w - 7, Y1 = 62, cx = w >> 1, cy = 45, put = (i, j, c) => { if (i >= X0 && i <= X1 && j >= Y0 && j <= Y1) scr.set(x + Math.round(i), y + Math.round(j), c); };
+  box(X0, Y0, X1, Y1, R.navy[1]);
+  if (k > 0.05) {
+    const r = 8 * smooth(0.05, 0.7, k);
+    for (let a = 0; a < 8; a++) { const ang = a * Math.PI / 4 + (Math.floor(t * 3) & 1) * 0.39; for (let d = r + 2; d < r + 5.5 * k; d++) put(cx + Math.cos(ang) * d, cy + Math.sin(ang) * d, R.yellow[1]); }
+    for (let j = -8; j <= 8; j++) for (let i = -8; i <= 8; i++) { const d = Math.hypot(i, j); if (d <= r) put(cx + i, cy + j, d > r - 1.2 ? R.yellow[0] : R.yellow[1]); }
+  }
+  if (k < 0.97) {
+    const ox = cx - 1 + 34 * k, oy = cy - 2 + 3 * k, thin = k * 1.1;
+    for (const [dx, dy, rx, ry] of [[-7, 1, 6, 4.4], [0, -3, 7.5, 6], [8, 1, 6, 4.6], [0, 3, 13, 3.2]]) for (let j = -7; j <= 7; j++) for (let i = -14; i <= 14; i++) { const q = sq(i / rx) + sq(j / ry); if (q <= 1 && bayer(i + dx, j + dy) >= thin) put(ox + dx + i, oy + dy + j, q > 0.72 && j > 0 ? R.rock[3] : dy < 0 && j < -2 ? R.white[1] : R.rock[4]); }
+    // Rain under it, until it turns.
+    if (k < 0.5) for (let n = 0; n < 6; n++) { const fall = frac(t * 1.7 + n * 0.37) * 9; if (bayer(n, Math.floor(t * 4)) < 1 - k * 2) for (let d = 0; d < 3; d++) put(ox - 10 + n * 4 - d * 0.5 - fall * 0.3, oy + 7 + fall + d, R.jay[3]); }
+  }
+  // The slider: the app's play button, its track, and the knob running forward to the hour it clears.
+  box(6, 68, 14, 76, R.jay[2]); for (let j = 0; j < 5; j++) for (let i = 0; i <= 2 - Math.abs(j - 2); i++) scr.set(x + 9 + i, y + 70 + j, R.white[1]);
+  box(18, 72, w - 8, 72, R.navy[2]);
+  { const kx = Math.round(lerp(19, w - 11, 0.08 + 0.84 * smooth(turn - 0.26, turn + 0.08, u))); box(18, 72, kx, 72, R.jay[3]); box(kx, 70, kx + 2, 74, R.white[1]); }
+  // The word. It blinks once as it changes.
+  const word = k < 0.5 ? UI.forecast.wet : UI.forecast.clear, flash = k > 0.5 && k < 0.999 && (Math.floor(t * 8) & 1);
+  if (!flash) letters(scr, word, x + Math.round((w - word.length * 6 + 1) / 2), y + 82, k < 0.5 ? R.jay[3] : R.yellow[1]);
+  box((w >> 1) - 9, h - 6, (w >> 1) + 9, h - 6, R.navy[2]);
+}
 
 export function makeClimb() {
   const strips = {}, tops = {};
@@ -572,6 +633,16 @@ export function makeClimb() {
     press: [0, 1].map(f => { const b = new BM(34, 22); b.ox = 17; b.oy = 21; for (let x = 8; x < 22; x++) { b.set(x, 13, R.kit[1]); b.set(x, 12, R.kit[2]); b.set(x, 14, R.kit[0]); } for (let x = 22; x < 28; x++) b.set(x, 13, R.rock[1]); thick(b, 26, 13, 29, 19, 2, R.rock[0]); b.set(30, 20, R.bark[1]); disc(b, 6, 11, 3, (nx, ny) => ny < -0.2 ? R.kit[2] : R.skin[2]); const by = f ? 3 : 8; thick(b, 12, 11, 12, by + 1, 2, R.kit[1]); thick(b, 16, 11, 16, by + 1, 2, R.kit[0]); for (let x = 3; x < 26; x++) b.set(x, by, R.rock[4]); for (const x of [3, 4, 24, 25]) for (let y = by - 3; y <= by + 3; y++) b.set(x, y, R.navy[0]); outline(b, INK); return b; })
   };
   fig.walkR = fig.walk.map(rimeOn); fig.windR = fig.wind.map(rimeOn);
+  // Bluebird Forecast (round 5, T50), with nothing in his hands. Walking a ledge; up a slab on hands and
+  // feet, a hand and the other foot moving in turn; sat under the boulder with his knees up; and the
+  // same with his phone out, its screen lit.
+  const phone = (b, sh, hands) => { const hx = sh[0] + hands[0][0], hy = sh[1] + hands[0][1]; b.set(hx + 1, hy - 3, R.navy[0]); b.set(hx + 2, hy - 3, R.navy[0]); b.set(hx + 1, hy - 2, R.jay[3]); b.set(hx + 2, hy - 2, R.white[1]); b.set(hx + 1, hy - 1, R.jay[3]); b.set(hx + 2, hy - 1, R.jay[2]); };
+  fig.hike = [0, 1, 2, 3, 4, 5].map(f => sideFig('alpine', { feet: [WALK[f], WALK[(f + 3) % 6]], hands: [[3 - (f % 3), 5], [-2 + (f % 3), 6]], bob: f % 3 === 1 ? -1 : 0, lean: 2 }));
+  fig.scramble = [[[5, 4], [-1, 8.5], [5, -1], [3, 1]], [[4, 5.5], [1, 8], [3, 1], [5, -1]], [[6, 3.5], [-2, 8.5], [5, 0], [4, -1]], [[3, 6.5], [0, 8.5], [4, 0], [5, 0]]].map(([f0, f1, h0, h1]) => sideFig('alpine', { feet: [f0, f1], hands: [h0, h1], lean: 7, crouch: 3, look: 'up' }));
+  // Crossing a ledge between two slabs: half upright, a hand already out for the next hold.
+  fig.ledge = [[[3, 8.5], [-2, 8.5], [5, 1], [2, 4]], [[1, 8.5], [-3, 7.5], [5, 2], [3, 3]], [[-1, 8.5], [2, 7.5], [4, 1], [2, 4]], [[2, 8.5], [-1, 8.5], [5, 2], [3, 3]]].map(([f0, f1, h0, h1]) => sideFig('alpine', { feet: [f0, f1], hands: [h0, h1], lean: 4, crouch: 2, look: 'up' }));
+  fig.shelter = sideFig('alpine', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: [[3, 3], [2, 3]] });
+  fig.phone = sideFig('alpine', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: [[4, 1], [2, 3]], look: 'down', elbowFwd: true, held: phone });
   const tent = makeTent('tent'), flag = [makeFlag(0), makeFlag(1)], bb = [bluebird(0), bluebird(1)];
   const squirrel = (() => { const b = new BM(7, 5); b.ox = 3; b.oy = 4; b.set(1, 2, R.blaze[0]); b.set(2, 2, R.blaze[1]); b.set(3, 2, R.blaze[1]); b.set(4, 1, R.blaze[1]); b.set(5, 1, INK); b.set(0, 0, R.blaze[2]); b.set(0, 1, R.blaze[1]); b.set(1, 1, R.blaze[1]); b.set(2, 3, R.blaze[0]); b.set(4, 3, R.blaze[0]); return b; })();
   // Colours pale enough that a white flake or a white gust line would vanish on them.
@@ -605,6 +676,7 @@ export function makeClimb() {
     const stops = (cfg.sets || []).map(([sx, d]) => ({ sx, d, k: 'rest' })); if (cfg.slipAt) stops.push({ sx: cfg.slipAt, d: 1.5, k: 'slip' });
     const anchors = []; if (cfg.cable) { const end = arcAt(a, cfg.cable); for (let s = 14; s < end - 20; s += cfg.anchor) anchors.push(s); anchors.push(end); anchors.forEach((s, i) => stops.push({ sx: xAt(a, s - 2), d: 0.8, k: 'clip', i })); }
     if (cfg.dead) stops.push({ sx: cfg.dead[0], k: 'dead' });
+    if (cfg.wait) stops.push({ sx: cfg.wait[0], d: cfg.wait[1], k: 'wait' });
     for (const p of stops.sort((a, b) => a.sx - b.sx)) {
       // The dead end: he stops at the edge and looks, walks back to the last wand, and the whiteout closes
       // over him; when it opens he is on the line again beyond the crevasse.
@@ -630,10 +702,11 @@ export function makeClimb() {
       if (leg.back) { const x = lerp(leg.x0, leg.x1, (tau - leg.t0) / (leg.t1 - leg.t0)); return { ph: 'up', x, y: hOf(pts, x), mode: 'walk', back: true }; }
       if (leg.cut) { const v = (tau - leg.t0) / (leg.t1 - leg.t0), x = v < 0.5 ? leg.x0 : leg.x1; return { ph: 'up', x, y: hOf(pts, x), mode: 'look', cut: v, back: v < 0.5 }; }
       if (leg.clip) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: 'clip', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
-      if (leg.rest || leg.slip || leg.beep) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: leg.rest ? 'rest' : leg.slip ? 'slip' : 'beep', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
+      if (leg.rest || leg.slip || leg.beep || leg.wait) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: leg.rest ? 'rest' : leg.slip ? 'slip' : leg.wait ? 'wait' : 'beep', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
       if (leg.ice) { const pose = icePose(leg, tau - leg.t0); return pose.walk ? { ph: 'up', x: pose.x, y: pose.y, mode: 'walk' } : { ph: 'up', x: pose.hx, y: leg.w.ya - pose.hh + STAND, mode: 'ice', pose, leg }; }
       const a = arc(id), x = xAt(a, lerp(arcAt(a, leg.x0), arcAt(a, leg.x1), clamp((tau - leg.t0) / Math.max(1e-6, leg.t1 - leg.t0), 0, 1))); let y = hOf(pts, x), mode = 'walk';
-      if (cfg.kind === 'ridge') mode = 'wind';
+      // On Bluebird Forecast's dry rock he walks the ledges and goes up the slabs on hands and feet.
+      if (cfg.kind === 'ridge') mode = !cfg.wait ? 'wind' : x < cfg.wait[0] + 20 || x > cfg.sx - 36 ? 'hike' : hOf(pts, x + 3) - hOf(pts, x - 3) < -3 ? 'scramble' : 'ledge';
       if (wallAt(cfg, x)) mode = 'climb';
       if (cfg.knife && knifeK(cfg, x) > 0.5) mode = cfg.astride && x > cfg.astride[0] && x < cfg.astride[1] ? 'astride' : 'edge';
       const xg = xingAt(cfg, x, 3);
@@ -662,7 +735,9 @@ export function makeClimb() {
     cues(arg) {
       const cfg = ROUTES[arg.id], pl = plan(arg.id), D = pl.dur, out = [{ at: pl.tPush / D, name: 'glissade' }, { at: (pl.tBot - 0.05) / D, name: 'step' }];
       if (cfg.gap) for (let tau = T_UP; tau < pl.tSum; tau += 0.02) if (where(arg.id, tau).x > cfg.gap[0] - 4) { out.push({ at: tau / D, name: cfg.kind === 'bridge' ? 'crack' : 'step' }); if (cfg.kind === 'bridge') out.push({ at: (tau + 0.05) / D, name: 'jump' }); break; }
-      if (cfg.kind === 'ridge') out.push({ at: 0.6 / D, name: 'wind' });
+      if (cfg.kind === 'ridge' && !cfg.wait) out.push({ at: 0.6 / D, name: 'wind' });
+      // The drizzle is heard from the start, and the phone chimes when its forecast turns.
+      if (cfg.wait) { const wl = pl.legs.find(l => l.wait); out.push({ at: 0.15 / D, name: 'drizzle' }, { at: 3.3 / D, name: 'drizzle' }, { at: (wl.t0 + PHONE.turn * (wl.t1 - wl.t0)) / D, name: 'chime' }); }
       for (const g of cfg.xings || []) if (g[2] !== 'open') for (let tau = T_UP; tau < pl.tSum; tau += 0.02) if (where(arg.id, tau).x > g[0] - 3) { out.push({ at: tau / D, name: g[2] === 'lashed' || g[2] === 'sag' ? 'creak' : g[2] === 'jump' ? 'jump' : 'step' }); break; }
       // The storm on the wanded route is heard as it arrives, and again as it closes in.
       if (cfg.kind === 'wands') for (const u of [0.09, 0.3, 0.5, 0.66]) out.push({ at: (T_UP + u * (pl.tSum - T_UP)) / D, name: 'wind' });
@@ -675,7 +750,7 @@ export function makeClimb() {
       for (const leg of pl.legs) if (leg.ice) for (const h of leg.hit) out.push({ at: h.t / D, name: h.tool ? 'tink' : 'step' });
       return out;
     },
-    enter(scr, arg, q) { const w = where(arg.id, q * plan(arg.id).dur); cam.x = w.x; cam.y = w.y; st.y = null; egg = -99; st.fixed = false; st.banged = -99; },
+    enter(scr, arg, q) { const w = where(arg.id, q * plan(arg.id).dur); cam.x = w.x; cam.y = w.y; st.y = null; st.lift = null; egg = -99; st.fixed = false; st.banged = -99; },
     focus: () => focus,
     hold: env => busy(env.t),
     pick(sx, sy) {
@@ -694,13 +769,20 @@ export function makeClimb() {
       const anchor = scr.narrow ? 0.5 : me.ph === 'up' ? 0.52 : 0.6, u = t - egg;
       // The rack is hit hard enough to shake the picture for a moment.
       const jolt = kind === 'icefall' && me.ph === 'up' && u > 0.36 && u < 0.86 ? 1 - (u - 0.36) / 0.5 : 0;
-      const camX = Math.round(cam.x + OFF - VW * anchor + env.look.x * 0.4 + 3 * jolt * Math.sin(u * 95)), base = baseline(scr, env.shown, st) - Math.round(cam.y) - (scr.narrow ? 0 : 20) + Math.round(2 * jolt * Math.cos(u * 70));
+      const camX = Math.round(cam.x + OFF - VW * anchor + env.look.x * 0.4 + 3 * jolt * Math.sin(u * 95)), base0 = baseline(scr, env.shown, st) - Math.round(cam.y) - (scr.narrow ? 0 : 20) + Math.round(2 * jolt * Math.cos(u * 70));
+      // A tall, narrow screen sees further down than the rock is painted, at the foot of the climb and
+      // where the way down ends. The picture sits lower by what is missing, unless a card covers it.
+      const short = scr.narrow && !env.shown ? Math.max(0, VH - DOWN - base0) : 0; st.lift = st.lift == null ? short : st.lift + (short - st.lift) * 0.12;
+      const base = base0 + Math.round(st.lift);
       last = { camX, base, id, ph: me.ph, away: kind === 'bridge' && u > 0.7 && u < 5.05 };
       const up = clamp((tau - T_UP) / (pl.tSum - T_UP), 0, 1);
       // On the long ridge the cloud thins through the deck and is gone when he breaks out; the wind drops
       // by steps (gale, strong, breeze, still) rather than smoothly.
-      const storm = kind === 'ridge' && me.ph === 'up' ? (cfg.brk ? 1 - smooth(cfg.brk * 0.53, cfg.brk, up) : 1 - smooth(0.5, 0.86, up)) : 0;
-      const windK = !cfg.brk ? storm : storm > 0.7 ? 1 : storm > 0.4 ? 0.6 : storm > 0.08 ? 0.3 : 0;
+      // On Bluebird Forecast it rains until the forecast on his phone turns, and the cloud that sat on
+      // everything lifts behind the rain.
+      const wl = cfg.wait && me.ph === 'up' ? pl.legs.find(l => l.wait) : null, tTurn = wl ? wl.t0 + PHONE.turn * (wl.t1 - wl.t0) : 0, rain = wl ? 1 - smooth(tTurn + 0.3, tTurn + 2.4, tau) : 0;
+      const storm = kind === 'ridge' && me.ph === 'up' ? (wl ? 1 - smooth(tTurn + 1.2, wl.t1 + 3.4, tau) : cfg.brk ? 1 - smooth(cfg.brk * 0.53, cfg.brk, up) : 1 - smooth(0.5, 0.86, up)) : 0;
+      const windK = cfg.wait ? 0 : !cfg.brk ? storm : storm > 0.7 ? 1 : storm > 0.4 ? 0.6 : storm > 0.08 ? 0.3 : 0;
       if (cfg.brk && cfg.invY == null) { const a = arc(id); cfg.invY = hOf(pts, xAt(a, cfg.brk * a[a.length - 1])) - 8; }
       // The storm on the wanded route blows in by stages as he gains height: gusts in clear air, a bank of
       // cloud sliding over from the right, the first flakes, heavy snow, then white. It lets go slowly near the top.
@@ -740,16 +822,18 @@ export function makeClimb() {
         }
       }
       // Through the thinning deck the sun shows as a pale disc, before the cloud lets go entirely.
-      if (cfg.brk && storm > 0.03 && storm < 0.97) paleSun(scr, Math.round(VW * 0.7), Math.round(VH * 0.18), 9, smooth(0.03, 0.5, 1 - storm) * (1 - smooth(0.75, 0.97, 1 - storm)));
+      if ((cfg.brk || cfg.wait) && storm > 0.03 && storm < 0.97) paleSun(scr, Math.round(VW * 0.7), Math.round(VH * 0.18), 9, smooth(0.03, 0.5, 1 - storm) * (1 - (cfg.wait ? smooth(0.4, 0.62, 1 - storm) : smooth(0.75, 0.97, 1 - storm))));
       // Fair-weather cloud drifting high over the range, when there is sky to see.
       if (storm < 0.3 && bank < 0.3) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v - camX * 0.06) % (VW + 140) + VW + 140) % (VW + 140) - 70, c.y * VH * 0.5 + 12 + cam.y * 0.12);
       drawStrip(scr, far, 200 + camX * 0.15, base + 40 + cam.y * 0.8 + 30);
       drawStrip(scr, mid, 120 + camX * 0.42, base + cam.y * 0.55 + 46, false, 0);
       // A sea of cloud below the summits.
-      if (!cfg.brk) for (let y = Math.max(0, Math.round(base + cam.y * 0.8 + 60)); y < VH; y++) { const row = y * VW, d = clamp((y - (base + cam.y * 0.8 + 60)) / 80, 0, 1); for (let x = 0; x < VW; x++) { const n = fbm((x + camX * 0.3 + t * 4) / 60, y / 14, 243, 3); if (n > 0.6 - d * 0.3) fb[row + x] = n > 0.68 - d * 0.3 ? R.white[1] : R.sky[4]; } }
+      if (!cfg.brk && !cfg.wait) for (let y = Math.max(0, Math.round(base + cam.y * 0.8 + 60)); y < VH; y++) { const row = y * VW, d = clamp((y - (base + cam.y * 0.8 + 60)) / 80, 0, 1); for (let x = 0; x < VW; x++) { const n = fbm((x + camX * 0.3 + t * 4) / 60, y / 14, 243, 3); if (n > 0.6 - d * 0.3) fb[row + x] = n > 0.68 - d * 0.3 ? R.white[1] : R.sky[4]; } }
       if (cfg.knife && me.ph === 'up' && st.pano && st.pano.done) { const kx0 = Math.round(cfg.knife[0] - 50 + OFF - camX), kx1 = Math.round(cfg.knife[1] + 30 + OFF - camX); if (kx1 > 0 && kx0 < VW) mapBelow(scr, st.pano, Math.round(base + cam.y + 20), kx0, kx1, Math.round(clamp((cam.x - cfg.knife[0] + 30) * 0.4, 0, st.pano.w - VW))); }
       // The far peaks go first: the cloud takes them before any snow reaches him.
       veil(scr, smooth(0.25, 0.9, bank), [R.snow[1], R.snow[2]]);
+      // Low cloud lies on the other peaks while it rains.
+      if (cfg.wait) veil(scr, 0.9 * storm, [R.rock[3], R.rock[4]]);
       const X = x => Math.round(x + OFF - camX), Y = y => Math.round(base + y);
       // The icefall's seracs stand behind the route.
       if (kind === 'icefall' && me.ph === 'up') for (const s of seracs) scr.put(s.bm, X(s.x), Y(hOf(pts, s.x) + 7), false);
@@ -765,12 +849,25 @@ export function makeClimb() {
       // His tracks stay in the snow behind him: boot prints on the way up, one long groove on the way down.
       // On the gully the tracks are a staircase of kicked steps.
       if (me.ph === 'up' && cfg.sets) for (let x = 2; x < me.x - 3; x += 4) { const y = Y(hOf(pts, x)); scr.set(X(x), y + 1, R.snow[1]); scr.set(X(x) + 1, y + 1, R.snow[1]); scr.set(X(x) + 2, y, R.snow[2]); scr.set(X(x), y, R.snow[2]); }
-      else if (me.ph === 'up') { for (let x = -30; x < me.x - 3; x += 4) { if (cfg.gap && x > cfg.gap[0] - 6 && x < cfg.gap[1] + 6) continue; if (xingAt(cfg, x, 6)) continue; if (pl.walls.some(w => x > w.x0 + 2 && x < w.xc + 2)) continue; const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[1]); scr.set(X(x) + 1, Y(y) + 2, R.snow[2]); } }
+      else if (me.ph === 'up' && !cfg.wait) { for (let x = -30; x < me.x - 3; x += 4) { if (cfg.gap && x > cfg.gap[0] - 6 && x < cfg.gap[1] + 6) continue; if (xingAt(cfg, x, 6)) continue; if (pl.walls.some(w => x > w.x0 + 2 && x < w.xc + 2)) continue; const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[1]); scr.set(X(x) + 1, Y(y) + 2, R.snow[2]); } }
       else if (me.mode === 'sit') for (let x = Math.ceil(me.x) + 4; x < 400; x++) { const y = hOf(pts, x); scr.set(X(x), Y(y) + 2, R.snow[2]); if (x & 1) scr.set(X(x), Y(y) + 3, R.snow[3]); }
       // Spindrift blows off the top.
-      if (me.ph === 'up' && white < 0.3) for (let k = 0; k < 34; k++) { const a = frac(t * (0.5 + storm) + k / 34), x0 = SXr + 38 + (k % 5) * 3, y0 = hOf(pts, x0) - 1; const x = X(x0 + a * (46 + 30 * storm) + 4 * Math.sin(a * 9 + k)), y = Y(y0 - a * 13 - 3 * Math.sin(a * 5 + k * 2)); if (bayer(x, y) > a * 0.9) scr.set(x, y, a < 0.4 ? R.white[1] : R.snow[3]); }
+      if (me.ph === 'up' && white < 0.3 && !cfg.wait) for (let k = 0; k < 34; k++) { const a = frac(t * (0.5 + storm) + k / 34), x0 = SXr + 38 + (k % 5) * 3, y0 = hOf(pts, x0) - 1; const x = X(x0 + a * (46 + 30 * storm) + 4 * Math.sin(a * 9 + k)), y = Y(y0 - a * 13 - 3 * Math.sin(a * 5 + k * 2)); if (bayer(x, y) > a * 0.9) scr.set(x, y, a < 0.4 ? R.white[1] : R.snow[3]); }
       // Snow driven flat across everything while the storm lasts.
-      if (storm > 0.05) for (let k = 0; k < 150 * storm; k++) { const sp = 220 + hash(k, 1, 255) * 160, x = Math.round(VW + 20 - frac(hash(k, 2, 255) + t * sp / (VW + 40)) * (VW + 40)), y = Math.round(frac(hash(k, 3, 255) + t * 0.11) * VH), len = 2 + (k % 4); for (let j = 0; j < len; j++) scr.set(x + j, y - (j >> 2), j ? R.snow[3] : R.white[1]); }
+      // Drizzle: fine slanting streaks, none of them under the boulder's prow, and a sparkle of splashes
+      // where they land on the rock.
+      if (rain > 0.02) {
+        for (let k = 0; k < 260 * rain; k++) {
+          const x = Math.round(((hash(k, 1, 295) * (VW + 60) - t * (38 + 20 * hash(k, 4, 295))) % (VW + 60) + VW + 60) % (VW + 60)) - 20, y = Math.round((hash(k, 2, 295) * (VH + 20) + t * (190 + 90 * hash(k, 3, 295))) % (VH + 20)) - 10;
+          const roof = roofAt(cfg, x + camX - OFF); if (roof != null && y > base + roof) continue;
+          scr.set(x + 1, y - 2, R.rock[4]); scr.set(x + 1, y - 1, R.rock[4]); scr.set(x, y, R.white[1]); scr.set(x, y + 1, R.white[1]);
+        }
+        for (let k = 0; k < 26 * rain; k++) {
+          const n = Math.floor(t * 9 + k * 0.37), x = Math.floor(hash(k, n, 296) * VW), wx = x + camX - OFF;
+          if (roofAt(cfg, wx) == null) scr.set(x, Math.round(base + hOf(cfg.pts, wx)) - 1 - (n & 1), R.white[1]);
+        }
+      }
+      if (storm > 0.05 && !cfg.wait) for (let k = 0; k < 150 * storm; k++) { const sp = 220 + hash(k, 1, 255) * 160, x = Math.round(VW + 20 - frac(hash(k, 2, 255) + t * sp / (VW + 40)) * (VW + 40)), y = Math.round(frac(hash(k, 3, 255) + t * 0.11) * VH), len = 2 + (k % 4); for (let j = 0; j < len; j++) scr.set(x + j, y - (j >> 2), j ? R.snow[3] : R.white[1]); }
 
       const tx = SXr + 24, ty = hOf(pts, tx);
       let bird = null;
@@ -858,14 +955,24 @@ export function makeClimb() {
         // Chips of ice fly from every placement, a bigger piece when a foot skates off.
         for (const h of me.leg.hit) { const a = tau - h.t; if (a < 0 || a > 0.5) continue; for (let k = 0; k < (h.big ? 9 : 5); k++) { const r1 = hash(k, Math.round(h.t * 40), 271), r2 = hash(k, Math.round(h.t * 40), 272), px = w.xc + h.side * (h.tool ? 6 : 5) + (r1 - 0.5 + 0.25 * h.side) * 44 * a, py = w.ya - h.h - (4 + 26 * r2) * a + 120 * a * a, c = k % 3 === 0 ? R.glac[1] : k & 1 ? R.white[1] : R.glac[5]; scr.set(X(px), Y(py), c); if (h.big && k < 4) { scr.set(X(px) + 1, Y(py), R.glac[5]); scr.set(X(px), Y(py) + 1, R.glac[1]); } } }
       }
+      else if (me.mode === 'wait') bm = me.u < 0.06 || me.u > 0.95 ? fig.shelter : fig.phone;
+      else if (me.mode === 'scramble' || me.mode === 'ledge') bm = fig[me.mode][env.moving ? Math.floor(Math.abs(d) / 3) & 3 : 0];
       else if (me.mode === 'jump') bm = fig.jump;
       else if (me.mode === 'crawl') bm = fig.crawl[Math.floor(d / 4) & 1];
       else if (cfg.sets && me.ph === 'up' && me.x > 0) { bm = fig.wind[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1]; const a = frac(d / 7.2); if (env.moving && a < 0.3) chips(scr, sx + 6, sy - 1, a / 0.3, 4, Math.floor(d / 7.2)); }
+      else if (cfg.wait && me.ph === 'up') bm = fig.hike[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1];
       else { const rimed = cfg.brk && me.ph === 'up'; bm = ((me.mode === 'wind' && windK > 0.25) || (gust > 0.3 && up < 0.9) ? (rimed ? fig.windR : fig.wind) : (rimed ? fig.walkR : fig.walk))[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1]; flip = !!me.back; }
       if (bm) { scr.put(bm, sx + Math.round(dx), sy + dy, flip); }
       if (me.cut != null) whiteOut(scr, smooth(0, 0.35, me.cut) * (1 - smooth(0.65, 1, me.cut)));
       if (cfg.cable && me.ph === 'up') lanyards(scr, X, Y, cfg, pts, pl, arc(id), xAt, arcAt, tau, sx + Math.round(dx), sy + dy, me);
       focus.x = sx; focus.y = sy - 14;
+      // His phone's screen, shown large beside him while he reads it, with a line down to the phone itself.
+      if (me.mode === 'wait' && me.u > 0.1 && me.u < 0.93) {
+        // On a narrow screen a scene pixel is too small to read letters by, so it is drawn at twice the size.
+        const k = scr.narrow ? 2 : 1, px = clamp(sx + 24, 3, VW - PHONE.w * k - 3), py = clamp(sy - PHONE.h * k - 26, 22, VH - PHONE.h * k - 4);
+        for (let n = 1; n < 9; n++) scr.set(Math.round(lerp(sx + 8, px + 4, n / 9)), Math.round(lerp(sy - 15, py + PHONE.h * k, n / 9)), n & 1 ? INK : R.white[1]);
+        phoneApp(k === 1 ? scr : { set: (i, j, c) => { const x = px + (i - px) * 2, y = py + (j - py) * 2; scr.set(x, y, c); scr.set(x + 1, y, c); scr.set(x, y + 1, c); scr.set(x + 1, y + 1, c); } }, px, py, (me.u - 0.1) / 0.83, t);
+      }
       if (bird) scr.put(bb[Math.floor(t * 10) & 1], bird.x, bird.y, bird.left);
       if (env.done['spire:' + id] && me.ph === 'up') scr.blit(flag[Math.floor(t * 5) & 1], X(SXr + 4), Y(hOf(pts, SXr + 4)) - 15);
 

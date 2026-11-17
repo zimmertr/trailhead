@@ -160,6 +160,8 @@ export const UI = {
   auto: name => 'Auto: ' + name,
   // The word in the burst when the server rack on TJs-Kubernetes-Service is hit. Drawn in pixels, capitals only.
   bang: 'BANG!',
+  // On his phone on Bluebird Forecast: the app's name in two lines, and the one word under the weather, before and after it turns. Drawn in pixels, capitals only.
+  forecast: { app: ['BLUEBIRD', 'FORECAST'], wet: 'DRIZZLE', clear: 'CLEARING' },
   found: (name, n, of) => 'Found: ' + name + '. ' + n + ' of ' + of + ' on the kiosk checklist.',
   allDone: 'All three done. The trail register at the Trailhead is yours to sign.',
   fail: 'The world could not be drawn here. The trail map has everything as text.',
