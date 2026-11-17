@@ -3,7 +3,7 @@
 // (u, SY - v - height), nearest first, so ground and mountains are one surface and near slopes hide
 // far ones.
 import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
-import { paintMonolith, monolithSky, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
+import { paintMonolith, monolithSky, moraineLakes, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
 import { makeFlowers, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
@@ -202,8 +202,11 @@ const base = (u, v) => under(u, v) + apron(u, v);
 volcano(640, 600, 300, 150, 290);
 // Foothills round the volcano's foot, so it rises out of forest and not off a lawn.
 for (const [cu, cv, ru, rv, H] of [[500, 478, 96, 44, 42], [770, 474, 84, 40, 38], [858, 530, 70, 52, 46], [420, 540, 80, 52, 44]]) horn('land', cu, cv, ru, rv, H, { pow: 1.15 });
-plateau('land', 640, 436, 112, 34, 30, 0.1); C.bench = F[F.length - 1];
-C.lakes.push([640, 440, 46, 14, 'lake']);
+// Round 5 (T30, TJ: "increase the size of reflection lake"): the lake is about 1.6 times as wide and a
+// little deeper than round 4's (46 by 14), its south shore where it was so the lakeshore trail still runs
+// along it, and the bench it sits on is widened to hold it.
+plateau('land', 640, 438, 136, 38, 30, 0.1); C.bench = F[F.length - 1];
+C.lakes.push([640, 444, 74, 18, 'lake']);
 // Its west end rises gently from behind Little Tahoma, so no peak of it stands alone beside the tooth.
 range('crest', 800, NW + 60, 716, u => (112 + 20 * vnoise(u / 70, 1, 64)) * lerp(0.35, 1, smooth(820, 930, u)), 64, { front: 40, back: 18 });
 range('crest', 800, 930, 660, crestH(1070, 120, 60), 61);
@@ -245,12 +248,25 @@ C.src = [
   { w: 0.6, lead: [[1562, 486], [1540, 470], [1524, 452], [1516, 436]] },
   { w: 0.5, lead: [[1346, 568], [1336, 548], [1326, 530]] }
 ];
+// Round 5 (T30, TJ: "a second glacier river leaving mount rainier and feeding into Reflection Lake. This
+// river and the other river leaving the mountain to the right of it should form from terminal moraine lakes
+// ... That then flow into Reflection lake"). Two moraine lakes at the foot of Monolith's glaciers: one under
+// the middle glacier (the big one with the icefall, left of the summit's east ridge), the new river's
+// source, and one under the glacier above the old stream's head (C.src[3]). Their columns come from the
+// painting (monolith.js); each stream starts on the ground straight below its lake and both are stopped
+// where they reach Reflection Lake (toLake), so the lake keeps its one outflow at the fall.
+const MONO_OX = VOLC.cu - PMCX;
+const TARNS = moraineLakes().map((end, k) => ({ end, src: k ? 3 : C.src.length })); C.tarns = TARNS;
+for (const t of TARNS) { const u = MONO_OX + t.end.mid; if (t.src === C.src.length) C.src.push({ w: 0.8, lead: [[u, 512], [u + 2, 498]] }); else C.src[t.src].lead = [[u, 512], [u + 6, 498]]; C.src[t.src].toLake = true; }
 // Shallow valleys for it to find, either side of the Trailhead's rise, and the coulee that takes the
 // east creek out through the dry country.
 C.dig = [
   { d: 6, w: 46, pts: [[1086, 474], [1062, 442], [1014, 406], [988, 366], [934, 338], [906, 292], [852, 262], [800, 268], [748, 232], [692, 216], [642, 176], [586, 166], [522, 130], [472, 96], [412, 86], [352, 60]], end: 0.5 },
   { d: 6, w: 46, pts: [[1420, 440], [1386, 400], [1332, 372], [1302, 330], [1322, 286], [1376, 262], [1440, 250], [1500, 232]], end: 11 }
 ];
+// The old stream under Monolith's east foot ran down past the lake to the east. Now it goes to the lake
+// (T30): a shallow valley from where its first stretch ends to the lake's east end, for it to find.
+{ const t = TARNS.find(t => t.src === 3), L = C.lakes[0]; if (t) { const a = C.src[3].lead[C.src[3].lead.length - 1], b = [L[0] + L[2] - 4, L[1]]; C.dig.push({ d: 6, w: 30, pts: [a, [lerp(a[0], b[0], 0.35), lerp(a[1], b[1], 0.45)], [lerp(a[0], b[0], 0.7), lerp(a[1], b[1], 0.8)], b] }); } }
 C.coulee = [[1500, 232], [1556, 204], [1612, 176], [1662, 130], [1726, 106], [1782, 64], [1852, 40], [1926, 8]];
 C.trails = [
   [[880, 392], [830, 388], [770, 386], [725, 384], [700, 384], [668, 380], [630, 376], [590, 378], [540, 390], [490, 384], [440, 360], [390, 354], [340, 370], [300, 410], [270, 450], [262, 490], [290, 520], [330, 530], [380, 515], [420, 500], [460, 492], [496, 470], [530, 448], [560, 436], [590, 434], [640, 424], [676, 420], [712, 424], [748, 426], [772, 414], [800, 402], [840, 394], [880, 392]],
@@ -344,7 +360,11 @@ if (B) water.set(B.water); else {
   for (let i = 0; i < N; i++) { const ru = i % RW, rv = (i / RW) | 0, u = ru * 2, v = rv * 2; if (coast(u, v) > 0) { down[i] = -1; fill[i] = 0; push(0, i); } else if ((rv === 0 || ru === RW - 1) && dryAmt0(u, v) > 0.2) { down[i] = -1; fill[i] = rh(i); push(fill[i], i); } }
   while (hk.length) { const c = pop(), cu = c % RW, cv = (c / RW) | 0; for (let dv = -1; dv <= 1; dv++) for (let du = -1; du <= 1; du++) { const nu = cu + du, nv = cv + dv; if ((!du && !dv) || nu < 0 || nv < 0 || nu >= RW || nv >= RH) continue; const n = nv * RW + nu; if (down[n] !== -2) continue; fill[n] = Math.max(rh(n), fill[c] + (du && dv ? 0.0028 : 0.002)); down[n] = c; push(fill[n], n); } }
   // Follow each source down to an outlet, adding its water to every spot it passes.
-  for (const s of C.src) { const lead = catmull(s.lead), [lu, lv] = lead[lead.length - 1], cells = []; let i = (Math.round(lv) >> 1) * RW + (Math.round(lu) >> 1), guard = 0; while (i >= 0 && guard++ < 8000) { cells.push(i); flow[i] += s.w; if (down[i] < 0) break; i = down[i]; } routes.push({ s, lead, cells }); }
+  for (const s of C.src) { const lead = catmull(s.lead), [lu, lv] = lead[lead.length - 1], cells = []; let i = (Math.round(lv) >> 1) * RW + (Math.round(lu) >> 1), guard = 0; while (i >= 0 && guard++ < 8000) { cells.push(i); flow[i] += s.w; if (down[i] < 0) break;
+      // A stream that runs into Reflection Lake (T30): once it comes within the lake's surroundings it goes
+      // the last stretch straight into the water, and stops there.
+      if (s.toLake) { const [cu, cv, ru, rv] = C.lakes[0], u = (i % RW) * 2, v = ((i / RW) | 0) * 2; if (Math.hypot((u - cu) / (ru + 100), (v - cv) / (rv + 50)) < 1) { let x = u, y = v; const tu = clamp(u, cu - ru * 0.7, cu + ru * 0.7), tv = cv; for (let n = 0; n < 200 && lakeAt(Math.round(x), Math.round(y)) !== 'lake'; n++) { const d = Math.hypot(tu - x, tv - y) || 1; x += 2 * (tu - x) / d; y += 2 * (tv - y) / d; const j = (Math.round(y) >> 1) * RW + (Math.round(x) >> 1); if (j !== cells[cells.length - 1]) { cells.push(j); flow[j] += s.w; } } break; } }
+      i = down[i]; } routes.push({ s, lead, cells }); }
   };
   // The Spires' lake spills through a notch in its moraine rim, at the rim's middle, toward the eye.
   C.src[1].lead = [[PRO.cu + 2, PRO.cv], [PRO.cu + 2, PRO.cv - PRO.rv - 1], [PRO.cu + 3, PRO.cv - PRO.rv - 9]];
@@ -709,6 +729,7 @@ for (let u = 0; u < NW; u++) {
   }
 }
 
+let MONO_OY = 0;
 // Mount Monolith is painted (monolith.js) and laid over its own ground, one map pixel to one picture
 // pixel. Where the painted outline stands a little above the ground it is drawn over the sky behind,
 // at the mountain's depth, so anything nearer still stands in front. Its stand-in meadow is left out:
@@ -719,7 +740,7 @@ for (let u = 0; u < NW; u++) {
   // Line the picture up with the ground: the row of the picture's summit goes where the ground's top is.
   const tops = [];
   for (let x = cu - 40; x <= cu + 40; x += 4) { let y = 0; while (y < SH && mb[px(x, y)] !== VI) y++; const pxl = x - ox, sk = Math.ceil(monolithSky(pxl - PMCX) ? PMH - monolithSky(pxl - PMCX) * (PMH - PTOPY) : PMH); if (y < SH) tops.push(y - sk); }
-  tops.sort((a, b) => a - b); const oy = tops.length ? tops[tops.length >> 1] : SY - cv - H - PTOPY;
+  tops.sort((a, b) => a - b); const oy = tops.length ? tops[tops.length >> 1] : SY - cv - H - PTOPY; MONO_OY = oy;
   for (let py = 0; py < PMH; py++) for (let qx = 0; qx < PMW; qx++) {
     const k = py * PMW + qx, c = P.d[k], x = ox + qx, y = oy + py; if (x < 0 || y < 0 || x >= NW || y >= SH) continue;
     const i = px(x, y);
@@ -731,14 +752,33 @@ for (let u = 0; u < NW; u++) {
   }
 }
 
-// The stream below Mount Monolith's east foot (E8b, D on TJ's map) comes out of a glacier: from where
-// its water first shows on the land, straight up the picture to the painting's band of moraine under the
-// nearest snout, a thread of melt water wanders down the meadow, white where it tumbles. Its column and
-// its foot are read from the land; nothing is planted on it.
-{ const r = routes[3]; const hd = r && r.pts.find(([u, v]) => water[at(Math.round(u), Math.round(v))] && MATS[mg[at(Math.round(u), Math.round(v))]] === 'land');
-  if (hd) { const x0 = Math.round(hd[0]), y0 = Math.round(SY - hd[1] - hAt(hd[0], hd[1])); let y1 = y0 - 1, x1 = x0;
-    find: for (; y1 > y0 - 160; y1--) for (const dx of [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5, -6, 6]) if (painted[px(x0 + dx, y1)]) { x1 = x0 + dx; break find; }
-    if (y1 > y0 - 160) for (let y = y1 + 1; y <= y0; y++) { const t = (y - y1) / (y0 - y1), x = Math.round(lerp(x1, x0, t) + 2.2 * Math.sin(y / 7) * Math.sin(t * Math.PI)); for (let dx = 0; dx <= 1; dx++) { const i = px(x + dx, y); g[i] = hash(x + dx, y >> 1, 471) < 0.3 ? R.white[1] : dx ? R.water[2] : R.water[3]; painted[i] = 1; } g[px(x - 1, y)] = R.water[1]; g[px(x + 2, y)] = R.water[1]; } } }
+// The moraine lakes (T30) and the streams out of them. Each lake is painted into the mountain's picture
+// where its glacier ends: milky teal water whose far edge is the ice itself, no gravel between (round 4's
+// reference of a glacier ending in its lake), held on the near side by a low grey rim of moraine with a
+// notch at its middle. From the notch a thread of melt water wanders down, white where it tumbles, to where
+// the lake's stream first shows on the land; its column and its foot are read from the land.
+{ const VI = MATS.indexOf('volc'), cvM = VOLC.cv;
+  const paint = (x, y, c) => { if (x >= 0 && y >= 0 && x < NW && y < SH) { g[px(x, y)] = c; painted[px(x, y)] = 1; } };
+  const put = (x, y, c) => { if (x < 0 || y < 0 || x >= NW || y >= SH) return; const i = px(x, y); if (mb[i] === VI || zb[i] > cvM) { g[i] = c; zb[i] = Math.min(zb[i], cvM); mb[i] = VI; painted[i] = 1; } };
+  for (const t of TARNS) {
+    const e = t.end, hw = Math.round(clamp(e.room * 0.42, 14, 24)), rv = Math.max(4, Math.round(hw * 0.34)), xc = MONO_OX + e.mid;
+    // The water's top row at each column is the first row below the ice there, so the ice meets it.
+    const topAt = x => MONO_OY + Math.floor(e.snout(x - MONO_OX)) + 1, yc = topAt(xc) + rv - 1;
+    for (let dx = -hw - 2; dx <= hw + 2; dx++) { const x = xc + dx, f = Math.abs(dx) / hw;
+      const yTop = topAt(x), yBot = yc + Math.round(rv * Math.sqrt(Math.max(0, 1 - f * f)) + 0.6 * (vnoise(x / 4, 3, 951) - 0.5));
+      if (f < 1) for (let y = yTop; y <= yBot; y++) paint(x, y, bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(x / 6, y / 3, 952), x, y));
+      // The rim: a low bank of moraine along the near shore and round the ends, pale on top, and a notch
+      // at the middle where the stream leaves.
+      if (Math.abs(dx) <= 1) { paint(x, yBot + 1, R.water[2]); continue; }
+      const rimTop = f < 1 ? yBot + 1 : yTop + Math.round((f - 1) * 4);
+      for (let k = 0; k < 3; k++) paint(x, rimTop + k, k === 2 ? R.mauve[0] : k ? R.rock[1] : R.rock[hash(x, 3, 953) < 0.5 ? 2 : 3]);
+    }
+    t.notch = [xc, yc + rv + 2];
+    const r = routes[t.src], hd = r && r.pts.find(([u, v]) => water[at(Math.round(u), Math.round(v))] && MATS[mg[at(Math.round(u), Math.round(v))]] === 'land');
+    if (!hd) continue;
+    const x0 = Math.round(hd[0]), y0 = Math.round(SY - hd[1] - hAt(hd[0], hd[1])), [x1, y1] = t.notch;
+    if (y1 < y0) for (let y = y1; y <= y0; y++) { const q = (y - y1) / (y0 - y1), x = Math.round(lerp(x1, x0, q) + (4 * Math.sin(y / 13 + t.src) + 1.6 * Math.sin(y / 5)) * Math.sin(q * Math.PI)); for (let dx = 0; dx <= 1; dx++) paint(x + dx, y, hash(x + dx, y >> 1, 471) < 0.3 ? R.white[1] : dx ? R.water[2] : R.water[3]); paint(x - 1, y, R.water[1]); paint(x + 2, y, R.water[1]); }
+  } }
 
 // The snout's face: the ice standing at the snout's own depth just above the water is a blue and white
 // ice cliff, streaked down its height, darker where it meets the lake.

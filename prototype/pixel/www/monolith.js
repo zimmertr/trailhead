@@ -49,6 +49,26 @@ function ridgeAt(r, y) {
   return null;
 }
 
+// Round 5 (T30): where glacier gi ends, for the moraine lake at its foot. The two cleavers either side of
+// it on the row its ice ends (the next one along on the east where a short cleaver stops higher up), the
+// column halfway between them, and snout(x): the last row of ice at column x, by the very rule the painting
+// uses below. A glacier whose west cleaver stops above its snout row does not reach down that far (the
+// painting gives those rows to the glacier west of it), so it has no end of its own here.
+export function glacierEnd(gi) {
+  const y = SNOUT[gi], l = ridgeAt(RIDGES[gi - 1], y); let r = null;
+  for (let k = gi; k < RIDGES.length && !r; k++) r = ridgeAt(RIDGES[k], y);
+  if (!l || !r) return null;
+  const snout = x => SNOUT[gi] + 10 * vnoise(x / 9, gi, 907) - 6 * Math.sin(Math.PI * clamp((x - l[0]) / (r[0] - l[0]), 0, 1));
+  return { gi, mid: Math.round((l[0] + r[0]) / 2), room: (r[0] - r[1]) - (l[0] + l[1]), snout };
+}
+// The glacier whose foot is above picture column x: the one between the nearest cleavers either side on
+// the rows where the ice ends.
+export function glacierOver(x) { let best = null; for (let gi = 1; gi < SNOUT.length; gi++) { const e = glacierEnd(gi); if (e && Math.abs(e.mid - x) < e.room / 2 && (!best || Math.abs(e.mid - x) < Math.abs(best.mid - x))) best = e; } return best; }
+// The glaciers that end in moraine lakes (T30, TJ): the middle one, with the big icefall, whose lake is the
+// new river's source, and the one above the old stream under the east foot (picture column 466, where that
+// stream rose in round 4). The map (land.js) and the lake scene (lakeside.js) both read this list.
+export const moraineLakes = () => [glacierEnd(MID_FALL), glacierOver(466)].filter(Boolean);
+
 export function paintMonolith() {
   // own marks the mountain proper; the meadow at its foot is only a stand-in for the mockup, and in the
   // game the land's own meadow, trees and flowers are drawn there instead.

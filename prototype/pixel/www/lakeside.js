@@ -9,9 +9,11 @@ import { marmot, speck } from './fauna.js';
 import { makeRunner, sideFig, cheerFig, swimFig } from './tj.js';
 import { NAMES } from './content.js';
 import { drawLens, startLens } from './events.js';
-import { paintMonolith, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
+import { paintMonolith, moraineLakes, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 
-const SW = 1640, X0 = 500, LEN = 624, DUR = 8;
+// Round 5 (T30): the lake on the map is about 1.6 times as wide, so the shore he runs along is longer
+// than round 4's (624 over 8 s), at the same pace.
+const SW = 1640, X0 = 500, LEN = 760, DUR = 9.75;
 const D_MAP = 125, D_NOTE = 437, D_MARMOT = 276;
 const FAR = -50; // the far shore, measured up from the trail
 // The island out in the lake, the one the map shows a little left of the lake's middle: where it is
@@ -45,6 +47,9 @@ const WX = X0 - 470, WW = 420, WUP = 760;
 // the upper icefalls stand clear in the sky while the far forest hides its foot, as Rainier's does
 // from Reflection Lakes. The meadow and fir clumps the picture paints at its foot come along too.
 const MS = 0.75, PH = Math.round((PMH - PTOPY) * MS), PW = Math.round(PMW * MS);
+// The streams out of the moraine lakes (T30), as columns of the peak's strip: each comes down through the
+// far forest into the lake straight below its glacier. The crater (picture column 330) is column 600.
+const INFLOW = moraineLakes().map(e => Math.round(600 + (e.mid - 330) * MS));
 function paintPeak(S) {
   // The crater (x 330 in the picture) lands on column 600 of the strip.
   const P = paintMonolith(), sx = 600 - Math.round(330 * MS);
@@ -398,6 +403,11 @@ function buildLakeside() {
       // The lake, with the far shore and Monolith upside down in it.
       const sw = at && (at.k === 'swim' || (at.k === 'wade' && at.depth >= 1)) ? [at.x, base + at.y] : null;
       lakeWater(scr, hor, base, t, farS, Math.round(farX), peak, Math.round(peakX), sink, sw);
+      // The two inflows: a thread of white water down the far shore's trees and rocks, and a little foam
+      // where it meets the lake.
+      for (const c of INFLOW) { const x = Math.round(c - peakX); if (x < 2 || x >= VW - 3) continue;
+        for (let y = hor - 15; y <= hor; y++) { const w = x + Math.round(0.8 * Math.sin(y / 3 + c)); scr.set(w, y, ((y + Math.floor(t * 9)) % 3) ? R.white[1] : R.water[4]); scr.set(w + 1, y, R.water[3]); }
+        for (let dx = -3; dx <= 4; dx++) if (hash(dx, Math.floor(t * 4), c) < 0.6) scr.set(x + dx, hor + 1 + (Math.abs(dx) > 2 ? 1 : 0), R.white[1]); }
       const tarn = R.tarn;
       // Sun on the water, and now and then a trout rises.
       for (let k = 0; k < 40; k++) {

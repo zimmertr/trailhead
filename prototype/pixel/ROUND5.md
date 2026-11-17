@@ -448,7 +448,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 ### D. The land and the water (each change here needs `./bake.sh`)
 
 - [x] D1. T6: the trail rework: the new direct Spires trail, the new bottom trail, the two removed stretches and their bridges, the loop kept. Update the routes, `lakeIn`, `lakeOut` and `spiresIn`, the trail map sheet, the sign's distances (T45) and click to move.
-- [ ] D2. T30: Reflection Lake about 1.6 times wider, two moraine lakes under Monolith's ice, and the second river. Both streams flow into the lake.
+- [x] D2. T30: Reflection Lake about 1.6 times wider, two moraine lakes under Monolith's ice, and the second river. Both streams flow into the lake.
 - [ ] D3. T28: remove the oxbow and the heron.
 - [ ] D4. T17, T24: the water audit. Every join is listed, fixed and pictured.
 - [ ] D5. T25: rivers carry on across the beach at low tide.
@@ -578,7 +578,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **C5 done.** A click or tap within 24 CSS pixels of a trail (the same at every zoom) walks him there over the trail network by the shortest way, with a red cross hovering over the spot until he arrives; anywhere else does nothing, and anything clickable keeps its own click. The network is four branches out from the Trailhead (the lake loop's way out and way back, the peak's trail, the Spires' trail), joined where they part. `api.walkTo(x, y)` takes view pixels, for tests.
 - **C6 done.** The debug menu's Sounds group plays every effect by its name in `audio.js`, each tune's two parts on their own (A and B, round and round until "Music back to Auto"), and each place's background sound. `audio.preview(k, part)` and `audio.endPreview()` do it.
 - **D1 done.** Three trails leave the Trailhead: the new bottom trail west along the foot of the meadow to the forest edge, the old trail north-west (the lake loop's way home), and the new Spires trail up and round the east side of the big fir stand to base camp; the Proficiency trail goes right as before. The junction-to-Spires stretch and the lower elk stretch are gone with their footbridges. The sign now reads 12.3 km (lake) and 5.3 km (Spires), the trail map's loop 16.4 km, all measured from the trails. Click to move, the routes, lakeIn, lakeOut and spiresIn follow the new lines without code changes; facing counts are unchanged from B8 (lake 2, Spires 6, Proficiency 5).
-- Next: D2.
+- **D2 done.** Reflection Lake is 1.6 times as wide (74 by 18, was 46 by 14) on a widened bench, its south shore where it was so the lakeshore trail still runs along it; the island and the fall are kept. Two milky moraine lakes sit where two of Monolith's glaciers end, the ice meeting the water, each held by a grey rim with a notch. A new stream runs from the left one and the old east-foot stream from the right one, and both run into the lake, which keeps its one outflow at the fall. The lake scene's shore walk is longer in proportion (760 over 9.75 s, was 624 over 8 s) and shows the two inflows coming down the far shore under their glaciers.
+- Next: D3.
 
 ## 11. Calls made in round 5
 
@@ -618,6 +619,11 @@ One line each, newest last: the item, what was decided, and why.
 - D1: the bottom trail ran through the elk's old flat, and the herd jumped to a meadow by base camp. TJ's sketch has the trail passing the elk, so the herd now takes the parkland flat nearest the bottom trail's western half (the same rule otherwise). A try that dropped the parkland rule put them among trees by the lookout; dropped that.
 - D1: the lake country region (the lakes and forest shading) still reads the original loop (C.loop0), so the land west of the junction did not change.
 - D1: the walk scenes' directions follow the trail as before; the Spires approach now runs the other way across the screen because the new trail meets camp from the east. That is T40's to judge in its item.
+- D2: which glaciers get the moraine lakes is one list in monolith.js (moraineLakes): the middle glacier, the one with the big icefall, and the glacier above where the old east-foot stream rose (picture column 466). The map and the lake scene both read it. Each lake's far edge follows the painting's own rule for where that glacier's ice ends, so ice meets water with no gravel between.
+- D2: the moraine lakes are painted into the mountain's picture in land.js, not made map lakes, because the ground there is covered by the painting; the streams below them are routed over the land as before, with a thread of melt water from each lake's notch down to where its stream first shows on the land.
+- D2: neither stream's route reached the lake on its own: both ran along a low strip behind the bench and down its east side. A stream marked to end in the lake now goes the last stretch straight into it once its route comes within 100 of the lake's ends and 50 of its shores, and stops there. The old east-foot stream also gets a shallow valley from its head toward the lake's east end.
+- D2: the old east-foot stream used to run on south past the lake through the meadow; that stretch is gone now that it ends in the lake, with the footbridges where trails crossed it. The lake's outflow carries on down the fall as before.
+- D2: glacierEnd() first said the glacier east of the Steamboat Prow reached as far down as the one beside it, though the painting gives those rows to its neighbour; the right lake was drawn floating in the snow. A glacier whose west cleaver stops above its snout row now has no end of its own.
 
 ## 12. The reference pictures
 
