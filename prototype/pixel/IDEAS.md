@@ -191,3 +191,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Clouded Inflows** (round 5, D2). Where the milky streams run into Reflection Lake, a pale plume spreads into the clear water and fades, so you can see the glacier's flour arrive.
 - **A Longer Swim** (round 5, D2). The lake is bigger now, so the swim to the island could pass a loon or a floating log on the way.
 - **A Kingfisher on the Lake's Outflow** (round 5, D3). With the heron gone, a belted kingfisher could perch on a snag over the stream below the fall and rattle off downstream when TJ passes, a smaller, quicker riverside moment.
+- **A Film That Repeats Exactly** (round 5, S1a). `frames.sh` would pause the page's clock, hold it still while the page loads, and seed the last few real-time choices, so two runs of the same code give the same pixels and "this change moved nothing" becomes a check a script can make.
+- **Types Without a Port** (round 5, S1a). `// @ts-check` and a few JSDoc types on the modules the page talks to (`api` in `pixel.js`, `window.__info`) would have caught the plain page reading an undefined `MAP` at edit time.
