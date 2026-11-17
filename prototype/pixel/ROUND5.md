@@ -567,7 +567,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] H6. T58: the knife-edge redrawn, with no sinking into the rock. The two alternatives go into `IDEAS.md`.
 - [x] H7. T59: the binoculars pan round the cats and close only on space or the back button.
 - [x] H8. T60: yggdrasil with half the clip-ins.
-- [ ] H9. T62: Kubernetes-Manifests climbs out of the whiteout above a sea of cloud.
+- [x] H9. T62: Kubernetes-Manifests climbs out of the whiteout above a sea of cloud.
 - [ ] H10. T63: the cairn takes a stone a visit, capped at 12. The kick is gone.
 - [ ] H11. T52: each summit's timeline stop is named for its project. T54: the six clue lines in the project cards.
 
@@ -698,7 +698,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **H6 done.** trailhead's knife-edge is a thin fin of rock, 35 to 65 px deep, with a snow line and small blocks along its crest and a fluted face that dissolves into pale haze. Under it is air: haze with the faint shapes of two ridges far below, where the map used to be pasted. At each end the rock sweeps down as a buttress over 120 px. Astride it he sits on top of the crest, hips on the rock, the near leg hanging down the face in front and the far leg out of sight behind, both hands on the crest ahead. Nothing of him is inside the rock. Frame time 2.5 ms at 1920x1080 (before: 2.8).
 - **H7 done.** The binoculars on trailhead open on the cats as before and then stay open. The arrow keys, WASD or a drag move the view within a box round the cats (110 px either way, 80 up, 46 down), and it stops at the box's edges. Space closes it, and so does a BACK button drawn under the view. Under the button a line says how: "ARROWS: LOOK   SPACE: BACK" where there is a keyboard, "DRAG TO LOOK" where there is not. It never closes by itself, except when he is taken off the summit by dragging the timeline.
 - **H8 done.** yggdrasil's cable has an anchor every 116 px of the way, where it had one every 58. He stops to move his lanyards past an anchor 7 times, where he stopped 13 times. The whole climb takes 24.7 s (29.5 before), and he is on top after 21.1 s (25.9 before).
-- Next: H9.
+- **H9 done.** On Kubernetes-Manifests he now climbs out of the top of the whiteout. The cloud overhead tears open from the top of the picture down, the sun shows through it as a pale disc, and then he is in clear air on the last of the slope with a sea of cloud below him. The lower slope, the crevasses and the feet of the other peaks are under it. The spires and the crests of the far range stand out of it. It is the same from Day to Dusk and on a phone. The whiteout before it did not change.
+- Next: H10.
 
 ## 11. Calls made in round 5
 
@@ -1037,3 +1038,11 @@ One line each, newest last: the item, what was decided, and why.
 - H8, one number (`climb.js`, `ROUTES.yggdrasil.anchor`). Each stop is 0.8 s, so six fewer stops take 4.8 s off. The anchors now fall at the start, half way to the rungs, twice on the rungs, between the walls, at the top of the ladder and at the cable's end. The cable sags the same 2.5 px between anchors, over twice the span. The walking pace, the rungs, the ladder and the tree did not change.
 - H8, measured: every climb's length, from the scene's own `dur`, now and in round 4. bluebird 24.6 s (29.1), tks 30.1 (28.8), hevy-garmin-sync 21.7 (30.3), trailhead 30.1 (30.1), yggdrasil 24.7 (29.5), kubernetes-manifests 29.5 (29.5). tks is 1.3 s longer since H4's one wall.
 - H8, compared with round 4's build at three places and filmed in motion close up: both lanyards still go past each anchor one after the other. The check passed with nothing moved.
+- H9, how (`climb.js`): the route has `sea: [-110, 340, 420]`, the height of the cloud's top and the two x between which the whiteout lets go. The clearing follows where he is, not the clock, so he is always at the cloud's top when it opens. He crosses the top at about x 398 and the summit is 30 px above it. `inversion()` paints the sea. It was bluebird's until H2 took the long ridge away, and nothing had used it since.
+- H9, the sea is painted twice: a band toward the horizon behind the spires, and the near sea over the slope and everything on it. While he is still inside the cloud the near sea's top dips to the snow around him, so the ground he walks on shows. Wands that stand under the cloud are not drawn once he is out.
+- H9, call: the other peaks are moved while the whiteout hides them, the far range 8 px down and the spires 8 px up, so that the range shows only its crests and more spires clear the cloud. The first try sank both and one spire was left.
+- H9, call: the bank of cloud used to slide off to the right as it cleared. On this route it now stays overhead and thins, darkest parts first, from the top of the picture down. No fair-weather clouds are drawn above the sea.
+- H9, call: the pale sun shows at Dusk too, for about two seconds, beside the moon. Bluebird Forecast's does the same.
+- H9, call: the glissade down is one picture shared by all six climbs and still shows clear sky and whole mountains. He leaves the summit through the same white cut as before, which now reads as dropping back into the cloud.
+- H9, removed: the two lines that drew the old ridge inversion for `brk`, which no route has had since H2. The rest of the `brk` code (the rime, the rimed figures) is still in the file and never runs.
+- H9, measured: 14.0 ms a frame while it clears (round 4: 13.3) and 4.1 ms on top, at 1920 by 1080. The climb is still 29.5 s. The check passed with nothing moved.

@@ -361,3 +361,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Clip Only at the Walls** (round 5, H8). On the easy ground he walks with a hand on the cable and the lanyards slide along it. He stops to move them only at the foot and the top of each wall.
 - **One Lanyard at a Time Shown Large** (round 5, H8). The first clip-in is shown close up once, like the phone and the watch, so the two-lanyard rule is understood and later ones can pass quickly.
 - **A Climb Length Check** (round 5, H8). The check script prints every climb's length and warns when one goes over 30 s.
+- **Glissade Into the Cloud** (round 5, H9). On Kubernetes-Manifests the slide down starts above the sea of cloud and drops into it, and he comes out underneath near the tent.
+- **The Other Summits by Name** (round 5, H9). The peaks that stand out of the cloud are the other five climbs, each with its own shape and the thing on its top, so the view from one summit shows the rest.
+- **A Brocken Spectre** (round 5, H9). At the cloud's top, with the sun behind him, his shadow falls on the cloud below inside a ring of colour.
+- **Cloud Sea From the Map** (round 5, H9). On the days the map's weather is low cloud, the spires on the map stand out of it too.

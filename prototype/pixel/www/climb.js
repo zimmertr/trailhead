@@ -48,7 +48,7 @@ const ROUTES = {
   // whiteout he follows the wands to a crevasse with no way over (`dead`: where he stops, the wand he goes
   // back to, and where the line picks up beyond it), jumps a narrow one, crosses a sagging snow bridge, and
   // comes out as the storm lets go near the cairn.
-  'kubernetes-manifests': { kind: 'wands', secs: 23, sx: 520, w: 1200, dead: [196, 172, 240], xings: [[200, 232, 'open'], [288, 300, 'jump'], [350, 380, 'sag']], pts: [[0, 0], [60, -14], [120, -34], [200, -58], [232, -62], [290, -80], [298, -82], [350, -100], [380, -104], [440, -124], [520, -140], [562, -140], [588, -104], [658, -4], [758, 116]] }
+  'kubernetes-manifests': { kind: 'wands', secs: 23, sx: 520, w: 1200, dead: [196, 172, 240], sea: [-110, 340, 420], xings: [[200, 232, 'open'], [288, 300, 'jump'], [350, 380, 'sag']], pts: [[0, 0], [60, -14], [120, -34], [200, -58], [232, -62], [290, -80], [298, -82], [350, -100], [380, -104], [440, -124], [520, -140], [562, -140], [588, -104], [658, -4], [758, 116]] }
 };
 // How slowly each kind of crossing is taken, as a multiple of the walking pace.
 const SLOW = { snow: 2.2, ladder: 3, lashed: 3.4, sag: 3.2, jump: 1, open: 1 };
@@ -528,15 +528,22 @@ function rimeOn(bm) {
 function paleSun(scr, cx, cy, r, a) {
   for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) { const d = Math.hypot(x, y) / r; if (d <= 1 && bayer(cx + x, cy + y) < a * (1.2 - d * 0.4)) scr.set(cx + x, cy + y, d < 0.75 ? R.white[1] : R.snow[4]); }
 }
-// The top of the cloud sea seen from just above it: billows along its edge, soft shading in its body,
-// laid over everything below y0. As he emerges (a from 0 to 1) it settles up into place from below.
-function inversion(scr, y0, camX, t, a) {
-  const { VW, VH, fb } = scr;
+// The top of a sea of cloud seen from just above it (round 5, T62): billows along its edge, soft shading in
+// its body, laid over everything below y0 and dithered in by a. While he is still inside it (in < 1), its
+// top dips to the snow around him at sx, so the ground he stands on shows; `surf` gives the slope's height
+// on screen. With `band` it is the same sea farther off, toward the horizon: flatter, paler, and only
+// that many pixels deep, because the near sea covers the rest.
+function inversion(scr, y0, camX, t, a, band, sx, bowl, surf) {
+  const { VW, VH, fb } = scr, tone = band ? [R.sky[4], R.snow[3], R.snow[4]] : [R.snow[2], R.snow[3], R.snow[4]];
   for (let x = 0; x < VW; x++) {
-    const wx = x + camX * 0.5, top = Math.round(y0 + (1 - a) * VH * 0.35 - 3 - 4 * fbm(wx / 34, t * 0.02, 290, 2) - 2 * Math.sin(wx / 11 + t * 0.3));
-    for (let y = Math.max(0, top); y < VH; y++) {
+    const wx = x + camX * (band ? 0.2 : 0.5);
+    let top = y0 - 3 - (band ? 2 : 4) * fbm(wx / (band ? 52 : 34), t * 0.02, 290, 2) - (band ? 1 : 2) * Math.sin(wx / (band ? 19 : 11) + t * 0.3);
+    if (bowl > 0) { const w = bowl * (1 - smooth(46, 130, Math.abs(x - sx))); if (w > 0) { const g = surf(x) + 5; if (g > top) top += (g - top) * w; } }
+    top = Math.round(top);
+    for (let y = Math.max(0, top), end = band ? Math.min(VH, top + band) : VH; y < end; y++) {
+      if (a < 1 && bayer(x, y) >= a) continue;
       const d = y - top, v = vnoise((wx + t * 3) / 24, d / 5, 291);
-      fb[y * VW + x] = d < 1 ? R.snow[4] : d < 3 ? (v > 0.45 ? R.snow[4] : R.snow[3]) : v > 0.6 ? R.snow[4] : v > 0.32 ? R.snow[3] : R.snow[2];
+      fb[y * VW + x] = d < 1 ? tone[2] : d < 3 ? (v > 0.45 ? tone[2] : tone[1]) : v > 0.6 ? tone[2] : v > 0.32 ? tone[1] : tone[0];
     }
   }
 }
@@ -881,15 +888,20 @@ export function makeClimb() {
       const wl = cfg.wait && me.ph === 'up' ? pl.legs.find(l => l.wait) : null, tTurn = wl ? wl.t0 + PHONE.turn * (wl.t1 - wl.t0) : 0, rain = wl ? 1 - smooth(tTurn + 0.3, tTurn + 2.4, tau) : 0;
       const storm = kind === 'ridge' && me.ph === 'up' ? (wl ? 1 - smooth(tTurn + 1.2, wl.t1 + 3.4, tau) : cfg.brk ? 1 - smooth(cfg.brk * 0.53, cfg.brk, up) : 1 - smooth(0.5, 0.86, up)) : 0;
       const windK = cfg.wait ? 0 : !cfg.brk ? storm : storm > 0.7 ? 1 : storm > 0.4 ? 0.6 : storm > 0.08 ? 0.3 : 0;
-      if (cfg.brk && cfg.invY == null) { const a = arc(id); cfg.invY = hOf(pts, xAt(a, cfg.brk * a[a.length - 1])) - 8; }
       // The storm on the wanded route blows in by stages as he gains height: gusts in clear air, a bank of
       // cloud sliding over from the right, the first flakes, heavy snow, then white. It lets go slowly near the top.
-      let gust = 0, bank = 0, flakes = 0, heavy = 0, white = 0;
+      // On Kubernetes-Manifests he climbs out of the top of it instead (round 5, T62): `out` goes from 0 to 1 as he
+      // comes up through the cloud's top, `roof` is the cloud still overhead, and `sea` brings in the sea of
+      // cloud that is left below him. The other peaks sink a little behind the whiteout, so that only their tops
+      // stand out of the sea.
+      let gust = 0, bank = 0, flakes = 0, heavy = 0, white = 0, out = 0, roof = 0, sea = 0, sunk = 0;
       if (kind === 'wands' && me.ph === 'up') {
         const S7 = cfg.dead ? [0.04, 0.1, 0.06, 0.2, 0.12, 0.2, 0.18, 0.26, 0.24, 0.32, 0.72, 1] : [0.07, 0.14, 0.1, 0.34, 0.2, 0.3, 0.34, 0.5, 0.5, 0.63, 0.74, 0.98];
-        const clear = 1 - smooth(S7[10], S7[11], up);
-        gust = smooth(S7[0], S7[1], up) * (1 - smooth(0.84, 0.99, up)); bank = smooth(S7[2], S7[3], up) * clear;
-        flakes = smooth(S7[4], S7[5], up) * (1 - smooth(0.82, 0.99, up)); heavy = smooth(S7[6], S7[7], up) * clear; white = smooth(S7[8], S7[9], up) * clear;
+        if (cfg.sea) { out = smooth(cfg.sea[1], cfg.sea[2], me.x); sea = smooth(cfg.sea[1] - 40, cfg.sea[1] + 10, me.x); sunk = smooth(cfg.sea[1] - 100, cfg.sea[1], me.x); }
+        const clear = cfg.sea ? 1 - out : 1 - smooth(S7[10], S7[11], up);
+        roof = smooth(S7[2], S7[3], up); bank = roof * clear; if (out >= 1) roof = 0;
+        gust = smooth(S7[0], S7[1], up) * (cfg.sea ? 1 - smooth(0.3, 1, out) : 1 - smooth(0.84, 0.99, up));
+        flakes = smooth(S7[4], S7[5], up) * (cfg.sea ? clear : 1 - smooth(0.82, 0.99, up)); heavy = smooth(S7[6], S7[7], up) * clear; white = smooth(S7[8], S7[9], up) * clear;
         // On the long maze the whiteout eases a little once he is past the dead end, enough to see the crevasses.
         if (cfg.dead) white *= 1 - 0.4 * smooth(0.5, 0.58, up);
         // At the dead end and at the jump the cloud parts just enough for him (and us) to see the crevasse.
@@ -897,11 +909,11 @@ export function makeClimb() {
       }
 
       // Sky: blue, or the grey of the storm it clears from.
-      const sb = R.skyband, front = VW * (1.2 - 1.6 * bank), stormy = storm > 0 || bank > 0;
+      const sb = R.skyband, over = cfg.sea ? roof : bank, front = VW * (1.2 - 1.6 * over), stormy = storm > 0 || over > 0;
       if (stormy) blow(scr, t, storm > 0);
       for (let y = 0; y < VH; y++) {
         const f = clamp((y + 60 + cam.y * 0.3) / 320, 0, 1) * (sb.length - 1), b0 = Math.floor(f), e = f - b0, row = y * VW, at = y * drift.w;
-        const rag = bank > 0 ? front + 90 * (vnoise(y / 34 + t * 0.1, 7, 262) - 0.5) - 30 : 0, lid = storm * 1.5 - 0.2;
+        const rag = over > 0 ? front + 90 * (vnoise(y / 34 + t * 0.1, 7, 262) - 0.5) - 30 : 0, lid = storm * 1.5 - 0.2, thin = out > 0 ? out * 1.3 - 0.3 * y / VH : -1;
         for (let x = 0; x < VW; x++) {
           let c = sb[Math.min(sb.length - 1, b0 + (e > 0.72 && bayer(x, y) < (e - 0.72) / 0.28 ? 1 : 0))];
           if (stormy) {
@@ -910,17 +922,19 @@ export function makeClimb() {
             // horizon, tearing open in patches as he gains height. On the wanded route it is a grey bank
             // that slides in from the right with a ragged front.
             if (storm > 0) { if (n < lid) c = R.rock[clamp(Math.floor((0.1 + 0.7 * m + 0.3 * y / VH) * 5), 0, 4)]; }
-            else if (x > rag + 60 * n) c = R.snow[m < 0.4 ? 0 : m < 0.6 ? 1 : 2];
+            else if (x > rag + 60 * n && m > thin) c = R.snow[m < 0.4 ? 0 : m < 0.6 ? 1 : 2];
           }
           fb[row + x] = c;
         }
       }
       // Through the thinning deck the sun shows as a pale disc, before the cloud lets go entirely.
       if ((cfg.brk || cfg.wait) && storm > 0.03 && storm < 0.97) paleSun(scr, Math.round(VW * 0.7), Math.round(VH * 0.18), 9, smooth(0.03, 0.5, 1 - storm) * (1 - (cfg.wait ? smooth(0.4, 0.62, 1 - storm) : smooth(0.75, 0.97, 1 - storm))));
-      // Fair-weather cloud drifting high over the range, when there is sky to see.
-      if (storm < 0.3 && bank < 0.3) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v - camX * 0.06) % (VW + 140) + VW + 140) % (VW + 140) - 70, c.y * VH * 0.5 + 12 + cam.y * 0.12);
-      drawStrip(scr, far, 200 + camX * 0.15, base + 40 + cam.y * 0.8 + 30);
-      drawStrip(scr, mid, 120 + camX * 0.42, base + cam.y * 0.55 + 46, false, 0);
+      if (out > 0.03 && out < 0.97) paleSun(scr, Math.round(VW * 0.7), Math.round(VH * 0.18), 9, smooth(0.03, 0.5, out) * (1 - smooth(0.75, 0.97, out)));
+      // Fair-weather cloud drifting high over the range, when there is sky to see. None above the sea of cloud.
+      if (storm < 0.3 && bank < 0.3 && !sea) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v - camX * 0.06) % (VW + 140) + VW + 140) % (VW + 140) - 70, c.y * VH * 0.5 + 12 + cam.y * 0.12);
+      drawStrip(scr, far, 200 + camX * 0.15, base + 40 + cam.y * 0.8 + 30 + Math.round(8 * sunk));
+      if (sea > 0) inversion(scr, Math.round(base + cfg.sea[0]) - 9, camX, t, sea, 60);
+      drawStrip(scr, mid, 120 + camX * 0.42, base + cam.y * 0.55 + 46 - Math.round(8 * sunk), false, 0);
       // A sea of cloud below the summits.
       if (!cfg.brk && !cfg.wait) for (let y = Math.max(0, Math.round(base + cam.y * 0.8 + 60)); y < VH; y++) { const row = y * VW, d = clamp((y - (base + cam.y * 0.8 + 60)) / 80, 0, 1); for (let x = 0; x < VW; x++) { const n = fbm((x + camX * 0.3 + t * 4) / 60, y / 14, 243, 3); if (n > 0.6 - d * 0.3) fb[row + x] = n > 0.68 - d * 0.3 ? R.white[1] : R.sky[4]; } }
       // The far peaks go first: the cloud takes them before any snow reaches him.
@@ -931,12 +945,6 @@ export function makeClimb() {
       // The icefall's seracs stand behind the route.
       if (kind === 'icefall' && me.ph === 'up') for (const s of seracs) scr.put(s.bm, X(s.x), Y(hOf(pts, s.x) + 7), false);
       drawStrip(scr, S, camX, base, false, R.snow[1]);
-      // Above the inversion: the cloud he climbed through lies below him as a sea, flat-topped and
-      // billowing, covering the lower ridge and the feet of the other peaks. The rime glitters.
-      if (cfg.brk && me.ph === 'up' && up > cfg.brk - 0.08) {
-        inversion(scr, Y(cfg.invY), camX, t, smooth(cfg.brk - 0.08, cfg.brk + 0.04, up));
-        if (S.rime && up > cfg.brk) for (const [rx, ry] of S.rime) if (hash(rx, Math.floor(t * 3), 293) > 0.93) scr.set(X(rx), Y(ry), R.white[1]);
-      }
       // As the snow thickens, everything dark goes behind it (rock, the far wands, the edge of the slope) while the snow at his feet stays.
       if (heavy > 0.02) veil(scr, heavy * 0.85, [R.snow[1], R.snow[2]], X(me.x), Y(me.y) - 12, pale);
       // His tracks stay in the snow behind him: boot prints on the way up, one long groove on the way down.
@@ -1004,6 +1012,8 @@ export function makeClimb() {
         scr.put(tent, X(-52), Y(-1), false);
       }
       const sx = X(me.x), sy = Y(me.y);
+      // The sea of cloud he climbed through, lying on the lower slope and round the feet of the other peaks.
+      if (sea > 0) inversion(scr, Y(cfg.sea[0]), camX, t, sea, 0, sx, 1 - out, x => base + hOf(pts, x + camX - OFF));
       // The blown snow closes over the slope, thinnest around him, and the wands lead through it: the
       // nearest in full colour, the next only as shapes.
       if (kind === 'wands' && me.ph === 'up') {
@@ -1011,7 +1021,7 @@ export function makeClimb() {
         for (let wx = 20; wx < SXr; wx += 38) {
           if (xingAt(cfg, wx, 8)) continue;
           const away = Math.abs(wx - me.x), ghost = white > 0.35 && away > 60; if (white > 0.35 && away > 132) continue;
-          const wy = hOf(pts, wx); for (let j = 1; j < 15; j++) scr.set(X(wx), Y(wy - j), ghost ? R.snow[2] : R.wood[3]);
+          const wy = hOf(pts, wx); if (sea > 0.5 && wy > cfg.sea[0] + 6 && away > 60) continue; for (let j = 1; j < 15; j++) scr.set(X(wx), Y(wy - j), ghost ? R.snow[2] : R.wood[3]);
           const fl = Math.floor(t * (6 + 6 * gust) + wx) & 1; for (let i = 1; i < 5; i++) for (let j = 0; j < 3; j++) scr.set(X(wx) - i, Y(wy - 15 + j + (fl && i > 2 ? 1 : 0)), ghost ? R.snow[2] : R.blaze[j === 0 ? 2 : 1]);
           scr.set(X(wx), Y(wy - 15), ghost ? R.snow[2] : R.wood[4]);
         }
