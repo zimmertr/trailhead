@@ -153,6 +153,45 @@ export { makeTrunk, makeLimb, swordFern };
 // Noise along a strip that joins up where the strip wraps round.
 const loopN = (x, W, s, seed) => { const a = x / W * TAU, r = W / (TAU * s); return fbm(Math.cos(a) * r + 40, Math.sin(a) * r + 40, seed, 3); };
 
+// Old man's beard (round 5, T39): a tuft of pale lichen hanging from a limb, widest where it is fastened and
+// tapering to a wisp, a little wavy. put(x, y, colour); c is its body and tip is its last two pixels.
+function beard(put, x, y, len, half, c, tip, id) {
+  for (let dx = -half; dx <= half; dx++) {
+    const l = Math.round(len * (1 - Math.abs(dx) / (half + 1)) * (0.65 + 0.35 * hash(dx + 9, id, 771))), ph = hash(id, dx, 772) * 6;
+    for (let j = 0; j < l; j++) put(x + dx + Math.round(0.7 * Math.sin(j / 4 + ph)), y + j, j >= l - 2 ? tip : c);
+  }
+}
+// A limb of the middle ground, alive: thick where it leaves the trunk, moss heaped along its top, old man's
+// beard hanging from it in tufts. C: { wood, moss, top, beard, tip }.
+function mossLimb(put, x0, y0, dir, len, id, C) {
+  const yAt = i => y0 - Math.sin(i / len * 2) * 6 + i * i / len * 0.2;
+  for (let i = 0; i < len; i++) {
+    const yy = Math.round(yAt(i)), th = i < len * 0.35 ? 3 : i < len * 0.75 ? 2 : 1, m = (i < len * 0.5 ? 2 : 1) + (vnoise(i / 3.5, id, 773) > 0.55 ? 1 : 0) - (i > len - 3 ? 1 : 0);
+    for (let j = 0; j < th; j++) put(x0 + dir * i, yy + j, C.wood);
+    for (let j = 1; j <= m; j++) put(x0 + dir * i, yy - j, j === m ? C.top : C.moss);
+  }
+  for (let n = 0, nt = 3 + Math.floor(len / 6); n < nt; n++) {
+    const i = Math.round(1 + hash(n, id, 774) * (len - 3)), near = 1 - i / len;
+    beard(put, x0 + dir * i, Math.round(yAt(i)) + (i < len * 0.35 ? 3 : 2), 6 + hash(n, id, 775) * (10 + 13 * near), hash(n, id, 776) < 0.6 ? 2 : 1, C.beard, C.tip, id * 13 + n);
+  }
+}
+// The rainforest's understory along the middle ground's edge (T39): a sword fern, a clump of salal, or a
+// young hemlock with its top nodding over. Each is drawn in the mist's colours, so it stays in the fog.
+function midPlant(put, kind, x, gy, rand, C) {
+  if (kind === 'fern') {
+    const n = 6 + (rand() * 3 | 0), L = 8 + rand() * 6;
+    for (let f = 0; f < n; f++) { const a = (-1.25 + 2.5 * (f + 0.5) / n) + (rand() - 0.5) * 0.2, l = L * (0.7 + 0.3 * rand());
+      for (let q = 0; q <= l; q++) { const u = q / l, px = x + Math.sin(a) * q, py = gy - Math.cos(a) * q + u * u * l * 0.55; put(px, py, C.moss); if (q > 1 && q % 2 === 0) { put(px, py - 1, C.top); if (q < l - 2) put(px + (a < 0 ? -1 : 1), py + 1, C.moss); } } }
+  } else if (kind === 'salal') {
+    const rx = 6 + rand() * 6, ry = 4 + rand() * 3;
+    for (let dy = -ry * 2; dy <= 0; dy++) for (let dx = -rx; dx <= rx; dx++) { const e = sq(dx / rx) + sq((dy + ry * 0.8) / (ry * 1.25)); if (e > 1) continue; const leaf = ((Math.round(x) + dx) + 2 * (Math.round(gy) + dy)) % 4; put(x + dx, gy + dy, e > 0.75 && hash(dx, dy, 777) < 0.4 ? 0 : leaf === 0 ? C.top : leaf === 1 ? C.moss : C.wood); }
+  } else {
+    const h = 16 + rand() * 20, nod = rand() < 0.5 ? -1 : 1;
+    for (let j = 0; j < h; j++) { const y = gy - h + j, hw = j < 3 ? 0 : 1 + (j - 2) * 0.3 * (j % 5 === 4 ? 0.55 : 1), cx = x + (j < 4 ? nod * (4 - j) * 0.7 : 0);
+      for (let i = -Math.round(hw); i <= Math.round(hw); i++) put(cx + i, y + (Math.abs(i) > hw * 0.6 && hw > 1.5 ? 1 : 0), i < -hw * 0.3 ? C.moss : C.wood); }
+    put(x, gy, C.wood); put(x, gy + 1, C.wood);
+  }
+}
 // One far layer of the forest. Trunks stand in uneven groups with gaps of light between the groups,
 // some of them broken off short. Each layer has its own ground, higher up the view the further off
 // it is, with undergrowth and young firs along it; limbs trail moss, boughs hang higher up, and the
@@ -174,10 +213,17 @@ function farLayer(S, seed, o) {
     // Limbs droop away from the trunk and trail moss.
     for (let k = 0, n = snag ? 1 : Math.round(o.limbs * (0.4 + 1.2 * rand())); k < n; k++) {
       const up = Math.min(foot - top - 8, 50 + rand() * 300), dir = rand() < 0.5 ? -1 : 1, len = 6 + w * (1.5 + rand() * 2.5);
+      // Round 5 (T39): the limb is thick where it leaves the trunk and mossed along its top, and what hangs from it
+      // hangs in tufts of old man's beard, not as a comb of single threads. A snag's one limb stays bare.
+      const yAt = i => foot - up - Math.sin(i / len * 2) * len * 0.2 + i * i / len * 0.24;
       for (let i = 0; i < len; i++) {
-        const yy = foot - up - Math.sin(i / len * 2) * len * 0.2 + i * i / len * 0.24, lx = at(up) + dir * (w / 2 + i);
-        put(lx, yy, body); if (i < len * 0.5 && w > 5) put(lx, yy + 1, body);
-        if (hash(i, k, Math.round(x)) < o.moss) for (let j = 1; j < 3 + hash(i, Math.round(x), 2) * w; j++) put(lx, yy + j, body);
+        const yy = yAt(i), lx = at(up) + dir * (w / 2 + i);
+        put(lx, yy, body); if (i < len * 0.6 && w > 3) put(lx, yy + 1, body); if (i < len * 0.3 && w > 6) put(lx, yy + 2, body);
+        if (!snag && w > 3 && vnoise(i / 3, k, Math.round(x)) > 0.3) put(lx, yy - 1, lit);
+      }
+      if (!snag) for (let n = 0, nt = Math.round((2 + len / 7) * (0.5 + o.moss * 1.7)); n < nt; n++) {
+        const i = Math.round(1 + hash(n, k, Math.round(x) + 5) * (len - 2));
+        beard(put, at(up) + dir * (w / 2 + i), Math.round(yAt(i)) + 1, 3 + hash(n, k + 2, Math.round(x)) * (3 + w * 1.3), w > 6 && hash(n, 7, Math.round(x)) < 0.5 ? 2 : w > 3 ? 1 : 0, body, body, Math.round(x) * 7 + k * 3 + n);
       }
     }
     // Boughs: flat sprays of needles, fringed underneath, more of them the higher up.
@@ -261,6 +307,7 @@ function buildForest() {
   // The far trees used to take their numbers from the same run of dice as everything below. The
   // run is still wound on by as much as they took, so every trunk, fern and log stands where it did.
   for (let x = 4; x < SW; x += 13 + rand() * 24) { rand(); rand(); }
+  const midPut = (x, y, c) => { if (c) mid.set(Math.round(x), Math.round(y), c); }, MIDC = { wood: R.mist[1], moss: R.moss[3], top: R.moss[4], beard: R.mist[3], tip: R.mist[4] }, MIDP = { wood: R.moss[2], moss: R.moss[3], top: R.moss[4] };
   for (let x = 20; x < SW; x += 46 + rand() * 60) {
     const w = 9 + (rand() * 11 | 0), lean = (rand() - 0.5) * 0.04;
     for (let y = -UP; y < 6; y++) {
@@ -269,15 +316,25 @@ function buildForest() {
     }
     for (let k = 0; k < 3; k++) {
       const by = -70 - rand() * 300, dir = rand() < 0.5 ? -1 : 1, len = 14 + rand() * 30;
-      for (let i = 0; i < len; i++) { const yy = by - Math.sin(i / len * 2) * 6 + i * i / len * 0.2; mid.set(x + (dir > 0 ? w : 0) + dir * i, yy, R.mist[2]); mid.set(x + (dir > 0 ? w : 0) + dir * i, yy + 1, R.mist[1]); if (hash(i, k, x) < 0.3) for (let j = 2; j < 4 + hash(i, x, 2) * 9; j++) mid.set(x + (dir > 0 ? w : 0) + dir * i, yy + j, R.mist[2]); }
+      mossLimb(midPut, x + (dir > 0 ? w : 0) + lean * -by, by, dir, len, Math.round(x) * 5 + k, MIDC);
     }
+    // Two more limbs lower down, where the eye rests, and moss in patches up the trunk's lit side (T39). Their
+    // own dice (hash), so nothing else in the forest moves.
+    for (let k = 3; k < 5; k++) { const hx = Math.round(x) * 5 + k, by = -52 - hash(hx, 1, 778) * 150, dir = hash(hx, 2, 778) < 0.5 ? -1 : 1, len = 12 + hash(hx, 3, 778) * 26; mossLimb(midPut, x + (dir > 0 ? w : 0) + lean * -by, by, dir, len, hx, MIDC); }
+    for (let y = -UP; y < 0; y++) for (let dx = 0; dx < w * 0.55; dx++) if (fbm((x + dx) / 5, y / 14, 779, 3) > 0.6 - 0.12 * smooth(-160, 0, y)) mid.set(x + dx + lean * -y, y, dx < 2 ? R.moss[3] : R.moss[2]);
   }
   for (let x = 0; x < SW; x++) {
     // High enough to show over the bank behind the trail, as the nearest of the three far ground lines.
     const top = -41 - 12 * fbm(x / 17, 4, 88, 3) - 5 * Math.max(0, Math.sin(x / 6.5) * vnoise(x / 30, 3, 89));
-    for (let y = Math.round(top); y < 30; y++) mid.set(x, y, y - top < 1.5 ? R.mist[3] : y - top < 5 ? R.mist[2] : R.mist[1]);
+    // Moss lies on this floor in patches (T39): the pale, fog-lit edge stays where the moss is thin.
+    const mossy = vnoise(x / 26, 7, 780) + 0.3 * vnoise(x / 5, 8, 780);
+    for (let y = Math.round(top); y < 30; y++) { const d = y - top;
+      mid.set(x, y, mossy > 0.52 ? (d < 1.5 ? R.moss[4] : d < 4 ? R.moss[3] : d < 7 + 3 * mossy && ((x + y) & 1 || d < 5.5) ? R.moss[2] : R.mist[1]) : d < 1.5 ? R.mist[3] : d < 5 ? R.mist[2] : R.mist[1]); }
     for (let y = -UP; y < -200 - 110 * fbm(x / 50, 5, 90, 3); y++) if (fbm(x / 16, y / 13, 91, 3) > 0.46) mid.set(x, y, fbm(x / 16, (y - 3) / 13, 91, 3) > 0.46 ? R.mist[1] : R.mist[2]);
   }
+  // The middle ground's understory (T39): sword ferns, salal and young hemlocks along its edge, with dice of their own.
+  { const pr = rng(3902), midTop = x => -41 - 12 * fbm(x / 17, 4, 88, 3) - 5 * Math.max(0, Math.sin(x / 6.5) * vnoise(x / 30, 3, 89));
+    for (let x = 8; x < SW - 8; x += 14 + pr() * 30) { const k = pr(); midPlant(midPut, k < 0.45 ? 'fern' : k < 0.75 ? 'salal' : 'hemlock', x, Math.round(midTop(x)) + 2, pr, MIDP); } }
 
   // The ground: back bank, trail, verge, the far bank of the stream, and the near bank in front.
   const main = new Strip(SW, 60, DOWN), water = new Strip(SW, 0, 90);

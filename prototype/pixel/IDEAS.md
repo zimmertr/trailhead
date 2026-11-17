@@ -285,3 +285,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Burrow** (round 5, E11). A dark hole beside each boulder that the marmot dives into when TJ comes within 20 px, and peers out of.
 - **Whistle Marks** (round 5, E11). Two or three small curved lines by the marmot's mouth for the half second it whistles, for visitors with the sound off.
 - **Pika Calls From the Talus** (round 5, E11). The same list of animal sounds could carry a pika's "eep" from the larch talus on the map.
+- **Beard That Sways** (round 5, F1). The old man's beard on the forest's middle ground moving a pixel or two with the wind, as the near limbs' moss curtains could too.
+- **Licorice Ferns on the Limbs** (round 5, F1). Small ferns growing out of the moss on top of the big limbs, as they do on bigleaf maples in the Hoh.
+- **A Bigleaf Maple** (round 5, F1). One broad, many-armed maple in the middle ground, every arm sleeved in moss, to break the row of straight conifer trunks.
+- **Devil's Club and Skunk Cabbage** (round 5, F1). Two more rainforest plants for the wet ground by the creek: big spiny leaves, and yellow hoods in spring.
+- **Drip From the Beard** (round 5, F1). After the shower event, a drop falling now and then from the tips of the hanging lichen.
