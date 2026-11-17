@@ -576,7 +576,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [x] M3. Colours used, of 254. Ready time. Frame rates. All in section 9.
 - [x] M4. The off-route page, a broken scene (`break=forest`), and a scene that fails to load still behave.
 - [x] M5. `IDEAS.md` pruned and current. No em dashes anywhere. `PROGRESS.md` gets a short round 4 report: done, weak, changed my mind about, every link.
-- [ ] **CHECKPOINT 8.** Branch `pixel-r4-final`, publish a new artifact, carry on.
+- [x] **CHECKPOINT 8.** Branch `pixel-r4-final`, publish a new artifact, carry on.
 
 ## 8. Steps
 
@@ -592,6 +592,11 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 | 2a: the game runs on the new land (and the opening view candidates, `plan/opening-r4.html`) | `pixel-r4-land` | https://claude.ai/artifact/WVKKSA9g8uC5PDePJhjXnk and https://claude.ai/artifact/XsZEi9AqXxgXo9FNgHm9LP | 2026-11-15 |
 | 2: the whole map with its events, smooth zoom, the closer opening and its look round, the old scenes behind it | `pixel-r4-map` (branch) | https://claude.ai/artifact/USrZi6317Qi7j7AYQamUBu | 2026-11-16 |
 | 3: the larch basin, a new side scene between the map and the wall on the way to Proficiency Peak | `pixel-r4-larches` (branch) | https://claude.ai/artifact/SE9Zd6bFoTbpe7auBQNJoD | 2026-11-16 |
+| 4: the West Ridge rebuilt | `pixel-r4-westridge` (branch) | https://claude.ai/artifact/MTcnFZLanLsZaiDyqpSprJ | 2026-11-16 |
+| 5: Reflection Lake rebuilt | `pixel-r4-lake` (branch) | https://claude.ai/artifact/EDjsTpeZNLKeSUzjc54vYe | 2026-11-16 |
+| 6: the walk to Spires base camp | `pixel-r4-spireswalk` (branch) | https://claude.ai/artifact/Un32mmD5aUe9tAi1m9Lt1p | 2026-11-16 |
+| 7: the six climbs | `pixel-r4-spires` (branch) | https://claude.ai/artifact/PcapMy398JpSpc5UmJKvTK | 2026-11-16 |
+| 8: round 4 finished (the Trailhead, the register, the whole-site checks) | `pixel-r4-final` (branch) | https://claude.ai/artifact/JoMxgPjCfo87iZPgFwXQRk | 2026-11-16 |
 
 ## 8a. Where the build stands (2026-11-15, commit after `204dc5b`)
 
@@ -669,6 +674,16 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
 - **The map below the knife-edge on trailhead's climb.** Round 3's climb had no such view, so this is new, but it reads below the rest: the map is laid over the lower half of the crest's own rock and stops in a dithered edge in the middle of it, so it looks pasted on. Showing the map only where the crest has nothing under it, faded at both ends, would fix it without losing the view.
 
 Better than round 3, for balance: the summit of Proficiency Peak above the cloud sea, the six climbs (each on its own ground), camp's backdrop, the larch basin and the walk to camp (both new), the register, and the forest, which is round 3's with more in it.
+
+**CHECKPOINT 8, round 4 finished (Opus, 2026-11-16; branch `pixel-r4-final` at `b8a575e`, https://claude.ai/artifact/JoMxgPjCfo87iZPgFwXQRk).** Every item in section 7 is ticked except J6, which is held for TJ.
+
+*What is done.* The world is one flat map on rails, layout 1 with the land climbing from the sea to the Spires: the coast and its stacks, the rainforest's foothills, Reflection Lake on its bench, Mount Monolith painted, Proficiency Peak, the larch basin, the Spires' granite wall, the sage country, the rivers and the far ranges. It zooms smoothly out to the whole map and opens at round 3's size on the Trailhead, with a look round to each destination. The map is alive with the mist, the marine layer, showers, the tide and a tide pool, the humpback, orcas, the ferry and a float plane, salmon and an osprey, a heron, serac falls, an avalanche and a cap cloud, tumbleweeds and dust devils, and at Dusk shooting stars, the aurora and headlamps, each with a start button. The larch basin and the walk to camp are new scenes; the West Ridge, Reflection Lake, camp's backdrop and the six climbs are rebuilt. The Trailhead has the trail register: the box on its post, the close-up of the book with earlier entries in four hands, TJ's note of what is left, and signing. The names are Reflection Lake and Proficiency Peak everywhere, round 3's addresses still land, the sign's distances are measured, the trail map sheet is drawn from the routes, the kiosk matches the world and all 17 finds answer. Every route runs clean in Day and Dusk on desktop and phone, the page is ready in 0.8 s as round 3's is, every view draws in under 16.7 ms, 251 of 254 colours are used, and breakage behaves.
+
+*What is still below round 3, and why.* The list in M2 above is the full account, held for TJ to choose from rather than put back. In short: the first screen on desktop and on a phone shows the places as small tags at the edges, because on this map they are too far apart to frame at round 3's size and moving them is a re-layout; Dusk on the map has no sky to light, so it is a dark wash with lilac clouds; two trunks cut into the shore stop; the West Ridge's rock is busy; the river's mouth is under the sea fog; and the map below trailhead's knife-edge looks pasted on. Below what I want but not round 3 comparisons: the flower slope's steepness, hevy-garmin-sync's faint breath, and all copy still draft.
+
+*What I changed my mind about.* Placing things by written positions (round 3's map dots), which this map broke, so they are found by rule; the extra words on the junction sign's planks; inventing a find (the ice worms), which is now TJ's choice; putting round 3 back, which became a list on TJ's word; and accepting a slower start as the price of a bigger map, which measured as a regression and is fixed.
+
+*Links.* This checkpoint https://claude.ai/artifact/JoMxgPjCfo87iZPgFwXQRk; the working build https://claude.ai/artifact/QzAfYnTZGZr8L8wfh1EksH; every earlier checkpoint in the table in section 8; round 3 to compare https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1. The same report, shorter, is at the end of `PROGRESS.md`.
 
 ## 9. Calls made in round 4
 

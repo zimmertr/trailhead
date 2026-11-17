@@ -520,7 +520,8 @@ Round 4 rebuilt the world as one flat map on rails (layout 1, the land climbing 
 
 ### Links
 
+- Round 4 finished (CHECKPOINT 8, branch `pixel-r4-final`): https://claude.ai/artifact/JoMxgPjCfo87iZPgFwXQRk
 - Working build, republished after each item: https://claude.ai/artifact/QzAfYnTZGZr8L8wfh1EksH
 - Checkpoints: 2, the map https://claude.ai/artifact/USrZi6317Qi7j7AYQamUBu; 3, the larch basin https://claude.ai/artifact/SE9Zd6bFoTbpe7auBQNJoD; 4, the West Ridge https://claude.ai/artifact/MTcnFZLanLsZaiDyqpSprJ; 5, Reflection Lake https://claude.ai/artifact/EDjsTpeZNLKeSUzjc54vYe; 6, the walk to camp https://claude.ai/artifact/Un32mmD5aUe9tAi1m9Lt1p; 7, the six climbs https://claude.ai/artifact/PcapMy398JpSpc5UmJKvTK. The block-ins, the quality pass and 2a are in section 8 of `ROUND4.md`.
-- Branch: https://github.com/zimmertr/trailhead/tree/pixel-round4-opus, with a branch for each checkpoint (`pixel-r4-map` to `pixel-r4-spires`).
+- Branch: https://github.com/zimmertr/trailhead/tree/pixel-round4-opus, with a branch for each checkpoint (`pixel-r4-map` to `pixel-r4-final`).
 - To compare with, unchanged: round 3 https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1 (tag `pixel-r3-final`).
