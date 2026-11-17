@@ -1,7 +1,7 @@
 // The animals of the world map and the water that moves: herds that graze and wander, a moose and its calf, bears with cubs, squirrels
-// and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, the
+// and chipmunks that dart, marmots that sit up and whistle, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
-import { TAU, clamp, lerp, smooth, frac, hash, vnoise, rng, R, INK, SHADE, KIND, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
+import { TAU, clamp, lerp, smooth, frac, hash, vnoise, rng, R, INK, SHADE, KIND, RAMP_OF, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
 import { makeElk, makeBird, makeMoose } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './land.js';
@@ -317,9 +317,17 @@ export function makeCritters(W, opts = {}) {
   const mar = { sun: marmot('sun'), up: marmot('up') };
   // Each has a few rocks' worth of ground round its own (E5i, TJ: no animal just stands still): now and then
   // it scurries a little way to sun somewhere else, and it still sits up when he comes by.
-  spots.marmots.forEach(([x, y], n) => items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: 16, st: 'sun', until: 4 + rand() * 10 }));
+  // Round 5 (T43, T29): the two in the parkland below Mount Monolith lie on a boulder each (perch: how high its
+  // top stands) and keep to it. Every 26 s, and when he comes near, a marmot sits up and whistles, then drops
+  // down again; the whistle sounds if the marmot is on screen. None sets foot on ice or snow.
+  const MAR = { cycle: 26, up: 2.6 }, sounds = [];
+  spots.marmots.forEach(([x, y0, perch = 0], n) => { const y = y0 + (perch ? 1 : 0); items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: perch ? 0 : 16, perch, lift: perch, st: 'sun', until: 4 + rand() * 10 }); });
+  const offIce = (x, y) => { const k = RAMP_OF[g[Math.round(y) * NW + Math.round(x)]]; return k !== 'glac' && k !== 'snow' && k !== 'farsnow'; };
   function scurry(a, dt, t, here) {
-    const up = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / 11 + a.n * 0.37) < 0.2;
+    const up = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / MAR.cycle + a.n * 0.37) < MAR.up / MAR.cycle || (a.call != null && t - a.call < MAR.up);
+    if (up && !a.wasUp) a.rose = t; else if (!up && a.wasUp && rand() < 0.5) a.flip = !a.flip;
+    a.wasUp = up;
+    if (a.perch) { a.bm = up ? mar.up : mar.sun; return; }
     if (a.st === 'run') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
       if (d < 0.8) { a.st = 'sun'; a.until = t + 6 + rand() * 12; a.hop = 0; }
@@ -327,7 +335,7 @@ export function makeCritters(W, opts = {}) {
     }
     a.bm = up ? mar.up : mar.sun;
     if (up || t < a.until) return;
-    for (let k = 0; k < 6; k++) { const an = rand() * TAU, rr = a.r * (0.3 + 0.7 * rand()), tx = a.hx + Math.cos(an) * rr, ty = a.hy + Math.sin(an) * rr * 0.6; if (W.open(tx, ty) && way((x, y) => W.open(x, y), a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'run'; return; } }
+    for (let k = 0; k < 6; k++) { const an = rand() * TAU, rr = a.r * (0.3 + 0.7 * rand()), tx = a.hx + Math.cos(an) * rr, ty = a.hy + Math.sin(an) * rr * 0.6; if (W.open(tx, ty) && offIce(tx, ty) && way((x, y) => W.open(x, y) && offIce(x, y), a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'run'; return; } }
     a.until = t + 5;
   }
 
@@ -924,6 +932,8 @@ export function makeCritters(W, opts = {}) {
 
   return {
     items,
+    // Sounds the animals made while they were drawn this frame; the map plays them and empties the list.
+    sounds,
     update(dt, t, here) {
       nowT = t; if (eagleItem) eagleSits(t);
       for (const a of items) {
@@ -935,9 +945,11 @@ export function makeCritters(W, opts = {}) {
     },
     draw(scr, a, ox, oy, t) {
       if (a.critter === 'whale') return drawWhale(scr, a, ox, oy, t);
-      if (a.walker || a.critter === 'marmot') scr.shadow(a.x - ox, a.y - oy, a.critter === 'marmot' ? 5 : 7, 1);
+      if (a.walker || (a.critter === 'marmot' && !a.perch)) scr.shadow(a.x - ox, a.y - oy, a.critter === 'marmot' ? 5 : 7, 1);
       else if (a.cub && !a.lift) scr.shadow(a.x - ox, a.y - oy, 4, 1);
-      scr.put(a.bm, a.x - ox, a.y - oy - (a.hop || 0), a.flip);
+      // A marmot that has just sat up whistles, if it is being drawn (so only when it is on screen).
+      if (a.critter === 'marmot' && a.rose != null && a.sung !== a.rose && t - a.rose < 0.5) { a.sung = a.rose; sounds.push('whistle'); }
+      scr.put(a.bm, a.x - ox, a.y - oy - (a.hop || 0) - (a.perch || 0), a.flip);
     },
     tideAt: t => ebbAt(t) / EBB,
     // For the checks: where the two fishing birds live and how far into its flight each is (under 0: not yet).
@@ -979,7 +991,7 @@ export function makeCritters(W, opts = {}) {
       const put = (a, x, y) => { const [sx, sy] = a.ok ? settle(a.ok, x, y) : [x, y], dx = sx - a.hx, dy = sy - a.hy; for (const b of [a, ...items.filter(k => k.mum === a)]) { b.hx += dx; b.hy += dy; b.fx = b.tx = b.x = b.hx; b.fy = b.ty = b.y = b.hy; if (b.walker) b.st = 'graze'; else if (b.cub) rest(b, nowT, 1); } };
       if (i === 'all') { for (const a of all) put(a, a.h0[0], a.h0[1]); return all.length > 0; }
       const h = homesOf(kind)[i]; if (!h || !all.length) return false;
-      if (kind === 'elk') { const lead = all[0], dx = h[0] - lead.hx, dy = h[1] - lead.hy; for (const a of all) put(a, a.hx + dx, a.hy + dy); } else if (kind === 'bear') { const sow = all.find(a => !!a.roamer === (i === roamAt)); if (!sow) return false; put(sow, sow.h0[0], sow.h0[1]); } else put(all[0], h[0], h[1]);
+      if (kind === 'elk') { const lead = all[0], dx = h[0] - lead.hx, dy = h[1] - lead.hy; for (const a of all) put(a, a.hx + dx, a.hy + dy); } else if (kind === 'bear') { const sow = all.find(a => !!a.roamer === (i === roamAt)); if (!sow) return false; put(sow, sow.h0[0], sow.h0[1]); } else if (kind === 'marmot') { if (!all[i]) return false; put(all[i], all[i].h0[0], all[i].h0[1]); } else put(all[0], h[0], h[1]);
       return true;
     },
     drawHull,
@@ -1054,6 +1066,7 @@ export function makeCritters(W, opts = {}) {
     trigger(name, t) {
       if (name === 'breach' || name === 'blow') { const n = Math.floor((t + whaleAhead + T0) / SLOT) + (name === 'breach' ? 1 : 0); whaleAhead = n * SLOT + starts(n) + (name === 'blow' ? 16.6 : 0) - t - T0; return true; }
       if (name === 'eagle') { eagAhead += startNow(EAG, t + eagAhead); return true; }
+      if (name === 'marmot') { let n = 0; for (const a of items) if (a.critter === 'marmot') { a.call = t; n++; } return n > 0; }
       // In each bear family: the cubs play now, or the first cub with a trunk near climbs it now.
       if (name === 'cubplay' || name === 'cubclimb') { let did = false;
         for (const sow of items.filter(a => a.sow)) { const cubs = items.filter(a => a.mum === sow && a.cub);

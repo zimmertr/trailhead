@@ -1437,7 +1437,18 @@ function habitat() {
   const herd = best((u, v) => S.parkAmt(u, v) > 0.5 && S.forestAmt(u, v) < 0.15 && fromT(u, v) > 120 && trailFar(u, v) > 16 && firm(u, v, 0.5) && shows(u, v, 12) && roomy(u, v), (u, v) => S.parkAmt(u, v) + 0.3 * rnd() - toB(u, v) / 60);
   // Marmots sun on rocks: parkland or moraine with a steep bit of ground right beside them.
   const rocky = (u, v) => [[-6, 0], [6, 0], [0, 5], [0, -5]].some(([a, b]) => S.slope(u + a, v + b) > 0.9);
-  const marmots = find(3, (u, v) => (S.parkAmt(u, v) > 0.3 || S.matAt(u, v) === 'moraine') && firm(u, v, 1.2) && shows(u, v, 8) && rocky(u, v), 140);
+  // Two of them sun on boulders in the parkland between Reflection Lake and Mount Monolith (T43): flower
+  // meadow 20 to 50 beyond the lake's far shore and no further east or west than 20 past its ends, 14 clear of
+  // the trail and of any stream, in plain sight, 60 apart. The meadow there is the mountain's steep lower slope, so
+  // the ground may be steeper than other animals' (up to 2). buildTerrain puts a boulder under each.
+  // None lies where glacier ice or snow is drawn behind it or beside it (T29, TJ: a full-size marmot against ice
+  // that is meant to look small and far away).
+  const iceBehind = (u, v) => { const x = Math.round(u), y = S.toY(u, v); for (let k = -2; k <= 16; k += 2) for (const a of [-10, 0, 10]) { const r = RAMP_OF[S.g[clamp(y - k, 0, SH - 1) * NW + clamp(x + a, 0, NW - 1)]]; if (r === 'glac' || r === 'snow' || r === 'farsnow') return true; } return false; };
+  const lakeM = C.lakes[0], streamNear = (u, v) => { for (let b = -12; b <= 12; b += 4) for (let a = -12; a <= 12; a += 4) if (S.water[at(u + a, v + b)]) return true; return false; };
+  const parkMarmots = find(2, (u, v) => S.parkAmt(u, v) > 0.5 && (S.matAt(u, v) === 'land' || S.matAt(u, v) === 'volc') && v > lakeM[1] + lakeM[3] + 20 && v < lakeM[1] + lakeM[3] + 50 && Math.abs(u - lakeM[0]) < lakeM[2] + 20 && trailFar(u, v) > 14 && !streamNear(u, v) && firm(u, v, 2) && shows(u, v, 16) && !iceBehind(u, v), 60);
+  // The third keeps to the moraine's rocks, or failing that the parkland's.
+  const onRocks = mor => (u, v) => (mor ? S.matAt(u, v) === 'moraine' : S.parkAmt(u, v) > 0.3) && firm(u, v, 1.2) && shows(u, v, 8) && rocky(u, v) && !iceBehind(u, v) && apartFrom(parkMarmots, u, v, 140);
+  const rockMarmot = find(1, onRocks(true)), marmots = [...parkMarmots, ...(rockMarmot.length ? rockMarmot : find(1, onRocks(false)))];
   // Goats on the granite: one nanny and kid on the step under Proficiency Peak, one pair higher up.
   const slab = (lo, hi) => (u, v) => S.matAt(u, v) === 'gran' && S.hAt(u, v) > lo && S.hAt(u, v) < hi && firm(u, v, 0.7) && shows(u, v, 12);
   const goats = [...find(1, slab(74, 100)), ...find(1, slab(100, 160))];
@@ -1503,7 +1514,7 @@ function habitat() {
     tdist, firm,
     signs: Object.entries(SIGNS).filter(([, p]) => p && p.length).map(([k, p]) => [...out(...p[0]), k]),
     elk: herdAt ? [[herdAt[0], herdAt[1], 0], [herdAt[0] + 34, herdAt[1] + 14, 1], [herdAt[0] - 20, herdAt[1] + 26, 1], [herdAt[0] + 16, herdAt[1] + 40, 0]] : [],
-    marmots: marmots.map(p => out(...p)),
+    marmots: marmots.map((p, n) => [...out(...p), n < parkMarmots.length ? 1 : 0, Math.round(p[1])]),
     goats: goats.flatMap(p => { const [x, y] = out(...p); return [[x, y, 0], [x + 16, y + 6, 1]]; }),
     sheep: sheep.map((p, n) => [...out(...p), n & 1]),
     squirrels: squirrels.map((p, n) => [...out(...p), n % 3 === 0 ? 1 : 0]),
@@ -1603,6 +1614,13 @@ export function buildTerrain() {
     const th = LAND.things[i], w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h;
     if (th.y > sy - 3 && th.y - h < sy + 1 && Math.abs(th.x - sx) < w / 2 + half) LAND.things.splice(i, 1);
   }
+  // A boulder under each parkland marmot (T43), with the flowers or heather that grew on the spot taken away.
+  // The marmot's third number becomes how high the boulder's top stands, so that it lies on it.
+  { const rock = makeBoulder(531, 5.5);
+    for (const mm of spots.marmots) if (mm[2]) {
+      for (let i = LAND.things.length - 1; i >= 0; i--) { const th = LAND.things[i]; if (!(th.tree ? th.tree.low : th.bm.h < 14)) continue; const w = th.tree ? th.tree.w : th.bm.w; if (Math.abs(th.y - mm[1]) < 7 && Math.abs(th.x - mm[0]) < (w + rock.w) / 2) LAND.things.splice(i, 1); }
+      LAND.things.push({ bm: rock, x: mm[0], y: mm[1], v: mm[3] }); mm[2] = rock.h - 5;
+    } }
   // The sea's corner, for the swells and the wash on the beach (critters.js): how wide and how tall the
   // corner is, found from the shore; then for each spot of it, whether a swell shows there and when, or
   // how far it is from the water's edge. cs: how far out from the high-water line each spot of sea and

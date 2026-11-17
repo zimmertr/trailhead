@@ -808,6 +808,7 @@ export function makeWorld() {
         else drawStill(scr, th, tq, ox, oy, dl, clipBlit, flags, t);
       }
 
+      if (crit.sounds.length) { for (const name of crit.sounds) env.sfx(name); crit.sounds.length = 0; }
       ev.draw(scr, ox, oy, t, env.mix || 0);
       if (env.mix > 0.02) duskHills(fb, VW, VH, ox, oy, HLIT, gNow, env.mix, WARM);
       // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge. Each is

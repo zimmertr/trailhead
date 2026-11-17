@@ -278,3 +278,10 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Animals Step Aside for TJ** (round 5, E10). Walkers may now cross the trail on their way: if TJ is coming, the animal could wait at the edge until he has passed.
 - **The Old Sheep Ground** (round 5, E10). The head of the coulee is empty since the sheep moved. A coyote trotting through at Dusk would suit it. Held for TJ.
 - **Calf Nurses** (round 5, E10). Wrong for a bull and calf, which TJ chose for the antlers: if a cow ever joins them the calf could nurse.
+- **Marmots Answer Each Other** (round 5, E11). When one whistles, the other across the stream could sit up and answer a second later.
+- **The Whistle Sends the Squirrels Running** (round 5, E11). A marmot's alarm when TJ comes near could make any squirrel within 80 px bolt.
+- **A Marmot Flattens for the Eagle** (round 5, E11). If the eagle's shadow ever crosses the parkland, the marmots could drop flat and stay down until it has gone.
+- **Marmots Wrestle** (round 5, E11). Two young marmots standing chest to chest and pushing, as they do on Rainier's meadows in July.
+- **A Burrow** (round 5, E11). A dark hole beside each boulder that the marmot dives into when TJ comes within 20 px, and peers out of.
+- **Whistle Marks** (round 5, E11). Two or three small curved lines by the marmot's mouth for the half second it whistles, for visitors with the sound off.
+- **Pika Calls From the Talus** (round 5, E11). The same list of animal sounds could carry a pika's "eep" from the larch talus on the map.
