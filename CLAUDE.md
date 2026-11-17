@@ -18,6 +18,7 @@ TJ's site, tjzimmerman.com, as one low-poly 3D mountain world that a visitor run
 | [`docs/STYLES.md`](docs/STYLES.md) | The plain page's look, its tokens, and what the tests hold |
 | [`docs/TRAFFIC.md`](docs/TRAFFIC.md) | Routes in, client identity, headers, and every outbound call |
 | [`docs/USAGE.md`](docs/USAGE.md) | What a visitor and TJ see, and what to do when it breaks |
+| [`prototype/pixel/`](prototype/pixel/ROUND4.md) | The pixel-art prototype (plain JS in `www/`): `ROUND4.md` is the last round's plan and log, `IDEAS.md` the backlog, `PROGRESS.md` the history. `shot.sh`, `sheet.sh`, `frames.sh` and `bake.sh` render and bake it in Docker |
 | [`NOTICES.md`](NOTICES.md) | The bundled software and data, with their licenses |
 | [`content/CLAUDE.md`](content/CLAUDE.md), [`common/CLAUDE.md`](common/CLAUDE.md), [`web/CLAUDE.md`](web/CLAUDE.md), [`api/CLAUDE.md`](api/CLAUDE.md), [`admin/CLAUDE.md`](admin/CLAUDE.md), [`fetcher/CLAUDE.md`](fetcher/CLAUDE.md) | Each workspace's modules and what each owns |
 
