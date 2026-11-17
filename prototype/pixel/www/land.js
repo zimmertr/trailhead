@@ -273,6 +273,8 @@ C.trails = [
   [[978, 438], [962, 462], [984, 482], [1004, 498], [1018, 512], [1022, 526], [1040, 534], [1056, 546], [1066, 560], [1070, 578], [1068, 600]],
   [[1340, 410], [1372, 436], [1392, 450], [1378, 462], [1402, 474], [1422, 500], [1436, 518], [1420, 528], [1440, 538], [1424, 548], [1436, 578]]
 ];
+// The lake grew (T30), so the loop's points along its south shore step back to keep 5 clear of the water.
+{ const [cu, cv, ru, rv] = C.lakes[0]; for (const p of C.trails[0]) { const x = (p[0] - cu) / ru; if (Math.abs(x) >= 1 || p[1] > cv) continue; const shore = cv - rv * Math.sqrt(1 - x * x) - 5; if (p[1] > shore) p[1] = Math.round(shore); } }
 const [TU, TV] = C.T;
 
 // ---- heights --------------------------------------------------------------------------------------
@@ -444,22 +446,25 @@ C.lead = [];
     const pts = path.filter((_, n) => n % 4 === 0).map(k => [(k % GW) * G, ((k / GW) | 0) * G]); pts[0] = [...a]; pts.push([...b]); return pts;
   };
   // Round 5 (T6, TJ): exactly three trails leave the Trailhead, and the Proficiency trail its own way east as
-  // before. The lake trip stays a loop: out by a new bottom trail west along the foot of the meadow to where
-  // the old trail turns up into the forest, through the forest to the lake as before, and home along the
-  // lakeshore to the bridge junction and down the old trail. The old trail's lower stretch west from the
-  // junction past the elk is gone, and so is the way from the junction north to base camp: a new trail goes
+  // before. The lake trip stays a loop: out by a new bottom trail that crosses the open meadow to where the
+  // old trail goes in under the forest's edge, through the forest to the lake as before, and home along the
+  // lakeshore to the bridge junction and down the old trail. The old trail's lower stretch from the
+  // junction west to the forest's edge is gone, and so is the way from the junction north to base camp: a new trail goes
   // straight there from the Trailhead, up to the right and north along the east side of the big stand of
   // firs in the middle of the meadow. The new trails are steered by points read from the land.
-  const join = (...parts) => parts.reduce((all, p, n) => n ? [...all.slice(0, -1), ...p] : [...p], []);
+  // Where two stretches meet, a point within 5 of the next one is dropped, so the curve has no kink there.
+  const join = (...parts) => parts.reduce((all, p, n) => n ? [...all.slice(0, -1), ...p] : [...p], []).filter((p, n, a) => n === a.length - 1 || Math.hypot(a[n + 1][0] - p[0], a[n + 1][1] - p[1]) >= 5);
   const loop0 = C.trails[0], spires0 = C.trails[1], ci0 = spires0.findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]);
   C.loop0 = loop0;
   const oldLead = route(C.T, loop0[0]), stackLead = route(C.T, C.trails[2][0]);
-  // Where the old trail turns up into the forest: the low point of its way west, before it climbs north.
+  // Where the old trail goes into the forest on its way west: its first point west of the forest's edge.
+  // (Corrected 2026-11-16: this was the trail's low point 200 further west, deep in the forest, and the new
+  // trail hugged the bottom of the map to reach it. TJ's line crosses the meadow to the forest's edge.)
   const westEnd = loop0.reduce((m, p, n) => p[0] < loop0[m][0] ? n : m, 0);
-  const iF = loop0.slice(0, westEnd).reduce((m, p, n) => p[1] < loop0[m][1] ? n : m, 0), F = loop0[iF];
-  // The meadow's foot, a third of the way west: the lowest open, dry, gentle ground on that column below the
-  // Trailhead's row, a little up from its edge.
-  const footU = Math.round(TU - 0.35 * (TU - F[0])), foot = (() => { for (let v = TV - 60; v < TV + 40; v += 2) { const k = cell(footU, v); if (ok[k] && !wetC[k] && hC[k] - hC[cell(footU, v + 4)] < 3) return [footU, v + 10]; } return [footU, TV]; })();
+  const iF = loop0.findIndex((p, n) => n > 0 && n < westEnd && p[0] < forestEdge(p[1])), F = loop0[iF];
+  // TJ's line leaves the Trailhead going west nearly level and then climbs north-west: a point a little short
+  // of halfway, set toward the camera by a third of the whole climb, bows it that way.
+  const foot = [Math.round(lerp(TU, F[0], 0.45)), Math.round(lerp(TV, F[1], 0.45) - 0.3 * (F[1] - TV))];
   const bottom = route(foot, F, true); C.bottom = bottom;
   C.trails[0] = join(route(C.T, foot, true), bottom, loop0.slice(iF), oldLead.slice().reverse());
   C.lead[0] = 0;
@@ -470,7 +475,9 @@ C.lead = [];
   // w1 sits up and a little right of the Trailhead, so the trail leaves going up (the sign's arrow), apart
   // from the Proficiency trail going right.
   const w1 = [Math.round(TU + 0.3 * (east - TU)), Math.round(TV + 0.3 * (midV - TV))], w2 = [east, midV];
-  C.trails[1] = join(route(C.T, w1, true), route(w1, w2, true), route(w2, C.camp, true), spires0.slice(ci0));
+  // It comes up to camp by the old approach's last stretch, on the moraine's west side, as TJ drew it.
+  const iA = Math.max(0, ci0 - 2);
+  C.trails[1] = join(route(C.T, w1, true), route(w1, w2, true), route(w2, spires0[iA], true), spires0.slice(iA));
   C.lead[1] = 0;
   C.trails[2] = join(stackLead, C.trails[2]); C.lead[2] = stackLead.length - 1; }
 // The Spires trail ends at base camp. Beyond it the way goes on as a boot track up the ice (D13), as in
@@ -768,7 +775,7 @@ let MONO_OY = 0;
     const r = routes[t.src], hd = r && r.pts.find(([u, v]) => water[at(Math.round(u), Math.round(v))] && MATS[mg[at(Math.round(u), Math.round(v))]] === 'land');
     if (!hd) continue;
     const x0 = Math.round(hd[0]), y0 = Math.round(SY - hd[1] - hAt(hd[0], hd[1])), [x1, y1] = t.notch;
-    if (y1 < y0) for (let y = y1; y <= y0; y++) { const q = (y - y1) / (y0 - y1), x = Math.round(lerp(x1, x0, q) + (4 * Math.sin(y / 13 + t.src) + 1.6 * Math.sin(y / 5)) * Math.sin(q * Math.PI)); for (let dx = 0; dx <= 1; dx++) paint(x + dx, y, hash(x + dx, y >> 1, 471) < 0.3 ? R.white[1] : dx ? R.water[2] : R.water[3]); paint(x - 1, y, R.water[1]); paint(x + 2, y, R.water[1]); }
+    if (y1 < y0) for (let y = y1; y <= y0; y++) { const q = (y - y1) / (y0 - y1), x = Math.round(lerp(x1, x0, q) + (9 * Math.sin(q * 7.5 + t.src) + 1.6 * Math.sin(y / 5)) * Math.sin(q * Math.PI)); for (let dx = 0; dx <= 1; dx++) paint(x + dx, y, hash(x + dx, y >> 1, 471) < 0.3 ? R.white[1] : dx ? R.water[2] : R.water[3]); paint(x - 1, y, R.water[1]); paint(x + 2, y, R.water[1]); }
   } }
 
 // Where a stream runs off a cliff (T17): two points of its course that both show water, the lower one far

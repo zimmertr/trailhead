@@ -187,7 +187,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Flag on the Register** (round 5, B2). Once a visitor has finished all three and can sign, the register's lid stands open a crack or a small red flag goes up on its post, like a mailbox, so they know without opening it.
 - **The Owl Answers** (round 5, B6). Clicking the owl on its limb turns its head all the way round and gives a soft two-note hoot, and at Dusk its eyes catch the light like the deer's.
 - **Elk on the Move** (round 5, D1). Now and then the herd crosses the bottom trail in single file in front of TJ, and he stops on the trail to let them pass before walking on.
-- **Tap, Not Click, on Phones** (round 5, D1 review). The first-visit hint says "Click a sign or a trail" on a phone too; it could say "Tap" where the screen is touch.
 - **Ice Calving into the Moraine Lakes** (round 5, D2). Now and then a block of ice drops off a snout into its moraine lake with a soft splash and a ring, and a small floe drifts for a while.
 - **Clouded Inflows** (round 5, D2). Where the milky streams run into Reflection Lake, a pale plume spreads into the clear water and fades, so you can see the glacier's flour arrive.
 - **A Longer Swim** (round 5, D2). The lake is bigger now, so the swim to the island could pass a loon or a floating log on the way.
