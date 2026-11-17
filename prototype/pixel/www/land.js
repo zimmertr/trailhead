@@ -415,21 +415,51 @@ C.lead = [];
   const ok = new Uint8Array(N), wetC = new Uint8Array(N), hC = new Float32Array(N), rough = new Float32Array(N);
   for (let k = 0; k < N; k++) { const u = Math.min(NW - 1, (k % GW) * G), v = Math.min(VD - 1, ((k / GW) | 0) * G), i = at(u, v), m = MATS[mg[i]]; hC[k] = hg[i]; wetC[k] = water[i] ? 1 : 0; rough[k] = 1.6 * sq(smooth(0.42, 0.72, fbm(u / 70, v / 46, 216, 3))); ok[k] = (m === 'land' || m === 'moraine' || m === 'volc' || m === 'gran') && !lakeAt(u, v) && coast(u, v) < -24 ? (m === 'gran' ? 2 : 1) : 0; }
   const STEPS = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1], [2, 1], [2, -1], [-2, 1], [-2, -1], [1, 2], [1, -2], [-1, 2], [-1, -2]];
-  const route = (a, b) => {
+  // avoid: ground another trail already takes costs more, not less, so a new trail keeps its own line (T6).
+  const route = (a, b, avoid = false) => {
     const s0 = cell(...a), goal = cell(...b); cost.fill(Infinity); from.fill(-1); cost[s0] = 0;
     const hk = [], hv = []; const push = (k, c) => { let n = hk.length; hk.push(k); hv.push(c); while (n) { const p = (n - 1) >> 1; if (hv[p] <= hv[n]) break; [hk[p], hk[n]] = [hk[n], hk[p]]; [hv[p], hv[n]] = [hv[n], hv[p]]; n = p; } };
     const pop = () => { const k = hk[0], last = hk.length - 1; hk[0] = hk[last]; hv[0] = hv[last]; hk.pop(); hv.pop(); let n = 0; for (;;) { const l = 2 * n + 1, r = l + 1; let m = n; if (l < hk.length && hv[l] < hv[m]) m = l; if (r < hk.length && hv[r] < hv[m]) m = r; if (m === n) break; [hk[m], hk[n]] = [hk[n], hk[m]]; [hv[m], hv[n]] = [hv[n], hv[m]]; n = m; } return k; };
     push(s0, 0);
     while (hk.length) { const k = pop(); if (k === goal) break; const c0 = cost[k], x = k % GW, y = (k / GW) | 0;
       for (const [dx, dy] of STEPS) { const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= GW || ny >= GH) continue; const j = ny * GW + nx; if (!ok[j] && j !== goal) continue;
-        const d = Math.hypot(dx, dy) * G, sl = Math.abs(hC[j] - hC[k]) / d, c = c0 + d * (1 + rough[j] + 14 * sl * sl + (sl > 0.7 ? 30 : 0) + (ok[j] === 2 ? 1 : 0)) * (used[j] ? 0.5 : 1) + (wetC[j] && !wetC[k] ? 60 : 0);
+        const d = Math.hypot(dx, dy) * G, sl = Math.abs(hC[j] - hC[k]) / d, c = c0 + d * (1 + rough[j] + 14 * sl * sl + (sl > 0.7 ? 30 : 0) + (ok[j] === 2 ? 1 : 0)) * (used[j] ? (avoid ? 3 : 0.5) : 1) + (wetC[j] && !wetC[k] ? 60 : 0);
         if (c < cost[j]) { cost[j] = c; from[j] = k; push(j, c); } } }
     const path = []; for (let k = goal; k >= 0; k = from[k]) path.push(k); path.reverse();
     for (const k of path) used[k] = 1;
     // Every fourth cell, the ends exact; the trail's curve smooths the rest.
     const pts = path.filter((_, n) => n % 4 === 0).map(k => [(k % GW) * G, ((k / GW) | 0) * G]); pts[0] = [...a]; pts.push([...b]); return pts;
   };
-  for (const k of [0, 1, 2]) { const lead = route(C.T, C.trails[k][0]); C.lead[k] = lead.length - 1; C.trails[k] = [...lead.slice(0, -1), ...C.trails[k]]; } }
+  // Round 5 (T6, TJ): exactly three trails leave the Trailhead, and the Proficiency trail its own way east as
+  // before. The lake trip stays a loop: out by a new bottom trail west along the foot of the meadow to where
+  // the old trail turns up into the forest, through the forest to the lake as before, and home along the
+  // lakeshore to the bridge junction and down the old trail. The old trail's lower stretch west from the
+  // junction past the elk is gone, and so is the way from the junction north to base camp: a new trail goes
+  // straight there from the Trailhead, up to the right and north along the east side of the big stand of
+  // firs in the middle of the meadow. The new trails are steered by points read from the land.
+  const join = (...parts) => parts.reduce((all, p, n) => n ? [...all.slice(0, -1), ...p] : [...p], []);
+  const loop0 = C.trails[0], spires0 = C.trails[1], ci0 = spires0.findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]);
+  C.loop0 = loop0;
+  const oldLead = route(C.T, loop0[0]), stackLead = route(C.T, C.trails[2][0]);
+  // Where the old trail turns up into the forest: the low point of its way west, before it climbs north.
+  const westEnd = loop0.reduce((m, p, n) => p[0] < loop0[m][0] ? n : m, 0);
+  const iF = loop0.slice(0, westEnd).reduce((m, p, n) => p[1] < loop0[m][1] ? n : m, 0), F = loop0[iF];
+  // The meadow's foot, a third of the way west: the lowest open, dry, gentle ground on that column below the
+  // Trailhead's row, a little up from its edge.
+  const footU = Math.round(TU - 0.35 * (TU - F[0])), foot = (() => { for (let v = TV - 60; v < TV + 40; v += 2) { const k = cell(footU, v); if (ok[k] && !wetC[k] && hC[k] - hC[cell(footU, v + 4)] < 3) return [footU, v + 10]; } return [footU, TV]; })();
+  const bottom = route(foot, F, true); C.bottom = bottom;
+  C.trails[0] = join(route(C.T, foot, true), bottom, loop0.slice(iF), oldLead.slice().reverse());
+  C.lead[0] = 0;
+  // The big stand of firs: where the fir clumps' own noise (as they are planted below) runs thick. Halfway up
+  // between the Trailhead and camp, its east edge is where that noise falls off east of the straight line.
+  const clump = (u, v) => fbm(u / 46, v / 40, 71, 3), midV = Math.round(TV + 0.5 * (C.camp[1] - TV)), midU = Math.round(TU + 0.5 * (C.camp[0] - TU));
+  const east = (() => { let inStand = false; for (let u = midU - 40; u < midU + 260; u += 2) { const c = clump(u, midV); if (c > 0.6) inStand = true; else if (inStand && c < 0.55) return u + 16; } return midU + 60; })();
+  // w1 sits up and a little right of the Trailhead, so the trail leaves going up (the sign's arrow), apart
+  // from the Proficiency trail going right.
+  const w1 = [Math.round(TU + 0.3 * (east - TU)), Math.round(TV + 0.3 * (midV - TV))], w2 = [east, midV];
+  C.trails[1] = join(route(C.T, w1, true), route(w1, w2, true), route(w2, C.camp, true), spires0.slice(ci0));
+  C.lead[1] = 0;
+  C.trails[2] = join(stackLead, C.trails[2]); C.lead[2] = stackLead.length - 1; }
 // The Spires trail ends at base camp. Beyond it the way goes on as a boot track up the ice (D13), as in
 // round 3: it switches back and forth up the fall line, a trench as wide as the trail that narrows toward
 // the wall, and over its last fifth breaks up into single prints. track: 2 on its floor, 1 on its edge.
@@ -827,8 +857,8 @@ if (!B) { const box = (P, fn) => { for (let v = Math.max(0, Math.floor(P.v0)); v
   // The loop's band runs the whole loop (E5b2; it stopped 300 west of the lake while fog hid the rest), narrows
   // to nothing over its last 60 to the west, so the country ends in a round end,
   // and every column of it is filled between its highest and lowest spot: the ground between the stretches.
-  { const W0 = Math.min(...C.trails[0].map(p => p[0])) - 30, top = new Int16Array(NW).fill(VD), bot = new Int16Array(NW).fill(-1);
-    for (const [pu, pv] of catmull(C.trails[0])) { if (pu >= lu + lru || pu < W0) continue; const r = 22 * Math.sqrt(smooth(W0, W0 + 60, pu)), r2 = r * r; for (let dv = -22; dv <= 22; dv++) for (let du = -22; du <= 22; du++) { if (du * du + dv * dv > r2) continue; const u = Math.round(pu + du), v = Math.round(pv + dv); if (u >= 0 && v >= 0 && u < NW && v < VD) { reg[at(u, v)] = 1; top[u] = Math.min(top[u], v); bot[u] = Math.max(bot[u], v); } } }
+  { const W0 = Math.min(...C.loop0.map(p => p[0])) - 30, top = new Int16Array(NW).fill(VD), bot = new Int16Array(NW).fill(-1);
+    for (const [pu, pv] of catmull(C.loop0)) { if (pu >= lu + lru || pu < W0) continue; const r = 22 * Math.sqrt(smooth(W0, W0 + 60, pu)), r2 = r * r; for (let dv = -22; dv <= 22; dv++) for (let du = -22; du <= 22; du++) { if (du * du + dv * dv > r2) continue; const u = Math.round(pu + du), v = Math.round(pv + dv); if (u >= 0 && v >= 0 && u < NW && v < VD) { reg[at(u, v)] = 1; top[u] = Math.min(top[u], v); bot[u] = Math.max(bot[u], v); } } }
     for (let u = 0; u < NW; u++) for (let v = top[u] + 1; v < bot[u]; v++) if (!reg[at(u, v)]) reg[at(u, v)] = 1; }
   box(C.step2, (u, v, i) => { const f = C.step2.fn(u, v); if ((f > 3 && hg[i] >= f - 3 && hg[i] < f + 16) || mg[i] === FIN) reg[i] = 2; });
   { const tarn = C.lakes.find(l => l[4] === 'silt'), X0 = Math.max(0, Math.round(SP.cu - 330)), X1 = Math.min(NW - 1, Math.round(SP.cu + 330)), Y0 = Math.max(0, tarn[1] - 80), w = X1 - X0 + 1, h = VD - Y0;
@@ -1264,7 +1294,10 @@ function habitat() {
   };
   // The elk herd keeps to a roomy flat in the parkland well away from the Trailhead.
   const roomy = (u, v) => [[-26, 0], [26, 0], [0, -18], [0, 18]].every(([a, b]) => firm(u + a, v + b, 0.5));
-  const herd = best((u, v) => S.parkAmt(u, v) > 0.5 && S.forestAmt(u, v) < 0.15 && fromT(u, v) > 120 && trailFar(u, v) > 16 && firm(u, v, 0.5) && shows(u, v, 12) && roomy(u, v), (u, v) => S.parkAmt(u, v) + 0.3 * rnd());
+  // Round 5 (T6): the bottom trail passes them on its way to the forest, as the old lower trail did in round
+  // 4, so among the roomy parkland flats they take the one nearest its western half.
+  const B = C.bottom.slice(Math.floor(C.bottom.length / 3)), toB = (u, v) => Math.min(...B.map(p => Math.hypot(u - p[0], v - p[1])));
+  const herd = best((u, v) => S.parkAmt(u, v) > 0.5 && S.forestAmt(u, v) < 0.15 && fromT(u, v) > 120 && trailFar(u, v) > 16 && firm(u, v, 0.5) && shows(u, v, 12) && roomy(u, v), (u, v) => S.parkAmt(u, v) + 0.3 * rnd() - toB(u, v) / 60);
   // Marmots sun on rocks: parkland or moraine with a steep bit of ground right beside them.
   const rocky = (u, v) => [[-6, 0], [6, 0], [0, 5], [0, -5]].some(([a, b]) => S.slope(u + a, v + b) > 0.9);
   const marmots = find(3, (u, v) => (S.parkAmt(u, v) > 0.3 || S.matAt(u, v) === 'moraine') && firm(u, v, 1.2) && shows(u, v, 8) && rocky(u, v), 140);
@@ -1325,8 +1358,9 @@ export function buildTerrain() {
   const line = pts => catmull(pts).filter((_, n, a) => n % 6 === 0 || n === a.length - 1).map(([u, v]) => [u, LAND.toY(u, v), v]);
   // The lake loop ends where it began: back along its first stretch to the junction. The Spires trail
   // ends at base camp; what lies beyond is the boot track on the ice.
-  const home = C.trails[0].slice(0, C.lead[0] + 1).reverse().slice(1), camp = C.trails[1].findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]) + 1;
-  const lines = { lake: line([...C.trails[0], ...home]), stack: line(C.trails[2]), spires: line(C.trails[1].slice(0, camp)) };
+  // The lake loop runs from the Trailhead round to the Trailhead (T6), so it needs no way home added.
+  const camp = C.trails[1].findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]) + 1;
+  const lines = { lake: line(C.trails[0]), stack: line(C.trails[2]), spires: line(C.trails[1].slice(0, camp)) };
   const H = habitat(), lake = C.lakes[0], peak = LAND.peak, sp = LAND.spires, shore = sxy(lake[0] + lake[2] + 8, lake[1] + 2);
   const flagOn = (x, v, kind) => { const y = LAND.toY(x, v); return { x: Math.round(x), y, lift: y - topOf(x, kind) }; };
   const spots = {

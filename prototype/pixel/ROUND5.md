@@ -447,7 +447,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 ### D. The land and the water (each change here needs `./bake.sh`)
 
-- [ ] D1. T6: the trail rework: the new direct Spires trail, the new bottom trail, the two removed stretches and their bridges, the loop kept. Update the routes, `lakeIn`, `lakeOut` and `spiresIn`, the trail map sheet, the sign's distances (T45) and click to move.
+- [x] D1. T6: the trail rework: the new direct Spires trail, the new bottom trail, the two removed stretches and their bridges, the loop kept. Update the routes, `lakeIn`, `lakeOut` and `spiresIn`, the trail map sheet, the sign's distances (T45) and click to move.
 - [ ] D2. T30: Reflection Lake about 1.6 times wider, two moraine lakes under Monolith's ice, and the second river. Both streams flow into the lake.
 - [ ] D3. T28: remove the oxbow and the heron.
 - [ ] D4. T17, T24: the water audit. Every join is listed, fixed and pictured.
@@ -577,7 +577,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **C4 done.** A DEBUG button sits in the top bar next to Keys. The panel's groups: Time of day, Layers, Outlines (with No-go areas), Zoom, Time, the timed events of the scene on screen ("On the map" or "In this scene: Forest", rebuilt when the scene changes), Spawn (animal, home, Spawn), Cats, Jump to a scene (every scene, by its first route), and Break a scene. Roam areas are drawn in a bright colour per kind, two pixels wide with a dark inner edge, a dithered fill and the animal's name in a small pixel font (`tinyText` in `world.js`).
 - **C5 done.** A click or tap within 24 CSS pixels of a trail (the same at every zoom) walks him there over the trail network by the shortest way, with a red cross hovering over the spot until he arrives; anywhere else does nothing, and anything clickable keeps its own click. The network is four branches out from the Trailhead (the lake loop's way out and way back, the peak's trail, the Spires' trail), joined where they part. `api.walkTo(x, y)` takes view pixels, for tests.
 - **C6 done.** The debug menu's Sounds group plays every effect by its name in `audio.js`, each tune's two parts on their own (A and B, round and round until "Music back to Auto"), and each place's background sound. `audio.preview(k, part)` and `audio.endPreview()` do it.
-- Next: D1.
+- **D1 done.** Three trails leave the Trailhead: the new bottom trail west along the foot of the meadow to the forest edge, the old trail north-west (the lake loop's way home), and the new Spires trail up and round the east side of the big fir stand to base camp; the Proficiency trail goes right as before. The junction-to-Spires stretch and the lower elk stretch are gone with their footbridges. The sign now reads 12.3 km (lake) and 5.3 km (Spires), the trail map's loop 16.4 km, all measured from the trails. Click to move, the routes, lakeIn, lakeOut and spiresIn follow the new lines without code changes; facing counts are unchanged from B8 (lake 2, Spires 6, Proficiency 5).
+- Next: D2.
 
 ## 11. Calls made in round 5
 
@@ -611,6 +612,12 @@ One line each, newest last: the item, what was decided, and why.
 - C5: once he stands where a click sent him, the sign stays hidden as it is anywhere off the Trailhead; a place's name tag or the Trailhead button sends him back through the Trailhead and on (`go` treats the walk like a detour). Space and Start do nothing at the end of a walk, since there is no route to resume. The walk does not count toward finishing a route.
 - C5: a walk from the lake loop's way out to its way back goes round by the Trailhead, since the forest between them is a scene, not map.
 - C6: the background sounds are in the test too, since TJ may not have heard the quieter ones; one plays until the scene changes.
+- D1: the bottom trail ends where the old trail turned up into the forest (the southernmost point of the loop's way west, at [390,354]), so the forest and lake part of the loop is untouched. Its bend is a third of the way west from the Trailhead, at the lowest dry, gentle ground on that column.
+- D1: the Spires trail is steered by two points read from the land: the east edge of the fir stand halfway up (where the fir clumps' noise thins out), and a point up and a little right of the Trailhead so it leaves going up, apart from the Proficiency trail going right. My first try put the first point further right and the Spires and Proficiency trails shared their first stretch; moved it.
+- D1: new trails are routed with a cost that rises (x3) on ground another trail already takes, so they keep their own line instead of merging.
+- D1: the bottom trail ran through the elk's old flat, and the herd jumped to a meadow by base camp. TJ's sketch has the trail passing the elk, so the herd now takes the parkland flat nearest the bottom trail's western half (the same rule otherwise). A try that dropped the parkland rule put them among trees by the lookout; dropped that.
+- D1: the lake country region (the lakes and forest shading) still reads the original loop (C.loop0), so the land west of the junction did not change.
+- D1: the walk scenes' directions follow the trail as before; the Spires approach now runs the other way across the screen because the new trail meets camp from the east. That is T40's to judge in its item.
 
 ## 12. The reference pictures
 
