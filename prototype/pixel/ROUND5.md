@@ -518,7 +518,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] D5. T25: rivers carry on across the beach at low tide.
 - [x] D6. T79a: the river mouth shows through the sea fog.
 - [x] D7. T10: the fire lookout on Off By One Peak.
-- [ ] D8. T21: flower density from one field, with the four levels.
+- [x] D8. T21: flower density from one field, with the four levels.
 - [ ] D9. T22: more larches on the upper plateau. T23: no aspens on the dry side.
 - [ ] D10. T27: the Legacy Range in grey rock with high snow.
 - [ ] D11. T31: Little Tahoma's tip a touch blunter.
@@ -661,7 +661,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **D5 done.** Both rivers that reach the beach now carry on across the sand the tide bares: at river width where they leave the dry sand, then swinging and splitting into two and three shallow threads with bars between, to the water's edge. The channel grows as the tide goes out and the sea covers it again from the far end as it comes in. At high tide nothing has changed.
 - **D6 done.** When the marine layer is in, the upper river now shows as clear blue water across the sand to the sea, under the cloud deck and under the fog that follows it. The fog on the sea, on the rest of the beach and in the forest is as it was. The lower river's mouth was already clear of the fog and has not changed.
 - **D7 done.** The fire lookout stands on the crest of Off By One Peak, against the Legacy Range, on a summit cleared of trees. It shows on the first screen, top left. The old site on the smaller hill by Reflection Lake is forest again.
-- Next: D8.
+- **D8 done.** The flowers grow in TJ's four levels: thickest from Monolith's foot round Reflection Lake and across to base camp, a medium amount along the rivers, a small amount round the Trailhead and in the meadow's corner by the forest, and sparse in the rest of the meadows. The meadow below the lake's cliff, which was as thick as the lake's, is now the rivers' medium.
+- Next: D9.
 
 ## 11. Calls made in round 5
 
@@ -753,6 +754,11 @@ One line each, newest last: the item, what was decided, and why.
 - D7. The lookout's rule now takes the highest foothill, not the smallest, and that hill is the one Off By One Peak's sign already stands on. The first try put it on the hill's highest ground, which the picture shows halfway down the hill's face with forest standing above it: the hill runs back into the Legacy Range, so its crest on the picture lies behind its highest ground. It did not read as the top. The rule now takes the spot that stands highest on the picture, which is the crest. The lookout's ground there is 83 high against 99 at the hill's highest.
 - D7. The clearing reaches further behind the tower than in front (24 against 14), so no tree crown stands against its cab on the skyline. The old clearing needed no work: the cleared ground and the missing trees both follow the lookout's place. The sign for Off By One Peak has not moved and stands on the face below the tower.
 - D7, checks: `check.sh D7 D6` passed, 12.1 ms a frame zoomed out at Dusk, only the lookout moved (from 490,784 to 313,325), lint clean. Looked at by Day and at Dusk (its window is lit), on the whole map with the page's buttons showing, and at the old site. Round 4 has it in a clearing on the smaller hill.
+- D8. One field, `flowerAmt` in `land.js`, now says how thick the flowers grow, and the flower clumps, the heather and the blooms painted on Monolith's lower meadow all read it. Its levels are 1, 0.5, 0.25 and 0.06. Thickest is found from the volcano's foot (below the ice, down past the lake's bench) and from the line between the lake's east end and base camp. Medium is ground within about 30 px of water (`RIVD`), fading out on the dry side. Small is the Trailhead's meadow, by distance, and a patch about 110 px out from the forest's edge near the map's foot. That last one is closer to a drawn shape than a rule, because nothing on the land marks the spot TJ circled.
+- D8. `parkAmt` and its two ellipses stay for what is not a flower: where the firs clump, where the elk and marmots live, one sign and the parkland's boulders. The drifts' kinds are unchanged. The boulders now have dice of their own, so a later change to the flowers cannot move them; none moved by more than 8 px this time.
+- D8. Two changes from round 4 that follow from TJ's sketch and may surprise: the Trailhead's meadow has fewer flowers than round 4 (round 4 had made it thick "as round 3's was"; TJ now marks it small), and the elk's meadow below the lake's cliff lost its thick white and red drifts, because it lies outside his red line.
+- D8. The first build planted heather on the Spires' glacier, because the heather's dice now reach as far as base camp and the heather never checked what it stood on. It now grows on soil only.
+- D8, checks: `check.sh D8 D7` passed, nothing moved, lint clean. The check's frame time read 13.8 ms once, so I measured three times each way: 12.1 to 12.4 ms before and 12.2 to 12.7 ms after, for 220 more plants (6,544 in all). Looked at beside TJ's sketch and beside the build before, by Day and at Dusk.
 
 ## 12. The reference pictures
 

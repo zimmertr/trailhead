@@ -200,4 +200,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Someone Keeps the Lookout** (round 5, D7). A keeper could stand on the lookout's catwalk with binoculars by day and go in at Dusk when the window lights, and wave if TJ is in sight.
 - **A Trail to the Lookout** (round 5, D7). A side trail could climb Off By One Peak to the tower, as a fourth short walk with the widest view on the map and a logbook in the cab.
 - **Smoke on the Horizon** (round 5, D7). Once in a long while a thin smoke rises from the burn, and a light blinks from the lookout until it is out.
+- **Flowers Follow the Season of the Walk** (round 5, D8). The one density field could take a season: avalanche lilies at the snow's edge early, lupine and paintbrush at the peak, and seed heads and red huckleberry leaves late, picked by the date or by a switch.
+- **Bees and Butterflies Where the Flowers Are Thickest** (round 5, D8). A few butterflies and bumblebees could work the thickest drifts, placed by the same field, and lift off as TJ walks through.
+- **A Debug View of the Fields** (round 5, D8). The Debug panel could tint the map by a chosen field (flowers, forest, dry side, fog), so a sketch like TJ's can be checked against the rule at a glance.
 

@@ -524,9 +524,28 @@ const lookAmt = (u, v) => LOOK ? smooth(1.05, 0.65, Math.hypot((u - LOOK[0]) / 2
 const wob = (u, v, s, a) => a * (fbm(u / 70, v / 60, s, 3) - 0.5);
 const ell = ([cu, cv, ru, rv], u, v) => Math.hypot((u - cu) / ru, (v - cv) / rv);
 const parkAmt = (u, v) => Math.max(smooth(1.25, 0.8, ell(C.PK, u, v) + wob(u, v, 202, 0.4)), smooth(1.2, 0.8, ell(C.PK2, u, v) + wob(u, v, 203, 0.4)));
-// The parkland's drifts: a slow field over it picks lupine, paintbrush, white, or heather and plain turf.
-// null outside the parkland, where the flowers are scattered by the dice as before.
-const DRIFT = (u, v) => { if (parkAmt(u, v) < 0.45) return null; const k = vnoise(u / 58, v / 34, 470) + 0.08 * (vnoise(u / 9, v / 6, 471) - 0.5); return k < 0.36 ? 'lupine' : k < 0.5 ? 'heather' : k < 0.68 ? 'red' : 'white'; };
+// How thick the flowers grow (round 5, T21): one field that every flower placement reads, in four levels,
+// each found by rule from the land so it follows the land if that changes.
+//   most (1):      from Mount Monolith's foot down round Reflection Lake and its bench, and across to base camp
+//   medium (0.5):  along the rivers, as far as the dry side
+//   small (0.25):  the open meadow round the Trailhead, and the meadow's corner by the forest at the map's foot
+//   sparse (0.06): the rest of the open meadows. None in the forest, the burn, the larches or the dry side.
+// RIVD is how far the nearest water is, on a grid of 4 px, counted to 60 px.
+const RIVD = (() => { const G = 4, GW = Math.ceil(NW / G), GH = Math.ceil(VD / G), D = new Uint8Array(GW * GH).fill(15);
+  for (let v = 0; v < VD; v++) for (let u = 0; u < NW; u++) if (water[v * NW + u]) D[(v >> 2) * GW + (u >> 2)] = 0;
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const i = y * GW + x; let d = D[i]; if (x && D[i - 1] + 1 < d) d = D[i - 1] + 1; if (y && D[i - GW] + 1 < d) d = D[i - GW] + 1; D[i] = d; }
+  for (let y = GH - 1; y >= 0; y--) for (let x = GW - 1; x >= 0; x--) { const i = y * GW + x; let d = D[i]; if (x < GW - 1 && D[i + 1] + 1 < d) d = D[i + 1] + 1; if (y < GH - 1 && D[i + GW] + 1 < d) d = D[i + GW] + 1; D[i] = d; }
+  return (u, v) => G * D[clamp(v >> 2, 0, GH - 1) * GW + clamp(u >> 2, 0, GW - 1)]; })();
+const flowerMost = (u, v) => { const L = C.lakes[0], K = C.camp, ax = L[0] + L[2], ay = L[1], bx = K[0] - 30, by = K[1] - 40, t = clamp(((u - ax) * (bx - ax) + (v - ay) * (by - ay)) / (sq(bx - ax) + sq(by - ay)), 0, 1);
+  return Math.max(smooth(1.5, 1.32, ell([VOLC.cu, VOLC.cv, VOLC.ru, VOLC.rv], u, v) + wob(u, v, 202, 0.3)) * smooth(690, 640, v + hAt(u, v)),
+    smooth(1.2, 0.8, Math.hypot(u - lerp(ax, bx, t), (v - lerp(ay, by, t)) * 1.5) / 78 + wob(u, v, 203, 0.4))); };
+const flowerAmt = (u, v) => { const most = flowerMost(u, v); if (most >= 1) return 1;
+  const meadow = forestAmt(u, v) < 0.2 && dryAmt(u, v) < 0.2 && larchAmt(u, v) < 0.2 && burnAmt(u, v) < 0.2, fe = forestEdge(v);
+  return Math.max(most, 0.5 * smooth(42, 18, RIVD(Math.round(u), Math.round(v)) + wob(u, v, 207, 16)) * smooth(0.5, 0.15, dryAmt(u, v)),
+    meadow ? Math.max(0.06, 0.25 * Math.max(smooth(260, 90, Math.hypot(u - TU, (v - TV) * 1.4)), smooth(1.2, 0.8, Math.hypot((u - fe - 110) / 60, (v - 120) / 48) + wob(u, v, 208, 0.4)))) : 0); };
+// The drifts where the flowers grow thickest: a slow field picks lupine, paintbrush, white, or heather and
+// plain turf. null elsewhere, where the flowers are scattered by the dice.
+const DRIFT = (u, v) => { if (flowerMost(u, v) < 0.45) return null; const k = vnoise(u / 58, v / 34, 470) + 0.08 * (vnoise(u / 9, v / 6, 471) - 0.5); return k < 0.36 ? 'lupine' : k < 0.5 ? 'heather' : k < 0.68 ? 'red' : 'white'; };
 const forestAmt = (u, v) => { const e = forestEdge(v); return smooth(e + 40, e - 24, u + 30 * (fbm(u / 30, v / 30, 8, 2) - 0.5)) * smooth(-6, -30, coast(u, v)) * (1 - 0.9 * smooth(1.1, 0.7, ell(C.PK, u, v))); };
 // Larches are trees of the high country: none below the second granite step.
 const larchAmt = (u, v) => smooth(1.2, 0.85, ell(C.LB, u, v) + wob(u, v, 204, 0.35)) * smooth(62, 74, hAt(u, v));
@@ -608,7 +627,7 @@ function colour(u, v, hh, x, y) {
     if (forestAmt(u, v) > 0.4) return pick('moss', 0.2 + 0.35 * lit, x, y);
     // Its meadow keeps the parkland's drifts: blooms of the drift's own kind, thick, and a few red elsewhere.
     const dk = DRIFT(u, v), bloom = dk === 'lupine' ? R.lupine[1] : dk === 'red' ? R.red[1] : dk === 'white' ? R.white[1] : dk === 'heather' ? R.pink[0] : R.red[1];
-    return hash(u, v, 586) < (dk ? 0.035 : 0.015) ? bloom : pick('grass', 0.4 + 0.35 * lit + 0.15 * n1, x, y, 0.4);
+    return hash(u, v, 586) < 0.012 + 0.024 * flowerAmt(u, v) ? bloom : pick('grass', 0.4 + 0.35 * lit + 0.15 * n1, x, y, 0.4);
   }
   if (mat === 'gran' || mat === 'fin') {
     // Talus: blocks of the wall's own granite, lit on top and dark in the gaps, thinning out at the fan's
@@ -1134,9 +1153,10 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   rand = rng(6108);
   for (let n = 0; n < 700; n++) { const u = 420 + rand() * 1200, v = rand() * 640; if (!open(u, v) || !meadowy(u, v)) continue; const m = MATS[mg[at(Math.round(u), Math.round(v))]]; if (m !== 'land' && m !== 'moraine') continue; const rock = m === 'moraine' || rand() < 0.3; if (rock) put(any(boulders), u, v); else plant(SWAY.get(any(bushes)), u, v); }
   // The parkland's heather grows in clumps where the drifts leave room for it, and a few boulders lie
-  // about (D5). Their own dice, so nothing planted before them moves.
-  { const hr = rng(4711), heath = bushes.slice(3, 6), anyH = a => a[(hr() * a.length) | 0];
-    for (let n = 0; n < 2400; n++) { const u = C.PK[0] + (hr() * 2 - 1) * C.PK[2] * 1.3, v = C.PK[1] + (hr() * 2 - 1) * C.PK[3] * 1.3; if (DRIFT(u, v) !== 'heather' || hr() > 0.55 || !open(u, v) || !meadowy(u, v)) continue; plant(SWAY.get(anyH(heath)), u, v); }
+  // about (D5). Their own dice, so nothing planted before them moves, and the boulders have theirs (round 5, T21).
+  const soil = (u, v) => { const m = MATS[mg[at(Math.round(u), Math.round(v))]]; return m === 'land' || m === 'volc'; };
+  { const hr = rng(4711), br = rng(4712), heath = bushes.slice(3, 6), anyH = a => a[(hr() * a.length) | 0], anyB = a => a[(br() * a.length) | 0];
+    for (let n = 0; n < 3400; n++) { const u = 400 + hr() * 720, v = 340 + hr() * 300; if (DRIFT(u, v) !== 'heather' || hr() > 0.55 || !open(u, v) || !meadowy(u, v) || !soil(u, v)) continue; plant(SWAY.get(anyH(heath)), u, v); }
     // Wildflowers in clumps (D5a): thick in the parkland's drifts, scattered through the other meadows,
     // each clump a little drawing of stems whose blooms sway on their own.
     // Flowers grow on slopes a tree could not stand on, so they keep to their own rule.
@@ -1145,8 +1165,8 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     for (let n = 0; n < 9000; n++) {
       const cu = fr() * NW, cv = fr() * VD, type = fr(), dw = DRIFT(cu, cv), count = (dw ? 3 : 2) + (fr() * (dw ? 6 : 4) | 0), m = MATS[mg[at(Math.round(cu), Math.round(cv))]];
       if ((m !== 'land' && m !== 'volc') || !bloomy(cu, cv) || forestAmt(cu, cv) > 0.25) continue;
-      // Thicker in the open meadow round the Trailhead, as round 3's was (D6).
-      const want = (dw === 'heather' ? 0.25 : dw ? 1.2 : 0.9) * parkAmt(cu, cv) + (forestAmt(cu, cv) < 0.2 && dryAmt(cu, cv) < 0.2 && larchAmt(cu, cv) < 0.2 && burnAmt(cu, cv) < 0.2 ? 0.07 + 0.4 * smooth(260, 90, Math.hypot(cu - TU, (cv - TV) * 1.4)) : 0);
+      // How many take is flowerAmt's to say (T21): thickest in the drifts, thin in the heather's own ground.
+      const want = (dw === 'heather' ? 0.25 : dw ? 1.2 : 1) * flowerAmt(cu, cv);
       if (fr() > want) continue;
       for (let k = 0; k < count; k++) {
         const u = cu + (fr() - 0.5) * 18, v = cv + (fr() - 0.5) * 10; if (!bloomy(u, v)) continue;
@@ -1154,7 +1174,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
         plant(FL[kind][(fr() * 4) | 0], u, v);
       }
     }
-    for (let n = 0; n < 400; n++) { const u = C.PK[0] + (hr() * 2 - 1) * C.PK[2], v = C.PK[1] + (hr() * 2 - 1) * C.PK[3]; if (parkAmt(u, v) < 0.6 || hr() > 0.12 || !open(u, v, 1) || !meadowy(u, v)) continue; put(anyH(boulders), u, v); } }
+    for (let n = 0; n < 400; n++) { const u = C.PK[0] + (br() * 2 - 1) * C.PK[2], v = C.PK[1] + (br() * 2 - 1) * C.PK[3]; if (parkAmt(u, v) < 0.6 || br() > 0.12 || !open(u, v, 1) || !meadowy(u, v)) continue; put(anyB(boulders), u, v); } }
   rand = rng(6109);
   for (let n = 0; n < 300; n++) { const u = 1240 + rand() * 680, v = 380 + rand() * 320; if (MATS[mg[at(Math.round(u), Math.round(v))]] === 'gran' && open(u, v, 0.7) && rand() < 0.5) put(any(slabs), u, v); }
   // Big blocks lie about the talus fan, on dice of their own (D9).
@@ -1231,7 +1251,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { g, depth: zb, mat: mb, bare, fogField, mouthFog, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { g, depth: zb, mat: mb, bare, fogField, mouthFog, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
