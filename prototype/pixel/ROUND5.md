@@ -566,7 +566,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] H5. T55, T56: hevy-garmin-sync as a trail run with the watch pop-up and the Hevy sync at the bench. A barbell with plates on the bench.
 - [x] H6. T58: the knife-edge redrawn, with no sinking into the rock. The two alternatives go into `IDEAS.md`.
 - [x] H7. T59: the binoculars pan round the cats and close only on space or the back button.
-- [ ] H8. T60: yggdrasil with half the clip-ins.
+- [x] H8. T60: yggdrasil with half the clip-ins.
 - [ ] H9. T62: Kubernetes-Manifests climbs out of the whiteout above a sea of cloud.
 - [ ] H10. T63: the cairn takes a stone a visit, capped at 12. The kick is gone.
 - [ ] H11. T52: each summit's timeline stop is named for its project. T54: the six clue lines in the project cards.
@@ -697,7 +697,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **H5 done.** hevy-garmin-sync is a trail run. In the running kit he wears on the map (orange cap, yellow shirt, shorts) he runs seven straights of a dirt trail that switches back and forth up the spire's flank, turning round at each corner. The flank is a fellfield: dull turf and straw grass low down, granite slabs and old snow toward the top. His watch sits large in the top left corner for the whole run: a round sports watch showing the lap, a clock and his heart rate climbing from 94 to about 176, with a ring filling round the face. On top he looks at his wrist, two arrows turn on the watch, and it shows a tick and WORKOUT SYNCED FROM HEVY. The bench has two uprights and a barbell racked on them with plates on each end. Clicked, he lifts the bar off and presses it. The gully, the sets and rests on the axe, the slip and the lumps of snow are gone. Frame time 2.7 ms at 1920x1080 (before: about 2.8).
 - **H6 done.** trailhead's knife-edge is a thin fin of rock, 35 to 65 px deep, with a snow line and small blocks along its crest and a fluted face that dissolves into pale haze. Under it is air: haze with the faint shapes of two ridges far below, where the map used to be pasted. At each end the rock sweeps down as a buttress over 120 px. Astride it he sits on top of the crest, hips on the rock, the near leg hanging down the face in front and the far leg out of sight behind, both hands on the crest ahead. Nothing of him is inside the rock. Frame time 2.5 ms at 1920x1080 (before: 2.8).
 - **H7 done.** The binoculars on trailhead open on the cats as before and then stay open. The arrow keys, WASD or a drag move the view within a box round the cats (110 px either way, 80 up, 46 down), and it stops at the box's edges. Space closes it, and so does a BACK button drawn under the view. Under the button a line says how: "ARROWS: LOOK   SPACE: BACK" where there is a keyboard, "DRAG TO LOOK" where there is not. It never closes by itself, except when he is taken off the summit by dragging the timeline.
-- Next: H8.
+- **H8 done.** yggdrasil's cable has an anchor every 116 px of the way, where it had one every 58. He stops to move his lanyards past an anchor 7 times, where he stopped 13 times. The whole climb takes 24.7 s (29.5 before), and he is on top after 21.1 s (25.9 before).
+- Next: H9.
 
 ## 11. Calls made in round 5
 
@@ -1033,3 +1034,6 @@ One line each, newest last: the item, what was decided, and why.
 - H7, the old drift of the view (5 px) is 2 px, so it does not fight the hand.
 - H7, tested in the lab's browser: open, hold D to the box's edge, wait 8 s (still open), space (closes, he walks back, no glissade); on a 390 px screen, the BACK button; a drag with a finger. The lab has no touch screen, so "DRAG TO LOOK" itself was not seen on screen.
 - H7, the check passed with nothing moved.
+- H8, one number (`climb.js`, `ROUTES.yggdrasil.anchor`). Each stop is 0.8 s, so six fewer stops take 4.8 s off. The anchors now fall at the start, half way to the rungs, twice on the rungs, between the walls, at the top of the ladder and at the cable's end. The cable sags the same 2.5 px between anchors, over twice the span. The walking pace, the rungs, the ladder and the tree did not change.
+- H8, measured: every climb's length, from the scene's own `dur`, now and in round 4. bluebird 24.6 s (29.1), tks 30.1 (28.8), hevy-garmin-sync 21.7 (30.3), trailhead 30.1 (30.1), yggdrasil 24.7 (29.5), kubernetes-manifests 29.5 (29.5). tks is 1.3 s longer since H4's one wall.
+- H8, compared with round 4's build at three places and filmed in motion close up: both lanyards still go past each anchor one after the other. The check passed with nothing moved.

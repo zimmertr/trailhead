@@ -358,3 +358,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Other Things to Find Through Them** (round 5, H7). Panned to its edge, the view shows something that is only there through the binoculars: the bear at the berries, or the elk in the meadow.
 - **The Cats Look Back** (round 5, H7). After a few seconds in the view one cat turns and looks straight up the lens.
 - **Keys for Every Scene** (round 5, H7). Now that a scene can take the keys, the register and the kiosk could use the arrows too.
+- **Clip Only at the Walls** (round 5, H8). On the easy ground he walks with a hand on the cable and the lanyards slide along it. He stops to move them only at the foot and the top of each wall.
+- **One Lanyard at a Time Shown Large** (round 5, H8). The first clip-in is shown close up once, like the phone and the watch, so the two-lanyard rule is understood and later ones can pass quickly.
+- **A Climb Length Check** (round 5, H8). The check script prints every climb's length and warns when one goes over 30 s.

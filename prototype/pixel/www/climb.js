@@ -43,7 +43,7 @@ const ROUTES = {
   // yggdrasil, the via ferrata (K6): dry rock all the way (`dry`), a steel cable from the start to `cable`,
   // anchored every `anchor` of the way; iron rungs up the first wall and a fixed ladder up the second
   // (`walls`), then unclipped over bare rock to the world tree.
-  yggdrasil: { kind: 'ladder', secs: 15, sx: 470, w: 1200, dry: true, cable: 430, anchor: 58, walls: [[200, 206, 'rungs'], [320, 326, 'ladder']], pts: [[0, 0], [50, -10], [120, -24], [200, -40], [206, -150], [260, -160], [320, -170], [326, -232], [380, -246], [430, -262], [470, -270], [512, -270], [538, -232], [608, -132], [708, -12]] },
+  yggdrasil: { kind: 'ladder', secs: 15, sx: 470, w: 1200, dry: true, cable: 430, anchor: 116, walls: [[200, 206, 'rungs'], [320, 326, 'ladder']], pts: [[0, 0], [50, -10], [120, -24], [200, -40], [206, -150], [260, -160], [320, -170], [326, -232], [380, -246], [430, -262], [470, -270], [512, -270], [538, -232], [608, -132], [708, -12]] },
   // Kubernetes-Manifests, the crevasse maze (K7): the storm comes in by stages over a broken glacier; in the
   // whiteout he follows the wands to a crevasse with no way over (`dead`: where he stops, the wand he goes
   // back to, and where the line picks up beyond it), jumps a narrow one, crosses a sagging snow bridge, and
