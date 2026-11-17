@@ -6,8 +6,7 @@ Things that would make the pixel trailhead look, feel, perform and behave better
 
 - **Real numbers on the lake cards.** "In the mountains" could show this year's totals from Strava and Peakbagger (kilometres run, metres climbed, summits) the way the project cards show stars. A scheduled job writes them into a content file, so the page never calls those services.
 - **A summit log.** A short list of recent peaks on the map card, each one a link to its Peakbagger page. It would turn "peakbagger" from a claim into evidence.
-- **Work history as the approach.** The 0.6 km walk to The Stack is empty today. Trail signs along it could name the places TJ has worked, oldest first, so the walk in is the career and the wall is the skills.
-- **A fourth pitch for leadership.** The Stack covers platform, reliability and software. Mentoring, hiring and running a team have no card. A belay ledge where he brings up a second climber would show it without a paragraph.
+- **A fourth pitch for leadership.** Proficiency Peak covers platform, reliability and software. Mentoring, hiring and running a team have no card. A belay ledge where he brings up a second climber would show it without a paragraph.
 - **Certifications as gear.** The wilderness first aid card and any cloud or Kubernetes certificates could hang on the pack at base camp, each one clickable.
 - **Projects that stay current.** The project numbers were typed in on 2026-11-14. A nightly job that rewrites `content.js` from the GitHub API keeps stars and releases honest, and a new repository gets a seventh summit without anyone drawing one by hand.
 - **The site's own status, for real.** The kiosk shows a version and an uptime that are made up in the browser. The real values (the running image tag, the Argo Rollouts step, the last deploy) are the best proof of the platform work the cards describe.
@@ -21,10 +20,7 @@ Things that would make the pixel trailhead look, feel, perform and behave better
 - **Weather that matches Seattle.** Rain on the forest scene when it is raining at home, clear skies when it is not. The data is already in Bluebird Forecast.
 - **A drawn night.** Dusk stops at twilight. A full night with headlamps, a lit tent at base camp and the Milky Way over the Spires would be a third theme.
 - **Parallax on the map.** The world map scrolls as one flat sheet. Letting the far range behind the three landmarks drift more slowly would give it depth for almost no cost.
-- **More of the forest's lushness in the alpine scenes.** The climbs are the sparest scenes. Cornices, crevasse fields seen from above, spindrift off the ridges and a lenticular cloud would bring them up to the forest.
-- **A proper knife-edge.** The Bluebird route is a snow slope in a storm. The PRD asks for a ridge with drops on both sides, which needs a camera that looks along the ridge instead of at its side.
 - **Smoother walking.** Six frames for the run and four for the walk. Eight and six would take the stutter out at the cost of an hour of pose work.
-- **Animated water on the map.** The lake and the glacier melt on the world map are still. The lake scene already has the technique.
 
 ## Feels better
 
@@ -38,10 +34,9 @@ Things that would make the pixel trailhead look, feel, perform and behave better
 
 ## Behaves better
 
-- **Real addresses.** The `#name` addresses work, but real paths (`/the-stack/summit`) are better for sharing and for search engines. The server needs one rule to send every path to the same page.
+- **Real addresses.** The `#name` addresses work, but real paths (`/proficiency-peak/summit`) are better for sharing and for search engines. The server needs one rule to send every path to the same page.
 - **A link preview per card.** A picture and a sentence for each address, so a shared link to a project shows that project.
 - **Screen reader pass.** The plain page covers reading. The world itself announces cards, but the events (the fall, the eggs) are silent. Short spoken lines for each would close the gap.
-- **Reduced motion.** With that setting on, scene changes should cut instead of closing a round window, and the map's idle camera should hold still.
 - **Remember where he was.** Coming back to the site could offer "carry on from pitch two" instead of starting at the Trailhead.
 - **Translations.** All copy lives in `content.js`, so a second language is one more file.
 - **Tests that look.** One screenshot per scene compared with a stored one in CI would catch the kind of slow decline the 3D prototype suffered.
@@ -51,12 +46,11 @@ Things that would make the pixel trailhead look, feel, perform and behave better
 - **Draw only what changed.** Every scene repaints every pixel on every frame. Most frames differ in a few hundred pixels. Keeping the still layers and repainting only the moving parts would cut the work by most of it, which matters on phones.
 - **Pause when hidden.** Stop drawing and stop the music when the tab is in the background.
 - **Build scenes off the main thread.** The forest and the wall take a moment to paint at load. A worker could paint them while the map is already on screen.
-- **A smaller first load.** The page is about 330 KB of script with no build step. Minified and compressed it would be near 70 KB, and the three fonts could be cut down to the letters in use.
-- **Fonts in the repo.** The four pixel fonts come from Google Fonts. Hosting them with the site removes the outside request and the moment of fallback text.
+- **A smaller first load.** The page is about 1 MB of script with no build step, and `ground.png` 1.5 MB. Minified and compressed the script would be a fraction of that, and the fonts could be cut down to the letters in use.
+- **Fonts in the repo.** The four pixel fonts and the register's four handwriting faces come from Google Fonts. Hosting them with the site removes the outside requests and the moment of fallback text.
 
 ## Sound
 
-- **Music that follows the place.** The five tracks are picked at random. Tying one to each place (and cross-fading at the scene change) would make the music part of the map.
 - **Footsteps and gear.** The PRD asks for footsteps, and they were left out because a step sound three times a second wears thin. Quiet ones, changing with the ground (dirt, rock, snow), are worth another try.
 - **A listening pass.** Every note was written in code without being listened to. An hour with headphones would find the wrong ones.
 
@@ -81,14 +75,13 @@ Kept current while round 4 is built: ideas are added as they come up and deleted
 - **Other hikers.** A tiny party walks a trail or crosses the glacier roped up, and waves if he passes.
 - **Larch needles on the map.** On a gust, gold needles blow off the larches.
 - **Elk bugling at Dusk** in the parkland, heard before it is seen.
-- **A marine layer.** Some visits open with low cloud filling the west below the crest, burning off over a few minutes.
 - **An otter in the river** below the waterfall, on its back.
 
 ### Places and scenes
 
 - **Carry on along the ridge.** After a Spires summit, offer the ridge to the next summit as well as the glissade to camp, so a keen visitor can link all six as one traverse.
-- **The work history as the larch approach.** Cairns or signs along the larch basin scene could name the places TJ has worked, oldest first (see "Work history as the approach" above, which was written for The Stack's walk-in).
-- **The summit register on Proficiency Peak.** A small box on top that he signs, as a thing to find.
+- **The work history as the larch approach.** Cairns or signs along the larch basin scene could name the places TJ has worked, oldest first, so the walk in is the career and the West Ridge is the skills.
+- **The summit register on Proficiency Peak.** A small tin box under the top boulder that he signs, as a thing to find, with earlier names as a place for credits or thanks (the trail register at the Trailhead is built; this would be its summit twin).
 - **A second lake scene at Dusk**: alpenglow on the mountain and its mirror, the one postcard view of the site.
 - **The tide pools up close.** Tapping a pool at low tide could open a small close-up with its animals named.
 
@@ -109,7 +102,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 
 ### Page and feel
 
-- **A photo mode.** One key hides every sign and card for a clean screenshot of the view.
 - **The opening view as the share picture.** The wide skyline frame is the natural image for link previews.
 
 ### Climbs not used for the six summits
@@ -136,7 +128,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Brocken spectre.** At the summit, with the sun behind them, their three shadows could fall on the cloud sea below, each ringed by a small rainbow glory, the way climbers sometimes see themselves above an inversion.
 - **The raven rolls.** Ravens play in the wind: now and then it could flip onto its back for a beat and roll upright again, which climbers love to see and which would reward a visitor who waits at a belay.
 - **A hood that reads as a hood.** Seen side-on at this size a hood up under the helmet can read as long hair; a hood that stands a pixel proud of the head at the back, with its own outline, would read as fabric.
-- **The summit register.** A small tin box under the top boulder that TJ opens to sign, the way many summits keep a register, with the list of earlier names as a place to put credits or thanks.
 - **Call "Rope!"** Before throwing a rappel rope climbers shout "Rope!" so nobody below gets hit. A one-word bubble from the leader as he throws would teach it.
 - **The rope's ghost.** On a later visit to the West Ridge, the orange rope could still be hanging from the flake under the cloud, a little faded, the way abandoned ropes stay on real routes for years.
 - **Drizzle under the cloud.** A few grey streaks of drizzle under the inversion would sell the change of weather from the sunlit top.
@@ -149,7 +140,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Wave from the traverse.** Far below, a tiny figure could be setting out from the Trailhead kiosk; tapping it, TJ waves and a speck of a hand waves back.
 - **Name the towers from afar.** Tapping one of the Spires on the walk in could show its repo's name small over it, the same tag camp hangs on its summit, so a visitor learns them before arriving.
 - **Step onto the ice.** On the moraine a tap on the glacier could have him peer over the edge into a crevasse, the blue going down and down, and a stone he kicks clatter in after a long second.
-- **Kayti's painting.** At camp a tap on her pad could show what she has painted so far, a little watercolour of the six towers, finished a bit more on each visit.
 - **Trace the route.** At camp, holding a finger on a summit could draw its climb's line up the wall in a faint dotted line before he sets off, the way a topo shows it.
 - **A steeper flower slope.** On the traverse the near slope could show its steepness with the meadow's drifts and the firs leaning into the view, flowers shrinking up toward the trail and a stone now and then bouncing down past the camera.
 - **Read the forecast.** On Bluebird Forecast's summit a tap on the weather station could show the real forecast card the app would have given for that window (wind dropping, cloud base below the summit), so a visitor sees what the app does before reading about it.
@@ -161,6 +151,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A pencil that wears down.** The register's pencil on its string could get a little shorter each time someone signs, and a new one tied on when it is a stub.
 - **The map behind glass, up close.** A tap on the little map in the register box could open the trail map sheet, the way a visitor leans in to read it.
 - **Something left in the box.** Real register boxes collect a lost glove or a sticker; one small object in the corner of the box could change with the season or the time of day.
-- **Self-host the hands.** The register's four handwriting faces come from Google Fonts in the prototype; the real site could serve them itself so a visitor's browser never asks Google for them.
 - **Turn the page.** With more entries than one page holds, a corner of the right-hand page could lift, and a tap turns back to older pages.
 - **The pencil writes.** While a visitor types on the left-hand page, the pencil could lift off the page and follow the last letter.

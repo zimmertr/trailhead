@@ -490,3 +490,37 @@ He stopped the first start on this round: after a round of feedback he wants a r
 - Page: the wait line clears when a card opens, and a tap label clears once a scene acts on the tap.
 - For filming: `./frames.sh` saves a sheet of frames (see its head for the steps).
 - For screenshots only: `down=<key>` and `up=<key>` are new steps in `shot.mjs`, for anything that depends on how long a key is held.
+
+## Round 4 report (2026-11-16)
+
+Round 4 rebuilt the world as one flat map on rails (layout 1, the land climbing from the sea to the Spires) and rebuilt the side scenes on it. The plan, every call made and every number are in `ROUND4.md` (sections 7 to 9). Nothing outside `prototype/` was changed, and no earlier branch, tag or artifact was touched. Section J's find (J6) waits for TJ's choice.
+
+### What is done
+
+- The map: the coast and its sea stacks, the rainforest's foothills, Reflection Lake on its bench, Mount Monolith painted, Proficiency Peak, the larch basin, the Spires' granite wall, the sage country, rivers that find their own way down, and the far ranges. Smooth zoom out to the whole map, and an opening at round 3's size on the Trailhead with a look round that shows each destination.
+- Life on the map: the mist, the marine layer and rain showers, the tide going out and coming in with a tide pool to find, the humpback, an orca pod, the ferry and a float plane, salmon and an osprey, a heron, serac falls, an avalanche and a cap cloud on Mount Monolith, tumbleweeds and dust devils, and at Dusk shooting stars, the aurora and headlamps on the Spires' glacier. Each has a start button in the debug menu.
+- New side scenes: the larch basin and the walk to base camp. Rebuilt: the West Ridge, Reflection Lake, camp's backdrop and all six climbs, each on its own ground.
+- The trail register at the Trailhead: a box on its post, a close-up of the open book with earlier entries in four hands, TJ's note of what is left to do, and signing (kept in the visitor's browser, waiting for TJ).
+- The new names (Reflection Lake, Proficiency Peak) everywhere, with round 3's addresses still landing on the same places. Distances measured off the map, the trail map sheet's picture and dots found from the routes, the kiosk's lines matching the world, all 17 finds checked by clicking them.
+- Whole-site checks: every route end to end in Day and Dusk on desktop and phone with no console errors; ready in 0.8 s as round 3 was; every view under 16.7 ms a frame; 251 of 254 colours; the off-route page and every kind of breakage behaving.
+
+### What is weak
+
+- The list at the end of section 8a of `ROUND4.md`, for TJ to choose from: the first screen on desktop and on a phone (the places are small tags at the edges where round 3 showed them big), Dusk on the map (no sky for the alpenglow; flat lilac clouds), two trunks in the shore stop's frame, the West Ridge's busy rock, the river's mouth under the sea fog, and the map under trailhead's knife-edge, which looks pasted on.
+- The flower slope on the walk to camp reads as steep only at its lip, and hevy-garmin-sync's breath is faint on pale snow.
+- All copy is still draft for TJ to reword, the register's included.
+
+### What I changed my mind about
+
+- Placing things by hand. Round 3's trail map dots were written-down positions, and on the new map they stood on empty mountainside; they are now found from the routes. A first rule for the shore scene's stops put them at the coast, so it went back to sharing the stretch by time.
+- The junction sign's planks. I added "km in" and "km to camp" beside the distances; it wrapped the Spires' plank onto three lines, so the planks say only the distance.
+- What a find is. I added ice worms as the walk's find without asking; TJ turned them down, so new finds are now his to pick, with candidates in `IDEAS.md`. A trail that washes out no longer counts as finding the off-route page.
+- Putting round 3 back. M2 asked for anything worse to be restored; TJ asked for a list instead, so nothing was put back.
+- The start. I had taken 1.2 s as the cost of a bigger map; measured beside round 3 it was a regression, and baking four more things into `ground.png` and making the rest when first needed brought it back to 0.8 s.
+
+### Links
+
+- Working build, republished after each item: https://claude.ai/artifact/QzAfYnTZGZr8L8wfh1EksH
+- Checkpoints: 2, the map https://claude.ai/artifact/USrZi6317Qi7j7AYQamUBu; 3, the larch basin https://claude.ai/artifact/SE9Zd6bFoTbpe7auBQNJoD; 4, the West Ridge https://claude.ai/artifact/MTcnFZLanLsZaiDyqpSprJ; 5, Reflection Lake https://claude.ai/artifact/EDjsTpeZNLKeSUzjc54vYe; 6, the walk to camp https://claude.ai/artifact/Un32mmD5aUe9tAi1m9Lt1p; 7, the six climbs https://claude.ai/artifact/PcapMy398JpSpc5UmJKvTK. The block-ins, the quality pass and 2a are in section 8 of `ROUND4.md`.
+- Branch: https://github.com/zimmertr/trailhead/tree/pixel-round4-opus, with a branch for each checkpoint (`pixel-r4-map` to `pixel-r4-spires`).
+- To compare with, unchanged: round 3 https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1 (tag `pixel-r3-final`).
