@@ -393,6 +393,9 @@ addEventListener('popstate', () => navigate(location.hash));
 // Space and the Start button: a press starts or stops him. Held for more than a quarter of a second, he goes
 // faster for as long as it is held, and carries on at his own pace when it is let go.
 const press = { down: false, was: false, held: false, t: 0 };
+// The space bar does nothing until the visitor has picked where to go (T36): a plank, a name tag, the menu,
+// the timeline, a trail point, or an address that names a route. From then on it starts and stops him.
+let chosen = !!(new URLSearchParams(location.search).get('route') || location.hash.length > 1);
 function pressDown() { if (press.down) return; press.down = true; press.held = false; press.was = api.running(); audio.start(); if (!press.was) api.start(); clearTimeout(press.t); press.t = setTimeout(() => { if (press.down) { press.held = true; api.boost(true); } }, 250); }
 function pressUp() { if (!press.down) return; press.down = false; clearTimeout(press.t); if (press.held) api.boost(false); else if (press.was) api.stop(); }
 addEventListener('blur', () => { if (press.down) { press.down = false; clearTimeout(press.t); api.boost(false); } });
@@ -429,7 +432,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyM') { openSheet('map'); return; }
   if (e.code === 'KeyT') { toggleDusk(); return; }
   if (e.target.closest && e.target.closest('button, a') && (e.code === 'Space' || e.code === 'Enter')) return;
-  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) pressDown(); return; }
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat && chosen) pressDown(); return; }
   if (api.key(e.code)) e.preventDefault();
 });
 addEventListener('keyup', e => { if (e.code === 'Space') pressUp(); });
@@ -453,6 +456,7 @@ addEventListener('resize', () => { nameBox = null; });
   document.querySelectorAll('.mark').forEach(d => d.classList.toggle('passed', +d.dataset.at <= p + 0.001));
   $('run').textContent = UI.run[running ? 1 : 0];
   const atFork = !(running || p > 0.002 || shown != null || api.route() !== 'lake');
+  if (!atFork) chosen = true;
   fork.hidden = !atFork || forkShut;
   { const text = shown && cardShut ? LABELS[shown] || (PROJECTS[shown] ? PROJECTS[shown].name : CARDS[shown].title) : atFork && forkShut ? DEST_NAMES.trailhead : '';
     tab.hidden = !text || !sheet.hidden || !plain.hidden; if (text && text !== tabText) { tabText = text; tab.querySelector('span').textContent = text; } }
