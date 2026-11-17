@@ -33,6 +33,41 @@ export const BREACH = Array.from({ length: Math.ceil(IMPACT * FPS) + 1 }, (_, i)
     roll: 90 - 28 * smooth(0.3, 1.3, u) - 38 * smooth(1.2, 1.9, u) - 14 * smooth(1.9, IMPACT, u), sweep: 1.1 - 0.9 * smooth(0.5, 1.5, u) - 0.3 * smooth(1.6, 2.6, u)
   };
 });
+// Where each river runs on across the tidal flat (T25): one byte a cell of the sea's corner, 2 for its water and
+// 1 for the wet sand at its edge. Worked out once, from the ground's picture and the beach's slope, so it follows
+// the rivers wherever a later change to the land puts their mouths.
+function riverOnFlat(SEA, g, EBB, csAt) {
+  const CHAN = new Uint8Array(SEA.cs.length), wet = new Set([R.water[3], R.water[4], ...R.glint]), seen = new Uint8Array(SEA.cs.length), mouths = [];
+  // The mouths: each patch of river water lying within a few pixels of the high-water line.
+  for (let j = 0; j < CHAN.length; j++) {
+    const k = SEA.cs[j]; if (seen[j] || k < 1 || k > 6 || !wet.has(g[(SEA.y0 + ((j / SEA.w) | 0)) * NW + j % SEA.w])) continue;
+    const q = [j]; seen[j] = 1; let sx = 0, sy = 0, n = 0;
+    while (q.length) {
+      const c = q.pop(), x = c % SEA.w, y = (c / SEA.w) | 0; sx += x; sy += y; n++;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy, m = ny * SEA.w + nx; if (nx < 0 || ny < 0 || nx >= SEA.w || ny >= SEA.h || seen[m]) continue; const km = SEA.cs[m]; if (km < 1 || km > 6 || !wet.has(g[(SEA.y0 + ny) * NW + nx])) continue; seen[m] = 1; q.push(m); }
+    }
+    if (n >= 4) mouths.push({ x: sx / n, y: SEA.y0 + sy / n, half: clamp(n / 11, 2.6, 3.4) });   // the patch is about 6 long, so this is half the river's width
+  }
+  const mark = (x, y, r) => { for (let dy = -Math.ceil(r + 2.2); dy <= Math.ceil(r + 2.2); dy++) for (let dx = -Math.ceil(r + 2.2); dx <= Math.ceil(r + 2.2); dx++) { const px = Math.round(x) + dx, py = Math.round(y) + dy - SEA.y0; if (px < 0 || py < 0 || px >= SEA.w || py >= SEA.h) continue; const d = Math.hypot(px - x, py + SEA.y0 - y), j = py * SEA.w + px; if (d <= r) CHAN[j] = 2; else if (d <= r + 2.2 && !CHAN[j]) CHAN[j] = 1; } };
+  for (const [n, M] of mouths.entries()) {
+    let x = M.x, y = M.y, dist = 0, gx0 = 0, gy0 = 0;
+    for (let step = 0; step < 400; step++) {
+      // Down the beach: toward where the low-water line lies, read over a wide enough reach that one ripple of the shore does not turn it.
+      let gx = csAt(Math.round(x + 5), Math.round(y)) - csAt(Math.round(x - 5), Math.round(y)), gy = csAt(Math.round(x), Math.round(y + 5)) - csAt(Math.round(x), Math.round(y - 5)); const gl = Math.hypot(gx, gy);
+      if (gl < 0.5) { gx = gx0; gy = gy0; } else { gx /= gl; gy /= gl; if (step) { gx = 0.7 * gx0 + 0.3 * gx; gy = 0.7 * gy0 + 0.3 * gy; const l = Math.hypot(gx, gy) || 1; gx /= l; gy /= l; } }
+      if (!gx && !gy) break; gx0 = gx; gy0 = gy;
+      const k = csAt(Math.round(x), Math.round(y)), f = clamp((k - 4) / EBB, 0, 1); if (k >= 4 + EBB + 3 || x < 2 || y > SEA.y0 + SEA.h - 2) break;
+      const nx = -gy, ny = gx, swing = 3 * f * Math.sin(dist / 9 + n * 2.1);
+      mark(x + nx * swing, y + ny * swing, M.half * (1 - 0.35 * f));
+      // Two more threads leave the main one as the flat levels out, one to each side, and wander on their own.
+      const b = smooth(0.22, 0.5, f), c = smooth(0.45, 0.75, f);
+      if (b > 0) { const o = swing + b * (7.5 + 2 * Math.sin(dist / 6 + n)) + 1; mark(x + nx * o, y + ny * o, 1.7); }
+      if (c > 0) { const o = swing - c * (7 + 1.8 * Math.sin(dist / 5 + 2 + n)) - 1; mark(x + nx * o, y + ny * o, 1.5); }
+      x += gx; y += gy; dist++;
+    }
+  }
+  return CHAN;
+}
 // opts.bear: true or false puts the bear there or not, whatever the dice say (the block-in page asks for it).
 export function makeCritters(W, opts = {}) {
   const { spots, sea: SEA, g } = W, items = [];
@@ -274,6 +309,12 @@ export function makeCritters(W, opts = {}) {
   // Only sand the lowest tide can bare is ever read (M3), so the open sea beyond it is skipped.
   const FILM = new Uint8Array(SEA.cs.length); for (let j = 0; j < FILM.length; j++) { const k = SEA.cs[j]; if (k < 8 || k >= 4 + EBB) continue; const x = j % SEA.w, y = SEA.y0 + ((j / SEA.w) | 0), n = vnoise(x / 13, y / 5, 6108) + 0.25 * smooth(8, 50, k); FILM[j] = Math.max(0, Math.min(8, Math.round((n - 0.6) * 30))); if (frac((k * 0.9 + 0.5 * Math.sin(x / 5)) / 3) < 0.22) FILM[j] |= 16; }
   const csAt = (x, y) => { if (x < 0 || x >= SEA.w || y < SEA.y0 || y >= SEA.y0 + SEA.h) return 0; return SEA.cs[(y - SEA.y0) * SEA.w + x]; };
+  // Each river carries on across the sand the tide bares (T25). CHAN marks, over the same cells as the tide, where
+  // its water runs (2) and the wet sand beside it (1). A mouth is found where river water in the ground's picture
+  // meets the high-water line. From there the channel takes the beach's own fall line to the lowest water, swinging
+  // a little, and splits into two and then three shallow threads as the flat levels out. The sea's loop draws a
+  // cell of it only while the tide has that cell bared, so the tide coming in covers it again from the far end.
+  const CHAN = riverOnFlat(SEA, g, EBB, csAt);
   // How far up the bared sand the last of each wave's wash runs, in the same units as the tide.
   const up0 = (wx, wy, tw) => { const u = frac((7 * Math.sin(wx / 37 + wy / 61) + tw) / 24), surge = u < 0.2 ? u / 0.2 : 1 - (u - 0.2) / 0.8; return 0.4 + 2.2 * surge + 0.7 * Math.sin(wx / 7 + wy / 9); };
   function tidePools(scr, ox, oy, t, ebb) {
@@ -568,7 +609,7 @@ export function makeCritters(W, opts = {}) {
       moreWhales();
       const { VW, VH, fb } = scr, xa = Math.max(0, ox), xb = Math.min(ox + VW, SEA.w), ya = Math.max(oy, SEA.y0), yb = Math.min(oy + VH, SEA.y0 + SEA.h);
       if (xa >= xb || ya >= yb) return;
-      const shift = Math.floor(t * 46) % 240, far = R.sea[4], nearC = R.sea[5], white = R.white[1], tw = t * 4.6, ebb = ebbAt(t), CS = SEA.cs, sea4 = R.sea[4], sand0 = R.sand[0], sand1 = R.sand[1];
+      const shift = Math.floor(t * 46) % 240, far = R.sea[4], nearC = R.sea[5], white = R.white[1], tw = t * 4.6, ebb = ebbAt(t), CS = SEA.cs, sea4 = R.sea[4], sand0 = R.sand[0], sand1 = R.sand[1], wat3 = R.water[3], wat4 = R.water[4];
       const PH = SEA.ph, GATE = SEA.gate;
       for (let wy = ya; wy < yb; wy++) {
         const r = wy - SEA.y0, row = r * SEA.w, irow = (wy - oy) * VW - ox, { runs, glints } = seaRow(r);
@@ -580,7 +621,7 @@ export function makeCritters(W, opts = {}) {
         for (let wx = x0; wx < x1; wx++, j++, i++) {
           const k = CS[j], cs = k ? k - 4 - ebb : 99;
           // Bared by the tide: wet sand, shining just above the water, ripple-marked higher up.
-          if (k >= 4 && cs < 0) { const f = FILM[j]; fb[i] = cs > -3 || (f & 15) > ((wx * 3 + wy * 5) & 7) ? ((wx + wy) & 1 ? sea4 : sand0) : f & 16 ? sand1 : sand0; if (cs > -4) { const w = up0(wx, wy, tw); if (cs > -w && (cs < -w + 1.3 || ((wx + wy) & 1))) fb[i] = white; } continue; }
+          if (k >= 4 && cs < 0) { const f = FILM[j], c = CHAN[j]; fb[i] = c === 2 ? ((wx + 2 * wy) % 5 < 2 ? wat4 : wat3) : c === 1 || cs > -3 || (f & 15) > ((wx * 3 + wy * 5) & 7) ? ((wx + wy) & 1 ? sea4 : sand0) : f & 16 ? sand1 : sand0; if (cs > -4) { const w = up0(wx, wy, tw); if (cs > -w && (cs < -w + 1.3 || ((wx + wy) & 1))) fb[i] = white; } continue; }
           const gt = SEA.gate[j];
           if (gt && cs >= 8) { let p = SEA.ph[j] + shift; if (p >= 240) p -= 240; if (p < 22) fb[i] = gt === 2 ? nearC : far; continue; }
           if (!k || cs >= 8) continue;

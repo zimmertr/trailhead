@@ -3,7 +3,7 @@
 import { mount } from './pixel.js';
 import { makeAudio } from './audio.js';
 import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, UI, NAMES, DEST_NAMES, ago } from './content.js';
-import { OX, OY } from './land.js';
+import { OX, OY, BAKE } from './land.js';
 import { DEBUG } from './core.js';
 import { TRICKS } from './cats.js';
 
@@ -233,7 +233,7 @@ function openDebug(on) {
     el('h2', {}, el('span', { text: D.title }), el('button', { class: 'plank', style: 'width:auto', onclick: () => openDebug(false) }, el('span', { text: D.close }))),
     // Whether the map came from ground.png or was worked out on this page, and why (S2c): the one place a host that
     // serves the files differently can be read from, since nothing outside the page can ask it.
-    el('p', { class: 'legend', text: (window.__info || {}).baked ? D.ground[0] : D.ground[1] + ((window.__info || {}).bakeNote ? ' (' + window.__info.bakeNote + ')' : '') }),
+    el('p', { class: 'legend', text: BAKE.used ? D.ground[0] : D.ground[1] + (BAKE.note ? ' (' + BAKE.note + ')' : '') }),
     el('h3', { text: D.time }), timeSlider, el('div', { class: 'speeds' }, ...clockSpeeds), jump(D.sunset, C.sunset - 2), jump(D.sunrise, C.sunrise - 2),
     el('h3', { text: D.layers }), ...['trees', 'clouds', 'mist', 'labels', 'animals'].map(toggle),
     el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle), noGo,

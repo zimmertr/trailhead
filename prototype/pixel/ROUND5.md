@@ -515,7 +515,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] D1. T6: the trail rework: the new direct Spires trail, the new bottom trail, the two removed stretches and their bridges, the loop kept. Update the routes, `lakeIn`, `lakeOut` and `spiresIn`, the trail map sheet, the sign's distances (T45) and click to move.
 - [x] D2. T30: Reflection Lake about 1.6 times wider, two moraine lakes under Monolith's ice, and the second river. Both streams flow into the lake.
 - [x] D3. T28: remove the oxbow and the heron.
-- [ ] D5. T25: rivers carry on across the beach at low tide.
+- [x] D5. T25: rivers carry on across the beach at low tide.
 - [ ] D6. T79a: the river mouth shows through the sea fog.
 - [ ] D7. T10: the fire lookout on Off By One Peak.
 - [ ] D8. T21: flower density from one field, with the four levels.
@@ -657,8 +657,9 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **The baked ground loads on the artifact host** (S2c, version 18): the Debug panel's first line reads "Ground: read from the bake". `window.__info` carries `baked` and `bakeNote`, and the smoke test's first case asserts them.
 - **TJ's 42 screenshots are out of the repo** (S3b), on https://claude.ai/artifact/C3vp7qfxAtoHGnTioe2sNs.
 - **`check.sh <item>` is built** (S3c): syntax, the browser check, the zoomed-out Dusk frame time, and what moved since the check before. First run, as `S3c`: 14 tests passed, 11.7 ms a frame, 3 trails and 83 signs and animals written to `out/check/S3c.json`.
-- **Section 0 is done but for one tick**: S2b waits only for the last run of checks on https://github.com/zimmertr/trailhead/pull/32 to finish green. Read them at the start of the next item and tick it.
-- Next: D5.
+- **Section 0 is done** (2026-11-17): every check on https://github.com/zimmertr/trailhead/pull/32 passed on `main` as its base.
+- **D5 done.** Both rivers that reach the beach now carry on across the sand the tide bares: at river width where they leave the dry sand, then swinging and splitting into two and three shallow threads with bars between, to the water's edge. The channel grows as the tide goes out and the sea covers it again from the far end as it comes in. At high tide nothing has changed.
+- Next: D6.
 
 ## 11. Calls made in round 5
 
@@ -741,6 +742,9 @@ One line each, newest last: the item, what was decided, and why.
 - S3c. `check.sh` ends with one line, "check <item>: passed" or what failed. It fails on a file that does not parse, a failed browser test, a frame over 16.7 ms, or a ground that did not come from the bake. A trail counts as moved when any of its points is more than 8 px from every stretch of the old one, measured both ways, so a re-route is seen but a point added along the same line is not. Signs and animals are matched in the order the rules place them. Tested by handing it an earlier file with an elk and ten trail points shifted and a marmot removed: it named all three. `out/` is not in git, so the earlier files live only in the clone: after a fresh clone the first check has nothing to compare with and says so.
 - S3c, frame time. `check.sh` gave 11.7 ms for the zoomed-out map at Dusk, where the review on 2026-11-16 measured 14.9 ms for the same view on the same code. The machine was busier then (other renders were running). Take a frame time only from a run with nothing else going, and E0's target of 13.5 ms may already be met: measure three times before doing any work on it.
 - For whoever merges #31: the repo allows squash merges only and deletes the branch on merge, `main` has no branch protection, and every push to `main` runs the Release workflow (four images built and pushed, a version tagged, nothing deployed). #31's title is "feat: add the pixel world prototype through round 4", so the release is a minor version.
+- D5. The channel is not in the baked ground: the tidal flat is drawn each frame by the sea's loop in `critters.js`, so the channel is a mask over the same cells (`riverOnFlat`), read only for a cell the tide has bared. A mouth is found by rule, where river water in the ground's picture lies within a few pixels of the high-water line, and the channel follows the beach's own fall line from there, so it moves with the rivers if the land changes. It uses the river's two colours and dither, so the join at the top of the flat does not show, and the shining wet-sand checker the flat already has at its edges. No new colours.
+- D5. The lower river's channel reaches the low-water line between two sea stacks and passes behind the nearer one. Left as it is: a stream running out round a stack's foot is what happens.
+- D5, checks: `check.sh D5` passed, 11.7 ms a frame zoomed out at Dusk (the same as before the change), nothing moved. Looked at in Day and Dusk at high, half and low tide, and filmed over one ebb. Round 4 has the rivers stop at the top of the flat.
 
 ## 12. The reference pictures
 
