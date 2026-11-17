@@ -387,3 +387,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Gearing Up Seen** (round 5, I5). The leader racks cams onto his harness one at a time while the others walk over, and each one is on the rack he climbs with.
 - **A Kit Change at the Packs** (round 5, I5). TJ arrives in his trail clothes and cap, and swaps the cap for his helmet at the packs, so his kit does not change between scenes.
 - **Rope Flaked Out** (round 5, I5). The woman flakes the rope into a pile at the foot of the climb before anyone ties in, and the pile shrinks as the leader climbs.
+- **Rope Stacked at the Belay** (round 5, I6). The rope taken in piles up in coils over the belayer's tether, and the pile runs out again as the next one climbs.
+- **Belay Calls** (round 5, I6). A small word bubble at each handover: "On belay", "Climbing", "Off belay", gone in a second.
+- **The Trailed Rope Snags** (round 5, I6). Once on the crest the orange rope catches behind a horn, and the woman flicks it free before TJ can follow.
+- **Camera Keeps TJ in the Picture** (round 5, I6). On a narrow screen the view pulls back while someone else climbs, so TJ at the belay is never off the edge.

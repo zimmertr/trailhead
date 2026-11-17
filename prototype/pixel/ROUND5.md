@@ -578,7 +578,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] I3. T66: the larch basin's pika squeak and hide.
 - [x] I4. T67: nothing floats in the larch basin, in Day or at Dusk.
 - [x] I5. T68: the walk-in at normal pace, and helmets in about 2 s.
-- [ ] I6. T72, T71: the climbing order (leader, woman, TJ) and the second rope from the woman to TJ, on every pitch.
+- [x] I6. T72, T71: the climbing order (leader, woman, TJ) and the second rope from the woman to TJ, on every pitch.
 - [ ] I7. T69: climbing at about 4 times the speed, with fewer pieces.
 - [ ] I8. T70: a large tarn far below, like Shield Lake.
 - [ ] I9. T73: TJ's fall on the off-width and the 3:1 haul.
@@ -706,7 +706,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **I3 done.** The larch basin's pika now behaves like the ones on the moraine. When TJ comes within about 70 px it sits bolt upright on its rock, gives its "eep" and bolts into the gap between its two rocks. Once he has gone by it looks out of the gap, and when he is well away it comes back to its rock. While he is far off it still goes back and forth with flowers for its haystack, as in round 4.
 - **I4 done.** Nothing floats in the larch basin now. Near the end of the walk the trail, its cairns, two rocks and the larches on the verge used to stand in the air in front of the grey bench, above a ground that stopped in a flat line. The ground now rises with the trail to the end of the scene, and everything on it stands on it, in Day and at Dusk.
 - **I5 done.** At Proficiency Peak TJ now walks in to the foot of the climb at the pace he walks the larch basin, about three times as fast as before. He drops his pack in passing, and helmets and knots are one beat of under 2 s: hands up to the helmet, the chin strap, the knot. The woman eats bare-headed and her helmet goes on in that beat, where it used to appear when she stood up. They are ready and waiting for Space about 6 s sooner.
-- Next: I6.
+- **I6 done.** On every pitch of Proficiency Peak the order is now the leader, the woman, then TJ. The woman belays the leader. She follows on his teal rope and trails a second, orange rope down to TJ, who pays it out. At each piece she takes the teal rope out and clips the orange one in. TJ comes last on the orange rope, on her belay from above, takes the gear out and strips the anchor below. Both ropes are drawn the whole way up: the one not in use hangs in a loop between the two who share a stance.
+- Next: I7.
 
 ## 11. Calls made in round 5
 
@@ -1102,3 +1103,16 @@ One line each, newest last: the item, what was decided, and why.
 - I5, a call: the woman now stays bare-headed until that beat, so one helmet is seen going on. TJ and the leader arrive with theirs on, as before: TJ's whole kit changes between the two scenes, which I left alone.
 - I5, a call: the wait for Space at the foot of the climb and the fist bump after it are unchanged. The scene is 6 s shorter (440 s), so every stop in it sits a little earlier on the timeline. Nothing else in the scene's script was touched.
 - I5, looked at second by second beside round 4, close up on the helmet beat, in Day and at Dusk, and on a phone both ways. Frame time there is about 3 ms. The check passed with nothing moved.
+- I6, what it was (`ridge.js`): TJ belayed the leader. On pitch 1 both followers climbed at once on two ropes. On pitches 2 to 5 the leader brought TJ up and TJ brought the woman up on one rope, and she took the gear out. While the leader led, one rope was drawn.
+- I6, the order now, on all five pitches: the woman belays the leader on the teal rope; the leader belays her up; she belays TJ up on the orange rope. TJ cleans every piece and takes the lower anchor apart before he leaves it.
+- I6, the ropes through the pieces: a piece holds the teal rope from when the leader clips it until the woman reaches it. She stops there (0.8 s, 0.5 s at the piton and the bolt) and swaps the orange rope in. So above her the teal rope runs through the pieces to the leader, and below her the orange rope runs through them to TJ. This is round 4's rule (belayer's hands, every clipped piece in order, climber's waist) with one more fact per piece: which rope is in it.
+- I6, a call: "both ropes are always drawn" means the rope nobody is climbing on is drawn too, as a slack loop between the two it joins while they stand at the same stance (orange between the woman and TJ while the leader leads, teal between the leader and the woman while TJ follows).
+- I6, a call: at the foot of the climb, after the fist bump, TJ steps back to where the woman stood and she steps up beside the start to belay (0.8 s). The fist bump is still TJ's and the leader's, and the wait for Space is unchanged. The leader waits those 0.8 s for his belayer.
+- I6, a call: at each belay the woman now stands a stride below the leader and TJ a stride below her (they swapped spots), so the last one up stands lowest and nobody climbs through anybody.
+- I6, the catches change hands: the woman holds the leader's fall on the slab, and the leader holds the woman's slip on the last pitch. Her one rest a pitch and her slower, wandering climbing are unchanged. TJ still never rests.
+- I6, a call: a card opens when TJ clips in at the belay, as before. He is now the last one up, so the scene no longer plays on behind an open card.
+- I6, a call: the camera follows whoever is climbing: the leader, then the woman, then TJ. The slack rope and the trailed rope do not pull it.
+- I6, colours: TJ's tie-in knot and his tether at the anchors are now orange, and the woman's tether is teal, to match the rope each is on (they were the other way round).
+- I6, a call: the scene is 23 s longer (464 s), because pitch 1 is now climbed one at a time and the woman stops at each piece. I7 makes the climbing about 4 times faster.
+- I6, left alone: `wall.js`, round 3's wall, which only loads with `?wall` in the address and has TJ alone on the rock. The summit moves and the order on the rappel (leader, woman, TJ) were already right.
+- I6, looked at on all five pitches and at every belay, in motion at the start, a rope swap, the fall, the slip and the summit, at Dusk and on a phone both ways. Frame time in the scene is about 3 ms. The check passed with nothing moved.
