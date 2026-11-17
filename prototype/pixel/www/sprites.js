@@ -415,6 +415,36 @@ function makeElk(headDown, step = 0, bull = true) {
   }
   return b;
 }
+// A moose, facing left like the elk and a head taller: a dark body on long pale legs, a hump over the shoulders,
+// a long head with a drooping nose and a bell under the throat. The bull carries broad palmate antlers (T35, TJ: "so
+// that one can have antlers"). The calf is small, red-brown and all legs.
+function makeMoose(calf, headDown, step = 0) {
+  const b = calf ? new BM(26, 24) : new BM(40, 38); b.ox = calf ? 13 : 20; b.oy = b.h - 1;
+  const oval = (cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
+  const coat = calf ? (nx, ny, x, y) => pick('bark', 0.68 - ny * 0.3 + nx * 0.05, x, y, 0.5) : (nx, ny, x, y) => pick('fur', 0.42 - ny * 0.34 + 0.16 * (hash(x, y, 14) - 0.5), x, y, 0.6);
+  const dark = calf ? R.bark[1] : R.fur[1], sock = calf ? R.bark[2] : R.dirt[3];
+  if (calf) {
+    for (const [lx, far] of [[8, 1], [10, 0], [16, 1], [18, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 13; y < 23; y++) b.set(lx + (y > 18 ? sw : 0), y, y > 17 ? sock : R.bark[far ? 0 : 1]); }
+    oval(13, 11.5, 5.4, 3, coat);
+    const hx = headDown ? 5 : 4.5, hy = headDown ? 19 : 7;
+    if (headDown) thick(b, 8, 12, 6, 17, 3, dark); else thick(b, 8, 10, 6, 8, 3, dark);
+    oval(hx, hy, 2.6, 1.7, coat); b.set(hx - 2, hy + 1, dark); b.set(hx - 3, hy + 1, dark); b.set(hx - 1, hy - 1, INK); b.set(hx + 2, hy - 2, R.bark[2]); b.set(hx + 3, hy - 3, R.bark[2]);
+    outline(b, INK); return b;
+  }
+  // The legs: dark above the knee, pale below; the near and far ones swing opposite ways when it walks.
+  for (const [lx, far] of [[12, 1], [15, 0], [26, 1], [29, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 21; y < 37; y++) b.set(lx + (y > 29 ? sw : 0), y, y > 28 ? sock : R.fur[far ? 0 : 1]); if (!far) for (let y = 21; y < 29; y++) b.set(lx - 1, y, R.fur[1]); }
+  oval(21, 19.5, 9.5, 4.6, coat); oval(14.5, 17, 4.6, 5, coat); oval(28, 19, 3.4, 4.4, coat);
+  const hx = headDown ? 6 : 6, hy = headDown ? 30 : 14;
+  if (headDown) thick(b, 12, 19, 9, 27, 5, dark); else thick(b, 12, 16, 9, 14, 5, dark);
+  oval(hx, hy, 3.6, 2.1, coat); oval(hx - 2.4, hy + 1.6, 2.2, 1.9, coat);
+  b.set(hx + 1, hy - 1, INK); b.set(hx + 4, hy - 3, dark); b.set(hx + 5, hy - 3, dark);
+  if (!headDown) { b.set(hx + 4, hy + 4, dark); b.set(hx + 4, hy + 5, dark); }
+  outline(b, INK);
+  // The antlers go on after the outline, as the elk's do: a broad palm with points along its top, the far one a shade darker.
+  const palm = [[3, -3], [4, -4], [2, -5], [3, -5], [4, -5], [5, -5], [6, -5], [7, -5], [8, -5], [3, -6], [4, -6], [5, -6], [6, -6], [7, -6], [8, -6], [9, -6], [3, -7], [5, -7], [7, -7], [9, -7], [10, -7], [1, -4], [0, -5]];
+  for (const [dx, dy, c] of [[-4, 0, R.dirt[3]], [0, 0, R.white[0]]]) for (const [x, y] of palm) b.set(hx + x + dx, hy + y + dy, c);
+  return b;
+}
 function makeSlug() {
   const b = new BM(8, 4); b.ox = 4; b.oy = 3;
   for (let x = 1; x < 7; x++) b.set(x, 2, R.yellow[1]);
@@ -515,5 +545,5 @@ function makeFlag(f, ramp = R.red) {
   return b;
 }
 
-export { makeRegister };
+export { makeRegister, makeMoose };
 export { makeDriftwood, makeSnag, makeBush, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };

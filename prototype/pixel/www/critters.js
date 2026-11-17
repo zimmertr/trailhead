@@ -1,8 +1,8 @@
-// The animals of the world map and the water that moves: herds that graze and wander, bears with cubs, squirrels
+// The animals of the world map and the water that moves: herds that graze and wander, a moose and its calf, bears with cubs, squirrels
 // and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
 import { TAU, clamp, lerp, smooth, frac, hash, vnoise, rng, R, INK, SHADE, KIND, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
-import { makeElk, makeBird } from './sprites.js';
+import { makeElk, makeBird, makeMoose } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './land.js';
 import { makeCollide } from './collide.js';
@@ -138,13 +138,13 @@ export function makeCritters(W, opts = {}) {
   const jellyAt = (k, t) => { const J = JELLY[k]; if (!J) return null; const e = ebbAt(t) / EBB, x = lerp(J.hi[0], J.lo[0], e) + 5 * Math.sin(t * 0.05 + k * 2), y = lerp(J.hi[1], J.lo[1], e) + 2.5 * Math.sin(t * 0.07 + k); return col.canBe('floater', x, y, t, 2) ? [x, y] : null; };
   const onSea = (x, y) => onSeaAt(x, y);
   // The map animals the debug menu can place (C4), and the homes each one's own rule chose for it (habitat in land.js).
-  const SPAWN = ['elk', 'goat', 'sheep', 'bear', 'marmot', 'squirrel', 'eagle', 'osprey'];
-  const homesOf = k => k === 'eagle' ? TOPS.map(p => [p.x, p.s.y]) : k === 'osprey' ? (OSPREY ? [OSPREY.dive] : []) : k === 'elk' ? [spots.elk[0].slice(0, 2)] : k === 'goat' ? spots.goats.filter(g => !g[2]).map(g => g.slice(0, 2)) : k === 'bear' ? [...(spots.bearHome ? [spots.bearHome.slice(0, 2)] : []), spots.bear.slice(0, 2)] : (k === 'squirrel' ? spots.squirrels : spots[k === 'sheep' ? 'sheep' : 'marmots']).map(g => g.slice(0, 2));
+  const SPAWN = ['elk', 'moose', 'goat', 'sheep', 'bear', 'marmot', 'squirrel', 'eagle', 'osprey'];
+  const homesOf = k => k === 'eagle' ? TOPS.map(p => [p.x, p.s.y]) : k === 'osprey' ? (OSPREY ? [OSPREY.dive] : []) : k === 'elk' ? [spots.elk[0].slice(0, 2)] : k === 'moose' ? (spots.moose ? [spots.moose] : []) : k === 'goat' ? spots.goats.filter(g => !g[2]).map(g => g.slice(0, 2)) : k === 'bear' ? [...(spots.bearHome ? [spots.bearHome.slice(0, 2)] : []), spots.bear.slice(0, 2)] : (k === 'squirrel' ? spots.squirrels : spots[k === 'sheep' ? 'sheep' : 'marmots']).map(g => g.slice(0, 2));
   // Where the trees stand, so a wandering animal goes round them, and the ground just behind anything
   // tall (a tree, a snag, a big rock), where it would stand hidden.
-  const CELL = 8, GW = Math.ceil(NW / CELL), GH = Math.ceil(NH / CELL), wood = new Uint8Array(GW * GH), hid = new Uint8Array(GW * GH);
+  const CELL = 8, GW = Math.ceil(NW / CELL), GH = Math.ceil(NH / CELL), wood = new Uint8Array(GW * GH), bole = new Uint8Array(GW * GH), hid = new Uint8Array(GW * GH);
   for (const th of W.things) {
-    if (th.tree) wood[Math.floor(th.y / CELL) * GW + Math.floor(th.x / CELL)] = 1;
+    if (th.tree) { wood[Math.floor(th.y / CELL) * GW + Math.floor(th.x / CELL)] = 1; if (!th.tree.low) bole[Math.floor(th.y / CELL) * GW + Math.floor(th.x / CELL)] = 1; }
     const w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h; if (h < 14) continue;
     for (let y = th.y - Math.min(h, 34) + 5; y <= th.y + 1; y += CELL / 2) for (let x = th.x - w / 2 - 3; x <= th.x + w / 2 + 3; x += CELL / 2) { const cx = Math.floor(x / CELL), cy = Math.floor(y / CELL); if (cx >= 0 && cy >= 0 && cx < GW && cy < GH) hid[cy * GW + cx] = 1; }
   }
@@ -165,14 +165,23 @@ export function makeCritters(W, opts = {}) {
   const rand = rng(77);
   // faces: the way the drawing looks, -1 left or 1 right. r: how far it strays from where it was put.
   // An animal is put where it was meant to stand, or on the nearest ground it may stand on if a tree has since been planted there.
-  const settle = (ok, x, y) => { if (ok(x, y)) return [x, y]; for (let r = 4; r <= 48; r += 4) for (let k = 0; k < 12; k++) { const an = k / 12 * TAU, px = Math.round(x + Math.cos(an) * r), py = Math.round(y + Math.sin(an) * r * 0.6); if (ok(px, py)) return [px, py]; } return [x, y]; };
+  const settle = (ok, x, y) => { if (ok(x, y)) return [x, y]; for (let r = 3; r <= 60; r += 3) for (let k = 0; k < 20; k++) { const an = k / 20 * TAU, px = Math.round(x + Math.cos(an) * r), py = Math.round(y + Math.sin(an) * r * 0.6); if (ok(px, py)) return [px, py]; } return [x, y]; };
   // Each keeps to its own country (o.ok) and to the ground any land animal may stand on (collide.js: firm,
   // open, clear of the buildings).
+  // Where it may stop is its country (o.ok); what it may walk across on the way is any ground a land animal
+  // may stand on that is not a tree's foot (pass), so it can go behind a tree, through the sage or over a trail to the next open patch.
+  const pass = (x, y) => col.canBe('land', x, y, 0) && !bole[Math.floor(y / CELL) * GW + Math.floor(x / CELL)];
   const walker = (kind, f, x0, y0, o) => { const own = o.ok; o = { ...o, ok: (x, y) => own(x, y) && col.canBe('land', x, y, 0) }; const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, h0: [x, y], st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
   // The herd keeps together: each elk strays only a little from its own place in it.
   spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look' }));
   spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null }));
-  spots.sheep.forEach(([x, y, d]) => walker('sheep', ram, x, y, { faces: 1, r: 34, v: 6, ok: clear, start: d ? 'graze' : 'look' }));
+  spots.sheep.forEach(([x, y, d]) => walker('sheep', ram, x, y, { faces: 1, r: 34, v: 6, ok: clear, roam: 0.6, start: d ? 'graze' : 'look' }));
+  // The moose (T35): a bull and a calf that wander the riverside woods together, the calf at his heels (it
+  // follows him as a kid follows its nanny). They keep off the trail.
+  const mooseF = calf => ({ look: makeMoose(calf, false), graze: makeMoose(calf, true), walk: [makeMoose(calf, false, 1), makeMoose(calf, false, 2)] });
+  if (spots.moose) { const inWoods = (x, y) => clear(x, y) && !W.nearTrail(x, y, 10);
+    walker('moose', mooseF(false), spots.moose[0], spots.moose[1], { faces: -1, r: 64, v: 5, ok: inWoods, roam: 0.7, start: 'look' });
+    walker('moose', mooseF(true), spots.moose[0] + 16, spots.moose[1] + 5, { faces: -1, r: 15, v: 9, ok: inWoods, roam: 0.3, mum: items[items.length - 1] }); }
   const asked = typeof location !== 'undefined' && /[?&]bear=([01])/.exec(location.search);
   // The bears (round 5, T34 and T44): each is a sow with two cubs. The cubs keep within a few pixels of her:
   // when she moves off they trail her, one at each side, and while she stays they sniff about, roll on their
@@ -253,23 +262,28 @@ export function makeCritters(W, opts = {}) {
   function walk(a, dt, t) {
     if (a.st === 'walk') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
-      if (d < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; }
+      if (d < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; a.fx = a.tx; a.fy = a.ty; }   // it stops on the spot it chose, which is ground it may stand on
       else { const s = Math.min(d, a.v * dt); a.fx += dx / d * s; a.fy += dy / d * s * 0.7; if (Math.abs(dx) > 0.5) a.flip = (dx > 0 ? 1 : -1) !== a.faces; }
       a.x = Math.round(a.fx); a.y = Math.round(a.fy);
       a.bm = a.f.walk[Math.floor(t * 4.5 + a.hx) & 1];
-      if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; }
+      if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; a.fx = a.tx; a.fy = a.ty; a.x = Math.round(a.fx); a.y = Math.round(a.fy); }
       return;
     }
     a.bm = a.st === 'graze' ? a.f.graze : a.f.stand && frac(t * 0.11 + a.hx * 0.37) < 0.5 ? a.f.stand : a.f.look;
-    if (t < a.until) return;
-    const roll = rand();
+    // A kid that has been left behind (its mother has walked off) goes after her at once.
+    const lag = a.mum && Math.hypot(a.fx - a.mum.fx, (a.fy - a.mum.fy) / 0.6) > a.r + 8;
+    if (t < a.until && !lag) return;
+    const roll = lag ? 0 : rand();
     if (roll < (a.roam || 0.25)) {
-      // A kid keeps near its mother; everyone else keeps near home.
-      const cx = a.mum ? a.mum.x : a.hx, cy = a.mum ? a.mum.y + 5 : a.hy;
-      for (let k = 0; k < 6; k++) {
+      // A kid keeps near its mother, or near where she is walking to; everyone else keeps near home.
+      const far = a.mum && a.mum.st === 'walk', cx = a.mum ? (far ? a.mum.tx : a.mum.x) : a.hx, cy = a.mum ? (far ? a.mum.ty : a.mum.y) + 5 : a.hy;
+      for (let k = 0; k < 10; k++) {
         const an = rand() * TAU, rr = a.r * (0.35 + 0.65 * rand()), tx = cx + Math.cos(an) * rr, ty = cy + Math.sin(an) * rr * 0.6;
-        if (a.ok(tx, ty) && way(a.ok, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; }
+        if (a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; }
       }
+      // No straight way to her (a trunk or a bend of the creek between them): it works round, to any spot it can
+      // reach that is 6 or more nearer her.
+      if (lag) { const dNow = Math.hypot(a.fx - cx, a.fy - cy); for (let k = 0; k < 12; k++) { const an = rand() * TAU, rr = 10 + 22 * rand(), tx = a.fx + Math.cos(an) * rr, ty = a.fy + Math.sin(an) * rr * 0.6; if (Math.hypot(tx - cx, ty - cy) < dNow - 6 && a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; } } }
     }
     a.st = roll < 0.72 ? 'graze' : 'look'; a.until = t + (a.st === 'look' ? 2.5 + rand() * 4 : 5 + rand() * 11);
     if (a.st === 'look' && rand() < 0.3) a.flip = !a.flip;

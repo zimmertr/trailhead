@@ -270,3 +270,11 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Forest-Edge Family Fishes** (round 5, E9). They stand by the creeks' meeting: the sow could wade in to her ankles and swipe at the water while the cubs watch from the bank.
 - **A Field Checklist Find** (round 5, E9). "A sow and two cubs" could be a find, ticked by clicking the family. Held for TJ: finds are his to choose.
 - **Bear Tracks** (round 5, E9). Where the sow has walked, faint prints could stay in the grass for a minute.
+- **The Moose Wades** (round 5, E10). The bull could step into the river to his knees and lift his head with water weed hanging from his mouth, dripping.
+- **Velvet and Shed** (round 5, E10). A second bull drawing with the antlers in velvet, or none at all, picked by the season if the map ever has seasons.
+- **Rams Butt Heads** (round 5, E10). Now and then two bighorn rams could back off, rear and crack horns, with a sound that carries across the coulee.
+- **Sheep on the Skyline** (round 5, E10). One sheep could stand at the very lip of the bench at Dusk, dark against the sky.
+- **A Ewe and a Lamb** (round 5, E10). The band is four rams. A ewe with a lamb at her heels would use the same follow rule as the calf.
+- **Animals Step Aside for TJ** (round 5, E10). Walkers may now cross the trail on their way: if TJ is coming, the animal could wait at the edge until he has passed.
+- **The Old Sheep Ground** (round 5, E10). The head of the coulee is empty since the sheep moved. A coyote trotting through at Dusk would suit it. Held for TJ.
+- **Calf Nurses** (round 5, E10). Wrong for a bull and calf, which TJ chose for the antlers: if a cow ever joins them the calf could nurse.

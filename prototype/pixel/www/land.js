@@ -1309,7 +1309,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { g, depth: zb, mat: mb, bare, fogField, mouthFog, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { mesa, eastAmt, g, depth: zb, mat: mb, bare, fogField, mouthFog, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -1441,9 +1441,23 @@ function habitat() {
   // Goats on the granite: one nanny and kid on the step under Proficiency Peak, one pair higher up.
   const slab = (lo, hi) => (u, v) => S.matAt(u, v) === 'gran' && S.hAt(u, v) > lo && S.hAt(u, v) < hi && firm(u, v, 0.7) && shows(u, v, 12);
   const goats = [...find(1, slab(74, 100)), ...find(1, slab(100, 160))];
-  // Bighorn sheep on the rim of the coulee, in one band.
-  const rim = (u, v) => S.dryAmt(u, v) > 0.5 && coulee(u, v) > 16 && coulee(u, v) < 52 && firm(u, v, 0.8) && shows(u, v, 12);
-  const band = find(1, rim), sheep = band.length ? [band[0], ...find(3, rim, 20, ring(band[0], 14, 70))] : [];
+  // Bighorn sheep in one band on top of a basalt bench of the dry country (T35), picking along its edges: each
+  // stands on a bench's top within 16 of where it drops away, with 16 of level top to one side of it to walk along. The band's bench is the nearest to the head of
+  // the coulee, where they lived until round 5, that holds four of them.
+  const benchTop = (u, v) => S.mesa(u, v) > 10 && S.dryAmt(u, v) > 0.5 && firm(u, v, 0.8), onBench = (u, v) => benchTop(u, v) && shows(u, v, 12) && [-1, 1].some(sd => benchTop(u + sd * 8, v) && benchTop(u + sd * 16, v));
+  const byEdge = (u, v) => onBench(u, v) && [[0, -6], [0, -12], [0, -16], [-12, 0], [12, 0], [0, 12]].some(([a, b]) => S.mesa(u + a, v + b) < S.mesa(u, v) - 8);
+  const benchPts = GRID.filter(([u, v]) => byEdge(u, v)), headD = (u, v) => Math.hypot(u - C.coulee[0][0], (v - C.coulee[0][1]) * 1.4);
+  const lead = benchPts.filter(([u, v]) => { const near = benchPts.filter(([a, b]) => Math.hypot(a - u, (b - v) * 1.4) <= 70 && apartFrom(taken, a, b, 34)); const got = [[u, v]]; for (const p of near) if (apartFrom(got, p[0], p[1], 20)) got.push(p); return got.length >= 4 && apartFrom(taken, u, v, 34); }).sort((p, q) => headD(...p) - headD(...q))[0];
+  const sheep = lead ? find(4, byEdge, 20, [lead, ...ring(lead, 14, 70)]) : [];
+  // The moose (T35): a bull and a calf in the riverside woods, the aspen and pine country east of the Proficiency
+  // trail and short of the dry ground, below the Enchantments' cliff, between the two rivers that come down off it
+  // (one within 120 to the west and one within 120 to the east). Of the roomy spots there, well off the trail and
+  // with six trees or more within 70, the one that stands most in the open (farthest from any tree's foot, up to
+  // 26), so that they are seen among the trees and not lost behind them.
+  const rivers = (u, v) => [-1, 1].every(sd => { for (let d = 8; d <= 120; d += 4) if (S.water[at(u + sd * d, v)]) return true; return false; });
+  const boles = S.things.filter(t => t.tree && !t.tree.low && S.eastAmt(t.x, t.v) > 0.4);
+  const moose = best((u, v) => S.eastAmt(u, v) > 0.6 && S.dryAmt(u, v) < 0.15 && S.burnAmt(u, v) < 0.1 && S.larchAmt(u, v) < 0.1 && S.hAt(u, v) < 36 && trailFar(u, v) > 30 && firm(u, v, 0.5) && shows(u, v, 18) && roomy(u, v) && rivers(u, v),
+    (u, v) => { let d = 26, n = 0; for (const t of boles) { const dd = Math.hypot(t.x - u, (t.v - v) * 1.4); if (dd < d) d = dd; if (dd < 70) n++; } return n >= 6 ? d + 0.01 * n : -1; });
   // Squirrels and chipmunks in the open meadow near trees, a bear at the edge of the forest.
   const squirrels = find(7, (u, v) => S.forestAmt(u, v) < 0.3 && S.dryAmt(u, v) < 0.3 && S.larchAmt(u, v) < 0.2 && S.hAt(u, v) < 45 && trailFar(u, v) > 6 && fromT(u, v) > 50 && firm(u, v) && shows(u, v, 6), 70);
   const bear = find(1, (u, v) => S.forestAmt(u, v) > 0.12 && S.forestAmt(u, v) < 0.35 && S.hAt(u, v) < 35 && S.dryAmt(u, v) < 0.2 && fromT(u, v) > 160 && firm(u, v, 0.6) && shows(u, v, 12))[0];
@@ -1494,6 +1508,7 @@ function habitat() {
     sheep: sheep.map((p, n) => [...out(...p), n & 1]),
     squirrels: squirrels.map((p, n) => [...out(...p), n % 3 === 0 ? 1 : 0]),
     bear: bear ? out(...bear) : out(...C.T),
+    moose: moose ? out(...moose) : null,
     bearHome: bearHome ? [...out(bearHome[0], bearHome[1]), Math.round(bearHome[2])] : null,
     jelly: jelly.map((p, n) => [...out(...p), n % 3 ? 0 : 1]),
     whale: whale ? out(...whale) : [0, 0],
@@ -1557,7 +1572,7 @@ export function buildTerrain() {
       return picks.sort((a, b) => a[0] - b[0]); })(),
     flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
     // Signs and animals, each placed by its rule (habitat, above).
-    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, bearHome: H.bearHome, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
+    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, bearHome: H.bearHome, moose: H.moose, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
     // The fire lookout on its cleared summit (E5j).
     lookout: LAND.lookout ? sxy(...LAND.lookout) : null
   };

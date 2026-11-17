@@ -183,7 +183,7 @@ export const UI = {
     // Where each kind of mover may not go (collide.js), one kind at a time.
     time: 'Time of day', sunset: 'Jump to sunset', sunrise: 'Jump to sunrise', clockSpeeds: [1, 10, 60],
     // The animals' names on the roam areas and in the spawn menu (C4).
-    animals: { elk: 'Elk', goat: 'Mountain goats', sheep: 'Bighorn sheep', bear: 'Black bears', marmot: 'Marmots', squirrel: 'Squirrels', eagle: 'Bald eagle', osprey: 'Osprey', gulls: 'Gulls', birds: 'Crows' },
+    animals: { elk: 'Elk', moose: 'Moose', goat: 'Mountain goats', sheep: 'Bighorn sheep', bear: 'Black bears', marmot: 'Marmots', squirrel: 'Squirrels', eagle: 'Bald eagle', osprey: 'Osprey', gulls: 'Gulls', birds: 'Crows' },
     spawn: 'Spawn', spawnAll: 'everywhere it lives', near: 'near', scene: 'Jump to a scene', breakGroup: 'Break a scene', inScene: 'In this scene', mapEvents: 'On the map',
     scenes: { forest: 'Forest', lakeside: 'Reflection Lake', larches: 'Larch basin', wall: 'West Ridge', approach: 'Walk to base camp', camp: 'Base camp', climb: 'A Spires climb', register: 'Trail register', offroute: 'Off route' },
     sounds: 'Sounds', effects: 'Effects', tunesH: 'Tunes, one part at a time', places: 'Background', backToAuto: 'Music back to Auto',
@@ -212,7 +212,7 @@ export const UI = {
     up: s => s < 90 ? s + (s === 1 ? ' second' : ' seconds') : Math.round(s / 60) + ' minutes',
     status: ['Status', 'All trails open'], open: 'Open', lakeDone: 'Run. Flag flying.', stackDone: 'Climbed. Flag flying.', summits: n => n + ' of 6 summits',
     // What the board says lives here and happens here (L10), kept to what the world really has.
-    wildlife: ['Wildlife', 'Elk in the meadow, squirrels and chipmunks by the trail. Mountain goats, bighorn sheep and marmots up high, and a pika in the larch talus. A humpback and an orca pod offshore, gulls and a bald eagle on the sea stacks. An osprey fishing at Reflection Lake. A black bear and her two cubs in the firs below the Spires waterfall, and some days a second family at the forest edge. An owl in the forest and two cats at this kiosk'],
+    wildlife: ['Wildlife', 'Elk in the meadow, a bull moose and a calf in the riverside woods, squirrels and chipmunks by the trail. Mountain goats, bighorn sheep and marmots up high, and a pika in the larch talus. A humpback and an orca pod offshore, gulls and a bald eagle on the sea stacks. An osprey fishing at Reflection Lake. A black bear and her two cubs in the firs below the Spires waterfall, and some days a second family at the forest edge. An owl in the forest and two cats at this kiosk'],
     seen: ['Also seen', 'Serac falls, an avalanche and a cap cloud on Mount Monolith, rain showers over the hills, the marine layer off the sea, low tide, the ferry, tumbleweeds and dust devils in the sage. At Dusk: shooting stars, the aurora, foxfire in the forest and headlamps on the Spires\' glacier'],
     checklist: (n, of) => 'Field checklist: ' + n + ' of ' + of + ' found', notFound: 'Not found yet', got: 'Found'
   },

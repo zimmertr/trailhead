@@ -617,7 +617,7 @@ export function makeWorld() {
   };
 
   // The roam areas' colours, one per kind, none of them a colour of the ground (T32).
-  const ROAM_C = { elk: R.yellow[1], goat: R.white[1], sheep: R.lamp[0], bear: R.pink[2], marmot: R.sky[4] || R.white[0], squirrel: R.red[1], gulls: R.jay[3], birds: R.aurora[2] };
+  const ROAM_C = { elk: R.yellow[1], moose: R.lupine[2], goat: R.white[1], sheep: R.lamp[0], bear: R.pink[2], marmot: R.sky[4] || R.white[0], squirrel: R.red[1], gulls: R.jay[3], birds: R.aurora[2] };
   function roamArea(scr, a, ox, oy) {
     const c = ROAM_C[a.kind] || R.white[1], cx = a.x - ox, cy = a.y - oy, x0 = Math.floor(cx - a.rx - 2), x1 = Math.ceil(cx + a.rx + 2), y0 = Math.floor(cy - a.ry - 2), y1 = Math.ceil(cy + a.ry + 2);
     if (x1 < 0 || y1 < 0 || x0 >= scr.VW || y0 >= scr.VH) return;
