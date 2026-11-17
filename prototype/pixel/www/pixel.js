@@ -488,6 +488,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       p = clamp(f, 0, 1); running = false; scrubbing = 0.16;
       const s = stopNear(p); if (s) { if (shown !== s) { shown = null; showStop(s); } } else leave();
     },
+    // A scene that has something open of its own (the binoculars) takes the keys first, down and up.
+    grab(code, down) { return !tr && !!drawn.scene.key && !!drawn.scene.key(code, down, env); },
     key(code) {
       if (code === 'Space') { api.toggle(); return true; }
       if (code === 'Equal' || code === 'NumpadAdd' || code === 'Minus' || code === 'NumpadSubtract') { zoomBy(code === 'Equal' || code === 'NumpadAdd' ? 1 : -1, Math.abs(look.x) + Math.abs(look.y) > 2 ? [innerWidth / 2, innerHeight / 2] : null); return true; }

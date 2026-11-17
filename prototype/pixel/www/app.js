@@ -480,11 +480,12 @@ addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === 'KeyM') { openSheet('map'); return; }
   if (e.code === 'KeyT') { toggleDusk(); return; }
+  if (api && api.grab(e.code, true)) { e.preventDefault(); return; }
   if (e.target.closest && e.target.closest('button, a') && (e.code === 'Space' || e.code === 'Enter')) return;
   if (e.code === 'Space') { e.preventDefault(); if (!e.repeat && chosen) pressDown(); return; }
   if (api.key(e.code)) e.preventDefault();
 });
-addEventListener('keyup', e => { if (e.code === 'Space') pressUp(); });
+addEventListener('keyup', e => { if (api) api.grab(e.code, false); if (e.code === 'Space') pressUp(); });
 
 let dragging = false;
 const scrubTo = e => { const r = line.getBoundingClientRect(); api.scrub((e.clientX - r.left) / r.width); };

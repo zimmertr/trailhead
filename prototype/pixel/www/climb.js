@@ -590,6 +590,18 @@ function watchFace(scr, x, y, w, t) {
   UI.watch.synced.forEach((line, n) => mid(line, cy - 8 + n * 10, n === 2 ? R.jay[3] : R.white[1]));
 }
 
+// Under the binoculars' round view: a BACK button, and under that a line on how to look about and leave
+// (the keys where there is a keyboard, a drag where there is not). k is the size of a dot. Gives the
+// button's box on the screen, for taps.
+function viewerUI(scr, cx, y, k) {
+  const word = UI.viewer.back, w = (word.length * 6 - 1 + 12) * k, h = 13 * k, x = cx - (w >> 1);
+  for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const e = i < k || j < k || i >= w - k || j >= h - k; scr.set(x + i, y + j, e ? INK : j < 2 * k ? R.wood[3] : j >= h - 2 * k ? R.wood[1] : R.wood[2]); }
+  letters(scr, word, x + 6 * k + k, y + 3 * k + k, R.wood[0], k); letters(scr, word, x + 6 * k, y + 3 * k, R.white[1], k);
+  const hint = UI.viewer.hint[window.matchMedia && window.matchMedia('(hover: none)').matches ? 1 : 0];
+  letters(scr, hint, cx - Math.round((hint.length * 6 - 1) * k / 2), y + h + 5 * k, R.rock[4], k);
+  return [x, y, x + w, y + h];
+}
+
 // The bluebird's visit, in seconds after the station is clicked: when its circling ends, when it has
 // landed, when it sings, when it takes off, and when it is surely off the picture.
 const BIRD = { loop: 3.7, land: 4.6, calls: [5.1, 5.8, 6.6], off: 7.7, gone: 11 };
@@ -787,8 +799,14 @@ export function makeClimb() {
     const u = (tau - pl.tBot) / T_OUT; return { ph: 'down', x: -u * 34, y: 0, mode: 'walk', back: true };
   }
   // How long each summit's thing keeps him busy once it is clicked. He stays put until it is over.
-  const BUSY = { bridge: 5.6, icefall: 1.5 };
-  const busy = t => last.ph === 'up' && ROUTES[last.id] && t - egg < (BUSY[ROUTES[last.id].kind] || 0);
+  const BUSY = { icefall: 1.5 };
+  // The binoculars on trailhead (round 5, T59): once he is at them the view stays open, and can be moved
+  // about, until it is closed with space or its BACK button. `close` is when that was asked for, `keys`
+  // the direction keys held down.
+  let bino = null;
+  const VIEW = { x0: -110, x1: 110, y0: -80, y1: 46, speed: 80, open: 1.35, shut: 1.2 };
+  const shutView = t => { if (bino && bino.close == null && t - egg > VIEW.open) bino.close = t; };
+  const busy = t => last.ph === 'up' && ROUTES[last.id] && (!!bino || t - egg < (BUSY[ROUTES[last.id].kind] || 0));
 
   return {
     name: 'climb',
@@ -813,10 +831,20 @@ export function makeClimb() {
       for (const leg of pl.legs) if (leg.ice) for (const h of leg.hit) out.push({ at: h.t / D, name: h.tool ? 'tink' : 'step' });
       return out;
     },
-    enter(scr, arg, q) { const w = where(arg.id, q * plan(arg.id).dur); cam.x = w.x; cam.y = w.y; st.y = null; st.lift = null; egg = -99; st.fixed = false; st.banged = -99; },
+    enter(scr, arg, q) { const w = where(arg.id, q * plan(arg.id).dur); cam.x = w.x; cam.y = w.y; st.y = null; st.lift = null; egg = -99; bino = null; st.fixed = false; st.banged = -99; },
     focus: () => focus,
     hold: env => busy(env.t),
+    // While the binoculars are open the keys are theirs: the arrows and WASD move the view, space closes it.
+    key(code, down) {
+      if (!bino) return false;
+      const dir = { ArrowLeft: 'l', KeyA: 'l', ArrowRight: 'r', KeyD: 'r', ArrowUp: 'u', KeyW: 'u', ArrowDown: 'd', KeyS: 'd' }[code];
+      if (dir) { bino.keys[dir] = down; return true; }
+      if (code === 'Space') { if (down) shutView(last.t); return true; }
+      return false;
+    },
     pick(sx, sy) {
+      // Through the binoculars only the BACK button can be pressed, and a tap elsewhere does nothing.
+      if (bino) { const b = last.back; return b && sx >= b[0] && sx <= b[2] && sy >= b[1] && sy <= b[3] ? { named: true, x: sx, y: sy, act: 'back' } : { named: true, x: sx, y: sy }; }
       if (last.ph !== 'up' || last.away) return null;
       const cfg = ROUTES[last.id], SXr = sxOf(cfg), x = sx + last.camX - OFF, y = sy - last.base, ty = hOf(cfg.pts, SXr + 24), tall = TALL[cfg.kind] || 34;
       if (Math.abs(x - SXr - 24) < 20 && y < ty + 3 && y > ty - tall) return { label: FINDS['egg:' + last.id][0], x: SXr + 24 + OFF - last.camX, y: last.base + ty - tall - 2, act: 'egg' };
@@ -824,7 +852,10 @@ export function makeClimb() {
       if (cfg.kind === 'ridge' && x > 100 && x < sxOf(cfg) - 12 && Math.abs(y - hOf(cfg.pts, x)) < 8) return { label: NAMES.climb.ridge, x: sx, y: sy - 8 };
       return null;
     },
-    act(id, env) { if (id === 'egg' && env.shown && env.t - egg > (ROUTES[last.id].kind === 'ridge' ? BIRD.gone : 6)) { egg = env.t; env.sfx('egg'); env.found('egg:' + last.id); return true; } return false; },
+    act(id, env) {
+      if (id === 'back') { shutView(env.t); return true; }
+      if (id === 'egg' && env.shown && ROUTES[last.id].kind === 'bridge' && !bino && env.t - egg > 6) { egg = env.t; bino = { close: null, keys: {} }; env.look.x = env.look.y = 0; env.sfx('egg'); env.found('egg:' + last.id); return true; }
+      if (id === 'egg' && env.shown && env.t - egg > (ROUTES[last.id].kind === 'ridge' ? BIRD.gone : 6)) { egg = env.t; env.sfx('egg'); env.found('egg:' + last.id); return true; } return false; },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t } = env, id = arg.id, cfg = ROUTES[id], kind = cfg.kind, pl = plan(id), SXr = sxOf(cfg);
       const tau = q * pl.dur, me = where(id, tau), S = me.ph === 'up' ? get(id) : slope.S, pts = me.ph === 'up' ? cfg.pts : slope.cfg.pts;
@@ -837,7 +868,11 @@ export function makeClimb() {
       // where the way down ends. The picture sits lower by what is missing, unless a card covers it.
       const short = scr.narrow && !env.shown ? Math.max(0, VH - DOWN - base0) : 0; st.lift = st.lift == null ? short : st.lift + (short - st.lift) * 0.12;
       const base = base0 + Math.round(st.lift);
-      last = { camX, base, id, ph: me.ph, away: kind === 'bridge' && u > 0.7 && u < 5.05 };
+      // The binoculars close by themselves only if he is taken off the summit (the timeline is dragged).
+      if (bino && (me.ph !== 'up' || tau < pl.tSum - 0.05 || tau > pl.tPush || (bino.close != null && t - bino.close > VIEW.shut))) { bino = null; env.look.x = env.look.y = 0; }
+      // How long ago the view was asked to close, or -1 while it is open.
+      const shut = bino && bino.close != null ? t - bino.close : -1;
+      last = { camX, base, id, ph: me.ph, t, away: !!bino && u > 0.7 && shut < 0.3, back: null };
       const up = clamp((tau - T_UP) / (pl.tSum - T_UP), 0, 1);
       // On the long ridge the cloud thins through the deck and is gone when he breaks out; the wind drops
       // by steps (gale, strong, breeze, still) rather than smoothly.
@@ -984,12 +1019,12 @@ export function makeClimb() {
 
       // Himself.
       const T = cfg.zig ? figT : null;
-      const d = me.x, stopId = env.shown && !env.moving ? env.shown : null, acting = me.ph === 'up' && u < (BUSY[kind] || 0);
+      const d = me.x, stopId = env.shown && !env.moving ? env.shown : null, acting = me.ph === 'up' && (kind === 'bridge' ? !!bino : u < (BUSY[kind] || 0));
       let bm, flip = false, dy = 0, dx = 0;
       if (acting && kind === 'bridge') {
         // He walks over to the binoculars, leans in, and afterwards walks back.
-        dx = 10 * (u < 2 ? smooth(0, 0.5, u) : 1 - smooth(5.05, 5.55, u));
-        if (u < 0.5 || u > 5.05) { bm = fig.walk[Math.floor(dx / 2.4) % 6]; flip = u > 5.05; } else bm = u < 0.62 || u > 4.95 ? fig.watch : fig.peer;
+        dx = 10 * (shut < 0 ? smooth(0, 0.5, u) : 1 - smooth(0.65, 1.15, shut));
+        if (u < 0.5 || shut > 0.65) { bm = fig.walk[Math.floor(dx / 2.4) % 6]; flip = shut > 0.65; } else bm = u < 0.62 || shut > 0.55 ? fig.watch : fig.peer;
       } else if (acting && kind === 'icefall') {
         dx = 6 * (smooth(0, 0.12, u) - smooth(1.3, 1.5, u));
         bm = u < 0.12 ? fig.walk[1] : u < 0.36 ? fig.hit[0] : u < 0.62 ? fig.hit[1] : fig.watch;
@@ -1073,16 +1108,20 @@ export function makeClimb() {
       // He pushes off in a burst of snow, and the glissade is under way.
       const puff = 1 - Math.abs(tau - (pl.tPush + 0.02)) / 0.28;
       if (puff > 0) for (let y = 0; y < VH; y++) { const row = y * VW; for (let x = 0; x < VW; x++) if (bayer(x, y) < puff * 1.3) fb[row + x] = R.snow[4]; }
-      // Through the binoculars: the picture closes on the eyepiece, opens on the Trailhead far below as a
-      // round view that drifts a little, holds, and closes and opens again on the summit.
-      if (kind === 'bridge' && acting && u > 0.7 && u < 5.05) {
+      // Through the binoculars: the picture closes on the eyepiece and opens on the Trailhead far below as a
+      // round view centred on the cats. It stays until he is done looking: the arrows, WASD or a drag move
+      // it within a box round the cats, and space or the BACK button under it closes it again.
+      if (bino && u > 0.7 && shut < 0.65) {
         const ex = X(tx - 8), ey = Y(ty - 23), all = Math.hypot(VW, VH);
         if (u < 1.05) scr.iris(ex, ey, all * (1 - smooth(0.7, 1.05, u)) - 4);
-        else if (u < 4.7) {
-          const vx = Math.round(scr.narrow ? VW * 0.5 : VW * 0.64), vy = Math.round(scr.narrow ? VH * 0.26 : VH * 0.44), r = scr.narrow ? Math.min(VW * 0.42, VH * 0.22) : Math.min(VH * 0.36, VW * 0.2);
-          if (env.mapStill) env.mapStill(Math.round(JUNCTION.x + 12 - vx + 5 * Math.sin(u * 0.9)), Math.round(JUNCTION.y - 10 - vy + 3 * Math.cos(u * 0.7))); else fb.fill(R.navy[0]);
-          scr.iris(vx, vy, r * Math.min(smooth(1.05, 1.35, u), 1 - smooth(4.4, 4.7, u)) - 2);
-        } else scr.iris(ex, ey, all * smooth(4.7, 5.05, u) - 4);
+        else if (shut < 0.3) {
+          const vx = Math.round(scr.narrow ? VW * 0.5 : VW * 0.64), vy = Math.round(scr.narrow ? VH * 0.24 : VH * 0.42), r = scr.narrow ? Math.min(VW * 0.42, VH * 0.2) : Math.min(VH * 0.34, VW * 0.2);
+          const K = bino.keys, L = env.look; L.x = clamp(L.x + ((K.r ? 1 : 0) - (K.l ? 1 : 0)) * VIEW.speed * env.dt, VIEW.x0, VIEW.x1); L.y = clamp(L.y + ((K.d ? 1 : 0) - (K.u ? 1 : 0)) * VIEW.speed * env.dt, VIEW.y0, VIEW.y1);
+          env.lookBox = VIEW;
+          if (env.mapStill) env.mapStill(Math.round(JUNCTION.x + 12 - vx + clamp(L.x, VIEW.x0, VIEW.x1) + 2 * Math.sin(u * 0.9)), Math.round(JUNCTION.y - 10 - vy + clamp(L.y, VIEW.y0, VIEW.y1) + Math.cos(u * 0.7))); else fb.fill(R.navy[0]);
+          scr.iris(vx, vy, r * Math.min(smooth(1.05, VIEW.open, u), shut < 0 ? 1 : 1 - smooth(0, 0.3, shut)) - 2);
+          if (u > VIEW.open && shut < 0) last.back = viewerUI(scr, vx, Math.round(vy + r) + 7, scr.narrow ? 2 : 1);
+        } else scr.iris(ex, ey, all * smooth(0.3, 0.65, shut) - 4);
       }
     }
   };

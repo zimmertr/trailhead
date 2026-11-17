@@ -162,6 +162,8 @@ export const UI = {
   bang: 'BANG!',
   // On his phone on Bluebird Forecast: the app's name in two lines, and the one word under the weather, before and after it turns. Drawn in pixels, capitals only.
   forecast: { app: ['BLUEBIRD', 'FORECAST'], wet: 'DRIZZLE', clear: 'CLEARING' },
+  // Under the binoculars' view on trailhead: the button that closes it, and how to look about and leave, with a keyboard and without. Drawn in pixels, capitals only.
+  viewer: { back: 'BACK', hint: ['ARROWS: LOOK   SPACE: BACK', 'DRAG TO LOOK'] },
   // On his watch on hevy-garmin-sync: the word before the lap's number, and the three lines it shows at the bench. Drawn in pixels, capitals only.
   watch: { lap: 'LAP', synced: ['WORKOUT', 'SYNCED', 'FROM HEVY'] },
   found: (name, n, of) => 'Found: ' + name + '. ' + n + ' of ' + of + ' on the kiosk checklist.',

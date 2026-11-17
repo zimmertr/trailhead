@@ -353,3 +353,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Stones Knocked Off the Knife-Edge** (round 5, H6). While he shuffles astride, a stone goes from under his hand and falls a long way into the haze, with a late clatter.
 - **A Raven Under the Knife-Edge** (round 5, H6). A raven soars past below the crest, small against the haze, so the depth has something to measure it.
 - **Cloud Filling the Gap** (round 5, H6). On some visits a bank of cloud lies under the knife-edge in place of the haze, level with the far ridges.
+- **A Coin for the Binoculars** (round 5, H7). They are coin-operated: he drops a coin in with a clink before the view opens, and a small timer dial runs down without ever closing it.
+- **Zoom in the Binoculars** (round 5, H7). The plus and minus keys (or a pinch) bring the cats twice as close.
+- **Other Things to Find Through Them** (round 5, H7). Panned to its edge, the view shows something that is only there through the binoculars: the bear at the berries, or the elk in the meadow.
+- **The Cats Look Back** (round 5, H7). After a few seconds in the view one cat turns and looks straight up the lens.
+- **Keys for Every Scene** (round 5, H7). Now that a scene can take the keys, the register and the kiosk could use the arrows too.
