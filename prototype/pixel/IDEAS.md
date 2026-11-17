@@ -391,3 +391,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Belay Calls** (round 5, I6). A small word bubble at each handover: "On belay", "Climbing", "Off belay", gone in a second.
 - **The Trailed Rope Snags** (round 5, I6). Once on the crest the orange rope catches behind a horn, and the woman flicks it free before TJ can follow.
 - **Camera Keeps TJ in the Picture** (round 5, I6). On a narrow screen the view pulls back while someone else climbs, so TJ at the belay is never off the edge.
+- **A Speed Control for the Climb** (round 5, I7). The boost key cycles the climb through 1, 2 and 4 times its pace, with the number shown beside the timeline.
+- **Chalk Puffs at Speed** (round 5, I7). A small puff of chalk each time a hand goes to a new hold, so fast climbing reads as effort and not as sliding.
+- **The Camera Leads the Climber** (round 5, I7). At this pace the view looks a little ahead of whoever is moving, so the next piece and the belay come into the picture before they are reached.

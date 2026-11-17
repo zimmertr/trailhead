@@ -579,7 +579,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] I4. T67: nothing floats in the larch basin, in Day or at Dusk.
 - [x] I5. T68: the walk-in at normal pace, and helmets in about 2 s.
 - [x] I6. T72, T71: the climbing order (leader, woman, TJ) and the second rope from the woman to TJ, on every pitch.
-- [ ] I7. T69: climbing at about 4 times the speed, with fewer pieces.
+- [x] I7. T69: climbing at about 4 times the speed, with fewer pieces.
 - [ ] I8. T70: a large tarn far below, like Shield Lake.
 - [ ] I9. T73: TJ's fall on the off-width and the 3:1 haul.
 - [ ] I10. T74: one cloud sea that rises during the haul, then the rappel into it.
@@ -707,7 +707,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **I4 done.** Nothing floats in the larch basin now. Near the end of the walk the trail, its cairns, two rocks and the larches on the verge used to stand in the air in front of the grey bench, above a ground that stopped in a flat line. The ground now rises with the trail to the end of the scene, and everything on it stands on it, in Day and at Dusk.
 - **I5 done.** At Proficiency Peak TJ now walks in to the foot of the climb at the pace he walks the larch basin, about three times as fast as before. He drops his pack in passing, and helmets and knots are one beat of under 2 s: hands up to the helmet, the chin strap, the knot. The woman eats bare-headed and her helmet goes on in that beat, where it used to appear when she stood up. They are ready and waiting for Space about 6 s sooner.
 - **I6 done.** On every pitch of Proficiency Peak the order is now the leader, the woman, then TJ. The woman belays the leader. She follows on his teal rope and trails a second, orange rope down to TJ, who pays it out. At each piece she takes the teal rope out and clips the orange one in. TJ comes last on the orange rope, on her belay from above, takes the gear out and strips the anchor below. Both ropes are drawn the whole way up: the one not in use hangs in a loop between the two who share a stance.
-- Next: I7.
+- **I7 done.** The climbing on Proficiency Peak runs at four times round 4's pace, and every stop on a pitch is about a third as long. The leader places three cams on pitches 1 and 2 and two on pitch 5, where there were four. From the fist bump to the last one on top is 115 s, where round 4 took 396 s. The whole scene is 156 s, where it was 446 s. Cards still open at the belays.
+- Next: I8.
 
 ## 11. Calls made in round 5
 
@@ -1116,3 +1117,11 @@ One line each, newest last: the item, what was decided, and why.
 - I6, a call: the scene is 23 s longer (464 s), because pitch 1 is now climbed one at a time and the woman stops at each piece. I7 makes the climbing about 4 times faster.
 - I6, left alone: `wall.js`, round 3's wall, which only loads with `?wall` in the address and has TJ alone on the rock. The summit moves and the order on the rappel (leader, woman, TJ) were already right.
 - I6, looked at on all five pitches and at every belay, in motion at the start, a rope swap, the fall, the slip and the summit, at Dusk and on a phone both ways. Frame time in the scene is about 3 ms. The check passed with nothing moved.
+- I7, speeds (`ridge.js`, `SPEED`): the leader climbs at 44 px a second, the woman at 52 and TJ at 68, each four times round 4's (11, 13, 17). The slower stretches (off-width, chimney, the hole) keep their share of that pace.
+- I7, stops (`BEAT`, `ANC`): placing a cam 0.5 s (was 1.2), clipping the piton or the bolt 0.3 s (0.6), the woman's rope swap 0.3 s (0.8), TJ taking a piece out 0.4 s (1.0), her rest 0.6 s (1.6), clipping in at a belay 0.3 s (0.8 to 1.0), taking a belay apart 0.5 s (1.4). An anchor of three pieces is built in 1.3 s (3.4). These are a little longer than a quarter of round 4's, so each cam is still seen going from the hand into the crack.
+- I7, gear (`GEAR`): cams placed are 3, 3, 0, 2, 2 by pitch, where they were 4, 4, 0, 2, 4. With the piton and the tiny cam on pitch 3 and the bolt on pitch 5, every pitch has two or three pieces, each drawn, clipped, swapped and cleaned.
+- I7, a call: the leader's fall and the woman's slip drop at the speed they did (a fall is not climbing). The hang after the fall is 1.4 s (was 2.2) and the shake-out 0.8 s (1.6). The hang after the slip is 1.0 s (1.6).
+- I7, a call: "about 4 times" is measured against round 4. The moving is exactly 4 times faster. The whole climb is 3.4 times faster, because I6's order (one at a time on pitch 1, a rope swap at each piece) adds about 6 s and the stops are a third, not a quarter.
+- I7, left alone: the walk-in, the summit (5.6 s) and the descent (about 28 s). T74 and T75 rework the descent in I10 and I11.
+- I7, a consequence: the scene is a third of its old length, so on the timeline Proficiency Peak's trail is much shorter and its cards sit closer together.
+- I7, looked at: all of pitch 1 at half-second steps, the fall and the slip in motion, and nine moments across the climb. Frame time in the scene is about 4.5 ms at Dusk. The check passed with nothing moved.
