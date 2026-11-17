@@ -505,7 +505,10 @@ export function makeWorld(bake) {
   // goes to each destination in the order of the junction sign, rests there, and comes home, over and over.
   // A destination's rest puts its name a little above the middle, right of the sign, so its peaks and its country show.
   // On an upright phone the sign spans the bottom, so the name sits 40% of the way down what shows above it, centred across the narrow view (F8). Skipped when everything is in frame.
-  const ROUND = { hold: 5, go: 3.5 };
+  // It starts after 2 minutes with no input at all (T2, round 5): an idle animation, never part of the opening.
+  // Any key, click, tap, wheel or drag stops it, and the camera eases back to him. tour=<seconds> in the
+  // address starts it sooner, for screenshots.
+  const ROUND = { hold: 5, go: 3.5 }, TOUR = (typeof location !== 'undefined' && +(/[?&]tour=([\d.]+)/.exec(location.search) || [])[1]) || 120;
   const lookRound = (scr, t, hx, hy) => {
     const { VW, VH } = scr, stops = [[hx, hy]];
     for (let k = 1; k <= 3; k++) { const b = W.destBox[k], p = PLACES[k], cx = scr.narrow ? p.x : (b.x0 + b.x1) / 2 - VW * 0.1, cy = scr.narrow ? p.y + VH / 2 - 0.4 * (VH - openCover) : p.y + VH * 0.06; if (p.x - hx < -VW / 2 + 40 || p.x - hx > VW / 2 - 40 || p.y - hy < -VH / 2 + 20 || p.y - hy > VH / 2 - 60) stops.push([cx, cy]); }
@@ -615,8 +618,8 @@ export function makeWorld(bake) {
 
       // Camera: the whole view from the Trailhead, then follow him.
       let [tx, ty] = target(scr, here, env);
-      env.touring = env.home && env.idle > 4 && !env.calm && Math.abs(env.look.x) + Math.abs(env.look.y) < 1;
-      if (env.touring) [tx, ty] = lookRound(scr, env.idle - 4, tx, ty);
+      env.touring = env.home && env.idle > TOUR && !env.calm && Math.abs(env.look.x) + Math.abs(env.look.y) < 1;
+      if (env.touring) [tx, ty] = lookRound(scr, env.idle - TOUR, tx, ty);
       if (born === null) born = t;
       const size = VW + 'x' + VH + (scr.narrow ? 'n' : ''), jump = env.home && (size !== sized || ((t - born < 3 || (document.fonts && document.fonts.status === 'loading')) && openKey !== seenKey)); sized = size; seenKey = openKey;
       const damp = env.calm || jump ? 1 : 1 - Math.exp(-dt * 3.2);

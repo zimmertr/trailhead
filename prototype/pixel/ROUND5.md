@@ -52,7 +52,7 @@ The site is a brag and resume site for TJ first and a game second. Every change 
 - Edits to many places at once: a node script under `out/splice/` using an `ed(anchor, replacement)` helper that asserts each anchor matches exactly once. Run it with `docker run --rm -v "$PWD:/pixel" -v "$PWD/out:/out" --entrypoint node trailhead-pixel-lab /out/splice/<name>.mjs`.
 - Syntax check: `docker run --rm -v "$PWD/www:/www" --entrypoint sh trailhead-pixel-lab -c "node --input-type=module --check < /www/<file>.js"`.
 - Frame time: the profiler used for round 4's numbers (`out/m3/`) renders 800 frames per view. Section 7 lists the views. Keep every view under 16.7 ms.
-- Publishing: commit from the clone root, push, export with `git archive HEAD prototype/pixel/www | tar -x -C <export folder>`, and publish `www/index.html` from the export folder with `root` set to that `www` folder. `files` must list every game `.js` (app, approach, audio, cats, camp, climb, content, core, critters, events, fauna, forest, lakeside, land, larches, mapfauna, monolith, offroute, people, pixel, register, ridge, scenery, side, sprites, tj, wall, world, plus any new module) and `ground.png`.
+- Publishing: commit from the clone root, push, export with `git archive HEAD prototype/pixel/www | tar -x -C <export folder>`, and publish `www/index.html` from the export folder with `root` set to that `www` folder. `files` must list every game `.js` (app, approach, audio, cats, camp, climb, collide, content, core, critters, events, fauna, forest, lakeside, land, larches, mapfauna, monolith, offroute, people, pixel, register, ridge, scenery, side, sprites, tj, wall, world, plus any new module) and `ground.png`.
 
 **The bar** (TJ, 2026-11-16: "Round 4 is better than round 3. But we are still striving for improved quality that exceeds round 4.")
 
@@ -439,7 +439,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 ### C. Engine pieces that later items stand on
 
 - [x] C1. T7: collision (`collide.js`), with the kinds, the solid things, the tide and the debug overlay. Move the ferry, whale, orcas and jellyfish onto it first (T15, T26), then every walker and herd.
-- [ ] C2. T2: the idle tour after 120 s, stopped by any input.
+- [x] C2. T2: the idle tour after 120 s, stopped by any input.
 - [ ] C3. T76: one world clock and the AUTO, DAY, DUSK cycle everywhere, with its debug controls and `time=`. Measure frame time through the sunset blend.
 - [ ] C4. T9, T32, T44: the public DEBUG menu in the top bar, organised in groups, with breaking included, high-contrast roam areas, and the spawn menu for every animal.
 - [ ] C5. T3: click and tap to move along the trails, with the marker. (On today's trails first; D1 changes them.)
@@ -572,7 +572,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **B10 done.** At the Trailhead the space bar does nothing until a destination is picked. Then a tap stops or starts him and holding it doubles his pace (round 4's press and hold, unchanged), on the map and in every scene.
 - **B11 done.** Until he first moves, a small plank says "Click a sign or a trail to start walking." ("Tap ..." on a touch screen). On desktop it sits low in the room right of the sign, above the timeline, and steps left of him if it would cover him; on a phone it stands over his head, above his name tag. It hides while the idle tour runs and fades out for good on the first move. `api.touring()` and `api.me()` tell the page about the tour and where he stands.
 - **C1 done.** `collide.js` answers where each kind of mover may be: `canBe`, `steer` and `clear` (push a mover out to the nearest spot it may stand on), for boat, whale, swimmer, floater, land and flyer, each with a radius. The sea side reads depth from the sea grid less the tide of the moment and keeps off the stacks by a distance field round their feet, worked out once at load. The ferry (bow, middle and stern), the orcas (their line moves out with the tide), the whale's surfacing spots (deep at the lowest tide), the jellyfish (now placed beyond the surf and drifting), every walker and the bear, and the tumbleweeds use it. Debug: "No-go areas" cycles Ferry, Whale, Orcas, Jellyfish and Land animals as a red tint, or `?debug=collide:boat`. `frames.sh` takes `WWW=` like `shot.sh`.
-- Next: C2.
+- **C2 done.** The idle tour starts after 120 s with no input (any key, click, tap, wheel or drag resets the wait and stops it, and the camera eases back to him). `tour=<seconds>` in the address starts it sooner for screenshots.
+- Next: C3.
 
 ## 11. Calls made in round 5
 
