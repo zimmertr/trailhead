@@ -372,3 +372,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Clue That Changes Once Found** (round 5, H11). After the find, the card's last line says what happened ("You left a stone. 4 on the pile.") where it gave the clue.
 - **Summit Marks on a Phone** (round 5, H11). Narrow screens show no marks on the timeline. The summit's name alone could be shown there, above the bar.
 - **The Clue in the World** (round 5, H11). TJ's other option for T54: the hint drawn at the summit itself, such as a red light blinking on the rack or a coin slot glinting on the binoculars.
+- **A Name on the Rungs** (round 5, I1). Hovering the rungs names them, with a nod to the ones above Snow Lake.
+- **The Walk Up to the Rungs** (round 5, I1). The scene starts a few steps before the slab, on the lower trail, so the cliff is seen whole before he is on it.
+- **A Hiker Coming Down** (round 5, I1). Now and then someone is on the rungs coming the other way, and he waits at the bottom for them.
+- **Snow Lake Below** (round 5, I1). From the top of the rungs, a long blue lake shows far below and behind him for a moment as the picture pans.

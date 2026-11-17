@@ -573,7 +573,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 ### I. The way to Proficiency Peak and its climb
 
-- [ ] I1. T64 (scene part): the larch basin opens with TJ on the iron rungs.
+- [x] I1. T64 (scene part): the larch basin opens with TJ on the iron rungs.
 - [ ] I2. T65: the red huckleberry drawn as shrubs.
 - [ ] I3. T66: the larch basin's pika squeak and hide.
 - [ ] I4. T67: nothing floats in the larch basin, in Day or at Dusk.
@@ -701,7 +701,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **H9 done.** On Kubernetes-Manifests he now climbs out of the top of the whiteout. The cloud overhead tears open from the top of the picture down, the sun shows through it as a pale disc, and then he is in clear air on the last of the slope with a sea of cloud below him. The lower slope, the crevasses and the feet of the other peaks are under it. The spires and the crests of the far range stand out of it. It is the same from Day to Dusk and on a phone. The whiteout before it did not change.
 - **H10 done.** The kick is gone. A click on the cairn on Kubernetes-Manifests now makes him bend for a stone, carry it over in both hands, set it on top and stand back to look. The cairn keeps the stone: the count is saved in the visitor's browser and the pile is one stone taller each time he comes back to the summit, up to 12 added stones. A second click on the same visit, or any click on a full cairn, makes him walk over and pat it. The find counts from the first click.
 - **H11 done.** On each climb's timeline the summit's stop now carries the project's name ("Bluebird Forecast", "TJs-Kubernetes-Service" and so on) where it said "Summit". Each project card ends with a clue to what its summit's thing does, in place of "Click the cairn up there." The six clue lines are drafts for TJ, listed in section 11. Section H is finished.
-- Next: I1.
+- **I1 done.** The larch basin now opens with TJ on iron rungs. A granite cliff as high as the first bench stands across the left of the picture, with a paler slab leaning against it and a line of dark iron staples up the slab. He starts at the bottom rung and climbs hand over foot for 3 seconds while the picture pans down to show the basin, then steps onto the trail and walks on as before. From there on the scene is round 4's.
+- Next: I2.
 
 ## 11. Calls made in round 5
 
@@ -1066,3 +1067,11 @@ One line each, newest last: the item, what was decided, and why.
 - H11, call: the clue replaces the old last line ("Click the server rack up there.") and does not sit under it. Two grey lines saying nearly the same thing was worse, and "Click" was wrong on a phone. `UI.card.egg` is gone with it.
 - H11, found and fixed: four of the clues take two lines, and on a phone held sideways (844 by 390) that pushed TJs-Kubernetes-Service's "Glissade to camp" button half out of the card. On that screen shape only (`index.html`), the card is now 46% of the width where it was 42%, and a project's licence is on one row with its label. All six cards fit there again. On a 667 by 375 screen the tallest two cards still scroll, less than they did before.
 - H11, the check passed with nothing moved. It read 14.6 ms a frame, against 13.2 for H10. H11 changed no drawing code, so that is the lab's spread from run to run.
+- I1, how (`larches.js`): `RUNG` holds the slab's size (52 px high over 24), the 3 seconds and the rung spacing. `g` is now the benches (`bench`) plus the drop below the first one, so everything placed by `g` follows the lower ground on its own. `at(q)` says where he is: up the rungs first, then along the trail. The scene is 12 s long where it was 9.
+- I1, drawn from the same description as D12's rungs on the map: a plain slab, dark iron bars a hand apart, no rails. Each rung is 7 px wide with its shadow under it.
+- I1, found and fixed while building: lowering the ground left of the slab uncovered a flat grey area, the fill under the far bench. That is now the cliff the rungs climb: jointed granite, darker at its foot, with turf on top.
+- I1, placed by rule: larches and boulders within 22 px of the slab, or in front of it, are left out after the dice are thrown, so every other tree keeps its seed and place. The cairns are still found from the benches alone, so each one is where it was.
+- I1, call: the picture pans down by 42 px as he climbs, so that he is not at the very bottom of the screen on the lowest rung and the basin comes into view as he tops out.
+- I1, call: a `tink` sounds on every second rung while he is moving. It is the ice tool's sound reused. Not listened to.
+- I1, call: no name tag on the rungs. A tag would be new words for TJ to write.
+- I1, measured: about 2 ms a frame at 1920 by 1080, the same as round 4. Looked at beside round 4 at the start and further on, at Dusk, on a phone upright and sideways, and at 1920 wide. The check passed with nothing moved.

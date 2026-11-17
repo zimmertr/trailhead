@@ -5,15 +5,25 @@
 import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, DAY, INK, pick, BM, outline, windAt } from './core.js';
 import { Strip, drawStrip, baseline, shell, blitScaled, paintPeaks } from './side.js';
 import { makeConifer, makeBoulder, makeCloud } from './sprites.js';
-import { makeRunner } from './tj.js';
+import { makeRunner, sideFig } from './tj.js';
 import { goat, pika } from './fauna.js';
 import { NAMES } from './content.js';
 import { PROFICIENCY } from './land.js';
 
-// SW: the near strip's width; he walks LEN of it, from X0, in DUR seconds.
-const SW = 1500, X0 = 320, LEN = 700, DUR = 9;
-// The trail climbs the slabs in steps: a short rise every 110 or so, flat between.
-const g = x => { const u = (x - X0) / 112 + 0.3 * vnoise(x / 60, 1, 600); return -Math.round(4 * (Math.floor(u) + smooth(0.72, 1, frac(u))) + 1.5 * Math.sin(x / 23)); };
+// SW: the near strip's width; he walks LEN of it, from X0, in WALK seconds.
+const SW = 1500, X0 = 320, LEN = 700, WALK = 9;
+// The iron rungs (round 5, T64, after the rungs above Snow Lake on the way into the Enchantments): the scene
+// opens with him on a granite slab that stands `rise` high over `run`, its top where the walk begins. He
+// climbs it in `secs`, a rung every `step` of height.
+const RUNG = { top: X0, run: 24, rise: 52, secs: 3, step: 5 };
+const DUR = RUNG.secs + WALK;
+// The trail climbs the slabs in steps: a short rise every 110 or so, flat between. `bench` is that ground
+// alone, and `g` is the ground with the slab below its first bench.
+const bench = x => { const u = (x - X0) / 112 + 0.3 * vnoise(x / 60, 1, 600); return -Math.round(4 * (Math.floor(u) + smooth(0.72, 1, frac(u))) + 1.5 * Math.sin(x / 23)); };
+const g = x => bench(x) + Math.round(RUNG.rise * clamp((RUNG.top - x) / RUNG.run, 0, 1));
+const onSlab = x => x >= RUNG.top - RUNG.run && x < RUNG.top;
+// Where he is at each moment: up the rungs first (`rung` is how far up them, 0 to 1), then along the trail.
+const at = q => { const tau = q * DUR; if (tau < RUNG.secs) { const u = tau / RUNG.secs; return { x: RUNG.top - RUNG.run * (1 - u), y: bench(RUNG.top) + RUNG.rise * (1 - u), rung: u }; } const x = X0 + (tau - RUNG.secs) / WALK * LEN; return { x, y: g(x), rung: 1 }; };
 // How far back each layer sits: the share of his movement it follows.
 const P_FAR = 0.05, P_PEAK = 0.12, P_MID = 0.42;
 
@@ -21,7 +31,7 @@ const META = {
   name: 'larches',
   dur: () => DUR,
   stops: () => [],
-  elev: (arg, q) => -g(X0 + q * LEN) * 1.5
+  elev: (arg, q) => -at(q).y * 1.5
 };
 export const makeLarches = () => shell(META, buildLarches, ['enter', 'focus', 'pick', 'act', 'draw', 'trigger']);
 
@@ -116,9 +126,18 @@ function paintMid(S, rand) {
 const slabAt = (x, r) => fbm(x / 34, (g(x) + r) / 12, 630, 3) > 0.66 - 0.08 * smooth(10, -4, r);
 function paintMain(S, near) {
   for (let x = 0; x < S.w; x++) {
-    const gy = g(x), step = g(x + 1) < gy;
+    const gy = g(x), step = g(x + 1) < gy && !onSlab(x);
+    // Left of the rungs the lower ground has the cliff they climb standing behind it, as high as the first
+    // bench: jointed granite, darker than the slab, in shade at its foot, with turf along its top.
+    if (x < RUNG.top) for (let y = bench(x) - 14; y < gy - 14; y++) {
+      const dy = y - (bench(x) - 14), foot = gy - 14 - y, joint = vnoise(x / 3, y / 40, 642) > 0.78, sheet = frac(y / 13 + 0.5 * vnoise(x / 40, y / 40, 643)) < 0.08;
+      let c = joint || sheet ? R.rock[1] : pick('rock', 0.8 - 0.2 * smooth(4, 40, dy) + 0.14 * (fbm(x / 16, y / 26, 644, 3) - 0.5) - (foot < 3 ? 0.2 : 0), x, y, 0.25);
+      // Turf on its top, hanging over the edge in places.
+      if (dy < 3 + 2 * vnoise(x / 5, 9, 645)) c = pick('grass', 0.45 + 0.3 * hash(x, y, 646), x, y, 0.4);
+      S.set(x, y, c);
+    }
     for (let y = gy - 14; y < S.h - S.up; y++) {
-      const r = y - gy, slab = slabAt(x, r), n = hash(x, y, 638);
+      const r = y - gy, slab = slabAt(x, r) || (x >= RUNG.top - RUNG.run - 14 && x <= RUNG.top + 10 + 12 * vnoise(y / 5, 5, 602) && r < 30 + 16 * vnoise(x / 9, 3, 601)), n = hash(x, y, 638);
       let c;
       if (slab) c = frac(x / 41 + y / 13 + vnoise(x / 30, y / 30, 634)) < 0.03 ? R.rock[1] : pick('rock', 0.74 + 0.16 * (fbm(x / 20, y / 9, 635, 3) - 0.5) + (n < 0.04 ? -0.25 : 0), x, y, 0.6);
       else if (r >= -2 && r <= 3) c = n < 0.08 ? R.rock[2] : pick('dirt', 0.6 - Math.abs(r - 0.5) * 0.06 + 0.25 * (vnoise(x / 5, y / 2, 633) - 0.5), x, y, 0.7);
@@ -128,10 +147,16 @@ function paintMain(S, near) {
         if (n < 0.1 * near(x, r)) c = R.larch[n < 0.04 * near(x, r) ? 3 : 2];
       }
       if (slab && r >= -2 && r <= 3) c = pick('rock', 0.86, x, y, 0.5);
-      if (r < -2 && y - (gy - 14) < 1) c = R.moss[1];
+      if (r < -2 && y - (gy - 14) < 1 && x >= RUNG.top) c = R.moss[1];
       if (step && r >= 0 && r < 3) c = R.rock[1];
       S.set(x, y, c);
     }
+  }
+  // The rungs: dark iron staples up the worn line of the slab, with their shadow under each.
+  for (let h = 3; h < RUNG.rise - 1; h += RUNG.step) {
+    const x = Math.round(RUNG.top - RUNG.run * h / RUNG.rise), y = bench(RUNG.top) + h;
+    for (let i = -3; i <= 3; i++) { S.set(x + i, y, R.rock[0]); S.set(x + i, y + 1, R.rock[2]); }
+    S.set(x - 3, y + 1, R.rock[0]); S.set(x + 3, y + 1, R.rock[0]);
   }
 }
 
@@ -161,10 +186,13 @@ function buildLarches() {
     const H = Math.round(a[0] * s);
     things.push({ tree: makeConifer(650 + things.length, H, Math.round(a[1] * s), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: a[0] > 40 && rand() < 0.5 ? 0.5 : 0.15, droop: 0.6 }), x: Math.round(x), y: g(x) + y });
   }
+  // Nothing stands on the slab with the rungs, or in front of it.
+  const offSlab = th => !(th.x > RUNG.top - RUNG.run - 22 && th.x < RUNG.top + 18 && th.y - g(th.x) < 76);
+  for (let i = things.length - 1; i >= 0; i--) if (!offSlab(things[i])) things.splice(i, 1);
   const trees = things.map(th => [th.x, th.y - g(th.x), th.tree.w]);
   const main = new Strip(SW, 20, 600); paintMain(main, (x, r) => { let a = 0; for (const [tx, ty, tw] of trees) { const d = Math.abs(x - tx) / (tw + 6) + Math.abs(r - ty) / 14; if (d < 1) a = Math.max(a, 1 - d); } return a; });
   for (let n = 0; n < 26; n++) { const x = Math.round(rand() * SW), y = (rand() < 0.5 ? -6 : 10 + rand() * 90) | 0; things.push({ bm: makeBoulder(660 + n, 3 + rand() * 6), x, y: g(x) + y }); }
-  for (let x = X0 - 60; x < SW; x += 1) if (g(x + 1) < g(x) && g(x) >= g(x - 3)) { things.push({ bm: makeCairn(670 + x), x: x + 6, y: g(x) - 3 }); x += 60; }
+  for (let x = X0 - 60; x < SW; x += 1) if (bench(x + 1) < bench(x) && bench(x) >= bench(x - 3)) { things.push({ bm: makeCairn(670 + x), x: x + 6, y: g(x + 6) - 3 + bench(x) - bench(x + 6) }); x += 60; }
   // Goats (G5). A nanny and her kid (behind her, facing her) on the first broad slab below the trail past the scene's first third;
   // a billy on the verge above it past two thirds, who turns to watch him go by.
   const G = { stand: goat('stand'), look: goat('look'), graze: goat('graze'), kid: goat('stand', true), hop: goat('stand', true, 1) };
@@ -177,8 +205,8 @@ function buildLarches() {
   let px = X0 + LEN * 0.55;
   for (let x = X0 + LEN * 0.5; x < X0 + LEN * 0.9; x += 6) if (!things.some(th => th.tree && Math.abs(th.x - x - 11) < 30 && th.y < g(th.x) + 4) && Math.abs(x - billy.x) > 40) { px = Math.round(x); break; }
   const rockA = makeBoulder(190, 7), rockB = makeBoulder(191, 5), pk = [pika(0), pika(1)], py = g(px) - 6;
-  // Larches and boulders keep clear of the goats and the pika's rocks.
-  for (let i = things.length - 1; i >= 0; i--) { const th = things[i]; if ([nanny, kidAt, billy, { x: px + 11, y: py }].some(p => Math.abs(th.x - p.x) < 22 && Math.abs(th.y - p.y) < 14)) things.splice(i, 1); }
+  // Larches and boulders keep clear of the goats and the pika's rocks, and of the slab.
+  for (let i = things.length - 1; i >= 0; i--) { const th = things[i]; if ([nanny, kidAt, billy, { x: px + 11, y: py }].some(p => Math.abs(th.x - p.x) < 22 && Math.abs(th.y - p.y) < 14) || !offSlab(th)) things.splice(i, 1); }
   things.push({ bm: rockA, x: px, y: py }, { bm: rockB, x: px + 22, y: py - 2 });
   let eep = -9;
   // A gust now and then (G6): one in each 14 seconds, at a random point in its first 6, lasting 2.6. Needles
@@ -188,11 +216,13 @@ function buildLarches() {
   const gustAt = t => { const n = Math.floor(t / GUST.slot), u = t - n * GUST.slot - 6 * hash(n, 1, 690); return u >= 0 && u < GUST.len ? [u, n] : t - gustGo < GUST.len ? [t - gustGo, -2 - Math.floor(gustGo)] : null; };
   let cam = 0, last = { camX: 0, base: 0, dir: 1, VW: 0 };
   const list = [];
-  const xOf = q => X0 + q * LEN;
+  const xOf = q => at(q).x;
+  // On the rungs, side-on and facing the rock: hands and feet move up them in turn.
+  const rungFig = [0, 1].map(f => sideFig('wall', { feet: f ? [[4, 3], [3, 8]] : [[3, 8], [4, 3]], hands: f ? [[5, -10], [5, -4]] : [[5, -4], [5, -10]], lean: 3, look: 'up' }));
 
   return {
     ...META,
-    enter(scr, arg, q) { cam = xOf(q); st.y = null; },
+    enter(scr, arg, q) { cam = xOf(q); st.y = null; st.rung = -1; },
     focus: () => focus,
     act(id, env) { if (id === 'pika') { env.sfx('eep'); eep = env.t; env.found('pika'); return true; } return false; },
     trigger(name, t) { if (name === 'gust') { gustGo = t; return true; } return false; },
@@ -207,9 +237,9 @@ function buildLarches() {
     },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t, tq } = env, dir = arg.dir < 0 ? -1 : 1;
-      const mx = xOf(q), d = q * LEN, my = g(mx);
+      const me = at(q), mx = me.x, d = Math.max(0, mx - X0), my = me.y, up = RUNG.rise * me.rung;
       cam += (mx - cam) * (env.calm ? 1 : Math.min(1, env.dt * 8));
-      const camX = Math.round(cam - VW * (scr.narrow ? 0.5 : 0.4) + env.look.x * 0.5 * dir), base = baseline(scr, env.shown, st), hor = base - 64;
+      const camX = Math.round(cam - VW * (scr.narrow ? 0.5 : 0.4) + env.look.x * 0.5 * dir), base = baseline(scr, env.shown, st) - Math.round(0.8 * (my - bench(RUNG.top)) * (me.rung < 1 ? 1 : 0)), hor = base - 64;
 
       // Sky, lightest at the horizon, and a few clouds.
       const sb = R.skyband;
@@ -249,8 +279,9 @@ function buildLarches() {
         const sx = th.x - camX, sy = base + th.y;
         if (th.me) {
           focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
-          scr.shadow(Math.round(sx), Math.round(base + my), 5, 1);
-          scr.put(env.moving ? run.side[Math.floor(d / 4.2) % 6] : run.sideIdle[0], sx, base + my, false);
+          if (me.rung >= 0.94) scr.shadow(Math.round(sx), Math.round(base + my), 5, 1);
+          if (me.rung < 0.94) { scr.put(rungFig[Math.floor(up / RUNG.step) & 1], Math.round(sx) - 4, Math.round(base + my) + 1, false); const k = Math.floor(up / (2 * RUNG.step)); if (env.moving && k > st.rung) env.sfx('tink'); st.rung = k; }
+          else scr.put(env.moving ? run.side[Math.floor(d / 4.2) % 6] : run.sideIdle[0], sx, base + my, false);
         } else if (th.tree) {
           for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway * (1 + 2.5 * ge)); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
         } else scr.put(th.bm, sx, sy, !!th.flip);
