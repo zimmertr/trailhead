@@ -582,7 +582,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] I7. T69: climbing at about 4 times the speed, with fewer pieces.
 - [x] I8. T70: a large tarn far below, like Shield Lake.
 - [x] I9. T73: TJ's fall on the off-width and the 3:1 haul.
-- [ ] I10. T74: one cloud sea that rises during the haul, then the rappel into it.
+- [x] I10. T74: one cloud sea that rises during the haul, then the rappel into it.
 - [ ] I11. T75: they reach the ground before tugging on the stuck rope.
 
 ### J. The off-route page
@@ -710,7 +710,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **I7 done.** The climbing on Proficiency Peak runs at four times round 4's pace, and every stop on a pitch is about a third as long. The leader places three cams on pitches 1 and 2 and two on pitch 5, where there were four. From the fist bump to the last one on top is 115 s, where round 4 took 396 s. The whole scene is 156 s, where it was 446 s. Cards still open at the belays.
 - **I8 done.** A large tarn lies in the bottom of the basin below Proficiency Peak, where the basin shows left of the ridge on pitches 1 and 2. It is about 200 px wide, turquoise with the sky's light along its far shore, with bays, an island, a granite point, larches thick along both shores, and an outlet that runs down the benches through two smaller tarns. At Dusk it takes the sunset's colours.
 - **I9 done.** On the last pitch the leader and the woman climb the off-width as before. TJ struggles up the first 30% of it, comes off, drops and swings out over the air left of the headwall. The woman holds him. The two on top rig a haul at the summit anchor, face the load and yank on it together four times, a reach down the rope and a heave back each time, and every yank lifts TJ a quarter of the way to them. The fourth brings him to the belay.
-- Next: I10.
+- **I10 done.** There is one cloud sea on Proficiency Peak now. As soon as the haul starts, the cloud climbs the tower from the bottom of the picture, always below TJ, and swallows the ridge they came up and the tower's foot. By the time he is at the belay it stands just under the summit block. They stand on top above it, and rappel down into it as before. Nothing fills in during the rappel any more.
+- Next: I11.
 
 ## 11. Calls made in round 5
 
@@ -1145,3 +1146,10 @@ One line each, newest last: the item, what was decided, and why.
 - I9, sounds, all reused and none new: the fall and the rope coming tight as for the leader's fall, two clicks of metal for the rigging, and the rope coming tight on each yank.
 - I9, a call: the woman's slip on the same pitch (round 4's H7) is still there, held by the leader, so the last pitch now has two falls. The scene is 5.7 s longer (161 s).
 - I9, looked at in motion from the struggle to the belay, close up on the swing, the rigging and the yanks, at Dusk and on a phone both ways (both ends of the rope are in the picture on all of them). Frame time in the scene is about 5 ms. The check passed with nothing moved.
+- I10, what it was (`ridge.js`): two layers. The far sea (round 4's H13), a background that gathers as the camera rises and moves with the view, and a near layer drawn in front of the rock that only welled up from the bottom of the picture in the first 4 s of the rappel. So at the top the tower ran down to the bottom of the picture, and then a second sea filled in above the first, which is what TJ saw.
+- I10, the fix: the near layer is now the same sea and comes in at the haul. From the moment the haul starts it rises from just under the bottom of the picture to CLOUDH, the height they rappel into it at, by 0.6 s after TJ is at the belay. While he is being hauled its top is held 30 px under him, so it chases him up the tower without covering him. From then until they go under, it stays at CLOUDH. Under the cloud is unchanged.
+- I10, how they read as one: below the far sea's surface the near layer is drawn only over pixels something nearer has drawn since the far sea (rock, ground, climbers), and never over the far sea itself. So there is never a second cloud edge across the far sea: the far sea's horizon stays where it was, and the near layer's edge shows only where it meets rock. Above the far sea's surface it is drawn everywhere.
+- I10, a call: at the summit the cloud meets the tower a little below the far horizon (about 40 px on a laptop screen), not on it. That is how a flat sea looks from above, and it is how it looks in TJ's first picture for the note.
+- I10, a call: the far sea's own level is not raised. It already reads as the high sea from the summit, and raising it would have moved the rappel's numbers (the zip into the cloud is worked out from CLOUDH).
+- I10, a cost: each frame from the haul to the rappel keeps a copy of the screen after the far sea, to know which pixels were drawn in front of it. Frame time in the scene stays about 5 ms.
+- I10, looked at beside the build before from the haul to the rappel, close up during the haul, at Dusk and on a phone both ways. The check passed with nothing moved.

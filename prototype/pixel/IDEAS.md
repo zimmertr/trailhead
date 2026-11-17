@@ -402,3 +402,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Dropped Cam** (round 5, I9). As he is dragged past the big cam it slips from his hand and falls glinting into the cloud.
 - **Sore Arms on the Summit** (round 5, I9). After the haul TJ flops down on the top instead of walking up for the first high five, and the leader comes to him.
 - **The Haul on the Elevation Chart** (round 5, I9). The four yanks show as four steps on the timeline's elevation line.
+- **Wisps Up the Tower** (round 5, I10). A few thin wisps run up the rock ahead of the rising cloud's edge, like fog climbing a face on a cold morning.
+- **The Cloud on the Map** (round 5, I10). Once a visitor has seen the summit, the world map shows a small patch of cloud around Proficiency Peak's foot, gone after a while.
+- **Shadow on the Sea** (round 5, I10). The tower casts a long faint shadow across the top of the cloud sea, away from the sun, longer at Dusk.

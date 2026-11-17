@@ -381,8 +381,12 @@ function paintBasin() {
 // filling it, until by the top they look down on a sea of cloud with peaks standing out of it. top is
 // the screen row of the sea's surface, c how far it has gathered (0 to 1), sx the basin's scroll, so
 // the billows stay with the ground under them and drift slowly east.
-function cloudSea(scr, top, c, t, sx, bot = 1e9) {
-  if (c <= 0) return;
+// rec, if given, gets the row of the surface in each column. mask, if given, is { snap, tops }: the
+// screen as it was just after the far sea was drawn and that sea's surface rows; below its surface this
+// sea is then drawn only over what was drawn in front of it since (rock, ground), so the near part of
+// the sea and the far part read as one (round 5, T74).
+function cloudSea(scr, top, c, t, sx, bot = 1e9, rec = null, mask = null) {
+  if (c <= 0) { if (rec) rec.fill(32767); return; }
   const { VW, VH, fb } = scr;
   for (let x = 0; x < VW; x++) {
     const wx = x + sx, d = clamp((c * 1.8 - vnoise(wx / 150, 5, 775)) / 0.6, -1, 1);
@@ -390,8 +394,9 @@ function cloudSea(scr, top, c, t, sx, bot = 1e9) {
     // billows that drift slowly east.
     const bil = 5 * vnoise(wx / 21 - t * 0.04, 1, 776) + 3 * Math.abs(Math.sin(wx / 7 + 3 * vnoise(wx / 30, 3, 776) - t * 0.15)) + 6 * d;
     const y0 = Math.round(top - bil + (d < 0 ? smooth(0, 1, -d) * 45 : 0));
+    if (rec) rec[x] = y0;
     if (y0 >= VH) continue;
-    cloudCol(fb, VW, VH, x, Math.max(0, y0), y0, wx, bot + Math.round(4 * vnoise(wx / 11, 9, 778) + 2 * Math.sin(wx / 5 + t * 0.2)));
+    cloudCol(fb, VW, VH, x, Math.max(0, y0), y0, wx, bot + Math.round(4 * vnoise(wx / 11, 9, 778) + 2 * Math.sin(wx / 5 + t * 0.2)), mask);
   }
 }
 // Under the cloud (H16a): grey, flat light from the cloud's underside fading darker toward the ground.
@@ -404,9 +409,10 @@ function gloom(scr, y0) {
 }
 // One column of the cloud sea from its top down: a sunlit top, a soft shaded band under it, then
 // the sea itself with the rolls of further billows in it, wider apart the nearer they are.
-function cloudCol(fb, VW, VH, x, ys, y0, wx, yb = 1e9) {
-  const end = Math.min(VH, yb);
+function cloudCol(fb, VW, VH, x, ys, y0, wx, yb = 1e9, mask = null) {
+  const end = Math.min(VH, yb), under = mask ? mask.tops[x] : 1e9;
   for (let y = ys; y < end; y++) {
+    if (y >= under && fb[y * VW + x] === mask.snap[y * VW + x]) continue;
     const k = y - y0, per = 6 + k * 0.12, roll = (k + 3 * vnoise(wx / 13, Math.floor(k / per), 777)) % per;
     let col = k < 1 ? R.white[1] : k < 3 ? R.farsnow[1] : k < 8 ? (bayer(x, y) < (k - 3) / 5 ? R.farsnow[0] : R.farsnow[1]) : R.farsnow[0];
     if (k >= 8 && roll < 1) col = R.farsnow[1]; else if (k >= 8 && roll < 2 && bayer(x, y) < 0.5) col = R.sky[4];
@@ -1173,7 +1179,7 @@ function buildRidge() {
   };
   const packs = [makePack(R.teal), makePack(R.red), makePack([R.mustard[0], R.mustard[1], R.mustard[2]])], dropAt = SCRIPT.dropAt;
   const ropePts = [];
-  let camX = 0, camH = 0;
+  let camX = 0, camH = 0, seaSnap = null, seaTops = null;
   // While a card is open at a belay (H17), the ridge plays on behind it at its own pace, the followers
   // climbing up, until everyone is at the anchor: ahead is how far it has got. When the visitor carries
   // on, the timeline jumps by that much (skip), so nothing is watched twice.
@@ -1275,7 +1281,15 @@ function buildRidge() {
       drawStrip(scr, far, 120 + cx * 0.15, base + camH * 0.08 + 60, false, R.far[1]);
       drawStrip(scr, basin, 300 + cx * 0.4, base + camH * 0.12 - 25, false, R.far[1]);
       const seaC = smooth(220, 430, camH), seaTop = base + camH * 0.12 - 25 + 40 - 31 * seaC, seaX = Math.round(300 + cx * 0.4);
-      cloudSea(scr, seaTop, seaC, t, seaX);
+      // The one cloud sea (round 5, T74): from when the haul starts its near part rises up the tower from
+      // the bottom of the picture, always below TJ, until by the time he is up it stands at CLOUDH, the
+      // height they rappel into it at. Below the far sea's surface it is drawn only over rock, so the
+      // two are one sea.
+      const rising = SCRIPT.haulAt > 0 && tau >= SCRIPT.haulAt && dv < DESC.under;
+      if (rising && (!seaSnap || seaSnap.length !== fb.length)) seaSnap = new fb.constructor(fb.length);
+      if (rising && (!seaTops || seaTops.length !== VW)) seaTops = new Int16Array(VW);
+      cloudSea(scr, seaTop, seaC, t, seaX, 1e9, rising ? seaTops : null);
+      if (rising) seaSnap.set(fb);
       const cbH = CB - 8 * Math.max(0, camH - (LH + 45));
       if (dv >= DESC.under) gloom(scr, Math.max(0, rowOf(cbH)));
 
@@ -1458,10 +1472,14 @@ function buildRidge() {
         if (fg.back) { flap(scr, fg.x + 5, fg.y - 1, ko.top, t, wnd, g, sd); if (!s.hood && ko.long && ko.hair) hair(scr, fg.x + 4, fg.y - 13, ko.hair, t, wnd, g, sd); }
         else if (fg.side) { flap(scr, fg.x + 3, fg.y - 9, ko.top, t, wnd, g, sd); if (!s.hood && ko.long && ko.hair && fg.f) hair(scr, fg.x + 5, fg.y - 17, ko.hair, t, wnd, g, sd); }
       }
-      // The cloud wells up the tower as they come down, in front of the rock, until its top is the sea's.
-      // Going under, the cloud's top races up out of sight as the camera sinks into it.
+      // The near part of the cloud sea, in front of the rock and of anyone below its top. Going under, the
+      // cloud's top races up out of sight as the camera sinks into it.
       if (dv >= DESC.under) cloudSea(scr, rowOf(CLOUDH + 6 * Math.max(0, CAMD - camH)), 1, t, seaX, rowOf(cbH));
-      else if (dv > 0.5) cloudSea(scr, seaTop + (1 - smooth(0.5, 4.0, dv)) * VH, seaC, t, seaX);
+      else if (rising) {
+        let h = lerp(base + camH - VH - 4, CLOUDH, smooth(SCRIPT.haulAt, SCRIPT.upAt + 0.6, tau));
+        if (tau < SCRIPT.upAt) h = Math.min(h, P.tj.h - 30);
+        cloudSea(scr, rowOf(h), 1, t, seaX, 1e9, null, { snap: seaSnap, tops: seaTops });
+      }
       // While he places a cam: in his raised hand, lobes shut, then pushed up into the crack.
       for (let i = 0; i < pro.length; i++) {
         const g = pro[i], sp = SPOT[i];
