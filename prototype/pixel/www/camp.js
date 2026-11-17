@@ -65,14 +65,15 @@ function farGoat(pose, kid) {
 // The Spires as the map draws them (section 4a, the six climbs): one jagged granite wall, its skyline
 // a crowd of pinnacles over six summits, west to east in the order of SPIRES. Bluebird Forecast is the
 // west end summit, standing clear; TJs-Kubernetes-Service the second, with the icefall under it;
-// hevy-garmin-sync the third and highest, a long snow gully running down from the notch beside it;
-// trailhead the knife-edge between the third and fourth; yggdrasil the fifth, on the dry rock of the
-// east arm, where no snow lies; Kubernetes-Manifests the east end summit above the crevassed tongue.
+// hevy-garmin-sync the third, a long snow gully running down from the notch beside it; trailhead
+// the fourth and the highest of the six (round 5, T57), the knife-edge running up to it from the
+// third; yggdrasil the fifth, on the dry rock of the east arm, where no snow lies;
+// Kubernetes-Manifests the east end summit above the crevassed tongue.
 // Painted into b between x0 and x1, its foot at yb, the highest summit H above it. Returns where each
 // project's summit is (geo, in SPIRES order) and the wall's foot in each column (feet).
 // Each summit: where it stands across the wall (u), its height, and how wide its mass is (half width).
-const SUMMITS = [[0.08, 0.68, 0.13], [0.26, 0.82, 0.14], [0.45, 1, 0.16], [0.63, 0.84, 0.13], [0.79, 0.7, 0.13], [0.94, 0.53, 0.12]];
-const AT = [0.08, 0.26, 0.45, 0.54, 0.79, 0.94];
+const SUMMITS = [[0.08, 0.68, 0.13], [0.26, 0.82, 0.14], [0.45, 0.9, 0.15], [0.63, 1, 0.14], [0.79, 0.7, 0.13], [0.94, 0.53, 0.12]];
+const AT = SUMMITS.map(s => s[0]);
 const GULLIES = [[0.355, 1], [0.17, 0.6], [0.71, 0.45]];
 export function paintSpires(b, x0, x1, yb, H, feet) {
   const span = x1 - x0, U = x => (x - x0) / span, sc = Math.min(1, span / 220);
@@ -109,7 +110,7 @@ export function paintSpires(b, x0, x1, yb, H, feet) {
     }
     if (feet) feet.push([x, foot]);
   }
-  return SPIRES.map((sp, k) => { const x = Math.round(x0 + AT[k] * span); let t = top(x); for (let i = -4; i <= 4; i++) t = Math.min(t, top(x + i)); return { id: sp.id, name: sp.name, x, top: Math.round(t), by: yb, w: Math.round(span * (k === 3 ? 0.08 : 0.2)), h: Math.round(yb - t) }; });
+  return SPIRES.map((sp, k) => { const x = Math.round(x0 + AT[k] * span); let t = top(x); for (let i = -4; i <= 4; i++) t = Math.min(t, top(x + i)); return { id: sp.id, name: sp.name, x, top: Math.round(t), by: yb, w: Math.round(span * 0.2), h: Math.round(yb - t) }; });
 }
 
 // One granite tower, painted a column at a time: a jagged skyline, lit on the left, cut by a dark
@@ -167,12 +168,14 @@ function build(VW, VH, narrow) {
   // ---- the wall of the Spires, as on the map ----------------------------------------------------
   const tw = new BM(VW, VH), feet = [];
   // A little under the full height, so the highest summit's flag and name tag clear the buttons at the top.
-  const geo = paintSpires(tw, X0 + bw * (narrow ? 0.1 : 0.02), X1 - bw * (narrow ? 0.1 : 0.04), yb, H - 10, feet);
+  // The east end stops short of the picture's edge, so the last summit stands whole (round 5, T61).
+  const geo = paintSpires(tw, X0 + bw * (narrow ? 0.1 : 0.02), X1 - bw * 0.1, yb, H - 10, feet);
   outline(tw, INK);
   // Two walls too big for the picture close it at the sides (a wide screen only: a phone has no room).
   const side = new BM(VW, VH), sides = [];
   if (!narrow) {
-    sides.push({ x: Math.round(X0 * 0.2), by: Math.round(yb + bh * 0.3), h: Math.round(H * 2.5), w: Math.round(H * 1.5) }, { x: VW + Math.round(bw * 0.06), by: Math.round(yb + bh * 0.26), h: Math.round(H * 2.1), w: Math.round(H * 1.15) });
+    // The east one stands far enough off the picture's edge to leave Kubernetes-Manifests clear (T61).
+    sides.push({ x: Math.round(X0 * 0.2), by: Math.round(yb + bh * 0.3), h: Math.round(H * 2.5), w: Math.round(H * 1.5) }, { x: VW + Math.round(bw * 0.15), by: Math.round(yb + bh * 0.26), h: Math.round(H * 2.1), w: Math.round(H * 0.95) });
     sides.forEach((s, k) => tower(side, 7 + k, s.x, s.by, s.h, s.w, feet));
     outline(side, INK);
   }

@@ -65,9 +65,11 @@ function volcano(cu, cv, ru, rv, H) {
 let SP = null;
 // Snow gullies up the wall to the notches between the summits: [offset, how high it reaches, a number to tell them apart].
 const GULLY = [[-80, 0.46, 1], [-40, 0.7, 0], [-9, 0.6, 2], [60, 0.56, 1]];
-const SUMMITS = [[-94, 0.66, 26, 30, 8], [-60, 0.84, 24, 20, 5], [-24, 1, 26, 22, 9], [10, 0.86, 18, 20, 5], [42, 0.95, 22, 26, 8], [82, 0.7, 24, 34, 10]];
+// trailhead, the fourth, is the highest (round 5, T57), and tall enough to top the far crest that shows
+// over the wall west of it; the others keep their order of height under it.
+const SUMMITS = [[-94, 0.66, 26, 30, 8], [-60, 0.84, 24, 20, 5], [-24, 0.92, 26, 22, 9], [10, 1.14, 18, 20, 5], [42, 0.88, 22, 26, 8], [82, 0.7, 24, 34, 10]];
 function spires(cu, cv, base, H, thin = 1, wide = 1) {
-  SP = { cu, cv, base, H, wide, top: cu + SUMMITS[2][0] * wide, west: SUMMITS[0][0] };
+  SP = { cu, cv, base, H, wide, top: cu + SUMMITS[3][0] * wide, west: SUMMITS[0][0] };
   const high = dx => {
     let best = H * (0.28 + 0.2 * smooth(160, 90, Math.abs(dx)));
     SUMMITS.forEach(([o, hh, wl, wr, cap], k) => { const u = Math.max(0, Math.abs(dx - o) - cap / 2) / (dx < o ? wl : wr), v = H * hh * (1 - 0.3 * Math.pow(u, 1.05)) - (dx - o) * (k & 1 ? 0.12 : -0.1) * (u === 0 ? 1 : 0); if (u < 2 && v > best) best = v; });

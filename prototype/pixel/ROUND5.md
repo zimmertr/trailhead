@@ -559,7 +559,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 ### H. The six climbs
 
-- [ ] H1. T57: trailhead is the highest summit, everywhere the six are drawn. T61: Kubernetes-Manifests framed clear of the nunatak.
+- [x] H1. T57: trailhead is the highest summit, everywhere the six are drawn. T61: Kubernetes-Manifests framed clear of the nunatak.
 - [ ] H2. T50: Bluebird Forecast as the weather window: drizzle, the phone pop-up, the clearing, the hands-on scramble, a sunny summit with no inversion.
 - [ ] H3. T51: no bluebird on arrival. A bigger, better bluebird when its find is triggered.
 - [ ] H4. T53: one ice wall on TJs-Kubernetes-Service.
@@ -690,7 +690,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **G2 done.** One tent, the yellow-orange one, in the walk, at camp and at the foot of each climb's glissade (which drew the same two). A small stove with a pot stands beside it, so the smoke that rose from between the two tents has a source. Kayti's pack is redrawn from its front: a lid held down by two straps with their buckles, a dent in its side, a loop on top and a shoulder strap trailing on the rock. Checked by Day and at Dusk.
 - **G3 done.** The walk's flower slope has three snow patches of three sizes. The big one across the trail in the second half is as it was. A small one lies across the trail early on, with a boot track over it, and a middling one lies in a hollow of the meadow below the trail between the two. All are painted the same way: old snow, sun-cupped, grey at the melting edge.
 - **G4 done. Section G is done.** Three pika live on the moraine, each on a rock with a smaller rock beside it. As he comes within about 70 px a pika sits bolt upright, gives the "eep" and bolts into the gap between its two rocks. Once he is 60 px past it looks out of the gap, and when he is 130 px away it hops back up onto its rock. A click on one makes it call and bolt too. The behaviour is one function (`shyPika` in `fauna.js`), ready for the larch basin's pika in I3.
-- Next: H1.
+- **H1 done.** trailhead is the highest of the six summits at camp, in the walk to camp (which paints the same wall) and on the map, where the Spires' flag now flies from it. hevy-garmin-sync is second, and the rest keep their order. At camp the Kubernetes-Manifests summit stands whole with its name tag, clear of the east wall, at 1440x900, 1920x1080 and on a phone.
+- Next: H2.
 
 ## 11. Calls made in round 5
 
@@ -971,3 +972,9 @@ One line each, newest last: the item, what was decided, and why.
 - G4, a word reused: the tap label is "Pika", the same word the larch basin uses (`NAMES.approach.pika` in `content.js`). Nothing new to review.
 - G4, the bake. `content.js` and `fauna.js` are among the files `land.js` reads, so the ground's mark changed and it was baked again. Its picture is the same, pixel for pixel (0 of 1920x17000 differ).
 - G4, not in the spawn menu: that menu is for the map's animals. The pika, like the walk's marmots, live in a scene.
+- H1, camp's wall (`camp.js`, `SUMMITS`). hevy-garmin-sync was the highest (1) and trailhead was the knife-edge beside it (0.8), its name pinned on the edge. The fourth mass, east of the knife-edge, was a pinnacle with no name (0.84). That mass is now trailhead's summit at full height, the knife-edge runs up to it, and hevy-garmin-sync is 0.9. The name tag and the tap sit on the summit. The walk to camp paints its towers with the same function, so it follows.
+- H1, the map (`land.js`, `SUMMITS`). hevy-garmin-sync 1 to 0.92, trailhead 0.86 to 1.14, yggdrasil 0.95 to 0.88, so the order under trailhead is as it was (hevy-garmin-sync, yggdrasil, TJs-Kubernetes-Service, Kubernetes-Manifests, Bluebird Forecast). trailhead is taller than 1 on purpose: a far crest behind the wall shows over it between the second and third summits and tops out at row 261, which was higher than any of the six before this item too. trailhead's top is now at row 254. That far crest is left alone. The destination flag moved to trailhead's summit with the rule that puts it on the highest.
+- H1, Kubernetes-Manifests. Two things hid it: the wall ran to within 4% of the picture's edge, so its east flank left the screen, and the east side wall stood over it. The wall now stops 10% short of the edge (the six towers are 6% narrower in all) and the east side wall stands further off and is narrower (it was centred 6% of the picture past the edge and is now 15% past). What is left of it at 1440x900 is a sliver at the right edge. The walk's east wall moved the same way so the two pictures still agree.
+- H1, the climbs. Each climb is its own picture with its own height, and none shows the six side by side, so they were not changed.
+- H1, the check's list of moved places is this item's own: the tops of the third and fourth summits and the Spires' flag. No trail moved. The ground was baked again.
+- H1, no words were added.

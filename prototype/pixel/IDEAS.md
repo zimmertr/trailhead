@@ -325,3 +325,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Pika Answer Each Other** (round 5, G4). When one calls, the next one along the moraine answers a second later, further off and quieter.
 - **The Marmot Hides Too** (round 5, G4). The marmots drop behind their rocks after whistling, the way the pika bolt, and come back up when he has gone.
 - **A Weasel on the Moraine** (round 5, G4). Now and then a short-tailed weasel runs the crest ahead of him and every pika is out of sight before he gets there.
+- **The Far Crest Kept Under the Six** (round 5, H1). On the map a crest behind the Spires shows over the wall between the second and third summits and reads as a seventh top. Lower it there so only the six break the skyline.
+- **Heights on the Name Tags** (round 5, H1). Each summit's tag at camp shows a made-up height, trailhead's the greatest, so the order can be read as well as seen.
+- **A Summit Cairn You Can See From Camp** (round 5, H1). A tiny cairn on each top he has stood on, beside the flag, growing with the cairn in that climb.

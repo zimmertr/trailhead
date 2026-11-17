@@ -443,7 +443,7 @@ function buildApproach() {
         if (!scr.narrow) {
           const sc = WEST.near / (far0 + WEST.near);
           blitScaled(fb, VW, VH, west, Math.round(spx + WEST.dx * VW * sc), foot + Math.round(8 * sc), sc * kB);
-          blitScaled(fb, VW, VH, east, Math.round(VW * 1.08 + (X0 + LEN - VW * 0.4 - camX) * 0.6), hz + 10, kB);
+          blitScaled(fb, VW, VH, east, Math.round(VW * 1.14 + (X0 + LEN - VW * 0.4 - camX) * 0.6), hz + 10, kB);
         } }
       drawStrip(scr, wall, camX * P_WALL + 200, fl - FLOOR_H + 1 + sink, false, 0);
       drawStrip(scr, floor, camX * P_FLOOR, fl + sink, false, floorFill);
