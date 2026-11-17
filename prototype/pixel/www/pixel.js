@@ -3,7 +3,7 @@
 // in its own file and only has to draw itself for a given place along its stretch of the route.
 
 import { clamp, lerp, Screen, DEBUG, R } from './core.js';
-import { makeWorld, loadBake } from './world.js';
+import { makeWorld } from './world.js';
 
 // Scenes beyond the world map are built the first time a route needs them.
 const MAKERS = {
@@ -26,7 +26,7 @@ const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil',
 // the first time it is drawn, 'load:' and a name makes it fail to build, 'renderer' breaks the frame itself.
 export async function mount(canvas, { onEvent = () => {}, theme = 'light', breakAt = null } = {}) {
   const scr = new Screen(canvas);
-  const world = makeWorld(await loadBake());
+  const world = makeWorld();
   const scenes = { world };
   // broken: the stretch of route whose scene threw, left undrawn until he is somewhere else.
   let broken = null, sabotage = breakAt;
@@ -102,12 +102,6 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // picture at the old size grows over the new one and then gives way to it. Zooming out, the new, wider
   // picture starts enlarged to where the old one was and settles.
   const GLIDE = 190;
-  function snapshot() {
-    // Only the part in view: the canvas may be kept bigger than the view (F2).
-    const c = document.createElement('canvas'), dpr = window.devicePixelRatio || 1; c.width = scr.VW; c.height = scr.VH; c.getContext('2d').drawImage(canvas, 0, 0, scr.VW, scr.VH, 0, 0, scr.VW, scr.VH);
-    c.style.cssText = 'position:fixed;left:0;top:0;z-index:0;pointer-events:none;image-rendering:pixelated;transform-origin:0 0;width:' + (scr.VW * scr.S / dpr) + 'px;height:' + (scr.VH * scr.S / dpr) + 'px';
-    return c;
-  }
   // Below the map's foot (F9). The view may go past it only by what the timeline bar (and on a phone the junction
   // sign) covers, so the foot can come up above them; what shows in the gaps round their planks is plain ink, the
   // frame's colour, never the copy of the map's lowest rows that used to be drawn there.

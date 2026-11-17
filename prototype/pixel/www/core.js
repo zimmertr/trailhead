@@ -151,7 +151,7 @@ class BM {
   set(x, y, c) { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.d[y * this.w + x] = c; }
   get(x, y) { x = Math.round(x); y = Math.round(y); return x >= 0 && y >= 0 && x < this.w && y < this.h ? this.d[y * this.w + x] : 0; }
 }
-function outline(b, c, onlyEmpty = true) {
+function outline(b, c) {
   const o = b.d.slice(), w = b.w, h = b.h;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const i = y * w + x; if (b.d[i]) continue;

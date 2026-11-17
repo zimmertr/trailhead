@@ -2,7 +2,7 @@
 // stand on the bank behind the trail, a dark stream mirrors them in front of it, and the light
 // comes down through the canopy in slanting shafts. He runs right to left, the way the map sends him
 // in: west, away from the Trailhead.
-import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, SHADE, LIGHT, pick, BM, outline, disc, thick, windAt } from './core.js';
+import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, disc, windAt } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
 import { makeMaple, makeSpruce, makeBoulder } from './sprites.js';
 import { elk, bear, sasquatch, jay, slug, owl } from './fauna.js';

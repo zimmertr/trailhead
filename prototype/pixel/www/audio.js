@@ -93,7 +93,7 @@ TRACKS.forEach((tr, i) => { tr.name = TRACK_NAMES[i]; }); SETS.forEach((st, i) =
 const PLACES = { world: [0, 4], out: [6, 0], forest: [1, 5], lakeside: [5, 1], larches: [4, 5], wall: [2, 4], approach: [0, 3], camp: [3, 4], climb: [3, 6], offroute: [3] };
 
 export function makeAudio() {
-  let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, timer = null, step = 0, nextAt = 0, cur = 0, set = 0, auto = true, place = 'world', turn = 0, loops = 0, level = 0.22, swap = null, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
+  let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, step = 0, nextAt = 0, cur = 0, set = 0, auto = true, place = 'world', turn = 0, loops = 0, level = 0.22, swap = null, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
   // The music follows the place unless the visitor has picked a track by hand, and a pick is kept between visits.
   try { muted = localStorage.getItem('trailhead.muted') === '1'; const own = localStorage.getItem('trailhead.track'); if (own != null && TRACKS[+own]) { auto = false; cur = +own; } const v = +localStorage.getItem('trailhead.set'); if (SETS[v]) set = v; } catch { /* private window */ }
 
@@ -118,7 +118,7 @@ export function makeAudio() {
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0); let s = 1; for (let i = 0; i < d.length; i++) { s = (s * 16807) % 2147483647; d[i] = (s / 2147483647) * 2 - 1; }
     nextAt = ctx.currentTime + 0.1;
-    timer = setInterval(schedule, 90);
+    setInterval(schedule, 90);
     if (ambName) ambience(ambName, true);
   }
   // Changes the tune without a jolt: the one playing fades out, the next starts from its top and fades in.
@@ -247,7 +247,7 @@ export function makeAudio() {
 
   const out = {
     start,
-    sfx(name) { if (!ctx || muted || !FX[name]) return; try { FX[name](ctx.currentTime + 0.005); } catch (e) { /* a sound is never worth an error */ } },
+    sfx(name) { if (!ctx || muted || !FX[name]) return; try { FX[name](ctx.currentTime + 0.005); } catch { /* a sound is never worth an error */ } },
     ambience,
     muted: () => muted,
     // Whether anything can be heard yet: a browser holds the sound back until the first click, tap or key.

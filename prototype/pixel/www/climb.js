@@ -289,7 +289,7 @@ const TOPS = {
   // and the lenses look out and down over the far side.
   bridge() {
     const b = new BM(24, 32); b.ox = 11; b.oy = 31;
-    ell(b, 11, 29.5, 6, 1.6, (nx, ny, x, y) => R.rock[ny < 0 ? 2 : 1]);
+    ell(b, 11, 29.5, 6, 1.6, (nx, ny) => R.rock[ny < 0 ? 2 : 1]);
     for (let y = 13; y < 30; y++) for (let x = 10; x <= 12; x++) b.set(x, y, R.rock[x === 10 ? 4 : x === 11 ? 3 : 2]);
     for (let y = 18; y < 24; y++) for (let x = 8; x <= 14; x++) b.set(x, y, y === 18 ? R.rock[4] : x === 8 ? R.rock[3] : R.rock[2]);
     b.set(11, 20, INK); b.set(11, 21, INK); b.set(13, 22, R.yellow[1]);
@@ -543,7 +543,7 @@ export function makeClimb() {
     wind: [0, 1, 2, 3, 4, 5].map(f => sideFig('alpine', { feet: [WALK[f], WALK[(f + 3) % 6]], hands: [[4, 4], [3, 0]], bob: f % 3 === 1 ? -1 : 0, lean: 4, look: 'down', held: axe })),
     jump: sideFig('alpine', { feet: [[5, 5], [-4, 6]], hands: [[5, -5], [-4, -3]], lean: 3 }),
     crawl: [0, 1].map(f => sideFig('alpine', { feet: f ? [[1, 6], [-4, 6]] : [[-1, 6], [-2, 6]], crouch: 3, hands: f ? [[7, 5], [4, 6]] : [[5, 6], [6, 5]], lean: 6, look: 'down' })),
-    sit: [0, 1].map(f => sideFig('alpine', { feet: [[8, 3], [7, 4 + f]], crouch: 6, lean: -2, hands: [[2, 4], [-4, 2 - f]], held: (b, sh, hands, hip) => { for (let k = 0; k < 7; k++) b.set(sh[0] - 4 - k, sh[1] + 2 - f + k, R.rock[3]); } })),
+    sit: [0, 1].map(f => sideFig('alpine', { feet: [[8, 3], [7, 4 + f]], crouch: 6, lean: -2, hands: [[2, 4], [-4, 2 - f]], held: (b, sh) => { for (let k = 0; k < 7; k++) b.set(sh[0] - 4 - k, sh[1] + 2 - f + k, R.rock[3]); } })),
     stand: frontFig('alpine'), cheer: frontFig('alpine', { swing: -9 }),
     // Rime on him too, on the side the wind comes from (his front, walking right into it).
     walkR: null, windR: null,

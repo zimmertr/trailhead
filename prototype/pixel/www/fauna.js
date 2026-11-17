@@ -1,5 +1,5 @@
 // The animals of the side-view scenes, each drawn in code at the same pixel size as everything else.
-import { clamp, rng, hash, vnoise, R, INK, BM, outline, disc, thick, pick } from './core.js';
+import { hash, R, INK, BM, outline, disc, thick, pick } from './core.js';
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
 
@@ -10,7 +10,7 @@ function elk(pose, step = 0, alt = 0) {
   const tan = (nx, ny, x, y) => pick('dirt', 0.62 - ny * 0.3 - nx * 0.05, x, y, 0.5), dark = (nx, ny, x, y) => pick('bark', 0.55 - ny * 0.35, x, y, 0.5);
   for (const [lx, far] of [[11, 1], [15, 0], [26, 1], [29, 0]]) { const sw = step && !far ? 1 : 0; thick(b, lx, 26, lx + sw, 32, 2, R.bark[far ? 0 : 1]); thick(b, lx + sw, 32, lx + sw, 37, 1.5, R.bark[far ? 0 : 1]); b.set(lx + sw, 38, INK); }
   ell(b, 20, 22, 12, 6.2, tan);
-  ell(b, 9, 20, 3.5, 4, (nx, ny) => nx < 0.2 ? R.dirt[4] : 0);
+  ell(b, 9, 20, 3.5, 4, nx => nx < 0.2 ? R.dirt[4] : 0);
   if (pose === 'graze') {
     thick(b, 29, 21, 35, 30 + alt, 5, R.bark[1]); ell(b, 37, 33 + alt, 3.6, 2.4, dark); b.set(40, 34 + alt, R.bark[0]); b.set(36, 32 + alt, INK);
     for (const s of [0, 1]) { thick(b, 34, 30, 30 - s * 3, 24 - s, 1, R.dirt[4]); thick(b, 31 - s * 3, 26, 27 - s * 4, 22, 1, R.dirt[4]); }
@@ -63,7 +63,7 @@ function jay(kind, pose) {
     b.set(11, 4, INK); b.set(9, 4, kind === 'steller' ? R.white[1] : INK);
     b.set(6, 10, INK); b.set(7, 10, INK);
   } else {
-    ell(b, 6, 6, 3.4, 1.8, (nx, ny) => body[2]);
+    ell(b, 6, 6, 3.4, 1.8, () => body[2]);
     disc(b, 10, 5, 1.6, () => headC); b.set(12, 5, INK); if (kind === 'steller') b.set(9, 3, headC);
     thick(b, 3, 6, 0, 7, 1.5, body[1]);
     if (pose === 'up') { thick(b, 6, 5, 4, 0, 2, body[3]); thick(b, 7, 5, 6, 1, 1, body[2]); } else { thick(b, 6, 7, 4, 10, 2, body[3]); }
@@ -107,7 +107,7 @@ function marmot(pose) {
   // made it read as part of the rock it lies on.
   const coat = cape => (nx, ny, x, y) => cape(nx, ny) && hash(x, y, 2) < 0.6 ? R.dirt[hash(x, y, 3) < 0.45 ? 4 : 3] : pick('dirt', 0.34 - ny * 0.28 + 0.2 * (hash(x, y, 2) - 0.5), x, y, 0.5);
   if (pose === 'sun') {
-    ell(b, 8, 10.5, 6.5, 2.6, coat((nx, ny) => nx > 0.12 && ny < 0.5)); ell(b, 14, 10, 2.6, 2.2, (nx, ny, x, y) => R.bark[ny < 0 ? 2 : 1]); b.set(16, 10, INK); b.set(15, 9, INK); b.set(13, 8, R.bark[1]);
+    ell(b, 8, 10.5, 6.5, 2.6, coat((nx, ny) => nx > 0.12 && ny < 0.5)); ell(b, 14, 10, 2.6, 2.2, (nx, ny) => R.bark[ny < 0 ? 2 : 1]); b.set(16, 10, INK); b.set(15, 9, INK); b.set(13, 8, R.bark[1]);
     thick(b, 2, 11, 0, 12, 2, R.bark[1]); b.set(5, 13, R.bark[0]); b.set(11, 13, R.bark[0]);
   } else {
     ell(b, 8, 9, 3.6, 4.4, coat((nx, ny) => ny < -0.05)); ell(b, 9, 3.5, 2.6, 2.3, (nx, ny) => R.bark[ny < 0 ? 2 : 1]); b.set(11, 3, INK); b.set(11, 4, R.white[0]); b.set(8, 1, R.bark[1]);

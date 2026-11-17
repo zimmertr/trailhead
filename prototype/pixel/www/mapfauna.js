@@ -1,6 +1,6 @@
 // Drawings of the animals and the boat on the world map that came out of round 3's terrain.js: the
 // ferry, the humpback, the bighorn ram and the squirrel or chipmunk. critters.js moves them.
-import { TAU, clamp, lerp, smooth, frac, sq, hash, vnoise, R, KIND, pick, BM, outline, thick, INK } from './core.js';
+import { clamp, smooth, frac, R, pick, BM, outline, thick, INK } from './core.js';
 import { ell } from './fauna.js';
 
 // The ferry, seen from the shore and a little above, lying along its course: bow down to the right.

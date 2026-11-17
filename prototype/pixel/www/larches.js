@@ -2,7 +2,7 @@
 // climb up granite benches in their autumn gold, the Enchantments' spires and a blue glacier far
 // behind, and the peak itself growing ahead of him. He goes the way the map's trail was going when
 // it handed him over (arg.dir), so the whole picture is drawn left to right and mirrored when needed.
-import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, DAY, INK, LIGHT, pick, BM, outline, windAt } from './core.js';
+import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, DAY, INK, pick, BM, outline, windAt } from './core.js';
 import { Strip, drawStrip, baseline, shell, blitScaled, paintPeaks } from './side.js';
 import { makeConifer, makeBoulder, makeCloud } from './sprites.js';
 import { makeRunner } from './tj.js';

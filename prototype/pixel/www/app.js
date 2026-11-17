@@ -12,7 +12,7 @@ const el = (tag, attrs = {}, ...kids) => { const n = document.createElement(tag)
 const status = $('status'), fork = $('fork'), card = $('card'), line = $('line'), sheet = $('sheet'), plain = $('plain'), tip = $('tip'), toast = $('toast'), tab = $('tab');
 const audio = makeAudio();
 const BUILT = new Date(), VERSION = 'v0.1.5, pixel build';
-let api, shown = null, sheetName = null, profile = [], toastT = 0;
+let api, shown = null, profile = [], toastT = 0;
 // A scene may hold him at a spot with no card (a stop whose id starts with 'wait:'), until Space or Start: one line says so.
 let waiting = false;
 const isWait = id => String(id).startsWith('wait:');
@@ -192,13 +192,13 @@ async function navigate(hash) {
 // ------------------------------------------------------------------ sheets
 
 function openSheet(name) {
-  const body = $('sheet-body'); body.replaceChildren(); sheetName = name;
+  const body = $('sheet-body'); body.replaceChildren();
   if (name === 'map') body.append(...trailMap());
   else if (name === 'kiosk') body.append(...kiosk());
   else body.append(el('div', { class: 'band' }, el('h2', { text: UI.keys.title }), el('p', { text: UI.keys.note })), el('dl', { class: 'keys' }, ...HELP.flatMap(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })])));
   sheet.hidden = false; audio.sfx('open'); audio.focus(2); $('close').focus();
 }
-function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; sheetName = null; audio.sfx('close'); audio.focus(shown ? 1 : 0); } }
+function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; audio.sfx('close'); audio.focus(shown ? 1 : 0); } }
 
 // ------------------------------------------------------------------ the debug panel
 // Hidden: the backtick key opens and closes it, and so does the small sign at the foot of the trail map.
@@ -279,7 +279,7 @@ function openPlain() {
   const cardOut = id => { const c = CARDS[id]; return [el('h4', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null]; };
   // Without the world there is no picture of the map and no way back to it, and the page says why.
   let still = null;
-  if (!worldDown) try { still = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', UI.plain.mapAlt); } catch (err) { console.error(err); still = null; }
+  if (!worldDown) try { const MAP = api.mapFrame(); still = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', UI.plain.mapAlt); } catch (err) { console.error(err); still = null; }
   plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: UI.map.title }), worldDown ? null : el('button', { class: 'plank', onclick: () => navigate('') }, el('span', { text: UI.plain.back }))),
     el('div', { class: 'wrap' }, el('h1', { text: UI.name }), worldDown ? el('p', { class: 'legend', text: UI.plain.down }) : null, still,
       ...sec(UI.map.lake[0], ...['who', 'mountains', 'note'].flatMap(cardOut)), ...sec(UI.map.stack[0], ...['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'].flatMap(cardOut)),
