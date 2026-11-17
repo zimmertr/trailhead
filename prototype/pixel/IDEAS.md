@@ -339,3 +339,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Pair of Bluebirds** (round 5, H3). The female, grey with blue in her wings and tail, follows a second behind and takes the other box.
 - **Bluebirds on the Map in Fair Weather** (round 5, H3). When the map's weather is clear, one sits on the Spires' signpost, and it is gone when the weather turns.
 - **The Bird Reads the Station** (round 5, H3). While it sits on the box the anemometer stops, and it starts again when the bird leaves.
+- **An Ice Screw Half Way Up** (round 5, H4). On the tall wall he stops once, places a screw and clips it, and the rope trails below him to the top.
+- **Ice Chips Land on the Bench** (round 5, H4). The chips his tools knock off pile up as a small heap at the wall's foot while he climbs.
+- **A Second Line on the Wall** (round 5, H4). On a return visit he takes the wall's other side, so the climb is not the same film twice.

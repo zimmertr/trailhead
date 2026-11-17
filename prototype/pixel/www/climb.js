@@ -26,9 +26,10 @@ const ROUTES = {
   // rock on hands and feet, slab after slab with a ledge between, to a clear and sunny summit.
   bluebird: { kind: 'ridge', secs: 13, sx: 600, w: 1300, dry: true, wait: [54, 7.5], pts: [[0, 0], [40, -4], [76, -10], [98, -30], [116, -32], [142, -54], [154, -57], [176, -78], [196, -80], [218, -102], [232, -104], [258, -124], [278, -127], [300, -150], [314, -152], [338, -170], [356, -173], [378, -196], [394, -198], [420, -218], [434, -221], [456, -244], [474, -246], [498, -266], [514, -269], [540, -288], [566, -294], [600, -300], [642, -300], [670, -262], [740, -160], [840, -20], [940, 120]] },
   // TJs-Kubernetes-Service, the icefall (K3): among leaning seracs, over a snow bridge, across a ladder laid
-  // over a crevasse, up two steps of ice with tools, and over two ladders lashed end to end. `xings` lists
+  // over a crevasse, up one tall wall of ice with tools (two shorter steps until round 5, T53), and over two
+  // ladders lashed end to end. `xings` lists
   // the crevasses by the x of their two lips and what crosses each.
-  tks: { kind: 'icefall', secs: 17, sx: 600, w: 1300, ice: [[300, 304], [372, 376]], slip: [1, 2], xings: [[96, 116, 'snow'], [196, 226, 'ladder'], [468, 532, 'lashed']], pts: [[0, 0], [40, -6], [96, -14], [116, -16], [160, -24], [196, -34], [226, -36], [270, -46], [300, -50], [304, -84], [340, -92], [372, -96], [376, -136], [420, -146], [468, -156], [532, -160], [566, -170], [600, -176], [642, -176], [668, -138], [738, -38], [838, 82]] },
+  tks: { kind: 'icefall', secs: 17, sx: 600, w: 1300, ice: [[336, 340]], slip: [0, 5], xings: [[96, 116, 'snow'], [196, 226, 'ladder'], [468, 532, 'lashed']], pts: [[0, 0], [40, -6], [96, -14], [116, -16], [160, -24], [196, -34], [226, -36], [270, -46], [336, -55], [340, -131], [376, -137], [420, -146], [468, -156], [532, -160], [566, -170], [600, -176], [642, -176], [668, -138], [738, -38], [838, 82]] },
   // hevy-garmin-sync, the gully as a workout (K4): he kicks steps in sets and rests on his axe between them,
   // breathing hard. `sets` lists where each set ends and how long the rest after it is; `slipAt` is where a
   // foot goes and is kicked in twice; `gully` is where it narrows between rock walls; `beep` stops him on
@@ -127,6 +128,10 @@ function paint(cfg, seed) {
     const y0 = Math.round(hOf(pts, x) + (x > 0 && x < sxOf(cfg) ? 1.5 * (vnoise(x / 7, 1, seed) - 0.5) : 0)), slope = hOf(pts, x + 3) - hOf(pts, x - 3);
     const far = slope > 2;
     tops[sx] = y0;
+    // Snow darkens with depth under the surface. Beside a wall of ice the surface steps up by the wall's
+    // height at once, which left a straight seam down the snow below it, so there the depth is measured
+    // from the surface averaged over 48 px to either side.
+    let soft = y0; if (cfg.ice) { soft = 0; for (let k = -48; k <= 48; k += 4) soft += hOf(pts, x + k) / 25; }
     const kn = knifeK(cfg, x), kd = kn > 0 ? Math.round(lerp(DOWN, 30 + 26 * vnoise(x / 18, 7, seed + 61) + 8 * vnoise(x / 3, 8, seed + 62), kn)) : 1e9;
     for (let y = inGap ? y0 + 6 : y0; y < DOWN; y++) {
       const d = y - y0; let c;
@@ -136,7 +141,7 @@ function paint(cfg, seed) {
       if (inGap && d < 80) { const e = Math.min(x - gap[0], gap[1] - x); if (e > 3 + d * 0.06 + 2 * vnoise(y / 5, x, seed + 1)) continue; c = pick('glac', 0.42 - d * 0.006 + (x - gap[0] < 6 ? 0.2 : -0.1), sx, y); }
       else if (far && d > 3 + 5 * vnoise(sx / 5, y / 9, seed + 5) && vnoise(sx / 7, y / 26, seed + 10) > 0.3) c = Math.abs(frac(sx / 9 + vnoise(sx / 30, y / 30, seed + 11)) - 0.5) < 0.05 ? R.granite[0] : pick('granite', 0.34 + 0.3 * (vnoise(sx / 2.4, y / 14, seed + 6) - 0.5) - d * 0.0015, sx, y, 0.8);
       else if (!far && d > 9 && kind !== 'wands' && fbm((sx + y * 1.6) / 46, (y - sx * 0.25) / 9, seed + 5, 3) > 0.63) c = pick('granite', 0.62 - 0.5 * frac((y - sx * 0.25) / 9) + 0.2 * (vnoise(sx / 3, y / 3, seed + 6) - 0.5), sx, y, 0.8);
-      else c = d < 1 ? R.snow[far ? 3 : 4] : far ? pick('glac', 0.72 - d * 0.004 + 0.12 * (vnoise(sx / 9, y / 4, seed + 7) - 0.5), sx, y, 0.6) : (Math.abs(frac((y + sx * 0.3) / 13 + 0.4 * vnoise(sx / 20, y / 20, seed + 8)) - 0.5) < 0.03 && d > 4 ? R.snow[2] : pick('snow', 0.86 + Math.max(-3, slope) * 0.02 - d * 0.002 + 0.14 * (vnoise(sx / 8, y / 5, seed + 9) - 0.5), sx, y, 0.5));
+      else c = d < 1 ? R.snow[far ? 3 : 4] : far ? pick('glac', 0.72 - d * 0.004 + 0.12 * (vnoise(sx / 9, y / 4, seed + 7) - 0.5), sx, y, 0.6) : (Math.abs(frac((y + sx * 0.3) / 13 + 0.4 * vnoise(sx / 20, y / 20, seed + 8)) - 0.5) < 0.03 && d > 4 ? R.snow[2] : pick('snow', 0.86 + Math.max(-3, slope) * 0.02 - Math.max(0, y - soft) * 0.002 + 0.14 * (vnoise(sx / 8, y / 5, seed + 9) - 0.5), sx, y, 0.5));
       // Dry rock: big slabs paler and darker by turns, lit along the top, with lichen here and there.
       if (cfg.dry) c = d < 1 ? R.granite[3] : d < 2 ? R.granite[2] : vnoise(x / 2.2, y / 2.2, seed + 82) > 0.86 && vnoise(x / 20, y / 20, seed + 83) > 0.55 ? R.ochre[1] : crag(x, y, sx, seed + 80, 0.32 + 0.4 * fbm(x / 46, y / 30, seed + 81, 2) + (d < 10 ? 0.12 : 0), true);
       if (kn > 0.3 && d >= 2) c = d < 3 && vnoise(x / 4, 9, seed + 63) > 0.5 ? R.snow[3] : crag(x, y, sx, seed + 70, 0.5 + (d / kd) * 0.25);

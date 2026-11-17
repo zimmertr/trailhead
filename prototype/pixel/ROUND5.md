@@ -562,7 +562,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] H1. T57: trailhead is the highest summit, everywhere the six are drawn. T61: Kubernetes-Manifests framed clear of the nunatak.
 - [x] H2. T50: Bluebird Forecast as the weather window: drizzle, the phone pop-up, the clearing, the hands-on scramble, a sunny summit with no inversion.
 - [x] H3. T51: no bluebird on arrival. A bigger, better bluebird when its find is triggered.
-- [ ] H4. T53: one ice wall on TJs-Kubernetes-Service.
+- [x] H4. T53: one ice wall on TJs-Kubernetes-Service.
 - [ ] H5. T55, T56: hevy-garmin-sync as a trail run with the watch pop-up and the Hevy sync at the bench. A barbell with plates on the bench.
 - [ ] H6. T58: the knife-edge redrawn, with no sinking into the rock. The two alternatives go into `IDEAS.md`.
 - [ ] H7. T59: the binoculars pan round the cats and close only on space or the back button.
@@ -693,7 +693,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **H1 done.** trailhead is the highest of the six summits at camp, in the walk to camp (which paints the same wall) and on the map, where the Spires' flag now flies from it. hevy-garmin-sync is second, and the rest keep their order. At camp the Kubernetes-Manifests summit stands whole with its name tag, clear of the east wall, at 1440x900, 1920x1080 and on a phone.
 - **H2 done.** Bluebird Forecast is the weather window. It drizzles under a grey lid at the foot. He walks to a boulder the size of a small hut, sits under its prow with his knees up and takes out his phone. Its screen is shown large beside him: the Bluebird Forecast app in its own dark slate and sky blue, with its mark and name, a rain cloud, the time slider with its play button, and the word DRIZZLE. The slider runs forward, the cloud moves off a sun and the word turns to CLEARING, with a chime. Then the sky does it: the rain stops, the lid breaks up over the other peaks, and he goes up dry slabs on hands and feet, ledge by ledge, to a sunny top with the weather station. No axe, no storm, no inversion, and no bluebird unless the station is clicked. The climb takes 13 s after a 7.5 s wait (the snow ridge took 25). Frame time at 1920x1080: 7.9 ms in the rain, 2.2 ms on the scramble (before: 7.3 and 6.5).
 - **H3 done.** No bluebird is on Bluebird Forecast's summit when he arrives (H2 took out the one that came on its own). Clicking the weather station brings a mountain bluebird drawn about two and a half times the old size: sky blue above, a pale breast, white under the tail, dark wing tips, a thin bill and a dark eye, with four wing frames. It flies in from the right, circles above his hat, lands on the station's white box, sings three times with its bill open, turns and flies off climbing. The visit lasts about 10 s, and the station cannot be clicked again until it is over.
-- Next: H4.
+- **H4 done.** TJs-Kubernetes-Service has one ice wall, 78 px high, where it had two steps of 37 and 43 with a bench between. He climbs it with tools in nine rounds (four and four before), with the slip on the sixth. The snow bridge, the ladder and the two lashed ladders are where they were, and the summit is the same height.
+- Next: H5.
 
 ## 11. Calls made in round 5
 
@@ -998,3 +999,7 @@ One line each, newest last: the item, what was decided, and why.
 - H3, size. It is far bigger than a real bluebird beside him (as the pika and marmots are): TJ's note was that it was too small to see.
 - H3, the workbench page `sheet.html` has a `bluebird` set (all six frames, enlarged).
 - H3, no words were added. The check passed with nothing moved. `ground.png` was baked again and its pixels are the same.
+- H4, the route (`climb.js`, `ROUTES.tks`). `ice` went from `[[300, 304], [372, 376]]` to `[[336, 340]]`, half way between the two. The ground runs straight from x 270 to the wall's foot at 336 (y -55), up to -131 at 340, and joins the old line at 420. Nothing else on the route moved in x: the crossings, the summit, the seracs (their x comes from their own dice, and they stand on whatever ground is under them).
+- H4, the slip. It was on the third round of the second wall, about three quarters of the way up the ice. It is now on the sixth round of nine (`slip: [0, 5]`).
+- H4, the snow under the wall. Snow is shaded darker with depth under the surface, and the surface steps up 76 px at the wall, so a straight seam ran down the snow below it (the two old steps each had a fainter one). Beside ice walls the depth is now measured from the surface averaged over 48 px to either side. hevy-garmin-sync has no `ice` list, so its picture is unchanged.
+- H4, compared with round 4's build side by side at three places, close up at six moments of the climb, on a phone and at Dusk. The check passed with nothing moved. No words were added.
