@@ -189,7 +189,7 @@ export const UI = {
     dots: { summit: 'The summit', 'base-camp': 'Base camp' },
     lake: [DEST_NAMES.lake, km => km + ' km loop, on foot'], stack: [DEST_NAMES.stack, km => km + ' km in, five pitches up'], spires: [DEST_NAMES.spires, km => km + ' km to base camp, six summits'],
     elsewhere: 'TJ elsewhere', onMap: 'On this map', plain: 'Read as a page',
-    settings: 'Settings', sound: 'Sound', onOff: ['on', 'off'], music: 'Music', playedOn: 'Played on', dusk: 'Day or dusk', clear: 'Clear my flags', cleared: 'Flags and footprints cleared.',
+    settings: 'Settings', sound: 'Sound', onOff: ['on', 'off'], music: 'Music', musicStyle: 'Music style', dusk: 'Day or dusk', clear: 'Clear my flags', cleared: 'Flags and footprints cleared.',
     // What each plank of the junction sign says beside its name (L8): the distance there, as a trail sign gives
     // it. Longer words widened the column and wrapped the Spires' plank; the trail map says what each is.
     plank: { lake: km => km + ' km', stack: km => km + ' km', spires: km => km + ' km' },

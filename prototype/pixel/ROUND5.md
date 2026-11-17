@@ -430,7 +430,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] B4. T12: remove the float plane and its debug button.
 - [x] B5. T41: remove the standing bear from the forest, with its debug event.
 - [x] B6. T38: remove the Steller's jay from the stump, and move the owl to a limb on the trunk behind it.
-- [ ] B7. T77: rename "Played on" to "Music style".
+- [x] B7. T77: rename "Played on" to "Music style".
 - [ ] B8. T37: TJ's facing no longer flips on diagonals (check every trail on the map at 2x speed with `frames.sh`).
 - [ ] B9. T1: the first frame is centred on TJ (desktop and phone, with fonts slow to load).
 - [ ] B10. T36: space does nothing until a destination is chosen. Tap toggles, hold doubles.
@@ -566,7 +566,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **B4 done.** The float plane, its flight over Reflection Lake and its debug button are gone.
 - **B5 done.** The bear that stood up behind a giant in the forest is gone: its lean-out in `forest.js`, its drawing (`bear()` in `fauna.js`), its frames on the sprite sheet page and the "Bear" start button in the debug menu's forest group. No find depended on it. The bear on the map is a different animal and stays.
 - **B6 done.** The Steller's jay, its flight, its call, its cue and its "Steller's jay" debug button are gone, and the trail map's wildlife line no longer mentions it. The owl sits on a mossy limb of the giant right behind the stump, high enough to clear the young trees in front. The gray jay of the snack break stays. `shot.sh` takes `WWW=<folder>` to render any view from another build, such as round 4's.
-- Next: B7.
+- **B7 done.** The trail map's setting says "Music style" (Music box, Console, Handheld).
+- Next: B8.
 
 ## 11. Calls made in round 5
 

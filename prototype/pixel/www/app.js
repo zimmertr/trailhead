@@ -252,7 +252,7 @@ function trailMap() {
     el('h3', { text: UI.map.settings }),
     el('button', { class: 'plank', onclick: e => { toggleSound(); e.currentTarget.querySelector('small').textContent = UI.map.onOff[audio.muted() ? 1 : 0]; } }, el('span', { text: UI.map.sound }), el('small', { text: UI.map.onOff[audio.muted() ? 1 : 0] })),
     el('button', { class: 'plank', onclick: e => { nextTrack(); e.currentTarget.querySelector('small').textContent = trackName(); } }, el('span', { text: UI.map.music }), el('small', { text: trackName() })),
-    el('button', { class: 'plank', onclick: e => { audio.start(); e.currentTarget.querySelector('small').textContent = audio.setSet(audio.set().index + 1); audio.sfx('flag'); } }, el('span', { text: UI.map.playedOn }), el('small', { text: audio.set().name })),
+    el('button', { class: 'plank', onclick: e => { audio.start(); e.currentTarget.querySelector('small').textContent = audio.setSet(audio.set().index + 1); audio.sfx('flag'); } }, el('span', { text: UI.map.musicStyle }), el('small', { text: audio.set().name })),
     el('button', { class: 'plank', onclick: () => { toggleDusk(); } }, el('span', { text: UI.map.dusk })),
     // Clear my flags (L11): the finished routes and the finds, and the note that the register is open, so
     // finishing all three again says so again. A signed register entry is the visitor's own words and stays.
