@@ -555,7 +555,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] G1. T48: the walk steps off the moraine onto the glacier, and the Spires grow to camp's size by the end. Camp on its rock island.
 - [x] G2. T49: one yellow-orange tent in the walk and at camp. Kayti's pack reads as a pack.
 - [x] G3. T46: one or two more snow patches on the walk's flower slope.
-- [ ] G4. T47: pika on the moraine that squeak and hide.
+- [x] G4. T47: pika on the moraine that squeak and hide.
 
 ### H. The six climbs
 
@@ -689,7 +689,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **G1 done.** The walk to camp has a third part. After the moraine's crest he comes down a few steps onto the glacier, hops the meltwater that runs along the ice's edge, and walks a boot track up the ice for 440 px to camp. The moraine does not stop where he leaves it: it bends away toward the camera along the glacier's edge. On the ice the valley's far wall and floor drop out of sight behind the glacier, the far moraine and the gravel stripe down the glacier's middle thin out, and the Spires grow to the height camp's picture gives them on the same window (camp's own number, shared from `camp.js`), their foot coming down to the ice's far edge. Two rock walls like camp's stand beside them: the west one grows as he nears it and ends at the picture's left edge, the east one slides in at the right edge over the last paces. Camp stands on a rock island in the ice, the tents, Kayti and her pack on it as before. So the walk's last frame and camp's picture show the same place: ice all round, the towers the same size, a wall on each side, the camp on rock. The walk is 21 s (was 16), at the same pace. Frame time on the ice at 1920x1080: 2.0 ms (round 4: 1.8).
 - **G2 done.** One tent, the yellow-orange one, in the walk, at camp and at the foot of each climb's glissade (which drew the same two). A small stove with a pot stands beside it, so the smoke that rose from between the two tents has a source. Kayti's pack is redrawn from its front: a lid held down by two straps with their buckles, a dent in its side, a loop on top and a shoulder strap trailing on the rock. Checked by Day and at Dusk.
 - **G3 done.** The walk's flower slope has three snow patches of three sizes. The big one across the trail in the second half is as it was. A small one lies across the trail early on, with a boot track over it, and a middling one lies in a hollow of the meadow below the trail between the two. All are painted the same way: old snow, sun-cupped, grey at the melting edge.
-- Next: G4.
+- **G4 done. Section G is done.** Three pika live on the moraine, each on a rock with a smaller rock beside it. As he comes within about 70 px a pika sits bolt upright, gives the "eep" and bolts into the gap between its two rocks. Once he is 60 px past it looks out of the gap, and when he is 130 px away it hops back up onto its rock. A click on one makes it call and bolt too. The behaviour is one function (`shyPika` in `fauna.js`), ready for the larch basin's pika in I3.
+- Next: H1.
 
 ## 11. Calls made in round 5
 
@@ -963,3 +964,10 @@ One line each, newest last: the item, what was decided, and why.
 - G3, the dice. The trees, rocks and heather were scattered round the first patch. One that falls on a new patch is still made and then left out, so every other tree and rock on the slope is where it was and looks as it did (compared at the same place before and after).
 - G3, the edges. TJ's note asked for patches like the one there, and the plan says "melting at the edges into the grass". The new ones use the first one's paint (a grey melting rim, ragged by noise). No new fringe was added, so the three match.
 - G3, no words were added.
+- G4, where the pika are. At a fifth, a half and four fifths of the way along the moraine's crest. The middle one is on the crest's far side, 3 rows behind the trail; the other two are 12 and 18 rows below the trail on the outer flank. Any moraine stone that stood in a pika's way was taken out (the marmots' rocks do the same).
+- G4, the timing. He walks about 86 px a second. The pika starts at 70 px, sits up for 0.35 s and takes 0.3 s to reach the gap, so it is out of sight when he is still about 14 px short of it. The first try used 46 px and he was level with it before it had gone.
+- G4, the sound is the "eep" the larch basin already had. One call each time it bolts. It cannot call again until it has been back on its rock, so scrubbing the timeline over it does not make a string of calls.
+- G4, new pictures. `pika` in `fauna.js` has two more poses: `up` (sitting upright) and `peek` (only the head). The old pose is untouched, so the larch basin's pika looks as it did.
+- G4, a word reused: the tap label is "Pika", the same word the larch basin uses (`NAMES.approach.pika` in `content.js`). Nothing new to review.
+- G4, the bake. `content.js` and `fauna.js` are among the files `land.js` reads, so the ground's mark changed and it was baked again. Its picture is the same, pixel for pixel (0 of 1920x17000 differ).
+- G4, not in the spawn menu: that menu is for the map's animals. The pika, like the walk's marmots, live in a scene.

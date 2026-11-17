@@ -12,7 +12,7 @@ import { paintSpires, dome, stove, tower, wallTall } from './camp.js';
 import { makeKayti } from './people.js';
 import { makeConifer, makeBoulder, makeCloud, makeBush } from './sprites.js';
 import { makeRunner } from './tj.js';
-import { marmot } from './fauna.js';
+import { marmot, shyPika } from './fauna.js';
 import { NAMES } from './content.js';
 
 // SW: the near strip's width; he walks LEN of it, from X0, in DUR seconds: LEN1 of flower slope (part
@@ -377,6 +377,17 @@ function buildApproach() {
   for (let i = things.length - 1; i >= 0; i--) if (M.some(m => Math.abs(things[i].x - m.x) < 24 && Math.abs(things[i].y - m.y) < 18)) things.splice(i, 1);
   for (let i = things.length - 1; i >= 0; i--) if (things[i].gone) things.splice(i, 1);
   for (const m of M) { things.push({ bm: m.rock, x: m.x, y: m.y }); let top = 0; while (top < m.rock.h && !m.rock.d[top * m.rock.w + m.rock.ox]) top++; m.top = m.rock.oy - top; }
+  // Pika on the moraine (round 5, T47): three along the crest, at a fifth, a half and four fifths of
+  // it, the middle one on the crest's far side and the others just below the trail. Each has a rock
+  // to sit on and a smaller one beside it, and the gap between the two is where it bolts to.
+  const P = [0.2, 0.5, 0.8].map((u, k) => {
+    const x = Math.round(XM + 50 + (LEN2 - 130) * u), y = g(x) + (k === 1 ? -3 : 12 + 3 * k), rock = makeBoulder(860 + k, 6.5), side = makeBoulder(864 + k, 4);
+    let top = 0; while (top < rock.h && !rock.d[top * rock.w + rock.ox]) top++;
+    const hx = x + rock.w - rock.ox + 1;
+    return { x, y, rock, side, sx: hx + 1 + side.ox, hx, top: rock.oy - top, shy: shyPika() };
+  });
+  for (let i = things.length - 1; i >= 0; i--) if (P.some(p => things[i].x > p.x - 18 && things[i].x < p.sx + 16 && Math.abs(things[i].y - p.y) < 12)) things.splice(i, 1);
+  for (const p of P) { things.push({ bm: p.rock, x: p.x, y: p.y }, { bm: p.side, x: p.sx, y: p.y + 1 }); for (const [dx, dy] of [[0, -1], [0, -2], [1, -1]]) main.set(p.hx + dx, p.y + dy, INK); }
   const marm = { sun: marmot('sun'), up: marmot('up') };
   const tent = dome('tent'), pot = stove(), kayti = makeKayti(); let waved = -9, now = 0;
 
@@ -386,14 +397,15 @@ function buildApproach() {
 
   return {
     ...META,
-    enter(scr, arg, q) { cam = xOf(q); st.y = null; },
+    enter(scr, arg, q) { cam = xOf(q); st.y = null; for (const p of P) p.shy.reset(); },
     focus: () => focus,
-    act(id, env) { if (id === 'kayti') { waved = now; return true; } const m = M[+id.slice(6)]; if (id.startsWith('marmot') && m) { m.seen = env.t; env.sfx('whistle'); return true; } return false; },
+    act(id, env) { if (id === 'kayti') { waved = now; return true; } if (id.startsWith('pika')) { if (P[+id.slice(4)].shy.startle(env.t)) env.sfx('eep'); return true; } const m = M[+id.slice(6)]; if (id.startsWith('marmot') && m) { m.seen = env.t; env.sfx('whistle'); return true; } return false; },
     pick(sx, sy) {
       if (last.dir < 0) sx = last.VW - 1 - sx;
       const wx = sx + last.camX, wy = sy - last.base, mx = v => last.dir < 0 ? last.VW - 1 - (v - last.camX) : v - last.camX;
       if (Math.abs(wx - KAYTI) < 9 && wy > g(KAYTI) - 25 && wy < g(KAYTI) + 3) return { label: NAMES.kayti, x: mx(KAYTI), y: last.base + g(KAYTI) - 27, act: 'kayti' };
       for (let k = 0; k < M.length; k++) { const m = M[k]; if (Math.abs(wx - m.x) < 13 && wy > m.y - m.top - 14 && wy < m.y + 2) return { label: NAMES.approach.marmot, x: mx(m.x), y: last.base + m.y - m.top - 16, act: 'marmot' + k }; }
+      for (let k = 0; k < P.length; k++) { const p = P[k]; if (wx > p.x - 10 && wx < p.sx + 8 && wy > p.y - p.top - 12 && wy < p.y + 3) return { label: NAMES.approach.pika, x: mx(p.x), y: last.base + p.y - p.top - 14, act: 'pika' + k }; }
       return null;
     },
     draw(scr, env, arg, q) {
@@ -460,6 +472,13 @@ function buildApproach() {
         const m = M[k], near = Math.abs(mx - m.x) < 60;
         if (near && env.running && t - m.seen > 6) { m.seen = t; env.sfx('whistle'); }
         list.push({ bm: near || t - m.seen < 1.6 ? marm.up : marm.sun, x: m.x + 1, y: m.y - m.top + 3, z: m.y + 0.5, flip: mx > m.x });
+      }
+      // The pika: each calls and bolts for its gap as he comes up, and looks out once he has gone by.
+      for (const p of P) {
+        if (p.x < camX - 60 || p.x > camX + VW + 60) continue;
+        const a = p.shy.step(t, Math.abs(mx - p.x));
+        if (p.shy.called) env.sfx('eep');
+        if (a) list.push({ bm: a.bm, x: Math.round(lerp(p.x, p.hx, a.go)), y: Math.round(lerp(p.y - p.top + 2, p.y, a.go) - 2 * a.hop) - (a.peek ? 1 : 0), z: p.y + (a.peek ? 1.5 : 0.6), flip: !!a.back });
       }
       // Camp comes into view on its island ahead in the last seconds: the tent just behind the trail, smoke
       // from the stove beside it, and Kayti beyond them painting the towers.

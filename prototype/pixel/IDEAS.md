@@ -321,3 +321,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Glacier Lilies at the Snow's Edge** (round 5, G3). A ring of yellow lilies in the wet ground round each patch, as they come up where snow has just gone.
 - **Footprints Kept in the Snow** (round 5, G3). His own prints stay in a patch after he has crossed it, until he leaves the scene.
 - **Watermelon Snow** (round 5, G3). A faint pink stain on the oldest patch, the algae that grow on summer snow.
+- **The Pika's Haystack** (round 5, G4). A small pile of drying flowers beside one pika's rock, which grows by a stem each time he passes.
+- **Pika Answer Each Other** (round 5, G4). When one calls, the next one along the moraine answers a second later, further off and quieter.
+- **The Marmot Hides Too** (round 5, G4). The marmots drop behind their rocks after whistling, the way the pika bolt, and come back up when he has gone.
+- **A Weasel on the Moraine** (round 5, G4). Now and then a short-tailed weasel runs the crest ahead of him and every pika is out of sight before he gets there.

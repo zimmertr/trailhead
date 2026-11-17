@@ -1,5 +1,5 @@
 // The animals of the side-view scenes, each drawn in code at the same pixel size as everything else.
-import { hash, R, INK, BM, outline, disc, thick, pick } from './core.js';
+import { hash, frac, R, INK, BM, outline, disc, thick, pick } from './core.js';
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
 
@@ -102,8 +102,23 @@ function marmot(pose) {
   return b;
 }
 
-// A pika with a mouthful of flowers for its haystack.
-function pika(f) {
+// A pika with a mouthful of flowers for its haystack. pose 'up': sitting bolt upright to call;
+// 'peek': only its head, looking out of a gap in the rocks.
+function pika(f, pose) {
+  if (pose === 'up') {
+    const u = new BM(9, 11); u.ox = 4; u.oy = 10;
+    ell(u, 4, 7, 2.5, 3.1, nx => R.dirt[nx > 0.15 ? 4 : nx > -0.5 ? 3 : 2]);
+    disc(u, 5, 3, 1.8, () => R.dirt[3]); u.set(4, 1, R.dirt[2]); u.set(5, 1, R.dirt[4]); u.set(6, 3, INK); u.set(7, 4, R.dirt[1]);
+    u.set(3, 10, R.dirt[1]); u.set(6, 10, R.dirt[1]);
+    outline(u, INK);
+    return u;
+  }
+  if (pose === 'peek') {
+    const h = new BM(7, 6); h.ox = 3; h.oy = 5;
+    disc(h, 3, 3, 1.8, () => R.dirt[3]); h.set(2, 1, R.dirt[2]); h.set(3, 1, R.dirt[4]); h.set(4, 3, INK);
+    outline(h, INK);
+    return h;
+  }
   const b = new BM(11, 8); b.ox = 5; b.oy = 7;
   ell(b, 5, 5, 3.6, 2.4, (nx, ny) => R.dirt[ny < -0.2 ? 3 : 2]);
   disc(b, 8, 3.5, 1.8, () => R.dirt[3]); b.set(7, 1, R.dirt[2]); b.set(8, 1, R.dirt[4]); b.set(9, 3, INK);
@@ -111,6 +126,42 @@ function pika(f) {
   b.set(3, 7, R.dirt[1]); b.set(7, 7, R.dirt[1]);
   outline(b, INK);
   return b;
+}
+
+// A pika that will not be walked up to (round 5, T47 and T66). It sits on its rock. When he comes
+// within a few steps it sits bolt upright and calls, then bolts for a gap in the rocks. When he has
+// gone on by it looks out, and when he is well away it comes back to its rock.
+// step(t, away): away is how far he is from the rock, in pixels. It answers with what to draw: which
+// picture (bm), how far along the way from the rock to the gap (go, 0 to 1), whether it hops (hop, 0
+// to 1), or null while it is out of sight. called is true on the one step where it calls.
+function shyPika() {
+  const bm = { sit: pika(0), up: pika(0, 'up'), peek: pika(0, 'peek') }, NEAR = 70, DUCK = 44, CLEAR = 60, FAR = 130;
+  let state = 'sit', since = 0;
+  const to = (s, t) => { state = s; since = t; };
+  return {
+    called: false,
+    reset() { state = 'sit'; since = 0; this.called = false; },
+    // Clicked: it calls and bolts, wherever he is.
+    startle(t) { if (state === 'sit') { to('up', t); return true; } return false; },
+    step(t, away) {
+      const u = t - since; this.called = false;
+      if (state === 'sit' && away < NEAR) { to('up', t); this.called = true; }
+      else if (state === 'up' && u > 0.35) to('run', t);
+      else if (state === 'run' && u > 0.3) to('hid', t);
+      else if (state === 'hid' && u > 1.2 && away > CLEAR) to('peek', t);
+      else if (state === 'peek' && away < DUCK) to('hid', t);
+      else if (state === 'peek' && u > 1.5 && away > FAR) to('back', t);
+      else if (state === 'back' && u > 0.4) to('sit', t);
+      const v = t - since;
+      if (state === 'sit') return { bm: bm.sit, go: 0, hop: 0 };
+      if (state === 'up') return { bm: bm.up, go: 0, hop: 0 };
+      if (state === 'run') return { bm: bm.sit, go: Math.min(1, v / 0.3), hop: Math.abs(Math.sin(v / 0.3 * Math.PI * 2)) };
+      if (state === 'back') return { bm: bm.sit, go: 1 - Math.min(1, v / 0.4), hop: Math.abs(Math.sin(v / 0.4 * Math.PI * 2)), back: true };
+      // Looking out: the head comes up, and now and then ducks for a moment.
+      if (state === 'peek') return frac(v / 2.6) > 0.86 ? null : { bm: bm.peek, go: 1, hop: 0, peek: true };
+      return null;
+    }
+  };
 }
 
 // A mountain goat, white and shaggy, facing right. pose: 'stand', 'look' (head turned to watch), 'graze'.
@@ -149,4 +200,4 @@ function bluebird(f) {
 // A little bird far off: a pair of wing strokes.
 function speck(f) { const b = new BM(7, 4); b.ox = 3; b.oy = 2; (f ? [0, 1, 2, 2, 2, 1, 0] : [2, 2, 1, 2, 1, 2, 2]).forEach((y, x) => b.set(x, y, INK)); return b; }
 
-export { ell, elk, sasquatch, jay, slug, owl, marmot, pika, goat, bluebird, speck };
+export { ell, elk, sasquatch, jay, slug, owl, marmot, pika, shyPika, goat, bluebird, speck };
