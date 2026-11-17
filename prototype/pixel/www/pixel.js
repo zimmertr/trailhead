@@ -393,6 +393,15 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // scene he is in (false if that scene has no such event).
     now: () => simT, speeds: SPEEDS, speed: () => speed, setSpeed(k) { if (SPEEDS.includes(k)) speed = k; },
     trigger(name) { const s = drawn.scene; return !!(s.trigger && !tr && s.trigger(name, simT)); },
+    // For the debug menu (C4): the scene on screen, the map animals and their homes, placing one, and a jump to
+    // the start of any scene (the first route that has it, a little way in).
+    scene: () => drawn ? drawn.s : null,
+    spawnList: () => world.spawnList(),
+    spawn: (kind, i) => world.spawn(kind, i),
+    async jumpTo(name) {
+      const r = Object.keys(ROUTES).find(k => !/back|home/.test(k) && ROUTES[k]().some(([n]) => n === name)); if (!r) return false;
+      await api.setRoute(r); const l = legs.find(g => g.s === name); if (l) api.scrub(l.t0 + 0.03 * (l.t1 - l.t0)); return true;
+    },
     async setRoute(r) {
       if (!ROUTES[r]) return;
       await need(ROUTES[r]().map(l => l[0]));

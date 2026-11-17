@@ -2,7 +2,7 @@
 import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
 import { breeze, veilTable } from './core.js';
 import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag, makeRegister } from './sprites.js';
-import { SIGNS, NAMES, DEST_NAMES } from './content.js';
+import { SIGNS, NAMES, DEST_NAMES, UI } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
 import { makeEvents, drawLens, startLens } from './events.js';
@@ -547,8 +547,33 @@ export function makeWorld(bake) {
     return [lerp(v.x, here.x, k), lerp(v.y, here.y - 24, k)];
   };
 
+  // The roam areas' colours, one per kind, none of them a colour of the ground (T32).
+  const ROAM_C = { elk: R.yellow[1], goat: R.white[1], sheep: R.lamp[0], bear: R.pink[2], marmot: R.sky[4] || R.white[0], squirrel: R.red[1], gulls: R.jay[3], birds: R.aurora[2] };
+  function roamArea(scr, a, ox, oy) {
+    const c = ROAM_C[a.kind] || R.white[1], cx = a.x - ox, cy = a.y - oy, x0 = Math.floor(cx - a.rx - 2), x1 = Math.ceil(cx + a.rx + 2), y0 = Math.floor(cy - a.ry - 2), y1 = Math.ceil(cy + a.ry + 2);
+    if (x1 < 0 || y1 < 0 || x0 >= scr.VW || y0 >= scr.VH) return;
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const q = Math.hypot((x - cx) / a.rx, (y - cy) / a.ry), edge = (1 - q) * Math.min(a.rx, a.ry);
+      if (edge < -2 || edge > 1.2 && ((x + y) & 3)) continue;
+      scr.set(x, y, edge < 0 ? c : edge < 1.2 ? INK : c);
+    }
+    tinyText(scr, Math.round(cx), Math.round(cy - a.ry - 9), (UI.debug.animals[a.kind] || a.kind).toUpperCase(), c);
+  }
+  // The spawn menu (C4): each map animal with its homes, each named after the nearest place the map names
+  // (a joke sign within 160 pixels, else the nearest of the four places, as "near ..." or "east of ...").
+  const placeName = (x, y) => {
+    let best = null, bd = 160; for (const [sx, sy, id] of spots.signs) { const d = Math.hypot(sx - x, sy - y); if (d < bd && SIGNS[id]) { bd = d; best = SIGNS[id].split(',')[0]; } }
+    if (best) return best;
+    let pd = 1e9, at = null; for (const p of PLACES) { const d = Math.hypot(p.x - x, p.y - y); if (d < pd) { pd = d; at = p; } }
+    const dx = x - at.x, dy = y - at.y, way = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'east' : 'west') : (dy > 0 ? 'south' : 'north');
+    return (pd < 150 ? UI.debug.near : way + ' of') + (at.id === 'trailhead' ? ' the ' : ' ') + DEST_NAMES[at.id];
+  };
+  // A name that comes up twice in one animal's list gets a number, so every choice reads differently.
+  const spawnList = () => crit.homes().map(({ kind, homes }) => { const names = homes.map(([x, y]) => placeName(x, y)), seen = {};
+    return { kind, name: UI.debug.animals[kind] || kind, homes: names.map(n => names.filter(m => m === n).length > 1 ? n + ' ' + (seen[n] = (seen[n] || 0) + 1) : n) }; });
+
   return {
-    name: 'world', paths, lakeIn, lakeOut, spiresIn, T, WW, WH,
+    name: 'world', paths, spawnList, spawn: (kind, i) => crit.spawn(kind, i), lakeIn, lakeOut, spiresIn, T, WW, WH,
     // For the trail map sheet (L9): the peak's summit and the six Spires summits on the map, and the picture's
     // frame: the box round the Trailhead and the three destinations' countries with a margin, widened to the
     // sheet's shape (8 by 5) and kept on the map.
@@ -775,8 +800,9 @@ export function makeWorld(bake) {
         const dot = (x, y, c) => scr.set(Math.round(x) - ox, Math.round(y) - oy, c);
         const oval = (a, c) => { const n = Math.ceil((a.rx + a.ry) * 2); for (let k = 0; k < n; k += 2) dot(a.x + Math.cos(k / n * TAU) * a.rx, a.y + Math.sin(k / n * TAU) * a.ry, c); };
         const box = (b, c, step) => { for (let x = b.x0; x <= b.x1; x += step) { dot(x, b.y0, c); dot(x, b.y1, c); } for (let y = b.y0; y <= b.y1; y += step) { dot(b.x0, y, c); dot(b.x1, y, c); } };
-        // Red ovals: where each animal wanders and each flock circles. Pink boxes: where the cats keep to.
-        if (DEBUG.roam) { for (const a of crit.areas()) oval(a, R.red[1]); for (const b of kit.areas()) box(b, R.pink[1], 2); }
+        // Where each animal wanders and each flock circles (T32): its own bright colour, two pixels wide with a
+        // dark inner edge, a light dithered fill and its name. Pink boxes: where the cats keep to.
+        if (DEBUG.roam) { for (const a of crit.areas()) roamArea(scr, a, ox, oy); for (const b of kit.areas()) box(b, R.pink[1], 2); }
         // Each trail as the line he actually follows, with a knot every twenty pixels, and a white cross
         // where the lake loop goes into the forest and where it comes back out.
         if (DEBUG.trails) {
@@ -797,3 +823,11 @@ export function makeWorld(bake) {
 }
 
 export { loadBake };
+
+// A 3 by 5 pixel letter set for the debug labels on the map (T32), with a dark box behind for contrast.
+const GLYPHS = { A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', F: '111100110100100', G: '011100101101011', H: '101101111101101', I: '111010010010111', J: '001001001101010', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', Q: '010101101110011', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', V: '101101101101010', W: '101101111111101', X: '101101010101101', Y: '101101010010010', Z: '111001010100111' };
+function tinyText(scr, cx, y, str, c) {
+  const w = str.length * 4 - 1, x0 = cx - (w >> 1);
+  for (let j = -1; j <= 5; j++) for (let i = -1; i <= w; i++) scr.set(x0 + i, y + j, INK);
+  for (let n = 0; n < str.length; n++) { const g = GLYPHS[str[n]]; if (!g) continue; for (let k = 0; k < 15; k++) if (g[k] === '1') scr.set(x0 + n * 4 + (k % 3), y + ((k / 3) | 0), c); }
+}

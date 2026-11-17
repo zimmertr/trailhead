@@ -220,6 +220,14 @@ function openDebug(on) {
   timeSlider = el('input', { type: 'range', min: 0, max: C.cycle, step: 1, value: Math.round(C.t), 'aria-label': D.time, oninput: e => { api.setClock({ mode: 'auto', t: +e.currentTarget.value }); syncTop(); } });
   const clockSpeeds = D.clockSpeeds.map(k => el('button', { class: 'plank', 'aria-pressed': String(C.speed === k), onclick: e => { api.setClock({ speed: k }); for (const b of e.currentTarget.parentNode.children) b.setAttribute('aria-pressed', String(b === e.currentTarget)); audio.sfx('step'); } }, el('span', { text: k + 'x' })));
   const jump = (label, t) => el('button', { class: 'plank', onclick: () => { api.setClock({ mode: 'auto', t }); syncTop(); audio.sfx('step'); } }, el('span', { text: label }));
+  // Spawn an animal (C4): which animal, which of its homes (or everywhere it lives), then Spawn.
+  const kinds = api.spawnList(), animal = el('select', { 'aria-label': D.spawn }, ...kinds.map((k, n) => el('option', { value: n, text: k.name })));
+  const place = el('select', { 'aria-label': D.spawn });
+  const fillPlaces = () => { const k = kinds[+animal.value]; place.replaceChildren(...k.homes.map((h, n) => el('option', { value: n, text: h })), el('option', { value: 'all', text: D.spawnAll })); };
+  animal.addEventListener('change', fillPlaces); fillPlaces();
+  // The timed events of the scene on screen (E5f): the map's, or the scene's own.
+  const SCENE_EVENTS = { world: ['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'salmon', 'osprey', 'serac', 'avalanche', 'lens', 'heron', 'tumble', 'devil', 'star'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
+  const here = api.scene(), events = SCENE_EVENTS[here] || [];
   const starts = ids => ids.map(id => el('button', { class: 'plank', onclick: () => { audio.sfx(api.trigger(id) ? 'step' : 'close'); } }, el('span', { text: D.events[id] })));
   debug.replaceChildren(
     el('h2', {}, el('span', { text: D.title }), el('button', { class: 'plank', style: 'width:auto', onclick: () => openDebug(false) }, el('span', { text: D.close }))),
@@ -228,13 +236,12 @@ function openDebug(on) {
     el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle), noGo,
     el('h3', { text: D.zoom }), toggle('snap'),
     el('h3', { text: D.speed }), el('div', { class: 'speeds' }, ...speeds),
-    el('h3', { text: D.startMap }), ...starts(['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'salmon', 'osprey', 'serac', 'avalanche', 'lens', 'heron', 'tumble', 'devil', 'star']),
-    el('h3', { text: D.startForest }), ...starts(['sasquatch', 'eyeshine']),
-    el('h3', { text: D.startLarches }), ...starts(['gust']),
-    el('h3', { text: D.startRidge }), ...starts(['ridgegust', 'raven']),
-    el('h3', { text: D.startLake }), ...starts(['lens']),
+    ...(events.length ? [el('h3', { text: here === 'world' ? D.mapEvents : D.inScene + ': ' + (D.scenes[here] || here) }), ...starts(events)] : []),
+    el('h3', { text: D.spawn }), el('div', { class: 'row' }, animal, place, el('button', { class: 'plank', onclick: () => { audio.sfx(api.spawn(kinds[+animal.value].kind, place.value === 'all' ? 'all' : +place.value) ? 'step' : 'close'); } }, el('span', { text: D.spawn }))),
     el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, api.now(), { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
+    el('h3', { text: D.scene }), ...Object.keys(D.scenes).filter(s => s !== 'offroute').map(s => el('button', { class: 'plank', onclick: () => { hideCard(); closeSheet(); api.jumpTo(s).then(() => { buildMarks(); openDebug(true); }); audio.sfx('step'); } }, el('span', { text: D.scenes[s] }))),
     el('button', { class: 'plank', onclick: () => navigate('#off-route') }, el('span', { text: D.offRoute })),
+    el('h3', { text: D.breakGroup }),
     el('button', { class: 'plank', onclick: () => api.breakScene() }, el('span', { text: D.breakScene })),
     el('p', { class: 'legend', text: D.note }));
   debug.hidden = false;
@@ -350,7 +357,7 @@ try {
       else if (e.type === 'end') { if (e.route === 'register') inBook(true); else if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
       else if (e.type === 'sfx') audio.sfx(e.name);
       else if (e.type === 'theme') { syncTop(); if (e.dark) setTimeout(() => { if (api.theme() === 'dark') api.find('dusk'); }, 2500); }
-      else if (e.type === 'scene') { audio.ambience(e.name === 'register' ? 'world' : e.name); audio.place(e.name === 'world' && lastScene !== 'world' && lastScene !== 'register' ? 'out' : e.name); lastScene = e.name; syncTop(); }
+      else if (e.type === 'scene') { if (!debug.hidden) openDebug(true); audio.ambience(e.name === 'register' ? 'world' : e.name); audio.place(e.name === 'world' && lastScene !== 'world' && lastScene !== 'register' ? 'out' : e.name); lastScene = e.name; syncTop(); }
       else if (e.type === 'say') say(e.text);
       else if (e.type === 'found' && FINDS[e.id]) { const n = Object.keys(api ? api.found() : {}).filter(k => FINDS[k]).length; if (e.id !== 'kiosk') { say(UI.found(FINDS[e.id][0], n, Object.keys(FINDS).length), 5200); audio.sfx('egg'); } }
       else if (e.type === 'hover') { tip.hidden = !e.label; if (e.label) { tip.textContent = e.label; const hw = tip.offsetWidth / 2 + 6; tip.style.left = Math.min(Math.max(e.x, hw), innerWidth - hw) + 'px'; tip.style.top = (e.y - 4) + 'px'; if (e.tap) { clearTimeout(tip._t); tip._t = setTimeout(() => { tip.hidden = true; }, 2200); } } }
@@ -447,6 +454,8 @@ $('b-sound').addEventListener('click', e => { e.currentTarget.blur(); toggleSoun
 $('b-track').addEventListener('click', e => { e.currentTarget.blur(); nextTrack(); });
 $('b-dusk').addEventListener('click', e => { e.currentTarget.blur(); toggleDusk(); });
 $('b-help').addEventListener('click', e => { e.currentTarget.blur(); openSheet('keys'); });
+// The debug menu is public (T9): its button sits next to Keys (not on a phone, where the trail map's foot opens it).
+$('b-debug').addEventListener('click', e => { e.currentTarget.blur(); openDebug(debug.hidden); });
 $('close').addEventListener('click', closeSheet);
 sheet.addEventListener('pointerdown', e => { if (e.target === sheet) closeSheet(); });
 

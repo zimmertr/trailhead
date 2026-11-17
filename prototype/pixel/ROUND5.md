@@ -441,7 +441,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] C1. T7: collision (`collide.js`), with the kinds, the solid things, the tide and the debug overlay. Move the ferry, whale, orcas and jellyfish onto it first (T15, T26), then every walker and herd.
 - [x] C2. T2: the idle tour after 120 s, stopped by any input.
 - [x] C3. T76: one world clock and the AUTO, DAY, DUSK cycle everywhere, with its debug controls and `time=`. Measure frame time through the sunset blend.
-- [ ] C4. T9, T32, T44: the public DEBUG menu in the top bar, organised in groups, with breaking included, high-contrast roam areas, and the spawn menu for every animal.
+- [x] C4. T9, T32, T44: the public DEBUG menu in the top bar, organised in groups, with breaking included, high-contrast roam areas, and the spawn menu for every animal.
 - [ ] C5. T3: click and tap to move along the trails, with the marker. (On today's trails first; D1 changes them.)
 - [ ] C6. P3: the sound test group in DEBUG.
 
@@ -574,7 +574,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **C1 done.** `collide.js` answers where each kind of mover may be: `canBe`, `steer` and `clear` (push a mover out to the nearest spot it may stand on), for boat, whale, swimmer, floater, land and flyer, each with a radius. The sea side reads depth from the sea grid less the tide of the moment and keeps off the stacks by a distance field round their feet, worked out once at load. The ferry (bow, middle and stern), the orcas (their line moves out with the tide), the whale's surfacing spots (deep at the lowest tide), the jellyfish (now placed beyond the surf and drifting), every walker and the bear, and the tumbleweeds use it. Debug: "No-go areas" cycles Ferry, Whale, Orcas, Jellyfish and Land animals as a red tint, or `?debug=collide:boat`. `frames.sh` takes `WWW=` like `shot.sh`.
 - **C2 done.** The idle tour starts after 120 s with no input (any key, click, tap, wheel or drag resets the wait and stops it, and the camera eases back to him). `tour=<seconds>` in the address starts it sooner for screenshots.
 - **C3 done.** One world clock (`pixel.js`): 165 s of day, a 30 s sunset, 165 s of dusk, a 30 s sunrise, from the start of day on every visit, in every scene. The top-bar button and the trail map's "Time of day" setting cycle Auto, Day, Dusk. Debug "Time of day": a slider over the cycle, 1x, 10x and 60x, and jumps to the sunset and the sunrise. `time=<seconds>` sets the clock; `dusk=1` holds Dusk. Frame time through the sunset blend measured the same as by day (16.7 ms average and 99th percentile in the lab's Chromium).
-- Next: C4.
+- **C4 done.** A DEBUG button sits in the top bar next to Keys. The panel's groups: Time of day, Layers, Outlines (with No-go areas), Zoom, Time, the timed events of the scene on screen ("On the map" or "In this scene: Forest", rebuilt when the scene changes), Spawn (animal, home, Spawn), Cats, Jump to a scene (every scene, by its first route), and Break a scene. Roam areas are drawn in a bright colour per kind, two pixels wide with a dark inner edge, a dithered fill and the animal's name in a small pixel font (`tinyText` in `world.js`).
+- Next: C5.
 
 ## 11. Calls made in round 5
 
@@ -603,6 +604,8 @@ One line each, newest last: the item, what was decided, and why.
 - C1: land is the land's firm-ground rule (`W.open`) plus room round the board (20), the register (12) and the lookout (14); each walker keeps its own country on top. People are not in it yet: the walkers' countries already keep off the trails and the Trailhead. Flyers are free everywhere; where they may perch comes with the eagle (E). The dust devils spin in place on the dry flats they were put on, so they need nothing more.
 - C3: the blend was already smooth (the palette table is rebuilt in 65 steps as the light changes), so no dithered stages were needed. The things that switch on at Dusk (the map's dusk ground with its rust glints, the headlamps, the tent's glow, the deer's eyes, the forest's beams turning to fireflies) switch at the middle of the 30 s blend, when the palette is halfway, rather than fading on their own; the stars and the aurora already fade with the light.
 - C3: the page's own wood and paper turn to their dusk colours at the middle of the blend too, and the dusk find is marked when dusk first comes. The old saved Dusk preference is gone: Auto on every visit, as decided. The clock's speed multiplies the scenes' speed, so a paused scene pauses the light too.
+- C4: the spawn menu has the map animals there are today (elk, mountain goats, bighorn sheep, the black bear, marmots, squirrels); the moose, the eagle, the osprey and the bear family join it as E9 and its neighbours build them, through the same `homes()` list. Homes are the spots each animal's own rule chose; a home is named after a joke sign within 160 pixels, else "near" or "east of" one of the four places, numbered when a name repeats. The elk move as one herd and a goat with her kid.
+- C4: on a phone the DEBUG button is hidden like Keys, for room; the small sign at the foot of the trail map still opens the panel there. Jump to a scene opens it on its first route a little way in, and the panel stays open.
 
 ## 12. The reference pictures
 

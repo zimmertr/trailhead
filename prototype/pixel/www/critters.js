@@ -50,6 +50,9 @@ export function makeCritters(W, opts = {}) {
   const ebbAt = t => { const s = ((t + tideAhead) % TIDE + TIDE) % TIDE; return EBB * smooth(8, 44, s) * smooth(96, 60, s); };
   // Where each kind of mover may be (collide.js): the stacks and the tide above, the land's own rules.
   const col = makeCollide(W, { ebbAt, stacks });
+  // The map animals the debug menu can place (C4), and the homes each one's own rule chose for it (habitat in land.js).
+  const SPAWN = ['elk', 'goat', 'sheep', 'bear', 'marmot', 'squirrel'];
+  const homesOf = k => k === 'elk' ? [spots.elk[0].slice(0, 2)] : k === 'goat' ? spots.goats.filter(g => !g[2]).map(g => g.slice(0, 2)) : k === 'bear' ? [spots.bear.slice(0, 2)] : (k === 'squirrel' ? spots.squirrels : spots[k === 'sheep' ? 'sheep' : 'marmots']).map(g => g.slice(0, 2));
   // Where the trees stand, so a wandering animal goes round them, and the ground just behind anything
   // tall (a tree, a snag, a big rock), where it would stand hidden.
   const CELL = 8, GW = Math.ceil(NW / CELL), GH = Math.ceil(NH / CELL), wood = new Uint8Array(GW * GH), hid = new Uint8Array(GW * GH);
@@ -76,7 +79,7 @@ export function makeCritters(W, opts = {}) {
   const settle = (ok, x, y) => { if (ok(x, y)) return [x, y]; for (let r = 4; r <= 48; r += 4) for (let k = 0; k < 12; k++) { const an = k / 12 * TAU, px = Math.round(x + Math.cos(an) * r), py = Math.round(y + Math.sin(an) * r * 0.6); if (ok(px, py)) return [px, py]; } return [x, y]; };
   // Each keeps to its own country (o.ok) and to the ground any land animal may stand on (collide.js: firm,
   // open, clear of the buildings).
-  const walker = (kind, f, x0, y0, o) => { const own = o.ok; o = { ...o, ok: (x, y) => own(x, y) && col.canBe('land', x, y, 0) }; const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
+  const walker = (kind, f, x0, y0, o) => { const own = o.ok; o = { ...o, ok: (x, y) => own(x, y) && col.canBe('land', x, y, 0) }; const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, h0: [x, y], st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
   // The herd keeps together: each elk strays only a little from its own place in it.
   spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look' }));
   spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null }));
@@ -84,6 +87,7 @@ export function makeCritters(W, opts = {}) {
   // The bear is not always about: it is there on roughly one visit in three. For screenshots, bear=1 or
   // bear=0 in the address settles it.
   const asked = typeof location !== 'undefined' && /[?&]bear=([01])/.exec(location.search);
+  const addBear = () => walker('bear', bearF, spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 7, ok: meadow, roam: 0.4 });
   if (opts.bear != null ? opts.bear : asked ? asked[1] === '1' : Math.random() < 0.35) walker('bear', bearF, spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 7, ok: meadow, roam: 0.4 });
 
   function walk(a, dt, t) {
@@ -113,7 +117,7 @@ export function makeCritters(W, opts = {}) {
 
   // ---- squirrels and chipmunks: sit, then dart ----------------------------------------------
   const sq = [0, 1].map(chip => ({ sit: W.make.squirrel(!!chip), run: W.make.squirrel(!!chip, true) }));
-  for (const [x, y, chip] of spots.squirrels) items.push({ critter: 'squirrel', dart: true, f: sq[chip ? 1 : 0], bm: sq[chip ? 1 : 0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: 3 + rand() * 12, flip: rand() < 0.5 });
+  for (const [x, y, chip] of spots.squirrels) items.push({ h0: [x, y], critter: 'squirrel', dart: true, f: sq[chip ? 1 : 0], bm: sq[chip ? 1 : 0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: 3 + rand() * 12, flip: rand() < 0.5 });
   function dart(a, dt, t, here) {
     if (a.st === 'run') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
@@ -139,7 +143,7 @@ export function makeCritters(W, opts = {}) {
   const mar = { sun: marmot('sun'), up: marmot('up') };
   // Each has a few rocks' worth of ground round its own (E5i, TJ: no animal just stands still): now and then
   // it scurries a little way to sun somewhere else, and it still sits up when he comes by.
-  spots.marmots.forEach(([x, y], n) => items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, fx: x, fy: y, tx: x, ty: y, r: 16, st: 'sun', until: 4 + rand() * 10 }));
+  spots.marmots.forEach(([x, y], n) => items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: 16, st: 'sun', until: 4 + rand() * 10 }));
   function scurry(a, dt, t, here) {
     const up = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / 11 + a.n * 0.37) < 0.2;
     if (a.st === 'run') {
@@ -571,6 +575,19 @@ export function makeCritters(W, opts = {}) {
     ferryHull(t, ox, oy, VW, VH) { return hullAt(t, ox, oy, VW, VH); },
     // The shared rules of where each kind of mover may be, for the debug overlay and the timed events.
     collide: col,
+    // The debug menu's spawn list (C4): each kind of map animal and the homes its own rule gave it, in world
+    // pixels. spawn(kind, i) moves that kind there (a herd as one, a mother with her kid), adding it if it is
+    // absent this visit; spawn(kind, 'all') puts every one of that kind back on its own home.
+    homes: () => SPAWN.map(k => ({ kind: k, homes: homesOf(k) })),
+    spawn(kind, i) {
+      if (kind === 'bear' && !items.some(a => a.critter === 'bear')) addBear();
+      const all = items.filter(a => a.critter === kind && !a.mum);
+      const put = (a, x, y) => { const [sx, sy] = a.ok ? settle(a.ok, x, y) : [x, y], dx = sx - a.hx, dy = sy - a.hy; for (const b of [a, ...items.filter(k => k.mum === a)]) { b.hx += dx; b.hy += dy; b.fx = b.tx = b.x = b.hx; b.fy = b.ty = b.y = b.hy; if (b.walker) b.st = 'graze'; } };
+      if (i === 'all') { for (const a of all) put(a, a.h0[0], a.h0[1]); return all.length > 0; }
+      const h = homesOf(kind)[i]; if (!h || !all.length) return false;
+      if (kind === 'elk') { const lead = all[0], dx = h[0] - lead.hx, dy = h[1] - lead.hy; for (const a of all) put(a, a.hx + dx, a.hy + dy); } else put(all[0], h[0], h[1]);
+      return true;
+    },
     drawHull,
     sea(scr, ox, oy, t) {
       moreWhales();
@@ -711,7 +728,7 @@ export function makeCritters(W, opts = {}) {
     // Where each animal may wander and each flock circles, as ovals on the map, for the debug panel.
     // Every animal that moves, for the debug panel's Roam areas: walkers, squirrels (they dart up to 28
     // from home), marmots, and the flocks' circles.
-    areas: () => [...items.filter(a => a.walker || a.critter === 'marmot').map(a => ({ x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...items.filter(a => a.dart).map(a => ({ x: a.hx, y: a.hy, rx: 28, ry: 17 })), ...FLOCKS.map(F => ({ x: F.cx, y: F.cy, rx: F.rx, ry: F.ry }))],
+    areas: () => [...items.filter(a => a.walker || a.critter === 'marmot').map(a => ({ kind: a.critter, x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...items.filter(a => a.dart).map(a => ({ kind: 'squirrel', x: a.hx, y: a.hy, rx: 28, ry: 17 })), ...FLOCKS.map(F => ({ kind: F.gull ? 'gulls' : 'birds', x: F.cx, y: F.cy, rx: F.rx, ry: F.ry }))],
     // What flies over everything else.
     over(scr, ox, oy, t, env = {}) {
       const { VW, VH, fb } = scr;
