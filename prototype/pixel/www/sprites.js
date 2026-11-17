@@ -503,6 +503,44 @@ function makeBush(seed, kind) {
   outline(b, R.moss[1]);
   return b;
 }
+// Red huckleberry in autumn (round 5, T65): a low shrub. A heap of leaves in its own shade, stems fanning
+// out of it with leaves in pairs up to their tips, crimson below and orange where the light catches them (it
+// comes from the upper left), and a dark line under it where it meets the ground. size scales it: nearer
+// the viewer it is bigger.
+function makeHuckleberry(seed, size = 1) {
+  const rand = rng(seed), w = Math.round((9 + rand() * 6) * size), h = Math.round((5 + rand() * 3) * size), b = new BM(w + 8, h + 5); b.ox = (w + 8) >> 1; b.oy = h + 3;
+  const cx = b.ox, by = b.oy;
+  const tone = (x, y, o) => { const lit = (cx - x) / w + (by - y) / h + 0.25 * (o - 0.5); return lit > 0.78 ? (o < 0.6 ? R.blaze[1] : R.red[1]) : lit > 0.36 ? (o < 0.2 ? R.blaze[1] : R.red[1]) : R.red[0]; };
+  for (let y = by - 1; y > by - h * 0.6; y--) { const half = (w / 2) * Math.sqrt(Math.max(0, 1 - sq((by - y) / (h * 0.6)))); for (let x = Math.ceil(cx - half); x <= cx + half; x++) if (rand() < (y === by - 1 ? 0.6 : 0.9)) b.set(x, y, tone(x, y, rand() * 0.6)); }
+  const n = 4 + Math.round(w / 4);
+  for (let k = 0; k < n; k++) {
+    const a = ((k + 0.5) / n - 0.5) * 2.2 + (rand() - 0.5) * 0.3, L = h * (0.8 + 0.3 * rand()) * (1 - 0.25 * Math.abs(a)), x0 = cx + (k / (n - 1) - 0.5) * w * 0.4;
+    for (let s = 0; s <= L; s++) {
+      const x = x0 + Math.sin(a) * s, y = by - 1 - Math.cos(a) * s, o = rand();
+      if (s < L * 0.35) { if (!b.get(x, y)) b.set(x, y, R.bark[1]); continue; }
+      b.set(x, y, tone(x, y, o)); if (s % 2 < 1) b.set(x + (k & 1 ? 1 : -1), y, tone(x, y, o));
+    }
+    b.set(x0 + Math.sin(a) * L, by - 1 - Math.cos(a) * L, a < 0.4 ? R.red[2] : R.blaze[1]);
+  }
+  for (let x = 0; x < b.w; x++) for (let y = by; y >= by - 2; y--) if (b.get(x, y)) { b.set(x, y + 1, INK); break; }
+  return b;
+}
+// Where huckleberry grows, in clumps: each cell of a coarse grid may hold one clump, at a spot of its own
+// inside it, if `grows` is high there. A clump is a big shrub with two to four smaller ones close round it.
+// `ok` says whether a shrub may stand at a spot. Returns the shrubs as { x, y, v: which drawing, s: 0 small
+// to 2 big, flip }, sorted so the upper ones come first. Nothing here throws a scene's own dice.
+function huckClumps(x0, x1, y0, y1, grows, ok, seed) {
+  const out = [];
+  for (let gx = x0; gx < x1; gx += 46) for (let gy = y0; gy < y1; gy += 22) {
+    const cx = gx + Math.floor(hash(gx, gy, seed) * 46), cy = gy + Math.floor(hash(gx, gy, seed + 1) * 22);
+    if (grows(cx, cy) < 0.55) continue;
+    for (let k = 0, n = 3 + Math.floor(hash(gx, gy, seed + 2) * 3); k < n; k++) {
+      const x = cx + (k ? Math.round((hash(gx + k, gy, seed + 3) - 0.5) * 34) : 0), y = cy + (k ? Math.round((hash(gx + k, gy, seed + 4) - 0.5) * 12) : 0);
+      if (ok(x, y)) out.push({ x, y, v: Math.floor(hash(gx + k, gy, seed + 5) * 6), s: k ? (hash(gx + k, gy, seed + 6) < 0.5 ? 0 : 1) : 2, flip: hash(gx + k, gy, seed + 7) < 0.5 });
+    }
+  }
+  return out.sort((p, q) => p.y - q.y);
+}
 // A summit flag on a pole, in two frames so it can flutter.
 // The trail register (L1), after TJ's photographs: a small wooden box on a post, its lid sloping over a
 // pale plaque, its front a flap that folds down into a desk (the dark line is the hinge), rocks piled round
@@ -546,4 +584,4 @@ function makeFlag(f, ramp = R.red) {
 }
 
 export { makeRegister, makeMoose };
-export { makeDriftwood, makeSnag, makeBush, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };

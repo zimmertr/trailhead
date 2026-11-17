@@ -15,6 +15,7 @@ const sets = {
   async cats() { const m = await import('./cats.js'); return m.sheet(); },
   async animals() { const m = await import('./sprites.js'); return m.sheet ? m.sheet() : []; },
   async bluebird() { const m = await import('./fauna.js'); return [0, 1, 2, 3, 'sit', 'call'].map(f => m.bluebird(f)); },
+  async huck() { const m = await import('./sprites.js'); return [0, 1, 2, 3, 4, 5].flatMap(i => [0.8, 1.05, 1.35, 1.7].map(s => m.makeHuckleberry(680 + i, s))); },
   async goats() { const m = await import('./fauna.js'); return [m.goat('stand'), m.goat('look'), m.goat('stand', true)]; },
   // Every animal: the side-view scenes' first, then the map's.
   async zoo() { const f = await import('./fauna.js'), s = await import('./sprites.js'), c = await import('./critters.js'), m = await import('./mapfauna.js');

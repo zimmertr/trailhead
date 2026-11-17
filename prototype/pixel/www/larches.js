@@ -4,7 +4,7 @@
 // it handed him over (arg.dir), so the whole picture is drawn left to right and mirrored when needed.
 import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, DAY, INK, pick, BM, outline, windAt } from './core.js';
 import { Strip, drawStrip, baseline, shell, blitScaled, paintPeaks } from './side.js';
-import { makeConifer, makeBoulder, makeCloud } from './sprites.js';
+import { makeConifer, makeBoulder, makeCloud, makeHuckleberry, huckClumps } from './sprites.js';
 import { makeRunner, sideFig } from './tj.js';
 import { goat, pika } from './fauna.js';
 import { NAMES } from './content.js';
@@ -121,9 +121,11 @@ function paintMid(S, rand) {
 }
 
 // Near: heather and grass with granite slabs breaking through, the trail worn to dirt across it (pale
-// where it crosses bare slab), red huckleberry in autumn, and larch needles sprinkled gold under the trees.
+// where it crosses bare slab), and larch needles sprinkled gold under the trees. The red huckleberry that
+// grows on it is drawn as shrubs (buildLarches), where `huckAt` says it grows.
 // Where bare granite breaks through the near ground (r: rows below the trail).
 const slabAt = (x, r) => fbm(x / 34, (g(x) + r) / 12, 630, 3) > 0.66 - 0.08 * smooth(10, -4, r);
+const huckAt = (x, y) => fbm(x / 9, y / 4, 639, 3);
 function paintMain(S, near) {
   for (let x = 0; x < S.w; x++) {
     const gy = g(x), step = g(x + 1) < gy && !onSlab(x);
@@ -142,8 +144,7 @@ function paintMain(S, near) {
       if (slab) c = frac(x / 41 + y / 13 + vnoise(x / 30, y / 30, 634)) < 0.03 ? R.rock[1] : pick('rock', 0.74 + 0.16 * (fbm(x / 20, y / 9, 635, 3) - 0.5) + (n < 0.04 ? -0.25 : 0), x, y, 0.6);
       else if (r >= -2 && r <= 3) c = n < 0.08 ? R.rock[2] : pick('dirt', 0.6 - Math.abs(r - 0.5) * 0.06 + 0.25 * (vnoise(x / 5, y / 2, 633) - 0.5), x, y, 0.7);
       else {
-        const bf = fbm(x / 9, y / 4, 639, 3), berry = bf > 0.72;
-        c = berry ? R.red[bf > 0.8 && n < 0.5 ? 1 : 0] : pick(fbm(x / 24, y / 9, 637, 2) > 0.52 ? 'moss' : 'grass', 0.52 + 0.3 * (fbm(x / 22, y / 12, 648, 3) - 0.5) + 0.12 * (hash(x >> 1, y >> 1, 649) - 0.5) - smooth(40, 200, r) * 0.25, x, y, 0.35);
+        c = pick(fbm(x / 24, y / 9, 637, 2) > 0.52 ? 'moss' : 'grass', 0.52 + 0.3 * (fbm(x / 22, y / 12, 648, 3) - 0.5) + 0.12 * (hash(x >> 1, y >> 1, 649) - 0.5) - smooth(40, 200, r) * 0.25, x, y, 0.35);
         if (n < 0.1 * near(x, r)) c = R.larch[n < 0.04 * near(x, r) ? 3 : 2];
       }
       if (slab && r >= -2 && r <= 3) c = pick('rock', 0.86, x, y, 0.5);
@@ -205,6 +206,15 @@ function buildLarches() {
   let px = X0 + LEN * 0.55;
   for (let x = X0 + LEN * 0.5; x < X0 + LEN * 0.9; x += 6) if (!things.some(th => th.tree && Math.abs(th.x - x - 11) < 30 && th.y < g(th.x) + 4) && Math.abs(x - billy.x) > 40) { px = Math.round(x); break; }
   const rockA = makeBoulder(190, 7), rockB = makeBoulder(191, 5), pk = [pika(0), pika(1)], py = g(px) - 6;
+  // Red huckleberry (round 5, T65): shrubs in clumps on the heather, where the ground used to be painted
+  // red, off the slabs and the trail. Those lower on the screen are nearer and bigger.
+  const hucks = [0, 1, 2, 3, 4, 5].map(i => [0.8, 1.05, 1.35, 1.7].map(s => makeHuckleberry(680 + i, s)));
+  // The ones far down the slope, which only a tall screen shows, are painted into the ground: nothing they
+  // could stand in front of is that low.
+  for (const p of huckClumps(0, SW, -12, 590, (x, r) => huckAt(x, g(x) + r), (x, r) => !(r >= -5 && r <= 7) && !(x < RUNG.top + 4 && r < 0) && !slabAt(x, r) && !slabAt(x - 5, r) && !slabAt(x + 5, r), 681)) {
+    const bm = hucks[p.v][p.s + (p.y > 90 ? 1 : 0)];
+    if (p.y > 200) main.stamp(bm, p.x, g(p.x) + p.y, p.flip); else things.push({ bm, x: p.x, y: g(p.x) + p.y, flip: p.flip, huck: true });
+  }
   // Larches and boulders keep clear of the goats and the pika's rocks, and of the slab.
   for (let i = things.length - 1; i >= 0; i--) { const th = things[i]; if ([nanny, kidAt, billy, { x: px + 11, y: py }].some(p => Math.abs(th.x - p.x) < 22 && Math.abs(th.y - p.y) < 14) || !offSlab(th)) things.splice(i, 1); }
   things.push({ bm: rockA, x: px, y: py }, { bm: rockB, x: px + 22, y: py - 2 });

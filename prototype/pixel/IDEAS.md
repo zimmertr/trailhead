@@ -376,3 +376,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Walk Up to the Rungs** (round 5, I1). The scene starts a few steps before the slab, on the lower trail, so the cliff is seen whole before he is on it.
 - **A Hiker Coming Down** (round 5, I1). Now and then someone is on the rungs coming the other way, and he waits at the bottom for them.
 - **Snow Lake Below** (round 5, I1). From the top of the rungs, a long blue lake shows far below and behind him for a moment as the picture pans.
+- **Shrubs That Move in a Gust** (round 5, I2). The huckleberry leans a pixel with the larches when the gust comes through the basin.
+- **Berries to Pick** (round 5, I2). A few shrubs carry blue berries, and he stops for a handful when one is clicked.
+- **Huckleberry on the Map** (round 5, I2). The plateau on the map gets the same red shrubs in clumps, so the map and the larch basin agree.
+- **A Frame Time Check That Runs Twice** (round 5, I2). The check script measures the frame time twice and takes the lower, so a busy workstation does not fail an item.

@@ -574,7 +574,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 ### I. The way to Proficiency Peak and its climb
 
 - [x] I1. T64 (scene part): the larch basin opens with TJ on the iron rungs.
-- [ ] I2. T65: the red huckleberry drawn as shrubs.
+- [x] I2. T65: the red huckleberry drawn as shrubs.
 - [ ] I3. T66: the larch basin's pika squeak and hide.
 - [ ] I4. T67: nothing floats in the larch basin, in Day or at Dusk.
 - [ ] I5. T68: the walk-in at normal pace, and helmets in about 2 s.
@@ -702,7 +702,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **H10 done.** The kick is gone. A click on the cairn on Kubernetes-Manifests now makes him bend for a stone, carry it over in both hands, set it on top and stand back to look. The cairn keeps the stone: the count is saved in the visitor's browser and the pile is one stone taller each time he comes back to the summit, up to 12 added stones. A second click on the same visit, or any click on a full cairn, makes him walk over and pat it. The find counts from the first click.
 - **H11 done.** On each climb's timeline the summit's stop now carries the project's name ("Bluebird Forecast", "TJs-Kubernetes-Service" and so on) where it said "Summit". Each project card ends with a clue to what its summit's thing does, in place of "Click the cairn up there." The six clue lines are drafts for TJ, listed in section 11. Section H is finished.
 - **I1 done.** The larch basin now opens with TJ on iron rungs. A granite cliff as high as the first bench stands across the left of the picture, with a paler slab leaning against it and a line of dark iron staples up the slab. He starts at the bottom rung and climbs hand over foot for 3 seconds while the picture pans down to show the basin, then steps onto the trail and walks on as before. From there on the scene is round 4's.
-- Next: I2.
+- **I2 done.** The red patches on the ground are gone, in the larch basin and at the foot of the climb. In their place the red huckleberry is drawn as low shrubs: a heap of leaves in its own shade, stems fanning out with leaves in pairs, crimson below and orange above with pale tips, and a dark line where each meets the ground. They stand in clumps of three to five, a big one with smaller ones round it, where the red used to be.
+- Next: I3.
 
 ## 11. Calls made in round 5
 
@@ -1075,3 +1076,11 @@ One line each, newest last: the item, what was decided, and why.
 - I1, call: a `tink` sounds on every second rung while he is moving. It is the ice tool's sound reused. Not listened to.
 - I1, call: no name tag on the rungs. A tag would be new words for TJ to write.
 - I1, measured: about 2 ms a frame at 1920 by 1080, the same as round 4. Looked at beside round 4 at the start and further on, at Dusk, on a phone upright and sideways, and at 1920 wide. The check passed with nothing moved.
+- I2, how: `makeHuckleberry` and `huckClumps` are in `sprites.js`. Six drawings at four sizes. The clumps are laid out on a coarse grid from the same noise that used to paint the red, so they grow where it was. No scene's dice are thrown for them. The sprite sheet page has a `huck` set.
+- I2, found: the same red paint was in two files. TJ's picture is of the larch basin (`larches.js`), and the foot of the climb (`ridge.js`) had it too. Both are changed. In the larch basin the shrubs are sprites, so they sort with him and the trees. At the foot of the climb they are stamped into the ground, where nothing walks among them.
+- I2, placed by rule: no shrub on a slab, on the trail or within 5 rows of it, or on the cliff with the rungs. They keep clear of the goats and the pika's rocks like the larches do. Lower on the screen is nearer, so those are a size bigger.
+- I2, first tries that were worse: a smooth mound of scattered leaves read as a red blob, and one shrub a grid cell gave an even sprinkle, not clumps. The tips were also too pale at first and read as flames.
+- I2, found on a phone: the shrubs stopped a third of the way down the tall screen. They now go to the bottom of the ground, and those far down are painted into it.
+- I2, not changed: the paintbrush and lupine in the walk-in (`approach.js`) are single-pixel flowers in drifts. TJ's note and picture are of the huckleberry.
+- I2, measured: 2.0 ms a frame in the larch basin at 1920 by 1080, as before. `ground.png` was baked again because `sprites.js` is among the map's imports, and not one pixel differs.
+- I2, the check failed once on the map's frame time (17.8 ms) and passed on the next run (14.5 ms) with nothing changed between. I2 touched no map drawing code and the workstation's load was high at the time (load average 5.9), so I read the first as the machine being busy.

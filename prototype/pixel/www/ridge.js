@@ -11,7 +11,7 @@
 import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, DEBUG } from './core.js';
 import { goat } from './fauna.js';
 import { Strip, drawStrip, baseline, shell } from './side.js';
-import { makeConifer, makeCloud } from './sprites.js';
+import { makeConifer, makeCloud, makeHuckleberry, huckClumps } from './sprites.js';
 import { sideFig, frontFig, backFig, FEET, HANDS, KITS } from './tj.js';
 import { makeCragPair, PAIR } from './people.js';
 
@@ -201,7 +201,7 @@ function paintRidge(S) {
 
 // The ground: the knob's heather and dwarf pine at the left, talus and larches under the face.
 function paintGround(S, things) {
-  const rand = rng(735);
+  const rand = rng(735), grass = {};
   for (let x = 0; x < W; x++) {
     const f = x < 236 ? knob(x) : lerp(knob(236) - 4, foot(x) - 30, smooth(236, 330, x));
     for (let h = Math.round(f); h > -DOWN; h--) {
@@ -210,11 +210,16 @@ function paintGround(S, things) {
       let c;
       if (hash(x >> 1, h >> 1, 736) < tal) c = pick('rock', 0.25 + 0.6 * hash(x >> 1, h >> 1, 737), x, h);
       else if (fbm(x / 26, h / 10, 748, 3) > 0.62) c = pick('rock', 0.5 + 0.3 * (fbm(x / 9, h / 5, 749, 2) - 0.5) - smooth(0, 300, depth) * 0.2, x, h, 0.6);
-      else { const bf = fbm(x / 9, h / 4, 747, 3); c = bf > 0.72 ? R.red[bf > 0.8 && hash(x, h, 746) < 0.5 ? 1 : 0] : pick(fbm(x / 20, h / 9, 738, 2) > 0.55 ? 'moss' : 'grass', 0.45 + 0.4 * (fbm(x / 22, h / 12, 739, 3) - 0.5) - smooth(0, 300, depth) * 0.25, x, h, 0.35); }
+      else { grass[x + '.' + h] = 1; c = pick(fbm(x / 20, h / 9, 738, 2) > 0.55 ? 'moss' : 'grass', 0.45 + 0.4 * (fbm(x / 22, h / 12, 739, 3) - 0.5) - smooth(0, 300, depth) * 0.25, x, h, 0.35); }
       if (depth < 1.5 && !(hash(x >> 1, h >> 1, 736) < tal)) c = R.moss[2];
       S.set(x, -h, c);
     }
   }
+  // Red huckleberry (round 5, T65): shrubs in clumps where the heather used to be painted red, and only
+  // where a shrub's whole foot is on grass. The lower ones are nearer and bigger.
+  const hucks = [0, 1, 2, 3, 4, 5].map(i => [0.8, 1.05, 1.35, 1.7].map(s => makeHuckleberry(680 + i, s)));
+  for (const p of huckClumps(0, W, -40, DOWN, (x, y) => fbm(x / 9, -y / 4, 747, 3), (x, y) => [-5, 0, 5].every(d => grass[(x + d) + '.' + (-y)] && grass[(x + d) + '.' + (-y + 3)]), 750))
+    S.stamp(hucks[p.v][p.s + (p.y > 120 ? 1 : 0)], p.x, p.y, p.flip);
   // Dwarf pine in knee-high mats on the knob and in the cracks low on the ridge; larches below.
   for (let n = 0; n < 40; n++) { const x = 20 + rand() * 240, h = (x < 236 ? knob(x) : along(LOW, x)) - rand() * 6; things.push({ pine: 3 + rand() * 5, x: Math.round(x), h: Math.round(h) }); }
   for (let n = 0; n < 22; n++) { const x = 250 + rand() * 900, f = foot(x) - 34 - rand() * 160, H = 14 + rand() * 26; things.push({ tree: makeConifer(740 + n, Math.round(H), Math.round(H / 2.6), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: 0.2, droop: 0.6 }), x: Math.round(x), h: Math.round(f) }); }
