@@ -1,12 +1,19 @@
 import { describe, expect, it } from 'vitest'
-import { SERVICES, files, read } from './repo.ts'
+import { LAB, SERVICES, files, manifest, read } from './repo.ts'
 
 const dockerfile = (service: string) => read(`${service}/Dockerfile`)
 const froms = (text: string) => [...text.matchAll(/^FROM (\S+)/gm)].map(([, image]) => image ?? '')
 
 describe('the Dockerfiles', () => {
-  it('are one per service, and no more', () => {
-    expect(files(/(^|\/)Dockerfile$/)).toEqual(SERVICES.map((s) => `${s}/Dockerfile`).toSorted())
+  it('are one per service and one for the prototype\'s renders, and no more', () => {
+    expect(files(/(^|\/)Dockerfile$/)).toEqual([...SERVICES, LAB].map((s) => `${s}/Dockerfile`).toSorted())
+  })
+
+  // The rules below are for images that ship. The render image only has to be the same every time it is built.
+  it('the render image pins its base by tag and digest, at the Playwright version its package is locked to', () => {
+    const [image = ''] = froms(dockerfile(LAB))
+    expect(image).toMatch(/^[\w./-]+:[\w.-]+@sha256:[0-9a-f]{64}$/)
+    expect(image).toContain(`/playwright:v${manifest(`${LAB}/lab`).dependencies?.playwright}-`)
   })
 
   it.each(SERVICES)('%s pins every base image by tag and digest', (service) => {

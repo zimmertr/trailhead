@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Trailhead ground bake</title>
+<!-- Opened only by bake.sh: works the land out in full (land.js, never from an old bake) and hands over
+     the planes readBake in land.js expects, one under the other, to be written to ground.png: the
+     ground picture, its depth (two bytes, in 64ths of a pixel), what each pixel is made of, which pixels
+     are painted mountain, then the map's heights (two bytes, in 32nds), materials and water, and last what the ground shows with
+     the Trees switch off where a tree is painted into it, which destination's country each pixel belongs to, how thick the fog lies there when a shower brings it in, the hills' evening light, the cloud deck, Mount Monolith's snow cover and the mist's layout. -->
+<script>globalThis.__noBake = true;</script>
+<script type="module">
+import { LAND, NW, NH as SH, VD, BAKE_ROWS, sourceSig, buildTerrain, packMist } from './land.js';
+const n = NW * SH, m = NW * VD, all = new Uint8Array(NW * BAKE_ROWS);
+all.set(LAND.g, 0); all.set(LAND.mat, 3 * n); all.set(LAND.painted, 4 * n);
+for (let i = 0; i < n; i++) { const d = LAND.depth[i], q = d >= 1e8 ? 65535 : Math.min(65534, Math.round(d * 64)); all[n + i] = q >> 8; all[2 * n + i] = q & 255; }
+let top = 0;
+for (let i = 0; i < m; i++) { const q = Math.round(LAND.hg[i] * 32); top = Math.max(top, q); all[5 * n + i] = q >> 8; all[5 * n + m + i] = q & 255; }
+if (top > 65535) throw new Error('a height is too great to bake: ' + top / 32);
+all.set(LAND.mg, 5 * n + 2 * m); all.set(LAND.water, 5 * n + 3 * m); all.set(LAND.bare, 5 * n + 4 * m); all.set(LAND.dest, 6 * n + 4 * m); all.set(LAND.fogField, 7 * n + 4 * m);
+// Then the hills' evening light and the cloud deck, which buildTerrain works out from all of the above.
+// And the mist's layout (packMist in land.js).
+{ const W = buildTerrain(); all.set(W.hillLight, 8 * n + 4 * m); all.set(W.deck, 9 * n + 4 * m); packMist(W.mist, all.subarray(12 * n + 4 * m)); }
+// Then Mount Monolith's snow cover: the plain snow under each covered pixel and how far down the icefall it is.
+{ const M = LAND.monoCover; if (M) for (let j = 0; j < M.at.length; j++) { all[10 * n + 4 * m + M.at[j]] = M.snow[j]; all[11 * n + 4 * m + M.at[j]] = M.q[j]; } }
+let s = ''; for (let i = 0; i < all.length; i += 32768) s += String.fromCharCode.apply(null, all.subarray(i, i + 32768));
+window.__bake = { w: NW, h: BAKE_ROWS, data: btoa(s), sig: await sourceSig() }; window.__ready = true;
+</script>

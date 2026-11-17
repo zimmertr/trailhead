@@ -8,7 +8,7 @@
 
 ## Summary
 
-My personal site, https://tjzimmerman.com, as a small 3D planet. Start at the trailhead and choose a destination: run to a lake to read about me, climb a wall to see what I do for work, or climb a group of spires to see my side projects.
+My personal site, https://tjzimmerman.com, as a small pixel-art world. Start at the trailhead and choose a destination: run to a lake to read about me, climb a peak to see what I do for work, or climb a group of spires to see my side projects.
 
 <hr>
 
@@ -44,6 +44,7 @@ Then open http://localhost:8080. Every check CI runs is also a `make` target tha
 | [Styles](docs/STYLES.md) | The plain page's look and tokens |
 | [Traffic](docs/TRAFFIC.md) | How requests get in and out |
 | [Usage](docs/USAGE.md) | What you see, and what to do when it breaks |
+| [Pixel prototype](prototype/pixel/ROUND4.md) | The pixel-art version of the world I'm building now, round by round, with its [ideas list](prototype/pixel/IDEAS.md) |
 | [Notices](NOTICES.md) | The bundled software and its licenses |
 
 The Helm chart lives in [trailhead-helm](https://github.com/zimmertr/trailhead-helm).
