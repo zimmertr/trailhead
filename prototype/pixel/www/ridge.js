@@ -248,6 +248,22 @@ function paintFar() {
 // and a shaded riser; tarns lie on the benches; and the larches are gold dots in drifts along the
 // benches and round the tarns. Placed by rule: peaks spread across the strip, tarns on bench flats,
 // larches where the bench is flat and dry.
+// Round 5, T70: one large tarn lies in the bottom of the basin, like Shield Lake under Prusik Peak, where
+// the basin shows left of the ridge on the first two pitches. It has a ragged shore with bays, a granite
+// point and an island, a dark far bank and pale slabs along the near one, larches thick round it, and an
+// outlet that runs down the benches through two smaller tarns.
+const LAKE = { x: 425, y: 62, a: 100, b: 12, point: 40, isle: -46 };
+const lakeMid = x => LAKE.y + 4 * Math.sin((x - LAKE.x) / 46) + 6 * (vnoise(x / 50, 4, 781) - 0.5);
+const lakeSpan = x => {
+  const u = (x - LAKE.x) / LAKE.a; if (Math.abs(u) >= 1) return null;
+  const hb = LAKE.b * Math.pow(1 - u * u, 0.55) * (0.55 + 0.9 * fbm(x / 30, 2, 782, 3)), m = lakeMid(x);
+  return [m - 0.7 * hb, m + 1.3 * hb];
+};
+function inLake(x, y) {
+  const sp = lakeSpan(x); if (!sp || y < sp[0] || y > sp[1]) return false;
+  const pt = 1 - Math.abs(x - (LAKE.x + LAKE.point) - 0.8 * (sp[1] - y)) / 15; if (pt > 0 && y > sp[1] - (sp[1] - sp[0]) * 0.42 * Math.min(1, 2.4 * pt)) return false;
+  return ((x - (LAKE.x + LAKE.isle)) / 9) ** 2 + ((y - (sp[0] + sp[1]) / 2 - 1) / 2.4) ** 2 >= 1;
+}
 function paintBasin() {
   const BW = 1200, S = new Strip(BW, 200, 260), rand = rng(760);
   const peaks = []; for (let k = 0; k < 5; k++) peaks.push({ x: 110 + k * 240 + 70 * hash(k, 1, 761), h: 50 + 60 * hash(k, 2, 761), w: 60 + 50 * hash(k, 3, 761) });
@@ -276,21 +292,74 @@ function paintBasin() {
       let c;
       // A lit lip, a shaded riser, then the bench's flat, with the pale bare granite slabs the basin is
       // known for showing through in patches.
-      if (u < 0.1) c = R.far[3]; else if (u < 0.32) c = pick('far', 0.04 + 0.08 * vnoise(x / 3, y, 769), x, y);
+      // The lips are broken into ledges (unbroken, they read as swell on a sea: TJ, round 5).
+      if (u < 0.1 && vnoise(x / 17, b * 7.3, 787) > 0.4) c = R.far[3]; else if (u < 0.32) c = pick('far', 0.04 + 0.08 * vnoise(x / 3, y, 769), x, y);
       else { const slab = fbm(x / 14, y / 5, 773, 3); c = slab > 0.64 ? (bayer(x, y) < (slab - 0.64) * 3 ? R.far[3] : R.far[2]) : pick('far', 0.32 + 0.16 * (vnoise(x / 11, y / 5, 770) - 0.5), x, y); if (u > 0.4 && u < 0.85 && (x & 3) === 0 && (y & 1) === 0) flats.push([x, y, b]); }
       S.set(x, y, c);
     }
   }
-  // Tarns, one on each of a few benches, turquoise with the sky's light along the far shore.
-  const tarns = [];
-  for (let k = 0; k < 7; k++) {
-    const [x, y] = flats[Math.floor(hash(k, 4, 771) * flats.length)], a = 14 + 22 * hash(k, 5, 771), b = 2.5 + 2.5 * hash(k, 6, 771);
-    if (tarns.some(t => Math.abs(t.x - x) < t.a + a + 20 && Math.abs(t.y - y) < 18)) continue;
-    tarns.push({ x, y, a, b });
+  const tree = (x, y) => {
+    if (rand() < 0.1) { S.set(x, y, R.conifer[1]); S.set(x, y - 1, R.conifer[2]); S.set(x, y - 2, R.conifer[2]); return; }
+    S.set(x, y, R.larch[1]); S.set(x, y - 1, R.larch[rand() < 0.5 ? 2 : 3]); S.set(x, y - 2, R.larch[rand() < 0.4 ? 4 : 3]); if (rand() < 0.5) S.set(x + 1, y - 1, R.larch[2]);
+  };
+  const pool = (x, y, a, b) => {
     for (let dy = -Math.ceil(b); dy <= Math.ceil(b); dy++) for (let dx = -Math.ceil(a); dx <= Math.ceil(a); dx++) {
       const q = (dx / a) ** 2 + (dy / b) ** 2; if (q > 1) continue;
       S.set(x + dx, y + dy, q > 0.75 && dy < 0 ? R.tarn[5] : dy === Math.round(-b * 0.3) && Math.abs(dx) < a * 0.5 ? R.tarn[5] : R.tarn[q < 0.3 ? 3 : 4]);
     }
+  };
+  // The large tarn. First the flat it lies on: the benches' lips and risers are cleared round it.
+  const X0 = LAKE.x - LAKE.a - 30, X1 = LAKE.x + LAKE.a + 30, Y0 = LAKE.y - 26, Y1 = LAKE.y + 34;
+  for (let x = X0; x <= X1; x++) for (let y = Y0; y <= Y1; y++) {
+    const g = ((x - LAKE.x) / (LAKE.a + 26)) ** 2 + ((y - LAKE.y - 4) / (LAKE.b + 15)) ** 2;
+    if (y < edge(x) + 3 || g > 0.8 + 0.35 * vnoise(x / 15, y / 5, 785)) continue;
+    const slab = fbm(x / 14, y / 5, 773, 3);
+    S.set(x, y, slab > 0.6 ? (bayer(x, y) < (slab - 0.6) * 3 ? R.far[3] : R.far[2]) : pick('far', 0.34 + 0.16 * (vnoise(x / 11, y / 5, 770) - 0.5), x, y));
+  }
+  // The water: the sky's light along the far shore, deeper toward the near one, a few bright streaks.
+  for (let x = X0; x <= X1; x++) for (let y = Y0; y <= Y1; y++) {
+    if (!inLake(x, y)) continue;
+    const sp = lakeSpan(x), f = (y - sp[0]) / (sp[1] - sp[0]), n = bayer(x, y);
+    let c = f < 0.07 ? R.tarn[5] : f < 0.22 ? (n < (f - 0.07) / 0.15 ? R.tarn[4] : R.tarn[5]) : f < 0.5 ? (n < (f - 0.22) / 0.28 ? R.tarn[3] : R.tarn[4]) : f < 0.82 ? R.tarn[3] : (n < (f - 0.82) / 0.18 ? R.tarn[2] : R.tarn[3]);
+    if (f > 0.3 && f < 0.85 && hash(Math.floor((x + y * 5) / 9), y, 784) < 0.12) c = R.tarn[4];
+    // The far bank's dark reflection lies along the water under it.
+    if (!inLake(x, y - 1) && vnoise(x / 6, 3, 788) > 0.3) c = R.tarn[2];
+    S.set(x, y, c);
+  }
+  // Its banks: dark where the far shore stands over the water, pale slabs along the near shore.
+  for (let x = X0; x <= X1; x++) for (let y = Y0; y <= Y1; y++) {
+    if (inLake(x, y)) continue;
+    if (inLake(x, y + 1)) { S.set(x, y, R.far[0]); if (vnoise(x / 4, 1, 788) > 0.45) S.set(x, y - 1, R.far[0]); }
+    else if (inLake(x, y - 1)) { S.set(x, y, R.far[3]); if (vnoise(x / 5, 2, 788) > 0.5) S.set(x, y + 1, R.far[3]); }
+  }
+  // The outlet: out of the near shore and down the benches, white where it drops over a riser, through
+  // two smaller tarns.
+  const OUT = [[LAKE.x - 16, 0], [LAKE.x + 2, 98], [LAKE.x + 38, 130]]; OUT[0][1] = Math.round(lakeSpan(OUT[0][0])[1]);
+  for (let k = 1; k < OUT.length; k++) {
+    const [ax, ay] = OUT[k - 1], [bx, by] = OUT[k];
+    for (let y = ay; y <= by; y++) {
+      const x = Math.round(lerp(ax, bx, (y - ay) / (by - ay)) + 3 * (vnoise(y / 5, k, 789) - 0.5) * 2), v = (y - Math.round(edge(x))) / 22 + 0.5 * vnoise(x / 70, 3, 768), u = v - Math.floor(v);
+      if (!inLake(x, y)) S.set(x, y, u < 0.32 ? R.farsnow[1] : R.tarn[4]);
+    }
+  }
+  const tarns = [{ x: LAKE.x, y: LAKE.y + 4, a: LAKE.a, b: 16, lake: true }, { x: OUT[1][0], y: OUT[1][1], a: 20, b: 3.2 }, { x: OUT[2][0], y: OUT[2][1], a: 27, b: 4.2 }];
+  for (const t of tarns) if (!t.lake) pool(t.x, t.y, t.a, t.b);
+  // Larches thick along both shores in clumps, a few on the point and the island.
+  for (let i = 0; i < 230; i++) {
+    const x = Math.round(LAKE.x + (rand() * 2 - 1) * (LAKE.a + 16)), far = rand() < 0.5, sp = lakeSpan(x) || [lakeMid(x), lakeMid(x)];
+    const y = Math.round(far ? sp[0] - 2 - rand() * 6 : sp[1] + 3 + rand() * 9);
+    if (vnoise(x / 20, far ? 1 : 2, 786) < 0.36 || y < edge(x) + 4 || inLake(x, y) || inLake(x, y - 2)) continue;
+    tree(x, y);
+  }
+  for (const [dx, n] of [[LAKE.point, 5], [LAKE.isle, 4]]) for (let j = 0; j < n; j++) {
+    const x = Math.round(LAKE.x + dx + (rand() - 0.5) * (dx === LAKE.isle ? 12 : 8)), sp = lakeSpan(x), y = Math.round(dx === LAKE.isle ? (sp[0] + sp[1]) / 2 + 1 : sp[1] - rand() * 4);
+    if (!inLake(x, y) && !inLake(x, y - 1)) tree(x, y);
+  }
+  // Tarns, one on each of a few benches, turquoise with the sky's light along the far shore.
+  for (let k = 0; k < 7; k++) {
+    const [x, y] = flats[Math.floor(hash(k, 4, 771) * flats.length)], a = 14 + 22 * hash(k, 5, 771), b = 2.5 + 2.5 * hash(k, 6, 771);
+    if (tarns.some(t => Math.abs(t.x - x) < t.a + a + 20 && Math.abs(t.y - y) < 18)) continue;
+    tarns.push({ x, y, a, b }); pool(x, y, a, b);
   }
   // Larches: gold dots in drifts, thicker near the tarns, never on the water.
   // Each drift is a loose clump of a few trees; each tree a lit gold top over a deeper gold, a few of
@@ -302,9 +371,8 @@ function paintBasin() {
     const n = 3 + Math.floor(rand() * 7);
     for (let j = 0; j < n; j++) {
       const x = Math.round(cx0 + (rand() - 0.5) * 18), y = Math.round(cy0 + (rand() - 0.5) * 5);
-      if (tarns.some(t => ((x - t.x) / (t.a + 2)) ** 2 + ((y - t.y) / (t.b + 2)) ** 2 < 1)) continue;
-      if (rand() < 0.1) { S.set(x, y, R.conifer[1]); S.set(x, y - 1, R.conifer[2]); S.set(x, y - 2, R.conifer[2]); continue; }
-      S.set(x, y, R.larch[1]); S.set(x, y - 1, R.larch[rand() < 0.5 ? 2 : 3]); S.set(x, y - 2, R.larch[rand() < 0.4 ? 4 : 3]); if (rand() < 0.5) S.set(x + 1, y - 1, R.larch[2]);
+      if (tarns.some(t => t.lake ? inLake(x, y) || inLake(x, y - 2) : ((x - t.x) / (t.a + 2)) ** 2 + ((y - t.y) / (t.b + 2)) ** 2 < 1)) continue;
+      tree(x, y);
     }
   }
   return S;

@@ -394,3 +394,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Speed Control for the Climb** (round 5, I7). The boost key cycles the climb through 1, 2 and 4 times its pace, with the number shown beside the timeline.
 - **Chalk Puffs at Speed** (round 5, I7). A small puff of chalk each time a hand goes to a new hold, so fast climbing reads as effort and not as sliding.
 - **The Camera Leads the Climber** (round 5, I7). At this pace the view looks a little ahead of whoever is moving, so the next piece and the belay come into the picture before they are reached.
+- **Glints on the Far Tarn** (round 5, I8). A few pixels of the big tarn's water sparkle on and off, more when a gust crosses the ridge.
+- **The Tarn on the Map** (round 5, I8). The same tarn, with its island and outlet, drawn below Proficiency Peak on the world map, so the view from the climb is a place he can also see from above.
+- **Cloud Shadows on the Basin** (round 5, I8). The shadows of the three fair-weather clouds drift slowly over the benches and darken the tarn as they pass.
+- **A Tent by the Tarn** (round 5, I8). One tiny orange tent on the tarn's point, two pixels, for whoever looks closely.

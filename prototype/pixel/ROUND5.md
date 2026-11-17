@@ -580,7 +580,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] I5. T68: the walk-in at normal pace, and helmets in about 2 s.
 - [x] I6. T72, T71: the climbing order (leader, woman, TJ) and the second rope from the woman to TJ, on every pitch.
 - [x] I7. T69: climbing at about 4 times the speed, with fewer pieces.
-- [ ] I8. T70: a large tarn far below, like Shield Lake.
+- [x] I8. T70: a large tarn far below, like Shield Lake.
 - [ ] I9. T73: TJ's fall on the off-width and the 3:1 haul.
 - [ ] I10. T74: one cloud sea that rises during the haul, then the rappel into it.
 - [ ] I11. T75: they reach the ground before tugging on the stuck rope.
@@ -708,7 +708,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **I5 done.** At Proficiency Peak TJ now walks in to the foot of the climb at the pace he walks the larch basin, about three times as fast as before. He drops his pack in passing, and helmets and knots are one beat of under 2 s: hands up to the helmet, the chin strap, the knot. The woman eats bare-headed and her helmet goes on in that beat, where it used to appear when she stood up. They are ready and waiting for Space about 6 s sooner.
 - **I6 done.** On every pitch of Proficiency Peak the order is now the leader, the woman, then TJ. The woman belays the leader. She follows on his teal rope and trails a second, orange rope down to TJ, who pays it out. At each piece she takes the teal rope out and clips the orange one in. TJ comes last on the orange rope, on her belay from above, takes the gear out and strips the anchor below. Both ropes are drawn the whole way up: the one not in use hangs in a loop between the two who share a stance.
 - **I7 done.** The climbing on Proficiency Peak runs at four times round 4's pace, and every stop on a pitch is about a third as long. The leader places three cams on pitches 1 and 2 and two on pitch 5, where there were four. From the fist bump to the last one on top is 115 s, where round 4 took 396 s. The whole scene is 156 s, where it was 446 s. Cards still open at the belays.
-- Next: I8.
+- **I8 done.** A large tarn lies in the bottom of the basin below Proficiency Peak, where the basin shows left of the ridge on pitches 1 and 2. It is about 200 px wide, turquoise with the sky's light along its far shore, with bays, an island, a granite point, larches thick along both shores, and an outlet that runs down the benches through two smaller tarns. At Dusk it takes the sunset's colours.
+- Next: I9.
 
 ## 11. Calls made in round 5
 
@@ -1125,3 +1126,11 @@ One line each, newest last: the item, what was decided, and why.
 - I7, left alone: the walk-in, the summit (5.6 s) and the descent (about 28 s). T74 and T75 rework the descent in I10 and I11.
 - I7, a consequence: the scene is a third of its old length, so on the timeline Proficiency Peak's trail is much shorter and its cards sit closer together.
 - I7, looked at: all of pitch 1 at half-second steps, the fall and the slip in motion, and nine moments across the climb. Frame time in the scene is about 4.5 ms at Dusk. The check passed with nothing moved.
+- I8, what was there (`ridge.js`, `paintBasin`): the basin of round 4's H12, with seven small tarns of 14 to 36 px and larch dots. From the first belay it read as a blue sea: the benches' pale lips ran unbroken across the picture like swell, and the tarns were too small to notice.
+- I8, where the tarn is: the basin is only seen left of the ridge, on pitches 1 and 2, before the ridge fills the picture. The tarn is placed by that: its middle is where the middle of that view falls from the foot of the climb, so all of it is seen from pitch 1 and its east half from pitch 2.
+- I8, what was painted: the tarn's shore from one rule (an ellipse with its height and its middle line varied by noise, a point cut in from the near shore, an island cut out); the flat it lies on, with the bench lips cleared round it; water in four tones from pale at the far shore to deep at the near one; a dark far bank and pale slabs along the near one; 230 tries at larches along the shores in clumps, with a few on the point and the island; the outlet, white where it drops over a bench's riser; two tarns on it (40 and 54 px).
+- I8, a call: the bench lips are now broken into ledges everywhere in the basin, so the ground reads as granite steps and not as waves. This changes the whole basin a little, not only the ground by the tarn.
+- I8, a call: three of round 4's seven small tarns fell where the large one or its outlet now is and are gone. The basin has the large tarn, the two on the outlet and the rest of round 4's.
+- I8, under the inversion: the cloud sea's surface is 40 rows down the basin when it starts to gather and rises from there, and the tarn's far shore is 50 rows down, so the cloud covers the tarn as it forms. By then the ridge already hides that part of the basin on most screens. I10 reworks the cloud.
+- I8, not done: the water does not move. It is painted once into the basin's picture, like the rest of it.
+- I8, looked at beside the build before from pitches 1 and 2, close up and whole, at Dusk, at 1920 wide and on a phone both ways. No new colours. The check passed with nothing moved.
