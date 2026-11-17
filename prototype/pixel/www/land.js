@@ -1451,9 +1451,16 @@ function habitat() {
   const clearSea = new Set(R.sea), sea = (lo, hi) => (u, v) => { const c = S.coast(u, v); return c > lo && c < hi && S.toY(u, v) < SH - 50 && shows(u, v, 4) && clearSea.has(S.g[S.toY(u, v) * NW + Math.round(u)]) && clearSea.has(S.g[(S.toY(u, v) - 6) * NW + Math.round(u)]); };
   const jelly = find(8, sea(50, 110), 26), whale = best(sea(90, 150), (u, v) => -Math.abs(S.coast(u, v) - 115) + 6 * rnd());
   // The timed events of E5k. Tumbleweeds start in open sage with 120 of firm ground east of them, the way
-  // the wind rolls them; dust devils spin up on bare dry flats.
+  // the wind rolls them; dust devils spin up on bare dry flats, in the north and the middle of the dry
+  // corner (T13): its east and south edges lie under the menus, the timeline and the sign. The corner is
+  // measured on the picture from its own dry ground, and a spot must leave its devil the room it wanders in
+  // (18 west of where it starts, 54 east) on level dry ground in plain sight, clear of the creek and the elk.
   const tumbles = find(3, (u, v) => S.sageAmt(u, v) > 0.6 && firm(u, v, 0.5) && shows(u, v, 6) && [30, 60, 90, 120].every(d => firm(u + d, v, 0.9)), 60);
-  const devils = find(2, (u, v) => S.dryAmt(u, v) > 0.6 && S.sageAmt(u, v) > 0.3 && firm(u, v, 0.4) && shows(u, v, 26), 120);
+  const dryFlat = (u, v) => S.dryAmt(u, v) > 0.6 && S.sageAmt(u, v) > 0.3 && firm(u, v, 0.4);
+  const DRY = GRID.filter(([u, v]) => dryFlat(u, v) && S.toY(u, v) < SH), dxs = DRY.map(p => p[0]), dys = DRY.map(p => S.toY(...p));
+  const dryX = f => lerp(Math.min(...dxs), Math.max(...dxs), f), dryY = f => lerp(Math.min(...dys), Math.max(...dys), f);
+  const WANDER = Array.from({ length: 13 }, (_, k) => k * 6 - 18);
+  const devils = DRY.length ? find(3, (u, v) => { const y = S.toY(u, v); return u > dryX(0.2) && u < dryX(0.5) && y > dryY(0.1) && y < dryY(0.6) && (!herd || apartFrom([herd], u, v, 90)) && WANDER.every(d => dryFlat(u + d, v) && shows(u + d, v, 40) && Math.abs(S.toY(u + d, v) - y) <= 4); }, 90) : [];
   const out = (u, v) => [Math.round(u), S.toY(u, v)];
   // The rainforest's owl, faint light and eyes left the map in E5b (too small to find among the trees);
   // E5d puts them in the forest scene. Crows still circle over the forest's sunny edge, and keep to low forest on plain ground, so they circle against trees and not the mountain's ice.

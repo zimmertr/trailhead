@@ -258,3 +258,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Snow Line That Moves** (round 5, E7). After a squall the snow could reach a few rows lower on the cleavers' rock for a minute and then draw back as it melts.
 - **Thunder Snow** (round 5, E7). Once in a long while, one soft flash inside the cloud and a rumble a few seconds later.
 - **The Lenticular Cloud Becomes the Squall** (round 5, E7). When the lenticular cloud is standing as a squall is due, it could thicken and sink onto the summit and become the squall's cloud, as cap clouds do before weather.
+- **A Dust Devil You Can See From the Trailhead** (round 5, E8). The column is thin over the sage. It could be denser at the foot, carry a few sage leaves and twigs round it, and lay a faint shadow on the ground, so it reads at the default zoom.
+- **Dust Devils Only on Hot Afternoons** (round 5, E8). They could spin up only in the middle of the day, when the ground is hottest, and never at Dusk or in the rain.
+- **The Sheep Notice** (round 5, E8). When a dust devil passes within 40 px, the bighorn could lift their heads and step a few paces away.
+- **A Dust Devil Picks Up a Tumbleweed** (round 5, E8). If a tumbleweed rolls into one, it could be carried round the column twice and thrown clear.
