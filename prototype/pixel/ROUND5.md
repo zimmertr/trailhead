@@ -31,7 +31,7 @@ Work in the scratchpad clone on `pixel-round4-opus`. Commit small and push after
 
 ### S3. Before the loop restarts
 
-- [ ] S3a. **The lake's size.** TJ chooses on https://claude.ai/artifact/HvkoYcpd9EeTznWr6DZKCZ between A (1.6 times round 4's width, built today) and B (2.2 times, his outline in `plan/round5/30-*`). If section 11 holds his answer, build it (B needs the bench widened without the tan stripes of the mock-up, both streams reaching the lake, the shore trail clear of the water and the lake scene's shore lengthened in step). If not, keep A and log that.
+- [x] S3a. **The lake's size.** TJ chose A on 2026-11-16 ("A is fine"): 1.6 times round 4's width, as built. Nothing to change. The comparison is at https://claude.ai/artifact/HvkoYcpd9EeTznWr6DZKCZ.
 - [ ] S3b. **TJ's screenshots leave the repo** (TJ, 2026-11-16: "Move to an artifact"). Publish every picture in `plan/round5/` on one private artifact page of its own, each with its note's number and its description from section 12. Put the page's link at the top of section 12, then `git rm` the pictures. The water audit's pictures (D4) go on that page too, never into the repo.
 - [ ] S3c. **One command checks an item: `check.sh <item>`.** It runs the syntax check on every file in `www/`, the browser check from S1b, the frame time of the zoomed-out map at Dusk, and writes `out/check/<item>.json` with every trail's points and every placed sign and animal, then prints what moved more than 8 pixels since the item before. Section 9 uses it from here on.
 - [ ] S3d. Set section 10's "Next" line to D5 and tell TJ the loop can restart.
@@ -679,7 +679,8 @@ One line each, newest last: the item, what was decided, and why.
 - Plan change (planner, 2026-11-16): D4 moved to the end of section D; E0 (frame time before the animals), J3 (the page's own fonts) and the reduced-motion line in K1 added; section 9 gained the look at what moved after a change to the land, the zoomed-out Dusk number for every map item, and a notification to TJ at each section's end.
 - Open with TJ on 2026-11-16: which lake size (https://claude.ai/artifact/HvkoYcpd9EeTznWr6DZKCZ), and whether record 0015 says `web` serves the plain JS as it is. He asked for the pros and cons of TypeScript against JS and got them in chat. The planner recommends plain JS, checked later through `// @ts-check`.
 - TJ, 2026-11-16, on record 0015 (S1e): "We can defer typescript for now." The record says the world is pixel art and that `web` serves the prototype's plain JS modules as they are. A port to TypeScript is deferred, and type checking through `// @ts-check` and JSDoc is left for its own issue after round 5, which TJ has not asked to be filed yet.
-- The lake page's first pictures were cropped to the wrong part of the map and showed no lake (the planner did not look before publishing). Version 2 shows the whole lake in both sizes. TJ's choice between A and B is still open.
+- The lake page's first pictures were cropped to the wrong part of the map and showed no lake (the planner did not look before publishing). Version 2 shows the whole lake in both sizes.
+- TJ, 2026-11-16, on the lake's size (S3a): "A is fine." The lake stays 1.6 times round 4's width.
 
 ## 12. The reference pictures
 
