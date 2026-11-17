@@ -21,20 +21,23 @@ Work in the scratchpad clone on `pixel-round4-opus`. Commit small and push after
 - [ ] S1e. **Decision record 0015: the world is pixel art.** TJ was asked on 2026-11-16 whether it should also say that `web` serves the prototype's plain JS as it is (the planner's recommendation, with type checking through `// @ts-check` and JSDoc added file by file later, as its own issue after round 5). If section 11 holds his answer, record it. If not, the record says only that the world is pixel art and that https://github.com/zimmertr/trailhead/issues/14 decides how it is served. The record supersedes the PRD's "Low-poly throughout". Bring `docs/PRD.md` and `CLAUDE.md` into line with it: the places' names as the game shows them (Reflection Lake, Proficiency Peak, Mount Monolith, Sideproject Spires), the pixel renderer in place of WebGL, and the phases as they now stand. In `README.md` change only the sentences that are now untrue, in TJ's voice, and quote each changed sentence in the PR's description for him to approve.
 - [ ] S1f. **Round 4's two open ends are closed** (TJ, 2026-11-16: "Close both"). In `ROUND4.md`, mark J6 closed (the walk gets no find unless TJ picks one later) and the list of what was still below round 3 closed (his 78 round 5 notes replace it).
 - [ ] S1g. **Issues that no longer say what is true.** Read https://github.com/zimmertr/trailhead/issues/5 ("The world has no sound"), https://github.com/zimmertr/trailhead/issues/9 ("The repo has no code, build or CI yet") and the pair https://github.com/zimmertr/trailhead/issues/6 and https://github.com/zimmertr/trailhead/issues/35 (both about Strava and Peakbagger). Check each against the repo. Close nothing. Write what you found and what you would do with each into the report for TJ.
-- [ ] S1h. **Hand #31 to TJ.** Rewrite its description: what it adds, the new checks, and a "Not in this PR" section that is true. Wait for every check to pass. Then send TJ the link with one line on what it is, by PushNotification and in chat.
+- [ ] S1h. **Hand #31 to TJ.** Rewrite its description: what it adds, the new checks, and a "Not in this PR" section that is true. Wait for every check to pass. Then send TJ the link with one line on what it is, by PushNotification and in chat. Do not wait for him to merge: go straight on to S2.
 
-### S2. After TJ merges #31
+### S2. Bring S1 into round 5, without waiting for the merge
 
-- [ ] S2a. Close https://github.com/zimmertr/trailhead/pull/22 with a comment (the Renovate rule landed in #31). Tag `pixel-round4-opus` as `archive/pixel-round4-opus` and delete the branch.
-- [ ] S2b. Merge `origin/main` into `pixel-round5` and resolve the conflicts once (S1a's fixes are small). Run the lint over round 5's own code and fix what it finds. Bake. Point https://github.com/zimmertr/trailhead/pull/32 at `main`. Every check passes, "Prototype Smoke" included. Add round 5's new addresses to the spec if it lacks them.
+TJ, 2026-11-16: "Why do we need a wait? I want to run overnight end to end." So nothing here waits for him. `pixel-round5` stays stacked on `pixel-round4-opus`, and https://github.com/zimmertr/trailhead/pull/32 stays pointed at it until #31 merges.
+
+- [ ] S2b. Merge `origin/pixel-round4-opus` into `pixel-round5` and resolve the conflicts once (S1a's fixes are small). Run the lint over round 5's own code and fix what it finds. Bake. Every check on #32 passes, "Prototype Smoke" included. Add round 5's new addresses to the spec if it lacks them.
 - [ ] S2c. **Find out whether the baked ground loads on the artifact host** (open since round 4). Add `baked: true|false` to `window.__info`, publish, open the round's artifact with Claude in Chrome and read the value. Log it in section 11. If it is false, find out why and log that too. Do not halt for it.
 
-### S3. Before the loop restarts
+**Whenever a fetch shows that #31 has merged** (check at the start of every item, as A0 said): close https://github.com/zimmertr/trailhead/pull/22 with a comment (the Renovate rule landed in #31), tag `pixel-round4-opus` as `archive/pixel-round4-opus` and delete the branch, merge `origin/main` into `pixel-round5`, and point #32 at `main`. Log it in section 11 and carry on with the item. Until then, a fix that #31 needs goes on `pixel-round4-opus` and is merged forward the same way as S2b.
+
+### S3. Before section 8 goes on
 
 - [x] S3a. **The lake's size.** TJ chose A on 2026-11-16 ("A is fine"): 1.6 times round 4's width, as built. Nothing to change. The comparison is at https://claude.ai/artifact/HvkoYcpd9EeTznWr6DZKCZ.
 - [ ] S3b. **TJ's screenshots leave the repo** (TJ, 2026-11-16: "Move to an artifact"). Publish every picture in `plan/round5/` on one private artifact page of its own, each with its note's number and its description from section 12. Put the page's link at the top of section 12, then `git rm` the pictures. The water audit's pictures (D4) go on that page too, never into the repo.
 - [ ] S3c. **One command checks an item: `check.sh <item>`.** It runs the syntax check on every file in `www/`, the browser check from S1b, the frame time of the zoomed-out map at Dusk, and writes `out/check/<item>.json` with every trail's points and every placed sign and animal, then prints what moved more than 8 pixels since the item before. Section 9 uses it from here on.
-- [ ] S3d. Set section 10's "Next" line to D5 and tell TJ the loop can restart.
+- [ ] S3d. Set section 10's "Next" line to D5 and carry on with section 8.
 
 ## 1. Why this round exists
 
@@ -681,6 +684,7 @@ One line each, newest last: the item, what was decided, and why.
 - TJ, 2026-11-16, on record 0015 (S1e): "We can defer typescript for now." The record says the world is pixel art and that `web` serves the prototype's plain JS modules as they are. A port to TypeScript is deferred, and type checking through `// @ts-check` and JSDoc is left for its own issue after round 5, which TJ has not asked to be filed yet.
 - The lake page's first pictures were cropped to the wrong part of the map and showed no lake (the planner did not look before publishing). Version 2 shows the whole lake in both sizes.
 - TJ, 2026-11-16, on the lake's size (S3a): "A is fine." The lake stays 1.6 times round 4's width.
+- Plan change (TJ, 2026-11-16): no wait for #31's merge. S1's fixes are merged from `pixel-round4-opus` into `pixel-round5` and the round runs on overnight, stacked as before. The tidy-up after the merge happens at whichever item first sees it.
 
 ## 12. The reference pictures
 
