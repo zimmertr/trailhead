@@ -301,3 +301,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Inflows' Sound** (round 5, F3). A faint rush of water from across the lake when an inflow is in view and the scene is quiet.
 - **Fish Rise at the Plume** (round 5, F3). The rings of rising trout gather where the silt plume meets clear water, as they do at real inlets.
 - **The Mirror Breaks in Wind** (round 5, F3). A gust now and then that ruffles the whole lake for a few seconds, wiping out the mountain's mirror until it settles.
+- **A Limb as a Frame** (round 5, F4). One mossy limb reaching in along the top of the map stop's view, so the forest still frames the lake without a trunk crossing it.
+- **The Stop's View by Window Width** (round 5, F4). Clear the forest edge's giants by how wide the window is, so a very wide screen's stop is as clean as a laptop's.

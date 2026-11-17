@@ -299,8 +299,11 @@ function buildLakeside() {
     const leaf = fbm(col / 5, y / 4, 334, 3), deep = smooth(0, 0.5, m), cl = fbm(col / 17, y / 11, 335, 3), up = fbm(col / 17, (y - 5) / 11, 335, 3);
     woods.set(col, y, pick('moss', 0.4 - 0.2 * deep + 0.3 * (leaf - 0.5) + clamp((cl - up) * 1.6, -0.08, 0.1) + 0.16 * (cl - 0.5) + (m < 0.05 ? 0.16 : 0) - smooth(-60, 6, y) * 0.12, col, y, 0.8));
   }
-  const re = rng(571), edge = [];
-  for (const [dx, w, by, limbs] of [[-262, 30, -8, [[1, 210, 52], [1, 128, 40]]], [-186, 24, -7, [[1, 168, 58], [-1, 250, 36]]], [-118, 18, -6, [[1, 142, 44]]]]) {
+  // Round 5 (T79b): where he stops to read the map, no trunk stands in the view (on a 1440-wide window it
+  // reaches 269 px west of him), so the lake and Mount Monolith show clean across it. The third giant stood
+  // 54 px further east and cut into that view's edge.
+  const re = rng(571), edge = [], CLEAR = X0 + D_MAP - 285;
+  for (const [dx, w, by, limbs] of [[-262, 30, -8, [[1, 210, 52], [1, 128, 40]]], [-186, 24, -7, [[1, 168, 58], [-1, 250, 36]]], [-172, 18, -6, [[1, 142, 44]]]]) {
     const x = X0 + dx, t = { bm: makeTrunk(1500 + dx, w, 300), x, y: g(x) + by, tall: true };
     edge.push(t);
     for (const [dir, up, len] of limbs) edge.push({ bm: makeLimb(2500 + dx + up, len, dir), x: x + dir * (w / 2 - 2), y: t.y - up, z: t.y + 0.1 });
@@ -314,15 +317,19 @@ function buildLakeside() {
   // Behind the trail they stand in clumps with water between, so the lake and its mist show through.
   for (let x = X0 - 150; x < X0 + 210; x += 6 + rw() * 8) {
     const wd = woodAt(x), xr = Math.round(x), clump = vnoise(x / 34, 2, 573);
-    if (rw() < wd * (clump > 0.5 ? 1.1 : 0.12) && Math.abs(x - signX) > 14) things.push({ tree: rw() < 0.25 + 0.5 * wd ? spruces[(rw() * 4) | 0] : firs[(rw() * 6) | 0], x: xr, y: Math.min(g(x) - 4, Math.round(lerp(shore(x) + 5, g(x) - 6, rw()))) });
+    // Beside the map stop only the small firs stand between him and the water, never a tall spruce (T79b).
+    if (rw() < wd * (clump > 0.5 ? 1.1 : 0.12) && Math.abs(x - signX) > 14) things.push({ tree: (rw() < 0.25 + 0.5 * wd) && Math.abs(x - xMap) > 40 ? spruces[(rw() * 4) | 0] : firs[(rw() * 6) | 0], x: xr, y: Math.min(g(x) - 4, Math.round(lerp(shore(x) + 5, g(x) - 6, rw()))) });
     if (rw() < wd * 0.32 && Math.abs(x - X0) > 22 && Math.abs(x - xMap) > 22 && Math.abs(x - signX) > 18) things.push({ tree: rw() < 0.6 ? spruces[(rw() * 4) | 0] : firs[(rw() * 6) | 0], x: xr + Math.round(rw() * 6), y: g(x) + 34 + Math.round(sq(rw()) * 46) });
   }
   for (let x = X0 - 100, n = 0; x < X0 + 50; x += 40 + rw() * 30) {
+    // These few giants stood on the stretch the map stop looks across; every one that would is left out (T79b).
+    // Each still takes its turns of the dice, so the trees and stones after them stand where they did.
     const wd = woodAt(x); if (rw() > wd) continue;
-    things.push({ bm: makeTrunk(1600 + n++, Math.round(11 + 9 * wd), 300), x: Math.round(x), y: g(x) - 4 - Math.round(rw() * 2), tall: true });
+    const y = g(x) - 4 - Math.round(rw() * 2), k = n++;
+    if (x < CLEAR) things.push({ bm: makeTrunk(1600 + k, Math.round(11 + 9 * wd), 300), x: Math.round(x), y, tall: true });
   }
   const maples = [0, 1, 2].map(i => makeMaple(126 + i)), ferns = [7, 9, 12, 15].map((r, i) => swordFern(340 + i, r));
-  for (const [dx, k] of [[-226, 0], [-150, 1], [-88, 2]]) edge.push({ tree: maples[k], x: X0 + dx, y: g(X0 + dx) - 5 });
+  for (const [dx, k] of [[-226, 0], [-150, 1], [-136, 2]]) edge.push({ tree: maples[k], x: X0 + dx, y: g(X0 + dx) - 5 });
   for (let n = 0; n < 64; n++) {
     const x = Math.round(X0 - 330 + re() * 480), wd = woodAt(x), front = re() < 0.6, dy = front ? 7 + sq(re()) * 70 : -5 - re() * 2, k = re();
     if (k > wd + 0.15) continue;
