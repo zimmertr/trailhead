@@ -317,3 +317,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Pot Boils** (round 5, G2). The stove's smoke turns to puffs of steam and the lid rattles now and then, with a small sound.
 - **Ice Axes by the Tent** (round 5, G2). Two axes stuck in the snow beside the tent, one each, and a coiled rope on the rock.
 - **Her Painting Keeps Up** (round 5, G2). The page on Kayti's knee gains a small flag on each tower he has climbed.
+- **Snow That Melts With the Season** (round 5, G3). The patches a little smaller each time the visitor comes back, gone by the tenth visit, with flowers where they lay.
+- **Glacier Lilies at the Snow's Edge** (round 5, G3). A ring of yellow lilies in the wet ground round each patch, as they come up where snow has just gone.
+- **Footprints Kept in the Snow** (round 5, G3). His own prints stay in a patch after he has crossed it, until he leaves the scene.
+- **Watermelon Snow** (round 5, G3). A faint pink stain on the oldest patch, the algae that grow on summer snow.

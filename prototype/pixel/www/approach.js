@@ -56,11 +56,19 @@ const P_FAR = 0.04, P_WALL = 0.09, P_FLOOR = 0.14;
 const gully = x => vnoise(x / 90, 2, 701);
 const STREAM = (() => { let b = X0 + 120, bv = 1; for (let x = X0 + 100; x < X0 + LEN1 * 0.45; x += 2) { const v = gully(x); if (v < bv) { bv = v; b = x; } } return b; })();
 const cold = x => vnoise(x / 110, 3, 702);
-const SNOW = (() => { let b = X0 + LEN1 * 0.7, bv = -1; for (let x = X0 + LEN1 * 0.55; x < X0 + LEN1 * 0.82; x += 2) { const v = cold(x); if (v > bv) { bv = v; b = x; } } return b; })();
-const SNOW_W = 46;
-// How far inside the snow patch a spot is: above 0 inside, near 0 at its ragged edge.
-const snowIn = (x, r) => { const ex = (x - SNOW) / SNOW_W, ey = (r - 3) / (r < 3 ? 9 : 24); return 1 - (ex * ex + ey * ey) - 0.5 * (vnoise(x / 7, r / 4, 703) - 0.5); };
+// The coldest column between two shares of the flower slope, keeping clear of the stream.
+const coldest = (a, b) => { let at = X0 + LEN1 * (a + b) / 2, bv = -1; for (let x = X0 + LEN1 * a; x < X0 + LEN1 * b; x += 2) { const v = cold(x); if (v > bv && Math.abs(x - STREAM) > 50) { bv = v; at = x; } } return at; };
+const SNOW = coldest(0.55, 0.82), SNOW_W = 46;
+// Two more, smaller (round 5, T46): one across the trail early in the walk, and one lying in a hollow of
+// the meadow below it. Each patch: its middle column x, its half width w, the row its middle lies on
+// (0 is the trail), and how far it reaches behind that row and in front of it.
+const PATCHES = [{ x: SNOW, w: SNOW_W, r: 3, back: 9, front: 24 }, { x: coldest(0.04, 0.3), w: 23, r: 2, back: 7, front: 12 }, { x: coldest(0.3, 0.52), w: 33, r: 50, back: 11, front: 17 }];
+// How far inside a snow patch a spot is: above 0 inside, near 0 at its ragged edge. n: only the first n patches.
+const snowIn = (x, r, n = PATCHES.length) => { let m = -9; for (let i = 0; i < n; i++) { const p = PATCHES[i], ex = (x - p.x) / p.w, ey = (r - p.r) / (r < p.r ? p.back : p.front); m = Math.max(m, 1 - (ex * ex + ey * ey) - 0.5 * (vnoise(x / 7, r / 4, 703) - 0.5)); } return m; };
 const inSnow = (x, r) => snowIn(x, r) > 0;
+// On the first patch, which the trees and rocks were scattered round. Whatever falls on a newer patch
+// is made all the same and then left out, so the dice the rest are thrown with do not change.
+const inSnow0 = (x, r) => snowIn(x, r, 1) > 0;
 // Old snow: grey and dirty at its melting edge, sun cups dimpling it, whitest in the middle.
 const snowC = (x, r) => { const k = snowIn(x, r), b = bayer(x, r); return k < 0.08 ? R.snow[b < 0.5 ? 1 : 2] : k < 0.22 ? R.snow[b < 0.4 ? 2 : 3] : vnoise(x / 3, r / 2, 734) > 0.72 ? R.snow[2] : R.snow[k > 0.5 && b < 0.3 ? 4 : 3]; };
 
@@ -196,7 +204,7 @@ function paintMain(S) {
   for (let y = 3; y < S.h - S.up; y++) for (let i = -1; i <= 1; i++) { const x = Math.round(STREAM + i + 2 * Math.sin(y / 7)); S.set(x, g(STREAM) + y, i === 0 ? R.white[1] : R.water[3]); }
   for (const dx of [-3, 0, 3]) { S.set(STREAM + dx, g(STREAM) + 1, R.rock[3]); S.set(STREAM + dx + 1, g(STREAM) + 1, R.rock[2]); }
   // A boot track across the snow: dimples where people have stepped.
-  for (let x = SNOW - SNOW_W; x < SNOW + SNOW_W; x += 3) if (inSnow(x, 0)) S.set(x, g(x) + 1, R.snow[1]);
+  for (const p of PATCHES) for (let x = p.x - p.w; x < p.x + p.w; x += 3) if (inSnow(x, 0)) S.set(x, g(x) + 1, R.snow[1]);
   // Where the meltwater crosses the trail at the ice's edge, stones to step on.
   for (const dx of [-2, 2]) { S.set(RUNNEL + dx, g(RUNNEL) + 1, R.rock[3]); S.set(RUNNEL + dx + 1, g(RUNNEL) + 1, R.rock[2]); }
 }
@@ -336,11 +344,11 @@ function buildApproach() {
   const spire = (seed, H) => makeConifer(seed, H, Math.max(5, Math.round(H * 0.28)), 'conifer', Math.max(5, Math.round(H / 4.5)), { ragged: seed & 1 });
   for (let x = 20; x < SW0 - 20; x += 12 + rand() * 36) {
     const back = rand() < 0.3, r = back ? -2 - Math.round(rand() * 3) : 12 + Math.round(rand() * 150);
-    if (fbm(x / 80, back ? 2 : 3, 727, 2) < 0.45 || inSnow(x, r) || Math.abs(x - STREAM) < 14 || mor(x) > 0.1 || (back && x > ICE0 - 20)) continue;
+    if (fbm(x / 80, back ? 2 : 3, 727, 2) < 0.45 || inSnow0(x, r) || Math.abs(x - STREAM) < 14 || mor(x) > 0.1 || (back && x > ICE0 - 20)) continue;
     const H = back ? Math.round(16 + rand() * 18) : Math.round(22 + rand() * 26 + r * 0.08);
-    things.push({ tree: spire(750 + things.length, H), x: Math.round(x), y: g(x) + r });
+    things.push({ tree: spire(750 + things.length, H), x: Math.round(x), y: g(x) + r, gone: inSnow(x, r) });
   }
-  for (let n = 0; n < 34; n++) { const x = Math.round(rand() * SW0), r = rand() < 0.35 ? -2 - Math.round(rand() * 3) : 8 + Math.round(rand() * 120); if (inSnow(x, r) || Math.abs(x - STREAM) < 8 || mor(x) > 0.1 || (r < 0 && x > ICE0 - 20)) continue; things.push(rand() < 0.5 ? { bm: makeBoulder(760 + n, r < 0 ? 2 + rand() * 3 : 3 + rand() * 6), x, y: g(x) + r } : { bm: makeBush(770 + (n % 3), 'heather'), x, y: g(x) + r }); }
+  for (let n = 0; n < 34; n++) { const x = Math.round(rand() * SW0), r = rand() < 0.35 ? -2 - Math.round(rand() * 3) : 8 + Math.round(rand() * 120); if (inSnow0(x, r) || Math.abs(x - STREAM) < 8 || mor(x) > 0.1 || (r < 0 && x > ICE0 - 20)) continue; things.push({ ...(rand() < 0.5 ? { bm: makeBoulder(760 + n, r < 0 ? 2 + rand() * 3 : 3 + rand() * 6) } : { bm: makeBush(770 + (n % 3), 'heather') }), x, y: g(x) + r, gone: inSnow(x, r) }); }
   // The moraine's stones: big blocks the glacier dropped, sitting on the crest beside the trail and
   // standing out of the flank below it, more of them the further he goes.
   const rs = rng(777);
@@ -367,6 +375,7 @@ function buildApproach() {
   const m2 = SNOW - SNOW_W - 40;
   const M = [{ x: m1, y: g(m1) - 7, rock: makeBoulder(780, 8), seen: -9 }, { x: m2, y: g(m2) + 22, rock: makeBoulder(781, 10), seen: -9 }];
   for (let i = things.length - 1; i >= 0; i--) if (M.some(m => Math.abs(things[i].x - m.x) < 24 && Math.abs(things[i].y - m.y) < 18)) things.splice(i, 1);
+  for (let i = things.length - 1; i >= 0; i--) if (things[i].gone) things.splice(i, 1);
   for (const m of M) { things.push({ bm: m.rock, x: m.x, y: m.y }); let top = 0; while (top < m.rock.h && !m.rock.d[top * m.rock.w + m.rock.ox]) top++; m.top = m.rock.oy - top; }
   const marm = { sun: marmot('sun'), up: marmot('up') };
   const tent = dome('tent'), pot = stove(), kayti = makeKayti(); let waved = -9, now = 0;
