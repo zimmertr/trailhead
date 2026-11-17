@@ -1,8 +1,40 @@
 # Round 5: TJ's 78 notes on round 4
 
-Status: **planned; TJ starts the loop on 2026-11-16 and goes AFK.** He answered every question that day. Then work the checklist in section 8 from the first unticked item, one item at a time, straight through to the end. Round 5 has no checkpoints (section 2).
+Status: **paused on 2026-11-16 at D4 for section 0, which comes first.** Before that: planned; TJ starts the loop on 2026-11-16 and goes AFK. He answered every question that day. Then work the checklist in section 8 from the first unticked item, one item at a time, straight through to the end. Round 5 has no checkpoints (section 2).
 
 This file is written so that someone with no memory of the conversation can do the work exactly as TJ and the planner understood it. Read all of it once, then work the checklist from the top. Where this file and `ROUND4.md` disagree, this file wins.
+
+## 0. Before round 5 goes on (decided with TJ on 2026-11-16)
+
+**Section 0 comes before section 8. Take no item from section 8 until every item here is ticked.**
+
+On 2026-11-16 TJ stopped the loop at D4 and asked for a review. It found that https://github.com/zimmertr/trailhead/pull/31 (round 4 into main) was never merged, that no check in CI loads the game (the site's lint and repo tests skip `prototype/`), that the PRD, the README and `CLAUDE.md` still describe a low-poly 3D world, and that D1 and D2 had drifted from TJ's sketches (corrected the same day, section 11). TJ's words: "we should maybe set up basic CI to enforce linting and whatnot before we do so that everything in that massive PR passes through CI at least once." He agreed to every change below. The planner (Fable) wrote this section. The work is done on Opus, one item at a time, with the same rules as section 2.
+
+### S1. Make #31 checked and true, on branch `pixel-round4-opus`
+
+Work in the scratchpad clone on `pixel-round4-opus`. Commit small and push after each item. **Never merge #31. TJ merges.**
+
+- [ ] S1a. **ESLint covers the prototype.** In `tools/eslint/eslint.config.js`, take `prototype/**` out of `ignores` and add one block for `prototype/**/*.js` with `js.configs.recommended` and browser globals, and one for `prototype/**/*.mjs` with Node globals. None of the site's TypeScript or comment rules apply there. Measured on 2026-11-16 on `www/`: 59 findings, 55 `no-unused-vars` and 4 `no-undef`. Fix each by hand. An unused name can be a missed call, so read the code round it before deleting, and treat each `no-undef` as a possible bug. Before the first fix, film the reference views with `frames.sh` (its clock is fixed, so the same code gives the same frames). After the last fix, film them again. Any difference is a bug in a fix.
+- [ ] S1b. **A browser check loads the game.** A Playwright spec in `e2e/` (the tool the repo already uses), run in Docker by a `make` target modelled on `make browser`, and by a new job "Prototype Smoke" in `.github/workflows/pr.yml`. It serves `prototype/pixel/www` and opens: the Trailhead, each of `route=lake`, `route=stack` and `route=spires` at `p` 0.05, 0.5 and 0.95, one `route=spire:<id>`, `#register` and an address that is off route. Each must reach `window.__ready`, with no page error and no console error or warning. The page warns on localhost when `ground.png` no longer matches the map, so the same check catches a stale bake. Assert in the spec, never with shell in the workflow.
+- [ ] S1c. **The repo-wide tests walk `prototype/` again.** In `tests/repo.ts`, stop skipping the folder as a whole. A0 found two tests that failed on it (a Dockerfile that is not a service, and `npm i` in it). Skip only what is about the site's services, each with a one-line reason, and fix what is a real finding.
+- [ ] S1d. **No comment points at a file that is not there.** The comments A0 added to `tests/repo.ts` and `tools/eslint/eslint.config.js` name `ROUND5.md`, which is not in #31. Point them at the prototype's row in `CLAUDE.md`.
+- [ ] S1e. **Decision record 0015: the world is pixel art.** TJ was asked on 2026-11-16 whether it should also say that `web` serves the prototype's plain JS as it is (the planner's recommendation, with type checking through `// @ts-check` and JSDoc added file by file later, as its own issue after round 5). If section 11 holds his answer, record it. If not, the record says only that the world is pixel art and that https://github.com/zimmertr/trailhead/issues/14 decides how it is served. The record supersedes the PRD's "Low-poly throughout". Bring `docs/PRD.md` and `CLAUDE.md` into line with it: the places' names as the game shows them (Reflection Lake, Proficiency Peak, Mount Monolith, Sideproject Spires), the pixel renderer in place of WebGL, and the phases as they now stand. In `README.md` change only the sentences that are now untrue, in TJ's voice, and quote each changed sentence in the PR's description for him to approve.
+- [ ] S1f. **Round 4's two open ends are closed** (TJ, 2026-11-16: "Close both"). In `ROUND4.md`, mark J6 closed (the walk gets no find unless TJ picks one later) and the list of what was still below round 3 closed (his 78 round 5 notes replace it).
+- [ ] S1g. **Issues that no longer say what is true.** Read https://github.com/zimmertr/trailhead/issues/5 ("The world has no sound"), https://github.com/zimmertr/trailhead/issues/9 ("The repo has no code, build or CI yet") and the pair https://github.com/zimmertr/trailhead/issues/6 and https://github.com/zimmertr/trailhead/issues/35 (both about Strava and Peakbagger). Check each against the repo. Close nothing. Write what you found and what you would do with each into the report for TJ.
+- [ ] S1h. **Hand #31 to TJ.** Rewrite its description: what it adds, the new checks, and a "Not in this PR" section that is true. Wait for every check to pass. Then send TJ the link with one line on what it is, by PushNotification and in chat.
+
+### S2. After TJ merges #31
+
+- [ ] S2a. Close https://github.com/zimmertr/trailhead/pull/22 with a comment (the Renovate rule landed in #31). Tag `pixel-round4-opus` as `archive/pixel-round4-opus` and delete the branch.
+- [ ] S2b. Merge `origin/main` into `pixel-round5` and resolve the conflicts once (S1a's fixes are small). Run the lint over round 5's own code and fix what it finds. Bake. Point https://github.com/zimmertr/trailhead/pull/32 at `main`. Every check passes, "Prototype Smoke" included. Add round 5's new addresses to the spec if it lacks them.
+- [ ] S2c. **Find out whether the baked ground loads on the artifact host** (open since round 4). Add `baked: true|false` to `window.__info`, publish, open the round's artifact with Claude in Chrome and read the value. Log it in section 11. If it is false, find out why and log that too. Do not halt for it.
+
+### S3. Before the loop restarts
+
+- [ ] S3a. **The lake's size.** TJ chooses on https://claude.ai/artifact/HvkoYcpd9EeTznWr6DZKCZ between A (1.6 times round 4's width, built today) and B (2.2 times, his outline in `plan/round5/30-*`). If section 11 holds his answer, build it (B needs the bench widened without the tan stripes of the mock-up, both streams reaching the lake, the shore trail clear of the water and the lake scene's shore lengthened in step). If not, keep A and log that.
+- [ ] S3b. **TJ's screenshots leave the repo** (TJ, 2026-11-16: "Move to an artifact"). Publish every picture in `plan/round5/` on one private artifact page of its own, each with its note's number and its description from section 12. Put the page's link at the top of section 12, then `git rm` the pictures. The water audit's pictures (D4) go on that page too, never into the repo.
+- [ ] S3c. **One command checks an item: `check.sh <item>`.** It runs the syntax check on every file in `www/`, the browser check from S1b, the frame time of the zoomed-out map at Dusk, and writes `out/check/<item>.json` with every trail's points and every placed sign and animal, then prints what moved more than 8 pixels since the item before. Section 9 uses it from here on.
+- [ ] S3d. Set section 10's "Next" line to D5 and tell TJ the loop can restart.
 
 ## 1. Why this round exists
 
@@ -450,7 +482,6 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] D1. T6: the trail rework: the new direct Spires trail, the new bottom trail, the two removed stretches and their bridges, the loop kept. Update the routes, `lakeIn`, `lakeOut` and `spiresIn`, the trail map sheet, the sign's distances (T45) and click to move.
 - [x] D2. T30: Reflection Lake about 1.6 times wider, two moraine lakes under Monolith's ice, and the second river. Both streams flow into the lake.
 - [x] D3. T28: remove the oxbow and the heron.
-- [ ] D4. T17, T24: the water audit. Every join is listed, fixed and pictured.
 - [ ] D5. T25: rivers carry on across the beach at low tide.
 - [ ] D6. T79a: the river mouth shows through the sea fog.
 - [ ] D7. T10: the fire lookout on Off By One Peak.
@@ -461,9 +492,11 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [ ] D12. T64 (map part): iron rungs up the cliff below the plateau, and the hook straightened into an arc.
 - [ ] D13. T8: driftwood redrawn.
 - [ ] D14. T48 (map part): the tent moved up the glacier onto a rock island. T49: one yellow-orange tent on the map.
+- [ ] D4. T17, T24: the water audit. Every join is listed, fixed and pictured. **Moved to the end of section D on 2026-11-16**, because every D item after it changes the land and the water with it. Three fixes are already in (the lake's outflow runs over its lip into the fall, the west river's channel on the sand joins the river, and a stream that drops off a cliff gets a fall down the face). Run the whole audit from the start. Its pictures go on the notes artifact (S3b), not into the repo.
 
 ### E. Events and animals on the map
 
+- [ ] E0. **Room for the animals.** On 2026-11-16 the zoomed-out map took 14.9 ms a frame at Dusk and 15.5 ms through the sunset blend, against a limit of 16.7 ms (round 4: 13.5 ms at Dusk). Before any animal is added, find what the round has cost so far (profile C1's collision, C3's clock and blend, C4's overlays when off) and bring both views to 13.5 ms or under. If that cannot be done, log what was tried and what each new animal may cost, and carry on.
 - [ ] E1. T15: the ferry and the orcas keep to deep water at every tide (check through a whole tide cycle on film).
 - [ ] E2. T26: jellyfish offshore.
 - [ ] E3. T33: the tide pool twice the size, with animated animals.
@@ -526,10 +559,11 @@ Work it from the top, one item at a time. An item is done when it does what sect
 ### J2. Read it as a page
 
 - [ ] J2. P2: the PAGE view with every card's text, opening from the top bar, the trail map sheet and `#page`. Keyboard and phone checked.
+- [ ] J3. **The fonts come from the page's own files.** `index.html` fetches eight font families from Google on every load, a call to someone else's server that the real site would have to answer for. Keep only the families the page uses, serve them as `woff2` files beside the page, add their licences to `NOTICES.md`, and add the files to the publish list in section 2. The page must look the same, with slow fonts too (B9).
 
 ### K. Whole-site checks and the report
 
-- [ ] K1. Every route walked from start to finish, through every stop, in AUTO, DAY and DUSK, on desktop and phone, with a clean console. Click to move tested on every trail.
+- [ ] K1. Every route walked from start to finish, through every stop, in AUTO, DAY and DUSK, on desktop and phone, with a clean console. Click to move tested on every trail. **For a visitor who asked for reduced motion** (`CALM=1` with `frames.sh`): the idle tour never starts, and AUTO holds Day until the visitor chooses (planner's call, after the PRD's "nothing plays by itself"; TJ can overrule it).
 - [ ] K2. Every view beside its round 4 picture. A list for TJ of anything still below round 4, and what fixing it would mean. Nothing is put back on your own.
 - [ ] K3. Frame time for every view (section 7's list plus the new views) under 16.7 ms. Ready in under 0.9 s. Colours counted.
 - [ ] K4. The off-route page, a scene that throws and one that fails to load all behave as before. Breaking from the public DEBUG menu works.
@@ -540,13 +574,15 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 1. Fetch. Make sure `pixel-round5` is pushed and up to date. Read sections 2, 5 (the part for this item), 10 and 14.
 2. Render round 4's picture of the view (from `out/r4/`), or film it if it moves.
-3. Make the change. Run `./bake.sh` if `land.js`, `core.js` or anything `land.js` imports changed. Run the syntax check.
+3. Make the change. Run `./bake.sh` if `land.js`, `core.js` or anything `land.js` imports changed. Run `./check.sh <item>` (S3c).
+   - **If the land changed, read what `check.sh` says moved.** The trails are routed afresh on every build and every sign and animal is placed by rule, so a change to the land can move any of them without a word. That is how D2 moved D1's trail. If a trail moved, lay it beside TJ's sketch again (`plan/round5/06-*`, on the notes artifact after S3b). If an animal moved, look at where it stands now.
 4. Render the new view the same way. Lay it beside round 4's with `sheet.sh` and look. Film anything that moves. Check Day and Dusk, desktop and phone.
 5. If anything is worse than round 4, fix it before going on.
-6. Measure frame time for any view the change touches.
+6. Measure frame time for any view the change touches. **For every item that touches the map, log the zoomed-out Dusk number in section 11**, as `check.sh` prints it. Steps 4 and 6 were skipped on D1 to D3, and nobody noticed until the review.
 7. Tick the item. Log each call you made in one line in section 11. Update section 10. Add ideas to `IDEAS.md`. Check for em dashes.
 8. Commit with a message that says what changed, then push.
 9. Export and republish the round's one artifact with a short label (for example "D2 bigger lake").
+10. **At the end of each section (D, E, F with G, H, I), tell TJ**: one PushNotification with the artifact's version and three lines on what the section changed and what he should look at first. Do not wait for an answer. This is not a checkpoint. It is there so that a wrong turn is seen within a section, not at the end of the round. Sections H and I redraw whole scenes that round 4 has no picture of, so say plainly what is new.
 
 The loop prompt TJ can start round 5 with (paste it after `/loop`):
 
@@ -582,7 +618,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **D3 done.** The oxbow and the heron are gone: the rule that cut a crescent of still water beside the river's widest swing, its still-water colour, the heron's spot, drawing, behaviour and debug button, and the heron in the Wildlife note. The rivers still wander over flat ground as in round 4.
 - **Review of D1 to D3 (2026-11-16, with TJ present), and what it corrected.** D1 and D2 were laid beside TJ's two sketches again (`plan/round5/06-*` and `30-*`). Three things were wrong and are fixed: the bottom trail joined the old trail 200 too far west, deep in the forest, and after D2 changed the land it ran along the very bottom of the map and through the rainforest by the beach; the lakeshore trail ran through the west end of the bigger lake (317 trail pixels under water); and the new stream from the left moraine lake came down ruled straight. Now the bottom trail crosses the open meadow to the forest's edge as TJ drew it, past the elk, the Spires trail comes up to camp by the old approach's last stretch, no trail pixel lies in the lake, and the stream wanders. D4 is part done (its fixes are committed, its list and pictures are not) and must be run again from the start, because the trails and streams moved.
 - **Frame time, first measured this round on 2026-11-16 after the corrections** (round 4's number in brackets): map with all events 3.9 ms (3.4), zoomed out 11.6 (12.0), Dusk zoomed out 14.9 (13.5), zoomed out during the sunset blend 15.5 (new view), phone 2.0 (2.5), shore 3.2 (3.3). Ready in 0.78 to 0.80 s. The limit is 16.7 ms: the zoomed-out map at Dusk and in the blend has about 1 ms left.
-- Next: D4.
+- **Paused on 2026-11-16 for section 0** (the review, CI for the prototype, #31's merge, and the plan's changes). D4 is part done and now sits at the end of section D.
+- Next: S1a (section 0). After section 0, D5.
 
 ## 11. Calls made in round 5
 
@@ -638,6 +675,9 @@ One line each, newest last: the item, what was decided, and why.
 - Review: steps 4 and 6 of section 9 (Dusk and phone, frame time) were skipped on D1 to D3, and no frame time had been logged for any item this round. The numbers are in section 10 now. From here each map item logs the zoomed-out Dusk number.
 - Review: the idea "Tap, Not Click, on Phones" was wrong and is removed from `IDEAS.md`. B11 already shows "Tap" on a touch screen; the phone-sized render uses a mouse, so it showed "Click".
 - Review, left for TJ: his outline of the bigger lake in `30-*` measures about 2.2 times the old width and reaches further north; the plan says 1.6 times and that is what is built. The marmots' rule now puts one beside the tents at base camp (E11 gives them a new home). Facing changes on the Spires route went from 6 to 7.
+- Plan change (TJ, 2026-11-16): section 0 added, to be done before any more of section 8. TJ's answers that day: fix everything the review listed, set up basic CI for the prototype before #31 merges, move the screenshots to an artifact, close round 4's two open ends, and the planner writes the plan while Opus builds.
+- Plan change (planner, 2026-11-16): D4 moved to the end of section D; E0 (frame time before the animals), J3 (the page's own fonts) and the reduced-motion line in K1 added; section 9 gained the look at what moved after a change to the land, the zoomed-out Dusk number for every map item, and a notification to TJ at each section's end.
+- Open with TJ on 2026-11-16: which lake size (https://claude.ai/artifact/HvkoYcpd9EeTznWr6DZKCZ), and whether record 0015 says `web` serves the plain JS as it is. He asked for the pros and cons of TypeScript against JS and got them in chat. The planner recommends plain JS, checked later through `// @ts-check`.
 
 ## 12. The reference pictures
 
