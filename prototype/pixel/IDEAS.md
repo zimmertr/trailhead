@@ -290,3 +290,10 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Bigleaf Maple** (round 5, F1). One broad, many-armed maple in the middle ground, every arm sleeved in moss, to break the row of straight conifer trunks.
 - **Devil's Club and Skunk Cabbage** (round 5, F1). Two more rainforest plants for the wet ground by the creek: big spiny leaves, and yellow hoods in spring.
 - **Drip From the Beard** (round 5, F1). After the shower event, a drop falling now and then from the tips of the hanging lichen.
+- **Monolith Rises Over the Rim** (round 5, F2). As he climbs the legs, Mount Monolith's summit comes up over the rock band's rim, so the lakeshore's big view is promised before the scene changes.
+- **The Fall's Roar** (round 5, F2). A waterfall sound in the forest scene that grows as he nears the rock band, over the forest's own ambience.
+- **A Rainbow in the Spray** (round 5, F2). A faint arc in the mist at the fall's foot when the light shafts fall on it, by Day only.
+- **A Dipper on the Pool** (round 5, F2). An American dipper bobbing on a stone in the fall's pool and diving in, as they do below every Cascade waterfall.
+- **Walking Down the Legs** (round 5, F2). If the loop is ever walked the other way, the same legs taken downhill, with him leaning back.
+- **Wet Rock Glints** (round 5, F2). A few pixels of the rock beside the fall catching the light now and then, where the spray keeps it wet.
+- **A Bench at the Rim** (round 5, F2). A log bench where the top leg meets the rim, looking back over the forest's canopy.
