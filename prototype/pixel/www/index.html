@@ -197,6 +197,8 @@ button.name { pointer-events: auto; }
 #debug .row { display: flex; gap: calc(var(--px) * 1.5); }
 #debug select { flex: 1; min-width: 0; font: inherit; font-family: var(--small); font-size: 15px; padding: calc(var(--px) * 1); background: var(--paper); color: var(--paper-ink); border: var(--px) solid var(--ink); }
 #debug .row .plank { width: auto; }
+#debug .tune { align-items: center; } #debug .tune > span { flex: 1; font-family: var(--small); font-size: 15px; }
+#debug .chips { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 1.5); } #debug .chips .plank { width: auto; min-height: 0; padding: calc(var(--px) * 1) calc(var(--px) * 2); font-size: 13px; }
 #debug input[type=range] { display: block; width: 100%; box-sizing: border-box; margin: 0; accent-color: var(--wood-3); }
 #debug .row:has(select + select) { flex-wrap: wrap; } #debug .row:has(select + select) select { flex-basis: 40%; }
 #debug .speeds { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--px) * 1.5); }

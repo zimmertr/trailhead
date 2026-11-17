@@ -148,12 +148,14 @@ export function makeAudio() {
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     n.connect(f); f.connect(g); g.connect(out); n.start(t, Math.random()); n.stop(t + dur + 0.02);
   }
+  // The sound test (P3): solo is 'a' or 'b' while one part of one tune plays round and round, else null.
+  let solo = null;
   function schedule() {
     if (!ctx || ctx.state !== 'running') return;
     const tr = TRACKS[cur], dt = 60 / tr.bpm / tr.div, len = tr.lead.length;
     while (nextAt < ctx.currentTime + 0.25) {
       // sec: which third of a play this is. pass: how many plays of this tune have gone by.
-      const sec = Math.floor(step / len) % 3, pass = Math.floor(step / (len * 3)), P = sec === 1 ? tr.b : tr;
+      const sec = solo ? (solo === 'b' ? 1 : 0) : Math.floor(step / len) % 3, pass = Math.floor(step / (len * 3)), P = sec === 1 ? tr.b : tr;
       const i = step % len, hold = (l, k) => { let n = 1; while (l[(k + n) % len] === '.' && n < 16) n++; return n; };
       const V = SETS[set], up = V.octave || 1, dv = V.drums;
       const a = P.lead[i]; if (a !== '.' && a !== '-') {
@@ -258,6 +260,12 @@ export function makeAudio() {
     // The track button: Auto, then each track in turn, then Auto again. A track picked here stays until Auto comes round.
     cycle() { const at = swap == null ? cur : swap; if (auto) { auto = false; fadeTo(0, true); } else if (at + 1 >= TRACKS.length) { auto = true; fadeTo(PLACES[place][0], true); } else fadeTo(at + 1, true); try { if (auto) localStorage.removeItem('trailhead.track'); else localStorage.setItem('trailhead.track', String(swap == null ? cur : swap)); } catch { /* private window */ } },
     set: () => ({ index: set, name: SETS[set].name, count: SETS.length }),
+    // The debug menu's sound test (P3): every effect by its name here, every tune's two parts on their own,
+    // and every place's background sound.
+    fxNames: () => Object.keys(FX),
+    tunes: () => TRACKS.map(t => t.name),
+    preview(k, part) { start(); auto = false; solo = part; if (k === cur && swap == null) { step = 0; if (ctx) nextAt = ctx.currentTime + 0.05; } else fadeTo(k, true); },
+    endPreview() { solo = null; auto = true; turn = 0; fadeTo(PLACES[place][0], true); },
     setSet(i) { set = ((i % SETS.length) + SETS.length) % SETS.length; try { localStorage.setItem('trailhead.set', String(set)); } catch { /* private window */ } return SETS[set].name; },
     // How much the music steps back: 0 out in the world, 1 while a card is being read, 2 under a sheet.
     focus(lv) { if (!music) return; level = [0.22, 0.15, 0.13][lv] || 0.22; if (swap == null) { music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(level, ctx.currentTime, 0.25); } tone0.frequency.setTargetAtTime(lv === 2 ? 900 : 16000, ctx.currentTime, 0.2); }

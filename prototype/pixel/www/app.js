@@ -241,6 +241,11 @@ function openDebug(on) {
     el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, api.now(), { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
     el('h3', { text: D.scene }), ...Object.keys(D.scenes).filter(s => s !== 'offroute').map(s => el('button', { class: 'plank', onclick: () => { hideCard(); closeSheet(); api.jumpTo(s).then(() => { buildMarks(); openDebug(true); }); audio.sfx('step'); } }, el('span', { text: D.scenes[s] }))),
     el('button', { class: 'plank', onclick: () => navigate('#off-route') }, el('span', { text: D.offRoute })),
+    // The sound test (P3): every effect, each part of every tune, each place's background, as named in audio.js.
+    el('h3', { text: D.sounds }), el('p', { class: 'legend', text: D.effects }), el('div', { class: 'chips' }, ...audio.fxNames().map(n => el('button', { class: 'plank', onclick: () => { audio.start(); audio.sfx(n); } }, el('span', { text: n })))),
+    el('p', { class: 'legend', text: D.tunesH }), ...audio.tunes().map((n, k) => el('div', { class: 'row tune' }, el('span', { text: n }), el('button', { class: 'plank', onclick: () => audio.preview(k, 'a') }, el('span', { text: 'A' })), el('button', { class: 'plank', onclick: () => audio.preview(k, 'b') }, el('span', { text: 'B' })))),
+    el('button', { class: 'plank', onclick: () => audio.endPreview() }, el('span', { text: D.backToAuto })),
+    el('p', { class: 'legend', text: D.places }), el('div', { class: 'chips' }, ...['world', 'forest', 'lakeside', 'larches', 'wall', 'approach', 'camp'].map(n => el('button', { class: 'plank', onclick: () => { audio.start(); audio.ambience(n, true); } }, el('span', { text: n })))),
     el('h3', { text: D.breakGroup }),
     el('button', { class: 'plank', onclick: () => api.breakScene() }, el('span', { text: D.breakScene })),
     el('p', { class: 'legend', text: D.note }));

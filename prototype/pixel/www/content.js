@@ -185,6 +185,7 @@ export const UI = {
     animals: { elk: 'Elk', goat: 'Mountain goats', sheep: 'Bighorn sheep', bear: 'Black bear', marmot: 'Marmots', squirrel: 'Squirrels', gulls: 'Gulls', birds: 'Crows' },
     spawn: 'Spawn', spawnAll: 'everywhere it lives', near: 'near', scene: 'Jump to a scene', breakGroup: 'Break a scene', inScene: 'In this scene', mapEvents: 'On the map',
     scenes: { forest: 'Forest', lakeside: 'Reflection Lake', larches: 'Larch basin', wall: 'West Ridge', approach: 'Walk to base camp', camp: 'Base camp', climb: 'A Spires climb', register: 'Trail register', offroute: 'Off route' },
+    sounds: 'Sounds', effects: 'Effects', tunesH: 'Tunes, one part at a time', places: 'Background', backToAuto: 'Music back to Auto',
     noGo: 'No-go areas', noGoKinds: { '': 'off', boat: 'Ferry', whale: 'Whale', swimmer: 'Orcas', floater: 'Jellyfish', land: 'Land animals' }, zoom: 'Zoom', cats: 'Cats', set: 'Set', offRoute: 'Go to the off-route page', breakScene: 'Break this scene',
     toggles: { trees: 'Trees', clouds: 'Clouds', mist: 'Mist', labels: 'Labels', animals: 'Animals', roam: 'Roam areas', taps: 'Tap targets', trails: 'Trail lines', camera: 'Camera limits', snap: 'Snap to pixels' },
     speed: 'Time', speeds: ['Pause', '0.5\u00d7', '1\u00d7', '2\u00d7', '4\u00d7', '8\u00d7'],
