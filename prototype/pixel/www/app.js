@@ -293,10 +293,12 @@ function plainOnly() {
   openPlain();
 }
 // A scene broke under him: he is put on the off-route page and told why. If it is worse than that, plain text.
+// It does not count as finding the off-route page (M4): that find is for an address that goes nowhere, and
+// its toast hid the line saying why he is there.
 async function washedOut(e) {
   if (e.fatal) return plainOnly();
   hideCard(); closeSheet(); say(UI.broken, 6000);
-  await api.setRoute('off-route'); buildMarks(); api.goto('off-route'); api.find('offroute');
+  await api.setRoute('off-route'); buildMarks(); api.goto('off-route');
 }
 function closePlain() { plain.hidden = true; }
 
