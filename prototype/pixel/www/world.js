@@ -642,7 +642,7 @@ export function makeWorld() {
     return { kind, name: UI.debug.animals[kind] || kind, homes: names.map(n => names.filter(m => m === n).length > 1 ? n + ' ' + (seen[n] = (seen[n] || 0) + 1) : n) }; });
 
   return {
-    name: 'world', paths, spawnList, spawn: (kind, i) => crit.spawn(kind, i), lakeIn, lakeOut, spiresIn, T, WW, WH,
+    name: 'world', paths, spawnList, spawn: (kind, i) => { const ok = crit.spawn(kind, i); for (const it of crit.items) if (!things.includes(it)) { things.push(it); still = null; } return ok; }, lakeIn, lakeOut, spiresIn, T, WW, WH,
     // For the trail map sheet (L9): the peak's summit and the six Spires summits on the map, and the picture's
     // frame: the box round the Trailhead and the three destinations' countries with a margin, widened to the
     // sheet's shape (8 by 5) and kept on the map.

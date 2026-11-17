@@ -1,4 +1,4 @@
-// The animals of the world map and the water that moves: herds that graze and wander, a bear, squirrels
+// The animals of the world map and the water that moves: herds that graze and wander, bears with cubs, squirrels
 // and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
 import { TAU, clamp, lerp, smooth, frac, hash, vnoise, rng, R, INK, SHADE, KIND, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
@@ -17,6 +17,30 @@ export function mapBear(pose, step = 0) {
   thick(b, 18, 7, hx - 1, hy, 4, R.fur[1]); ell(b, hx, hy, 2.8, 2.5, fur);
   b.set(hx + 3, hy + 1, R.dirt[2]); b.set(hx + 4, hy + 1, R.dirt[2]); b.set(hx + 3, hy + 2, R.dirt[1]);
   b.set(hx - 1, hy - 3, R.fur[1]); b.set(hx + 1, hy - 3, R.fur[1]); b.set(hx + 1, hy - 1, R.white[1]);
+  outline(b, INK);
+  return b;
+}
+// A black bear cub, facing right: half its mother's length, with a cub's big head and round ears. pose: 'look';
+// 'sniff', nose down; 'roll', on its back with its paws in the air; 'rear', up on its hind legs to bat at its
+// twin; 'climb', seen from behind as it hugs a trunk. step is the second drawing of each.
+export function mapCub(pose, step = 0) {
+  const b = new BM(15, 12); b.ox = 7; b.oy = 11;
+  const fur = (nx, ny, x, y) => pick('fur', 0.6 - ny * 0.3 + 0.2 * (hash(x, y, 9) - 0.5), x, y, 0.6), dark = R.fur[1];
+  if (pose === 'climb') {
+    ell(b, 7, 7, 2.6, 3.2, fur); ell(b, 7, 3, 2.2, 1.8, fur); b.set(5, 1, dark); b.set(9, 1, dark);
+    b.set(4, step ? 4 : 5, dark); b.set(10, step ? 5 : 4, dark); b.set(4, step ? 10 : 9, dark); b.set(10, step ? 9 : 10, dark);
+  } else if (pose === 'rear') {
+    ell(b, 6, 7, 2.5, 3.2, fur); ell(b, 7.5, 3, 2.1, 1.8, fur); b.set(6, 1, dark); b.set(8, 1, dark);
+    b.set(10, 4, R.dirt[2]); thick(b, 8, 6, 10, step ? 5 : 7, 1, dark); b.set(5, 10, dark); b.set(7, 10, dark);
+  } else if (pose === 'roll') {
+    ell(b, 6.5, 8, 3.6, 2.2, fur); ell(b, 11, 8, 2, 1.8, fur); b.set(13, 8, R.dirt[2]); b.set(11, 6, dark);
+    b.set(4, step ? 5 : 4, dark); b.set(5, step ? 4 : 5, dark); b.set(8, step ? 4 : 5, dark); b.set(9, step ? 5 : 4, dark);
+  } else {
+    for (const [lx, far] of [[4, 1], [5, 0], [8, 1], [9, 0]]) { const sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 8, lx + sw, 10, 1, R.fur[far ? 0 : 1]); }
+    ell(b, 6.5, 6.5, 3.6, 2.3, fur);
+    const hx = 11, hy = pose === 'sniff' ? 8 : 5;
+    ell(b, hx, hy, 2.1, 1.8, fur); b.set(hx - 1, hy - 2, dark); b.set(hx + 1, hy - 2, dark); b.set(hx + 2, hy + 1, R.dirt[2]);
+  }
   outline(b, INK);
   return b;
 }
@@ -115,7 +139,7 @@ export function makeCritters(W, opts = {}) {
   const onSea = (x, y) => onSeaAt(x, y);
   // The map animals the debug menu can place (C4), and the homes each one's own rule chose for it (habitat in land.js).
   const SPAWN = ['elk', 'goat', 'sheep', 'bear', 'marmot', 'squirrel', 'eagle', 'osprey'];
-  const homesOf = k => k === 'eagle' ? TOPS.map(p => [p.x, p.s.y]) : k === 'osprey' ? (OSPREY ? [OSPREY.dive] : []) : k === 'elk' ? [spots.elk[0].slice(0, 2)] : k === 'goat' ? spots.goats.filter(g => !g[2]).map(g => g.slice(0, 2)) : k === 'bear' ? [spots.bear.slice(0, 2)] : (k === 'squirrel' ? spots.squirrels : spots[k === 'sheep' ? 'sheep' : 'marmots']).map(g => g.slice(0, 2));
+  const homesOf = k => k === 'eagle' ? TOPS.map(p => [p.x, p.s.y]) : k === 'osprey' ? (OSPREY ? [OSPREY.dive] : []) : k === 'elk' ? [spots.elk[0].slice(0, 2)] : k === 'goat' ? spots.goats.filter(g => !g[2]).map(g => g.slice(0, 2)) : k === 'bear' ? [...(spots.bearHome ? [spots.bearHome.slice(0, 2)] : []), spots.bear.slice(0, 2)] : (k === 'squirrel' ? spots.squirrels : spots[k === 'sheep' ? 'sheep' : 'marmots']).map(g => g.slice(0, 2));
   // Where the trees stand, so a wandering animal goes round them, and the ground just behind anything
   // tall (a tree, a snag, a big rock), where it would stand hidden.
   const CELL = 8, GW = Math.ceil(NW / CELL), GH = Math.ceil(NH / CELL), wood = new Uint8Array(GW * GH), hid = new Uint8Array(GW * GH);
@@ -127,7 +151,9 @@ export function makeCritters(W, opts = {}) {
   const kindAt = (x, y) => KIND[g[Math.round(y) * NW + Math.round(x)]];
   const clear = (x, y) => x > 8 && y > 8 && x < NW - 8 && y < NH - 4 && W.open(x, y) && !wood[Math.floor(y / CELL) * GW + Math.floor(x / CELL)] && !wood[Math.floor((y - 5) / CELL) * GW + Math.floor(x / CELL)] && !hid[Math.floor(y / CELL) * GW + Math.floor(x / CELL)];
   const meadow = (x, y) => clear(x, y) && kindAt(x, y) >= 1 && kindAt(x, y) <= 3 && W.forestAmt(x, y) < 0.45 && !W.nearTrail(x, y, 5);
-  const way = (ok, x0, y0, x1, y1) => { for (let k = 1; k <= 5; k++) if (!ok(x0 + (x1 - x0) * k / 5, y0 + (y1 - y0) * k / 5)) return false; return true; };
+  // A straight line an animal may walk: every 3 px of it is ground it may stand on. (Until E9 it was tried at
+  // five points however long it was, and a bear could step over a creek between two of them.)
+  const way = (ok, x0, y0, x1, y1) => { const n = Math.max(5, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 3)); for (let k = 1; k <= n; k++) if (!ok(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)) return false; return true; };
 
   // ---- the animals that graze and wander ----------------------------------------------------
   const elkBull = { look: makeElk(false), graze: makeElk(true), walk: [makeElk(false, 1), makeElk(false, 2)] };
@@ -147,11 +173,82 @@ export function makeCritters(W, opts = {}) {
   spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look' }));
   spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null }));
   spots.sheep.forEach(([x, y, d]) => walker('sheep', ram, x, y, { faces: 1, r: 34, v: 6, ok: clear, start: d ? 'graze' : 'look' }));
-  // The bear is not always about: it is there on roughly one visit in three. For screenshots, bear=1 or
-  // bear=0 in the address settles it.
   const asked = typeof location !== 'undefined' && /[?&]bear=([01])/.exec(location.search);
-  const addBear = () => walker('bear', bearF, spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 7, ok: meadow, roam: 0.4 });
-  if (opts.bear != null ? opts.bear : asked ? asked[1] === '1' : Math.random() < 0.35) walker('bear', bearF, spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 7, ok: meadow, roam: 0.4 });
+  // The bears (round 5, T34 and T44): each is a sow with two cubs. The cubs keep within a few pixels of her:
+  // when she moves off they trail her, one at each side, and while she stays they sniff about, roll on their
+  // backs, rear up and bat at each other, and now and then one climbs a step up the nearest trunk, clings
+  // there and comes down. A cub is not a walker: cubStep moves it.
+  const cubF = { look: mapCub('look'), sniff: mapCub('sniff'), walk: [mapCub('look', 1), mapCub('look', 2)], roll: [mapCub('roll'), mapCub('roll', 1)], rear: [mapCub('rear'), mapCub('rear', 1)], climb: [mapCub('climb'), mapCub('climb', 1)] };
+  // v: a cub's speed. near, far: how far from her it may be while she walks, and while she stays. up: seconds to climb. high: how far up.
+  const CUB = { v: 13, near: 28, far: 34, up: 1.3, high: 6 };
+  const TRUNKS = W.things.filter(th => th.tree && !th.tree.low && th.tree.h >= 18).map(th => ({ x: th.x, y: th.y, w: th.tree.w, h: th.tree.h }));
+  // The nearest trunk a cub may climb: close to it and to her (the start button reaches twice as far), with no other tree standing in front of its foot.
+  const trunkFor = (a, reach = 22) => { let top = null, bd = reach; for (const T of TRUNKS) { const d = Math.hypot(T.x - a.fx, (T.y - a.fy) / 0.6); if (d >= bd || Math.hypot(T.x - a.mum.fx, (T.y - a.mum.fy) / 0.6) > reach + 8) continue; if (TRUNKS.some(Q => Q !== T && Q.y > T.y && Q.y - T.y < Math.min(Q.h, 30) && Math.abs(Q.x - T.x) < Q.w / 2 + 2)) continue; top = T; bd = d; } return top; };
+  const cubOf = (sow, n, twin) => { const [ax, ay] = besideHer({ mum: sow, n, sib: twin }, 22, 3 + n), x = Math.round(sow.x + ax), y = Math.round(sow.y + ay); return { critter: 'bear', cub: true, mum: sow, n, f: cubF, bm: cubF.look, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'idle', pose: 'look', until: 1 + rand() * 4, flip: rand() < 0.5, hop: 0, lift: 0 }; };
+  // A family needs room: she is put on the nearest ground to her spot, up to 90 away, that has a clear place for a cub on each side of her.
+  const family = (x, y, o, roamer) => { const g = (px, py) => o.ok(px, py) && land(px, py), room = (px, py) => g(px, py) && way(g, px, py, px - 22, py + 3) && way(g, px, py, px + 22, py + 4) && land(px - 27, py + 3) && land(px + 27, py + 4);
+    if (!room(x, y)) search: for (let r = 4; r <= 90; r += 4) for (let k = 0; k < 20; k++) { const px = Math.round(x + Math.cos(k / 20 * TAU) * r), py = Math.round(y + Math.sin(k / 20 * TAU) * r * 0.6); if (room(px, py)) { x = px; y = py; break search; } }
+    walker('bear', bearF, x, y, o); const sow = items[items.length - 1]; sow.sow = true; sow.roamer = roamer; const first = cubOf(sow, 0), cubs = [first, cubOf(sow, 1, first)]; cubs[0].sib = cubs[1]; cubs[1].sib = cubs[0]; items.push(...cubs); return sow; };
+  const rest = (a, t, wait) => { a.st = 'idle'; a.hop = a.lift = 0; a.until = t + wait; };
+  // Back to its own side of her, clear of her drawing: or, where she stands against trees or the trail, the
+  // other side, or the grass just in front of her feet, and never its twin's place. The first of these she could walk to herself in a
+  // straight line, with dry ground 5 either side of it, so no creek lies between it and her or under its paws. A cub crosses nothing a land animal may not (collide.js):
+  // landWay is a straight line clear of all that.
+  const land = (x, y) => col.canBe('land', x, y, 0), landWay = (x0, y0, x1, y1) => way(land, x0, y0, x1, y1);
+  const besideHer = (a, d, dy) => { const M = a.mum, B = a.sib, sd = a.n ? 1 : -1, tw = !B ? null : B.st === 'walk' && B.goal === 'mum' ? [M.fx + B.off[0], M.fy + B.off[1]] : [B.fx, B.fy];
+    for (const o of [[sd * d, dy], [-sd * d, dy + 1], [sd * d, -1], [-sd * d, -2], [sd * d, dy + 7], [-sd * d, dy + 8], [sd * 13, 7], [-sd * 13, 8]]) { const x = M.fx + o[0], y = M.fy + o[1]; if (tw && Math.hypot(x - tw[0], y - tw[1]) < 10) continue; if (M.ok(x, y) && land(x - 5, y) && land(x + 5, y) && way(M.ok, M.fx, M.fy, x, y)) return o; }
+    return [sd * 8, 7]; };
+  const toSide = a => { a.st = 'walk'; a.goal = 'mum'; a.hop = a.lift = 0; a.off = besideHer(a, 21 + rand() * 5, 3 + rand() * 4); };
+  function cubStep(a, dt, t) {
+    const M = a.mum, B = a.sib, side = a.n ? 1 : -1, dM = Math.hypot(a.fx - M.fx, (a.fy - M.fy) / 0.6);
+    if (a.st === 'climb') {
+      const T = a.trunk, s = t - a.t0;
+      if (dM > CUB.far + 8 && s < CUB.up + a.hold) a.hold = Math.max(0, s - CUB.up);   // she has moved off, so down it comes
+      const h = CUB.high * smooth(0, CUB.up, s) * smooth(2 * CUB.up + a.hold, CUB.up + a.hold, s), cling = s > CUB.up && s < CUB.up + a.hold;
+      // Drawn just in front of the tree it is on, lifted up the trunk.
+      a.x = T.x; a.y = T.y + 1; a.hop = a.lift = 1 + Math.round(h); a.flip = false; a.bm = a.f.climb[cling ? 0 : Math.floor(t * 5) & 1];
+      if (s >= 2 * CUB.up + a.hold) { a.fx = T.x + side * 3; a.fy = T.y + 2; a.x = Math.round(a.fx); a.y = Math.round(a.fy); a.pose = 'look'; rest(a, t, 1 + rand() * 2); }
+      return;
+    }
+    if (a.st === 'roll') { a.bm = a.f.roll[Math.floor((t - a.t0) * 3.5) & 1]; if (t < a.until && dM <= CUB.far + 6) return; a.pose = 'look'; rest(a, t, 0.6 + rand() * 2); }
+    if (a.st === 'play') {
+      a.bm = a.f.rear[Math.floor(t * 3.2 + a.n * 0.5) & 1]; a.flip = B.fx < a.fx; a.hop = (Math.floor(t * 3.2) + a.n) % 4 === 0 ? 1 : 0;
+      if (t < a.until && dM <= CUB.far + 6 && B.st === 'play') return;
+      if (B.st === 'play') toSide(B); toSide(a);
+    }
+    if (a.st === 'walk') {
+      if (a.goal === 'mum') { if (!M.ok(M.fx + a.off[0], M.fy + a.off[1])) a.off = besideHer(a, 22, 4); a.tx = M.fx + a.off[0]; a.ty = M.fy + a.off[1]; }
+      const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
+      if (d >= 0.8) {
+        const st = Math.min(d, CUB.v * dt), nx = a.fx + dx / d * st, ny = a.fy + dy / d * st;
+        // Water or a cliff ahead: it makes straight for her instead, along the way she came, or waits.
+        if (!land(nx, ny) && land(a.fx, a.fy)) { if (a.goal === 'mum' && Math.abs(a.off[0]) > 5) a.off = [side * 5, 6]; else { a.pose = 'look'; rest(a, t, 1.5); a.bm = a.f.look; } return; }
+        a.fx = nx; a.fy = ny; a.x = Math.round(a.fx); a.y = Math.round(a.fy);
+        if (Math.abs(dx) > 0.5) a.flip = dx < 0; a.bm = a.f.walk[Math.floor(t * 7 + a.n) & 1]; return;
+      }
+      if (a.goal === 'trunk') { a.st = 'climb'; a.t0 = t; a.hold = 1.5 + rand() * 2.5; return; }
+      if (a.goal === 'twin' && B.st === 'idle' && Math.hypot(B.fx - a.fx, B.fy - a.fy) < 11) { a.st = B.st = 'play'; a.until = B.until = t + 2.5 + rand() * 2.5; return; }
+      if (a.goal === 'mum' && M.st === 'walk') { a.bm = a.f.look; return; }
+      a.pose = 'look'; rest(a, t, 1 + rand() * 3);
+    }
+    a.bm = a.pose === 'sniff' ? a.f.sniff : a.f.look;
+    if (M.st === 'walk' ? dM > CUB.near : dM > CUB.far) { toSide(a); return; }
+    if (t < a.until) return;
+    const roll = rand();
+    if (M.st !== 'walk') {
+      if (roll < 0.16) { a.st = 'roll'; a.t0 = t; a.until = t + 1.6 + rand() * 1.6; return; }
+      if (roll < 0.34 && B.st === 'idle' && landWay(a.fx, a.fy, B.fx, B.fy)) { a.tx = B.fx + (a.fx < B.fx ? -8 : 8); a.ty = B.fy; a.goal = 'twin'; a.st = 'walk'; B.until = Math.max(B.until, t + 3); return; }
+      if (roll < 0.46) { const T = trunkFor(a); if (T && landWay(a.fx, a.fy, T.x, T.y + 1)) { a.trunk = T; a.tx = T.x; a.ty = T.y + 1; a.goal = 'trunk'; a.st = 'walk'; return; } }
+      if (roll < 0.62) { const tx = M.fx + side * (19 + rand() * 8), ty = M.fy + 2 + (rand() * 2 - 1) * 6; if (M.ok(tx, ty) && landWay(a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.goal = 'spot'; a.st = 'walk'; return; } }
+    }
+    a.pose = roll < 0.8 ? 'sniff' : 'look'; a.until = t + 2 + rand() * 4; if (rand() < 0.3) a.flip = !a.flip;
+  }
+  // One family lives in its clearing in the firs below the Spires' waterfall and is always there (T34): it
+  // keeps to the open patch (the room land.js measured) and off the trail beside it. The other is at the
+  // forest's edge on roughly one visit in three (T44). For screenshots, bear=1 or bear=0 in the address settles that one.
+  const addBear = () => family(spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 7, ok: meadow, roam: 0.4 }, true);
+  if (opts.bear != null ? opts.bear : asked ? asked[1] === '1' : Math.random() < 0.35) addBear();
+  if (spots.bearHome) family(spots.bearHome[0], spots.bearHome[1], { faces: 1, r: spots.bearHome[2] + 2, v: 5, ok: (x, y) => meadow(x, y) && !W.nearTrail(x, y, 9), roam: 0.3 }, false);
 
   function walk(a, dt, t) {
     if (a.st === 'walk') {
@@ -817,6 +914,7 @@ export function makeCritters(W, opts = {}) {
       nowT = t; if (eagleItem) eagleSits(t);
       for (const a of items) {
         if (a.walker) walk(a, dt, t);
+        else if (a.cub) cubStep(a, dt, t);
         else if (a.dart) dart(a, dt, t, here);
         else if (a.critter === 'marmot') scurry(a, dt, t, here);
       }
@@ -824,6 +922,7 @@ export function makeCritters(W, opts = {}) {
     draw(scr, a, ox, oy, t) {
       if (a.critter === 'whale') return drawWhale(scr, a, ox, oy, t);
       if (a.walker || a.critter === 'marmot') scr.shadow(a.x - ox, a.y - oy, a.critter === 'marmot' ? 5 : 7, 1);
+      else if (a.cub && !a.lift) scr.shadow(a.x - ox, a.y - oy, 4, 1);
       scr.put(a.bm, a.x - ox, a.y - oy - (a.hop || 0), a.flip);
     },
     tideAt: t => ebbAt(t) / EBB,
@@ -858,12 +957,15 @@ export function makeCritters(W, opts = {}) {
       // is brought straight to its hover over the lake.
       if (kind === 'eagle') { if (!TOPS.length) return false; eagleAt = i === 'all' ? 0 : clamp(i, 0, TOPS.length - 1); eagleSits(nowT); return true; }
       if (kind === 'osprey') { if (!OSPREY) return false; ospAhead += startNow(OSP, nowT + ospAhead) + OSPREY.inn.len; return true; }
-      if (kind === 'bear' && !items.some(a => a.critter === 'bear')) addBear();
+      // The bears' homes are one family's each: the clearing's family first, then the one at the forest's edge,
+      // which is added if it is not about this visit. Each goes back to where it was first put (the roomy ground nearest its home).
+      const roamAt = spots.bearHome ? 1 : 0;
+      if (kind === 'bear' && (i === 'all' || i === roamAt) && !items.some(a => a.sow && a.roamer)) addBear();
       const all = items.filter(a => a.critter === kind && !a.mum);
-      const put = (a, x, y) => { const [sx, sy] = a.ok ? settle(a.ok, x, y) : [x, y], dx = sx - a.hx, dy = sy - a.hy; for (const b of [a, ...items.filter(k => k.mum === a)]) { b.hx += dx; b.hy += dy; b.fx = b.tx = b.x = b.hx; b.fy = b.ty = b.y = b.hy; if (b.walker) b.st = 'graze'; } };
+      const put = (a, x, y) => { const [sx, sy] = a.ok ? settle(a.ok, x, y) : [x, y], dx = sx - a.hx, dy = sy - a.hy; for (const b of [a, ...items.filter(k => k.mum === a)]) { b.hx += dx; b.hy += dy; b.fx = b.tx = b.x = b.hx; b.fy = b.ty = b.y = b.hy; if (b.walker) b.st = 'graze'; else if (b.cub) rest(b, nowT, 1); } };
       if (i === 'all') { for (const a of all) put(a, a.h0[0], a.h0[1]); return all.length > 0; }
       const h = homesOf(kind)[i]; if (!h || !all.length) return false;
-      if (kind === 'elk') { const lead = all[0], dx = h[0] - lead.hx, dy = h[1] - lead.hy; for (const a of all) put(a, a.hx + dx, a.hy + dy); } else put(all[0], h[0], h[1]);
+      if (kind === 'elk') { const lead = all[0], dx = h[0] - lead.hx, dy = h[1] - lead.hy; for (const a of all) put(a, a.hx + dx, a.hy + dy); } else if (kind === 'bear') { const sow = all.find(a => !!a.roamer === (i === roamAt)); if (!sow) return false; put(sow, sow.h0[0], sow.h0[1]); } else put(all[0], h[0], h[1]);
       return true;
     },
     drawHull,
@@ -938,6 +1040,12 @@ export function makeCritters(W, opts = {}) {
     trigger(name, t) {
       if (name === 'breach' || name === 'blow') { const n = Math.floor((t + whaleAhead + T0) / SLOT) + (name === 'breach' ? 1 : 0); whaleAhead = n * SLOT + starts(n) + (name === 'blow' ? 16.6 : 0) - t - T0; return true; }
       if (name === 'eagle') { eagAhead += startNow(EAG, t + eagAhead); return true; }
+      // In each bear family: the cubs play now, or the first cub with a trunk near climbs it now.
+      if (name === 'cubplay' || name === 'cubclimb') { let did = false;
+        for (const sow of items.filter(a => a.sow)) { const cubs = items.filter(a => a.mum === sow && a.cub);
+          if (name === 'cubplay') { const [a, b] = cubs; if (!a || !b || a.st === 'climb' || b.st === 'climb') continue; a.tx = b.fx + (a.fx < b.fx ? -8 : 8); a.ty = b.fy; a.goal = 'twin'; a.st = 'walk'; a.hop = a.lift = 0; rest(b, t, 6); did = true; }
+          else for (const a of cubs) { const T = a.st !== 'climb' && trunkFor(a, 44); if (!T) continue; if (a.st === 'play' && a.sib.st === 'play') rest(a.sib, t, 1); a.trunk = T; a.tx = T.x; a.ty = T.y + 1; a.goal = 'trunk'; a.st = 'walk'; a.hop = a.lift = 0; did = true; break; } }
+        return did; }
       if (name === 'osprey') { ospAhead += startNow(OSP, t + ospAhead); return true; }
       if (name === 'orcas') { orcaAhead = (((ORCA.first - t) % ORCA.slot) + ORCA.slot) % ORCA.slot; return true; }
       if (name === 'tide') { tideAhead = (((8 - t) % TIDE) + TIDE) % TIDE; return true; }

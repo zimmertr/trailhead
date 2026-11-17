@@ -183,7 +183,7 @@ export const UI = {
     // Where each kind of mover may not go (collide.js), one kind at a time.
     time: 'Time of day', sunset: 'Jump to sunset', sunrise: 'Jump to sunrise', clockSpeeds: [1, 10, 60],
     // The animals' names on the roam areas and in the spawn menu (C4).
-    animals: { elk: 'Elk', goat: 'Mountain goats', sheep: 'Bighorn sheep', bear: 'Black bear', marmot: 'Marmots', squirrel: 'Squirrels', eagle: 'Bald eagle', osprey: 'Osprey', gulls: 'Gulls', birds: 'Crows' },
+    animals: { elk: 'Elk', goat: 'Mountain goats', sheep: 'Bighorn sheep', bear: 'Black bears', marmot: 'Marmots', squirrel: 'Squirrels', eagle: 'Bald eagle', osprey: 'Osprey', gulls: 'Gulls', birds: 'Crows' },
     spawn: 'Spawn', spawnAll: 'everywhere it lives', near: 'near', scene: 'Jump to a scene', breakGroup: 'Break a scene', inScene: 'In this scene', mapEvents: 'On the map',
     scenes: { forest: 'Forest', lakeside: 'Reflection Lake', larches: 'Larch basin', wall: 'West Ridge', approach: 'Walk to base camp', camp: 'Base camp', climb: 'A Spires climb', register: 'Trail register', offroute: 'Off route' },
     sounds: 'Sounds', effects: 'Effects', tunesH: 'Tunes, one part at a time', places: 'Background', backToAuto: 'Music back to Auto',
@@ -191,7 +191,7 @@ export const UI = {
     toggles: { trees: 'Trees', clouds: 'Clouds', mist: 'Mist', labels: 'Labels', animals: 'Animals', roam: 'Roam areas', taps: 'Tap targets', trails: 'Trail lines', camera: 'Camera limits', snap: 'Snap to pixels' },
     speed: 'Time', speeds: ['Pause', '0.5\u00d7', '1\u00d7', '2\u00d7', '4\u00d7', '8\u00d7'],
     startMap: 'Start now, on the map', startForest: 'Start now, in the forest run', startLarches: 'Start now, in the larch basin', startRidge: 'Start now, on the West Ridge', startLake: 'Start now, at Reflection Lake',
-    events: { gust: 'Larch needle gust', ridgegust: 'Gust on the ridge', raven: 'Raven in the updraft', shower: 'Marine layer', breach: 'Humpback breach', blow: 'Humpback blow', ferry: 'Ferry sets out', tide: 'Low tide', orcas: 'Orca pod', eagle: 'Eagle fishes', osprey: 'Osprey dives', serac: 'Serac fall', avalanche: 'Avalanche', ava0: 'Avalanche, west face', ava1: 'Avalanche, middle face', ava2: 'Avalanche, east face', squall: 'Summit squall', lens: 'Lenticular cloud', tumble: 'Tumbleweed', devil: 'Dust devil', star: 'Shooting star (Dusk)', sasquatch: 'Sasquatch', eyeshine: 'Deer eyeshine (Dusk)' },
+    events: { gust: 'Larch needle gust', ridgegust: 'Gust on the ridge', raven: 'Raven in the updraft', shower: 'Marine layer', breach: 'Humpback breach', blow: 'Humpback blow', ferry: 'Ferry sets out', tide: 'Low tide', orcas: 'Orca pod', eagle: 'Eagle fishes', osprey: 'Osprey dives', cubplay: 'Bear cubs play', cubclimb: 'Bear cub climbs a tree', serac: 'Serac fall', avalanche: 'Avalanche', ava0: 'Avalanche, west face', ava1: 'Avalanche, middle face', ava2: 'Avalanche, east face', squall: 'Summit squall', lens: 'Lenticular cloud', tumble: 'Tumbleweed', devil: 'Dust devil', star: 'Shooting star (Dusk)', sasquatch: 'Sasquatch', eyeshine: 'Deer eyeshine (Dusk)' },
     note: 'Roam areas, trail lines and camera limits show on the map. Tap targets show in every scene. A start button works only in its own scene.'
   },
   map: {
@@ -212,7 +212,7 @@ export const UI = {
     up: s => s < 90 ? s + (s === 1 ? ' second' : ' seconds') : Math.round(s / 60) + ' minutes',
     status: ['Status', 'All trails open'], open: 'Open', lakeDone: 'Run. Flag flying.', stackDone: 'Climbed. Flag flying.', summits: n => n + ' of 6 summits',
     // What the board says lives here and happens here (L10), kept to what the world really has.
-    wildlife: ['Wildlife', 'Elk in the meadow, squirrels and chipmunks by the trail. Mountain goats, bighorn sheep and marmots up high, and a pika in the larch talus. A humpback and an orca pod offshore, gulls and a bald eagle on the sea stacks. An osprey fishing at Reflection Lake. An owl in the forest, two cats at this kiosk, and some days a bear'],
+    wildlife: ['Wildlife', 'Elk in the meadow, squirrels and chipmunks by the trail. Mountain goats, bighorn sheep and marmots up high, and a pika in the larch talus. A humpback and an orca pod offshore, gulls and a bald eagle on the sea stacks. An osprey fishing at Reflection Lake. A black bear and her two cubs in the firs below the Spires waterfall, and some days a second family at the forest edge. An owl in the forest and two cats at this kiosk'],
     seen: ['Also seen', 'Serac falls, an avalanche and a cap cloud on Mount Monolith, rain showers over the hills, the marine layer off the sea, low tide, the ferry, tumbleweeds and dust devils in the sage. At Dusk: shooting stars, the aurora, foxfire in the forest and headlamps on the Spires\' glacier'],
     checklist: (n, of) => 'Field checklist: ' + n + ' of ' + of + ' found', notFound: 'Not found yet', got: 'Found'
   },

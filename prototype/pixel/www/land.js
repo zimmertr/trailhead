@@ -316,7 +316,7 @@ if (!B) { const { cu, cv, ru, rv } = PRO, LV = hAt(cu, cv - rv - 14) + 4, MI = M
     if (e < 1) { if (hg[i] > LV) hg[i] = LV; continue; }
     const out = (e - 1) * lerp(rv, ru, Math.abs(x) / e); if (out > 12) continue; const crest = LV + 2 - Math.max(0, out - 2) * 0.8; if (hg[i] < crest) { hg[i] = crest; mg[i] = MI; } } }
 // Still water is level, so a lake flattens the ground under it to the height of its shore.
-const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypot((u - ISLE[0]) / 7, (v - ISLE[1]) / 3.2); C.lakeIsle = ISLE;
+const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypot((u - ISLE[0]) / 7, (v - ISLE[1]) / 3.2); C.lakeIsle = ISLE; C.glToe = [GL.cu(GL.toe), GL.toe];
 const lakeRim = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) { const d = Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); if (d >= 1 && d < 1 + 2.2 / Math.min(ru, 8 * rv)) return kind; } return null; };
 const lakeAt = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) if (Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5) < 1) return kind; return null; };
 // The talus fan stands a little proud of the step, highest against the wall.
@@ -1447,6 +1447,19 @@ function habitat() {
   // Squirrels and chipmunks in the open meadow near trees, a bear at the edge of the forest.
   const squirrels = find(7, (u, v) => S.forestAmt(u, v) < 0.3 && S.dryAmt(u, v) < 0.3 && S.larchAmt(u, v) < 0.2 && S.hAt(u, v) < 45 && trailFar(u, v) > 6 && fromT(u, v) > 50 && firm(u, v) && shows(u, v, 6), 70);
   const bear = find(1, (u, v) => S.forestAmt(u, v) > 0.12 && S.forestAmt(u, v) < 0.35 && S.hAt(u, v) < 35 && S.dryAmt(u, v) < 0.2 && fromT(u, v) > 160 && firm(u, v, 0.6) && shows(u, v, 12))[0];
+  // The black bear family's home (T34): the largest open patch inside the fir stand below the Spires' outflow
+  // waterfall (the glacier's toe). Open: no tree's foot within 12. Inside the stand: a tree within 55 on every
+  // one of the eight sides. Below the fall: 40 to 150 nearer the camera than its lip and up to 150 east of it,
+  // the side the Proficiency trail lies on. And 12 clear of the trail, which crosses the stand. The spot
+  // farthest from any tree wins; its third number is that distance, the room the family has.
+  const bearHome = (() => {
+    const [fu, fv] = C.glToe, firs = S.things.filter(t => t.tree && Math.abs(t.x - fu) < 220 && t.v > fv - 220 && t.v < fv + 30); let top = null;
+    for (let v = fv - 150; v <= fv - 40; v += 3) for (let u = fu; u <= fu + 150; u += 3) {
+      if (!firm(u, v, 0.5) || trailFar(u, v) < 12 || !shows(u, v, 12)) continue;
+      let d = 1e9, sides = 0; for (const t of firs) { const du = t.x - u, dv = (t.v - v) * 1.4, dd = Math.hypot(du, dv); if (dd < d) d = dd; if (dd < 55) sides |= 1 << (Math.floor((Math.atan2(dv, du) + Math.PI) / (Math.PI / 4)) % 8); }
+      if (d >= 12 && sides === 255 && (!top || d > top[2])) top = [u, v, d];
+    }
+    if (top) taken.push(top); return top; })();
   // In the sea: jellyfish in open water beyond the surf (T26), the whale farther out, the ferry's course past both.
   const clearSea = new Set(R.sea), sea = (lo, hi) => (u, v) => { const c = S.coast(u, v); return c > lo && c < hi && S.toY(u, v) < SH - 50 && shows(u, v, 4) && clearSea.has(S.g[S.toY(u, v) * NW + Math.round(u)]) && clearSea.has(S.g[(S.toY(u, v) - 6) * NW + Math.round(u)]); };
   const jelly = find(8, sea(50, 110), 26), whale = best(sea(90, 150), (u, v) => -Math.abs(S.coast(u, v) - 115) + 6 * rnd());
@@ -1481,6 +1494,7 @@ function habitat() {
     sheep: sheep.map((p, n) => [...out(...p), n & 1]),
     squirrels: squirrels.map((p, n) => [...out(...p), n % 3 === 0 ? 1 : 0]),
     bear: bear ? out(...bear) : out(...C.T),
+    bearHome: bearHome ? [...out(bearHome[0], bearHome[1]), Math.round(bearHome[2])] : null,
     jelly: jelly.map((p, n) => [...out(...p), n % 3 ? 0 : 1]),
     whale: whale ? out(...whale) : [0, 0],
     ferry,
@@ -1543,7 +1557,7 @@ export function buildTerrain() {
       return picks.sort((a, b) => a[0] - b[0]); })(),
     flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
     // Signs and animals, each placed by its rule (habitat, above).
-    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
+    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, bearHome: H.bearHome, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
     // The fire lookout on its cleared summit (E5j).
     lookout: LAND.lookout ? sxy(...LAND.lookout) : null
   };

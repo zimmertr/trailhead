@@ -262,3 +262,11 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Dust Devils Only on Hot Afternoons** (round 5, E8). They could spin up only in the middle of the day, when the ground is hottest, and never at Dusk or in the rain.
 - **The Sheep Notice** (round 5, E8). When a dust devil passes within 40 px, the bighorn could lift their heads and step a few paces away.
 - **A Dust Devil Picks Up a Tumbleweed** (round 5, E8). If a tumbleweed rolls into one, it could be carried round the column twice and thrown clear.
+- **The Sow Stands Up When He Passes** (round 5, E9). As TJ walks the Spires trail past the clearing, the sow could rear up to look, and the cubs could bolt up the nearest trunk until he has gone.
+- **A Cub Falls Off** (round 5, E9). One climb in ten, the cub could slip the last two pixels, land on its rump and shake itself.
+- **Berries** (round 5, E9). The huckleberry bush in the clearing could be where the sow feeds: she strips it, and the berries are back the next morning.
+- **Cubs Wrestle and Roll Together** (round 5, E9). The play could end in a tumble: both cubs in one ball rolling a few pixels downhill.
+- **The Sow Calls the Cubs Down** (round 5, E9). When she moves off, she could stop, look back and huff (one soft sound) until the cub on the trunk is down.
+- **The Forest-Edge Family Fishes** (round 5, E9). They stand by the creeks' meeting: the sow could wade in to her ankles and swipe at the water while the cubs watch from the bank.
+- **A Field Checklist Find** (round 5, E9). "A sow and two cubs" could be a find, ticked by clicking the family. Held for TJ: finds are his to choose.
+- **Bear Tracks** (round 5, E9). Where the sow has walked, faint prints could stay in the grass for a minute.
