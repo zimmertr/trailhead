@@ -126,7 +126,7 @@ export const DEST_NAMES = { trailhead: 'Trailhead', lake: 'Reflection Lake', sta
 
 // The joke place names that stand as signs on the world map. habitat() in land.js finds where each one stands.
 export const SIGNS = {
-  'scope-creep': 'Scope Creep Glacier', segfault: 'Segfault Scree', 'merge-conflict': 'Merge Conflict Col', 'yak-shave': 'Yak Shave Meadow', 'reflection-lake': 'Reflection Lake, 2.4 km',
+  'scope-creep': 'Scope Creep Glacier', segfault: 'Segfault Scree', 'merge-conflict': 'Merge Conflict Col', 'yak-shave': 'Yak Shave Meadow',
   rollback: 'Rollback Basin', 'feature-flag': 'Feature Flag Tarns', hotfix: 'Hotfix Burn', postmortem: 'Postmortem Burn', 'cron-job': 'Cron Job Coulee', 'tech-debt': 'Tech Debt Badlands',
   'off-by-one': 'Off By One Peak', dependency: 'Dependency Range', 'stack-trace': 'Stack Trace Thicket', monorepo: 'Monorepo Woods', 'cache-miss': 'Cache Miss Cove', latency: 'Latency Bay'
 };

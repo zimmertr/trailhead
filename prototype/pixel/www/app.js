@@ -62,10 +62,10 @@ function hideCard() { shown = null; cardShut = false; card.hidden = true; audio.
 async function home() { inBook(false); hideCard(); await api.setRoute('lake'); audio.place('world'); lastScene = 'world'; buildMarks(); setAddress(''); checkRegister(); }
 async function travel(route) { audio.start(); audio.sfx('select'); await api.setRoute(route); buildMarks(); api.start(); }
 async function climb(id) { audio.sfx('select'); hideCard(); await api.setRoute('spire:' + id); buildMarks(); api.start(); }
-// The register (L2): he walks to the box and folds its front down, and the scene changes to the book.
+// The register (L2): one click on the box and the scene changes to the book (no walk since round 5 B2).
 async function openBook() { audio.start(); audio.sfx('select'); hideCard(); closeSheet(); tip.hidden = true; handsReady(); document.documentElement.classList.add('in-book'); setAddress('register'); await api.setRoute('register'); buildMarks(); api.start(); }
-// Closing the book (L6): the map again with him at the box, its front shut, and the few steps back to the
-// junction; from there it is the Trailhead as he left it.
+// Closing the book (L6): the round window opens back on the map with him at the junction, the Trailhead as he
+// left it.
 async function closeBook() { inBook(false); audio.sfx('close'); setAddress(''); await api.setRoute('register-back'); buildMarks(); api.start(); }
 // The book's way out shows once it is open; the map's tags and the route bar go as he sets off for it.
 function inBook(on) { document.documentElement.classList.toggle('in-book', on); $('book-x').hidden = !on; book.hidden = !on; if (on) { fillBook(); handsReady().then(() => { if (!book.hidden) fillBook(); }); } }

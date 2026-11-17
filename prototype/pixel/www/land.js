@@ -1201,11 +1201,11 @@ const vAt = (x, y) => { x = Math.round(x); y = Math.round(y); return x < 0 || y 
 const topOf = (x, kind) => { const k = LAND.MATS.indexOf(kind); x = Math.round(x); for (let y = 0; y < SH; y++) if (LAND.mat[y * NW + x] === k) return y; return 0; };
 export const OX = 0, OY = 0;
 export const T = { x: C.T[0], y: LAND.toY(C.T[0], C.T[1]) };
-// The trail conditions board stands just north-east of the junction. The cats keep to it (cats.js).
-export const KIOSK = { x: C.T[0] + 28, y: LAND.toY(C.T[0] + 28, C.T[1] + 22) };
-// The trail register (L1) stands on the open meadow just west of the junction, level with him: far enough
-// out to clear the signpost's plank and the Trailhead's name tag over his head, short of the trail west.
-export const REG = { x: C.T[0] - 24, y: LAND.toY(C.T[0] - 24, C.T[1] + 2) };
+// The trail conditions board and the register stand together just north-east of the junction, the register on
+// the board's left (TJ, round 5 B2). The register clears his right shoulder so he never hides it, and the board
+// moved east by the box's width to make room. The cats keep to both (cats.js).
+export const REG = { x: C.T[0] + 16, y: LAND.toY(C.T[0] + 16, C.T[1] + 22) };
+export const KIOSK = { x: REG.x + 23, y: LAND.toY(REG.x + 23, C.T[1] + 22) };
 export async function loadBake() { return null; }
 // ---- where things live ----------------------------------------------------------------------------
 // Every sign and every animal on the map is placed by a rule read from the land: the kind of ground,
@@ -1244,7 +1244,6 @@ function habitat() {
   // The col: the lowest point on the line from Mount Monolith's summit to the west end of the Spires.
   let col = null; for (let t = 0.25, lo = 1e9; t < 0.95; t += 0.01) { const u = lerp(vo.cu, wsum[0], t), v = lerp(vo.cv, wsum[1], t) - 60, h = S.hAt(u, v); if (h < lo) { lo = h; col = [u, v]; } }
   const SIGNS = {
-    'reflection-lake': find(1, signable, 0, beside(0, 0.03, 0.12)),
     'yak-shave': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) < 0.1 && S.parkAmt(u, v) < 0.3, 0, beside(0, 0.12, 0.35)),
     'stack-trace': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.45 && S.forestAmt(u, v) < 0.8, 0, beside(0, 0.2, 0.8)),
     monorepo: find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && S.fogAmt(u, v) < 0.3, 60, beside(0, 0.2, 0.9)),

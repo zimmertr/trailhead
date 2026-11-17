@@ -84,7 +84,7 @@ const DO = {
   roll: [2.4, 3.4, 1.4, 0.6], bat: [2, 3.2, 1.6, 1], chase: [0, 0, 1.2, 0.8], visit: [0, 0, 1, 1.6], perch: [8, 14, 1.2, 0]
 };
 // Where they roam (E5i, TJ): a patch of open meadow by the Trailhead, close to where he starts. The kiosk
-// and the signpost stand behind it, so the cats are always in front of both and never walk behind them
+// and the register stand behind it, so the cats are always in front of both and never walk behind them
 // (the jump onto the kiosk's roof is the one trip out of it). It is cut back from every tree, bush and
 // rock in it or right round it, so no cat ever stands in one. Worked out from what stands there.
 const JX = T.x, JY = T.y;   // the junction, where he stands at the Trailhead

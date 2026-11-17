@@ -1,7 +1,7 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
 import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
 import { breeze, veilTable } from './core.js';
-import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag, makeRegister } from './sprites.js';
+import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag, makeRegister } from './sprites.js';
 import { SIGNS, NAMES, DEST_NAMES } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
@@ -384,7 +384,6 @@ export function makeWorld(bake) {
   const things = [];
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
   const put = (bm, x, y, extra = {}) => things.push({ bm, x: Math.round(x), y: Math.round(y), ...extra });
-  put(makeSignpost(), spots.signpost[0], spots.signpost[1]);
   for (const s of spots.signs) put(makeSmallSign(), s[0], s[1]);
   put(makeJournal(), spots.journal[0], spots.journal[1]); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
   const REGS = [...Array(16).keys()].map(k => makeRegister(k & 7, k > 7)), regBox = { bm: REGS[0], x: spots.register[0], y: spots.register[1] }; things.push(regBox);
@@ -443,8 +442,9 @@ export function makeWorld(bake) {
   const spiresIn = (() => { const P = paths.spires, h = q => { const a = P.at(q); return -(W.vAt(a.x, a.y) + a.y); }, h0 = h(0), h1 = h(1); for (let q = 0; q < 1; q += 0.002) if (h(q) - h0 >= 0.4 * (h1 - h0)) return q; return 0.5; })();
   const lakeOut = (() => { const P = paths.lake; let best = 0, bd = 1e9; for (let q = 0.5; q < 1; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - spots.lakeShore[0], a.y - spots.lakeShore[1]); if (d < bd) { bd = d; best = q; } } return best; })();
 
-  // Where each place's name is pinned: over the signpost, on the lake's near shore, on the wall's rim, on the ice under the summits.
-  const PLACES = [{ id: 'trailhead', x: T.x - 4, y: T.y - 31 }, ...['lake', 'stack', 'spires'].map(id => ({ id, x: spots.places[id][0], y: spots.places[id][1] }))];
+  // Where each place's name is pinned: over the junction, a little to his left so it clears the register's box
+  // beside the board (round 5 B2), on the lake's near shore, on the wall's rim, on the ice under the summits.
+  const PLACES = [{ id: 'trailhead', x: T.x - 12, y: T.y - 31 }, ...['lake', 'stack', 'spires'].map(id => ({ id, x: spots.places[id][0], y: spots.places[id][1] }))];
   // How far from the camera he is on a trail, from the trail's own points.
   const vOn = (path, x, y) => { let best = 0, bd = 1e9; for (const p of W.lines[path]) { const d = Math.abs(p[0] - x) + Math.abs(p[1] - y); if (d < bd) { bd = d; best = p[2]; } } return best; };
   const saved = new Uint8Array(25 * 34);

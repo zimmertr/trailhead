@@ -53,9 +53,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     'off-route': () => [['offroute', {}]],
     // The register (L2): he walks the few steps to the box (the first 55% of 1.3 s), stands at it while
     // its front comes down, then the close-up of the book.
-    register: () => [['world', { path: 'register', from: 0, to: 1, secs: 1.3, walkTo: 0.55 }], ['register', {}]],
-    // Closing the book (L6): back on the map where he stood at the box, and the few steps back to the junction.
-    'register-back': () => [['world', { path: 'register', from: 1, to: 0, secs: 0.9 }]]
+    // One click on the box opens the book straight away, as the board opens its sheet (TJ, round 5 B2).
+    register: () => [['register', {}]],
+    // Closing the book (L6): back on the map where he stands at the junction (no walk since round 5 B2).
+    'register-back': () => [['world', { path: 'register', from: 0, to: 0, secs: 0.05 }]]
   };
   for (const id of SPIRES) ROUTES['spire:' + id] = () => [['climb', { id }]];
   // One stretch of map walked for its own sake: back to the junction from part way along a trail.
