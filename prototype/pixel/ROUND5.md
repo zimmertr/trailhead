@@ -65,7 +65,7 @@ TJ, 2026-11-16: "Why do we need a wait? I want to run overnight end to end." So 
 ### S3. Before section 8 goes on
 
 - [x] S3a. **The lake's size.** TJ chose A on 2026-11-16 ("A is fine"): 1.6 times round 4's width, as built. Nothing to change. The comparison is at https://claude.ai/artifact/HvkoYcpd9EeTznWr6DZKCZ.
-- [ ] S3b. **TJ's screenshots leave the repo** (TJ, 2026-11-16: "Move to an artifact"). Publish every picture in `plan/round5/` on one private artifact page of its own, each with its note's number and its description from section 12. Put the page's link at the top of section 12, then `git rm` the pictures. The water audit's pictures (D4) go on that page too, never into the repo.
+- [x] S3b. **TJ's screenshots leave the repo** (TJ, 2026-11-16: "Move to an artifact"). Publish every picture in `plan/round5/` on one private artifact page of its own, each with its note's number and its description from section 12. Put the page's link at the top of section 12, then `git rm` the pictures. The water audit's pictures (D4) go on that page too, never into the repo.
 - [ ] S3c. **One command checks an item: `check.sh <item>`.** It runs the syntax check on every file in `www/`, the browser check from S1b, the frame time of the zoomed-out map at Dusk, and writes `out/check/<item>.json` with every trail's points and every placed sign and animal, then prints what moved more than 8 pixels since the item before. Section 9 uses it from here on.
 - [ ] S3d. Set section 10's "Next" line to D5 and carry on with section 8.
 
@@ -91,7 +91,7 @@ The site is a brag and resume site for TJ first and a game second. Every change 
 - **One artifact for the whole round, republished after every item** (TJ, 2026-11-16: "Commits to one branch, one versioned artifact"). Create it at the first publish and add its link to section 10. Never publish over a round 4 artifact.
 - Frozen: `main` (reached only through the PR), every `archive/*` and `pixel-r*` tag, and every artifact in `ROUND4.md` section 8 and `PROGRESS.md`. Round 4's final build is tag `archive/pixel-r4-final`. The old branches were deleted on 2026-11-16 after being tagged `archive/<branch name>`.
 - History: `PROGRESS.md` and `ROUND4.md` (sections 3 to 5 and 9 are still the record of why things are the way they are). Ideas not yet built: `IDEAS.md`.
-- TJ's screenshots for this round: `plan/round5/`, one file per note, named by the note's number (section 12 describes each).
+- TJ's screenshots for this round: https://claude.ai/artifact/C3vp7qfxAtoHGnTioe2sNs, one or more per note, named by the note's number (section 12 describes each and says how to get one back from git). New pictures for TJ go on that page, never into the repo.
 
 **How the code is laid out** (`www/`, plain ES modules, no build step, no dependencies)
 
@@ -655,7 +655,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **Section 0, S1a to S1g done (2026-11-17, on `pixel-round4-opus`).** ESLint's recommended rules cover `prototype/`; `make prototype-smoke` and the "Prototype Smoke" job open the game on 14 addresses; the repo-wide tests walk `prototype/` again; record 0015 is written and the PRD, `CLAUDE.md` and README follow it; `ROUND4.md`'s two open ends are closed.
 - **Round 4 is on `main` (2026-11-17).** https://github.com/zimmertr/trailhead/pull/31 was squash-merged as commit 6e55cbd under TJ's one-time exception, with all 18 checks passed, and released as v0.2.0. Its branch is kept as the tag `archive/pixel-round4-opus`. https://github.com/zimmertr/trailhead/pull/22 is closed. `pixel-round5` holds `main` (a merge that changed no file) and https://github.com/zimmertr/trailhead/pull/32 points at `main`. **The exception is used up: from here on TJ merges.**
 - **The baked ground loads on the artifact host** (S2c, version 18): the Debug panel's first line reads "Ground: read from the bake". `window.__info` carries `baked` and `bakeNote`, and the smoke test's first case asserts them.
-- Next: S2b's last part (every check on #32 green), then S3b. After section 0, D5.
+- **TJ's 42 screenshots are out of the repo** (S3b), on https://claude.ai/artifact/C3vp7qfxAtoHGnTioe2sNs.
+- Next: S2b's last part (every check on #32 green), then S3c. After section 0, D5.
 
 ## 11. Calls made in round 5
 
@@ -734,11 +735,12 @@ One line each, newest last: the item, what was decided, and why.
 - S2a. `main`'s tree was exactly round 4's last commit, so `git merge -s ours origin/main` was used and `git diff ORIG_HEAD HEAD` was empty. GitHub moved #32 onto `main` by itself when the branch was deleted.
 - **For TJ: the render image's new lockfile raised a security alert and two pull requests within minutes of the merge.** The alert (https://github.com/zimmertr/trailhead/security/dependabot/2, high) is for `playwright` below 1.55.1 in `prototype/pixel/lab/`: it downloads browsers without checking the certificate. The lab never downloads a browser (the image ships them and the install runs no scripts), so the risk is small, but the alert stays until the version moves. https://github.com/zimmertr/trailhead/pull/42 (Renovate) moves the image and the package together and is the one to merge. https://github.com/zimmertr/trailhead/pull/43 (Dependabot) moves only the package and would fail the test that holds the two to one version: close it. Neither is merged by the loop, because the exception named round 4 only, and a new Chromium can change how the reference pictures render.
 - S2c. The artifact's page runs in a frame on another origin, so nothing outside it can read `window.__info`. The Debug panel got a first line for it, "Ground: read from the bake" or "Ground: worked out on this page (why)". Read on version 18 in Chrome: read from the bake. New copy for TJ: those two lines.
+- S3b. The page is built by a script from section 12's own lines, so each picture carries the same description as here. It was opened in Chrome and the pictures load. `git rm` takes them out of the branch; they stay in history at cc882c6, which is what https://github.com/zimmertr/trailhead/issues/41 is about for the whole repo.
 - For whoever merges #31: the repo allows squash merges only and deletes the branch on merge, `main` has no branch protection, and every push to `main` runs the Release workflow (four images built and pushed, a version tagged, nothing deployed). #31's title is "feat: add the pixel world prototype through round 4", so the release is a minor version.
 
 ## 12. The reference pictures
 
-**TJ's screenshots for this round** (`plan/round5/`, his own captures of round 4's build; the file name starts with the note's number):
+**TJ's screenshots for this round** are on a private page, https://claude.ai/artifact/C3vp7qfxAtoHGnTioe2sNs, each under its note's number with the description below. They were in `plan/round5/` until S3b took them out of the repo (19 MB), so every `plan/round5/<name>` in this file now means the picture of that name on the page. To look at one from a clone: `git show cc882c6:prototype/pixel/plan/round5/<name> > out/<name>`, since that commit still holds them. The file name starts with the note's number:
 
 - `06-trail-rework-magenta-new-red-removed.png`: the whole map, zoomed out. Magenta lines are new trails, and red X's mark stretches to remove (section 5.3). The second red X is on the lower trail by the elk bridges, not on the lakeshore trail.
 - `07-ferry-through-sea-stack.png`, `07-orca-beside-sea-stack.png`: the ferry drawn over the tall sea stack, and an orca's fin right against it.
