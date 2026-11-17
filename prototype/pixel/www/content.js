@@ -154,7 +154,7 @@ export const UI = {
   name: 'TJ Zimmerman',
   // The first-visit hint (P1), a draft for TJ: with a mouse, then on a touch screen.
   hint: ['Click a sign or a trail to start walking.', 'Tap a sign or a trail to start walking.'],
-  run: ['Start', 'Stop'], home: ['Trailhead', 'Camp'], sound: ['Sound on', 'Sound off'], theme: ['Dusk', 'Day'],
+  run: ['Start', 'Stop'], home: ['Trailhead', 'Camp'], sound: ['Sound on', 'Sound off'], theme: { auto: 'Auto', day: 'Day', dusk: 'Dusk' },
   // On the Sound button until the first click, tap or key: a browser plays nothing before one. With a mouse, then with a finger.
   soundWaits: ['Click for sound', 'Tap for sound'],
   auto: name => 'Auto: ' + name,
@@ -180,6 +180,7 @@ export const UI = {
   debug: {
     title: 'Debug', close: 'Close', layers: 'Layers', outlines: 'Outlines',
     // Where each kind of mover may not go (collide.js), one kind at a time.
+    time: 'Time of day', sunset: 'Jump to sunset', sunrise: 'Jump to sunrise', clockSpeeds: [1, 10, 60],
     noGo: 'No-go areas', noGoKinds: { '': 'off', boat: 'Ferry', whale: 'Whale', swimmer: 'Orcas', floater: 'Jellyfish', land: 'Land animals' }, zoom: 'Zoom', cats: 'Cats', set: 'Set', offRoute: 'Go to the off-route page', breakScene: 'Break this scene',
     toggles: { trees: 'Trees', clouds: 'Clouds', mist: 'Mist', labels: 'Labels', animals: 'Animals', roam: 'Roam areas', taps: 'Tap targets', trails: 'Trail lines', camera: 'Camera limits', snap: 'Snap to pixels' },
     speed: 'Time', speeds: ['Pause', '0.5\u00d7', '1\u00d7', '2\u00d7', '4\u00d7', '8\u00d7'],
@@ -193,7 +194,7 @@ export const UI = {
     dots: { summit: 'The summit', 'base-camp': 'Base camp' },
     lake: [DEST_NAMES.lake, km => km + ' km loop, on foot'], stack: [DEST_NAMES.stack, km => km + ' km in, five pitches up'], spires: [DEST_NAMES.spires, km => km + ' km to base camp, six summits'],
     elsewhere: 'TJ elsewhere', onMap: 'On this map', plain: 'Read as a page',
-    settings: 'Settings', sound: 'Sound', onOff: ['on', 'off'], music: 'Music', musicStyle: 'Music style', dusk: 'Day or dusk', clear: 'Clear my flags', cleared: 'Flags and footprints cleared.',
+    settings: 'Settings', sound: 'Sound', onOff: ['on', 'off'], music: 'Music', musicStyle: 'Music style', dusk: 'Time of day', clear: 'Clear my flags', cleared: 'Flags and footprints cleared.',
     // What each plank of the junction sign says beside its name (L8): the distance there, as a trail sign gives
     // it. Longer words widened the column and wrapped the Spires' plank; the trail map says what each is.
     plank: { lake: km => km + ' km', stack: km => km + ' km', spires: km => km + ' km' },

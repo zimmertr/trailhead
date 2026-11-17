@@ -440,7 +440,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 - [x] C1. T7: collision (`collide.js`), with the kinds, the solid things, the tide and the debug overlay. Move the ferry, whale, orcas and jellyfish onto it first (T15, T26), then every walker and herd.
 - [x] C2. T2: the idle tour after 120 s, stopped by any input.
-- [ ] C3. T76: one world clock and the AUTO, DAY, DUSK cycle everywhere, with its debug controls and `time=`. Measure frame time through the sunset blend.
+- [x] C3. T76: one world clock and the AUTO, DAY, DUSK cycle everywhere, with its debug controls and `time=`. Measure frame time through the sunset blend.
 - [ ] C4. T9, T32, T44: the public DEBUG menu in the top bar, organised in groups, with breaking included, high-contrast roam areas, and the spawn menu for every animal.
 - [ ] C5. T3: click and tap to move along the trails, with the marker. (On today's trails first; D1 changes them.)
 - [ ] C6. P3: the sound test group in DEBUG.
@@ -573,7 +573,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **B11 done.** Until he first moves, a small plank says "Click a sign or a trail to start walking." ("Tap ..." on a touch screen). On desktop it sits low in the room right of the sign, above the timeline, and steps left of him if it would cover him; on a phone it stands over his head, above his name tag. It hides while the idle tour runs and fades out for good on the first move. `api.touring()` and `api.me()` tell the page about the tour and where he stands.
 - **C1 done.** `collide.js` answers where each kind of mover may be: `canBe`, `steer` and `clear` (push a mover out to the nearest spot it may stand on), for boat, whale, swimmer, floater, land and flyer, each with a radius. The sea side reads depth from the sea grid less the tide of the moment and keeps off the stacks by a distance field round their feet, worked out once at load. The ferry (bow, middle and stern), the orcas (their line moves out with the tide), the whale's surfacing spots (deep at the lowest tide), the jellyfish (now placed beyond the surf and drifting), every walker and the bear, and the tumbleweeds use it. Debug: "No-go areas" cycles Ferry, Whale, Orcas, Jellyfish and Land animals as a red tint, or `?debug=collide:boat`. `frames.sh` takes `WWW=` like `shot.sh`.
 - **C2 done.** The idle tour starts after 120 s with no input (any key, click, tap, wheel or drag resets the wait and stops it, and the camera eases back to him). `tour=<seconds>` in the address starts it sooner for screenshots.
-- Next: C3.
+- **C3 done.** One world clock (`pixel.js`): 165 s of day, a 30 s sunset, 165 s of dusk, a 30 s sunrise, from the start of day on every visit, in every scene. The top-bar button and the trail map's "Time of day" setting cycle Auto, Day, Dusk. Debug "Time of day": a slider over the cycle, 1x, 10x and 60x, and jumps to the sunset and the sunrise. `time=<seconds>` sets the clock; `dusk=1` holds Dusk. Frame time through the sunset blend measured the same as by day (16.7 ms average and 99th percentile in the lab's Chromium).
+- Next: C4.
 
 ## 11. Calls made in round 5
 
@@ -600,6 +601,8 @@ One line each, newest last: the item, what was decided, and why.
 - C1: the movers keep their scripted courses (so scrubbing and the start buttons still work) and are pushed clear of what they may not cross at each moment, rather than steering step by step; `steer` is there for the free walkers to come (moose, bears in E9).
 - C1: depths needed under each, in pixels out from the waterline at the tide of the moment: ferry 18, orcas 22, jellyfish 26, whale 40; room from a stack's foot 5, 6, 4 and 10. A stack's foot is an oval as wide as its drawing and half as deep.
 - C1: land is the land's firm-ground rule (`W.open`) plus room round the board (20), the register (12) and the lookout (14); each walker keeps its own country on top. People are not in it yet: the walkers' countries already keep off the trails and the Trailhead. Flyers are free everywhere; where they may perch comes with the eagle (E). The dust devils spin in place on the dry flats they were put on, so they need nothing more.
+- C3: the blend was already smooth (the palette table is rebuilt in 65 steps as the light changes), so no dithered stages were needed. The things that switch on at Dusk (the map's dusk ground with its rust glints, the headlamps, the tent's glow, the deer's eyes, the forest's beams turning to fireflies) switch at the middle of the 30 s blend, when the palette is halfway, rather than fading on their own; the stars and the aurora already fade with the light.
+- C3: the page's own wood and paper turn to their dusk colours at the middle of the blend too, and the dusk find is marked when dusk first comes. The old saved Dusk preference is gone: Auto on every visit, as decided. The clock's speed multiplies the scenes' speed, so a paused scene pauses the light too.
 
 ## 12. The reference pictures
 

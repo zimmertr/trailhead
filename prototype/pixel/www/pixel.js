@@ -65,7 +65,17 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   ROUTES.back = () => [['world', { ...detour }]];
 
   let route = 'lake', legs = [], stops = [], cues = [], total = 1;
-  let p = 0, running = false, shown = null, mode = theme === 'dark' ? 1 : 0, mix = mode;
+  let p = 0, running = false, shown = null, mix = theme === 'dark' ? 1 : 0;
+  // One world clock for day and dusk (T76), on the map and in every scene. A cycle is 390 s: 165 of day, a 30 s
+  // sunset, 165 of dusk, a 30 s sunrise; a visit starts at the beginning of day. AUTO follows it; DAY or DUSK
+  // hold that light until switched back. The palettes blend through the sunset and the sunrise (the LUT in
+  // core.js is rebuilt in 65 steps, so the blend costs nothing per pixel). time=<seconds into the cycle> in the
+  // address sets the clock, for screenshots.
+  const CYCLE = 390, SUNSET = 165, DUSK_AT = 195, SUNRISE = 360;
+  const clock = { mode: theme === 'dark' ? 'dusk' : 'auto', t: (typeof location !== 'undefined' && +(/[?&]time=([\d.]+)/.exec(location.search) || [])[1]) || 0, speed: 1 };
+  const cycleMix = s => { s = ((s % CYCLE) + CYCLE) % CYCLE; const e = v => v * v * (3 - 2 * v); return s < SUNSET ? 0 : s < DUSK_AT ? e((s - SUNSET) / 30) : s < SUNRISE ? 1 : 1 - e((s - SUNRISE) / 30); };
+  if (clock.mode === 'auto') mix = cycleMix(clock.t);   // the first frame already has the light of its time
+  let darkNow = mix > 0.5;
   let drawn = null, tr = null, scrubbing = 0, stillAt = performance.now() / 1000;
   // Held down, Space or the Start button doubles his pace for as long as it is held.
   const FAST = 2; let fast = false, pace = 1;
@@ -234,7 +244,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     simT += Math.min(raw, 1) * speed;
     const t = simT, sdt = dt * speed;
     step(sdt);
-    mix += (mode - mix) * (1 - Math.exp(-dt * 3)); if (Math.abs(mix - mode) < 0.002) mix = mode;
+    clock.t = (clock.t + sdt * clock.speed) % CYCLE;
+    { const goal = clock.mode === 'auto' ? cycleMix(clock.t) : clock.mode === 'dusk' ? 1 : 0; mix += (goal - mix) * (1 - Math.exp(-dt * 3)); if (Math.abs(mix - goal) < 0.002) mix = goal; }
+    // The page's own colours (its wood and paper) turn at the middle of the blend.
+    if ((mix > 0.5) !== darkNow) { darkNow = mix > 0.5; emit({ type: 'theme', dark: darkNow }); }
     // A dragged view stays where it is left. Let go near the edge of what a scene lets you see and it
     // eases back inside; it returns to him only when he starts or stops moving.
     if (running !== wasRunning) { wasRunning = running; recentre = true; }
@@ -403,8 +416,11 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       if (inbound) { next = dest === 'trailhead' ? null : dest; running = true; return 'on'; }
       detour = { path: a.path, from: u, to: 0 }; plan('back'); p = 0; next = dest === 'trailhead' ? null : dest; running = true; return 'turn';
     },
-    theme: () => mode ? 'dark' : 'light',
-    setTheme(th) { mode = th === 'dark' ? 1 : 0; },
+    theme: () => darkNow ? 'dark' : 'light',
+    setTheme(th) { clock.mode = th === 'dark' ? 'dusk' : th === 'light' ? 'day' : 'auto'; },
+    // The world clock (T76): its mode ('auto', 'day', 'dusk'), where it is in the cycle and how fast it runs.
+    clock: () => ({ mode: clock.mode, t: clock.t, speed: clock.speed, mix, cycle: CYCLE, sunset: SUNSET, sunrise: SUNRISE }),
+    setClock({ mode, t, speed } = {}) { if (mode) clock.mode = mode; if (t != null) clock.t = ((t % CYCLE) + CYCLE) % CYCLE; if (speed) clock.speed = speed; },
     start() { if (p >= 1) p = 0; leave(); running = true; },
     stop() { running = false; pace = 1; },
     boost(on) { fast = !!on; },

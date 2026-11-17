@@ -203,6 +203,7 @@ function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; sheetName = nu
 // ------------------------------------------------------------------ the debug panel
 // Hidden: the backtick key opens and closes it, and so does the small sign at the foot of the trail map.
 const debug = $('debug');
+let timeSlider = null;
 function openDebug(on) {
   if (!on) { debug.hidden = true; return; }
   const D = UI.debug, onOff = k => UI.map.onOff[DEBUG[k] ? 0 : 1];
@@ -213,9 +214,16 @@ function openDebug(on) {
   const speeds = api.speeds.map((k, n) => el('button', { class: 'plank', 'aria-pressed': String(api.speed() === k), onclick: e => { api.setSpeed(k); for (const b of e.currentTarget.parentNode.children) b.setAttribute('aria-pressed', String(b === e.currentTarget)); audio.sfx('step'); } }, el('span', { text: D.speeds[n] })));
   // Each press shows the next kind's no-go areas, then none.
   const noGo = (() => { const kinds = Object.keys(D.noGoKinds); return el('button', { class: 'plank', 'aria-pressed': String(!!DEBUG.collide), onclick: e => { DEBUG.collide = kinds[(kinds.indexOf(DEBUG.collide) + 1) % kinds.length]; e.currentTarget.setAttribute('aria-pressed', String(!!DEBUG.collide)); e.currentTarget.querySelector('small').textContent = D.noGoKinds[DEBUG.collide]; audio.sfx('step'); } }, el('span', { text: D.noGo }), el('small', { text: D.noGoKinds[DEBUG.collide] })); })();
+  // Time of day (T76): a slider over the whole cycle (it follows the clock while the panel is open), the
+  // clock's speed, and jumps to the sunset and the sunrise. Moving the slider puts the clock on AUTO.
+  const C = api.clock();
+  timeSlider = el('input', { type: 'range', min: 0, max: C.cycle, step: 1, value: Math.round(C.t), 'aria-label': D.time, oninput: e => { api.setClock({ mode: 'auto', t: +e.currentTarget.value }); syncTop(); } });
+  const clockSpeeds = D.clockSpeeds.map(k => el('button', { class: 'plank', 'aria-pressed': String(C.speed === k), onclick: e => { api.setClock({ speed: k }); for (const b of e.currentTarget.parentNode.children) b.setAttribute('aria-pressed', String(b === e.currentTarget)); audio.sfx('step'); } }, el('span', { text: k + 'x' })));
+  const jump = (label, t) => el('button', { class: 'plank', onclick: () => { api.setClock({ mode: 'auto', t }); syncTop(); audio.sfx('step'); } }, el('span', { text: label }));
   const starts = ids => ids.map(id => el('button', { class: 'plank', onclick: () => { audio.sfx(api.trigger(id) ? 'step' : 'close'); } }, el('span', { text: D.events[id] })));
   debug.replaceChildren(
     el('h2', {}, el('span', { text: D.title }), el('button', { class: 'plank', style: 'width:auto', onclick: () => openDebug(false) }, el('span', { text: D.close }))),
+    el('h3', { text: D.time }), timeSlider, el('div', { class: 'speeds' }, ...clockSpeeds), jump(D.sunset, C.sunset - 2), jump(D.sunrise, C.sunrise - 2),
     el('h3', { text: D.layers }), ...['trees', 'clouds', 'mist', 'labels', 'animals'].map(toggle),
     el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle), noGo,
     el('h3', { text: D.zoom }), toggle('snap'),
@@ -255,7 +263,7 @@ function trailMap() {
     el('button', { class: 'plank', onclick: e => { toggleSound(); e.currentTarget.querySelector('small').textContent = UI.map.onOff[audio.muted() ? 1 : 0]; } }, el('span', { text: UI.map.sound }), el('small', { text: UI.map.onOff[audio.muted() ? 1 : 0] })),
     el('button', { class: 'plank', onclick: e => { nextTrack(); e.currentTarget.querySelector('small').textContent = trackName(); } }, el('span', { text: UI.map.music }), el('small', { text: trackName() })),
     el('button', { class: 'plank', onclick: e => { audio.start(); e.currentTarget.querySelector('small').textContent = audio.setSet(audio.set().index + 1); audio.sfx('flag'); } }, el('span', { text: UI.map.musicStyle }), el('small', { text: audio.set().name })),
-    el('button', { class: 'plank', onclick: () => { toggleDusk(); } }, el('span', { text: UI.map.dusk })),
+    el('button', { class: 'plank', onclick: e => { toggleDusk(); e.currentTarget.querySelector('small').textContent = UI.theme[api.clock().mode]; } }, el('span', { text: UI.map.dusk }), el('small', { text: UI.theme[api.clock().mode] })),
     // Clear my flags (L11): the finished routes and the finds, and the note that the register is open, so
     // finishing all three again says so again. A signed register entry is the visitor's own words and stays.
     el('button', { class: 'plank', onclick: () => { api.forget(); try { localStorage.removeItem('trailhead.told'); } catch { /* private window */ } buildMarks(); say(UI.map.cleared); closeSheet(); } }, el('span', { text: UI.map.clear })),
@@ -310,9 +318,11 @@ function toggleSound() { audio.start(); audio.setMuted(!audio.muted()); syncTop(
 let lastScene = 'world';
 const trackName = () => { const k = audio.track(); return k.auto ? UI.auto(k.name) : k.name; };
 function nextTrack() { audio.start(); if (audio.muted()) audio.setMuted(false); audio.cycle(); syncTop(); }
-function toggleDusk() { api.setTheme(api.theme() === 'dark' ? 'light' : 'dark'); syncTop(); audio.sfx('select'); if (api.theme() === 'dark') setTimeout(() => api.find('dusk'), 2500); try { localStorage.setItem('trailhead.theme', api.theme()); } catch { /* private window */ } }
+// The time of day (T76): AUTO (the default on every visit) follows the world clock, DAY and DUSK hold that light.
+const CLOCK_MODES = ['auto', 'day', 'dusk'];
+function toggleDusk() { const m = api.clock().mode; api.setClock({ mode: CLOCK_MODES[(CLOCK_MODES.indexOf(m) + 1) % 3] }); syncTop(); audio.sfx('select'); }
 const coarse = window.matchMedia ? matchMedia('(pointer: coarse)') : { matches: false };
-function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = trackName(); $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? UI.sound[1] : audio.live() ? UI.sound[0] : UI.soundWaits[coarse.matches ? 1 : 0]; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = UI.theme[api.theme() === 'dark' ? 1 : 0]; }
+function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = trackName(); $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? UI.sound[1] : audio.live() ? UI.sound[0] : UI.soundWaits[coarse.matches ? 1 : 0]; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = UI.theme[api.clock().mode]; }
 
 // The pointer is drawn like everything else: an arrow in the sprites' ink, yellow over anything
 // that can be pressed.
@@ -339,6 +349,7 @@ try {
       else if (e.type === 'leave') { hideCard(); if (waiting) { waiting = false; toast.hidden = true; } }
       else if (e.type === 'end') { if (e.route === 'register') inBook(true); else if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
       else if (e.type === 'sfx') audio.sfx(e.name);
+      else if (e.type === 'theme') { syncTop(); if (e.dark) setTimeout(() => { if (api.theme() === 'dark') api.find('dusk'); }, 2500); }
       else if (e.type === 'scene') { audio.ambience(e.name === 'register' ? 'world' : e.name); audio.place(e.name === 'world' && lastScene !== 'world' && lastScene !== 'register' ? 'out' : e.name); lastScene = e.name; syncTop(); }
       else if (e.type === 'say') say(e.text);
       else if (e.type === 'found' && FINDS[e.id]) { const n = Object.keys(api ? api.found() : {}).filter(k => FINDS[k]).length; if (e.id !== 'kiosk') { say(UI.found(FINDS[e.id][0], n, Object.keys(FINDS).length), 5200); audio.sfx('egg'); } }
@@ -367,9 +378,9 @@ try {
   // ?start=avalanche,osprey starts those timed events (the debug menu's names) once the opening is done,
   // for screenshots; the clocks' own switches (sea=, tide=, serac=, lens=, rain=, bear=) still set where a clock begins.
   if (q.get('start')) setTimeout(() => { for (const id of q.get('start').split(',')) api.trigger(id.trim()); }, 900);
-  // It starts in Day whatever the device prefers; a visitor who chose Dusk gets Dusk next time.
-  let dusk = false; try { dusk = localStorage.getItem('trailhead.theme') === 'dark'; } catch { /* private window */ }
-  if (q.get('dusk') || dusk) { api.setTheme('dark'); syncTop(); }
+  // Every visit starts on AUTO at the beginning of day (T76); dusk=1 holds Dusk, for screenshots.
+  if (q.get('dusk')) api.setTheme('dark');
+  syncTop();
   if (q.get('sheet')) openSheet(q.get('sheet'));
   // ?debug=roam,taps,-trees opens the panel with those outlines on and those layers off.
   // ?debug=collide:boat shows that kind's no-go areas.
@@ -478,6 +489,7 @@ addEventListener('resize', () => { nameBox = null; });
   const atFork = !(running || p > 0.002 || shown != null || api.route() !== 'lake');
   if (!atFork) chosen = true;
   placeHint();
+  if (timeSlider && !debug.hidden && document.activeElement !== timeSlider) timeSlider.value = Math.round(api.clock().t);
   fork.hidden = !atFork || forkShut;
   { const text = shown && cardShut ? LABELS[shown] || (PROJECTS[shown] ? PROJECTS[shown].name : CARDS[shown].title) : atFork && forkShut ? DEST_NAMES.trailhead : '';
     tab.hidden = !text || !sheet.hidden || !plain.hidden; if (text && text !== tabText) { tabText = text; tab.querySelector('span').textContent = text; } }
