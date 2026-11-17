@@ -714,12 +714,15 @@ function farRow(u0, u1, baseY, env, seed, snowy, list) {
       let c;
       if (!snowy) c = d === 0 ? F[1] : (west ? (b < 0.7 ? F[2] : F[3]) : (b < 0.75 ? F[1] : F[2]));
       else {
-        // Snow above a line that wanders, coming down lower in the gullies as glaciers; rock below,
-        // streaked with snow in its own gullies. Faces turned from the western light are blue.
-        const gully = vnoise(x / 10, dd / 16, 704), snowR = 0.46 + 0.12 * (vnoise(x / 30, seed, 705) - 0.5) + 0.22 * (0.5 - gully);
-        if (rel < snowR) c = west ? (edge ? F[3] : FS[1]) : (edge ? FS[1] : spur < 0.5 ? FS[0] : b < 0.5 ? FS[0] : F[3]);
-        else c = vnoise(x / 3, dd / 10, 706) > 0.66 ? FS[0] : west ? (edge ? F[3] : F[2]) : (edge ? F[2] : F[1]);
-        if (d === 0) c = F[1];
+        // The crest's grey rock, a step or two paler for the distance (round 5, T27: it was a blue wash, with snow
+        // halfway down). Snow lies only high up, above a line that wanders and comes lower in the gullies as
+        // small glaciers, with a few streaks below it. The faces the western light reaches are the paler ones.
+        // The haze of the distance is the palest far blue dithered in, thicker toward the range's foot.
+        const gully = vnoise(x / 10, dd / 16, 704), snowR = 0.2 + 0.1 * (vnoise(x / 30, seed, 705) - 0.5) + 0.26 * (0.5 - gully), K = R.rock;
+        if (rel < snowR) c = west ? (edge ? K[4] : FS[1]) : (edge ? FS[1] : spur < 0.5 ? FS[0] : b < 0.5 ? FS[0] : K[4]);
+        else if (rel < 0.62 && vnoise(x / 3, dd / 10, 706) > 0.74 + 0.3 * rel) c = FS[0];
+        else { const flute = vnoise(x / 2.5, dd / 12, 708); c = west ? K[edge ? 2 : flute > 0.6 ? 4 : 3] : K[edge ? 3 : flute > 0.7 ? 3 : flute < 0.22 ? 1 : 2]; if (b < 0.08 + 0.4 * smooth(0.35, 1.25, rel)) c = F[3]; }
+        if (d === 0) c = K[2];
       }
       g[px(x, y)] = c;
     }

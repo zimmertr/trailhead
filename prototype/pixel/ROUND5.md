@@ -520,7 +520,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] D7. T10: the fire lookout on Off By One Peak.
 - [x] D8. T21: flower density from one field, with the four levels.
 - [x] D9. T22: more larches on the upper plateau. T23: no aspens on the dry side.
-- [ ] D10. T27: the Legacy Range in grey rock with high snow.
+- [x] D10. T27: the Legacy Range in grey rock with high snow.
 - [ ] D11. T31: Little Tahoma's tip a touch blunter.
 - [ ] D12. T64 (map part): iron rungs up the cliff below the plateau, and the hook straightened into an arc.
 - [ ] D13. T8: driftwood redrawn.
@@ -663,7 +663,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **D7 done.** The fire lookout stands on the crest of Off By One Peak, against the Legacy Range, on a summit cleared of trees. It shows on the first screen, top left. The old site on the smaller hill by Reflection Lake is forest again.
 - **D8 done.** The flowers grow in TJ's four levels: thickest from Monolith's foot round Reflection Lake and across to base camp, a medium amount along the rivers, a small amount round the Trailhead and in the meadow's corner by the forest, and sparse in the rest of the meadows. The meadow below the lake's cliff, which was as thick as the lake's, is now the rivers' medium.
 - **D9 done.** The upper plateau has nine more groups of larches, by its tarns and among its slabs, with open slab between them. No aspen stands on the dry yellow ground any more: they keep to the riverside woods west of the dry edge.
-- Next: D10.
+- **D10 done.** The Legacy Range is grey rock now, the crest's own greys a step paler for the distance, with snow on its summits and a few streaks and small glaciers below them. Its western faces are lit and its eastern ones shaded, and a light haze lies on its foot.
+- Next: D11.
 
 ## 11. Calls made in round 5
 
@@ -763,6 +764,10 @@ One line each, newest last: the item, what was decided, and why.
 - D9, larches. The trees already on the upper plateau stay where they are. The new ones are groups of five to nine with dice of their own, so no other tree moved: the first five groups stand beside a tarn, the rest anywhere on the upper step, and no two groups are closer than 50 px, which keeps slab between them. They are the small larches the plateau already had (trees shrink with height on this map).
 - D9, aspens. An aspen whose own spot is dry ground (`dryAmt` of 0.3 or more) is left out, and the dice roll on as before, so every other aspen and every tree planted after them stands where it did. This removes the groves on the yellow ground and thins the ones on the edge. I did not add groves in the riverside woods to make up the number: TJ asked for them gone from the dry side, not for more elsewhere.
 - D9, checks: `check.sh D9 D8` passed, 12.1 ms a frame zoomed out at Dusk, nothing moved, lint clean, 6,519 plants (25 fewer than D8). Looked at beside the build before at the plateau and along the dry edge. Round 4 has the plateau nearly bare and aspens on the yellow ground.
+- D10. The palette has 252 of its 254 colours, so there was no room for a new ramp of hazed greys. The range uses the crest's `rock` ramp, steps 1 to 4 (the Spires use 0 to 3), and the haze is the palest far blue dithered in, thin on the summits and thicker toward the foot. The `far` ramp itself is untouched: the side scenes and the far forested foothills still use it.
+- D10. The snow line came up from about halfway to the top fifth of each peak, lower in the gullies. At Dusk the range is now the same violet as the Spires with pink snow on the tips. Round 4's Dusk had more pink on it because it had more snow; that went with the snow TJ asked to lose. A first try with the two palest greys only was flat by day and a loud violet at Dusk, so the shaded faces went a step darker.
+- D10. The same drawing rule paints the row of far peaks behind the Spires and the plateau, which the crest hides almost everywhere. It changed with the range, so the two cannot disagree.
+- D10, checks: `check.sh D10 D9` passed, 12.1 ms a frame zoomed out at Dusk, nothing moved, lint clean. Looked at beside round 5's build before the change by Day and at Dusk, and beside TJ's picture.
 
 ## 12. The reference pictures
 

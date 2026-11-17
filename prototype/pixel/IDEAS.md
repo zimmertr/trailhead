@@ -205,4 +205,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Debug View of the Fields** (round 5, D8). The Debug panel could tint the map by a chosen field (flowers, forest, dry side, fog), so a sketch like TJ's can be checked against the rule at a glance.
 - **Larch Needles on the Tarns** (round 5, D9). The tarns beside a larch group could carry a scatter of gold needles on the water, drifting to the outflow.
 - **Cottonwoods on the Dry Side's Rivers** (round 5, D9). With the aspens gone from the dry side, a few cottonwoods or willows could line the rivers where they cross the sage, as they do in the real Palouse and the coulees.
+- **Alpenglow That Moves** (round 5, D10). At Dusk the pink light could climb the Legacy Range's snow over a minute and go out summit by summit, the way it does on a real range.
+- **Two Free Colours** (round 5, D10). The palette has two colours left. A hazed grey pair for far rock would let the distant ranges sit further back without the dithered haze.
 
