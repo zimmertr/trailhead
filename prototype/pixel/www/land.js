@@ -1238,10 +1238,13 @@ export async function sourceSig() {
   return h.toString(16);
 }
 export const BAKE_ROWS = 13 * SH + 4 * VD;
+// Whether the bake was used, and if not, why: read by the page's __info, so a host that serves the files
+// differently (an artifact, a CDN) can be asked instead of guessed at.
+export const BAKE = { used: false, note: '' };
 async function readBake() {
-  if (globalThis.__noBake) return null;
+  if (globalThis.__noBake) { BAKE.note = 'switched off'; return null; }
   try {
-    const res = await fetch(new URL('./ground.png', import.meta.url)); if (!res.ok) return null;
+    const res = await fetch(new URL('./ground.png', import.meta.url)); if (!res.ok) { BAKE.note = 'ground.png answered ' + res.status; return null; }
     const b = new Uint8Array(await res.arrayBuffer()), dv = new DataView(b.buffer), parts = []; let w = 0, h = 0, sig = '';
     for (let p = 8; p + 12 <= b.length;) {
       const n = dv.getUint32(p), type = String.fromCharCode(b[p + 4], b[p + 5], b[p + 6], b[p + 7]);
@@ -1251,17 +1254,18 @@ async function readBake() {
       p += 12 + n;
     }
     const want = await sourceSig();
-    if (w !== NW || h !== BAKE_ROWS || sig !== want) { if (location.hostname === 'localhost') console.warn('ground.png no longer matches the map: run ./bake.sh'); return null; }
+    if (w !== NW || h !== BAKE_ROWS || sig !== want) { BAKE.note = 'made from other source: ground.png ' + sig + ' ' + w + 'x' + h + ', this page ' + want + ' ' + NW + 'x' + BAKE_ROWS; if (location.hostname === 'localhost') console.warn('ground.png no longer matches the map: run ./bake.sh'); return null; }
     const px = new Uint8Array(await new Response(new Blob(parts).stream().pipeThrough(new DecompressionStream('deflate'))).arrayBuffer());
-    if (px.length !== (w + 1) * h) return null;
+    if (px.length !== (w + 1) * h) { BAKE.note = 'ground.png is cut short'; return null; }
     // One plane after another, each as wide as the map; every row starts with a 0 (stored as it is).
     let y0 = 0; const plane = rows => { const a = new Uint8Array(NW * rows); for (let y = 0; y < rows; y++) a.set(px.subarray((y0 + y) * (w + 1) + 1, (y0 + y + 1) * (w + 1)), y * NW); y0 += rows; return a; };
     const g = plane(SH), zh = plane(SH), zl = plane(SH), mb = plane(SH), painted = plane(SH), hh = plane(VD), hl = plane(VD), mg = plane(VD), water = plane(VD), bare = plane(SH), dest = plane(SH), fog = plane(SH), hillLight = plane(SH), deck = plane(SH), monoSnow = plane(SH), monoQ = plane(SH), mist = plane(SH);
     const zb = new Float32Array(NW * SH), hg = new Float32Array(NW * VD);
     for (let i = 0; i < zb.length; i++) { const q = zh[i] << 8 | zl[i]; zb[i] = q === 65535 ? 1e9 : q / 64; }
     for (let i = 0; i < hg.length; i++) hg[i] = (hh[i] << 8 | hl[i]) / 32;
+    BAKE.used = true;
     return { g, zb, mb, painted, hg, mg, water, bare, dest, fog, hillLight, deck, monoSnow, monoQ, mist };
-  } catch (e) { console.warn('ground.png could not be read', e); return null; }
+  } catch (e) { BAKE.note = 'could not be read: ' + e.message; console.warn('ground.png could not be read', e); return null; }
 }
 // The bake is kept as well: buildTerrain takes the hills' evening light and the cloud deck from it (M3).
 const BAKED = await readBake();

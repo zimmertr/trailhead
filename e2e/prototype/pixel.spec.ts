@@ -7,7 +7,7 @@ const www = join(import.meta.dirname, '..', '..', 'prototype', 'pixel', 'www')
 // than the map it was baked from. That warning fails a test like any other.
 const origin = 'http://localhost:8080'
 
-type Info = { p: number; route: string | null; scene: string }
+type Info = { p: number; route: string | null; scene: string; baked: boolean; bakeNote: string }
 declare global {
   interface Window {
     __ready?: boolean
@@ -54,7 +54,10 @@ const watch = (page: Page) => page.waitForTimeout(1000)
 test('the Trailhead draws the map', async ({ page }) => {
   const problems = await open(page, '/')
   await watch(page)
-  expect((await info(page))?.scene).toBe('world')
+  const { scene, baked, bakeNote } = (await info(page)) ?? {}
+  expect(scene).toBe('world')
+  // The map came from ground.png, not from a second of working it out. The note says why when it did not.
+  expect({ baked, bakeNote }).toEqual({ baked: true, bakeNote: '' })
   expect(problems).toEqual([])
 })
 

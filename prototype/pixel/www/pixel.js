@@ -4,6 +4,7 @@
 
 import { clamp, lerp, Screen, DEBUG, R } from './core.js';
 import { makeWorld } from './world.js';
+import { BAKE } from './land.js';
 
 // Scenes beyond the world map are built the first time a route needs them.
 const MAKERS = {
@@ -373,7 +374,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     scr.present(t, mix);
     if (gliding && !calm.matches) startGlide(gliding);
     const f = drawn.scene.focus();
-    window.__info = { p, route, running, scene: drawn.s, VW: scr.VW, VH: scr.VH, S: scr.S, fx: f.x, fy: f.y, o: drawn.s === 'world' ? world.at(0, 0) : null, pose: drawn.s === 'world' ? world.pose() : null };
+    window.__info = { p, route, running, baked: BAKE.used, bakeNote: BAKE.note, scene: drawn.s, VW: scr.VW, VH: scr.VH, S: scr.S, fx: f.x, fy: f.y, o: drawn.s === 'world' ? world.at(0, 0) : null, pose: drawn.s === 'world' ? world.pose() : null };
   }
   drawn.scene.enter(scr, drawn.arg, 0);
   requestAnimationFrame(draw);
