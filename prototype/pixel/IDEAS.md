@@ -208,4 +208,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Alpenglow That Moves** (round 5, D10). At Dusk the pink light could climb the Legacy Range's snow over a minute and go out summit by summit, the way it does on a real range.
 - **Two Free Colours** (round 5, D10). The palette has two colours left. A hazed grey pair for far rock would let the distant ranges sit further back without the dithered haze.
 - **A Cloud Cap on the Tooth** (round 5, D11). Now and then a small banner cloud could trail east off Little Tahoma's tip while the summit wears its lens cloud.
+- **Hand Over Hand on the Rungs** (round 5, D12). On the map TJ could climb the rungs with his own climbing frames, slower than he walks, and a goat could watch from the lip.
+- **Rungs on the Lower Cliff** (round 5, D12). The trail's gap through the lower band of cliff could take a short run of rungs or a few cut steps, so both cliffs on the way are crossed on purpose.
 

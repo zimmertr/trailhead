@@ -262,7 +262,7 @@ C.coulee = [[1500, 232], [1556, 204], [1612, 176], [1662, 130], [1726, 106], [17
 C.trails = [
   [[880, 392], [830, 388], [770, 386], [725, 384], [700, 384], [668, 380], [630, 376], [590, 378], [540, 390], [490, 384], [440, 360], [390, 354], [340, 370], [300, 410], [270, 450], [262, 490], [290, 520], [330, 530], [380, 515], [420, 500], [460, 492], [496, 470], [530, 448], [560, 436], [590, 434], [640, 424], [676, 420], [712, 424], [748, 426], [772, 414], [800, 402], [840, 394], [880, 392]],
   [[978, 438], [962, 462], [984, 482], [1004, 498], [1018, 512], [1022, 526], [1040, 534], [1056, 546], [1066, 560], [1070, 578], [1068, 600]],
-  [[1340, 410], [1372, 436], [1392, 450], [1378, 462], [1402, 474], [1422, 500], [1436, 518], [1420, 528], [1440, 538], [1424, 548], [1436, 578]]
+  [[1340, 410], [1372, 436], [1392, 450], [1378, 462], [1402, 474], [1422, 500], [1434, 516], [1432, 524], [1432, 532], [1430, 546], [1432, 562], [1436, 578]]
 ];
 // The lake grew (T30), so the loop's points along its south shore step back to keep 5 clear of the water.
 { const [cu, cv, ru, rv] = C.lakes[0]; for (const p of C.trails[0]) { const x = (p[0] - cu) / ru; if (Math.abs(x) >= 1 || p[1] > cv) continue; const shore = cv - rv * Math.sqrt(1 - x * x) - 5; if (p[1] > shore) p[1] = Math.round(shore); } }
@@ -584,15 +584,20 @@ function colour(u, v, hh, x, y) {
   // A trail goes from dirt to rock over a few paces, not at a line (D13): how much of its tread is rock
   // comes from how much of the ground round it is not soil, how steep it is and how high, and each pixel
   // picks dirt or rock by that share with a dither.
-  if (trail[i] && mat !== 'ice') {
+  // Iron rungs (round 5, T64, after the rungs above Snow Lake on the way into the Enchantments): where the
+  // trail climbs a granite cliff, its face keeps the slab and takes a rung every third pixel up, as wide as
+  // the trail's tread. Without this every trail spot on the cliff's edge painted the whole face below it.
+  const rungs = trail[i] && mat === 'gran' && hg[i] - hh > 1.5;
+  if (rungs && trail[i] === 2) return y % 3 === 0 ? R.rock[0] : R.rock[hash(x, y, 6) < 0.3 ? 3 : 4];
+  if (trail[i] && mat !== 'ice' && !rungs) {
     let hard = 0; for (const [a, b] of [[-5, 0], [5, 0], [0, -5], [0, 5], [-4, -4], [4, 4], [-4, 4], [4, -4]]) { const m = MATS[mg[at(clamp(u + a, 0, NW - 1), clamp(v + b, 0, VD - 1))]]; if (m !== 'land' && m !== 'ice') hard++; }
     // On the forested foothills (E5b) the slope is soil under the trees, so steepness alone does not make it rock.
     const share = clamp((mat !== 'land' ? 0.5 : 0) + hard / 16 + smooth(0.5, 0.95, steep) * (u < 760 && hills(u, v) > 2 ? 0.15 : 1) + 0.5 * smooth(60, 100, hh), 0, 1), rock = bayer(x, y) < share * 1.1 - 0.05;
     if (trail[i] === 2) return rock ? R.rock[hash(u, v, 6) < 0.3 ? 4 : 3] : hash(u, v, 5) < 0.1 ? R.dirt[2] : R.dirt[3];
     return rock ? R.rock[1] : R.dirt[1];
   }
-  if (trail[i] === 2) return R.glac[1];
-  if (trail[i] === 1) return R.glac[3];
+  if (trail[i] === 2 && !rungs) return R.glac[1];
+  if (trail[i] === 1 && !rungs) return R.glac[3];
   if (mat === 'ice') {
     // Under the wall the ice gapes away from the rock. Above the icefall it is snow with a few long
     // crevasses, the icefall is broken blocks, and the tongue below is bare blue ice crevassed across.

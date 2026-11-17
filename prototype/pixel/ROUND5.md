@@ -522,7 +522,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] D9. T22: more larches on the upper plateau. T23: no aspens on the dry side.
 - [x] D10. T27: the Legacy Range in grey rock with high snow.
 - [x] D11. T31: Little Tahoma's tip a touch blunter.
-- [ ] D12. T64 (map part): iron rungs up the cliff below the plateau, and the hook straightened into an arc.
+- [x] D12. T64 (map part): iron rungs up the cliff below the plateau, and the hook straightened into an arc.
 - [ ] D13. T8: driftwood redrawn.
 - [ ] D14. T48 (map part): the tent moved up the glacier onto a rock island. T49: one yellow-orange tent on the map.
 - [ ] D4. T17, T24: the water audit. Every join is listed, fixed and pictured. **Moved to the end of section D on 2026-11-16**, because every D item after it changes the land and the water with it. Three fixes are already in (the lake's outflow runs over its lip into the fall, the west river's channel on the sand joins the river, and a stream that drops off a cliff gets a fall down the face). Run the whole audit from the start. Its pictures go on the notes artifact (S3b), not into the repo.
@@ -665,7 +665,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **D9 done.** The upper plateau has nine more groups of larches, by its tarns and among its slabs, with open slab between them. No aspen stands on the dry yellow ground any more: they keep to the riverside woods west of the dry edge.
 - **D10 done.** The Legacy Range is grey rock now, the crest's own greys a step paler for the distance, with snow on its summits and a few streaks and small glaciers below them. Its western faces are lit and its eastern ones shaded, and a light haze lies on its foot.
 - **D11 done.** Little Tahoma's tip is two pixels across with a small step on its east side, where it was a single pixel standing two high. It is still a sharp tooth, on the map and in the lake's view.
-- Next: D12.
+- **D12 done.** On the map the Proficiency trail climbs the cliff below the plateau by a ladder of thirteen iron rungs, as wide as the trail, and runs on from the cliff's top to the foot of the peak in one gentle line. The wide grey smear on the face and the hook at the top are gone. The larch walk's part of the note is item I1.
+- Next: D13.
 
 ## 11. Calls made in round 5
 
@@ -771,6 +772,11 @@ One line each, newest last: the item, what was decided, and why.
 - D10, checks: `check.sh D10 D9` passed, 12.1 ms a frame zoomed out at Dusk, nothing moved, lint clean. Looked at beside round 5's build before the change by Day and at Dusk, and beside TJ's picture.
 - D11. The change is five points in the mountain's outline (`SKY` in `monolith.js`): the tip comes down two pixels, from 125 to 127 in the painting, and its top is flat for two pixels before it steps down to the east. The land's heights are shaped to the same outline, so the ground was baked again. The lake's side view paints the same mountain and shows the same tip.
 - D11, checks: `check.sh D11 D10` passed, 12.1 ms a frame zoomed out at Dusk, nothing moved, lint clean. Looked at beside the build before at 4x on the map, and in the lake's view.
+- D12. Why it was wide: the map is painted a column at a time, and every spot on a cliff's edge paints the whole face under it in its own colour. The trail crossed the edge at a slant, 14 px across, so 14 columns of face were painted as trail. Two changes: the trail now crosses the edge going straight up (three of its points moved, `C.trails[2]`), and a trail spot on a granite face keeps the slab and takes a dark rung every third pixel, across the trail's tread only (`rungs` in `colour()`).
+- D12. The hook was two switchback points just above the cliff, there since round 3. They are replaced by three points that bend a few pixels, so the line from the cliff's top to the peak's foot is a gentle arc. The switchbacks lower down, below the bridge, are as they were.
+- D12, reference: the rungs above Snow Lake on the way into the Enchantments are iron bars set into a steep granite slab, each a hand's width apart, with nothing else on the rock. Drawn here from that description only: plain slab, dark bars, no rails.
+- D12. The trail also goes through a lower band of cliff on its way up, by a narrow gap. TJ's note is about the tall cliff under the plateau, so the lower one is left as it is.
+- D12, checks: `check.sh D12 D11` passed, 11.9 ms a frame zoomed out at Dusk, lint clean. Two things moved, both expected: the trail by up to 12 px at the cliff, and the sign beside it by 11 px (it is placed by rule beside the trail). Looked at beside the build before and beside TJ's two pictures, and with TJ standing on the rungs.
 
 ## 12. The reference pictures
 
