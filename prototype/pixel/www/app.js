@@ -51,7 +51,7 @@ function showCard(id) {
     for (const s of SPIRE_ORDER) menu.append(el('li', {}, el('button', { class: 'plank choice', onclick: () => climb(s) }, el('i', { class: 'arrow up' }), el('span', { text: PROJECTS[s].name }), el('small', { text: done['spire:' + s] ? UI.card.climbed : '' }))));
     menu.append(el('li', {}, el('button', { class: 'plank choice', onclick: walkOut }, el('i', { class: 'arrow left' }), el('span', { text: UI.card.walkOut }))));
   }
-  $('card-egg').hidden = !pr; if (pr) $('card-egg').textContent = UI.card.egg(pr.top);
+  $('card-egg').hidden = !pr; if (pr) $('card-egg').textContent = pr.clue;
   $('card-draft').hidden = !((c && c.draft) || (pr && false));
   const go = $('card-go'); go.hidden = id === 'base-camp'; go.querySelector('span').textContent = pr ? UI.card.glissade : c.go || '';
   card.hidden = false; card.scrollTop = 0; audio.focus(1);
@@ -139,7 +139,7 @@ function say(text, ms = 4200) { toast.textContent = text; toast.hidden = false; 
 function buildMarks() {
   const marks = $('marks'); marks.replaceChildren();
   const r = api.route(), stops = api.stops();
-  const all = [{ at: 0, label: r === 'back' ? '' : r.startsWith('spire:') || r === 'spires-home' ? UI.marks.camp : UI.marks.trailhead }, ...stops.filter(s => s.at < 0.995 && !isWait(s.id)).map(s => ({ at: s.at, label: LABELS[s.id] || (PROJECTS[s.id] ? UI.marks.summit : s.id) })), { at: 1, label: r.startsWith('spire:') ? UI.marks.camp : ENDS[r] || UI.marks.trailhead }];
+  const all = [{ at: 0, label: r === 'back' ? '' : r.startsWith('spire:') || r === 'spires-home' ? UI.marks.camp : UI.marks.trailhead }, ...stops.filter(s => s.at < 0.995 && !isWait(s.id)).map(s => ({ at: s.at, label: LABELS[s.id] || (PROJECTS[s.id] ? PROJECTS[s.id].name : s.id) })), { at: 1, label: r.startsWith('spire:') ? UI.marks.camp : ENDS[r] || UI.marks.trailhead }];
   for (const m of all) if (m.label) marks.append(el('span', { class: 'mark' + (m.at === 0 ? ' first' : m.at === 1 ? ' last' : ''), style: 'left:' + (m.at * 100) + '%', 'data-at': m.at, text: m.label }));
   profile = api.profile(160);
   nudgeMarks();

@@ -68,14 +68,16 @@ export const CARDS = {
   }
 };
 
-// The numbers were read from GitHub on 2026-11-14.
+// The numbers were read from GitHub on 2026-11-14. `clue` is the last line of the card: a nudge toward what
+// the thing on the summit does when it is clicked (round 5, T54). All six are drafts for TJ, and the one on
+// TJs-Kubernetes-Service is his own.
 export const PROJECTS = {
-  bluebird: { name: 'Bluebird Forecast', top: 'A weather station', repo: 'zimmertr/bluebird', site: 'https://bluebirdforecast.com', stars: 2, release: 'v0.141.8', released: '2026-11-14', language: 'TypeScript', license: 'PolyForm Noncommercial 1.0.0', body: ['The weather window finder. It discovers hiking and mountaineering destinations and ranks them by wildfire activity, precipitation, temperature, wind and air quality, so you can find the bluebird day before it gets here.'] },
-  tks: { name: 'TJs-Kubernetes-Service', top: 'A server rack', repo: 'zimmertr/TJs-Kubernetes-Service', stars: 557, release: 'v4.0.38', released: '2026-11-14', language: 'HCL', license: 'GPL-3.0', body: ['TKS is a collection of Terraform configurations that deploy Talos Linux Kubernetes clusters to Proxmox VE.', 'This site runs at home on one of them: Proxmox, Terraform, Talos Linux, Kubernetes, Istio and MetalLB.'], extra: [['The hardware', 'https://github.com/zimmertr/TJs-Kubernetes-Service']] },
-  'hevy-garmin-sync': { name: 'hevy-garmin-sync', top: 'A weight bench', repo: 'zimmertr/hevy-garmin-sync', stars: 2, release: 'v0.13.0', released: '2026-11-14', language: 'Python', license: 'MIT', body: ['Turns Hevy routines (and Hevy Trainer workouts) into Garmin Connect strength workouts on your watch.'] },
-  trailhead: { name: 'trailhead', top: 'A pair of coin-operated binoculars', repo: 'zimmertr/trailhead', stars: 0, release: 'v0.1.5', released: '2026-11-14', language: 'TypeScript', license: 'PolyForm Noncommercial 1.0.0', body: ['This site. You are standing on it.'] },
-  yggdrasil: { name: 'yggdrasil', top: 'The world tree', repo: 'zimmertr/yggdrasil', stars: 1, release: 'v2.0.0', released: '2026-11-14', language: 'HCL', license: 'GPL-3.0', body: ['Shared, versioned CI modules, and the Terraform that manages my GitHub repos and orgs. Every other project here hangs off it.'] },
-  'kubernetes-manifests': { name: 'Kubernetes-Manifests', top: 'A cairn', repo: 'zimmertr/Kubernetes-Manifests', stars: 120, release: null, released: null, language: 'Shell', license: 'GPL-3.0', body: ['A collection of my Kubernetes manifests, managed by Kustomize and Argo CD.'] }
+  bluebird: { name: 'Bluebird Forecast', top: 'A weather station', clue: "The station's forecast says bluebird skies. Maybe ask it to prove it.", repo: 'zimmertr/bluebird', site: 'https://bluebirdforecast.com', stars: 2, release: 'v0.141.8', released: '2026-11-14', language: 'TypeScript', license: 'PolyForm Noncommercial 1.0.0', body: ['The weather window finder. It discovers hiking and mountaineering destinations and ranks them by wildfire activity, precipitation, temperature, wind and air quality, so you can find the bluebird day before it gets here.'] },
+  tks: { name: 'TJs-Kubernetes-Service', top: 'A server rack', clue: 'The hardware seems to be malfunctioning, maybe try some percussive maintenance.', repo: 'zimmertr/TJs-Kubernetes-Service', stars: 557, release: 'v4.0.38', released: '2026-11-14', language: 'HCL', license: 'GPL-3.0', body: ['TKS is a collection of Terraform configurations that deploy Talos Linux Kubernetes clusters to Proxmox VE.', 'This site runs at home on one of them: Proxmox, Terraform, Talos Linux, Kubernetes, Istio and MetalLB.'], extra: [['The hardware', 'https://github.com/zimmertr/TJs-Kubernetes-Service']] },
+  'hevy-garmin-sync': { name: 'hevy-garmin-sync', top: 'A weight bench', clue: 'Nobody leaves a bench this high without doing a set.', repo: 'zimmertr/hevy-garmin-sync', stars: 2, release: 'v0.13.0', released: '2026-11-14', language: 'Python', license: 'MIT', body: ['Turns Hevy routines (and Hevy Trainer workouts) into Garmin Connect strength workouts on your watch.'] },
+  trailhead: { name: 'trailhead', top: 'A pair of coin-operated binoculars', clue: 'The binoculars are coin-operated. You look like you have a coin.', repo: 'zimmertr/trailhead', stars: 0, release: 'v0.1.5', released: '2026-11-14', language: 'TypeScript', license: 'PolyForm Noncommercial 1.0.0', body: ['This site. You are standing on it.'] },
+  yggdrasil: { name: 'yggdrasil', top: 'The world tree', clue: "The world tree's roots reach into every repo. Give it a closer look.", repo: 'zimmertr/yggdrasil', stars: 1, release: 'v2.0.0', released: '2026-11-14', language: 'HCL', license: 'GPL-3.0', body: ['Shared, versioned CI modules, and the Terraform that manages my GitHub repos and orgs. Every other project here hangs off it.'] },
+  'kubernetes-manifests': { name: 'Kubernetes-Manifests', top: 'A cairn', clue: "Every visitor leaves a stone. It's tradition.", repo: 'zimmertr/Kubernetes-Manifests', stars: 120, release: null, released: null, language: 'Shell', license: 'GPL-3.0', body: ['A collection of my Kubernetes manifests, managed by Kustomize and Argo CD.'] }
 };
 export const SPIRE_ORDER = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
@@ -175,12 +177,11 @@ export const UI = {
   wait: { go: 'Press Space or Start to carry on.', belay: 'Press Space or Start to climb.' },
   card: {
     summit: top => 'On the summit: ' + top.toLowerCase(),
-    egg: top => 'Click ' + top.toLowerCase().replace(/^a /, 'the ') + ' up there.',
     facts: ['Stars', 'Latest release', 'Language', 'License'], noRelease: 'none yet',
     pitches: [['Pitch 1', 100, 'sent'], ['Pitch 2', 100, 'sent'], ['Pitch 3', 100, 'one fall, caught'], ['Pitch 4', 8, 'next']],
     github: 'GitHub', climbed: 'climbed', walkOut: 'Walk out to the Trailhead', glissade: 'Glissade to camp'
   },
-  marks: { camp: 'Base camp', trailhead: 'Trailhead', summit: 'Summit' },
+  marks: { camp: 'Base camp', trailhead: 'Trailhead' },
   keys: { title: 'Keys', note: 'Everything also works by touch.' },
   // The hidden panel behind the backtick key and the small sign at the foot of the trail map.
   debug: {

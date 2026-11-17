@@ -369,3 +369,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Cairn That Widens** (round 5, H10). Past six stones the pile grows at its foot as well as its top, so a full cairn is a broad cone and not a thin stack.
 - **The Cairn on the Map** (round 5, H10). The spire's summit on the map and on camp's backdrop shows the cairn at the height this visitor has built it.
 - **A Stone From Each Place** (round 5, H10). The stone he adds is the colour of the last place he visited: basalt from the sea stack, granite from the lake, red rock from the Palouse.
+- **A Clue That Changes Once Found** (round 5, H11). After the find, the card's last line says what happened ("You left a stone. 4 on the pile.") where it gave the clue.
+- **Summit Marks on a Phone** (round 5, H11). Narrow screens show no marks on the timeline. The summit's name alone could be shown there, above the bar.
+- **The Clue in the World** (round 5, H11). TJ's other option for T54: the hint drawn at the summit itself, such as a red light blinking on the rack or a coin slot glinting on the binoculars.

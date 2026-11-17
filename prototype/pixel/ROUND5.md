@@ -569,7 +569,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] H8. T60: yggdrasil with half the clip-ins.
 - [x] H9. T62: Kubernetes-Manifests climbs out of the whiteout above a sea of cloud.
 - [x] H10. T63: the cairn takes a stone a visit, capped at 12. The kick is gone.
-- [ ] H11. T52: each summit's timeline stop is named for its project. T54: the six clue lines in the project cards.
+- [x] H11. T52: each summit's timeline stop is named for its project. T54: the six clue lines in the project cards.
 
 ### I. The way to Proficiency Peak and its climb
 
@@ -700,7 +700,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **H8 done.** yggdrasil's cable has an anchor every 116 px of the way, where it had one every 58. He stops to move his lanyards past an anchor 7 times, where he stopped 13 times. The whole climb takes 24.7 s (29.5 before), and he is on top after 21.1 s (25.9 before).
 - **H9 done.** On Kubernetes-Manifests he now climbs out of the top of the whiteout. The cloud overhead tears open from the top of the picture down, the sun shows through it as a pale disc, and then he is in clear air on the last of the slope with a sea of cloud below him. The lower slope, the crevasses and the feet of the other peaks are under it. The spires and the crests of the far range stand out of it. It is the same from Day to Dusk and on a phone. The whiteout before it did not change.
 - **H10 done.** The kick is gone. A click on the cairn on Kubernetes-Manifests now makes him bend for a stone, carry it over in both hands, set it on top and stand back to look. The cairn keeps the stone: the count is saved in the visitor's browser and the pile is one stone taller each time he comes back to the summit, up to 12 added stones. A second click on the same visit, or any click on a full cairn, makes him walk over and pat it. The find counts from the first click.
-- Next: H11.
+- **H11 done.** On each climb's timeline the summit's stop now carries the project's name ("Bluebird Forecast", "TJs-Kubernetes-Service" and so on) where it said "Summit". Each project card ends with a clue to what its summit's thing does, in place of "Click the cairn up there." The six clue lines are drafts for TJ, listed in section 11. Section H is finished.
+- Next: I1.
 
 ## 11. Calls made in round 5
 
@@ -1054,3 +1055,14 @@ One line each, newest last: the item, what was decided, and why.
 - H10, call: the "Clear my flags" button in the settings also takes the stones away (`pixel.js`, `forget`), so the cairn can be seen growing again from nothing. In a private window the count lasts for that page only.
 - H10, new sound: `clack`, one stone set on another. Not listened to. The find's own sound still plays at the click.
 - H10, tested in the lab by setting the count in the browser's storage first: the first stone, the sixth, the twelfth, the pat on a full cairn and the pat on a second click, and the twelve-stone cairn on a desktop and a phone screen. The click box grows with the pile. The check passed with nothing moved.
+- H11, T52 (`app.js`): the mark is `PROJECTS[id].name`. The longest, "TJs-Kubernetes-Service", sits beside "Base camp" without touching it at 1440 and 1920 wide. Phones narrower than 760 px show no marks, as before. `UI.marks.summit` is gone because nothing reads it.
+- H11, T54 (`content.js`, `clue` on each project): the six drafts, for TJ to approve. They are the planner's lines unchanged, and the one on TJs-Kubernetes-Service is TJ's own.
+  - Bluebird Forecast: "The station's forecast says bluebird skies. Maybe ask it to prove it."
+  - TJs-Kubernetes-Service: "The hardware seems to be malfunctioning, maybe try some percussive maintenance."
+  - hevy-garmin-sync: "Nobody leaves a bench this high without doing a set."
+  - trailhead: "The binoculars are coin-operated. You look like you have a coin."
+  - yggdrasil: "The world tree's roots reach into every repo. Give it a closer look."
+  - Kubernetes-Manifests: "Every visitor leaves a stone. It's tradition."
+- H11, call: the clue replaces the old last line ("Click the server rack up there.") and does not sit under it. Two grey lines saying nearly the same thing was worse, and "Click" was wrong on a phone. `UI.card.egg` is gone with it.
+- H11, found and fixed: four of the clues take two lines, and on a phone held sideways (844 by 390) that pushed TJs-Kubernetes-Service's "Glissade to camp" button half out of the card. On that screen shape only (`index.html`), the card is now 46% of the width where it was 42%, and a project's licence is on one row with its label. All six cards fit there again. On a 667 by 375 screen the tallest two cards still scroll, less than they did before.
+- H11, the check passed with nothing moved. It read 14.6 ms a frame, against 13.2 for H10. H11 changed no drawing code, so that is the lab's spread from run to run.
