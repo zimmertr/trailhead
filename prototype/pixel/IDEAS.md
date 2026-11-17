@@ -307,3 +307,9 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Leaning on the Rail** (round 5, F5). If he stops on the lip's footbridge, he leans on the handrail and looks down the fall.
 - **Spray on the Footbridge** (round 5, F5). The planks of the lower footbridge darker and shining where the fall's spray wets them.
 - **Scenes Named on the Trail Map** (round 5, F5). The trail map's hidden stretch drawn as two parts with small labels, forest and lakeshore, now that each scene has its own part of it.
+- **Crampons at the Ice's Edge** (round 5, G1). He stops for a second where the moraine meets the ice, puts crampons on, and his steps crunch from there to camp.
+- **A Rope Team Up the Glacier** (round 5, G1). Three tiny figures on a rope far up the ice under the towers, moving a few pixels a second.
+- **The Moulin** (round 5, G1). The meltwater channel ends in a blue hole in the ice with a low roar as he passes.
+- **The Walk Turns to Face the Towers** (round 5, G1). In place of the cut to camp, the walk's last second swings the view round to camp's picture: the walls slide apart and the ice tilts up.
+- **Boots Sound Different on Each Ground** (round 5, G1). Dirt, gravel and ice each with their own footstep, so the step onto the glacier can be heard.
+- **The Glacier Table** (round 5, G1). One of the stones on the ice sits up on a pedestal of ice it has shaded from the sun.

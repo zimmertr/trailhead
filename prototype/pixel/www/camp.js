@@ -128,11 +128,14 @@ export function tower(b, n, bx, by, h, w, feet) {
   return top;
 }
 
+// How tall the Spires' wall stands in camp's picture on a screen VH high. The walk to camp grows its
+// own towers to this height, so the two pictures agree.
+export const wallTall = (VH, narrow) => { const Y0 = narrow ? Math.round(VH * 0.045) + 12 : 16, Y1 = narrow ? Math.round(VH * 0.47) : VH - 40; return Math.round((Y1 - Y0) * 0.58) - 22; };
 function build(VW, VH, narrow) {
   const back = new BM(VW, VH), front = new BM(VW, VH);
   // The part of the screen the card and the bars leave clear.
   const X0 = narrow ? 4 : Math.round(VW * 0.345), X1 = VW - 4, Y0 = narrow ? Math.round(VH * 0.045) + 12 : 16, Y1 = narrow ? Math.round(VH * 0.47) : VH - 40;
-  const bw = X1 - X0, bh = Y1 - Y0, yb = Y0 + Math.round(bh * 0.58), yh = yb - Math.round(bh * 0.08), H = yb - Y0 - 12;
+  const bw = X1 - X0, bh = Y1 - Y0, yb = Y0 + Math.round(bh * 0.58), yh = yb - Math.round(bh * 0.08), H = wallTall(VH, narrow) + 10;
 
   // ---- the sky and the far ranges across the ice sheet --------------------------------------
   const sb = R.skyband;
