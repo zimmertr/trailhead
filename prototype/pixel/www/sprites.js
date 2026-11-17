@@ -268,6 +268,45 @@ function makeLog(seed = 0, bare = false) {
   if (rand() < 0.5) { const d = b.d.slice(); for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) b.d[y * b.w + x] = d[y * b.w + b.w - 1 - x]; b.ox = b.w - 1 - b.ox; }
   return b;
 }
+// Driftwood on the beach (round 5, T8: the logs were a forest log painted pale, and read as blobs). A
+// sun-bleached trunk lying at its own angle: silver on top, grain running along it, a darker underside,
+// one end broken off in splinters with a crack running in from it, the other a root wad or a snapped butt,
+// the stub of a branch or two, and its shadow on the sand. Thicker at the butt, as a tree is.
+function makeDriftwood(seed = 0) {
+  const rand = rng(4800 + seed), len = 18 + (rand() * 14 | 0), slope = (rand() - 0.5) * 0.76, rad = 2 + rand() * 0.9, roots = rand() < 0.5, G = R.gold;
+  const W = len + 16, H = Math.ceil(Math.abs(slope) * len) + 18, b = new BM(W, H), x0 = 8, cy = t => H / 2 + slope * (t - len / 2), rAt = t => rad * (1 - 0.35 * t / len);
+  for (let t = 0; t < len; t++) {
+    const c = cy(t), r = rAt(t), y0 = Math.round(c - r), y1 = Math.round(c + r), splinter = Math.max(0, (t - (len - 4)) / 3);
+    for (let y = y0; y <= y1; y++) {
+      if (splinter && hash(t, y, seed + 71) < 0.5 * splinter) continue;
+      const j = y - Math.round(c), grain = vnoise(t / 7 + j * 2.7, j * 5.3, seed + 72), knot = hash(t >> 1, j, seed + 73) < 0.04;
+      b.set(x0 + t, y, y === y1 ? G[2] : y === y0 ? G[6] : y === y1 - 1 && r > 1.8 ? G[3] : knot ? G[2] : grain > 0.62 ? G[4] : grain < 0.3 ? G[6] : G[5]);
+    }
+  }
+  // The crack: a dark line in from the broken end, along the grain.
+  { const n = 3 + (rand() * 3 | 0); for (let k = 0; k < n; k++) { const t = len - 1 - k; b.set(x0 + t, Math.round(cy(t)), G[1]); } }
+  // Branch stubs: bleached like the trunk, standing off its upper side.
+  for (let k = 0, n = 1 + (rand() < 0.5 ? 1 : 0); k < n; k++) {
+    const t = Math.round(len * (0.25 + 0.5 * rand())), top = Math.round(cy(t) - rAt(t)), lean = rand() < 0.5 ? -1 : 1, tall = 2 + (rand() * 3 | 0);
+    for (let q = 1; q <= tall; q++) b.set(x0 + t + lean * Math.floor(q / 2), top - q, q === tall ? G[6] : q === 1 ? G[3] : G[5]);
+  }
+  if (roots) {
+    // A root wad: the torn roots fan out from the butt, pale at their tips, with the dark of the hollow between.
+    const c = cy(0);
+    for (let k = 0, n = 5; k < n; k++) { const a = Math.PI + (k - (n - 1) / 2) * 0.52 + (rand() - 0.5) * 0.2, L = 3 + rand() * 2.5; for (let q = 0; q <= L; q++) b.set(x0 - 1 + Math.cos(a) * q, c + Math.sin(a) * q * 1.15, q < 1 ? G[2] : q > L - 1 ? G[6] : G[4]); }
+    b.set(x0 - 1, c, G[1]); b.set(x0, c, G[2]);
+  } else {
+    // A snapped butt: the end grain a step darker, with its heart darker still.
+    const c = cy(0), r = Math.round(rAt(0)); for (let dy = -r; dy <= r; dy++) b.set(x0 - 1, c + dy, dy === 0 ? G[2] : G[3]);
+  }
+  // Outlined in the wood's own dark, not in ink: ink round a log this thin is most of what shows.
+  outline(b, G[1]);
+  // Its shadow, on the sand below and to the east of it.
+  { const solid = b.d.slice(); for (let x = 0; x < W - 1; x++) for (let y = H - 2; y >= 0; y--) if (solid[y * W + x]) { for (const dx of [0, 1]) if (!solid[(y + 1) * W + x + dx]) b.d[(y + 1) * W + x + dx] = R.sand[0]; break; } }
+  b.ox = W >> 1; b.oy = Math.min(H - 1, Math.round(H / 2 + rad + 2));
+  if (rand() < 0.5) { const d = b.d.slice(); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) b.d[y * W + x] = d[y * W + W - 1 - x]; b.ox = W - 1 - b.ox; }
+  return b;
+}
 function makeCloud(seed) {
   const rand = rng(seed), b = new BM(56, 20); b.ox = 0; b.oy = 0;
   const blobs = []; for (let k = 0; k < 6; k++) blobs.push([8 + k * 8 + rand() * 4, 12 - rand() * 6 - (k > 1 && k < 4 ? 4 : 0), 5 + rand() * 4]);
@@ -477,4 +516,4 @@ function makeFlag(f, ramp = R.red) {
 }
 
 export { makeRegister };
-export { makeSnag, makeBush, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeDriftwood, makeSnag, makeBush, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };

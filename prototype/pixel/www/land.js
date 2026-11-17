@@ -6,7 +6,7 @@ import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, T
 import { paintMonolith, monolithSky, moraineLakes, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
-import { makeFlowers, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
+import { makeDriftwood, makeFlowers, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
 
 const NW = 1920, SH = 1080, VD = 740, SY = SH + 52;
 const rdg = n => 1 - Math.abs(2 * n - 1);
@@ -875,14 +875,15 @@ for (const br of BRIDGES) {
 }
 // Wildflowers are not painted into the ground any more: they are things that stand up and sway (D5a,
 // below, with the trees).
-// Driftwood along the beach: pale logs, each with its shadow under it.
+// Small driftwood along the beach: bleached branches, each with its shadow under it (round 5, T8: they were
+// the grey of rock).
 {
   const rand = rng(44390);
   for (let n = 0; n < 700; n++) {
     const x = (rand() * 700) | 0, y = 500 + ((rand() * (SH - 500)) | 0), v = zb[px(x, y)]; if (v >= VD) continue;
     const cs = coast(x, v); if (cs > -3 || cs < -13) continue;
     const len = 6 + rand() * 12, a = (rand() - 0.5) * 0.9 + 0.6;
-    for (let k = 0; k < len; k++) { const qx = Math.round(x + Math.cos(a) * k), qy = Math.round(y + Math.sin(a) * k * 0.5); if (qx > 0 && qy > 0 && qx < NW && qy < SH - 1 && !water[at(qx, Math.round(zb[px(qx, qy)]))] && sameGround(px(x, y), px(qx, qy))) { g[px(qx, qy)] = R.rock[4]; g[px(qx, qy + 1)] = R.rock[2]; } }
+    for (let k = 0; k < len; k++) { const qx = Math.round(x + Math.cos(a) * k), qy = Math.round(y + Math.sin(a) * k * 0.5); if (qx > 0 && qy > 0 && qx < NW && qy < SH - 1 && !water[at(qx, Math.round(zb[px(qx, qy)]))] && sameGround(px(x, y), px(qx, qy))) { g[px(qx, qy)] = R.gold[k % 5 === 3 ? 4 : 6]; g[px(qx, qy + 1)] = R.sand[0]; } }
   }
 }
 // A dark line where a wall or the granite fin stands against something farther off, so the Spires
@@ -1211,8 +1212,14 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   for (let n = 0; n < 4000; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.6 && fogAmt(u, v) < 0.25 && hills(u, v) < 3 && open(u, v, 1.1) && wooded(u, v)) things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); }
   rand = rng(6113);
   for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && hills(u, v) < 3 && open(u, v, 0.8) && wooded(u, v)) put(any(logs), u, v); }
-  { const dr = rng(4730), drift = Array.from({ length: 4 }, (_, i) => { const b = makeLog(30 + i, true), o = new BM(b.w, b.h); o.ox = b.ox; o.oy = b.oy; for (let k = 0; k < b.d.length; k++) { const c = b.d[k]; o.d[k] = !c || c === INK ? c : R.gold[clamp(3 + Math.round((hash(k, i, 4732) - 0.3) * 2.4), 3, 5)]; } return o; }); // bleached by the sea
-    for (let n = 0; n < 2600; n++) { const u = dr() * 700, v = dr() * VD, k = (dr() * drift.length) | 0, c = coast(u, v); if (c > -20 && c < -9 && dr() < 0.2 && !water[at(Math.round(u), Math.round(v))]) put(drift[k], u, v); } }
+  // Driftwood above the high-water line (round 5, T8): eight logs' worth of drawings, each at its own angle.
+  // The dice are rolled as they were, so every log lies where its blob lay.
+  { const dr = rng(4730), drift = Array.from({ length: 8 }, (_, i) => makeDriftwood(i));
+    for (let n = 0; n < 2600; n++) { const u = dr() * 700, v = dr() * VD, k = (dr() * 8) | 0, c = coast(u, v); if (c > -20 && c < -9 && dr() < 0.2 && !water[at(Math.round(u), Math.round(v))]) put(drift[k], u, v); }
+    // More of it, on dice of their own: a Pacific beach is lined with driftwood. Each lies 26 px or more from
+    // the next, on dry sand in the same band above the high-water line.
+    const more = rng(4734), lie = things.filter(t => drift.includes(t.bm)).map(t => [t.u, t.v]);
+    for (let n = 0; n < 3000 && lie.length < 16; n++) { const u = more() * 700, v = more() * VD, k = (more() * 8) | 0, c = coast(u, v); if (c > -20 && c < -9 && !water[at(Math.round(u), Math.round(v))] && !lie.some(([p, q]) => Math.hypot(p - u, (q - v) * 1.5) < 26)) { put(drift[k], u, v); lie.push([u, v]); } } }
   // Sea stacks stand well out from the beach (E5b, TJ: they had crept in against the shore), in four
   // small groups along the coast as on the Olympic coast: a tall one and one or two lower beside it.
   rand = rng(6114);

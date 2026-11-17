@@ -210,4 +210,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Cloud Cap on the Tooth** (round 5, D11). Now and then a small banner cloud could trail east off Little Tahoma's tip while the summit wears its lens cloud.
 - **Hand Over Hand on the Rungs** (round 5, D12). On the map TJ could climb the rungs with his own climbing frames, slower than he walks, and a goat could watch from the lip.
 - **Rungs on the Lower Cliff** (round 5, D12). The trail's gap through the lower band of cliff could take a short run of rungs or a few cut steps, so both cliffs on the way are crossed on purpose.
-
+- **A Log Jam at the River's Mouth** (round 5, D13). Where the biggest river meets the sea, a dozen logs could pile against each other, the way they do at the mouth of a real coastal river.
+- **Walk the Logs** (round 5, D13). In a free explore mode TJ could balance along a driftwood log, arms out, and hop off its end.
+- **Logs That Float on a High Tide** (round 5, D13). On the highest tide one or two logs nearest the water could lift, drift a few pixels and settle somewhere new when the water goes out.

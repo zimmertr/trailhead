@@ -523,7 +523,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] D10. T27: the Legacy Range in grey rock with high snow.
 - [x] D11. T31: Little Tahoma's tip a touch blunter.
 - [x] D12. T64 (map part): iron rungs up the cliff below the plateau, and the hook straightened into an arc.
-- [ ] D13. T8: driftwood redrawn.
+- [x] D13. T8: driftwood redrawn.
 - [ ] D14. T48 (map part): the tent moved up the glacier onto a rock island. T49: one yellow-orange tent on the map.
 - [ ] D4. T17, T24: the water audit. Every join is listed, fixed and pictured. **Moved to the end of section D on 2026-11-16**, because every D item after it changes the land and the water with it. Three fixes are already in (the lake's outflow runs over its lip into the fall, the west river's channel on the sand joins the river, and a stream that drops off a cliff gets a fall down the face). Run the whole audit from the start. Its pictures go on the notes artifact (S3b), not into the repo.
 
@@ -666,7 +666,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **D10 done.** The Legacy Range is grey rock now, the crest's own greys a step paler for the distance, with snow on its summits and a few streaks and small glaciers below them. Its western faces are lit and its eastern ones shaded, and a light haze lies on its foot.
 - **D11 done.** Little Tahoma's tip is two pixels across with a small step on its east side, where it was a single pixel standing two high. It is still a sharp tooth, on the map and in the lake's view.
 - **D12 done.** On the map the Proficiency trail climbs the cliff below the plateau by a ladder of thirteen iron rungs, as wide as the trail, and runs on from the cliff's top to the foot of the peak in one gentle line. The wide grey smear on the face and the hook at the top are gone. The larch walk's part of the note is item I1.
-- Next: D13.
+- **D13 done.** The driftwood on the beach is redrawn. Each log is a long, pale, sun-bleached trunk with grain lines along its length, a darker underside, a splintered far end, one or two branch stubs, and on about half of them a root wad at the butt. Each lies at its own angle above the high-water line and has a shadow on the sand. There are eight different logs, and fourteen lie along the coast where there were four. The small sticks painted into the sand are bleached too.
+- Next: D14.
 
 ## 11. Calls made in round 5
 
@@ -777,6 +778,11 @@ One line each, newest last: the item, what was decided, and why.
 - D12, reference: the rungs above Snow Lake on the way into the Enchantments are iron bars set into a steep granite slab, each a hand's width apart, with nothing else on the rock. Drawn here from that description only: plain slab, dark bars, no rails.
 - D12. The trail also goes through a lower band of cliff on its way up, by a narrow gap. TJ's note is about the tall cliff under the plateau, so the lower one is left as it is.
 - D12, checks: `check.sh D12 D11` passed, 11.9 ms a frame zoomed out at Dusk, lint clean. Two things moved, both expected: the trail by up to 12 px at the cliff, and the sign beside it by 11 px (it is placed by rule beside the trail). Looked at beside the build before and beside TJ's two pictures, and with TJ standing on the rungs.
+- D13. What the blobs were: one small grey shape with a heavy dark outline, drawn eight times with little between them, and only four of them on the whole coast. `makeDriftwood(seed)` in `sprites.js` replaces it and draws a log from its parts (trunk, grain, underside, broken end, stubs, root wad or snapped butt, shadow), so no two of the eight are alike.
+- D13, colour: TJ asked for silver-grey. The palette has two colours left and no room for a new ramp, so the logs use the pale end of a ramp that is already there, with its darker steps for the underside, the cracks and the outline. By day they read as bleached, near white wood on the tan sand. The outline is a mid tone of the same ramp, not the dark ink the old ones had, which was most of why they read as blobs.
+- D13, how many: the first four keep their places, drawn from the same dice as before. Ten more lie on dice of their own, in the same band above the high-water line, each 26 px or more from the next so they do not pile up. Fourteen on the coast is my number: enough that every stretch of beach has one or two, as on a real Olympic beach, without a log jam. TJ may want more or fewer.
+- D13. One log's butt comes within a few pixels of the sign at the beach's south end. The sign is drawn in front and reads clearly, so the log stays where the rule put it.
+- D13, checks: `check.sh D13 D12` passed, 12.0 ms a frame zoomed out at Dusk, lint clean, nothing moved more than 8 px. Looked at by day and at Dusk at 4x beside round 4's build and TJ's picture for note 8.
 
 ## 12. The reference pictures
 
