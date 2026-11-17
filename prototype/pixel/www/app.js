@@ -326,6 +326,9 @@ try {
   // ?break=forest (any scene), ?break=load:forest, ?break=renderer or ?break=mount: see what happens when it goes wrong.
   const breakAt = new URLSearchParams(location.search).get('break');
   if (breakAt === 'mount') throw new Error('Broken on purpose: the start');
+  // A visit that opens at the Trailhead shows the sign before the first frame, so the map's first frame is
+  // already framed round it and the camera has nothing to catch up on (T1). The page's tick keeps it right after.
+  fork.hidden = !!(new URLSearchParams(location.search).get('route') || location.hash.length > 1);
   api = await mount($('c'), {
     theme: 'light', breakAt,
     onEvent(e) {

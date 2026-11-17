@@ -432,7 +432,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] B6. T38: remove the Steller's jay from the stump, and move the owl to a limb on the trunk behind it.
 - [x] B7. T77: rename "Played on" to "Music style".
 - [x] B8. T37: TJ's facing no longer flips on diagonals (check every trail on the map at 2x speed with `frames.sh`).
-- [ ] B9. T1: the first frame is centred on TJ (desktop and phone, with fonts slow to load).
+- [x] B9. T1: the first frame is centred on TJ (desktop and phone, with fonts slow to load).
 - [ ] B10. T36: space does nothing until a destination is chosen. Tap toggles, hold doubles.
 - [ ] B11. P1: the first-visit hint, gone after the first move.
 
@@ -568,7 +568,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **B6 done.** The Steller's jay, its flight, its call, its cue and its "Steller's jay" debug button are gone, and the trail map's wildlife line no longer mentions it. The owl sits on a mossy limb of the giant right behind the stump, high enough to clear the young trees in front. The gray jay of the snack break stays. `shot.sh` takes `WWW=<folder>` to render any view from another build, such as round 4's.
 - **B7 done.** The trail map's setting says "Music style" (Music box, Console, Handheld).
 - **B8 done.** His facing comes from where the trail takes him over the next 32 pixels, with some give before he turns, so diagonals and the zigzag up the wall no longer flip him. `facing.sh` counts his turns on each route (`__info.pose` reports the facing): round 4's logic turned him 25 times in the first 2 % of the Proficiency Peak route, now 5; Spires 9 to 6, lake 9 to 2.
-- Next: B9.
+- **B9 done.** The page opens on its resting view with no pan and no zoom settling, on desktop and phone: the sign is shown before the first frame, the first frame takes the opening's size at once, and while the page settles (a new view size, the sign coming up or growing as its font loads, in the first 3 seconds or while the fonts load) the camera goes straight to its rest.
+- Next: B10.
 
 ## 11. Calls made in round 5
 
@@ -587,6 +588,8 @@ One line each, newest last: the item, what was decided, and why.
 - B5: the giant the bear leaned out from stays where it was (now `D_GIANT`), because moving it would shift every tree after it and the owl's perch. The map's "some days a bear" line in the trail map stays: it is about the map's bear (T44).
 - B6: the owl's giant is the one nearest the stump, worked out from the trunks, so it follows if the forest moves. Its limb went up from 52 to 84 pixels above the giant's foot, because at 52 the owl sat against a young spruce's top. The jay's palette ramp in `core.js` and the `'steller'` kind in `fauna.js` stay unused for now: dropping the ramp would renumber the palette.
 - B8: no back or front figure was added for walking straight up or down the screen; the up and down figures he already has are used, as before. The give: up or down below 0.3 sideways (as a share of the way ahead), his side above 0.6, the other side above 0.55, and in between he keeps his facing.
+- B9: read "centred on him from the start" as "the first frame is the resting frame". The resting frame itself is round 4's: on desktop it frames him with the three destinations (he stands low and right), on a phone it is nearly centred on him above the sign. Centring him exactly on desktop would push the destinations off the screen, so that is a change for TJ to ask for.
+- B9: a font that arrives after 3 seconds, once the fonts report loaded, eases the camera as before, since by then the visitor may be looking round.
 
 ## 12. The reference pictures
 

@@ -513,7 +513,11 @@ export function makeWorld(bake) {
     const leg = ROUND.hold + ROUND.go, n = stops.length, i = Math.floor(t / leg) % n, u = smooth(ROUND.hold, leg, t % leg), a = stops[i], b = stops[(i + 1) % n];
     return [lerp(a[0], b[0], u), lerp(a[1], b[1], u)];
   };
-  let past = 0, nowT = 0;
+  // The page never opens on a pan (T1). A new view size (the first frame, the canvas growing once the fonts
+  // are in, a turned phone) puts the camera straight at its rest, and so does the sign settling in during the
+  // first 3 seconds or while the web fonts are still loading (it is taller until its font loads). Later changes,
+  // such as closing the sign, still ease. sized, seenKey: what the camera last settled for; born: its first frame.
+  let past = 0, nowT = 0, sized = '', seenKey = null, born = null;
   // walkTo: a leg that is walked over that part of its time and then stood still (the register, L2).
   const where = (leg, q) => { if (leg.walkTo) q = Math.min(1, q / leg.walkTo); const P = paths[leg.path], a = P.at(lerp(leg.from, leg.to, q)), s = leg.to < leg.from ? -1 : 1; return { x: a.x, y: a.y, dx: a.dx * s, dy: a.dy * s, P }; };
   // Which way he faces (T37): from where the trail takes him over the next 32 pixels (and the 8 behind), not
@@ -612,7 +616,9 @@ export function makeWorld(bake) {
       // Camera: the whole view from the Trailhead, then follow him.
       let [tx, ty] = target(scr, here, env);
       if (env.home && env.idle > 4 && !env.calm && Math.abs(env.look.x) + Math.abs(env.look.y) < 1) [tx, ty] = lookRound(scr, env.idle - 4, tx, ty);
-      const damp = env.calm ? 1 : 1 - Math.exp(-dt * 3.2);
+      if (born === null) born = t;
+      const size = VW + 'x' + VH + (scr.narrow ? 'n' : ''), jump = env.home && (size !== sized || ((t - born < 3 || (document.fonts && document.fonts.status === 'loading')) && openKey !== seenKey)); sized = size; seenKey = openKey;
+      const damp = env.calm || jump ? 1 : 1 - Math.exp(-dt * 3.2);
       cam.x += (tx - cam.x) * damp; cam.y += (ty - cam.y) * damp;
       // A zoom step keeps one spot of the map under the pointer: the camera goes straight to its new rest and the dragged view makes up the difference.
       if (env.anchor && !env.fixed) { const a = env.anchor; cam.x = tx; cam.y = ty; env.look.x = a.wx - a.sx + VW / 2 - cam.x; env.look.y = a.wy - a.sy + VH / 2 - cam.y; env.anchor = null; }
@@ -624,7 +630,7 @@ export function makeWorld(bake) {
       if (!env.fixed) { const M = 26, b = { x0: Math.min(0, VW / 2 + M - cam.x), x1: Math.max(0, WW - VW / 2 - M - cam.x), y0: Math.min(0, VH / 2 + M - cam.y), y1: Math.max(0, WH - VH / 2 - M + bar - cam.y) }; if (VW >= WW) b.x0 = b.x1 = 0; env.lookBox = b; }
       let cx = cam.x + env.look.x, cy = cam.y + env.look.y;
       cx = VW >= WW ? WW / 2 : clamp(cx, VW / 2, WW - VW / 2);
-      past += ((scr.narrow && env.home ? VH * 0.34 : 0) - past) * (env.fixed ? 0 : Math.min(1, dt * 4));
+      past += ((scr.narrow && env.home ? VH * 0.34 : 0) - past) * (env.fixed ? 0 : jump ? 1 : Math.min(1, dt * 4));
       // Down, the view may go past the map's foot by what the bar (and on a phone the panels) cover. The
       // limit closes smoothly as the view grows to the map's height, so a zoom out never jumps at the end (F4).
       cy = clamp(cy, VH / 2, Math.max(VH / 2, WH - VH / 2 + past + bar));

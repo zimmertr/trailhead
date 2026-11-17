@@ -288,7 +288,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       leadT = calm.matches ? away : clamp(leadT + (away ? dt : -dt) / HAND, 0, 1);
       const easing = leadT > 0 && leadT < 1 && !zUser; env.lead = leadT * leadT * (3 - 2 * leadT);
       if (zT && !zUser && zSet) zT = away ? zFrom + (zTo - zFrom) * env.lead : zTo + (zFrom - zTo) * env.lead;
-      const [lo, hi] = zoomRange(); zT = clamp(zT || zOpen(), lo, hi); if (!zC) zC = calm.matches ? zT : scr.S;
+      const [lo, hi] = zoomRange(); zT = clamp(zT || zOpen(), lo, hi); if (!zC) zC = zT; // the first frame already has the opening's size, with nothing to settle (T1)
       if (DEBUG.snap && !easing && dragging !== 'pinch' && performance.now() - zLast > 260 && zT > 1) { const w = zDir > 0 ? Math.ceil(zT - 0.15) : Math.floor(zT + 0.15); if (w >= lo && w <= hi) zT = w; }
       zC = calm.matches ? zT : zC + (zT - zC) * (1 - Math.exp(-dt * 14)); if (Math.abs(zC - zT) < 0.003) zC = zT;
       if (zC !== scr.S) {
