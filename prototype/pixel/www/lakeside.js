@@ -15,7 +15,7 @@ import { paintMonolith, moraineLakes, faceSnow, MW as PMW, MH as PMH, TOPY as PT
 // than round 4's (624 over 8 s), at the same pace.
 const SW = 1640, X0 = 500, LEN = 760, DUR = 9.75;
 const D_MAP = 125, D_NOTE = 437, D_MARMOT = 276;
-const FAR = -50; // the far shore, measured up from the trail
+const FAR = -62; // the far shore, measured up from the trail (round 5, T30: the lake is deeper, -50 until then)
 // The island out in the lake, the one the map shows a little left of the lake's middle: where it is
 // seen dead ahead, where its waterline is, and how fast it crosses the view. It lies between the
 // shores, so it moves slower than the near one and faster than the far one.
@@ -47,9 +47,23 @@ const WX = X0 - 470, WW = 420, WUP = 760;
 // the upper icefalls stand clear in the sky while the far forest hides its foot, as Rainier's does
 // from Reflection Lakes. The meadow and fir clumps the picture paints at its foot come along too.
 const MS = 0.75, PH = Math.round((PMH - PTOPY) * MS), PW = Math.round(PMW * MS);
-// The streams out of the moraine lakes (T30), as columns of the peak's strip: each comes down through the
-// far forest into the lake straight below its glacier. The crater (picture column 330) is column 600.
+// The streams out of the moraine lakes (T30): each comes down the far shore into the lake below its glacier.
+// They belong to the far shore (its strip's columns), where a gap is left in the trees for each and its bed
+// is painted, so they cross the view with the shore. Seen from the map stop they lie straight under their
+// glaciers (the crater, picture column 330, is the strip's column 600 there).
 const INFLOW = moraineLakes().map(e => Math.round(600 + (e.mid - 330) * MS));
+// One inflow on the screen: its white water sliding down the bed (x0: the screen column of the bed's own
+// column 0), foam where it meets the lake, and the pale plume of glacier silt it carries out into the water,
+// drifting toward the outflow.
+function inflowWater(scr, x0, hor, t, bed) {
+  const { VW, VH, fb } = scr, T = R.tarn;
+  for (const [dx, y, e, o, p] of bed) { const sx = x0 + dx, sy = hor + y; if (sx < 0 || sx >= VW || sy < 0 || sy >= VH) continue;
+    const u = frac((y - t * 16) / p + o); fb[sy * VW + sx] = u < (e ? 0.4 : 0.7) ? R.white[1] : u < 0.9 ? R.water[4] : R.water[3]; }
+  for (let dy = 2; dy < 15; dy++) { const sy = hor + dy; if (sy < 0 || sy >= VH) continue; const half = 3 + dy * 0.9, cx = x0 - dy * 0.5 + 1.2 * Math.sin(dy * 0.8 + t * 0.9);
+    for (let i = -Math.ceil(half); i <= Math.ceil(half); i++) { const sx = Math.round(cx + i); if (sx < 0 || sx >= VW) continue;
+      const a = (1 - dy / 15) * (1 - Math.abs(i) / (half + 1)); if (bayer(sx, sy) < a * 1.5 - 0.12) fb[sy * VW + sx] = a > 0.45 ? T[5] : T[4]; } }
+  for (let i = -4; i <= 5; i++) if (hash(i, Math.floor(t * 5), x0 & 63) < 0.6) scr.set(x0 + i, hor + 1 + (Math.abs(i) > 2 ? 1 : 0), R.white[1]);
+}
 // The painting, and for each pixel of an icefall the plain snow that covers it until its avalanche and
 // which icefall it is (one more than its place, 0: none). An icefall the map has under snow now
 // (faceSnow, round 5) is painted as snow here too.
@@ -153,7 +167,17 @@ function buildLakeside() {
     const top = -9 - 9 * fbm(x / 36, 2, 136, 3) - 6 * Math.max(0, Math.sin(x / 57 + 1));
     for (let y = Math.round(top); y < 2; y++) farS.set(x, y, y > -2 ? R.gold[5] : fbm(x / 14, y / 5, 137, 3) > 0.52 ? pick('rock', 0.62 + 0.3 * (hash(x >> 1, y >> 1, 138) - 0.5), x, y, 0.5) : pick('conifer', 0.3 + 0.3 * hash(x, y, 139), x, y));
   }
-  for (let n = 0; n < 900; n++) { const x = rand() * 1400, cl = fbm(x / 80, 7, 140, 3); if (cl < 0.36) continue; miniFir(farS, Math.round(x), Math.round(-3 - rand() * 12), 8 + (rand() * 12 * cl | 0), rand() < 0.5 ? 1 : 2); }
+  for (let n = 0; n < 900; n++) { const x = rand() * 1400, cl = fbm(x / 80, 7, 140, 3); if (cl < 0.36) continue; const fx = Math.round(x), fy = Math.round(-3 - rand() * 12), fh = 8 + (rand() * 12 * cl | 0), fc = rand() < 0.5 ? 1 : 2; if (!INFLOW.some(c => Math.abs(fx - c) < 7)) miniFir(farS, fx, fy, fh, fc); }
+  // Each inflow's bed (T30): a gap in the far trees, grey rock either side, the water widening as it comes
+  // down, and a small fan of pale gravel where it runs into the lake. bed: its water, for the screen to move.
+  const farTop = x => -9 - 9 * fbm(x / 36, 2, 136, 3) - 6 * Math.max(0, Math.sin(x / 57 + 1));
+  const beds = INFLOW.map(c => { const bed = [], y0 = Math.round(farTop(c)) - 2;
+    for (let y = y0; y <= 0; y++) { const u = (y - y0) / -y0, cx = Math.round(3.5 * Math.sin(y / 4.5 + c) * (1 - u)), hw = u > 0.75 ? 2 : u > 0.35 ? 1 : 0;
+      for (let i = -hw - 3; i <= hw + 3; i++) { const a = Math.abs(i) - hw;
+        if (a <= 0) { farS.set(c + cx + i, y, R.white[1]); bed.push([cx + i, y, a === 0 && hw > 0 ? 1 : 0, hash(i, c, 141), 5 + hash(i, c, 142) * 4]); }
+        else if (a <= 2 ? hash(i, y >> 1, 143 + c) < 0.75 : hash(i, y >> 1, 143 + c) < 0.3) farS.set(c + cx + i, y, pick('rock', 0.4 + 0.4 * hash(i >> 1, y >> 1, 144 + c), c + i, y, 0.5)); } }
+    for (let i = -9; i <= 9; i++) for (let y = -3; y < 2; y++) if (Math.abs(i) > 2 && y > -4 + Math.abs(i) * 0.35 - hash(i, 3, 145 + c)) farS.set(c + i, y, hash(i, y, 146 + c) < 0.3 ? R.rock[3] : R.gold[5]);
+    return bed; });
   // The near shore: slabs and gravel at the water, the trail, then meadow down to the bottom.
   const main = new Strip(SW, 24, 240);
   for (let x = 0; x < SW; x++) {
@@ -411,9 +435,7 @@ function buildLakeside() {
       lakeWater(scr, hor, base, t, farS, Math.round(farX), peak, Math.round(peakX), sink, sw);
       // The two inflows: a thread of white water down the far shore's trees and rocks, and a little foam
       // where it meets the lake.
-      for (const c of INFLOW) { const x = Math.round(c - peakX); if (x < 2 || x >= VW - 3) continue;
-        for (let y = hor - 15; y <= hor; y++) { const w = x + Math.round(0.8 * Math.sin(y / 3 + c)); scr.set(w, y, ((y + Math.floor(t * 9)) % 3) ? R.white[1] : R.water[4]); scr.set(w + 1, y, R.water[3]); }
-        for (let dx = -3; dx <= 4; dx++) if (hash(dx, Math.floor(t * 4), c) < 0.6) scr.set(x + dx, hor + 1 + (Math.abs(dx) > 2 ? 1 : 0), R.white[1]); }
+      INFLOW.forEach((c, i) => { const x = ((c - Math.round(farX)) % farS.w + farS.w) % farS.w; if (x > -12 && x < VW + 12) inflowWater(scr, x, hor, t, beds[i]); });
       const tarn = R.tarn;
       // Sun on the water, and now and then a trout rises.
       for (let k = 0; k < 40; k++) {

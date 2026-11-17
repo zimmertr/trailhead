@@ -297,3 +297,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Walking Down the Legs** (round 5, F2). If the loop is ever walked the other way, the same legs taken downhill, with him leaning back.
 - **Wet Rock Glints** (round 5, F2). A few pixels of the rock beside the fall catching the light now and then, where the spray keeps it wet.
 - **A Bench at the Rim** (round 5, F2). A log bench where the top leg meets the rim, looking back over the forest's canopy.
+- **The Moraine Lakes From the Shore** (round 5, F3). A notch in the far forest under each glacier, so a sliver of each milky moraine lake shows from the lakeshore.
+- **The Inflows' Sound** (round 5, F3). A faint rush of water from across the lake when an inflow is in view and the scene is quiet.
+- **Fish Rise at the Plume** (round 5, F3). The rings of rising trout gather where the silt plume meets clear water, as they do at real inlets.
+- **The Mirror Breaks in Wind** (round 5, F3). A gust now and then that ruffles the whole lake for a few seconds, wiping out the mountain's mirror until it settles.
