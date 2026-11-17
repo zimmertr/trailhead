@@ -195,3 +195,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Types Without a Port** (round 5, S1a). `// @ts-check` and a few JSDoc types on the modules the page talks to (`api` in `pixel.js`, `window.__info`) would have caught the plain page reading an undefined `MAP` at edit time.
 - **Shorebirds at the River Mouth** (round 5, D5). At low tide a few sandpipers work the edge of the new channel on the flat, running ahead of the wash and lifting off together when the ferry sounds.
 - **The Channel Moves With the Flow** (round 5, D5). The water in the beach channel and in the rivers could drift downstream a pixel at a time, so a river reads as running and not as a blue road.
+- **The Fog Parts Along the Water** (round 5, D6). As the marine layer comes in, the fog could reach up each river valley first and lie along the water in the morning, then lift off the rivers last, the way valley fog does.
+- **A Foghorn in the Marine Layer** (round 5, D6). While the fog lies on the sea, the ferry or a far lighthouse sounds a low horn now and then, so the weather can be heard as well as seen.

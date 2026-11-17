@@ -661,6 +661,18 @@ const fogField = new Uint8Array(NW * SH);
 // tree's shadow): the colour that lay there before, 0 elsewhere. inked holds what the tree put there, so a
 // pixel something else painted over afterwards is left alone.
 const bare = new Uint8Array(NW * SH), inked = new Uint8Array(NW * SH), treeInk = (i, c) => { if (!bare[i]) bare[i] = g[i]; g[i] = inked[i] = c; };
+// T79a: where a river reaches the sea, the lying fog and the marine layer's deck thin over its mouth and its
+// way across the sand, so the water shows through onto the beach when the marine layer is in. MOUTHS is that
+// reach as points, found from the rivers themselves, each with how much fog it leaves: least across the sand,
+// and all of it again where the river comes out of the trees (at Dusk a clear strip in the forest shows as a
+// dark line through the pale fog). The thinning stops at the water's edge (mouthFog's last term), so the fog
+// on the sea is left whole.
+const MOUTHS = [];
+for (const r of routes) {
+  const P = r.pts || [], end = P.findIndex(([u, v]) => u < 800 && coast(u, v) > -2); if (end < 0) continue;
+  for (let n = end; n >= 0 && coast(P[n][0], P[n][1]) > -32; n--) MOUTHS.push([P[n][0], P[n][1], 0.3 + 0.7 * smooth(-14, -30, coast(P[n][0], P[n][1]))]);
+}
+const mouthFog = (u, v, cs) => { let f = 1; for (const [a, b, least] of MOUTHS) { const e = lerp(least, 1, smooth(4, 15, Math.hypot(a - u, b - v))); if (e < f) f = e; } return lerp(f, 1, smooth(-3, 5, cs)); };
 if (B) { g.set(B.g); mb.set(B.mb); zb.set(B.zb); painted.set(B.painted); bare.set(B.bare); fogField.set(B.fog); } else {
 for (let y = 0; y < SH; y++) for (let x = 0; x < NW; x++) g[px(x, y)] = skyAt(x, y);
 // The far ranges, which really are a backdrop: pale, beyond the last of the ground.
@@ -708,7 +720,7 @@ for (let u = 0; u < NW; u++) {
     const ft = fogTop(u, v), fa = ft > -1 ? forestAmt(u, v) : 0, cs = u < 800 ? coast(u, v) : -99, wet = water[at(u, v)];
     // When the fog is in it lies thick on the sea and the beach (thinner over a river's mouth, so the
     // water still reads), over the forest in the west, and deepest in the hollows up to its level.
-    const lying = u >= 800 ? 0 : cs > -15 ? Math.min(1, seaFog(u, v) * 1.1 * (wet ? 0.45 : 1)) : smooth(0.16, 0.6, fogAmt(u, v)) * smooth(0.3, 0.5, forestAmt(u, v)) * 0.4;
+    const lying = u >= 800 ? 0 : (cs > -15 ? Math.min(1, seaFog(u, v) * 1.1 * (wet ? 0.45 : 1)) : smooth(0.16, 0.6, fogAmt(u, v)) * smooth(0.3, 0.5, forestAmt(u, v)) * 0.4) * (cs > -50 && cs < 5 ? mouthFog(u, v, cs) : 1);
     for (let y = Math.max(0, sy); y < minY; y++) {
       const hh = SY - v - y, hollow = fa > 0.4 && hh < ft ? 0.8 * Math.min(wet ? 0.3 : 1, 0.2 + (ft - hh) / 4) : 0;
       mb[px(u, y)] = mg[at(u, v)]; g[px(u, y)] = colour(u, v, hh, u, y); if (u < 760 && v > 560 && water[at(u, v)] && bayer(u, y) < 0.55 * smooth(560, 740, v)) g[px(u, y)] = HILLHAZE[g[px(u, y)]]; fogField[px(u, y)] = Math.round(255 * Math.max(lying, hollow) * (0.55 + 0.45 * v / VD));
@@ -1216,7 +1228,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { g, depth: zb, mat: mb, bare, fogField, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { g, depth: zb, mat: mb, bare, fogField, mouthFog, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -1495,6 +1507,7 @@ export function buildTerrain() {
       const cs = LAND.coast(x, v); let d;
       if (cs > -30) d = (0.6 + 0.25 * smooth(-30, 60, cs)) * smooth(170, 90, cs);
       else { if (LAND.mat[i] !== LANDM) continue; const fa = LAND.forestAmt(x, v); if (fa < 0.3) continue; d = smooth(6, 52, LAND.hAt(x, v)) * smooth(0.3, 0.6, fa); }
+      if (cs > -50 && cs < 5) d *= LAND.mouthFog(x, v, cs);
       if (d > 0.02) M[i] = Math.round(d * 255);
     }
     for (let x = 0; x < X1; x++) for (let y = 1; y < SH; y++) { const i = y * NW + x; if (M[i] < 60 || M[i - NW]) continue; for (let k = 1; k <= 22 && y - k >= 0; k++) { const j = i - k * NW; if (M[j]) break; M[j] = Math.round(M[i] * (1 - k / 24)); } }

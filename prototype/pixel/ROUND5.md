@@ -516,7 +516,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] D2. T30: Reflection Lake about 1.6 times wider, two moraine lakes under Monolith's ice, and the second river. Both streams flow into the lake.
 - [x] D3. T28: remove the oxbow and the heron.
 - [x] D5. T25: rivers carry on across the beach at low tide.
-- [ ] D6. T79a: the river mouth shows through the sea fog.
+- [x] D6. T79a: the river mouth shows through the sea fog.
 - [ ] D7. T10: the fire lookout on Off By One Peak.
 - [ ] D8. T21: flower density from one field, with the four levels.
 - [ ] D9. T22: more larches on the upper plateau. T23: no aspens on the dry side.
@@ -659,7 +659,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **`check.sh <item>` is built** (S3c): syntax, the browser check, the zoomed-out Dusk frame time, and what moved since the check before. First run, as `S3c`: 14 tests passed, 11.7 ms a frame, 3 trails and 83 signs and animals written to `out/check/S3c.json`.
 - **Section 0 is done** (2026-11-17): every check on https://github.com/zimmertr/trailhead/pull/32 passed on `main` as its base.
 - **D5 done.** Both rivers that reach the beach now carry on across the sand the tide bares: at river width where they leave the dry sand, then swinging and splitting into two and three shallow threads with bars between, to the water's edge. The channel grows as the tide goes out and the sea covers it again from the far end as it comes in. At high tide nothing has changed.
-- Next: D6.
+- **D6 done.** When the marine layer is in, the upper river now shows as clear blue water across the sand to the sea, under the cloud deck and under the fog that follows it. The fog on the sea, on the rest of the beach and in the forest is as it was. The lower river's mouth was already clear of the fog and has not changed.
+- Next: D7.
 
 ## 11. Calls made in round 5
 
@@ -745,6 +746,9 @@ One line each, newest last: the item, what was decided, and why.
 - D5. The channel is not in the baked ground: the tidal flat is drawn each frame by the sea's loop in `critters.js`, so the channel is a mask over the same cells (`riverOnFlat`), read only for a cell the tide has bared. A mouth is found by rule, where river water in the ground's picture lies within a few pixels of the high-water line, and the channel follows the beach's own fall line from there, so it moves with the rivers if the land changes. It uses the river's two colours and dither, so the join at the top of the flat does not show, and the shining wet-sand checker the flat already has at its edges. No new colours.
 - D5. The lower river's channel reaches the low-water line between two sea stacks and passes behind the nearer one. Left as it is: a stream running out round a stack's foot is what happens.
 - D5, checks: `check.sh D5` passed, 11.7 ms a frame zoomed out at Dusk (the same as before the change), nothing moved. Looked at in Day and Dusk at high, half and low tide, and filmed over one ebb. Round 4 has the rivers stop at the top of the flat.
+- D6. Since round 4's E5 the fog is weather, so there is no standing sea fog on the beach any more: the note is about the marine layer (`start=shower`), which pales the upper river's last reach twice, first under its cloud deck (about 35 to 55 s in) and then under its fog. Both are thinned along the river by one rule in `land.js` (`MOUTHS` and `mouthFog`), found from the rivers themselves, so it follows a river if the land changes. Both are baked, so `ground.png` was made again.
+- D6. Three things I tried were worse and are not in: thinning out over the tidal flat cut a hard-edged dark patch into the fog on the sea (the thinning now stops at the water's edge, so at low tide the channel on the flat stays under the sea's fog like the rest of the flat); a clear strip 30 px wide read as a hole in the cloud (it is now 4 to 15 px, the river and its banks); and thinning the reach inside the forest showed at Dusk as a dark line through the pale fog (it now ends where the river comes out of the trees).
+- D6, checks: `check.sh D6 D5` passed, 12.4 ms a frame zoomed out at Dusk, nothing moved, lint clean. Filmed at both mouths through the deck and the fog beside the build before the change, by Day and at Dusk. Round 4 has the same fog over the river as the build before the change.
 
 ## 12. The reference pictures
 
@@ -839,4 +843,4 @@ Still true from round 4 (`ROUND4.md` section 11 has the rest):
 - **Mid-session questions.** When a question to TJ is wrong, he says so. Explaining a choice with a small ASCII sketch of the map got a clear answer where words alone did not.
 - **Parallel copies of the agent used up TJ's limit** in a few hours in round 3. One stream of work only.
 - **Sounds nobody has heard yet:** the seven tunes' second parts, the effects `tink`, `bang`, `slap` and `kraa`, the larch basin's bed, and every sound added this round. List them in the final report for TJ to listen to.
-- **Not yet confirmed on the artifact host:** that the page's own files fetch back byte for byte, which the bake's check (`sourceSig`) needs. If it fails, the page is still correct but slower to be ready.
+- **Confirmed on the artifact host (S2c, 2026-11-17):** the page's own files fetch back byte for byte, which the bake's check (`sourceSig`) needs, so the published page reads the ground from the bake. The Debug panel's first line says which it did.
