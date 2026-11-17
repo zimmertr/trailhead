@@ -428,7 +428,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] B2. T4: remove the Trailhead signpost (keep the name tag). Move the register next to the board, on its left. One click opens the register with no walk.
 - [x] B3. T45: swap the sign's arrows. (The distances wait for D1.)
 - [x] B4. T12: remove the float plane and its debug button.
-- [ ] B5. T41: remove the standing bear from the forest, with its debug event.
+- [x] B5. T41: remove the standing bear from the forest, with its debug event.
 - [ ] B6. T38: remove the Steller's jay from the stump, and move the owl to a limb on the trunk behind it.
 - [ ] B7. T77: rename "Played on" to "Music style".
 - [ ] B8. T37: TJ's facing no longer flips on diagonals (check every trail on the map at 2x speed with `frames.sh`).
@@ -564,7 +564,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **B1, B2 done.** The Reflection Lake sign and the Trailhead signpost are gone. The register stands on the board's left, both north-east of where he stands, and the Trailhead name tag sits a little to his left so it covers neither. One click on the register opens the close-up (its own short opening, no walk) and closing it puts him back at the Trailhead.
 - **B3 done.** The sign's arrows match the map: Reflection Lake left, Proficiency Peak right, Sideproject Spires up. The distances still wait for D1.
 - **B4 done.** The float plane, its flight over Reflection Lake and its debug button are gone.
-- Next: B5.
+- **B5 done.** The bear that stood up behind a giant in the forest is gone: its lean-out in `forest.js`, its drawing (`bear()` in `fauna.js`), its frames on the sprite sheet page and the "Bear" start button in the debug menu's forest group. No find depended on it. The bear on the map is a different animal and stays.
+- Next: B6.
 
 ## 11. Calls made in round 5
 
@@ -580,6 +581,7 @@ One line each, newest last: the item, what was decided, and why.
 - B2: "no walk" kept the register close-up's own opening (under a second) and left the board's sheet as it is, because the close-up is a scene with its own picture and the book, not an overlay.
 - B3: kept the planks in their order (lake, peak, Spires) and swapped only the arrows, so the order still matches the trail map, the timeline and the 1, 2, 3 keys. A real signpost often groups its planks by direction; that would be a reorder for TJ to ask for.
 - B4: also took the plane out of the trail map's "Also seen" line. `PROGRESS.md` still lists it, as the record of round 4.
+- B5: the giant the bear leaned out from stays where it was (now `D_GIANT`), because moving it would shift every tree after it and the owl's perch. The map's "some days a bear" line in the trail map stays: it is about the map's bear (T44).
 
 ## 12. The reference pictures
 

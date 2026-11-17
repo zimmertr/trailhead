@@ -5,13 +5,13 @@
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, SHADE, LIGHT, pick, BM, outline, disc, thick, windAt } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
 import { makeMaple, makeSpruce, makeBoulder } from './sprites.js';
-import { elk, bear, sasquatch, jay, slug, owl } from './fauna.js';
+import { elk, sasquatch, jay, slug, owl } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
 import { NAMES } from './content.js';
 
 const SW = 1640, UP = 480, DOWN = 240;
 const X0 = SW - 500, LEN = 640, DUR = 8.2;
-const D_SIGN = 300, D_SLUG = 372, D_ELK = 452, D_BEAR = 524, D_JAY = 132;
+const D_SIGN = 300, D_SLUG = 372, D_ELK = 452, D_GIANT = 524, D_JAY = 132;
 let sasquatchSeen = false;
 
 // How far the forest has thinned out: 0 in the thick of it, 1 where it ends at the lake, and 1 again
@@ -313,15 +313,17 @@ function buildForest() {
   const things = [];
   const trunks = [];
   const reserve = [[X0 - D_SIGN - 34, X0 - D_SIGN + 10], [X0 - D_ELK - 34, X0 - D_ELK + 34]];
-  let bearTrunk = null;
+  // One giant always stands at D_GIANT. The bear leaned out from behind it until round 5 (T41); it stays so the
+  // rest of the forest, the owl's tree among it, stands where it always did.
+  let giant = null;
   for (let x = 40; x < SW - 30; x += 78 + rand() * 62) {
-    let tx = x; if (!bearTrunk && Math.abs(x - (X0 - D_BEAR)) < 70) tx = X0 - D_BEAR;
+    let tx = x; if (!giant && Math.abs(x - (X0 - D_GIANT)) < 70) tx = X0 - D_GIANT;
     if (reserve.some(([a, b]) => tx > a - 22 && tx < b + 22)) continue;
     // Toward the lake more and more of the giants are missing. A missing one still takes its turns
     // of the dice and keeps its place clear, so the rest of the forest stands where it always did.
-    const w = 20 + (rand() * 22 | 0), by = -8 - (rand() * 20 | 0), gone = tx !== X0 - D_BEAR && hash(Math.round(tx), 7, 310) < thinAt(tx) * 0.9;
+    const w = 20 + (rand() * 22 | 0), by = -8 - (rand() * 20 | 0), gone = tx !== X0 - D_GIANT && hash(Math.round(tx), 7, 310) < thinAt(tx) * 0.9;
     const t = { bm: gone ? null : makeTrunk(1000 + (tx | 0), w, UP + by + 20), x: Math.round(tx), y: g(tx) + by, tall: true, w };
-    if (tx === X0 - D_BEAR) bearTrunk = t;
+    if (tx === X0 - D_GIANT) giant = t;
     trunks.push(t); if (!gone) things.push(t);
     for (let k = 0; k < 3; k++) { const dir = rand() < 0.5 ? -1 : 1, len = 30 + (rand() * 46 | 0), up = 96 + rand() * 300; if (!gone) things.push({ bm: makeLimb(2000 + tx + k, len, dir), x: t.x + dir * (w / 2 - 2), y: t.y - up, z: t.y + 0.1, sway: 0.5 }); }
   }
@@ -347,9 +349,9 @@ function buildForest() {
   // The eerie corner of the rainforest (E5d), by rule, with no turns of the dice so nothing else moves.
   // The owl: on a low limb of the giant in the thick of the forest that stands farthest from every other
   // animal and sign along the run, with no tree in front of it to hide it.
-  const busy = [D_SIGN, D_SLUG, D_ELK, D_BEAR, D_JAY];
+  const busy = [D_SIGN, D_SLUG, D_ELK, D_GIANT, D_JAY];
   let owlT = null, owlScore = -1;
-  for (const t of trunks) { const d = X0 - t.x; if (!t.bm || t === bearTrunk || d < 40 || d > LEN - 40 || thinAt(t.x) > 0.05 || things.some(th => th.tree && Math.abs(th.x - t.x) < 44)) continue;
+  for (const t of trunks) { const d = X0 - t.x; if (!t.bm || t === giant || d < 40 || d > LEN - 40 || thinAt(t.x) > 0.05 || things.some(th => th.tree && Math.abs(th.x - t.x) < 44)) continue;
     const s = Math.min(...busy.map(b => Math.abs(d - b))); if (s > owlScore) { owlScore = s; owlT = t; } }
   const perch = owlT && (() => { const bm = makeLimb(2900, 28, 1), x = owlT.x + Math.round(owlT.w / 2 - 2), y = owlT.y - 52, col = bm.ox + 14; let top = 0; while (top < bm.h && !bm.d[top * bm.w + col]) top++;
     things.push({ bm, x, y, z: owlT.y + 0.1 }); return { x: x + 14, y: y - bm.oy + top, z: owlT.y + 0.2 }; })();
@@ -398,7 +400,7 @@ function buildForest() {
 
   const run = makeRunner('trail');
   const sit = [0, 1].map(f => sideFig('trail', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: f ? [[4, -2], [2, 3]] : [[3, 3], [2, 3]] }));
-  const elkBM = { up: elk('up'), ear: elk('up', 0, 1), graze: elk('graze'), bite: elk('graze', 0, 1) }, bearBM = [bear(false), bear(true)], sas = [sasquatch(0), sasquatch(1)];
+  const elkBM = { up: elk('up'), ear: elk('up', 0, 1), graze: elk('graze'), bite: elk('graze', 0, 1) }, sas = [sasquatch(0), sasquatch(1)];
   const jayBM = { sit: jay('steller', 'sit'), up: jay('steller', 'up'), down: jay('steller', 'down') }, gray = { sit: jay('gray', 'sit'), up: jay('gray', 'up'), down: jay('gray', 'down') };
   const slugBM = [slug(0), slug(1)], slugX = X0 - D_SLUG;
   const elkX = X0 - D_ELK, elkY = g(elkX) - 13;
@@ -408,22 +410,20 @@ function buildForest() {
   const list = [];
   const xOf = q => X0 - q * LEN;
   // The animals act on their own clock once he crosses their point, so they carry on when he stops and
-  // do not play backwards when the timeline is scrubbed. jayGo, bearGo, sasGo: when each began (null if
-  // not yet). The jay flies once a visit to the scene; the bear can lean out again on a later pass.
-  const JAY_AT = D_JAY - 46, BEAR_AT = D_BEAR + 26, SAS_AT = 0.66;
-  let jayGo = null, bearGo = null, bearArmed = true, sasGo = null, sasX = 0, sasOn = 0;
+  // do not play backwards when the timeline is scrubbed. jayGo, sasGo: when each began (null if not yet).
+  // The jay flies once a visit to the scene.
+  const JAY_AT = D_JAY - 46, SAS_AT = 0.66;
+  let jayGo = null, sasGo = null, sasX = 0, sasOn = 0;
   // The deer's eyes at Dusk: 8 s in every 26, or when the debug button says.
   const EYES = { slot: 26, dur: 8 }; let eyeGo = null;
 
   return {
     ...META,
-    enter(scr, arg, q) { cam = xOf(q); st.y = null; const d = q * LEN; jayGo = d >= JAY_AT ? -1e9 : null; bearGo = null; bearArmed = d < BEAR_AT; sasGo = null; },
+    enter(scr, arg, q) { cam = xOf(q); st.y = null; const d = q * LEN; jayGo = d >= JAY_AT ? -1e9 : null; sasGo = null; },
     focus: () => focus,
-    // The debug panel's start buttons (E5f): the jay takes off from its stump, the bear leans out from
-    // its trunk, or Sasquatch steps out at the far edge of the view, even if he has been seen this visit.
+    // The debug panel's start buttons (E5f): the jay takes off from its stump, or Sasquatch steps out at the far edge of the view, even if he has been seen this visit.
     trigger(name, t) {
       if (name === 'jay') { jayGo = t; return true; }
-      if (name === 'bear') { bearGo = t; bearArmed = false; return true; }
       if (name === 'eyeshine') { eyeGo = t; return true; }
       if (name === 'sasquatch') { sasquatchSeen = false; sasGo = t; sasX = last.camX - 12; sasOn = 0; return true; }
       return false;
@@ -481,13 +481,8 @@ function buildForest() {
 
       list.length = 0;
       for (const th of things) { const w = th.tree ? 30 : th.bm.w; if (th.x + w > camX && th.x - w < camX + VW) list.push(th); }
-      // The elk lifts his head while he passes; the bear leans out from behind its trunk once he has gone by.
+      // The elk lifts his head while he passes.
       { const up = Math.abs(d - D_ELK + 20) < 90 || frac(t / 7) >= 0.7; list.push({ bm: up ? elkBM[frac(t / 2.9) < 0.07 ? 'ear' : 'up'] : elkBM[Math.floor(t * 2.2) & 1 ? 'bite' : 'graze'], x: elkX, y: elkY, flip: false }); }
-      // Once he has gone by, the bear leans out, has a good look for about four seconds and ducks back.
-      if (d < BEAR_AT && bearGo === null) bearArmed = true;
-      if (bearArmed && d >= BEAR_AT) { bearArmed = false; bearGo = t; }
-      if (bearGo !== null && t - bearGo > 6.4) bearGo = null;
-      if (bearTrunk && bearGo !== null) { const a = t - bearGo, lean = smooth(0, 1.2, a) * smooth(6.4, 5.4, a); if (lean > 0) list.push({ bm: bearBM[frac(t / 3.1) > 0.94 ? 1 : 0], x: bearTrunk.x + Math.round(bearTrunk.w * 0.2 + lean * (bearTrunk.w * 0.5 + 5)), y: bearTrunk.y - 1, z: bearTrunk.y - 0.5, flip: true }); }
       // The jay sits on the stump until he comes close, then takes off ahead of him.
       if (jayGo === null && d >= JAY_AT) jayGo = t;
       const ju = jayGo === null ? -1 : (t - jayGo) / 1.9;

@@ -23,21 +23,6 @@ function elk(pose, step = 0, alt = 0) {
   return b;
 }
 
-// A black bear on its hind legs, peering round a trunk. Facing left.
-function bear(blink) {
-  const b = new BM(22, 38); b.ox = 11; b.oy = 37;
-  const fur = (nx, ny, x, y) => pick('fur', 0.4 - nx * 0.25 - ny * 0.2 + 0.2 * (hash(x, y, 4) - 0.5), x, y, 0.6);
-  ell(b, 12, 26, 7, 11, fur);
-  thick(b, 9, 34, 9, 37, 3, R.fur[0]); thick(b, 15, 34, 15, 37, 3, R.fur[0]);
-  thick(b, 8, 20, 4, 26, 3, R.fur[1]); b.set(3, 27, R.fur[2]);
-  ell(b, 10, 10, 6, 5.5, fur);
-  disc(b, 6, 4.5, 2, () => R.fur[1]); disc(b, 14, 4.5, 2, () => R.fur[1]); b.set(6, 5, R.fur[3]); b.set(14, 5, R.fur[3]);
-  ell(b, 6, 12, 3.4, 2.4, () => R.dirt[2]); b.set(3, 11, INK); b.set(4, 13, R.dirt[1]);
-  if (!blink) { b.set(8, 9, R.white[1]); b.set(12, 9, R.white[1]); }
-  outline(b, INK);
-  return b;
-}
-
 // Sasquatch in mid-stride, a silhouette in the far trees. Two frames.
 function sasquatch(f, c = R.fur[1]) {
   const b = new BM(18, 34); b.ox = 9; b.oy = 33;
@@ -189,4 +174,4 @@ function bluebird(f) {
 // A little bird far off: a pair of wing strokes.
 function speck(f) { const b = new BM(7, 4); b.ox = 3; b.oy = 2; (f ? [0, 1, 2, 2, 2, 1, 0] : [2, 2, 1, 2, 1, 2, 2]).forEach((y, x) => b.set(x, y, INK)); return b; }
 
-export { ell, elk, bear, sasquatch, jay, slug, owl, marmot, heron, pika, goat, bluebird, speck };
+export { ell, elk, sasquatch, jay, slug, owl, marmot, heron, pika, goat, bluebird, speck };
