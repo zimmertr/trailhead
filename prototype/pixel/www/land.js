@@ -408,10 +408,23 @@ if (B) water.set(B.water); else {
     }
   }
 }
+// A small lake that a stream has cut through is level again (round 5, T17): the pond on the east creek
+// stood 11 above the bed the creek arrived on, so the creek cut a trench through it and only the trench
+// showed, a V of water with grass in its middle. The lake settles to its lowest point and the ground
+// round it falls to the water in a shallow bowl. Reflection Lake keeps its own lip (LIP, above).
+if (!B) for (const [cu, cv, ru, rv] of C.lakes.slice(1)) {
+  const e = (u, v) => Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5), box = (fn, pad) => { for (let v = Math.max(0, Math.floor(cv - rv - pad)); v <= Math.min(VD - 1, cv + rv + pad); v++) for (let u = Math.max(0, Math.floor(cu - ru - pad)); u <= Math.min(NW - 1, cu + ru + pad); u++) fn(u, v, at(u, v)); };
+  let lo = 1e9, hi = -1e9; box((u, v, i) => { if (e(u, v) < 1) { lo = Math.min(lo, hg[i]); hi = Math.max(hi, hg[i]); } }, 2);
+  if (hi - lo < 1) continue;
+  box((u, v, i) => { const d = e(u, v); if (d < 1) { hg[i] = lo; return; } const out = (d - 1) * lerp(rv, ru, Math.abs((u - cu) / ru) / d), m = MATS[mg[i]]; if (out < 22 && (m === 'land' || m === 'moraine' || m === 'gran')) hg[i] = Math.min(hg[i], lo + 0.4 + out * 0.55); }, 24);
+}
 // The heights are kept to 32nds of a pixel, baked or not, so the map read from a bake is the same map.
 if (!B) for (let i = 0; i < hg.length; i++) hg[i] = Math.round(hg[i] * 32) / 32;
 // The waterfall off the lake's lip, in picture terms: its column, where it leaves the lip and where it lands.
-const FALLS = (() => { const [lu, lv] = LIP, [du, dv] = LIPD, top = hAt(lu - du, lv - dv); let k = 0; while (k < 14 && hAt(lu + du * (k + 1), lv + dv * (k + 1)) < hAt(lu + du * k, lv + dv * k) - 0.4) k++; const eu = Math.round(lu + du * k), ev = Math.round(lv + dv * k), bot = hAt(eu, ev);
+// The lip is found on the ground as it was before the stream cut its bed, which a bake does not keep, so
+// a bake carries the fall itself (round 5, T17: read from the baked ground it came out 7 px to the west,
+// and the moving white water ran down bare rock beside the painted fall).
+const FALLS = B && B.falls ? B.falls : (() => { const [lu, lv] = LIP, [du, dv] = LIPD, top = hAt(lu - du, lv - dv); let k = 0; while (k < 14 && hAt(lu + du * (k + 1), lv + dv * (k + 1)) < hAt(lu + du * k, lv + dv * k) - 0.4) k++; const eu = Math.round(lu + du * k), ev = Math.round(lv + dv * k), bot = hAt(eu, ev);
   return top - bot < 3 ? [] : [{ x: Math.round(lu + du * k / 2), y0: Math.round(SY - lv - top), y1: Math.round(SY - ev - bot), v: ev }]; })();
 function stamp(mask, pts, r0, r1) { pts.forEach(([pu, pv], n) => { const rr = lerp(r0, r1, n / (pts.length - 1)), R2 = Math.ceil(rr + 1); for (let dv = -R2; dv <= R2; dv++) for (let du = -R2; du <= R2; du++) { const d = Math.hypot(du, dv), u = Math.round(pu + du), v = Math.round(pv + dv), k = d <= rr ? 2 : d <= rr + 1 ? 1 : 0; if (k && u >= 0 && v >= 0 && u < NW && v < VD && mask[at(u, v)] < k) mask[at(u, v)] = k; } }); }
 // The way from the Trailhead to each trail's own country (E5h; TJ chose to lay all three out again when
@@ -1320,12 +1333,12 @@ async function readBake() {
   if (globalThis.__noBake) { BAKE.note = 'switched off'; return null; }
   try {
     const res = await fetch(new URL('./ground.png', import.meta.url)); if (!res.ok) { BAKE.note = 'ground.png answered ' + res.status; return null; }
-    const b = new Uint8Array(await res.arrayBuffer()), dv = new DataView(b.buffer), parts = []; let w = 0, h = 0, sig = '';
+    const b = new Uint8Array(await res.arrayBuffer()), dv = new DataView(b.buffer), parts = []; let w = 0, h = 0, sig = '', falls = null;
     for (let p = 8; p + 12 <= b.length;) {
       const n = dv.getUint32(p), type = String.fromCharCode(b[p + 4], b[p + 5], b[p + 6], b[p + 7]);
       if (type === 'IHDR') { w = dv.getUint32(p + 8); h = dv.getUint32(p + 12); }
       else if (type === 'IDAT') parts.push(b.subarray(p + 8, p + 8 + n));
-      else if (type === 'tEXt') { const t = String.fromCharCode(...b.subarray(p + 8, p + 8 + n)); if (t.startsWith('sig\0')) sig = t.slice(4); }
+      else if (type === 'tEXt') { const t = String.fromCharCode(...b.subarray(p + 8, p + 8 + n)); if (t.startsWith('sig\0')) sig = t.slice(4); else if (t.startsWith('falls\0')) falls = JSON.parse(t.slice(6)); }
       p += 12 + n;
     }
     const want = await sourceSig();
@@ -1339,7 +1352,7 @@ async function readBake() {
     for (let i = 0; i < zb.length; i++) { const q = zh[i] << 8 | zl[i]; zb[i] = q === 65535 ? 1e9 : q / 64; }
     for (let i = 0; i < hg.length; i++) hg[i] = (hh[i] << 8 | hl[i]) / 32;
     BAKE.used = true;
-    return { g, zb, mb, painted, hg, mg, water, bare, dest, fog, hillLight, deck, monoSnow, monoQ, mist };
+    return { g, zb, mb, painted, hg, mg, water, bare, dest, fog, hillLight, deck, monoSnow, monoQ, mist, falls };
   } catch (e) { BAKE.note = 'could not be read: ' + e.message; console.warn('ground.png could not be read', e); return null; }
 }
 // The bake is kept as well: buildTerrain takes the hills' evening light and the cloud deck from it (M3).

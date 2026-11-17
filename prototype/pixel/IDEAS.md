@@ -217,3 +217,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **TJ and Kayti at the Tent on the Map** (round 5, D14). When the Spires walk is finished, two tiny figures could sit by the tent on the island, and the stove's smoke would have someone to cook for.
 - **A Camp Light You Can See From the Trailhead** (round 5, D14). At Dusk the tent's glow could be the one warm light on the whole glacier, bright enough to pick out from the opening view.
 - **Goats on the Island** (round 5, D14). A goat could wander onto the island for the salt while nobody is home, as the camp scene's goats keep to their knoll.
+- **The Water Audit as a Check** (round 5, D4). `check.sh` could walk every stream's line and fail when a point of it is not water in the picture, so a change to the land can never again leave a stream cut in two without anyone looking.
+- **Baked Against Fresh as a Check** (round 5, D4). `bake.sh` could compare what the page reads from `ground.png` with what the land works out fresh (the fall, the trails, every sign's place) and refuse to write a bake that disagrees. The doubled waterfall was this kind of fault.
+- **An Outlet for the Lone Tarn** (round 5, D4). The small lake above the two far moraine lakes has no stream. A thread of water down to the nearer lake would tie the whole plateau into one chain.
+- **A Swimming Hole** (round 5, D4). The pond on the east creek is now a level pool above a fall, the kind of place people swim. A rope swing on a branch, or a towel on a rock, would say so.
+- **Dippers at the Falls** (round 5, D4). A small grey bird could bob on a rock at the foot of each fall and fly low up the stream when TJ comes near.
