@@ -313,3 +313,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Walk Turns to Face the Towers** (round 5, G1). In place of the cut to camp, the walk's last second swings the view round to camp's picture: the walls slide apart and the ice tilts up.
 - **Boots Sound Different on Each Ground** (round 5, G1). Dirt, gravel and ice each with their own footstep, so the step onto the glacier can be heard.
 - **The Glacier Table** (round 5, G1). One of the stones on the ice sits up on a pedestal of ice it has shaded from the sun.
+- **The Tent Glows at Camp** (round 5, G2). At Dusk the tent in the walk and at camp glows from inside, as the map's tent does.
+- **The Pot Boils** (round 5, G2). The stove's smoke turns to puffs of steam and the lid rattles now and then, with a small sound.
+- **Ice Axes by the Tent** (round 5, G2). Two axes stuck in the snow beside the tent, one each, and a coiled rope on the rock.
+- **Her Painting Keeps Up** (round 5, G2). The page on Kayti's knee gains a small flag on each tower he has climbed.

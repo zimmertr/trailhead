@@ -8,7 +8,7 @@
 // the glacier to camp on its rock island, the Spires and the walls beside them growing as he nears.
 import { clamp, lerp, smooth, frac, sq, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, windAt, veilTable } from './core.js';
 import { Strip, drawStrip, baseline, shell, blitScaled, paintPeaks } from './side.js';
-import { paintSpires, dome, tower, wallTall } from './camp.js';
+import { paintSpires, dome, stove, tower, wallTall } from './camp.js';
 import { makeKayti } from './people.js';
 import { makeConifer, makeBoulder, makeCloud, makeBush } from './sprites.js';
 import { makeRunner } from './tj.js';
@@ -34,8 +34,9 @@ const edge = r => XG + Math.min(r * 1.5, 170 + r * 0.35) + 30 * (vnoise(r / 25, 
 // swells. At the end the ice levels where camp's rock island lies in it (XS: where it levels).
 const XS = X0 + LEN - 70, shelf = x => smooth(XS - 40, XS + 30, x);
 const g = x => { const f = mor(x), ic = ice(x), m = f * (1 - ic), sh = shelf(x), xc = Math.min(x, XS) + Math.max(0, x - XS) * 0.1; return -Math.round((xc - X0) * 0.028 + (1 - f) * (2.2 * Math.sin(x / 47) + 1.5 * vnoise(x / 30, 1, 700)) + m * 3 * Math.sin(x / 29) + m * 0.016 * Math.max(0, xc - XM) + ic * (1 - sh) * 1.5 * Math.sin(x / 61)); };
-// Camp on its rock island, a little past where he stops: the two tents, and Kayti further on, painting.
-const TENTS = [X0 + LEN + 44, X0 + LEN + 70], KAYTI = X0 + LEN + 100;
+// Camp on its rock island, a little past where he stops: the tent he and Kayti share, the stove beside
+// it, and Kayti further on, painting.
+const TENT = X0 + LEN + 48, STOVE = TENT + 21, KAYTI = X0 + LEN + 100;
 // The island: a low patch of rock and gravel the ice flows round, long and narrow as seen from the
 // side. Above 0 inside it, near 0 at its ragged edge.
 const IX = X0 + LEN + 64, IA = 112;
@@ -358,7 +359,7 @@ function buildApproach() {
   }
   for (let k = 0; k < 11; k++) {
     const a = ri() * 2 * Math.PI, x = Math.round(IX + Math.cos(a) * IA * (0.78 + 0.2 * ri())), r = Math.round(2 + Math.sin(a) * (Math.sin(a) < 0 ? 5 : 8)), big = 2.4 + ri() * 3.4;
-    if (Math.abs(r - 1) < 4 || (r < 4 && x > TENTS[0] - 18 && x < KAYTI + 46)) continue;
+    if (Math.abs(r - 1) < 4 || (r < 4 && x > TENT - 18 && x < KAYTI + 46)) continue;
     things.push({ bm: makeBoulder(850 + k, big), x, y: g(x) + r });
   }
   const rib = x => -fbm(x / 50, 4, 728, 2);
@@ -368,7 +369,7 @@ function buildApproach() {
   for (let i = things.length - 1; i >= 0; i--) if (M.some(m => Math.abs(things[i].x - m.x) < 24 && Math.abs(things[i].y - m.y) < 18)) things.splice(i, 1);
   for (const m of M) { things.push({ bm: m.rock, x: m.x, y: m.y }); let top = 0; while (top < m.rock.h && !m.rock.d[top * m.rock.w + m.rock.ox]) top++; m.top = m.rock.oy - top; }
   const marm = { sun: marmot('sun'), up: marmot('up') };
-  const tents = [dome('tent'), dome('red')], kayti = makeKayti(); let waved = -9, now = 0;
+  const tent = dome('tent'), pot = stove(), kayti = makeKayti(); let waved = -9, now = 0;
 
   let cam = 0, last = { camX: 0, base: 0, dir: 1, VW: 0 };
   const list = [];
@@ -451,10 +452,10 @@ function buildApproach() {
         if (near && env.running && t - m.seen > 6) { m.seen = t; env.sfx('whistle'); }
         list.push({ bm: near || t - m.seen < 1.6 ? marm.up : marm.sun, x: m.x + 1, y: m.y - m.top + 3, z: m.y + 0.5, flip: mx > m.x });
       }
-      // Camp comes into view on the shelf ahead in the last seconds: the tents just behind the trail, smoke
-      // from the stove between them, and Kayti beyond them painting the towers.
-      if (TENTS[0] - camX < VW + 30) {
-        list.push({ bm: tents[0], x: TENTS[0], y: g(TENTS[0]) - 2 }, { bm: tents[1], x: TENTS[1], y: g(TENTS[1]) - 1 });
+      // Camp comes into view on its island ahead in the last seconds: the tent just behind the trail, smoke
+      // from the stove beside it, and Kayti beyond them painting the towers.
+      if (TENT - camX < VW + 30) {
+        list.push({ bm: tent, x: TENT, y: g(TENT) - 2 }, { bm: pot, x: STOVE, y: g(STOVE) - 1 });
         list.push({ kayti: true, x: KAYTI, y: g(KAYTI) });
       }
       list.push({ me: true, x: mx, y: g(mx) + 0.5 });
@@ -470,7 +471,7 @@ function buildApproach() {
           for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
         } else scr.put(th.bm, sx, sy, !!th.flip);
       }
-      if (TENTS[0] - camX < VW + 30) { const cx = (TENTS[0] + TENTS[1]) / 2 - camX, cy = base + g(TENTS[0]) - 12; for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx + age * 9 + Math.sin(age * 6 + k)), Math.round(cy - age * 24), age < 0.5 ? R.granite[4] : R.granite[3]); } }
+      if (TENT - camX < VW + 30) { const cx = STOVE - camX, cy = base + g(STOVE) - 7; for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx + age * 9 + Math.sin(age * 6 + k)), Math.round(cy - age * 24), age < 0.5 ? R.granite[4] : R.granite[3]); } }
       last = { camX, base, dir, VW };
       if (dir < 0) { mirror(fb, VW, VH); focus.x = VW - 1 - focus.x; }
     }

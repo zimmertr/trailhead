@@ -1,4 +1,4 @@
-// Sideproject Spires, base camp: two tents on a moraine in the middle of a great glacier, under the
+// Sideproject Spires, base camp: one tent on a rock island in the middle of a great glacier, under the
 // granite wall of the Spires and its six summits, one per project, with the ice sheet running off to
 // far ranges behind. Click a summit and he sets off. The picture is painted to fit the screen it is on, at the same pixel size
 // as everything else, and keeps the towers and the camp clear of the card.
@@ -29,6 +29,17 @@ export function dome(c) {
   for (let y = 0; y < 14; y++) { const half = Math.sqrt(1 - sq((13 - y) / 14)) * 13; for (let x = Math.ceil(14 - half); x <= 14 + half; x++) b.set(x, y + 1, x < 10 ? R[c][2] : x < 19 ? R[c][1] : R[c][0]); }
   for (let y = 6; y < 14; y++) for (let x = Math.ceil(13 - (y - 6) * 0.45); x <= 15 + (y - 6) * 0.45; x++) b.set(x, y + 1, y === 6 ? R[c][0] : R.navy[0]);
   for (let y = 1; y < 14; y++) b.set(Math.round(6 + sq((13 - y) / 13) * 7), y + 1, R[c][0]);
+  outline(b, INK);
+  return b;
+}
+
+// The camp stove with a pot on it, where the smoke comes from.
+export function stove() {
+  const b = new BM(7, 8); b.ox = 3; b.oy = 7;
+  for (let x = 1; x < 6; x++) { b.set(x, 1, R.rock[4]); b.set(x, 2, R.rock[x < 3 ? 4 : 3]); b.set(x, 3, R.rock[2]); }
+  b.set(3, 4, R.yellow[1]); b.set(2, 4, R.tent[1]); b.set(4, 4, R.tent[1]);
+  for (let x = 2; x < 5; x++) b.set(x, 5, R.rock[0]);
+  b.set(1, 6, R.rock[1]); b.set(3, 6, R.rock[0]); b.set(5, 6, R.rock[1]);
   outline(b, INK);
   return b;
 }
@@ -217,7 +228,7 @@ function build(VW, VH, narrow) {
   }
   const r0 = rng(77);
   for (let k = 0; k < (narrow ? 6 : 9); k++) { const b = makeBoulder(520 + k, 2.4 + r0() * 3.4), x = Math.round(camp[0] + (r0() - 0.5) * rx * 1.9), y = Math.round(camp[1] + (r0() - 0.5) * ry * 1.5 + 3); for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) { const c = b.d[j * b.w + i]; if (c) front.set(x - b.ox + i, y - b.oy + j, c); } }
-  // A knoll of rock breaks the ice half way to the towers. The goats keep to it, well away from the tents.
+  // A knoll of rock breaks the ice half way to the towers. The goats keep to it, well away from the tent.
   const knoll = [Math.round(X0 + bw * 0.3), Math.round(yh + span * 0.47)], kx = Math.max(19, Math.round(bw * 0.075));
   for (let x = knoll[0] - kx - 3; x <= knoll[0] + kx + 3; x++) {
     const u = (x - knoll[0]) / kx, top = knoll[1] - Math.round(9 * Math.max(0, 1 - u * u) * (0.55 + 0.45 * vnoise(x / 4, 3, 290)) + (Math.abs(u) < 1 ? 2 : 0)), foot = knoll[1] + Math.round(2 * (1 - u * u) + vnoise(x / 3, 4, 291));
@@ -236,7 +247,7 @@ export function makeCamp() {
   const heart = new BM(9, 8);
   ['.XX.XX.', 'XoXXXXX', 'XXXXXXx', '.XXXXx.', '..XXx..', '...x...'].forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') heart.set(x + 1, y + 1, ch === 'o' ? R.red[2] : ch === 'x' ? R.red[0] : R.red[1]); }));
   outline(heart, INK);
-  const tents = [dome('tent'), dome('red')], flags = [makeFlag(0), makeFlag(1)];
+  const tent = dome('tent'), pot = stove(), flags = [makeFlag(0), makeFlag(1)];
   const goats = { stand: farGoat('stand'), look: farGoat('look'), graze: farGoat('graze'), kid: farGoat('stand', true) }, bird = [speck(0), speck(1)];
   const clouds = [0, 1, 2, 3].map(i => ({ bm: makeCloud(630 + i), x: i * 170, y: 0.1 + (i % 3) * 0.22 + i * 0.04, v: 3 + i * 1.6 }));
   const focus = { x: 0, y: 0 };
@@ -279,10 +290,10 @@ export function makeCamp() {
         const age = frac(t * 0.42 + k / 14 + g.x * 0.01), x = Math.round(g.x + 2 + age * (20 + (k % 4) * 5)), y = Math.round(g.top + 1 - Math.sin(age * 2.6) * 3 + (k % 3) - age * 2);
         if (age < 0.55 || bayer(x, y) > (age - 0.55) / 0.45) scr.set(x, y, age < 0.3 ? R.snow[4] : R.snow[3]);
       }
-      // Tents and their smoke, flags on the tops he has stood on.
+      // The tent, the stove and its smoke, flags on the tops he has stood on.
       const [cx, cy] = camp;
-      scr.put(tents[0], cx - 16, cy - 1, false); scr.put(tents[1], cx + 13, cy + 4, false);
-      for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx - 1 + age * 9 + Math.sin(age * 6 + k)), Math.round(cy - 6 - age * 24), age < 0.5 ? R.white[1] : R.white[0]); }
+      scr.put(tent, cx - 12, cy, false); scr.put(pot, cx + 9, cy + 3, false);
+      for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx + 9 + age * 9 + Math.sin(age * 6 + k)), Math.round(cy - 4 - age * 24), age < 0.5 ? R.white[1] : R.white[0]); }
       for (const g of geo) if (env.done['spire:' + g.id]) scr.blit(flags[Math.floor(t * 5) & 1], g.x - 2, g.top - 14);
       // The goats on their knoll out on the ice: the nanny looks about, the billy grazes at the lichen, and
       // every few seconds the kid bounces twice on the spot.
@@ -290,7 +301,7 @@ export function makeCamp() {
 
       { const [kx, ky] = seat(); kayti.draw(scr, kx, ky, t, t - waved < 1.6); }
 
-      // He walks in along the moraine from the west, the way the trail brought him, past the tents and past
+      // He walks in along the island from the west, the way the trail brought him, past the tent and past
       // her, and sits down at her side, out of her view of the towers.
       const [kx, ky] = seat(), WALK = Math.round(rx * 0.56) + 45, sx = kx + 23;
       const mx = sx - Math.round((1 - q) * WALK), my = ky + 1 + Math.round(5 * smooth(1, 0.86, q));

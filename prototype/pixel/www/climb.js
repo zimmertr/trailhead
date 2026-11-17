@@ -572,7 +572,7 @@ export function makeClimb() {
     press: [0, 1].map(f => { const b = new BM(34, 22); b.ox = 17; b.oy = 21; for (let x = 8; x < 22; x++) { b.set(x, 13, R.kit[1]); b.set(x, 12, R.kit[2]); b.set(x, 14, R.kit[0]); } for (let x = 22; x < 28; x++) b.set(x, 13, R.rock[1]); thick(b, 26, 13, 29, 19, 2, R.rock[0]); b.set(30, 20, R.bark[1]); disc(b, 6, 11, 3, (nx, ny) => ny < -0.2 ? R.kit[2] : R.skin[2]); const by = f ? 3 : 8; thick(b, 12, 11, 12, by + 1, 2, R.kit[1]); thick(b, 16, 11, 16, by + 1, 2, R.kit[0]); for (let x = 3; x < 26; x++) b.set(x, by, R.rock[4]); for (const x of [3, 4, 24, 25]) for (let y = by - 3; y <= by + 3; y++) b.set(x, y, R.navy[0]); outline(b, INK); return b; })
   };
   fig.walkR = fig.walk.map(rimeOn); fig.windR = fig.wind.map(rimeOn);
-  const tents = [makeTent('tent'), makeTent('red')], flag = [makeFlag(0), makeFlag(1)], bb = [bluebird(0), bluebird(1)];
+  const tent = makeTent('tent'), flag = [makeFlag(0), makeFlag(1)], bb = [bluebird(0), bluebird(1)];
   const squirrel = (() => { const b = new BM(7, 5); b.ox = 3; b.oy = 4; b.set(1, 2, R.blaze[0]); b.set(2, 2, R.blaze[1]); b.set(3, 2, R.blaze[1]); b.set(4, 1, R.blaze[1]); b.set(5, 1, INK); b.set(0, 0, R.blaze[2]); b.set(0, 1, R.blaze[1]); b.set(1, 1, R.blaze[1]); b.set(2, 3, R.blaze[0]); b.set(4, 3, R.blaze[0]); return b; })();
   // Colours pale enough that a white flake or a white gust line would vanish on them.
   const pale = new Uint8Array(256); for (const c of [R.snow[3], R.snow[4], R.white[0], R.white[1], R.glac[4], R.glac[5], R.farsnow[0], R.farsnow[1]]) pale[c] = 1;
@@ -809,7 +809,7 @@ export function makeClimb() {
         }
       } else {
         // Camp at the bottom of the glissade.
-        scr.put(tents[0], X(-46), Y(-1), false); scr.put(tents[1], X(-66), Y(1), false);
+        scr.put(tent, X(-52), Y(-1), false);
       }
       const sx = X(me.x), sy = Y(me.y);
       // The blown snow closes over the slope, thinnest around him, and the wands lead through it: the
