@@ -7,7 +7,9 @@ import { trailhead } from './plugin.js'
 const root = new URL('../..', import.meta.url).pathname
 
 export default tseslint.config(
-  { ignores: ['**/node_modules/**', '**/dist/**', 'coverage/**', 'tools/eslint/fixtures/**', 'e2e/playwright-report/**', 'e2e/test-results/**'] },
+  // prototype/ is the pixel world's throwaway prototype: plain browser JS checked by renders in
+  // Docker, not by the site's lint (ROUND5.md in that folder).
+  { ignores: ['prototype/**', '**/node_modules/**', '**/dist/**', 'coverage/**', 'tools/eslint/fixtures/**', 'e2e/playwright-report/**', 'e2e/test-results/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   comments.recommended,

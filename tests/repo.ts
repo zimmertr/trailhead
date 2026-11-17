@@ -5,7 +5,9 @@ import { readFileSync, readdirSync } from 'node:fs'
 import { join, relative } from 'node:path'
 
 export const ROOT = join(import.meta.dirname, '..')
-const SKIP = new Set(['node_modules', '.git', 'dist', 'coverage', 'playwright-report', 'test-results'])
+// prototype/ holds the pixel world's throwaway prototype, which is not a service and follows its own
+// rules (prototype/pixel/ROUND5.md), so the site's repo-wide checks do not walk it.
+const SKIP = new Set(['node_modules', '.git', 'dist', 'coverage', 'playwright-report', 'test-results', 'prototype'])
 
 export function files(pattern: RegExp, from = ROOT): string[] {
   const found: string[] = []

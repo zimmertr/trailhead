@@ -26,7 +26,9 @@ const sets = {
   async elk() { const s = await import('./sprites.js'), f = await import('./fauna.js'), m = await import('./mapfauna.js'); return [s.makeElk(false), s.makeElk(true), s.makeElk(false, 1), s.makeElk(false, 2), s.makeElk(false, 0, false), s.makeElk(true, 0, false), m.sheep(false), f.goat('stand')]; },
   async climb() { const m = await import('./tj.js'); return m.climbSheet ? m.climbSheet() : []; }
 };
-const bms = await sets[q.get('set') || 'runner']();
+const setName = q.get('set') || 'runner';
+if (!Object.hasOwn(sets, setName)) throw new Error('no such set: ' + setName);
+const bms = await sets[setName]();
 const perRow = +(q.get('row') || 12), cw = Math.max(...bms.map(b => b.w)) + 2, ch = Math.max(...bms.map(b => b.h)) + 2;
 const c = document.getElementById('c'), rows = Math.ceil(bms.length / perRow);
 c.width = cw * perRow; c.height = ch * rows; c.style.width = c.width * scale + 'px'; c.style.height = c.height * scale + 'px';
