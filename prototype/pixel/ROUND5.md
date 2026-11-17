@@ -10,9 +10,27 @@ This file is written so that someone with no memory of the conversation can do t
 
 On 2026-11-16 TJ stopped the loop at D4 and asked for a review. It found that https://github.com/zimmertr/trailhead/pull/31 (round 4 into main) was never merged, that no check in CI loads the game (the site's lint and repo tests skip `prototype/`), that the PRD, the README and `CLAUDE.md` still describe a low-poly 3D world, and that D1 and D2 had drifted from TJ's sketches (corrected the same day, section 11). TJ's words: "we should maybe set up basic CI to enforce linting and whatnot before we do so that everything in that massive PR passes through CI at least once." He agreed to every change below. The planner (Fable) wrote this section. The work is done on Opus, one item at a time, with the same rules as section 2.
 
+### The one-time exception to "TJ merges"
+
+TJ, 2026-11-16: "This project has a one-time exception to merge these round 4/round 5/ci related PRs without me overnight." His standing rule is that nothing reaches `main` without him. For this run only, the loop may squash-merge:
+
+- https://github.com/zimmertr/trailhead/pull/31 (round 4), at S1h.
+- https://github.com/zimmertr/trailhead/pull/32 (round 5), at K6, and only on K6's conditions.
+- A pull request that only repairs CI for one of those two (for example a run on `main` that fails after #31's merge). Nothing else: no Renovate PR, no issue's PR, no other repo.
+
+What the exception does not change:
+
+- Every check on the pull request has passed before the merge. Never merge with a check failing, pending or skipped by hand, and never switch a check off to get there.
+- Always through the pull request (`gh pr merge <n> --squash`, the only kind the repo allows). Never a push to `main`, never a force push to `main`, never a change to the repo's settings.
+- Every merge to `main` starts the Release workflow, which builds and pushes the four images and tags a version. That is expected. Watch the run. If it fails, do not revert and do not push to `main`: find the cause, open a pull request with the fix, and tell TJ by PushNotification.
+- Nothing is deployed and no server is touched. TJ's rule on his servers and clusters stands as written.
+- **It ends at K6, or as soon as TJ writes in the session, whichever comes first.** From then on TJ merges again, and a merge needs his word.
+
+Log every merge in section 11 with the pull request's link, the commit on `main` and the Release run's result.
+
 ### S1. Make #31 checked and true, on branch `pixel-round4-opus`
 
-Work in the scratchpad clone on `pixel-round4-opus`. Commit small and push after each item. **Never merge #31. TJ merges.**
+Work in the scratchpad clone on `pixel-round4-opus`. Commit small and push after each item. #31 is merged at S1h and not before.
 
 - [ ] S1a. **ESLint covers the prototype.** In `tools/eslint/eslint.config.js`, take `prototype/**` out of `ignores` and add one block for `prototype/**/*.js` with `js.configs.recommended` and browser globals, and one for `prototype/**/*.mjs` with Node globals. None of the site's TypeScript or comment rules apply there. Measured on 2026-11-16 on `www/`: 59 findings, 55 `no-unused-vars` and 4 `no-undef`. Fix each by hand. An unused name can be a missed call, so read the code round it before deleting, and treat each `no-undef` as a possible bug. Before the first fix, film the reference views with `frames.sh` (its clock is fixed, so the same code gives the same frames). After the last fix, film them again. Any difference is a bug in a fix.
 - [ ] S1b. **A browser check loads the game.** A Playwright spec in `e2e/` (the tool the repo already uses), run in Docker by a `make` target modelled on `make browser`, and by a new job "Prototype Smoke" in `.github/workflows/pr.yml`. It serves `prototype/pixel/www` and opens: the Trailhead, each of `route=lake`, `route=stack` and `route=spires` at `p` 0.05, 0.5 and 0.95, one `route=spire:<id>`, `#register` and an address that is off route. Each must reach `window.__ready`, with no page error and no console error or warning. The page warns on localhost when `ground.png` no longer matches the map, so the same check catches a stale bake. Assert in the spec, never with shell in the workflow.
@@ -21,16 +39,27 @@ Work in the scratchpad clone on `pixel-round4-opus`. Commit small and push after
 - [ ] S1e. **Decision record 0015: the world is pixel art.** TJ was asked on 2026-11-16 whether it should also say that `web` serves the prototype's plain JS as it is (the planner's recommendation, with type checking through `// @ts-check` and JSDoc added file by file later, as its own issue after round 5). If section 11 holds his answer, record it. If not, the record says only that the world is pixel art and that https://github.com/zimmertr/trailhead/issues/14 decides how it is served. The record supersedes the PRD's "Low-poly throughout". Bring `docs/PRD.md` and `CLAUDE.md` into line with it: the places' names as the game shows them (Reflection Lake, Proficiency Peak, Mount Monolith, Sideproject Spires), the pixel renderer in place of WebGL, and the phases as they now stand. In `README.md` change only the sentences that are now untrue, in TJ's voice, and quote each changed sentence in the PR's description for him to approve.
 - [ ] S1f. **Round 4's two open ends are closed** (TJ, 2026-11-16: "Close both"). In `ROUND4.md`, mark J6 closed (the walk gets no find unless TJ picks one later) and the list of what was still below round 3 closed (his 78 round 5 notes replace it).
 - [ ] S1g. **Issues that no longer say what is true.** Read https://github.com/zimmertr/trailhead/issues/5 ("The world has no sound"), https://github.com/zimmertr/trailhead/issues/9 ("The repo has no code, build or CI yet") and the pair https://github.com/zimmertr/trailhead/issues/6 and https://github.com/zimmertr/trailhead/issues/35 (both about Strava and Peakbagger). Check each against the repo. Close nothing. Write what you found and what you would do with each into the report for TJ.
-- [ ] S1h. **Hand #31 to TJ.** Rewrite its description: what it adds, the new checks, and a "Not in this PR" section that is true. Wait for every check to pass. Then send TJ the link with one line on what it is, by PushNotification and in chat. Do not wait for him to merge: go straight on to S2.
+- [ ] S1h. **Merge #31** (the exception above). In this order:
+  1. Rewrite its description: what it adds, the new checks, and a "Not in this PR" section that is true. Its title stays a conventional commit title, because the squash commit takes it and the release reads the version bump from it.
+  2. Fetch. If `pixel-round4-opus` is behind `origin/main`, merge `origin/main` into it and push. Wait for every check to pass on the last commit.
+  3. Tag that commit `archive/pixel-round4-opus` and push the tag. The repo deletes a branch when its pull request merges, so the tag is what keeps the 100 commits.
+  4. Merge `origin/pixel-round4-opus` into `pixel-round5` and push, resolving the conflicts with S1a's fixes once. After this `pixel-round5` holds every round 4 commit, which step S2a relies on.
+  5. `gh pr merge 31 --squash`. Confirm it reads MERGED, then watch the Release run on `main` to its end.
+  6. Tell TJ by PushNotification: the link, the version released, one line on what it is.
 
-### S2. Bring S1 into round 5, without waiting for the merge
+### S2. Round 5 moves onto `main`
 
-TJ, 2026-11-16: "Why do we need a wait? I want to run overnight end to end." So nothing here waits for him. `pixel-round5` stays stacked on `pixel-round4-opus`, and https://github.com/zimmertr/trailhead/pull/32 stays pointed at it until #31 merges.
+TJ, 2026-11-16: "Why do we need a wait? I want to run overnight end to end." So nothing here waits for him.
 
-- [ ] S2b. Merge `origin/pixel-round4-opus` into `pixel-round5` and resolve the conflicts once (S1a's fixes are small). Run the lint over round 5's own code and fix what it finds. Bake. Every check on #32 passes, "Prototype Smoke" included. Add round 5's new addresses to the spec if it lacks them.
+- [ ] S2a. **Tidy up after #31's merge.** Close https://github.com/zimmertr/trailhead/pull/22 with a comment (the Renovate rule landed in #31). Check that `pixel-round4-opus` is gone from the remote and that https://github.com/zimmertr/trailhead/pull/32 now points at `main` (GitHub moves it when the base branch is deleted; if it did not, `gh pr edit 32 --base main`). Then bring `main` into round 5. The squash commit and round 5's history add the same files, so an ordinary merge reports a conflict on every file round 5 has since changed, and brings back any file round 5 has deleted. Round 5's side is right in every case, because S1h step 4 put every round 4 commit into `pixel-round5` first. So:
+  1. `git fetch`, then `git diff --stat archive/pixel-round4-opus origin/main`.
+  2. If that is empty (the usual case: `main` is exactly round 4's last commit), run `git merge -s ours origin/main` on `pixel-round5`. It records the merge and changes no file. Check that `git diff ORIG_HEAD HEAD` is empty.
+  3. If it is not empty, something else reached `main` in between. Run `git merge -X ours origin/main`, then check that `git diff --stat ORIG_HEAD HEAD` lists the same files as step 1 and nothing more. A file round 5 deleted on purpose may have come back: delete it again. If the lists still differ, `git reset --hard ORIG_HEAD` and work out why before trying again.
+  4. Push. Never rebase `pixel-round5` here: each of round 4's 100 commits would conflict with the squash.
+- [ ] S2b. Run the lint over round 5's own code and fix what it finds. Bake. Every check on #32 passes, "Prototype Smoke" included. Add round 5's new addresses to the spec if it lacks them.
 - [ ] S2c. **Find out whether the baked ground loads on the artifact host** (open since round 4). Add `baked: true|false` to `window.__info`, publish, open the round's artifact with Claude in Chrome and read the value. Log it in section 11. If it is false, find out why and log that too. Do not halt for it.
 
-**Whenever a fetch shows that #31 has merged** (check at the start of every item, as A0 said): close https://github.com/zimmertr/trailhead/pull/22 with a comment (the Renovate rule landed in #31), tag `pixel-round4-opus` as `archive/pixel-round4-opus` and delete the branch, merge `origin/main` into `pixel-round5`, and point #32 at `main`. Log it in section 11 and carry on with the item. Until then, a fix that #31 needs goes on `pixel-round4-opus` and is merged forward the same way as S2b.
+**If `main` moves again during the round** (a Renovate merge, a CI fix): at the start of the next item, merge `origin/main` into `pixel-round5` in the ordinary way, with no `-X ours`, and resolve any conflict by reading it.
 
 ### S3. Before section 8 goes on
 
@@ -56,8 +85,8 @@ The site is a brag and resume site for TJ first and a game second. Every change 
 **Where things are**
 
 - Repo: https://github.com/zimmertr/trailhead. Work only in a clone inside the session's scratchpad directory (under `~/.claude/tmp`), never in `~/git`, never in `/tmp`.
-- Branch: `pixel-round5`. It was cut from `pixel-round4-opus` while https://github.com/zimmertr/trailhead/pull/31 (round 4 into main) was open. Once #31 is squash-merged, rebase `pixel-round5` onto `origin/main` (allowed without asking: it is our own branch). Everything lives in `prototype/pixel/`. Touch nothing outside `prototype/` except to keep the README and `CLAUDE.md` true, and except what item A0 needs to make CI pass.
-- **One draft PR for the whole round** (TJ's rule: one PR per piece of work, even a large one), opened at the first commit, from `pixel-round5` into `main`. Never merge it yourself.
+- Branch: `pixel-round5`. It was cut from `pixel-round4-opus` while https://github.com/zimmertr/trailhead/pull/31 (round 4 into main) was open. Once #31 is squash-merged, bring `origin/main` into `pixel-round5` by the merge in S2a (section 0), never by a rebase. Everything lives in `prototype/pixel/`. Touch nothing outside `prototype/` except to keep the README and `CLAUDE.md` true, and except what item A0 needs to make CI pass.
+- **One draft PR for the whole round** (TJ's rule: one PR per piece of work, even a large one), opened at the first commit, from `pixel-round5` into `main`. Merge it only at K6, under the one-time exception in section 0. If that exception has ended, TJ merges.
 - **One artifact for the whole round, republished after every item** (TJ, 2026-11-16: "Commits to one branch, one versioned artifact"). Create it at the first publish and add its link to section 10. Never publish over a round 4 artifact.
 - Frozen: `main` (reached only through the PR), every `archive/*` and `pixel-r*` tag, and every artifact in `ROUND4.md` section 8 and `PROGRESS.md`. Round 4's final build is tag `archive/pixel-r4-final`. The old branches were deleted on 2026-11-16 after being tagged `archive/<branch name>`.
 - History: `PROGRESS.md` and `ROUND4.md` (sections 3 to 5 and 9 are still the record of why things are the way they are). Ideas not yet built: `IDEAS.md`.
@@ -98,7 +127,7 @@ The site is a brag and resume site for TJ first and a game second. Every change 
 
 **Rules that must not be broken**
 
-- Never push to `main`, and never merge the PR. Commit small and often to `pixel-round5` and push after every commit.
+- Never push to `main`. Never merge a pull request, except the ones the one-time exception in section 0 names, on its conditions and while it lasts. Commit small and often to `pixel-round5` and push after every commit.
 - Nothing is attributed to an AI: no co-author trailers, no "generated with" lines.
 - No em dash (U+2014) in anything committed or published. Check with `grep` for the character before every commit.
 - Never coin a name for a mechanism or a bug and use it as if TJ knows it. Say what happens in plain words. In the UI, name things in the words the UI already shows.
@@ -571,7 +600,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [ ] K3. Frame time for every view (section 7's list plus the new views) under 16.7 ms. Ready in under 0.9 s. Colours counted.
 - [ ] K4. The off-route page, a scene that throws and one that fails to load all behave as before. Breaking from the public DEBUG menu works.
 - [ ] K5. `IDEAS.md` has every idea from the round (with no built ones left in it). No em dashes anywhere. `PROGRESS.md` gets the round 5 report.
-- [ ] K6. The report, at the end of section 10 and in chat. It covers what was done, what is still below round 4 and why, every new line of copy for TJ to approve, what was removed, the sounds nobody has heard yet, what changed the planner's mind, and the links. Mark the PR ready for review only once CI passes, then end the loop.
+- [ ] K6. The report, at the end of section 10 and in chat. It covers what was done, what is still below round 4 and why, every new line of copy for TJ to approve, what was removed, the sounds nobody has heard yet, what changed the planner's mind, and the links. Mark the PR ready for review only once CI passes. Then, if the one-time exception in section 0 still holds, squash-merge https://github.com/zimmertr/trailhead/pull/32 when all four of these are true: every item in sections 0 and 8 is ticked, every check on the last commit has passed, the report's list of what is still below round 4 is empty, and nothing in section 10 is marked halted. Watch the Release run to its end and put its result in the report. If any of the four is false, or the exception has ended, leave the PR open and ready, and say in the report which one stopped the merge. Either way, end the loop.
 
 ## 9. Steps (how one item goes)
 
@@ -587,9 +616,9 @@ Work it from the top, one item at a time. An item is done when it does what sect
 9. Export and republish the round's one artifact with a short label (for example "D2 bigger lake").
 10. **At the end of each section (D, E, F with G, H, I), tell TJ**: one PushNotification with the artifact's version and three lines on what the section changed and what he should look at first. Do not wait for an answer. This is not a checkpoint. It is there so that a wrong turn is seen within a section, not at the end of the round. Sections H and I redraw whole scenes that round 4 has no picture of, so say plainly what is new.
 
-The loop prompt TJ can start round 5 with (paste it after `/loop`):
+The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 2026-11-16 for section 0 and the merge exception):
 
-> Round 5 of the trailhead pixel prototype, unattended. Every firing: work in the scratchpad clone of https://github.com/zimmertr/trailhead on branch pixel-round5 (clone it into the session scratchpad if it is gone, never /tmp, never ~/git). Fetch first. Read prototype/pixel/ROUND5.md sections 2, 3, 10 and 14, and the part of section 5 for the item. Take the first unticked item in section 8 and finish it by the steps in section 9. Round 4's final build is the floor, not the goal: compare every change with it side by side and fix anything worse before ticking. After each item: tick it, log every call in section 11, keep section 10 current, add every idea to IDEAS.md, commit and push, and republish the round's one artifact with a short label. There are no checkpoints. Follow every rule in section 2. Items A0 to A0c come first: they make PR #31 pass CI (never merge it), file the nine issues, and rewrite issues #8 and #14 to #17 in place. Do not ask questions: make the call, log it and carry on. After K6, write the full report and end the loop.
+> Round 5 of the trailhead pixel prototype, unattended, overnight, end to end. Every firing: work in the scratchpad clone of https://github.com/zimmertr/trailhead (clone it into the session scratchpad if it is gone, never /tmp, never ~/git). Fetch first. Read prototype/pixel/ROUND5.md on branch pixel-round5: sections 0, 2, 3, 9, 10 and 14, and the part of section 5 for the item. Take the first unticked item, section 0 before section 8, and finish it by the steps in section 9 (section 0's items say their own branch and steps). Round 4's final build is the floor, not the goal: compare every change with it side by side and fix anything worse before ticking. After each item: tick it, log every call in section 11, keep section 10 current, add every idea to IDEAS.md, commit and push, and republish the round's one artifact with a short label. There are no checkpoints. Follow every rule in section 2. TJ, 2026-11-16: "This project has a one-time exception to merge these round 4/round 5/ci related PRs without me overnight." Section 0 says exactly what that covers: squash-merge PR #31 at S1h and PR #32 at K6, each only with every check passed and on the conditions written there, never a push to main, and it ends when TJ next writes. Do not ask questions: make the call, log it and carry on. After K6, write the full report, send a PushNotification and end the loop.
 
 ## 10. Where the build stands
 
@@ -621,7 +650,7 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **D3 done.** The oxbow and the heron are gone: the rule that cut a crescent of still water beside the river's widest swing, its still-water colour, the heron's spot, drawing, behaviour and debug button, and the heron in the Wildlife note. The rivers still wander over flat ground as in round 4.
 - **Review of D1 to D3 (2026-11-16, with TJ present), and what it corrected.** D1 and D2 were laid beside TJ's two sketches again (`plan/round5/06-*` and `30-*`). Three things were wrong and are fixed: the bottom trail joined the old trail 200 too far west, deep in the forest, and after D2 changed the land it ran along the very bottom of the map and through the rainforest by the beach; the lakeshore trail ran through the west end of the bigger lake (317 trail pixels under water); and the new stream from the left moraine lake came down ruled straight. Now the bottom trail crosses the open meadow to the forest's edge as TJ drew it, past the elk, the Spires trail comes up to camp by the old approach's last stretch, no trail pixel lies in the lake, and the stream wanders. D4 is part done (its fixes are committed, its list and pictures are not) and must be run again from the start, because the trails and streams moved.
 - **Frame time, first measured this round on 2026-11-16 after the corrections** (round 4's number in brackets): map with all events 3.9 ms (3.4), zoomed out 11.6 (12.0), Dusk zoomed out 14.9 (13.5), zoomed out during the sunset blend 15.5 (new view), phone 2.0 (2.5), shore 3.2 (3.3). Ready in 0.78 to 0.80 s. The limit is 16.7 ms: the zoomed-out map at Dusk and in the blend has about 1 ms left.
-- **Paused on 2026-11-16 for section 0** (the review, CI for the prototype, #31's merge, and the plan's changes). D4 is part done and now sits at the end of section D.
+- **Paused on 2026-11-16 for section 0** (the review, CI for the prototype, #31's merge by the loop under TJ's one-time exception, and the plan's changes). D4 is part done and now sits at the end of section D.
 - Next: S1a (section 0). After section 0, D5.
 
 ## 11. Calls made in round 5
@@ -685,6 +714,8 @@ One line each, newest last: the item, what was decided, and why.
 - The lake page's first pictures were cropped to the wrong part of the map and showed no lake (the planner did not look before publishing). Version 2 shows the whole lake in both sizes.
 - TJ, 2026-11-16, on the lake's size (S3a): "A is fine." The lake stays 1.6 times round 4's width.
 - Plan change (TJ, 2026-11-16): no wait for #31's merge. S1's fixes are merged from `pixel-round4-opus` into `pixel-round5` and the round runs on overnight, stacked as before. The tidy-up after the merge happens at whichever item first sees it.
+- TJ, 2026-11-16, later the same evening: "This project has a one-time exception to merge these round 4/round 5/ci related PRs without me overnight." This replaces the line above: the loop merges #31 itself at S1h once every check has passed, moves round 5 onto `main` at S2a, and may merge #32 at K6. The planner set the limits written in section 0 (checks passed, squash through the pull request only, never a push to `main`, K6's four conditions, and an end when TJ next writes) and told TJ what they are.
+- For whoever merges #31: the repo allows squash merges only and deletes the branch on merge, `main` has no branch protection, and every push to `main` runs the Release workflow (four images built and pushed, a version tagged, nothing deployed). #31's title is "feat: add the pixel world prototype through round 4", so the release is a minor version.
 
 ## 12. The reference pictures
 
