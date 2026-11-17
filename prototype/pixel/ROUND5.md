@@ -521,7 +521,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] D8. T21: flower density from one field, with the four levels.
 - [x] D9. T22: more larches on the upper plateau. T23: no aspens on the dry side.
 - [x] D10. T27: the Legacy Range in grey rock with high snow.
-- [ ] D11. T31: Little Tahoma's tip a touch blunter.
+- [x] D11. T31: Little Tahoma's tip a touch blunter.
 - [ ] D12. T64 (map part): iron rungs up the cliff below the plateau, and the hook straightened into an arc.
 - [ ] D13. T8: driftwood redrawn.
 - [ ] D14. T48 (map part): the tent moved up the glacier onto a rock island. T49: one yellow-orange tent on the map.
@@ -664,7 +664,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **D8 done.** The flowers grow in TJ's four levels: thickest from Monolith's foot round Reflection Lake and across to base camp, a medium amount along the rivers, a small amount round the Trailhead and in the meadow's corner by the forest, and sparse in the rest of the meadows. The meadow below the lake's cliff, which was as thick as the lake's, is now the rivers' medium.
 - **D9 done.** The upper plateau has nine more groups of larches, by its tarns and among its slabs, with open slab between them. No aspen stands on the dry yellow ground any more: they keep to the riverside woods west of the dry edge.
 - **D10 done.** The Legacy Range is grey rock now, the crest's own greys a step paler for the distance, with snow on its summits and a few streaks and small glaciers below them. Its western faces are lit and its eastern ones shaded, and a light haze lies on its foot.
-- Next: D11.
+- **D11 done.** Little Tahoma's tip is two pixels across with a small step on its east side, where it was a single pixel standing two high. It is still a sharp tooth, on the map and in the lake's view.
+- Next: D12.
 
 ## 11. Calls made in round 5
 
@@ -768,6 +769,8 @@ One line each, newest last: the item, what was decided, and why.
 - D10. The snow line came up from about halfway to the top fifth of each peak, lower in the gullies. At Dusk the range is now the same violet as the Spires with pink snow on the tips. Round 4's Dusk had more pink on it because it had more snow; that went with the snow TJ asked to lose. A first try with the two palest greys only was flat by day and a loud violet at Dusk, so the shaded faces went a step darker.
 - D10. The same drawing rule paints the row of far peaks behind the Spires and the plateau, which the crest hides almost everywhere. It changed with the range, so the two cannot disagree.
 - D10, checks: `check.sh D10 D9` passed, 12.1 ms a frame zoomed out at Dusk, nothing moved, lint clean. Looked at beside round 5's build before the change by Day and at Dusk, and beside TJ's picture.
+- D11. The change is five points in the mountain's outline (`SKY` in `monolith.js`): the tip comes down two pixels, from 125 to 127 in the painting, and its top is flat for two pixels before it steps down to the east. The land's heights are shaped to the same outline, so the ground was baked again. The lake's side view paints the same mountain and shows the same tip.
+- D11, checks: `check.sh D11 D10` passed, 12.1 ms a frame zoomed out at Dusk, nothing moved, lint clean. Looked at beside the build before at 4x on the map, and in the lake's view.
 
 ## 12. The reference pictures
 

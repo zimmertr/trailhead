@@ -12,7 +12,8 @@ export const MW = 600, MH = 360, MCX = 300;
 
 // The outline from the south, [x, y] in the picture: Liberty Cap's shoulder to the west, a broad top
 // of three low bumps, a long east ridge down to a saddle and Little Tahoma's sharp tooth beyond it.
-const SKY = [[0, 362], [30, 346], [70, 318], [110, 280], [150, 236], [186, 192], [214, 154], [236, 124], [252, 104], [264, 92], [274, 86], [284, 88], [294, 83], [306, 76], [320, 72], [334, 70], [350, 72], [364, 70], [378, 76], [392, 86], [408, 102], [426, 124], [444, 146], [458, 156], [468, 150], [476, 136], [482, 125], [489, 136], [500, 158], [520, 192], [548, 242], [574, 292], [600, 348], [604, 362]];
+// The tooth's tip is two pixels across and a little uneven, not a single pixel (round 5, T31): still sharp, less jaggy.
+const SKY = [[0, 362], [30, 346], [70, 318], [110, 280], [150, 236], [186, 192], [214, 154], [236, 124], [252, 104], [264, 92], [274, 86], [284, 88], [294, 83], [306, 76], [320, 72], [334, 70], [350, 72], [364, 70], [378, 76], [392, 86], [408, 102], [426, 124], [444, 146], [458, 156], [468, 150], [476, 136], [480, 128], [481, 127], [482, 127], [483, 128], [485, 130], [489, 136], [500, 158], [520, 192], [548, 242], [574, 292], [600, 348], [604, 362]];
 const along = (pts, x) => { if (x <= pts[0][0]) return pts[0][1]; for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; return lerp(y0, y1, (x - x0) / (x1 - x0)); } return pts[pts.length - 1][1]; };
 export const skyline = x => along(SKY, x);
 // The same outline as a share of the summit's height, by distance from the summit's column in map

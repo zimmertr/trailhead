@@ -207,4 +207,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Cottonwoods on the Dry Side's Rivers** (round 5, D9). With the aspens gone from the dry side, a few cottonwoods or willows could line the rivers where they cross the sage, as they do in the real Palouse and the coulees.
 - **Alpenglow That Moves** (round 5, D10). At Dusk the pink light could climb the Legacy Range's snow over a minute and go out summit by summit, the way it does on a real range.
 - **Two Free Colours** (round 5, D10). The palette has two colours left. A hazed grey pair for far rock would let the distant ranges sit further back without the dithered haze.
+- **A Cloud Cap on the Tooth** (round 5, D11). Now and then a small banner cloud could trail east off Little Tahoma's tip while the summit wears its lens cloud.
 
