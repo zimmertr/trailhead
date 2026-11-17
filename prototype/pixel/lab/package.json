@@ -1,0 +1,11 @@
+{
+  "name": "trailhead-pixel-lab",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "description": "Headless Chromium for the pixel prototype's renders (shot.sh, frames.sh, bake.sh). The version here is the Playwright image's in ../Dockerfile, since each release pins its own Chromium: move the two together.",
+  "dependencies": {
+    "playwright": "1.49.1"
+  }
+}

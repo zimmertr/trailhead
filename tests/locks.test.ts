@@ -7,6 +7,7 @@ type Lock = { packages: Record<string, { version?: string; integrity?: string; l
 const LOCKS = [
   { lock: 'package-lock.json', manifests: ['.', ...WORKSPACES] },
   { lock: 'tools/eslint/package-lock.json', manifests: ['tools/eslint'] },
+  { lock: 'prototype/pixel/lab/package-lock.json', manifests: ['prototype/pixel/lab'] },
 ]
 
 describe.each(LOCKS)('$lock', ({ lock, manifests }) => {
@@ -18,7 +19,7 @@ describe.each(LOCKS)('$lock', ({ lock, manifests }) => {
       for (const [name, pin] of Object.entries({ ...dependencies, ...devDependencies })) {
         if (name.startsWith('@trailhead/')) continue
         expect(pin, `${dir}: ${name} is pinned exactly`).toMatch(/^\d+\.\d+\.\d+$/)
-        const nested = dir === '.' || dir === 'tools/eslint' ? undefined : packages[`${dir}/node_modules/${name}`]
+        const nested = lock === 'package-lock.json' && dir !== '.' ? packages[`${dir}/node_modules/${name}`] : undefined
         const locked = nested ?? packages[`node_modules/${name}`]
         expect(locked?.version, `${dir}: ${name} is locked at ${pin}`).toBe(pin)
       }
