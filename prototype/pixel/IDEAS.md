@@ -348,3 +348,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Other Runners on the Trail** (round 5, H5). Now and then a runner comes down the switchbacks the other way, and they pass on a straight.
 - **A Trail Kit for Every Fair-Weather Scene** (round 5, H5). The kit he wears could follow the weather: shorts on dry ground, the alpine kit on snow, changed at camp.
 - **Fellfield on the Map Under hevy-garmin-sync** (round 5, H5). On the map the spire's south side could show the same turf and the zigzag of the trail, so the climb is announced before he starts it.
+- **A Tyrolean Traverse Between Towers** (round 5, H6, TJ's alternative to the knife-edge). A rope strung between two towers, and he crosses hanging under it, hand over hand, with the drop under him. It reads cleanly from the side, which the knife-edge does not. For a future climb.
+- **A Corniced Snow Ridge** (round 5, H6, TJ's alternative to the knife-edge). A snow crest with a cornice curling out over one side. He keeps well back from the edge, a piece of the cornice breaks off behind him and falls. For a future climb.
+- **Stones Knocked Off the Knife-Edge** (round 5, H6). While he shuffles astride, a stone goes from under his hand and falls a long way into the haze, with a late clatter.
+- **A Raven Under the Knife-Edge** (round 5, H6). A raven soars past below the crest, small against the haze, so the depth has something to measure it.
+- **Cloud Filling the Gap** (round 5, H6). On some visits a bank of cloud lies under the knife-edge in place of the haze, level with the far ridges.

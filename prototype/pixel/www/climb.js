@@ -36,8 +36,9 @@ const ROUTES = {
   // the face under the skyline (`pts`), and he turns round at each corner. `beep` is how long he looks at
   // his watch on top.
   'hevy-garmin-sync': { kind: 'run', secs: 15, sx: 520, w: 1200, beep: 2.6, zig: [[0, 0], [560, -50], [264, -78], [560, -112], [374, -136], [540, -166], [462, -187], [520, -220]], pts: [[0, 0], [60, -10], [130, -30], [200, -52], [260, -80], [320, -112], [380, -140], [430, -172], [480, -204], [520, -220], [562, -220], [588, -182], [658, -82], [758, 38]] },
-  // trailhead, the knife-edge (K5): over the notch (round 3's jump), up onto a crest so thin the whole map
-  // shows far below it (`knife`), astride it where it is thinnest (`astride`), and on to the binoculars.
+  // trailhead, the knife-edge (K5, redrawn in round 5 for T58): over the notch (round 3's jump), up onto a
+  // crest that is a thin fin of rock with hazy air under it (`knife`), astride it where it is thinnest
+  // (`astride`), and on to the binoculars.
   trailhead: { kind: 'bridge', secs: 26, sx: 560, w: 1200, gap: [70, 96], knife: [150, 530], astride: [300, 420], pts: [[0, 0], [40, -14], [70, -30], [96, -34], [150, -80], [220, -96], [300, -104], [420, -116], [480, -128], [530, -140], [560, -150], [602, -150], [628, -112], [698, -12], [798, 108]] },
   // yggdrasil, the via ferrata (K6): dry rock all the way (`dry`), a steel cable from the start to `cable`,
   // anchored every `anchor` of the way; iron rungs up the first wall and a fixed ladder up the second
@@ -139,6 +140,14 @@ function switchbacks(S, cfg, seed) {
   }
 }
 
+// The air under the knife-edge: pale haze, and far down in it the fainter shapes of two other ridges.
+function hazeAt(x, y, sx, seed) {
+  const r1 = -34 + 44 * fbm(x / 120, 3, seed + 64, 3), r2 = 22 + 50 * fbm(x / 90, 5, seed + 65, 3);
+  return pick('sky', 0.86 - (y > r2 ? 0.26 : y > r1 ? 0.12 : 0) - 0.0006 * Math.max(0, y - r2), sx, y, 0.5);
+}
+// How far a block of the knife-edge's crest stands above the line he goes along: nothing, or a pixel or two.
+const toothAt = (cfg, x, seed) => knifeK(cfg, x) > 0.6 && hash(Math.floor(x / 5), 3, seed + 66) > 0.66 ? 1 + Math.round(hash(Math.floor(x / 5), 4, seed + 66)) : 0;
+
 function paint(cfg, seed) {
   const SW = wOf(cfg), S = new Strip(SW, UP, DOWN), { pts, kind, gap } = cfg, tops = new Int16Array(SW);
   for (let sx = 0; sx < SW; sx++) {
@@ -150,12 +159,14 @@ function paint(cfg, seed) {
     // height at once, which left a straight seam down the snow below it, so there the depth is measured
     // from the surface averaged over 48 px to either side.
     let soft = y0; if (cfg.ice) { soft = 0; for (let k = -48; k <= 48; k += 4) soft += hOf(pts, x + k) / 25; }
-    const kn = knifeK(cfg, x), kd = kn > 0 ? Math.round(lerp(DOWN, 30 + 26 * vnoise(x / 18, 7, seed + 61) + 8 * vnoise(x / 3, 8, seed + 62), kn)) : 1e9;
+    // How deep the rock goes under the knife-edge. At each end it sweeps down over 120 px, as a buttress
+    // does, to the full depth of the mountain beside it.
+    const kn = knifeK(cfg, x), kw = cfg.knife ? smooth(cfg.knife[0] - 30, cfg.knife[0] + 90, x) * (1 - smooth(cfg.knife[1] - 90, cfg.knife[1] + 30, x)) : 0;
+    const kd = kw > 0 ? Math.round(lerp(DOWN, 34 + 22 * vnoise(x / 18, 7, seed + 61) + 10 * vnoise(x / 3, 8, seed + 62), 1 - sq(1 - kw))) : 1e9;
     for (let y = inGap ? y0 + 6 : y0; y < DOWN; y++) {
       const d = y - y0; let c;
-      // Under the knife-edge its faces drop away and fade into the air above the valley.
-      if (d > kd) break;
-      if (kn > 0.3 && d > kd - 26 && bayer(sx, y) > (kd - d) / 26) continue;
+      // The knife-edge is a thin fin: its face fades into the haze of the air under it.
+      if (d > kd || (kw > 0 && d > kd - 30 && bayer(sx, y) > (kd - d) / 30)) { S.set(sx, y, hazeAt(x, y, sx, seed)); continue; }
       if (inGap && d < 80) { const e = Math.min(x - gap[0], gap[1] - x); if (e > 3 + d * 0.06 + 2 * vnoise(y / 5, x, seed + 1)) continue; c = pick('glac', 0.42 - d * 0.006 + (x - gap[0] < 6 ? 0.2 : -0.1), sx, y); }
       else if (far && d > 3 + 5 * vnoise(sx / 5, y / 9, seed + 5) && vnoise(sx / 7, y / 26, seed + 10) > 0.3) c = Math.abs(frac(sx / 9 + vnoise(sx / 30, y / 30, seed + 11)) - 0.5) < 0.05 ? R.granite[0] : pick('granite', 0.34 + 0.3 * (vnoise(sx / 2.4, y / 14, seed + 6) - 0.5) - d * 0.0015, sx, y, 0.8);
       else if (!far && d > 9 && kind !== 'wands' && fbm((sx + y * 1.6) / 46, (y - sx * 0.25) / 9, seed + 5, 3) > 0.63) c = pick('granite', 0.62 - 0.5 * frac((y - sx * 0.25) / 9) + 0.2 * (vnoise(sx / 3, y / 3, seed + 6) - 0.5), sx, y, 0.8);
@@ -163,10 +174,13 @@ function paint(cfg, seed) {
       // Dry rock: big slabs paler and darker by turns, lit along the top, with lichen here and there.
       if (cfg.dry) c = d < 1 ? R.granite[3] : d < 2 ? R.granite[2] : vnoise(x / 2.2, y / 2.2, seed + 82) > 0.86 && vnoise(x / 20, y / 20, seed + 83) > 0.55 ? R.ochre[1] : crag(x, y, sx, seed + 80, 0.32 + 0.4 * fbm(x / 46, y / 30, seed + 81, 2) + (d < 10 ? 0.12 : 0), true);
       if (cfg.zig) c = turf(x, y, sx, d, seed);
-      if (kn > 0.3 && d >= 2) c = d < 3 && vnoise(x / 4, 9, seed + 63) > 0.5 ? R.snow[3] : crag(x, y, sx, seed + 70, 0.5 + (d / kd) * 0.25);
+      // Its face is fluted: ribs that catch the light and dark runnels between them, straight down.
+      if (kn > 0.3 && d >= 2) { const fl = vnoise(x / 3.2 + 0.6 * vnoise(y / 24, x / 9, seed + 71), y / 70, seed + 72); c = d < 3 && vnoise(x / 4, 9, seed + 63) > 0.5 ? R.snow[3] : fl > 0.74 ? R.granite[4] : fl < 0.24 ? R.granite[0] : pick('granite', 0.56 + 0.4 * (fl - 0.5) - 0.2 * d / kd, sx, y, 0.8); }
       S.set(sx, y, c);
     }
     if (!inGap) S.set(sx, y0 - 1, INK);
+    // Along the knife-edge the crest is broken into small blocks.
+    if (kn > 0.6) { const t = toothAt(cfg, x, seed), side = Math.min(toothAt(cfg, x - 1, seed), toothAt(cfg, x + 1, seed)); for (let j = 1; j <= t; j++) S.set(sx, y0 - j, j > side ? INK : R.granite[j === t ? 3 : 2]); if (t) S.set(sx, y0 - 1 - t, INK); }
     if (xg) crevasse(S, sx, x, y0, xg, seed);
   }
   // A fall of ice hangs down the face of each step, WIDE pixels across, and he climbs it with his back to
@@ -487,33 +501,6 @@ function lanyards(scr, X, Y, cfg, pts, pl, a, xAt, arcAt, tau, hx, hy, me) {
     scr.set(Math.round(p[0]), Math.round(p[1]) - 1, R.yellow[1]); scr.set(Math.round(p[0]) + 1, Math.round(p[1]) - 1, R.yellow[1]);
   });
 }
-// The map at a third of its size, as wide as the whole map (1920) allows, its bottom just south of the
-// Trailhead and the country north of it (Mount Monolith, the lake, the Stack) above, never past its edges. Each call draws one screenful of the
-// map and keeps every third pixel of it, until the whole picture is built.
-const PANO_K = 3;
-function pano(scr, st, env) {
-  // The Trailhead sits near the map's bottom edge, so the picture ends just below it and is only as tall as
-  // the map above it allows; on a tall phone screen the rows above it are haze.
-  const { VW, VH, fb } = scr, PW = Math.max(VW, Math.min(VW + 260, Math.floor(1920 / PANO_K))), PH = Math.min(VH, Math.floor((JUNCTION.y + 20) / PANO_K));
-  let P = st.pano;
-  if (!P || P.w !== PW || P.h !== PH) P = st.pano = { w: PW, h: PH, d: new Uint8Array(PW * PH), n: 0, done: false, x0: clamp(Math.round(JUNCTION.x - PW * PANO_K * 0.55), 0, 1920 - PW * PANO_K), y0: Math.round(JUNCTION.y + 20 - PH * PANO_K) };
-  if (P.done) return;
-  // The map scene keeps a band along the bottom of the screen for its own use, so only the rows above it
-  // are taken from each screenful.
-  const use = VH - (scr.narrow ? 76 : 44), cols = Math.ceil(PW * PANO_K / VW), rows = Math.ceil(PH * PANO_K / use), i = P.n % cols, j = Math.floor(P.n / cols), wx = P.x0 + i * VW, wy = P.y0 + j * use;
-  env.mapStill(wx, wy);
-  for (let y = 0; y < use; y++) { const gy = wy + y - P.y0; if (gy % PANO_K !== 1) continue; const py = (gy - 1) / PANO_K; if (py >= PH) break; for (let x = 0; x < VW; x++) { const gx = wx + x - P.x0; if (gx % PANO_K === 1 && gx < PW * PANO_K) P.d[py * PW + (gx - 1) / PANO_K] = fb[y * VW + x]; } }
-  if (++P.n >= cols * rows) P.done = true;
-}
-// The map seen from the knife-edge: below the horizon y0 it shows through haze that is thickest at the
-// horizon, between columns x0 and x1, panned by ox as he goes along the crest.
-function mapBelow(scr, P, y0, x0, x1, ox) {
-  const { VW, VH, fb } = scr;
-  for (let y = Math.max(0, y0); y < VH; y++) {
-    const h = 1 - smooth(0, 26, y - y0), row = y * VW, pr = P.h - (VH - y) - 1, prow = clamp(pr, 0, P.h - 1) * P.w + ox;
-    for (let x = Math.max(0, x0); x < Math.min(VW, x1); x++) { const b = bayer(x, y); if (b > smooth(x0, x0 + 30, x) * (1 - smooth(x1 - 20, x1, x))) continue; fb[row + x] = b < h * 0.85 ? (h > 0.55 ? R.snow[3] : R.snow[2]) : pr < 0 ? (b < 0.5 ? R.snow[2] : R.snow[3]) : P.d[prow + x]; }
-  }
-}
 // The whiteout closing over everything, dithered in by a.
 function whiteOut(scr, a) {
   const { VW, VH, fb } = scr;
@@ -683,9 +670,9 @@ export function makeClimb() {
     watch: sideFig('alpine', { lean: 0 }),
     // Upright along the knife-edge, arms out to either side for balance.
     edge: [0, 1, 2, 3, 4, 5].map(f => sideFig('alpine', { feet: [WALK[f], WALK[(f + 3) % 6]], hands: [[7, 1 + (f % 3 === 0 ? 1 : 0)], [-6, 2 - (f % 3 === 1 ? 1 : 0)]], bob: f % 3 === 1 ? -1 : 0, lean: 0, look: 'down' })),
-    // Astride the crest: sitting on it, one leg hanging down this side, both hands on the rock in front,
-    // shuffling forward.
-    astride: [0, 1].map(f => sideFig('alpine', { feet: [[2 + f, 13], [-1, 12]], crouch: 7, lean: 2 + f, hands: [[6 + 2 * f, 7], [3 + f, 7]], look: 'down' })),
+    // Astride the crest: sat on top of it with his hips on the rock, the near leg hanging down the face in
+    // front of it and the far leg out of sight behind, both hands on the crest ahead, shuffling forward.
+    astride: [0, 1].map(f => sideFig('alpine', { feet: [[1 - f, 9], [1 - f, 9]], lean: 3 + f, hands: [[6 + 2 * f, 6], [4 + f, 6]], look: 'down' })),
     // Up rungs or a ladder, side-on, facing the rock: hands and feet on the rungs, moving in turn.
     climb: [0, 1].map(f => sideFig('alpine', { feet: f ? [[4, 3], [3, 8]] : [[3, 8], [4, 3]], hands: f ? [[4, -12], [4, -6]] : [[4, -6], [4, -12]], lean: 1, look: 'up' })),
     // Reaching up to the cable with one hand to move a lanyard past an anchor.
@@ -874,10 +861,6 @@ export function makeClimb() {
         if (cfg.dead && me.cut == null) for (const g of cfg.xings) if (g[2] === 'open' || g[2] === 'jump') white *= 1 - 0.5 * (1 - smooth(6, 34, Math.abs(me.x - g[0])));
       }
 
-      // Under the knife-edge the whole map lies far below, a third of its size: built once from the map itself,
-      // one screenful a frame from the start of the climb (`pano()`), then laid in under the horizon, but only
-      // under the crest itself, where the ground under it has fallen away.
-      if (cfg.knife && me.ph === 'up' && env.mapStill) pano(scr, st, env);
       // Sky: blue, or the grey of the storm it clears from.
       const sb = R.skyband, front = VW * (1.2 - 1.6 * bank), stormy = storm > 0 || bank > 0;
       if (stormy) blow(scr, t, storm > 0);
@@ -905,7 +888,6 @@ export function makeClimb() {
       drawStrip(scr, mid, 120 + camX * 0.42, base + cam.y * 0.55 + 46, false, 0);
       // A sea of cloud below the summits.
       if (!cfg.brk && !cfg.wait) for (let y = Math.max(0, Math.round(base + cam.y * 0.8 + 60)); y < VH; y++) { const row = y * VW, d = clamp((y - (base + cam.y * 0.8 + 60)) / 80, 0, 1); for (let x = 0; x < VW; x++) { const n = fbm((x + camX * 0.3 + t * 4) / 60, y / 14, 243, 3); if (n > 0.6 - d * 0.3) fb[row + x] = n > 0.68 - d * 0.3 ? R.white[1] : R.sky[4]; } }
-      if (cfg.knife && me.ph === 'up' && st.pano && st.pano.done) { const kx0 = Math.round(cfg.knife[0] - 50 + OFF - camX), kx1 = Math.round(cfg.knife[1] + 30 + OFF - camX); if (kx1 > 0 && kx0 < VW) mapBelow(scr, st.pano, Math.round(base + cam.y + 20), kx0, kx1, Math.round(clamp((cam.x - cfg.knife[0] + 30) * 0.4, 0, st.pano.w - VW))); }
       // The far peaks go first: the cloud takes them before any snow reaches him.
       veil(scr, smooth(0.25, 0.9, bank), [R.snow[1], R.snow[2]]);
       // Low cloud lies on the other peaks while it rains.
@@ -1019,7 +1001,7 @@ export function makeClimb() {
       else if (me.mode === 'climb' || (me.mode === 'clip' && wallAt(cfg, me.x))) { const w = wallAt(cfg, me.x); bm = fig.climb[me.mode === 'clip' ? 0 : Math.floor(-me.y / 5) & 1]; dx = X(w[0] - 5) - sx; }
       else if (me.mode === 'clip') bm = fig.reach;
       else if (me.mode === 'edge') bm = fig.edge[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1];
-      else if (me.mode === 'astride') { bm = fig.astride[env.moving ? Math.floor(Math.abs(d) / 2.5) & 1 : 0]; dy = 6; }
+      else if (me.mode === 'astride') { bm = fig.astride[env.moving ? Math.floor(Math.abs(d) / 2.5) & 1 : 0]; dy = 7; }
       else if (me.mode === 'beep') { bm = figT.wrist; if (me.u > 0.2 && me.u < 0.75 && (Math.floor(t * 8) & 1)) { scr.set(sx + 5, sy - 13, R.teal[2]); scr.set(sx + 6, sy - 13, R.white[1]); } breath(scr, sx + 6, sy - 16, t, 0.8); }
       else if (me.mode === 'ice') {
         const p = me.pose, w = me.leg.w;

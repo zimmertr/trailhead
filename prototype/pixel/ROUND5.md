@@ -564,7 +564,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] H3. T51: no bluebird on arrival. A bigger, better bluebird when its find is triggered.
 - [x] H4. T53: one ice wall on TJs-Kubernetes-Service.
 - [x] H5. T55, T56: hevy-garmin-sync as a trail run with the watch pop-up and the Hevy sync at the bench. A barbell with plates on the bench.
-- [ ] H6. T58: the knife-edge redrawn, with no sinking into the rock. The two alternatives go into `IDEAS.md`.
+- [x] H6. T58: the knife-edge redrawn, with no sinking into the rock. The two alternatives go into `IDEAS.md`.
 - [ ] H7. T59: the binoculars pan round the cats and close only on space or the back button.
 - [ ] H8. T60: yggdrasil with half the clip-ins.
 - [ ] H9. T62: Kubernetes-Manifests climbs out of the whiteout above a sea of cloud.
@@ -695,7 +695,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **H3 done.** No bluebird is on Bluebird Forecast's summit when he arrives (H2 took out the one that came on its own). Clicking the weather station brings a mountain bluebird drawn about two and a half times the old size: sky blue above, a pale breast, white under the tail, dark wing tips, a thin bill and a dark eye, with four wing frames. It flies in from the right, circles above his hat, lands on the station's white box, sings three times with its bill open, turns and flies off climbing. The visit lasts about 10 s, and the station cannot be clicked again until it is over.
 - **H4 done.** TJs-Kubernetes-Service has one ice wall, 78 px high, where it had two steps of 37 and 43 with a bench between. He climbs it with tools in nine rounds (four and four before), with the slip on the sixth. The snow bridge, the ladder and the two lashed ladders are where they were, and the summit is the same height.
 - **H5 done.** hevy-garmin-sync is a trail run. In the running kit he wears on the map (orange cap, yellow shirt, shorts) he runs seven straights of a dirt trail that switches back and forth up the spire's flank, turning round at each corner. The flank is a fellfield: dull turf and straw grass low down, granite slabs and old snow toward the top. His watch sits large in the top left corner for the whole run: a round sports watch showing the lap, a clock and his heart rate climbing from 94 to about 176, with a ring filling round the face. On top he looks at his wrist, two arrows turn on the watch, and it shows a tick and WORKOUT SYNCED FROM HEVY. The bench has two uprights and a barbell racked on them with plates on each end. Clicked, he lifts the bar off and presses it. The gully, the sets and rests on the axe, the slip and the lumps of snow are gone. Frame time 2.7 ms at 1920x1080 (before: about 2.8).
-- Next: H6.
+- **H6 done.** trailhead's knife-edge is a thin fin of rock, 35 to 65 px deep, with a snow line and small blocks along its crest and a fluted face that dissolves into pale haze. Under it is air: haze with the faint shapes of two ridges far below, where the map used to be pasted. At each end the rock sweeps down as a buttress over 120 px. Astride it he sits on top of the crest, hips on the rock, the near leg hanging down the face in front and the far leg out of sight behind, both hands on the crest ahead. Nothing of him is inside the rock. Frame time 2.5 ms at 1920x1080 (before: 2.8).
+- Next: H7.
 
 ## 11. Calls made in round 5
 
@@ -1014,3 +1015,11 @@ One line each, newest last: the item, what was decided, and why.
 - H5, sound: the watch beeps at the start, a new short `lap` blip marks each corner, his feet land three times a second, and H2's `chime` plays when the sync is done. Not listened to.
 - H5, removed with the old climb: `kind: 'ice'` (now `'run'`), `sets`, `slipAt`, `gully`, the narrows, the avalanche lumps, the kicked-step tracks, the rest, slip and kick poses and the snow chips. While doing it I removed the first half of an if/else by mistake, which would have tied the boot prints to the wrong test. I caught it reading the result and filmed three other climbs afterwards.
 - H5, compared with the build before it at four places. The check passed with nothing moved, `ground.png` is the same file.
+- H6, the fin (`climb.js`, `paint`, `hazeAt`, `toothAt`). The rock under the crest was a slab that dithered away over a copy of the map (TJ: "broken graphics"). The rock now has ribs and runnels running straight down, thins into haze over its last 30 px, and the strip is painted all the way down with haze, so nothing behind shows through. The haze uses the sky's own colours, so at Dusk it glows orange under a purple fin.
+- H6, the ends. The rock used to stop as a straight wall at each end of the edge, which made the air under it look like a window. It now sweeps down over 120 px at each end.
+- H6, the pasted map is gone: `pano`, `mapBelow` and their state. The binoculars on top still show the map (H7 is theirs).
+- H6, astride (`fig.astride`). He was drawn 6 px low with his knees bent, so the rock covered him to the waist. He is now drawn with his hips one pixel above the crest, one leg straight down over the rock face (the far leg is drawn behind it, so it does not show), leaning forward on his hands. Walking the rest of the crest upright with his arms out is unchanged.
+- H6, the route's line, the jump over the notch, the binoculars and the timing did not change.
+- H6, a slip: one of my cuts ran to the wrong marker and also took `whiteOut`, `breath` and `rimeOn`. I saw it in the result, put them back from the last commit and read the whole diff before filming.
+- H6, compared with round 4's build at three places, close up on both poses, at Dusk and on a phone. The check passed with nothing moved. No words were added.
+- H6, the two alternatives TJ asked to be kept are in `IDEAS.md`: a Tyrolean traverse between towers, and a corniced snow ridge.
