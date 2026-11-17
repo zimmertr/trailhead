@@ -442,7 +442,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] C2. T2: the idle tour after 120 s, stopped by any input.
 - [x] C3. T76: one world clock and the AUTO, DAY, DUSK cycle everywhere, with its debug controls and `time=`. Measure frame time through the sunset blend.
 - [x] C4. T9, T32, T44: the public DEBUG menu in the top bar, organised in groups, with breaking included, high-contrast roam areas, and the spawn menu for every animal.
-- [ ] C5. T3: click and tap to move along the trails, with the marker. (On today's trails first; D1 changes them.)
+- [x] C5. T3: click and tap to move along the trails, with the marker. (On today's trails first; D1 changes them.)
 - [ ] C6. P3: the sound test group in DEBUG.
 
 ### D. The land and the water (each change here needs `./bake.sh`)
@@ -575,7 +575,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **C2 done.** The idle tour starts after 120 s with no input (any key, click, tap, wheel or drag resets the wait and stops it, and the camera eases back to him). `tour=<seconds>` in the address starts it sooner for screenshots.
 - **C3 done.** One world clock (`pixel.js`): 165 s of day, a 30 s sunset, 165 s of dusk, a 30 s sunrise, from the start of day on every visit, in every scene. The top-bar button and the trail map's "Time of day" setting cycle Auto, Day, Dusk. Debug "Time of day": a slider over the cycle, 1x, 10x and 60x, and jumps to the sunset and the sunrise. `time=<seconds>` sets the clock; `dusk=1` holds Dusk. Frame time through the sunset blend measured the same as by day (16.7 ms average and 99th percentile in the lab's Chromium).
 - **C4 done.** A DEBUG button sits in the top bar next to Keys. The panel's groups: Time of day, Layers, Outlines (with No-go areas), Zoom, Time, the timed events of the scene on screen ("On the map" or "In this scene: Forest", rebuilt when the scene changes), Spawn (animal, home, Spawn), Cats, Jump to a scene (every scene, by its first route), and Break a scene. Roam areas are drawn in a bright colour per kind, two pixels wide with a dark inner edge, a dithered fill and the animal's name in a small pixel font (`tinyText` in `world.js`).
-- Next: C5.
+- **C5 done.** A click or tap within 24 CSS pixels of a trail (the same at every zoom) walks him there over the trail network by the shortest way, with a red cross hovering over the spot until he arrives; anywhere else does nothing, and anything clickable keeps its own click. The network is four branches out from the Trailhead (the lake loop's way out and way back, the peak's trail, the Spires' trail), joined where they part. `api.walkTo(x, y)` takes view pixels, for tests.
+- Next: C6.
 
 ## 11. Calls made in round 5
 
@@ -606,6 +607,8 @@ One line each, newest last: the item, what was decided, and why.
 - C3: the page's own wood and paper turn to their dusk colours at the middle of the blend too, and the dusk find is marked when dusk first comes. The old saved Dusk preference is gone: Auto on every visit, as decided. The clock's speed multiplies the scenes' speed, so a paused scene pauses the light too.
 - C4: the spawn menu has the map animals there are today (elk, mountain goats, bighorn sheep, the black bear, marmots, squirrels); the moose, the eagle, the osprey and the bear family join it as E9 and its neighbours build them, through the same `homes()` list. Homes are the spots each animal's own rule chose; a home is named after a joke sign within 160 pixels, else "near" or "east of" one of the four places, numbered when a name repeats. The elk move as one herd and a goat with her kid.
 - C4: on a phone the DEBUG button is hidden like Keys, for room; the small sign at the foot of the trail map still opens the panel there. Jump to a scene opens it on its first route a little way in, and the panel stays open.
+- C5: once he stands where a click sent him, the sign stays hidden as it is anywhere off the Trailhead; a place's name tag or the Trailhead button sends him back through the Trailhead and on (`go` treats the walk like a detour). Space and Start do nothing at the end of a walk, since there is no route to resume. The walk does not count toward finishing a route.
+- C5: a walk from the lake loop's way out to its way back goes round by the Trailhead, since the forest between them is a scene, not map.
 
 ## 12. The reference pictures
 

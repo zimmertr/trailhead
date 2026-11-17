@@ -796,6 +796,11 @@ export function makeWorld(bake) {
       // The debug panel's outlines, over the finished map.
       // Where the chosen kind of mover may not go (collide.js), tinted, under the outlines.
       if (DEBUG.collide) crit.collide.overlay(scr, DEBUG.collide, ox, oy, t, R.red[1]);
+      // Where a click sent him (T3): a red cross hovering over the spot on the trail, gone when he gets there.
+      if (env.walkMark) { const mx = Math.round(env.walkMark.x) - ox, my = Math.round(env.walkMark.y) - oy, bob = Math.floor(t * 3) & 1;
+        const X = [], Y = my - 4 - bob; for (let k = -3; k <= 3; k++) for (const d of [0, 1]) X.push([mx + k + d, Y + k], [mx + k + d, Y - k]);
+        for (const [x, y] of X) for (const [ax, ay] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) scr.set(x + ax, y + ay, INK);
+        for (const [x, y] of X) scr.set(x, y, R.red[1]); scr.set(mx, my, INK); scr.set(mx + 1, my, INK); }
       if (!env.fixed && (DEBUG.roam || DEBUG.trails || DEBUG.camera)) {
         const dot = (x, y, c) => scr.set(Math.round(x) - ox, Math.round(y) - oy, c);
         const oval = (a, c) => { const n = Math.ceil((a.rx + a.ry) * 2); for (let k = 0; k < n; k += 2) dot(a.x + Math.cos(k / n * TAU) * a.rx, a.y + Math.sin(k / n * TAU) * a.ry, c); };

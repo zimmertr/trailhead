@@ -354,8 +354,9 @@ try {
       if (e.type === 'broken') washedOut(e);
       else if (e.type === 'stop') { if (isWait(e.id)) { waiting = true; say(UI.wait[e.id.slice(5)] || UI.wait.go, 600000); } else { if (waiting) { waiting = false; toast.hidden = true; } showCard(e.id); } }
       else if (e.type === 'leave') { hideCard(); if (waiting) { waiting = false; toast.hidden = true; } }
-      else if (e.type === 'end') { if (e.route === 'register') inBook(true); else if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
+      else if (e.type === 'end') { if (e.route === 'walk') { /* he stays where the click sent him */ } else if (e.route === 'register') inBook(true); else if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
       else if (e.type === 'sfx') audio.sfx(e.name);
+      else if (e.type === 'walk') { hideCard(); buildMarks(); }
       else if (e.type === 'theme') { syncTop(); if (e.dark) setTimeout(() => { if (api.theme() === 'dark') api.find('dusk'); }, 2500); }
       else if (e.type === 'scene') { if (!debug.hidden) openDebug(true); audio.ambience(e.name === 'register' ? 'world' : e.name); audio.place(e.name === 'world' && lastScene !== 'world' && lastScene !== 'register' ? 'out' : e.name); lastScene = e.name; syncTop(); }
       else if (e.type === 'say') say(e.text);

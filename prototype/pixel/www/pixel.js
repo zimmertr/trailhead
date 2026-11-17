@@ -63,6 +63,49 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // `next` is where he sets off for once he gets there.
   let detour = { path: 'lake', from: 0, to: 0 }, next = null;
   ROUTES.back = () => [['world', { ...detour }]];
+  // Click and tap to move (T3): a walk over the trail network to a point on a trail. The network is four
+  // branches out from the Trailhead (the lake loop's way out and its way back, the peak's trail, the Spires'
+  // trail), each sampled every 2 pixels. Two branches run together from the Trailhead until they part, so a
+  // walk from one to another goes back to where they part and out along the other, by the shortest way.
+  let walkLegs = [], walkMark = null, BR = null;
+  ROUTES.walk = () => walkLegs.map(([path, from, to]) => ['world', { path, from, to }]);
+  const branches = () => BR || (BR = [['lake', 0, world.lakeIn], ['lake', 1, world.lakeOut], ['stack', 0, 1], ['spires', 0, 1]].map(([path, a, b]) => {
+    const P = world.paths[path], n = Math.max(2, Math.ceil(P.len * Math.abs(b - a) / 2)), pts = [];
+    for (let k = 0; k <= n; k++) { const s = a + (b - a) * k / n, q = P.at(s); pts.push({ s, f: k / n, x: q.x, y: q.y }); }
+    return { path, a, b, pts };
+  }));
+  const nearestOn = (B, x, y) => { let best = null, bd = 1e9; for (const q of B.pts) { const d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = q; } } return { q: best, d: bd }; };
+  const fracOf = (B, s) => (s - B.a) / (B.b - B.a);
+  // Where branches i and j part: the last point of i still within 3 pixels of j, and its match on j.
+  const PART = new Map(), partOf = (i, j) => { const key = i * 4 + j; if (PART.has(key)) return PART.get(key);
+    const A = branches()[i], B = branches()[j]; let last = A.pts[0]; for (const q of A.pts) { if (nearestOn(B, q.x, q.y).d > 3) break; last = q; }
+    const r = [last.s, nearestOn(B, last.x, last.y).q.s]; PART.set(key, r); return r; };
+  // The branch he is on and where, from the leg of the map he is walking or standing at the end of.
+  function hereOnTrail() {
+    const l = legAt(p); if (!l || l.s !== 'world') return null; const a = l.arg, u = lerp(a.from, a.to, local(l, p));
+    if (a.path === 'register') return { i: 0, s: 0 };
+    const i = a.path === 'lake' ? (u <= world.lakeIn + 1e-6 ? 0 : 1) : a.path === 'stack' ? 2 : a.path === 'spires' ? 3 : -1;
+    return i < 0 ? null : { i, s: u };
+  }
+  function planWalk(from, to) {
+    const Bs = branches(), I = Bs[from.i], J = Bs[to.i];
+    if (from.i === to.i) return [[I.path, from.s, to.s]];
+    const [dI, dJ] = partOf(from.i, to.i);
+    if (fracOf(I, from.s) <= fracOf(I, dI)) { const q = I.path === J.path && I.a === J.a ? { s: from.s } : nearestOn(J, ...(p => [p.x, p.y])(world.paths[I.path].at(from.s))).q; return [[J.path, q.s, to.s]]; }
+    if (fracOf(J, to.s) <= fracOf(J, dJ)) { const q = nearestOn(I, ...(p => [p.x, p.y])(world.paths[J.path].at(to.s))).q; return [[I.path, from.s, q.s]]; }
+    return [[I.path, from.s, dI], [J.path, dJ, to.s]];
+  }
+  // A click at (sx, sy) in pixels of the view: within 24 CSS pixels of a trail (the same feel at every zoom)
+  // he walks there; anywhere else it does nothing. Says whether he set off.
+  async function walkTo(sx, sy) {
+    if (drawn.s !== 'world' || tr) return false;
+    const w = world.at(sx, sy), reach = 24 * (window.devicePixelRatio || 1) / scr.S;
+    let best = null; branches().forEach((B, i) => { const n = nearestOn(B, w.x, w.y); if (n.d < reach && (!best || n.d < best.d)) best = { i, s: n.q.s, d: n.d, x: n.q.x, y: n.q.y }; });
+    const here = hereOnTrail(); if (!best || !here) return false;
+    walkLegs = planWalk(here, best).filter(([, a, b]) => Math.abs(a - b) > 1e-5); if (!walkLegs.length) return false;
+    plan('walk'); p = 0; next = null; leave(); walkMark = { x: best.x, y: best.y }; running = true; emit({ type: 'walk' });
+    return true;
+  }
 
   let route = 'lake', legs = [], stops = [], cues = [], total = 1;
   let p = 0, running = false, shown = null, mix = theme === 'dark' ? 1 : 0;
@@ -311,6 +354,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     } else if (scr.S !== scr.S0) scr.setScale(scr.S0);
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
     env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix;
+    env.walkMark = route === 'walk' && p < 1 ? walkMark : null;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
     env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
     // Idle counts from his arrival home too, so the look round waits until the hand-off home has settled.
@@ -373,6 +417,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     if (dragging === 'pinch' || dragging === 'held') { dragging = touches.size ? 'held' : null; lastPt = null; return; }
     if (dragging === 'look' && moved < 5 && e.type === 'pointerup') {
       const [x, y] = toView(e), h = probe(x, y, e.pointerType !== 'mouse');
+      if (!h) walkTo(x, y);
       if (h) { const k = scr.S / (window.devicePixelRatio || 1); if (h.label && !h.named) emit({ type: 'hover', label: h.label, x: h.x * k, y: h.y * k, tap: true }); if (h.act) { if (!drawn.scene.act || !drawn.scene.act(h.act, env)) emit({ type: 'act', id: h.act }); else { hover = null; emit({ type: 'hover', label: null, x: 0, y: 0 }); } } }
     }
     if (dragging === 'look') dragging = null; lastPt = null;
@@ -413,6 +458,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     async go(dest) {
       if (drawn.s !== 'world' || tr || !ROUTES[dest] && dest !== 'trailhead') return null;
       const l = legAt(p), a = l.arg, u = lerp(a.from, a.to, local(l, p));
+      // Stood or walking where a click sent him: back to the Trailhead the way he is (on the lake loop's way
+      // back, round its end), then off on the route.
+      if (route === 'walk') { if (dest !== 'trailhead') await need(ROUTES[dest]().map(x => x[0])); leave(); detour = { path: a.path, from: u, to: a.path === 'lake' && u > world.lakeIn ? 1 : 0 }; plan('back'); p = 0; next = dest === 'trailhead' ? null : dest; running = true; return 'turn'; }
       if (l === legs[0] && a.from === 0 && p === 0) { if (dest === 'trailhead') { recentre = true; return 'home'; } return 'start'; }
       const inbound = a.to === 0 || (a.path === 'lake' && a.to === 1), mine = a.path === dest;
       if (dest !== 'trailhead') await need(ROUTES[dest]().map(x => x[0]));
@@ -430,7 +478,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // The world clock (T76): its mode ('auto', 'day', 'dusk'), where it is in the cycle and how fast it runs.
     clock: () => ({ mode: clock.mode, t: clock.t, speed: clock.speed, mix, cycle: CYCLE, sunset: SUNSET, sunrise: SUNRISE }),
     setClock({ mode, t, speed } = {}) { if (mode) clock.mode = mode; if (t != null) clock.t = ((t % CYCLE) + CYCLE) % CYCLE; if (speed) clock.speed = speed; },
-    start() { if (p >= 1) p = 0; leave(); running = true; },
+    start() { if (route === 'walk' && p >= 1) return; if (p >= 1) p = 0; leave(); running = true; },
+    walkTo,
     stop() { running = false; pace = 1; },
     boost(on) { fast = !!on; },
     toggle() { if (running) running = false; else api.start(); },
