@@ -231,6 +231,9 @@ function openDebug(on) {
   const starts = ids => ids.map(id => el('button', { class: 'plank', onclick: () => { audio.sfx(api.trigger(id) ? 'step' : 'close'); } }, el('span', { text: D.events[id] })));
   debug.replaceChildren(
     el('h2', {}, el('span', { text: D.title }), el('button', { class: 'plank', style: 'width:auto', onclick: () => openDebug(false) }, el('span', { text: D.close }))),
+    // Whether the map came from ground.png or was worked out on this page, and why (S2c): the one place a host that
+    // serves the files differently can be read from, since nothing outside the page can ask it.
+    el('p', { class: 'legend', text: (window.__info || {}).baked ? D.ground[0] : D.ground[1] + ((window.__info || {}).bakeNote ? ' (' + window.__info.bakeNote + ')' : '') }),
     el('h3', { text: D.time }), timeSlider, el('div', { class: 'speeds' }, ...clockSpeeds), jump(D.sunset, C.sunset - 2), jump(D.sunrise, C.sunrise - 2),
     el('h3', { text: D.layers }), ...['trees', 'clouds', 'mist', 'labels', 'animals'].map(toggle),
     el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle), noGo,

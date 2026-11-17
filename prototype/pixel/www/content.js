@@ -178,6 +178,7 @@ export const UI = {
   keys: { title: 'Keys', note: 'Everything also works by touch.' },
   // The hidden panel behind the backtick key and the small sign at the foot of the trail map.
   debug: {
+    ground: ['Ground: read from the bake', 'Ground: worked out on this page'],
     title: 'Debug', close: 'Close', layers: 'Layers', outlines: 'Outlines',
     // Where each kind of mover may not go (collide.js), one kind at a time.
     time: 'Time of day', sunset: 'Jump to sunset', sunrise: 'Jump to sunrise', clockSpeeds: [1, 10, 60],
