@@ -132,11 +132,16 @@ function deckPass(fb, VW, VH, ox, oy, M, VEIL, CHURN, w, t, k, X0, X1) {
 }
 // The drizzle under the deck: short streaks, light and steady, slanting east, over the rainforest and the
 // sea behind the deck's edge. Each streak is pale over dark ground and grey over the pale deck (STREAK), so
-// it shows on both.
+// it shows on both. Every streak belongs to a patch of the world (RCW by RCH map pixels, one streak to a
+// patch) and falls there, so the rain stays with the land under it when the view pans or zooms (T14). A
+// streak starts anywhere in its patch and the one beside it, so the patches never show as a grid.
+const RCW = 20, RCH = 13;
 function drizzle(scr, ox, oy, t, w, F, M, frontAt, STREAK) {
-  const { VW, VH, fb } = scr, n = Math.round(900 * w.rain);
-  for (let i = 0; i < n; i++) {
-    const life = t / 0.5 + (i * 0.618) % 1, c = Math.floor(life), h = hash(i, c, 5150), x = Math.round(ox + hash(i, c, 5151) * VW + (life - c) * 2), y = Math.round(oy + h * VH + (life - c) * 6);
+  const { VW, VH, fb } = scr, gx0 = Math.max(0, Math.floor((ox - 4) / RCW) - 2), gx1 = Math.min(Math.floor((ox + VW) / RCW), Math.floor((w.front + 42) / RCW)), gy0 = Math.max(0, Math.floor((oy - 10) / RCH) - 2), gy1 = Math.min(Math.floor((oy + VH) / RCH), Math.floor(WH / RCH));
+  for (let gy = gy0; gy <= gy1; gy++) for (let gx = gx0; gx <= gx1; gx++) {
+    const id = gy * 97 + gx, life = t / 0.5 + hash(id, 3, 5149), c = Math.floor(life), q = life - c;
+    if (hash(id, c, 5150) > w.rain) continue;
+    const x = Math.round(gx * RCW + hash(id, c, 5151) * 2 * RCW + q * 2), y = Math.round(gy * RCH + hash(id, c, 5152) * 2 * RCH + q * 6);
     if (x < 0 || y < 0 || x >= WW || y >= WH || !(F[y * WW + x] || M[y * WW + x]) || x > frontAt(y, w)) continue;
     for (let j = 0; j < 4; j++) { const X = x + (j >> 1) - ox, Y = y + j - oy; if (X >= 0 && Y >= 0 && X < VW && Y < VH) { const k = Y * VW + X; fb[k] = STREAK[fb[k]]; } }
   }

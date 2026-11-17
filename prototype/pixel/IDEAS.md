@@ -235,3 +235,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Anemones Close** (round 5, E3). When a glint or the crab passes over an anemone it could pull its tentacles in for a few seconds and open again.
 - **Sea Stars That Walk** (round 5, E3). Over a whole low tide a sea star could cross a few pixels of its pool, too slowly to see unless you come back.
 - **A Different Pool Each Visit** (round 5, E3). The big pool's animals could be dealt from a longer list each visit (a nudibranch, a chiton, a gunnel), so it is worth checking again.
+- **Rings on the Water** (round 5, E4). Now that each streak of drizzle lands on a spot of the map, one that lands on a lake, a river or the sea could leave a small ring there for a moment.
+- **Rain That Thins Toward Its Edge** (round 5, E4). The patches nearest the deck's front could deal a streak less often, so the drizzle tails off into dry air and never stops at a line.
+- **A Gust Bends the Rain** (round 5, E4). When a gust crosses the forest, the streaks in its path could slant harder for a second, the way the trees already lean.
+- **Elk Shake Off the Rain** (round 5, E4). An animal standing under the drizzle could shake itself once the deck lifts.

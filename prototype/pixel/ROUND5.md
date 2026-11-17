@@ -533,7 +533,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] E1. T15: the ferry and the orcas keep to deep water at every tide (check through a whole tide cycle on film).
 - [x] E2. T26: jellyfish offshore.
 - [x] E3. T33: the tide pool twice the size, with animated animals.
-- [ ] E4. T14: the marine layer's rain belongs to the world.
+- [x] E4. T14: the marine layer's rain belongs to the world.
 - [ ] E5. T28, T16, T19: the bald eagle on the stacks, the osprey at Reflection Lake, the salmon removed. Debug buttons.
 - [ ] E6. T11: all three ice falls snowy at the start, avalanches every 60 to 120 s one at a time, serac falls only on bare faces.
 - [ ] E7. T20: the summit squall when all three are bare.
@@ -673,7 +673,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **E1 done.** The ferry and the orcas keep to deep water at every tide. Each now has a lane for high water and a lane for the lowest water, worked out once when the map opens, and is somewhere between the two as the tide stands, so it moves out and back with the water without a jump. Checked two ways: a sweep of 8000 s of tides at four looks a second (the ferry never has less than 2.5 px of room to spare, the orcas never less than 6, and nothing moves more than 5.5 px between two looks), and a film of a whole tide with the no-go water tinted. The pod also swims at one speed round the corner of the coast now, where it used to race.
 - **E2 done.** The eight jellyfish float in open water at every tide. Each has a home at high water, 50 px or more out from the high-water line, and a home at the lowest water, out beyond the bared flats, and sits between the two as the tide stands, drifting a few pixels round that point. None is ever against the beach, in the pocket between two stacks or behind a stack's drawing. The sweep (8000 s, four looks a second, 256,000 looks) finds every one of them drawn every time, never short of water, never nearer the high-water line than 43 px, and never moving more than a third of a pixel between two looks.
 - **E3 done.** The tide pool to find is a basin 27 by 13 px (it was 11 by 5), beside the north stack of the two the low water bares: a rim of rock, lit on its far side and dark on its near side, with barnacles, round clear teal water that is paler in the shallows. In it: a purple and an orange sea star whose arm tips shift so their shapes slowly change, two green anemones whose tentacles lean one way and then the other, a purple urchin whose spines bristle, and a sculpin that lies still and then darts to another spot. A red crab goes sideways along the sand in front, legs working, and stops. A glint wanders on the water. The small pools are basins too, each with one small animal that moves, and the south stack's crab walks beside its pools. The find still opens on a tap at low water, with the same label.
-- Next: E4.
+- **E4 done.** The marine layer's drizzle is placed in the world: the map is divided into patches of 20 by 13 px, each with one streak that falls in its own patch, so the rain stays over the same land when the view pans or zooms (`drizzle` in `world.js`). With the clock stopped and the view dragged 100 px, no pixel over the same land changes (round 4: 14,320 do). Zoomed out, the rain now keeps its density, where round 4 spread the same 900 streaks thin over the whole view. `check.sh E4 E3` passed: 11.9 ms, nothing moved.
+- Next: E5.
 
 ## 11. Calls made in round 5
 
@@ -822,6 +823,10 @@ One line each, newest last: the item, what was decided, and why.
 - E3, the animals are drawn from a few pixels each by small functions (`starAt`, `smallStar`, `anemoneAt`, `urchinAt`, `crabAt`, `sculpinAt`), each on its own slow clock, so no two move together. The crab's place comes from how far it has gone, so it truly stands still while stopped. Colours are all from the palette (the lupine purple, the trail blaze orange, moss greens, the reds): no new colour.
 - E3, the label. It still reads "Tide pool: sea star, anemone, urchin", so I kept an urchin in the pool beside the animals TJ listed. No words changed.
 - E3. The pools still appear through a dither as the water leaves them and are hidden at high water, tied to the tide at their stack as before.
+- E4, how. Each streak used to be dealt a spot on the screen, so it followed the camera. Now each belongs to a patch of the map (20 by 13 px, one streak to a patch, starting anywhere in its patch and the next so no grid shows) and falls there for half a second before the patch deals a new one. Colour, length, slant and fall are round 4's.
+- E4, how much rain. Round 4 drew 900 streaks in whatever the view held, which was one to 360 px on a desktop, one to 206 px on a phone and one to 2,300 px zoomed out. In the world it has to be one number: I chose one to 260 px, a little more than round 4 on a desktop and a little less on a phone. Zoomed out there is far more rain than round 4 showed, which is what staying with the land means.
+- E4, checked by counting. `out/e4/pan.sh` stops the clock, takes a picture, drags the view 100 px and takes another, and `out/e4/diff.mjs` counts the pixels that differ over the same land: 0 now, 14,320 in round 4's build. Frame time zoomed out at Dusk in full drizzle: 11.8 to 12.0 ms, the same as before the change.
+- E4, left alone. The drips from the trees after the rain, the deck, the fog and the wet ground were already placed in the world. The fair-weather clouds drift on their own course over the map and are not rain.
 - E3, checks: `check.sh E3 E2` passed, 11.9 ms a frame zoomed out at Dusk, lint clean, nothing moved more than 8 px. Filmed close up over 8 frames, looked at by day and at Dusk beside round 4's build, and the find tapped at low water in the browser ("Found: The tide pool").
 
 ## 12. The reference pictures
