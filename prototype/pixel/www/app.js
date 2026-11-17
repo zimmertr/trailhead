@@ -218,7 +218,7 @@ function openDebug(on) {
     el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle),
     el('h3', { text: D.zoom }), toggle('snap'),
     el('h3', { text: D.speed }), el('div', { class: 'speeds' }, ...speeds),
-    el('h3', { text: D.startMap }), ...starts(['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'salmon', 'osprey', 'serac', 'avalanche', 'lens', 'heron', 'tumble', 'devil', 'star', 'plane']),
+    el('h3', { text: D.startMap }), ...starts(['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'salmon', 'osprey', 'serac', 'avalanche', 'lens', 'heron', 'tumble', 'devil', 'star']),
     el('h3', { text: D.startForest }), ...starts(['jay', 'bear', 'sasquatch', 'eyeshine']),
     el('h3', { text: D.startLarches }), ...starts(['gust']),
     el('h3', { text: D.startRidge }), ...starts(['ridgegust', 'raven']),

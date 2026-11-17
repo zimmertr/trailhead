@@ -1281,8 +1281,7 @@ function habitat() {
   const clearSea = new Set(R.sea), sea = (lo, hi) => (u, v) => { const c = S.coast(u, v); return c > lo && c < hi && S.toY(u, v) < SH - 50 && shows(u, v, 4) && clearSea.has(S.g[S.toY(u, v) * NW + Math.round(u)]) && clearSea.has(S.g[(S.toY(u, v) - 6) * NW + Math.round(u)]); };
   const jelly = find(8, sea(14, 80), 26), whale = best(sea(90, 150), (u, v) => -Math.abs(S.coast(u, v) - 115) + 6 * rnd());
   // The timed events of E5k. Tumbleweeds start in open sage with 120 of firm ground east of them, the way
-  // the wind rolls them; dust devils spin up on bare dry flats. The float plane lands on Reflection Lake
-  // (events.js).
+  // the wind rolls them; dust devils spin up on bare dry flats.
   const tumbles = find(3, (u, v) => S.sageAmt(u, v) > 0.6 && firm(u, v, 0.5) && shows(u, v, 6) && [30, 60, 90, 120].every(d => firm(u + d, v, 0.9)), 60);
   const devils = find(2, (u, v) => S.dryAmt(u, v) > 0.6 && S.sageAmt(u, v) > 0.3 && firm(u, v, 0.4) && shows(u, v, 26), 120);
   const out = (u, v) => [Math.round(u), S.toY(u, v)];
