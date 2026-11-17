@@ -1,7 +1,7 @@
 // Proficiency Peak: a granite big wall climbed face-on, the camera rising with him. One route, three
 // pitches with a ledge after each, the summit, then the rappel. Everything he does is worked out
 // from how far along the route he is, so the timeline can be dragged either way.
-import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, INK, SHADE, LIGHT, pick, BM, outline, thick } from './core.js';
+import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, INK, SHADE, pick } from './core.js';
 import { Strip, drawStrip, baseline } from './side.js';
 import { makeFir, makeSpruce, makeBoulder, makeCloud, makeFlag, makeBush } from './sprites.js';
 import { speck } from './fauna.js';

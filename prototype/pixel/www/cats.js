@@ -112,7 +112,7 @@ export function makeCats() {
     { id: 'nebel', x: clamp(T.x + 22, HOME.x0, HOME.x1), y: clamp(T.y + 16, HOME.y0, HOME.y1), flip: true, st: 'loaf', t0: 0, dur: 5, k: 1 }
   ];
   const fx = [];   // hearts, notes and Zs that float up from a cat
-  let fly = null, wasHome = true, greeted = -99, lastT = 0, narrow = false, floor = HOME.y1;
+  let fly = null, wasHome = true, greeted = -99, lastT = 0, floor = HOME.y1;
   const other = c => cats[1 - c.k];
   const spot = () => { for (let n = 0; n < 8; n++) { const b = rand() < 0.78 ? LEFT : HOME, x = lerp(b.x0, b.x1, rand()), y = lerp(b.y0, Math.max(b.y0 + 4, Math.min(b.y1, floor)), rand()); if (!(Math.abs(x - ROOF.x) < 24 && y > ROOF.y - 24 && y < ROOF.y + 4) && Math.hypot(x - JX, y - JY + 2) > 12) return { x, y }; } return { x: JX - 20, y: JY + 32 }; };
   const go = (c, st, t, extra = {}) => { Object.assign(c, { st, t0: t, dur: DO[st] ? lerp(DO[st][0], DO[st][1], rand()) : 1, then: null, after: null, fast: false, busy: false }, extra); };
@@ -136,7 +136,6 @@ export function makeCats() {
     // low is the lowest row of the map that the page's panels leave in view, so the cats never sit under one.
     update(env, me, upright, low) {
       if (low) { floor = clamp(low, JY + 4, HOME.y1); for (const c of cats) if (c.y > floor && !c.lift && c.st !== 'jump' && c.st !== 'perch' && c.st !== 'wander' && c.st !== 'dash') c.y = floor; }
-      narrow = !!upright;
       const t = env.t, dt = Math.min(0.05, Math.max(0, t - lastT)); lastT = t;
       const near = Math.hypot(me.x - JX, me.y - JY) < 6;
       // He is back at the junction: whoever is free trots over to say hello.

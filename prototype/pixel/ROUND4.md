@@ -537,7 +537,7 @@ Round 3 is the bar. Before ticking each, put the same view of round 3 (`out/r3/`
 - [x] J3. Part two, the moraine: he walks its grey crest; blue ice and crevasses close beside him; the icefall ahead; meltwater sounds.
 - [x] J4. Arrival at camp on the shelf: tents, Kayti painting, the goats on the rock out on the ice (round 3's work, kept).
 - [x] J5. Base camp's backdrop redrawn as the new Spires; the six name tags and flags sit on the right summits.
-- [ ] J6. One thing to find on the walk. **Held for TJ (2026-11-16):** he turned down the ice worms I had picked and had them taken out. The walk has no find until he chooses one, so the loop skips this item.
+- [x] J6. One thing to find on the walk. **Closed without a find (TJ, 2026-11-16: "Close both").** He turned down the ice worms I had picked and had them taken out. The walk gets no find unless he picks one later.
 - [x] J7. Day and Dusk, desktop and phone, cuts filmed, tune and ambience.
 - [x] **CHECKPOINT 6.** Branch `pixel-r4-spireswalk`, publish a new artifact, carry on.
 
@@ -663,7 +663,7 @@ TJ's standing rule is planning on Fable and building on Opus. The land was built
 
 **Section M, under way (Opus, 2026-11-16).** Whole-site checks. Done: M1 (every route walked from start to finish through every stop, Day and Dusk, desktop and phone, with no errors or warnings in the console) and M2 (every scene beside round 3's, and the list below for TJ; nothing was put back) and M3 (251 of 254 colours; ready in 0.8 s as round 3 was, after bringing it down from 1.24; every view under 16.7 ms a frame) and M4 (the off-route page, a scene that throws and one that fails to load all behave as in round 3, the four new scenes included) and M5 (`IDEAS.md` pruned, no em dashes anywhere, the round 4 report at the end of `PROGRESS.md`). Next: CHECKPOINT 8.
 
-**M2, what is still below round 3, for TJ to choose from (Opus, 2026-11-16).** Each scene was rendered at the same place as round 3's reference pictures in `out/r3/` and put beside it (`out/m2/pair-a.png` to `pair-d.png`). Nothing here has been changed; each line says what restoring or fixing it would bring back and what it would undo.
+**M2, what is still below round 3 (Opus, 2026-11-16). Closed by TJ the same day ("Close both"): he played the finished build and wrote 78 notes for round 5, which replace this list.** Each scene was rendered at the same place as round 3's reference pictures in `out/r3/` and put beside it (`out/m2/pair-a.png` to `pair-d.png`). Nothing here has been changed; each line says what restoring or fixing it would bring back and what it would undo.
 
 - **The first screen on desktop.** Round 3 opened on the Trailhead with The Stack's face, the Spires and About Lake all in one frame, drawn big. Now the Trailhead sits in the bottom right corner under the sign and the timeline, and the three places are small name tags at the edges until the look round shows each. Fixing it would bring back a first screen that says what the site is at a glance. Centring the Trailhead pushes the places further off the frame; bringing them into the frame means moving the three countries closer to the Trailhead on the map (a re-layout) or opening further out, which F5a turned down.
 - **The first screen on a phone.** The same, more so: the opening shows forest and meadow round the junction, and once the look round starts the Trailhead leaves the screen. Round 3's phone opening had The Stack, the Spires and the Trailhead together. The same choices as above.

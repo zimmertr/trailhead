@@ -9,6 +9,11 @@
       "matchFileNames": ["tools/eslint/package.json"],
       "matchPackageNames": ["typescript"],
       "allowedVersions": "<6.1"
+    },
+    {
+      "description": "The pixel prototype's render image and its playwright package are one version (prototype/pixel/lab/package.json).",
+      "matchFileNames": ["prototype/pixel/**"],
+      "groupName": "pixel prototype render image"
     }
   ]
 }

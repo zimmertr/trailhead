@@ -1,7 +1,7 @@
 // The animals of the world map and the water that moves: herds that graze and wander, a bear, squirrels
 // and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
-import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, INK, SHADE, KIND, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
+import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, INK, SHADE, KIND, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
 import { makeElk, makeBird } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './land.js';
@@ -704,7 +704,7 @@ export function makeCritters(W, opts = {}) {
     // from home), marmots, and the flocks' circles.
     areas: () => [...items.filter(a => a.walker || a.critter === 'marmot').map(a => ({ kind: a.critter, x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...items.filter(a => a.dart).map(a => ({ kind: 'squirrel', x: a.hx, y: a.hy, rx: 28, ry: 17 })), ...FLOCKS.map(F => ({ kind: F.gull ? 'gulls' : 'birds', x: F.cx, y: F.cy, rx: F.rx, ry: F.ry }))],
     // What flies over everything else.
-    over(scr, ox, oy, t, env = {}) {
+    over(scr, ox, oy, t) {
       const { VW, VH, fb } = scr;
       osprey(scr, ox, oy, t);
       for (const F of FLOCKS) for (let k = 0; k < F.n; k++) {

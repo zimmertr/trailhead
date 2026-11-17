@@ -1,6 +1,6 @@
 // TJ himself: a chibi with a big head, as SNES sprites are, drawn from a pose and outlined in one
 // pass. One figure, three kits. Every scene poses him through these functions.
-import { clamp, lerp, R, INK, BM, outline, disc, thick } from './core.js';
+import { clamp, R, INK, BM, outline, disc, thick } from './core.js';
 
 // What he wears in each place. upper and lower are the two halves of a leg.
 const KITS = {

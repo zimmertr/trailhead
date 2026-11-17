@@ -1,5 +1,5 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
-import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, pick, BM, outline, makePath, windAt } from './core.js';
+import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
 import { breeze, veilTable } from './core.js';
 import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag, makeRegister } from './sprites.js';
 import { SIGNS, NAMES, DEST_NAMES, UI } from './content.js';
@@ -7,7 +7,7 @@ import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
 import { makeEvents, drawLens, startLens } from './events.js';
 import { makeRunner } from './tj.js';
-import { buildTerrain, loadBake, NW as WW, NH as WH, VD, T } from './land.js';
+import { buildTerrain, NW as WW, NH as WH, T } from './land.js';
 // How much of the bottom of the window the timeline bar covers, in page pixels: from its top edge down, measured
 // from its layout once it shows (F9; 32 of its own pixels, the old guess, was a third too tall on a big window and
 // let rows past the map's foot show above it). Read again only when the page is resized or the bar comes or goes.
@@ -194,7 +194,7 @@ function whiteWater(fb, VW, VH, ox, oy, P, F, t) {
     for (let d = 0; d < 3; d++) { const h = hash(F.x[k] * 3 + d, beat, 5201); if (h < 0.45) fb[(sy + (d >> 1)) * VW + sx + (d === 1 ? 1 : d === 2 ? -1 : 0)] = h < 0.3 ? W1 : W4; } }
 }
 
-export function makeWorld(bake) {
+export function makeWorld() {
   const W = buildTerrain(), { g: ground, spots, forestAmt } = W;
   const paths = {}; for (const k of ['lake', 'stack', 'spires']) paths[k] = makePath({ pts: W.trails[k], stops: [] });
   // The few steps from the junction to the register's east side, where he stands to fold its front down (L2).
@@ -626,7 +626,6 @@ export function makeWorld(bake) {
     },
     // The debug panel's start buttons (E5f): each moves its event's clock so the event begins now.
     trigger(name, t) {
-      const mod = (a, m) => ((a % m) + m) % m;
       if (name === 'shower') { const n = Math.floor((t + rainAhead + RAIN.cycle - 10) / RAIN.cycle) + 1; rainAhead = n * RAIN.cycle - t - RAIN.cycle + 10; return true; }
       if (name === 'avalanche') { if (!AV) return false; AVA.phase = 'covered'; AVA.cover = 1; AVA.plume = -1; AVA.start = t; return true; }
       if (name === 'serac') { if (SER.length < 2) return false; const n = Math.floor((t + serAhead + SLOT - 15) / SLOT) + 1; serAhead = n * SLOT + 10 * hash(n, 3, 4741) - t - SLOT + 15; return true; }
@@ -826,8 +825,6 @@ export function makeWorld(bake) {
     }
   };
 }
-
-export { loadBake };
 
 // A 3 by 5 pixel letter set for the debug labels on the map (T32), with a dark box behind for contrast.
 const GLYPHS = { A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', F: '111100110100100', G: '011100101101011', H: '101101111101101', I: '111010010010111', J: '001001001101010', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', Q: '010101101110011', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', V: '101101101101010', W: '101101111111101', X: '101101010101101', Y: '101101010010010', Z: '111001010100111' };

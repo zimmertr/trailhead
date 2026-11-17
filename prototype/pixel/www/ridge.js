@@ -960,7 +960,7 @@ function buildRidge() {
     for (let j = 0; j < 18; j++) {
       const h = hf - 8 + j, e = EAST(h), joined = j >= 14, slot = j >= 1 && j < 14;
       for (let k = 1; k <= 6; k++) {
-        let c = 0;
+        let c;
         if (k <= 2) c = slot ? INK : joined && k <= 4 - (j - 14) ? pick('granite', 0.45, e + k, h) : 0;
         else if (k <= 5) c = j === 0 ? INK : joined && k > 4 - (j - 14) ? 0 : k === 3 ? R.gold[6] : pick('granite', 0.75 - 0.15 * (k - 3), e + k, h);
         else c = j < 14 ? INK : 0;

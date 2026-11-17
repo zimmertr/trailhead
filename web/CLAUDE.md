@@ -1,6 +1,6 @@
 # web
 
-The site the browser loads, built by Vite and served by nginx. The 3D world will replace `src/world/placeholder.ts`.
+The site the browser loads, built by Vite and served by nginx. The pixel world in `prototype/pixel/` will replace `src/world/placeholder.ts` (record 0015).
 
 | Path | Owns |
 |---|---|

@@ -2,7 +2,7 @@
 // granite wall of the Spires and its six summits, one per project, with the ice sheet running off to
 // far ranges behind. Click a summit and he sets off. The picture is painted to fit the screen it is on, at the same pixel size
 // as everything else, and keeps the towers and the camp clear of the card.
-import { clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, INK, pick, BM, outline, thick } from './core.js';
+import { clamp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, INK, pick, BM, outline, thick } from './core.js';
 import { makeCloud, makeFlag, makeBoulder } from './sprites.js';
 import { ell, speck } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
@@ -264,7 +264,7 @@ export function makeCamp() {
     act(id) { if (id !== 'kayti') return false; waved = now; return true; },
     draw(scr, env, arg, q) {
       fit(scr); now = env.t; flown = env.done;
-      const { VW, VH, fb } = scr, { t } = env, { geo, camp, rx, yh } = pic;
+      const { VW, fb } = scr, { t } = env, { geo, camp, rx, yh } = pic;
       fb.set(pic.back.d);
       // Cloud drifts behind the towers, and birds cross high up.
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (VW + 140)) - 70, c.y * yh * 0.8);

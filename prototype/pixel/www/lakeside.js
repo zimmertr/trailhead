@@ -1,7 +1,7 @@
 // Reflection Lake, part two: out of the trees at the lake itself, turquoise under a huge sweeping
 // peak. He runs left to right along the near shore, stops for the view with the map out, and
 // again at the boulder where his journal lies open.
-import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, thick, windAt, veilTable, SHADE } from './core.js';
+import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, windAt, veilTable, SHADE } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
 import { makeTrunk, makeLimb, swordFern } from './forest.js';
 import { makeConifer, makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush, makeMaple } from './sprites.js';
@@ -9,7 +9,7 @@ import { marmot, speck } from './fauna.js';
 import { makeRunner, sideFig, cheerFig, swimFig } from './tj.js';
 import { NAMES } from './content.js';
 import { drawLens, startLens } from './events.js';
-import { paintMonolith, moraineLakes, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
+import { paintMonolith, moraineLakes, MW as PMW, MH as PMH, TOPY as PTOPY } from './monolith.js';
 
 // Round 5 (T30): the lake on the map is about 1.6 times as wide, so the shore he runs along is longer
 // than round 4's (624 over 8 s), at the same pace.
@@ -309,7 +309,7 @@ function buildLakeside() {
   { const h = pile.shirt = new BM(9, 5); h.ox = 4; h.oy = 4; for (let y = 1; y < 4; y++) for (let x = 1; x < 8; x++) h.set(x, y, y === 1 ? R.sun[2] : y === 3 ? R.sun[0] : R.sun[1]); outline(h, INK); }
   { const o = pile.shoes = new BM(11, 5); o.ox = 4; o.oy = 4; for (const x0 of [1, 6]) { o.set(x0, 2, R.shoe[1]); o.set(x0 + 1, 2, R.shoe[1]); o.set(x0, 3, R.shoe[1]); o.set(x0 + 1, 3, R.shoe[2]); o.set(x0 + 2, 3, R.shoe[2]); o.set(x0 + 3, 3, R.shoe[0]); o.set(x0 + 1, 1, R.blaze[1]); } outline(o, INK); }
   const mapFig = sideFig('trail', { lean: 0, look: 'down', hands: [[5, 1], [4, 2]], elbowFwd: false, held: (b, sh) => { for (let y = 0; y < 5; y++) for (let x = 0; x < 6; x++) b.set(sh[0] + 4 + x, sh[1] - 1 + y, (x + y) % 4 === 1 ? R.moss[5] : x === 3 ? R.white[0] : R.white[1]); b.set(sh[0] + 6, sh[1] + 1, R.tarn[3]); b.set(sh[0] + 8, sh[1] + 2, R.red[1]); } });
-  const writeFig = [0, 1].map(f => sideFig('trail', { lean: 2, look: 'down', hands: [[6, 3 + f], [4, 4]], held: (b, sh, hands) => { b.set(sh[0] + 7, sh[1] + 2 + f, R.navy[0]); } }));
+  const writeFig = [0, 1].map(f => sideFig('trail', { lean: 2, look: 'down', hands: [[6, 3 + f], [4, 4]], held: (b, sh) => { b.set(sh[0] + 7, sh[1] + 2 + f, R.navy[0]); } }));
   const sit = [0, 1].map(f => sideFig('trail', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: f ? [[4, -2], [2, 3]] : [[3, 3], [2, 3]] }));
   const marm = { sun: marmot('sun'), up: marmot('up') }, bird = [speck(0), speck(1)];
 

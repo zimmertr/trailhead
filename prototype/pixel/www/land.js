@@ -37,15 +37,6 @@ function range(mat, u0, u1, cv, env, seed, o = {}) {
 }
 // A level with a steep edge: a bench, a basin floor, a mesa, a field of ice. tilt lifts its far side.
 const plateau = (mat, cu, cv, ru, rv, H, edge = 0.1, tilt = 0) => add(mat, cu - ru * 1.4, cu + ru * 1.4, cv - rv * 1.4, cv + rv * 1.4, (u, v) => (H + tilt * (v - cv)) * smooth(1 + edge, 1, Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 30, v / 20, cu + 3) - 0.5)));
-// A ridge along a line of points [u, v, height, half-width]: a moraine, an arm of a mountain.
-function spur(mat, pts, pow = 1.2) {
-  const us = pts.map(p => p[0]), vs = pts.map(p => p[1]), W = Math.max(...pts.map(p => p[3])) + 6;
-  add(mat, Math.min(...us) - W, Math.max(...us) + W, Math.min(...vs) - W, Math.max(...vs) + W, (u, v) => {
-    let best = 0; const n = 5 * (vnoise(u / 7, v / 7, us[0]) - 0.5);
-    for (let i = 1; i < pts.length; i++) { const [u0, v0, h0, w0] = pts[i - 1], [u1, v1, h1, w1] = pts[i], du = u1 - u0, dv = v1 - v0, t = clamp(((u - u0) * du + (v - v0) * dv) / (du * du + dv * dv), 0, 1), d = Math.hypot(u - u0 - du * t, v - v0 - dv * t) + n, w = lerp(w0, w1, t); if (d < w) best = Math.max(best, lerp(h0, h1, t) * Math.pow(1 - Math.max(0, d) / w, pow)); }
-    return best;
-  });
-}
 // Mount Monolith, after Rainier: a dome with a nearly flat top, a shoulder to the west and a small
 // dark tooth low on the east flank. Its lower slopes run out into the land round it.
 let VOLC = null;
@@ -604,8 +595,8 @@ function colour(u, v, hh, x, y) {
   }
   if (mat === 'volc') {
     // Lit from the west; the east flank turns away into blue shadow.
-    const { cu, ru, H } = VOLC, e = hh / H, b = bayer(x, y), Q = vrelief(u, v), ew = (u - cu) / ru;
-    const lit = clamp(L - 0.3 * smooth(0, 0.8, ew) + 0.12 * smooth(0, -0.8, ew), 0, 1), n2 = vnoise(x / 9, hh / 7, 574);
+    const { cu, ru } = VOLC, b = bayer(x, y), Q = vrelief(u, v), ew = (u - cu) / ru;
+    const lit = clamp(L - 0.3 * smooth(0, 0.8, ew) + 0.12 * smooth(0, -0.8, ew), 0, 1);
     const rock = (dk = 0) => R.rock[clamp(Math.round(lit * 3.2 + (b - 0.5) * 0.9) - dk, 0, 3)];
     // The ice, the ribs, Little Tahoma and the crater are painted (monolith.js) and laid over this ground
     // afterwards. What shows below the painting is the mountain's lower slopes: scree here and there
@@ -707,7 +698,7 @@ farRow(0, 600, HZ - 6, null, 45, false, [[40, 26, 60], [150, 22, 50], [245, 18, 
 // A nearer rank of forested foothills, lower, so the range rises out of ridges of trees.
 farRow(0, 560, HZ + 6, null, 46, false, [[90, 16, 60], [210, 12, 50], [330, 17, 70], [470, 14, 60]]);
 farRow(520, 1700, HZ + 20, x => 46 + 20 * vnoise(x / 90, 2, 43), 43, true);
-farRow(1640, NW + 40, HZ + 24, x => 26, 44, false);
+farRow(1640, NW + 40, HZ + 24, () => 26, 44, false);
 // The ground and the mountains, one column at a time from the near edge to the far one. A spot is
 // drawn only where nothing nearer already stands in front of it.
 for (let u = 0; u < NW; u++) {
@@ -1288,7 +1279,6 @@ export const T = { x: C.T[0], y: LAND.toY(C.T[0], C.T[1]) };
 // moved east by the box's width to make room. The cats keep to both (cats.js).
 export const REG = { x: C.T[0] + 16, y: LAND.toY(C.T[0] + 16, C.T[1] + 22) };
 export const KIOSK = { x: REG.x + 23, y: LAND.toY(REG.x + 23, C.T[1] + 22) };
-export async function loadBake() { return null; }
 // ---- where things live ----------------------------------------------------------------------------
 // Every sign and every animal on the map is placed by a rule read from the land: the kind of ground,
 // its height, how far it is from a trail, whether it can be seen. No position is written down, so a
@@ -1320,7 +1310,6 @@ function habitat() {
   const beside = (k, a, b, off = 12) => { const P = catmull(C.trails[k]), out = []; for (let n = Math.floor(P.length * a); n < P.length * b - 1; n += 4) { const [u0, v0] = P[n], [u1, v1] = P[n + 1], l = Math.hypot(u1 - u0, v1 - v0) || 1; for (const s of [1, -1]) out.push([u0 - (v1 - v0) / l * off * s, v0 + (u1 - u0) / l * off * s]); } return out; };
   const coulee = (u, v) => { let d = 1e9; for (const [a, b] of catmull(C.coulee)) d = Math.min(d, Math.hypot(a - u, b - v)); return d; };
   const signable = (u, v) => apartFrom(taken, u, v, 70) && firm(u, v, 0.9) && trailFar(u, v) >= 4 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2];
-  const near = (p, d) => (u, v) => Math.hypot(u - p[0], v - p[1]) < d;
   const ring = (p, r0, r1) => GRID.filter(([u, v]) => { const d = Math.hypot(u - p[0], (v - p[1]) * 1.4); return d >= r0 && d <= r1; });
   const sp = S.spires, vo = S.volc, tarn = S.C.lakes.find(l => l[4] === 'tarn'), wsum = [sp.cu + sp.west * sp.wide, sp.cv];
   // The col: the lowest point on the line from Mount Monolith's summit to the west end of the Spires.

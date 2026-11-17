@@ -425,7 +425,6 @@ function makeSnag(seed) {
 // A low shrub. Huckleberry going red, or heather in flower.
 function makeBush(seed, kind) {
   const rand = rng(seed), r = 3 + rand() * 2, b = new BM(14, 10); b.ox = 7; b.oy = 9;
-  const ramp = kind === 'huck' ? R.red : R.moss;
   for (let y = 0; y < 10; y++) for (let x = 0; x < 14; x++) {
     const nx = (x - 7) / (r * 1.25), ny = (y - (9 - r * 0.7)) / (r * 0.8);
     if (nx * nx + ny * ny > 1 + 0.4 * (vnoise(x / 2, y / 2, seed) - 0.5) || y > 9) continue;

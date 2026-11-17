@@ -38,3 +38,4 @@ A new record that reverses an old one says `Supersedes NNNN` in its status line.
 | [0012](0012-eslint-runs-on-typescript-6-in-its-own-package.md) | ESLint runs on TypeScript 6 in a package of its own, while the repo type-checks with TypeScript 7 | 2026-11-12 | Accepted |
 | [0013](0013-client-identity-comes-from-cf-connecting-ip-alone.md) | The API's rate limit counts clients by CF-Connecting-IP alone | 2026-11-12 | Accepted |
 | [0014](0014-the-world-is-flat-and-the-visitor-is-on-rails.md) | The world is flat, and the visitor is on rails | 2026-11-13 | Accepted, supersedes 0001 |
+| [0015](0015-the-world-is-pixel-art-served-as-plain-javascript.md) | The world is pixel art, and `web` serves it as plain JavaScript | 2026-11-14 | Accepted |

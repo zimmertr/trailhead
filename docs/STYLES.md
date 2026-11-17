@@ -1,6 +1,6 @@
 # Styles
 
-The flat parts of the site: the home page's still and the plain page now, the cards, timeline and trail map later. The 3D world is low-poly and flat-shaded and gets its colours from [`web/src/world/palette.ts`](../web/src/world/palette.ts).
+The flat parts of the site: the home page's still and the plain page now, the cards, timeline and trail map later. The placeholder that stands in for the world is low-poly and flat-shaded and gets its colours from [`web/src/world/palette.ts`](../web/src/world/palette.ts).
 
 ## The look
 
