@@ -426,7 +426,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 - [x] B1. T5: remove the Reflection Lake sign near the Trailhead.
 - [x] B2. T4: remove the Trailhead signpost (keep the name tag). Move the register next to the board, on its left. One click opens the register with no walk.
-- [ ] B3. T45: swap the sign's arrows. (The distances wait for D1.)
+- [x] B3. T45: swap the sign's arrows. (The distances wait for D1.)
 - [ ] B4. T12: remove the float plane and its debug button.
 - [ ] B5. T41: remove the standing bear from the forest, with its debug event.
 - [ ] B6. T38: remove the Steller's jay from the stump, and move the owl to a limb on the trunk behind it.
@@ -562,7 +562,8 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - Issues rewritten at A0c for the pixel world: https://github.com/zimmertr/trailhead/issues/8 (the build plan), https://github.com/zimmertr/trailhead/issues/14 (Reflection Lake, the Trailhead and the shared parts, served by `web`), https://github.com/zimmertr/trailhead/issues/15 (Proficiency Peak), https://github.com/zimmertr/trailhead/issues/16 (Sideproject Spires, numbers from `api`), https://github.com/zimmertr/trailhead/issues/17 (the things to find). Old text: `plan/issue-rewrites-old.md`.
 - **A2 done.** `refs.sh` renders the standard set of views from any build. Round 4's set (72 views: the opening on desktop, phone and wide, Day and Dusk, every route at seven stops in Day and Dusk, every Spires climb at four stops, and the 404) is in `out/r4/`, rendered from the scratchpad's `r4-ref/` (an export of `archive/pixel-r4-final`). `out/` is not committed; rebuild it with the commands at the top of `refs.sh`.
 - **B1, B2 done.** The Reflection Lake sign and the Trailhead signpost are gone. The register stands on the board's left, both north-east of where he stands, and the Trailhead name tag sits a little to his left so it covers neither. One click on the register opens the close-up (its own short opening, no walk) and closing it puts him back at the Trailhead.
-- Next: B3.
+- **B3 done.** The sign's arrows match the map: Reflection Lake left, Proficiency Peak right, Sideproject Spires up. The distances still wait for D1.
+- Next: B4.
 
 ## 11. Calls made in round 5
 
@@ -576,6 +577,7 @@ One line each, newest last: the item, what was decided, and why.
 - A2: films of the map events are not part of the reference set. With the clock fixed by `frames.sh` they come out the same every time, so each event item renders round 4's film from `r4-ref/` when it needs one, instead of all of them now.
 - B2: room for the register. Placed between him and the board (TJ's "move the register to the left of the board"), it stood right behind him and he hid it. So the register stands just clear of his right shoulder (`C.T[0] + 16`) and the board moved east by the box's width (now `REG.x + 23`, it was `C.T[0] + 28`). The name tag then covered the box, so it moved 8 pixels left (`T.x - 12`). Kept the anchor `spots.signpost` in `land.js` (the debug page `relief.js` still draws the old signpost there).
 - B2: "no walk" kept the register close-up's own opening (under a second) and left the board's sheet as it is, because the close-up is a scene with its own picture and the book, not an overlay.
+- B3: kept the planks in their order (lake, peak, Spires) and swapped only the arrows, so the order still matches the trail map, the timeline and the 1, 2, 3 keys. A real signpost often groups its planks by direction; that would be a reorder for TJ to ask for.
 
 ## 12. The reference pictures
 

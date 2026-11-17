@@ -14,8 +14,8 @@ export const INTRO = "is a principal platform engineer based out of Seattle, WA.
 
 export const DESTINATIONS = [
   { route: 'lake', sign: 'Run to Reflection Lake', about: 'to learn more about TJ', dir: 'left', slug: 'reflection-lake' },
-  { route: 'stack', sign: 'Climb Proficiency Peak', about: 'to learn more about his skills', dir: 'up', slug: 'proficiency-peak' },
-  { route: 'spires', sign: 'Climb the Sideproject Spires', about: 'to see some of his personal projects', dir: 'right', slug: 'sideproject-spires' }
+  { route: 'stack', sign: 'Climb Proficiency Peak', about: 'to learn more about his skills', dir: 'right', slug: 'proficiency-peak' },
+  { route: 'spires', sign: 'Climb the Sideproject Spires', about: 'to see some of his personal projects', dir: 'up', slug: 'sideproject-spires' }
 ];
 
 // kind is the thing the card comes out of, which decides how it is drawn.
