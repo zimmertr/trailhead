@@ -153,3 +153,34 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Something left in the box.** Real register boxes collect a lost glove or a sticker; one small object in the corner of the box could change with the season or the time of day.
 - **Turn the page.** With more entries than one page holds, a corner of the right-hand page could lift, and a tap turns back to older pages.
 - **The pencil writes.** While a visitor types on the left-hand page, the pencil could lift off the page and follow the last letter.
+
+## Round 5 planning (2026-11-16)
+
+### Offered to TJ for round 5 and not picked (kept for later)
+
+- **A smoke test for the prototype in CI.** A Docker job on every PR that walks each route headless, fails on any console error or on frame time over budget, and attaches a sheet of screenshots. It would turn "every route runs clean" from a claim in a report into a check that runs on its own.
+- **A slow-phone check.** Round 4's frame times come from a fast machine in Docker. Measure at 4x CPU slowdown, and let the game drop its costliest layers by itself (mist detail, the zoomed-out redraw) when a frame runs long.
+- **A link preview.** A page title, description and a preview image (a good render of the map at golden hour) so a link shared on LinkedIn or Slack looks like the site.
+- **Reduced motion.** Follow the system's reduce-motion setting: gentler camera moves and fewer screen-wide effects.
+- **A copy review page.** Generated from `content.js`: every line a visitor can read, grouped by place, so TJ can review all the draft copy in one sitting.
+
+### Climb scenes for later (TJ asked for these to be kept, 2026-11-16)
+
+- **A Tyrolean traverse.** A rope strung between two towers that TJ pulls himself across, hanging below it, the gap and the glacier far underneath. Easy to read side-on. Offered as the fallback for trailhead's knife-edge.
+- **A corniced snow ridge.** A snow crest with an overhanging cornice on one side and his boot track kept well back on the safe side, a chunk of cornice breaking off and tumbling down the far face.
+
+### My own, written while planning round 5
+
+- **Kayti's painting grows.** Her watercolour at base camp gains a little more of the Spires each time a summit is done, and a click shows it full size. Done all six, and it's finished and signed.
+- **Footprints that stay.** TJ's boot prints on the bared sand at low tide and on the glacier's snow, fading after a while and washed out when the tide comes in.
+- **The eagle and the gulls.** Gulls mob the eagle when it carries a fish past the stacks, and now and then it drops the fish and a gull takes it.
+- **A rainbow in the waterfall's spray** on the new switchback climb, when the sun is low on the Auto clock.
+- **Sunset alpenglow on Monolith and the Spires** as the Auto clock passes through sunset: the high snow goes pink for those 30 seconds. It brings back the round 3 Dusk TJ liked without a sky to light.
+- **Lights in the lookout.** At Dusk a warm window glows in the fire lookout on Off By One Peak, and a tiny figure looks out.
+- **The bear family reacts to TJ.** When his figure passes close to the clearing, the sow stands up to look and the cubs scramble behind her.
+- **A moose in the river.** The bull stands knee-deep in the river now and then, dripping, with water plants hanging from his mouth.
+- **The register knows the time.** Entries signed at dusk on the Auto clock are written by headlamp, with a small lamp drawn on the page.
+- **A trail-running Strava segment.** On hevy-garmin-sync's run, a tiny "segment" banner shows his time against a ghost of his best.
+- **Pika haystacks.** In the larch basin and on the moraine, the pika's little piles of drying grass under the boulders, which a curious visitor can click.
+- **Cloud shadows** drifting across the map on the wind, slow and soft, darker over the meadow, so the land never sits completely still.
+

@@ -113,7 +113,7 @@ These come from `ROUND4.md` sections 4, 4a and 5, and still apply unless section
 
 ## 5. Decided with TJ for round 5 (2026-11-16)
 
-Each heading carries TJ's note numbers as `Tn`. Text in quotation marks is TJ's own words. "Decided" marks an answer he gave to a question. "Planner's call" marks a detail the planner chose for him to veto. The checklist items in section 8 point back here.
+Each heading carries TJ's note numbers as `Tn`, and the planner's additions TJ chose carry `Pn`. Text in quotation marks is TJ's own words. "Decided" marks an answer he gave to a question. "Planner's call" marks a detail the planner chose for him to veto. The checklist items in section 8 point back here.
 
 ### 5.1 Opening, camera and controls
 
@@ -288,7 +288,42 @@ Each heading carries TJ's note numbers as `Tn`. Text in quotation marks is TJ's 
 
 - **T78.** "Subtlely paint a 404 into the clouds/fog on the off-route page." (`plan/round5/78-*`.) The three digits are formed by slightly denser fog, large, low contrast, and drifting a little, so a visitor notices them on a second look.
 
-### 5.12 Housekeeping decided on 2026-11-16 (done, or for TJ)
+### 5.12 Additions TJ chose from the planner's list (2026-11-16)
+
+TJ asked what the planner would add to move the round toward the MVP, and picked three of eight. The other five went into `IDEAS.md`: a prototype smoke test in CI, a slow-phone check with automatic quality, a link preview, reduced motion, and a copy review list.
+
+- **P1, the first-visit hint.** Since space no longer starts TJ walking (T36), a new visitor could sit in front of a still screen. Until the visitor's first move in this visit, a small line in the page's sign style sits low in the middle of the screen, above the timeline: "Click a sign or a trail to start walking." (on a phone: "Tap a sign or a trail to start walking."). It fades out on the first move, and does not come back in that visit. It never covers TJ, the board or the register, and it hides while the idle tour runs. The copy is a draft for TJ.
+- **P2, read it as a page.** The site is TJ's resume first. A recruiter in a hurry, a screen reader or a search engine should get everything without playing.
+  - One control opens a plain, scrolling page over the canvas: who TJ is (the lake's cards), what he does (Proficiency Peak's three skill cards and the resume card), his projects (the six project cards with their repo links, stars and releases), the personal note, and the contact and resume links the cards already carry.
+  - Every word comes from `content.js`. There is no new copy except section headings, which reuse the places' names (Reflection Lake, Proficiency Peak, Sideproject Spires).
+  - The text is real, selectable HTML with headings and links, readable at a phone's width, and usable by keyboard (focus goes into it, Escape closes it). It works with sound off and in any time of day.
+  - It opens from a top-bar button labelled **PAGE** (planner's call, for TJ to veto; the menus get reworked in a later issue), from the trail map sheet, and directly at the address `#page`.
+  - Planner's call on the look: the sign font for headings and the card font for text, on the cards' paper colour, one column. Mockup:
+
+```text
++--------------------------------------------------+
+| TRAIL MAP   MUSIC   SOUND ON   AUTO   KEYS  DEBUG  PAGE |
++--------------------------------------------------+
+|  [x] Back to the trail                           |
+|                                                  |
+|  TJ Zimmerman                                    |
+|  (the lake's intro card text)                    |
+|                                                  |
+|  Reflection Lake                                 |
+|  Who TJ is / In the mountains / A personal note  |
+|                                                  |
+|  Proficiency Peak                                |
+|  Platform / Reliability / Software / Resume      |
+|                                                  |
+|  Sideproject Spires                              |
+|  Bluebird Forecast   * 12  v1.4  repo link       |
+|  ... the other five                              |
++--------------------------------------------------+
+```
+
+- **P3, a sound test in DEBUG.** A "Sounds" group in the debug menu with a play button for every effect and every tune (each part separately), named as in `audio.js`. TJ has never heard several of them (section 14).
+
+### 5.13 Housekeeping decided on 2026-11-16 (done, or for TJ)
 
 - Round 4 goes into main through https://github.com/zimmertr/trailhead/pull/31. It carries draft PR #24's decision record (the world is flat and on rails) and the Renovate rule that retires #22. After the merge, close #22.
 - Every old branch was tagged `archive/<name>` and deleted. #24 and #13 are closed.
@@ -320,7 +355,7 @@ Each heading carries TJ's note numbers as `Tn`. Text in quotation marks is TJ's 
 
 **Still open, for TJ in the report** (do not wait for them):
 
-- The wording of every new line in `content.js`: the six clues, the "Workout synced from Hevy" line, the phone's "clearing" line, the debug menu's group names and labels, and the spawn menu's place names.
+- The wording of every new line in `content.js`: the first-visit hint (P1), the PAGE button's label (P2), the six clues, the "Workout synced from Hevy" line, the phone's "clearing" line, the debug menu's group names and labels, and the spawn menu's place names.
 - Whether the Steller's jay should live somewhere else, now that it is gone from the stump.
 
 ## 7. Starting numbers (round 4 final, measured 2026-11-16)
@@ -391,6 +426,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [ ] B8. T37: TJ's facing no longer flips on diagonals (check every trail on the map at 2x speed with `frames.sh`).
 - [ ] B9. T1: the first frame is centred on TJ (desktop and phone, with fonts slow to load).
 - [ ] B10. T36: space does nothing until a destination is chosen. Tap toggles, hold doubles.
+- [ ] B11. P1: the first-visit hint, gone after the first move.
 
 ### C. Engine pieces that later items stand on
 
@@ -399,6 +435,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [ ] C3. T76: one world clock and the AUTO, DAY, DUSK cycle everywhere, with its debug controls and `time=`. Measure frame time through the sunset blend.
 - [ ] C4. T9, T32, T44: the public DEBUG menu in the top bar, organised in groups, with breaking included, high-contrast roam areas, and the spawn menu for every animal.
 - [ ] C5. T3: click and tap to move along the trails, with the marker. (On today's trails first; D1 changes them.)
+- [ ] C6. P3: the sound test group in DEBUG.
 
 ### D. The land and the water (each change here needs `./bake.sh`)
 
@@ -477,6 +514,10 @@ Work it from the top, one item at a time. An item is done when it does what sect
 ### J. The off-route page
 
 - [ ] J1. T78: a subtle 404 in the fog.
+
+### J2. Read it as a page
+
+- [ ] J2. P2: the PAGE view with every card's text, opening from the top bar, the trail map sheet and `#page`. Keyboard and phone checked.
 
 ### K. Whole-site checks and the report
 
