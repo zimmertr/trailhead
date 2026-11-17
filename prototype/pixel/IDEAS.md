@@ -382,3 +382,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Frame Time Check That Runs Twice** (round 5, I2). The check script measures the frame time twice and takes the lower, so a busy workstation does not fail an item.
 - **The Haystack Itself** (round 5, I3). A small heap of drying flowers under the pika's second rock that grows a little on each trip.
 - **A Second Pika Answers** (round 5, I3). When this one calls, another calls back from the talus further up, heard and not seen.
+- **A Check for Things in the Air** (round 5, I4). Each side scene can list what it places, and the check script tests that the pixel under every tree, rock and cairn is painted ground.
+- **Strips That Size Themselves** (round 5, I4). `Strip` grows upward when a scene paints above its top, so no scene can cut its own ground off.

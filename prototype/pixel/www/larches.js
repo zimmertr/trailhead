@@ -191,7 +191,11 @@ function buildLarches() {
   const offSlab = th => !(th.x > RUNG.top - RUNG.run - 22 && th.x < RUNG.top + 18 && th.y - g(th.x) < 76);
   for (let i = things.length - 1; i >= 0; i--) if (!offSlab(things[i])) things.splice(i, 1);
   const trees = things.map(th => [th.x, th.y - g(th.x), th.tree.w]);
-  const main = new Strip(SW, 20, 600); paintMain(main, (x, r) => { let a = 0; for (const [tx, ty, tw] of trees) { const d = Math.abs(x - tx) / (tw + 6) + Math.abs(r - ty) / 14; if (d < 1) a = Math.max(a, 1 - d); } return a; });
+  // The near ground's strip reaches as high as the ground does. It used to stop 20 rows above the start's
+  // level, and the benches climb twice that by the end, so the last of the trail, with its cairns, rocks and
+  // larches, stood in the air above a ground that had been cut off (round 5, T67).
+  let high = 0; for (let x = 0; x < SW; x++) high = Math.max(high, 16 - Math.min(g(x), bench(x)));
+  const main = new Strip(SW, high, 600); paintMain(main, (x, r) => { let a = 0; for (const [tx, ty, tw] of trees) { const d = Math.abs(x - tx) / (tw + 6) + Math.abs(r - ty) / 14; if (d < 1) a = Math.max(a, 1 - d); } return a; });
   for (let n = 0; n < 26; n++) { const x = Math.round(rand() * SW), y = (rand() < 0.5 ? -6 : 10 + rand() * 90) | 0; things.push({ bm: makeBoulder(660 + n, 3 + rand() * 6), x, y: g(x) + y }); }
   for (let x = X0 - 60; x < SW; x += 1) if (bench(x + 1) < bench(x) && bench(x) >= bench(x - 3)) { things.push({ bm: makeCairn(670 + x), x: x + 6, y: g(x + 6) - 3 + bench(x) - bench(x + 6) }); x += 60; }
   // Goats (G5). A nanny and her kid (behind her, facing her) on the first broad slab below the trail past the scene's first third;
