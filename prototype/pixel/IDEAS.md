@@ -184,3 +184,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Pika haystacks.** In the larch basin and on the moraine, the pika's little piles of drying grass under the boulders, which a curious visitor can click.
 - **Cloud shadows** drifting across the map on the wind, slow and soft, darker over the meadow, so the land never sits completely still.
 
+- **A Flag on the Register** (round 5, B2). Once a visitor has finished all three and can sign, the register's lid stands open a crack or a small red flag goes up on its post, like a mailbox, so they know without opening it.
