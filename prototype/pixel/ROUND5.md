@@ -411,13 +411,13 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 ### A. Setup
 
-- [ ] A0. **Make https://github.com/zimmertr/trailhead/pull/31 (round 4 into main) pass CI.** Four checks failed on 2026-11-16: `CodeQL`, `Lint / semgrep`, `Static Checks` and `Unit Tests`. Every other check passed.
+- [x] A0. **Make https://github.com/zimmertr/trailhead/pull/31 (round 4 into main) pass CI.** Four checks failed on 2026-11-16: `CodeQL`, `Lint / semgrep`, `Static Checks` and `Unit Tests`. Every other check passed.
   - Read each failure: `gh pr checks 31`, then `gh run view --job <job id> --log-failed`.
   - The likely cause is the repo's own linters, tests and scanners now reaching `prototype/` (plain browser JS, a Dockerfile, shell scripts, big generated files), which they were never set up for. Prefer excluding `prototype/` in each tool's own config, with a one-line comment saying why: it is a throwaway prototype, checked by renders, not by the site's tests. Fix the prototype's code instead only where a finding is a real bug (for example a real security finding from semgrep or CodeQL). Never weaken a check for the rest of the repo.
   - Work on `pixel-round4-opus`: commit, push, wait for CI and repeat until every required check passes. Then mark #31 ready for review (`gh pr ready 31`). **Never merge it. TJ merges.** Then rebase `pixel-round5` onto `pixel-round4-opus` and push (a force push to our own `pixel-round5` is fine).
   - Re-check CI on https://github.com/zimmertr/trailhead/pull/32 (round 5's draft PR, stacked on #31) after the rebase.
   - If, at any later item, #31 has been merged: close #22 with a comment (the Renovate rule landed in #31), tag `pixel-round4-opus` as `archive/pixel-round4-opus` and delete the branch, rebase `pixel-round5` onto `origin/main`, and point #32 at `main`.
-- [ ] A0b. **File the nine issues** listed in section 5.13, one per idea, with the `create-issue` skill (its six sections, the hemingway and humanizer passes, the labels it requires, and this repo's `CLAUDE.md` Issues section). TJ asked for all nine, so no further okay is needed. Put each issue's link in section 10.
+- [x] A0b. **File the nine issues** listed in section 5.13, one per idea, with the `create-issue` skill (its six sections, the hemingway and humanizer passes, the labels it requires, and this repo's `CLAUDE.md` Issues section). TJ asked for all nine, so no further okay is needed. Put each issue's link in section 10.
 - [ ] A0c. **Rewrite #8 and #14 to #17 for the pixel site** (as it stands now and as round 5 leaves it), in the `create-issue` skill's format and with its passes. Edit each issue in place with `gh issue edit` (title, body and labels). Save each old title and body first in `plan/issue-rewrites-old.md`, so nothing is lost. TJ asked for the issues to be updated, not drafted (2026-11-16). List the links in the report.
 - [ ] A1. Rebase `pixel-round5` onto `origin/main` if #31 has merged (see A0). Create the round's artifact from the first build and put its link in section 10.
 - [ ] A2. Render round 4's reference set from tag `archive/pixel-r4-final` into `out/r4/`: every view in section 7, the opening on desktop and phone, every stop of every route, Day and Dusk, plus films of the map events. These are the pictures every item is compared with.
@@ -557,13 +557,17 @@ The loop prompt TJ can start round 5 with (paste it after `/loop`):
 - **2026-11-16, before any work.** `pixel-round5` was cut from `pixel-round4-opus` at the round 4 PR's head and holds this plan and TJ's screenshots. The game is exactly round 4's final build (`archive/pixel-r4-final` plus the docs commits on #31).
 - The round's artifact: (created at A1).
 - The round's PR: https://github.com/zimmertr/trailhead/pull/32 (draft, stacked on #31 until #31 merges).
-- Round 4's PR: https://github.com/zimmertr/trailhead/pull/31 (draft; four checks failing, item A0).
+- Round 4's PR: https://github.com/zimmertr/trailhead/pull/31, every check green and ready for TJ to merge (A0, commit `46dfa56`). `pixel-round5` is rebased on it.
+- Issues filed at A0b (label `8d20dfc8`): menus and hotkeys https://github.com/zimmertr/trailhead/issues/33, words out of the source https://github.com/zimmertr/trailhead/issues/34, Strava and Peakbagger in the world https://github.com/zimmertr/trailhead/issues/35, forest light beams https://github.com/zimmertr/trailhead/issues/36, art from the GPU https://github.com/zimmertr/trailhead/issues/37, engine rules https://github.com/zimmertr/trailhead/issues/38, free explore https://github.com/zimmertr/trailhead/issues/39, the forest maze https://github.com/zimmertr/trailhead/issues/40, purging working files https://github.com/zimmertr/trailhead/issues/41.
+- Next: A0c.
 
 ## 11. Calls made in round 5
 
 One line each, newest last: the item, what was decided, and why.
 
-(none yet)
+- A0: the four failures were the site's checks reaching `prototype/` for the first time: ESLint (198 errors, browser globals and unused names in plain JS), two repo-wide tests (a Dockerfile that is not a service, and `npm i` in it), semgrep (the lab image's `FROM` not pinned) and CodeQL (`sheet.html` called a method named by the address). Excluded `prototype/` from ESLint's config and from the walker in `tests/repo.ts`, each with a comment, so no check got weaker for the site. Pinned the lab image by digest and guarded the set name with `Object.hasOwn`, since those two were real.
+- A0, A0b: no game change, so the round's artifact waits for A1 to be created.
+- A0b: priorities P2 for what likely comes next (menus #33, words #34, GPU art #37, engine rules #38, forest maze #40) and P3 for the rest (#35, #36, #39, #41). #35 is blocked by #6. #39 needs a decision record amending 0014 and 0007. The session label is the short id `8d20dfc8`, as the create-issue skill now asks.
 
 ## 12. The reference pictures
 
