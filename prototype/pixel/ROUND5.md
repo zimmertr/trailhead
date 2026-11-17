@@ -327,7 +327,7 @@ TJ asked what the planner would add to move the round toward the MVP, and picked
 
 - Round 4 goes into main through https://github.com/zimmertr/trailhead/pull/31. It carries draft PR #24's decision record (the world is flat and on rails) and the Renovate rule that retires #22. After the merge, close #22.
 - Every old branch was tagged `archive/<name>` and deleted. #24 and #13 are closed.
-- The pixel world is the site TJ plans to ship. Issues #8 and #14 to #17 are to be rewritten for the pixel site, with the drafts shown to TJ before any edit. The PRD and README still describe a low-poly 3D world and move with that rewrite.
+- The pixel world is the site TJ plans to ship. Issues #8 and #14 to #17 are rewritten in place for the pixel site (item A0c), with their old text kept in `plan/issue-rewrites-old.md`. The PRD and README still describe a low-poly 3D world and move with that rewrite.
 - Filed as issues for after round 5, one each:
   - menus, the timeline and hotkeys
   - text editable through a CMS or plain text files
@@ -418,7 +418,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
   - Re-check CI on https://github.com/zimmertr/trailhead/pull/32 (round 5's draft PR, stacked on #31) after the rebase.
   - If, at any later item, #31 has been merged: close #22 with a comment (the Renovate rule landed in #31), tag `pixel-round4-opus` as `archive/pixel-round4-opus` and delete the branch, rebase `pixel-round5` onto `origin/main`, and point #32 at `main`.
 - [ ] A0b. **File the nine issues** listed in section 5.13, one per idea, with the `create-issue` skill (its six sections, the hemingway and humanizer passes, the labels it requires, and this repo's `CLAUDE.md` Issues section). TJ asked for all nine, so no further okay is needed. Put each issue's link in section 10.
-- [ ] A0c. **Draft the rewrites of #8 and #14 to #17** for the pixel site, as it now stands and as round 5 leaves it, into `plan/issue-rewrites.md`, in the `create-issue` skill's format. **Do not edit the issues.** TJ reads the drafts first. List them in the report.
+- [ ] A0c. **Rewrite #8 and #14 to #17 for the pixel site** (as it stands now and as round 5 leaves it), in the `create-issue` skill's format and with its passes. Edit each issue in place with `gh issue edit` (title, body and labels). Save each old title and body first in `plan/issue-rewrites-old.md`, so nothing is lost. TJ asked for the issues to be updated, not drafted (2026-11-16). List the links in the report.
 - [ ] A1. Rebase `pixel-round5` onto `origin/main` if #31 has merged (see A0). Create the round's artifact from the first build and put its link in section 10.
 - [ ] A2. Render round 4's reference set from tag `archive/pixel-r4-final` into `out/r4/`: every view in section 7, the opening on desktop and phone, every stop of every route, Day and Dusk, plus films of the map events. These are the pictures every item is compared with.
 
@@ -550,7 +550,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 The loop prompt TJ can start round 5 with (paste it after `/loop`):
 
-> Round 5 of the trailhead pixel prototype, unattended. Every firing: work in the scratchpad clone of https://github.com/zimmertr/trailhead on branch pixel-round5 (clone it into the session scratchpad if it is gone, never /tmp, never ~/git). Fetch first. Read prototype/pixel/ROUND5.md sections 2, 3, 10 and 14, and the part of section 5 for the item. Take the first unticked item in section 8 and finish it by the steps in section 9. Round 4's final build is the floor, not the goal: compare every change with it side by side and fix anything worse before ticking. After each item: tick it, log every call in section 11, keep section 10 current, add every idea to IDEAS.md, commit and push, and republish the round's one artifact with a short label. There are no checkpoints. Follow every rule in section 2. Items A0 to A0c come first: they make PR #31 pass CI (never merge it), file the nine issues, and draft the issue rewrites without editing the issues. Do not ask questions: make the call, log it and carry on. After K6, write the full report and end the loop.
+> Round 5 of the trailhead pixel prototype, unattended. Every firing: work in the scratchpad clone of https://github.com/zimmertr/trailhead on branch pixel-round5 (clone it into the session scratchpad if it is gone, never /tmp, never ~/git). Fetch first. Read prototype/pixel/ROUND5.md sections 2, 3, 10 and 14, and the part of section 5 for the item. Take the first unticked item in section 8 and finish it by the steps in section 9. Round 4's final build is the floor, not the goal: compare every change with it side by side and fix anything worse before ticking. After each item: tick it, log every call in section 11, keep section 10 current, add every idea to IDEAS.md, commit and push, and republish the round's one artifact with a short label. There are no checkpoints. Follow every rule in section 2. Items A0 to A0c come first: they make PR #31 pass CI (never merge it), file the nine issues, and rewrite issues #8 and #14 to #17 in place. Do not ask questions: make the call, log it and carry on. After K6, write the full report and end the loop.
 
 ## 10. Where the build stands
 
