@@ -239,3 +239,11 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Rain That Thins Toward Its Edge** (round 5, E4). The patches nearest the deck's front could deal a streak less often, so the drizzle tails off into dry air and never stops at a line.
 - **A Gust Bends the Rain** (round 5, E4). When a gust crosses the forest, the streaks in its path could slant harder for a second, the way the trees already lean.
 - **Elk Shake Off the Rain** (round 5, E4). An animal standing under the drizzle could shake itself once the deck lifts.
+- **The Eagle Calls** (round 5, E5). A bald eagle's call is a thin, high chatter, nothing like the scream films give it. One short call as it lifts off would tell a visitor to look at the stacks.
+- **Gulls Mob the Eagle** (round 5, E5). When the eagle circles, two of the gulls could break from their own circle and chase it for a lap, as gulls do.
+- **The Eagle Robs the Osprey** (round 5, E5). Bald eagles steal fish from ospreys in the air. Once in a long while the eagle could cross to the lake, harry the osprey until it drops its catch, and take it.
+- **An Osprey Nest on a Snag** (round 5, E5). A big stick nest on a dead tree's top in the forest west of the lake would give the osprey somewhere to come from and go to, and a second bird could sit on it.
+- **A Missed Dive** (round 5, E5). One plunge in three could come up empty: the osprey shakes, circles once more and tries again.
+- **Feathers on the Rock** (round 5, E5). After the eagle has eaten, a few pale specks could be left on the stack's top until the next rain washes them off.
+- **A Young Eagle** (round 5, E5). A mottled brown bird with no white head could sit on a lower stack and watch the adult fish.
+- **The Splash Has a Sound** (round 5, E5). The osprey's plunge deserves a short slap and hiss, heard only when the lake is on screen.

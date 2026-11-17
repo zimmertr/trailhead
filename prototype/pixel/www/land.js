@@ -316,7 +316,7 @@ if (!B) { const { cu, cv, ru, rv } = PRO, LV = hAt(cu, cv - rv - 14) + 4, MI = M
     if (e < 1) { if (hg[i] > LV) hg[i] = LV; continue; }
     const out = (e - 1) * lerp(rv, ru, Math.abs(x) / e); if (out > 12) continue; const crest = LV + 2 - Math.max(0, out - 2) * 0.8; if (hg[i] < crest) { hg[i] = crest; mg[i] = MI; } } }
 // Still water is level, so a lake flattens the ground under it to the height of its shore.
-const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypot((u - ISLE[0]) / 7, (v - ISLE[1]) / 3.2);
+const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypot((u - ISLE[0]) / 7, (v - ISLE[1]) / 3.2); C.lakeIsle = ISLE;
 const lakeRim = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) { const d = Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); if (d >= 1 && d < 1 + 2.2 / Math.min(ru, 8 * rv)) return kind; } return null; };
 const lakeAt = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) if (Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5) < 1) return kind; return null; };
 // The talus fan stands a little proud of the step, highest against the wall.
@@ -1513,6 +1513,10 @@ export function buildTerrain() {
     // One tent (round 5, T49: "TJ and Kayti share tents"), on the island in the glacier (T48).
     tents: [[...sxy(C.isle[0] - 3, C.isle[1] - 2), 'tent']],
     journal: sxy(lake[0] + lake[2] + 16, lake[1] - 6), lakeShore: shore,
+    // The osprey (round 5, T16): Reflection Lake as an oval on the picture, and where it dives: the middle of
+    // the lake's widest open water, half way from the island to the east shore and a third of the way from
+    // the lake's middle to its near shore.
+    osprey: { lake: [...sxy(lake[0], lake[1]), lake[2], lake[3]], dive: sxy((C.lakeIsle[0] + 7 + lake[0] + lake[2]) / 2, lake[1] - lake[3] / 3) },
     // Where each destination's name is pinned: on the lake, on Proficiency Peak's wall, on the ice under the Spires.
     places: { lake: [lake[0], LAND.toY(lake[0], lake[1]) - 8], stack: [peak.cu, topOf(peak.cu, 'fin') + 44], spires: [sp.cu + 10, LAND.toY(sp.cu, 598)] },
     // A flag for each finished destination: at the lake shore, on Proficiency Peak, on the Spires' highest summit.
