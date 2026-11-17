@@ -529,7 +529,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 ### E. Events and animals on the map
 
-- [ ] E0. **Room for the animals.** On 2026-11-16 the zoomed-out map took 14.9 ms a frame at Dusk and 15.5 ms through the sunset blend, against a limit of 16.7 ms (round 4: 13.5 ms at Dusk). Before any animal is added, find what the round has cost so far (profile C1's collision, C3's clock and blend, C4's overlays when off) and bring both views to 13.5 ms or under. If that cannot be done, log what was tried and what each new animal may cost, and carry on.
+- [x] E0. **Room for the animals.** On 2026-11-16 the zoomed-out map took 14.9 ms a frame at Dusk and 15.5 ms through the sunset blend, against a limit of 16.7 ms (round 4: 13.5 ms at Dusk). Before any animal is added, find what the round has cost so far (profile C1's collision, C3's clock and blend, C4's overlays when off) and bring both views to 13.5 ms or under. If that cannot be done, log what was tried and what each new animal may cost, and carry on.
 - [ ] E1. T15: the ferry and the orcas keep to deep water at every tide (check through a whole tide cycle on film).
 - [ ] E2. T26: jellyfish offshore.
 - [ ] E3. T33: the tide pool twice the size, with animated animals.
@@ -669,7 +669,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **D13 done.** The driftwood on the beach is redrawn. Each log is a long, pale, sun-bleached trunk with grain lines along its length, a darker underside, a splintered far end, one or two branch stubs, and on about half of them a root wad at the butt. Each lies at its own angle above the high-water line and has a shadow on the sand. There are eight different logs, and fourteen lie along the coast where there were four. The small sticks painted into the sand are bleached too.
 - **D14 done.** On the map base camp is one yellow-orange tent on a low island of rock in the middle of the Spires' glacier, just below the icefall. The red tent is gone from the map. The trail's tread still ends on the west moraine, where the tents stood. From there a boot track crosses the ice to the island, and the track up the icefall to the wall now starts at the island, as do the headlamps at Dusk, the tent's glow and the stove's smoke. The walk scene and the camp scene still show two tents: those are G1 and G2.
 - **D4 done, and with it section D.** Every place where water meets water on the map was looked at, 28 joins in all, and each has its picture on the notes page (https://claude.ai/artifact/C3vp7qfxAtoHGnTioe2sNs, under "The water audit"). Two were broken and are fixed. Reflection Lake's fall was drawn twice, 7 px apart: now it is one fall, joined to the stream above and the river below. The pond on the east creek showed only as a V of water in a trench: now it is a level pool with the creek running in and the fall running out. The other 26 were whole, the river mouths at every tide.
-- Next: E0.
+- **E0 done, with no code changed.** The zoomed-out map with every event running takes 11.8 to 11.9 ms a frame at Dusk and 12.0 to 12.5 ms through the sunset blend, both under the 13.5 ms target, and round 4's own build takes 12.3 to 12.4 ms at Dusk on the same machine today. The 14.9 and 15.5 ms of 2026-11-16 were taken while other renders were running. That leaves about 4 ms under the 16.7 ms limit for section E's animals.
+- Next: E1.
 
 ## 11. Calls made in round 5
 
@@ -798,6 +799,9 @@ One line each, newest last: the item, what was decided, and why.
 - D4, three things the tools flagged that are not faults. On Mount Monolith the two moraine streams' lines run a pixel or two off the water the painting draws for them: the painted streams are whole (pictures a3 and a5). The rainforest's stream runs unseen behind the foothills and their forest for its first third, and comes out of the trees as a stream does. The small lake above the two far moraine lakes has no stream in or out: I left it, since a tarn with no outlet is common, and giving it one is a new stream TJ did not ask for.
 - D4. A driftwood log from D13 lies with one end at the south river's bank on the sand. It stays: logs gather at river mouths.
 - D4, checks: `check.sh D4 D14` passed, 12.0 ms a frame zoomed out at Dusk, lint clean, nothing moved more than 8 px. Both fixes were laid beside round 4's build (the two "Fixed" rows on the notes page).
+- E0, measured 2026-11-17 with nothing else running (load 1.4), three runs each, by `out/e0/time.sh` (the same view and events as `check.sh`): Dusk 11.9, 11.9, 11.8 ms; the sunset blend 12.0, 12.5, 12.2 ms with the clock at 170 s, 12.3 and 12.5 at 166 s, 12.3 and 12.1 at 178 s; day 10.7, 11.4, 11.0 ms; round 4's final build at Dusk 12.3, 12.4, 12.3 ms. So round 5 so far is a little faster than round 4 at Dusk, not slower, and the target was already met. As S3c's note said to, I measured before doing any work, and then did none: no profile of C1, C3 or C4 was needed.
+- E0, room left: the slowest view (the blend) has 4.2 ms under the limit. Each E item still gets its own number from `check.sh`. A map animal drawn from a few small sprites has cost well under 0.1 ms each so far (83 signs and animals are in the 11.9 ms).
+- E0. The game's artifact was not republished for this item, since no file of the game changed: version 29 is still current.
 
 ## 12. The reference pictures
 
