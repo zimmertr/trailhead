@@ -663,6 +663,17 @@ const SLIP = (() => {
   }
   return best;
 })();
+// Where TJ comes off (round 5, T73: in real life he could not climb the off-width at the end): 30% of the
+// way up pitch 5's off-width, after a struggle. He drops `drop` along the line as the rope stretches and
+// swings out over the air left of the headwall. The other two then rig a 3:1 haul at the summit anchor
+// (`rig` seconds) and yank on it together `yanks` times: each yank is a reach down the rope and a heave
+// back, and lifts him a quarter of the way from where he hangs to his place at the belay, so the last
+// one brings him to them.
+const WHIP = (() => {
+  let a = -1, b = -1; for (let d = Math.ceil(MARK.a4); d < MARK.top; d++) if (styleAt(d) === 'ow') { if (a < 0) a = d; b = d; }
+  return { p: 5, ow0: a, at: a + 0.3 * (b - a), drop: 20 };
+})();
+const HAUL = { swing: 2.0, rig: 1.5, yanks: 4, reach: 0.4, heave: 0.5, lift: 0.3 };
 // What each belay is built from (TJ, section 5): the sling-wrapped block backed up with two cams, the two
 // slung horns, three cams by the flake, a horn, a cam and a nut, and the summit block.
 const ANCHOR_KIT = { a1: ['block', 'cam', 'cam'], a2: ['horn', 'horn'], a3: ['cam', 'cam', 'cam'], a4: ['horn', 'cam', 'nut'], top: ['block'] };
@@ -685,7 +696,7 @@ const UNDER = { out: 1.2, land: 3.0, unclip: 3.6, snag: 6.2, heave: [6.4, 9.4], 
 const DESC_LEN = DESC.under + UNDER.walk + 1.3;
 function makeScript() {
   const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [], anc = [];
-  let slipAt = -1, fallAt = -1;
+  let slipAt = -1, fallAt = -1, whipAt = -1, haulAt = -1, rigAt = -1, upAt = -1; const yanks = [];
   const pos = { tj: 0, lead: MARK.tie, red: dAtX(183) }, pose = { tj: 'walk', lead: 'rack', red: 'sit' }, clock = { tj: 0, lead: 0, red: 0 };
   const go = (k, to, p, dur, after) => { tr[k].push({ t0: clock[k], t1: clock[k] + dur, d0: pos[k], d1: to, pose: p }); clock[k] += dur; pos[k] = to; pose[k] = after || p; };
   const move = (k, to, p, v, after) => {
@@ -765,9 +776,37 @@ function makeScript() {
     // card opens, with everyone up.
     const t2 = clock.tj;
     if (p > 1) { go('tj', pos.tj, 'anchor', BEAT.strip); anc[p - 2].gone = clock.tj - 0.1; }
-    for (const g of mine) { move('tj', Math.max(pos.tj, g.d - 6), 'climb', SPEED.tj); go('tj', pos.tj, 'clean', g.fixed ? BEAT.unclip : BEAT.clean); g.gone = clock.tj - 0.1; }
-    move('tj', a + AT.tj, 'climb', SPEED.tj, 'stand'); go('tj', pos.tj, 'anchor', BEAT.tieIn, 'stand');
-    ropes.push({ a: 'red', b: 'tj', t0: t2, t1: clock.tj, two: true }, { a: 'lead', b: 'red', t0: t2, t1: clock.tj, idle: true });
+    // He climbs to `to` at pace v, taking out each piece he comes to on the way (every piece left, if all).
+    const tjUp = (to, v, all) => {
+      for (const g of mine) if (g.gone === Infinity && (all || g.d - 6 <= to)) { move('tj', Math.max(pos.tj, g.d - 6), 'climb', v); go('tj', pos.tj, 'clean', g.fixed ? BEAT.unclip : BEAT.clean); g.gone = clock.tj - 0.1; }
+      if (!all) move('tj', Math.max(pos.tj, to), 'climb', v);
+    };
+    if (p === WHIP.p) {
+      // The off-width beats him: slower and slower up it, a rest, a slide back, another rest, a last
+      // lunge, and off. He drops, swings out and hangs.
+      tjUp(WHIP.ow0, SPEED.tj); const span = WHIP.at - pos.tj;
+      tjUp(WHIP.at - 0.6 * span, 0.5 * SPEED.tj); go('tj', pos.tj, 'rest', 0.5);
+      tjUp(WHIP.at - 0.15 * span, 0.5 * SPEED.tj); go('tj', pos.tj - 0.15 * span, 'climb', 0.25); go('tj', pos.tj, 'rest', 0.5);
+      tjUp(WHIP.at, 0.3 * SPEED.tj); go('tj', pos.tj, 'rest', 0.25);
+      whipAt = clock.tj; go('tj', pos.tj - WHIP.drop, 'whip', 0.45, 'swing'); go('tj', pos.tj, 'swing', HAUL.swing);
+      // She holds him; then the two of them rig the haul and yank on it together.
+      hold('red', whipAt + 0.3); go('red', pos.red, 'catch', 1.2, 'tbelay'); hold('red', clock.tj); hold('lead', clock.tj);
+      rigAt = clock.red; for (const k of ['lead', 'red']) go(k, pos[k], 'rig', HAUL.rig);
+      haulAt = clock.red - 0.5; hold('tj', clock.red);
+      const d0 = pos.tj, d1 = a + AT.tj;
+      for (let j = 1; j <= HAUL.yanks; j++) {
+        for (const k of ['lead', 'red']) { go(k, pos[k], 'pull', HAUL.reach); go(k, pos[k], 'heave', HAUL.heave); }
+        hold('tj', clock.tj + HAUL.reach); const s0 = clock.tj, to = lerp(d0, d1, j / HAUL.yanks); yanks.push(s0);
+        // He snatches each piece out as he is dragged past it.
+        for (const g of mine) if (g.gone === Infinity && g.d <= to) g.gone = s0 + HAUL.lift * clamp((g.d - pos.tj) / (to - pos.tj), 0, 1);
+        go('tj', to, 'hauled', HAUL.lift, 'swing'); hold('tj', clock.red);
+      }
+      upAt = clock.tj; pose.red = 'tbelay'; pose.lead = 'stand'; go('tj', pos.tj, 'anchor', BEAT.tieIn, 'stand');
+      ropes.push({ a: 'red', b: 'tj', t0: t2, t1: haulAt, two: true }, { a: 'red', b: 'tj', t0: haulAt, t1: clock.tj, two: true, haul: true }, { a: 'lead', b: 'red', t0: t2, t1: haulAt, idle: true });
+    } else {
+      tjUp(0, SPEED.tj, true); move('tj', a + AT.tj, 'climb', SPEED.tj, 'stand'); go('tj', pos.tj, 'anchor', BEAT.tieIn, 'stand');
+      ropes.push({ a: 'red', b: 'tj', t0: t2, t1: clock.tj, two: true }, { a: 'lead', b: 'red', t0: t2, t1: clock.tj, idle: true });
+    }
     if (CARD[PITCH[p]]) stops.push({ id: CARD[PITCH[p]], t: clock.tj });
     hold('red', clock.tj); pose.red = 'stand';
   }
@@ -779,9 +818,17 @@ function makeScript() {
   stops.push({ id: 'summit', t: sumT + SUMMIT_LEN - 0.4 });
   // The summit anchor comes down as they set off for the edge.
   const descT = sync(); for (const k of WHO) go(k, pos[k], 'desc', DESC_LEN); anc[anc.length - 1].gone = descT + 0.6;
-  return { tr, ropes, stops, pro, anc, slipAt, fallAt, bumpAt, sumT, descT, lidAt, dropAt: tr.tj[1].t0 + 0.35, dur: clock.tj };
+  return { tr, ropes, stops, pro, anc, slipAt, fallAt, whipAt, haulAt, rigAt, upAt, yanks, bumpAt, sumT, descT, lidAt, dropAt: tr.tj[1].t0 + 0.35, dur: clock.tj };
 }
 const SCRIPT = makeScript(), DUR = SCRIPT.dur;
+// How far TJ hangs out from the line at a moment after he comes off: out over the air and back to kick
+// off the rock, less each time, and a smaller swing after each yank of the haul.
+function swingAt(tau) {
+  let t0 = SCRIPT.whipAt + 0.2, A = 30;
+  for (const y of SCRIPT.yanks) if (tau >= y) { t0 = y; A = 6; }
+  const v = Math.max(0, tau - t0);
+  return { x: -A * Math.exp(-v / 1.3) * Math.abs(Math.sin(v * 2.3)), h: -2 * Math.exp(-v * 2.5) * Math.cos(v * 9) };
+}
 // Each of them at a moment: where along the line, in what pose, how far through it, whether moving;
 // and the ropes that are live then.
 function stateAt(tau) {
@@ -799,7 +846,7 @@ const META = {
   stops: () => SCRIPT.stops.map(s => ({ id: s.id, at: s.t / DUR })),
   elev: (arg, q) => { const tau = q * DUR, top = posAt(LEN).h; return tau < SCRIPT.descT ? posAt(stateAt(tau).tj.d).h : top * (1 - smooth(0, DESC_LEN, tau - SCRIPT.descT)); },
   // The fist bump, and a click of metal as each piece goes in.
-  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, ...FIVES.map(v => ({ at: (SCRIPT.sumT + v.at) / DUR, name: 'slap' })), { at: (SCRIPT.sumT + 4.4) / DUR, name: 'summit' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' })), ...[2.0, 2.8].map(v => ({ at: (SCRIPT.descT + v) / DUR, name: 'place' })), ...WHO.flatMap(w => [{ at: (SCRIPT.descT + DESC.turn[w] + 1.1) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.turn[w] + 1.55) / DUR, name: 'glissade' }]), { at: (SCRIPT.descT + DESC.under + UNDER.unclip - 0.4) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.under + UNDER.snag) / DUR, name: 'catch' }]
+  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, ...FIVES.map(v => ({ at: (SCRIPT.sumT + v.at) / DUR, name: 'slap' })), { at: (SCRIPT.sumT + 4.4) / DUR, name: 'summit' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, { at: SCRIPT.whipAt / DUR, name: 'fall' }, { at: (SCRIPT.whipAt + 0.45) / DUR, name: 'catch' }, { at: (SCRIPT.haulAt - 0.4) / DUR, name: 'place' }, { at: SCRIPT.haulAt / DUR, name: 'place' }, ...SCRIPT.yanks.map(y => ({ at: y / DUR, name: 'catch' })), ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' })), ...[2.0, 2.8].map(v => ({ at: (SCRIPT.descT + v) / DUR, name: 'place' })), ...WHO.flatMap(w => [{ at: (SCRIPT.descT + DESC.turn[w] + 1.1) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.turn[w] + 1.55) / DUR, name: 'glissade' }]), { at: (SCRIPT.descT + DESC.under + UNDER.unclip - 0.4) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.under + UNDER.snag) / DUR, name: 'catch' }]
 };
 
 // Every drawing one of them needs, in their own kit. On the ground: walking, standing, crouched,
@@ -1206,7 +1253,7 @@ function buildRidge() {
       // The camera holds on whoever is on the live end of a rope (between the two of them on pitch 1, and
       // between climber and belayer while someone hangs on the rope, so the catch is seen),
       // so it does not jump back to the belayer each time the climber stops; him the rest of the time.
-      const held = r => S[r.b].pose === 'slip' || S[r.b].pose === 'hang' || S[r.b].pose === 'fall', mid = (p, q) => ({ x: (p.x + q.x) / 2, h: (p.h + q.h) / 2 });
+      const held = r => OFF.includes(S[r.b].pose), mid = (p, q) => ({ x: (p.x + q.x) / 2, h: (p.h + q.h) / 2 });
       // A rope hanging slack between two at a stance, and the one she trails, do not lead the camera.
       const live = S.ropes.filter(r => !r.idle && !r.trail);
       const ends = live.length ? live.map(r => held(r) ? mid(posAt(S[r.a].d), posAt(S[r.b].d)) : posAt(S[r.b].d)) : [posAt(S.tj.d)], at = { x: ends.reduce((a, p) => a + p.x, 0) / ends.length, h: ends.reduce((a, p) => a + p.h, 0) / ends.length };
@@ -1236,6 +1283,10 @@ function buildRidge() {
       const P = {};
       for (const w of WHO) { const s = S[w], p = posAt(s.d); P[w] = { ...s, ...p, steep: p.where === 's' && Math.abs(p.dh) > Math.abs(p.dx) * 0.8 }; }
       if (P.red.where === 's' && P.red.moving) P.red.x += 1.5 * Math.sin(P.red.d / 7);
+      if (P.tj.pose === 'whip' || P.tj.pose === 'swing' || P.tj.pose === 'hauled') { const sw = swingAt(tau); P.tj.x += sw.x; P.tj.h += sw.h; }
+      // For the haul the woman steps down the rope from the leader so the two pull one behind the other,
+      // and each throws their weight back a step on every heave.
+      { const apart = smooth(SCRIPT.rigAt, SCRIPT.rigAt + 0.4, tau) * (1 - smooth(SCRIPT.upAt, SCRIPT.upAt + 0.3, tau)); P.red.x -= 8 * apart; for (const w of ['lead', 'red']) P[w].x += P[w].pose === 'heave' ? 5 : P[w].pose === 'pull' ? -3 : 0; }
       // On the face, hands and feet on the holds, and the hips between them.
       for (const w of WHO) { P[w].hood = P[w].h >= HOOD_H; P[w].fig = null; }
       // On the summit each eases over to their spot as they walk up to it.
@@ -1277,6 +1328,13 @@ function buildRidge() {
           // Waiting their turn, they watch the edge.
           put(fr.idle, sx, sy, s.left); return;
         }
+        // Off the off-width: falling, then hanging on the rope while he swings and is hauled.
+        if (s.pose === 'whip') { put(fr.fall[Math.floor(t * 20) & 1], sx, sy - 12, false); return; }
+        if (s.pose === 'swing' || s.pose === 'hauled') { put(fr.hang, sx, sy - 12, false); return; }
+        // The haul: crouched over the rope rigging it; then, facing the load, a reach down the rope and a heave back.
+        if (s.pose === 'rig') { put(fr.rig[Math.floor(t * 3) & 1], sx, sy, true); return; }
+        if (s.pose === 'pull') { put(fr.rig[0], sx, sy, true); return; }
+        if (s.pose === 'heave') { put(fr.heave, sx, sy - (u < 0.5 ? 1 : 0), true); return; }
         if (s.pose === 'walk' || (s.moving && !s.steep && s.pose !== 'drop')) { put(env.moving && s.moving ? fr.side[Math.floor(s.d / 4.2) % 6] : fr.idle, sx, sy, s.dir < 0); return; }
         if (s.pose === 'drop') { put(u < 0.25 || u > 0.85 ? fr.idle : fr.crouch, sx, sy, true); return; }
         if (s.pose === 'rack') { put(fr.rack[Math.floor(t * 1.5) & 1], sx, sy, true); return; }
@@ -1323,6 +1381,7 @@ function buildRidge() {
       // them, in order, to the climber's waist; where the line between two of those goes along or
       // behind the crest, over the crest along its upper hull. A piece holds the leader's rope until the
       // woman swaps the second rope into it, and the second rope from then until TJ takes it out.
+      let haul = null;
       for (const r of S.ropes) {
         const a = P[r.a], c = P[r.b], lo = Math.min(a.d, c.d), hi = Math.max(a.d, c.d);
         // A leader's rope also runs up to the piece he has just clipped above his waist and back down,
@@ -1330,13 +1389,15 @@ function buildRidge() {
         // The rope she trails also runs up to the piece she has just swapped it into, above her waist.
         const via = []; if (!r.idle) for (let i = 0; i < pro.length; i++) if (lit(i) && (tau >= pro[i].swap) === !!r.two && pro[i].d > lo && pro[i].d < (c.d > a.d ? hi + (r.trail ? 10 : 80) : hi)) via.push(i);
         via.sort((i, j) => (pro[i].d - pro[j].d) * (c.d > a.d ? 1 : -1));
-        const onRock = c.pose === 'lead' || c.pose === 'climb' || c.pose === 'place' || c.pose === 'clean' || c.pose === 'unclip' || c.pose === 'rest' || c.pose === 'slip' || c.pose === 'hang';
-        const ends = [{ d: a.d, x: Math.round(a.x) + (c.x > a.x ? 5 : -5), h: a.h + 9 }, ...via.map(i => ({ d: pro[i].d, x: SPOT[i].x, h: SPOT[i].bi })), { d: c.d, x: Math.round(c.x) + c.bx, h: c.h + (onRock ? 12 : 9) }];
+        const onRock = c.pose === 'lead' || c.pose === 'climb' || c.pose === 'place' || c.pose === 'clean' || c.pose === 'unclip' || c.pose === 'rest' || OFF.includes(c.pose);
+        // The rope he is hauled on runs to the pulley at the summit anchor, not to her hands.
+        const top = ASPOT[ASPOT.length - 1].M;
+        const ends = [r.haul ? { d: a.d, x: top.x, h: top.h } : { d: a.d, x: Math.round(a.x) + (c.x > a.x ? 5 : -5), h: a.h + 9 }, ...via.map(i => ({ d: pro[i].d, x: SPOT[i].x, h: SPOT[i].bi })), { d: c.d, x: Math.round(c.x) + c.bx, h: c.h + (onRock ? 12 : 9) }];
         // Between two points it hangs free it sags: a leader's rope more (the belayer pays out ahead of
         // him), with a loop below him for a moment after each clip (he pulled up an armful to clip);
         // a follower's rope, taken in from above, only a little. Where it lies over the crest it does
         // not sag, and on a fall or a held follower it comes tight and straight.
-        const lead = c.d > a.d, tight = c.pose === 'fall' || c.pose === 'hang' || c.pose === 'slip';
+        const lead = c.d > a.d, tight = OFF.includes(c.pose);
         let lastClip = -Infinity; for (const i of via) if (pro[i].clip <= tau) lastClip = Math.max(lastClip, pro[i].clip);
         // Slack between two at a stance hangs in a loop.
         const loop = r.idle ? 7 : lead && !r.trail ? 10 * smooth(0, 1, Math.max(0, 1 - (tau - lastClip) / 0.8)) : 0;
@@ -1351,6 +1412,7 @@ function buildRidge() {
           ropePts.push(x, y);
         }
         rope(scr, ropePts, r.two);
+        if (r.haul) haul = haulRopes(scr, ropePts, [P.red, P.lead], cx, rowOf);
       }
       // The gear on the rock, over the rope so its sling shows and the rope runs into its carabiner, and
       // behind whoever is in front of it: a cam from when it is in until TJ takes it out; the
@@ -1379,6 +1441,9 @@ function buildRidge() {
         }
         drawBiner(scr, mx, my); scr.set(mx, my, R.white[1]);
       });
+      // The haul's hardware, drawn small over the anchor: a pulley on its carabiner and a red rope grab
+      // on the loaded rope below it.
+      if (haul) { for (const [dx, dy, c] of [[0, 0, R.white[1]], [1, 0, R.rock[3]], [0, 1, R.rock[3]], [1, 1, R.rock[1]]]) scr.set(haul.mx + dx, haul.my + dy, c); for (const [dx, dy] of [[0, 0], [1, 0], [0, -1], [1, -1]]) scr.set(haul.gx + dx, haul.gy + dy, R.red[dy ? 2 : 1]); }
       if (dv > DESC.rig[0] + 0.8) {
         anchorPiece(scr, RAPA, 'block', cx, rowOf);
         if (dv > DESC.rig[0] + 1.6) { const rx = RAPA.x - cx, ry = rowOf(RAPA.bot); drawBiner(scr, rx, ry); }
@@ -1458,6 +1523,22 @@ function sagTo(out, x1, y1, slack, loop = 0, wob = 0, wt = 0) {
   for (let i = 1; i < n; i++) { const u = i / n, b = 4 * u * (1 - u), o = s * b, f = wob * b * Math.sin(wt * 9 + u * 7 + x0 * 0.13); out.push(Math.round(x0 + dx * u - o * fx - dy / len * f), Math.round(y0 + dy * u + o * fy + loop * Math.sqrt(b) + dx / len * f)); }
 }
 
+// The poses in which someone is off the rock and on the rope: the rope is tight and the camera shows
+// both ends of it.
+const OFF = ['fall', 'hang', 'slip', 'whip', 'swing', 'hauled'];
+// The 3:1 haul's ropes (round 5, T73), beside the loaded rope already drawn from the pulley at the anchor
+// (pts starts there) down to him: back from the pulley to the rope grab down the load past the two who
+// pull, and from there up through their hands, the nearer to the edge first. They face the load and pull
+// back toward the anchor. Returns where the pulley and the grab are, for the hardware drawn over the ropes.
+function haulRopes(scr, pts, who, cx, rowOf) {
+  const mx = pts[0], my = pts[1]; let gx = mx, gy = my, left = 34;
+  for (let i = 2; i < pts.length && left > 0; i += 2) { const L = Math.hypot(pts[i] - pts[i - 2], pts[i + 1] - pts[i - 1]) || 1, u = Math.min(1, left / L); gx = Math.round(lerp(pts[i - 2], pts[i], u)); gy = Math.round(lerp(pts[i - 1], pts[i + 1], u)); left -= L; }
+  rope(scr, [mx, my - 1, gx, gy - 1], true);
+  const strand = [gx, gy];
+  for (const q of who) strand.push(Math.round(q.x) - (q.pose === 'heave' ? 3 : 6) - cx, rowOf(q.h + (q.pose === 'heave' ? 13 : 6)));
+  rope(scr, strand, true);
+  return { mx, my, gx, gy };
+}
 // A rope through a list of screen points: dark edges, a bright core with a fleck every few pixels.
 // The second rope, from the woman to TJ, is orange, so the two can be told apart.
 function rope(scr, pts, two) {

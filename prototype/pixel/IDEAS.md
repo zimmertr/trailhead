@@ -398,3 +398,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Tarn on the Map** (round 5, I8). The same tarn, with its island and outlet, drawn below Proficiency Peak on the world map, so the view from the climb is a place he can also see from above.
 - **Cloud Shadows on the Basin** (round 5, I8). The shadows of the three fair-weather clouds drift slowly over the benches and darken the tarn as they pass.
 - **A Tent by the Tarn** (round 5, I8). One tiny orange tent on the tarn's point, two pixels, for whoever looks closely.
+- **A Shout from the Top** (round 5, I9). A small word bubble over the two on top with each heave ("Heave!"), and one over TJ as he comes off.
+- **A Dropped Cam** (round 5, I9). As he is dragged past the big cam it slips from his hand and falls glinting into the cloud.
+- **Sore Arms on the Summit** (round 5, I9). After the haul TJ flops down on the top instead of walking up for the first high five, and the leader comes to him.
+- **The Haul on the Elevation Chart** (round 5, I9). The four yanks show as four steps on the timeline's elevation line.

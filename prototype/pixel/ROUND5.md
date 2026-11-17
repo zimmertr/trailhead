@@ -581,7 +581,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] I6. T72, T71: the climbing order (leader, woman, TJ) and the second rope from the woman to TJ, on every pitch.
 - [x] I7. T69: climbing at about 4 times the speed, with fewer pieces.
 - [x] I8. T70: a large tarn far below, like Shield Lake.
-- [ ] I9. T73: TJ's fall on the off-width and the 3:1 haul.
+- [x] I9. T73: TJ's fall on the off-width and the 3:1 haul.
 - [ ] I10. T74: one cloud sea that rises during the haul, then the rappel into it.
 - [ ] I11. T75: they reach the ground before tugging on the stuck rope.
 
@@ -709,7 +709,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **I6 done.** On every pitch of Proficiency Peak the order is now the leader, the woman, then TJ. The woman belays the leader. She follows on his teal rope and trails a second, orange rope down to TJ, who pays it out. At each piece she takes the teal rope out and clips the orange one in. TJ comes last on the orange rope, on her belay from above, takes the gear out and strips the anchor below. Both ropes are drawn the whole way up: the one not in use hangs in a loop between the two who share a stance.
 - **I7 done.** The climbing on Proficiency Peak runs at four times round 4's pace, and every stop on a pitch is about a third as long. The leader places three cams on pitches 1 and 2 and two on pitch 5, where there were four. From the fist bump to the last one on top is 115 s, where round 4 took 396 s. The whole scene is 156 s, where it was 446 s. Cards still open at the belays.
 - **I8 done.** A large tarn lies in the bottom of the basin below Proficiency Peak, where the basin shows left of the ridge on pitches 1 and 2. It is about 200 px wide, turquoise with the sky's light along its far shore, with bays, an island, a granite point, larches thick along both shores, and an outlet that runs down the benches through two smaller tarns. At Dusk it takes the sunset's colours.
-- Next: I9.
+- **I9 done.** On the last pitch the leader and the woman climb the off-width as before. TJ struggles up the first 30% of it, comes off, drops and swings out over the air left of the headwall. The woman holds him. The two on top rig a haul at the summit anchor, face the load and yank on it together four times, a reach down the rope and a heave back each time, and every yank lifts TJ a quarter of the way to them. The fourth brings him to the belay.
+- Next: I10.
 
 ## 11. Calls made in round 5
 
@@ -1134,3 +1135,13 @@ One line each, newest last: the item, what was decided, and why.
 - I8, under the inversion: the cloud sea's surface is 40 rows down the basin when it starts to gather and rises from there, and the tarn's far shore is 50 rows down, so the cloud covers the tarn as it forms. By then the ridge already hides that part of the basin on most screens. I10 reworks the cloud.
 - I8, not done: the water does not move. It is painted once into the basin's picture, like the rest of it.
 - I8, looked at beside the build before from pitches 1 and 2, close up and whole, at Dusk, at 1920 wide and on a phone both ways. No new colours. The check passed with nothing moved.
+- I9, the struggle (`ridge.js`, `WHIP`): in pitch 5's off-width TJ climbs at half his off-width pace, rests, climbs on, slides back a little, rests again, makes a last slow lunge to 30% of the off-width's height, and comes off. It takes about 5 s.
+- I9, the fall: he drops 20 px along the line as the rope stretches (0.45 s) and swings out left of the headwall, up to 30 px, back to the rock and out again, less each time (`swingAt`). He is on the orange rope through the pieces above him, so the rope swings with him from the nearest piece. The camera pulls back to show him and the belay together, as it does for the other two falls.
+- I9, the haul (`HAUL`): the woman holds the fall (1.2 s), then she and the leader crouch over the rope and rig it (1.5 s). From then the loaded rope runs to a pulley at the summit anchor, not to her hands, with a red rope grab on it down past the two of them and a strand from the grab up through their hands. The hardware is 2 px each, as the note asks ("drawn small").
+- I9, the yanks: four, 0.9 s each. Both reach down the rope crouched, then heave back upright with a step. On each heave TJ is lifted in 0.3 s and swings a little after it.
+- I9, a call on "20 to 30% of the remaining distance with each yank", "3 or 4 times", "until he reaches them": these three cannot all hold if "remaining" is measured afresh after each yank (four yanks of 30% leave him a quarter of the way short). I took it as a quarter of the distance from where he hangs to the belay, each time, so the fourth yank brings him to them.
+- I9, a call: he is hauled along the route's line, through the rest of the off-width, past the bolt, the flake, the chimney and the hole, about 150 px in all. He takes each piece out as he is dragged past it, with no stop.
+- I9, a call: the two on top face the load and pull back toward the anchor, and the woman steps 8 px down the rope from the leader for the haul so they are seen one behind the other. A real 3:1 has more strands than are drawn.
+- I9, sounds, all reused and none new: the fall and the rope coming tight as for the leader's fall, two clicks of metal for the rigging, and the rope coming tight on each yank.
+- I9, a call: the woman's slip on the same pitch (round 4's H7) is still there, held by the leader, so the last pitch now has two falls. The scene is 5.7 s longer (161 s).
+- I9, looked at in motion from the struggle to the belay, close up on the swing, the rigging and the yanks, at Dusk and on a phone both ways (both ends of the rope are in the picture on all of them). Frame time in the scene is about 5 ms. The check passed with nothing moved.
