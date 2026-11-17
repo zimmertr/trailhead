@@ -1277,9 +1277,9 @@ function habitat() {
   // Squirrels and chipmunks in the open meadow near trees, a bear at the edge of the forest.
   const squirrels = find(7, (u, v) => S.forestAmt(u, v) < 0.3 && S.dryAmt(u, v) < 0.3 && S.larchAmt(u, v) < 0.2 && S.hAt(u, v) < 45 && trailFar(u, v) > 6 && fromT(u, v) > 50 && firm(u, v) && shows(u, v, 6), 70);
   const bear = find(1, (u, v) => S.forestAmt(u, v) > 0.12 && S.forestAmt(u, v) < 0.35 && S.hAt(u, v) < 35 && S.dryAmt(u, v) < 0.2 && fromT(u, v) > 160 && firm(u, v, 0.6) && shows(u, v, 12))[0];
-  // In the sea: jellyfish not far out, the whale farther out, the ferry's course past both.
+  // In the sea: jellyfish in open water beyond the surf (T26), the whale farther out, the ferry's course past both.
   const clearSea = new Set(R.sea), sea = (lo, hi) => (u, v) => { const c = S.coast(u, v); return c > lo && c < hi && S.toY(u, v) < SH - 50 && shows(u, v, 4) && clearSea.has(S.g[S.toY(u, v) * NW + Math.round(u)]) && clearSea.has(S.g[(S.toY(u, v) - 6) * NW + Math.round(u)]); };
-  const jelly = find(8, sea(14, 80), 26), whale = best(sea(90, 150), (u, v) => -Math.abs(S.coast(u, v) - 115) + 6 * rnd());
+  const jelly = find(8, sea(50, 110), 26), whale = best(sea(90, 150), (u, v) => -Math.abs(S.coast(u, v) - 115) + 6 * rnd());
   // The timed events of E5k. Tumbleweeds start in open sage with 120 of firm ground east of them, the way
   // the wind rolls them; dust devils spin up on bare dry flats.
   const tumbles = find(3, (u, v) => S.sageAmt(u, v) > 0.6 && firm(u, v, 0.5) && shows(u, v, 6) && [30, 60, 90, 120].every(d => firm(u + d, v, 0.9)), 60);

@@ -211,11 +211,13 @@ function openDebug(on) {
   const trick = el('select', { 'aria-label': D.set }, ...TRICKS.map(s => el('option', { value: s, text: s })));
   // Time (E5f): how fast the scenes' clock runs, and a button for each timed event to start it now.
   const speeds = api.speeds.map((k, n) => el('button', { class: 'plank', 'aria-pressed': String(api.speed() === k), onclick: e => { api.setSpeed(k); for (const b of e.currentTarget.parentNode.children) b.setAttribute('aria-pressed', String(b === e.currentTarget)); audio.sfx('step'); } }, el('span', { text: D.speeds[n] })));
+  // Each press shows the next kind's no-go areas, then none.
+  const noGo = (() => { const kinds = Object.keys(D.noGoKinds); return el('button', { class: 'plank', 'aria-pressed': String(!!DEBUG.collide), onclick: e => { DEBUG.collide = kinds[(kinds.indexOf(DEBUG.collide) + 1) % kinds.length]; e.currentTarget.setAttribute('aria-pressed', String(!!DEBUG.collide)); e.currentTarget.querySelector('small').textContent = D.noGoKinds[DEBUG.collide]; audio.sfx('step'); } }, el('span', { text: D.noGo }), el('small', { text: D.noGoKinds[DEBUG.collide] })); })();
   const starts = ids => ids.map(id => el('button', { class: 'plank', onclick: () => { audio.sfx(api.trigger(id) ? 'step' : 'close'); } }, el('span', { text: D.events[id] })));
   debug.replaceChildren(
     el('h2', {}, el('span', { text: D.title }), el('button', { class: 'plank', style: 'width:auto', onclick: () => openDebug(false) }, el('span', { text: D.close }))),
     el('h3', { text: D.layers }), ...['trees', 'clouds', 'mist', 'labels', 'animals'].map(toggle),
-    el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle),
+    el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle), noGo,
     el('h3', { text: D.zoom }), toggle('snap'),
     el('h3', { text: D.speed }), el('div', { class: 'speeds' }, ...speeds),
     el('h3', { text: D.startMap }), ...starts(['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'salmon', 'osprey', 'serac', 'avalanche', 'lens', 'heron', 'tumble', 'devil', 'star']),
@@ -370,7 +372,8 @@ try {
   if (q.get('dusk') || dusk) { api.setTheme('dark'); syncTop(); }
   if (q.get('sheet')) openSheet(q.get('sheet'));
   // ?debug=roam,taps,-trees opens the panel with those outlines on and those layers off.
-  if (q.get('debug') != null) { for (const k of q.get('debug').split(',')) { const off = k.startsWith('-'), key = off ? k.slice(1) : k; if (key in DEBUG) DEBUG[key] = !off; } document.body.classList.toggle('no-labels', !DEBUG.labels); openDebug(true); }
+  // ?debug=collide:boat shows that kind's no-go areas.
+  if (q.get('debug') != null) { for (const k of q.get('debug').split(',')) { const off = k.startsWith('-'), key = off ? k.slice(1) : k; if (key.startsWith('collide:')) DEBUG.collide = key.slice(8); else if (key in DEBUG) DEBUG[key] = !off; } document.body.classList.toggle('no-labels', !DEBUG.labels); openDebug(true); }
   if (location.hash.length > 1 && !q.get('route')) await navigate(location.hash);
   audio.ambience('world'); audio.onchange = syncTop;
   // Where a browser lets a page make sound unasked (Firefox says so), the music starts with the page.

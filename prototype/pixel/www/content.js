@@ -178,7 +178,9 @@ export const UI = {
   keys: { title: 'Keys', note: 'Everything also works by touch.' },
   // The hidden panel behind the backtick key and the small sign at the foot of the trail map.
   debug: {
-    title: 'Debug', close: 'Close', layers: 'Layers', outlines: 'Outlines', zoom: 'Zoom', cats: 'Cats', set: 'Set', offRoute: 'Go to the off-route page', breakScene: 'Break this scene',
+    title: 'Debug', close: 'Close', layers: 'Layers', outlines: 'Outlines',
+    // Where each kind of mover may not go (collide.js), one kind at a time.
+    noGo: 'No-go areas', noGoKinds: { '': 'off', boat: 'Ferry', whale: 'Whale', swimmer: 'Orcas', floater: 'Jellyfish', land: 'Land animals' }, zoom: 'Zoom', cats: 'Cats', set: 'Set', offRoute: 'Go to the off-route page', breakScene: 'Break this scene',
     toggles: { trees: 'Trees', clouds: 'Clouds', mist: 'Mist', labels: 'Labels', animals: 'Animals', roam: 'Roam areas', taps: 'Tap targets', trails: 'Trail lines', camera: 'Camera limits', snap: 'Snap to pixels' },
     speed: 'Time', speeds: ['Pause', '0.5\u00d7', '1\u00d7', '2\u00d7', '4\u00d7', '8\u00d7'],
     startMap: 'Start now, on the map', startForest: 'Start now, in the forest run', startLarches: 'Start now, in the larch basin', startRidge: 'Start now, on the West Ridge', startLake: 'Start now, at Reflection Lake',

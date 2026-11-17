@@ -40,7 +40,7 @@ export function drawLens(scr, sx, sy, t, k = 1, ox = 0, oy = 0) {
         const f = (y - (y0 - top)) / Math.max(1, top + bot); scr.fb[vy * scr.VW + vx] = y === y0 + bot && bot > 0 ? R.sky[3] : f > 0.45 && bayer(x + 1, y) < (f - 0.45) * 1.6 ? R.sky[4] : R.white[1]; } } }
 }
 
-export function makeEvents(W) {
+export function makeEvents(W, col) {
   const { spots } = W, D = W.depth;
   const weeds = [0, 1, 2, 3].map(weed);
   // Each event's natural clock: one in every slot, starting at a point of it the dice pick. A start
@@ -61,8 +61,10 @@ export function makeEvents(W) {
   };
 
   // A tumbleweed rolls east about 140 pixels on a gust, bouncing, turning as it goes, and fades out.
+  // How far each tumbleweed may roll before ground a land thing may not cross (collide.js) stops it.
+  const rollTo = spots.tumbles.map(T => { for (let d = 0; d <= 140; d++) if (T.ys[d] == null || !col.canBe('land', T.x + d, T.ys[d], 0)) return Math.max(0, d - 2); return 140; });
   function tumble(scr, ox, oy, n, s) {
-    const T = spots.tumbles[n % spots.tumbles.length], d = Math.min(140, 19 * s + 3 * Math.sin(s * 1.7)), y = T.ys[Math.round(d)];
+    const T = spots.tumbles[n % spots.tumbles.length], d = Math.min(rollTo[n % spots.tumbles.length], 19 * s + 3 * Math.sin(s * 1.7)), y = T.ys[Math.round(d)];
     const hop = Math.abs(Math.sin(s * 2.7)) * 4 * (1 - s / 9), a = smooth(0, 0.6, s) * smooth(8, 6.8, s), bm = weeds[Math.floor(d / 2.2) & 3];
     blitA(scr, bm, Math.round(T.x + d - bm.ox - ox), Math.round(y - hop - bm.oy - oy), a);
     // Its shadow on the ground, and a puff of dust where it lands.

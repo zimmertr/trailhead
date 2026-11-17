@@ -415,7 +415,7 @@ export function makeWorld(bake) {
   }
   // The animals look after themselves: see critters.js. Where each one lives comes from land.js.
   const crit = makeCritters(W);
-  const ev = makeEvents(W);
+  const ev = makeEvents(W, crit.collide);
   for (const it of crit.items) things.push(it);
   const birds = [makeBird(0), makeBird(1)];
   const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 330 + 40, y: 50 + (i & 1) * 70 + i * 18, v: 3 + (i % 4) }));
@@ -766,6 +766,8 @@ export function makeWorld(bake) {
         }
       }
       // The debug panel's outlines, over the finished map.
+      // Where the chosen kind of mover may not go (collide.js), tinted, under the outlines.
+      if (DEBUG.collide) crit.collide.overlay(scr, DEBUG.collide, ox, oy, t, R.red[1]);
       if (!env.fixed && (DEBUG.roam || DEBUG.trails || DEBUG.camera)) {
         const dot = (x, y, c) => scr.set(Math.round(x) - ox, Math.round(y) - oy, c);
         const oval = (a, c) => { const n = Math.ceil((a.rx + a.ry) * 2); for (let k = 0; k < n; k += 2) dot(a.x + Math.cos(k / n * TAU) * a.rx, a.y + Math.sin(k / n * TAU) * a.ry, c); };

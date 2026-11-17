@@ -5,6 +5,7 @@ import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, DAY, DUSK, N, BLACK, IN
 import { makeElk, makeBird } from './sprites.js';
 import { ell, goat, marmot, heron } from './fauna.js';
 import { NW, NH } from './land.js';
+import { makeCollide } from './collide.js';
 
 // A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass.
 export function mapBear(pose, step = 0) {
@@ -35,6 +36,20 @@ export const BREACH = Array.from({ length: Math.ceil(IMPACT * FPS) + 1 }, (_, i)
 // opts.bear: true or false puts the bear there or not, whatever the dice say (the block-in page asks for it).
 export function makeCritters(W, opts = {}) {
   const { spots, sea: SEA, g } = W, items = [];
+  // The sea stacks, found among the things that stand in the water, for the white water round their feet.
+  const stacks = W.things.filter(th => !th.tree && th.bm && th.bm.h >= 14 && th.x < SEA.w && W.coast(th.x, th.y) > 14).map(th => ({ x: th.x, y: th.y, half: th.bm.w / 2, cs: W.coast(th.x, th.y) }));
+  // The tide (E6). Every 100 s the sea draws back off the beach and comes in again: out over 36 s, low for
+  // 16 s, in over 36 s, high for 12 s; the first low is 44 s after the page opens. At low water the line
+  // stands far enough out that the two sea stacks nearest the beach stand on the bared flat with tide
+  // pools round their feet (14 past the second of them). What it bares is wet sand: a shine of water just
+  // above the line, ripple marks higher up. The jellyfish drift out ahead of it, so they stay afloat. The
+  // sea left at low water is still most of the corner, so the whale, the ferry and the orcas keep to it.
+  // tide=<seconds> in the address moves its clock on, for screenshots.
+  const TIDE = 100, byCs = [...stacks].sort((a, b) => a.cs - b.cs), POOLED = byCs.slice(0, 2), EBB = POOLED.length > 1 ? POOLED[1].cs + 14 : 40;
+  let tideAhead = typeof location !== 'undefined' ? +(/[?&]tide=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
+  const ebbAt = t => { const s = ((t + tideAhead) % TIDE + TIDE) % TIDE; return EBB * smooth(8, 44, s) * smooth(96, 60, s); };
+  // Where each kind of mover may be (collide.js): the stacks and the tide above, the land's own rules.
+  const col = makeCollide(W, { ebbAt, stacks });
   // Where the trees stand, so a wandering animal goes round them, and the ground just behind anything
   // tall (a tree, a snag, a big rock), where it would stand hidden.
   const CELL = 8, GW = Math.ceil(NW / CELL), GH = Math.ceil(NH / CELL), wood = new Uint8Array(GW * GH), hid = new Uint8Array(GW * GH);
@@ -59,7 +74,9 @@ export function makeCritters(W, opts = {}) {
   // faces: the way the drawing looks, -1 left or 1 right. r: how far it strays from where it was put.
   // An animal is put where it was meant to stand, or on the nearest ground it may stand on if a tree has since been planted there.
   const settle = (ok, x, y) => { if (ok(x, y)) return [x, y]; for (let r = 4; r <= 48; r += 4) for (let k = 0; k < 12; k++) { const an = k / 12 * TAU, px = Math.round(x + Math.cos(an) * r), py = Math.round(y + Math.sin(an) * r * 0.6); if (ok(px, py)) return [px, py]; } return [x, y]; };
-  const walker = (kind, f, x0, y0, o) => { const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
+  // Each keeps to its own country (o.ok) and to the ground any land animal may stand on (collide.js: firm,
+  // open, clear of the buildings).
+  const walker = (kind, f, x0, y0, o) => { const own = o.ok; o = { ...o, ok: (x, y) => own(x, y) && col.canBe('land', x, y, 0) }; const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
   // The herd keeps together: each elk strays only a little from its own place in it.
   spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look' }));
   spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null }));
@@ -194,9 +211,10 @@ export function makeCritters(W, opts = {}) {
   // Where it comes up (E6a): a different spot for each breach and each blow, picked by rule from open
   // water in view (clear of the page's buttons along the top and the timeline along the bottom): well out
   // past the low-water line, clear of the stacks, with room for the spray.
-  let OPEN = null;
+  // LOW: the lowest tide, so a spot picked is deep enough whenever the whale comes up.
+  let OPEN = null; const LOW = { ebb: EBB };
   const openWater = () => OPEN || (OPEN = (() => { const out = []; for (let y = SEA.y0 + 30; y < SEA.y0 + SEA.h - 12; y += 6) for (let x = 60; x < SEA.w - 16; x += 6) {
-    if (csAt(x, y) < EBB + 48 || [-56, -28, 12].some(d => csAt(x + d, y) < EBB + 34) || stacks.some(s => Math.abs(s.x - x) < 70 && Math.abs(s.y - y) < 26)) continue; out.push([x, y]); } return out; })());
+    if (!col.canBe('whale', x, y, LOW, 8) || [-56, -28, 12].some(d => !col.canBe('whale', x + d, y, LOW)) || stacks.some(s => Math.abs(s.x - x) < 70 && Math.abs(s.y - y) < 26)) continue; out.push([x, y]); } return out; })());
   const pickOpen = (key, ox, oy, VW, VH) => { const all = openWater(); if (!all.length) return spots.whale; const seen = all.filter(([x, y]) => x - 60 > ox && x + 16 < ox + VW && y - 46 > oy + 40 && y + 10 < oy + VH - 130), from = seen.length ? seen : all; return from[Math.floor(hash(key, 7, 6201) * from.length)]; };
   function drawWhale(scr, a, ox, oy, t) {
     const T = t + whaleAhead + T0, n = Math.floor(T / SLOT), u = T - n * SLOT - starts(n);
@@ -256,18 +274,6 @@ export function makeCritters(W, opts = {}) {
     }
   }
 
-  // The sea stacks, found among the things that stand in the water, for the white water round their feet.
-  const stacks = W.things.filter(th => !th.tree && th.bm && th.bm.h >= 14 && th.x < SEA.w && W.coast(th.x, th.y) > 14).map(th => ({ x: th.x, y: th.y, half: th.bm.w / 2, cs: W.coast(th.x, th.y) }));
-  // The tide (E6). Every 100 s the sea draws back off the beach and comes in again: out over 36 s, low for
-  // 16 s, in over 36 s, high for 12 s; the first low is 44 s after the page opens. At low water the line
-  // stands far enough out that the two sea stacks nearest the beach stand on the bared flat with tide
-  // pools round their feet (14 past the second of them). What it bares is wet sand: a shine of water just
-  // above the line, ripple marks higher up. The jellyfish drift out ahead of it, so they stay afloat. The
-  // sea left at low water is still most of the corner, so the whale, the ferry and the orcas keep to it.
-  // tide=<seconds> in the address moves its clock on, for screenshots.
-  const TIDE = 100, byCs = [...stacks].sort((a, b) => a.cs - b.cs), POOLED = byCs.slice(0, 2), EBB = POOLED.length > 1 ? POOLED[1].cs + 14 : 40;
-  let tideAhead = typeof location !== 'undefined' ? +(/[?&]tide=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
-  const ebbAt = t => { const s = ((t + tideAhead) % TIDE + TIDE) % TIDE; return EBB * smooth(8, 44, s) * smooth(96, 60, s); };
   // Where water lies on in films on the bared flat, shining, 0 to 8 (most where the flat lies lowest).
 // Each row of the sea (M3): the runs near the shore that the tide and the wash can reach, and the open
   // water's glints beyond them, found once, so the open sea's still pixels are not visited every frame.
@@ -288,8 +294,6 @@ export function makeCritters(W, opts = {}) {
   // Only sand the lowest tide can bare is ever read (M3), so the open sea beyond it is skipped.
   const FILM = new Uint8Array(SEA.cs.length); for (let j = 0; j < FILM.length; j++) { const k = SEA.cs[j]; if (k < 8 || k >= 4 + EBB) continue; const x = j % SEA.w, y = SEA.y0 + ((j / SEA.w) | 0), n = vnoise(x / 13, y / 5, 6108) + 0.25 * smooth(8, 50, k); FILM[j] = Math.max(0, Math.min(8, Math.round((n - 0.6) * 30))); if (frac((k * 0.9 + 0.5 * Math.sin(x / 5)) / 3) < 0.22) FILM[j] |= 16; }
   const csAt = (x, y) => { if (x < 0 || x >= SEA.w || y < SEA.y0 || y >= SEA.y0 + SEA.h) return 0; return SEA.cs[(y - SEA.y0) * SEA.w + x]; };
-  // Each jellyfish's way out to sea: the way the distance from the shore grows fastest, in pixels per unit of it.
-  const jellyOut = spots.jelly.map(([x, y]) => { const gx = (csAt(x + 4, y) - csAt(x - 4, y)) / 8, gy = (csAt(x, y + 4) - csAt(x, y - 4)) / 8, g2 = gx * gx + gy * gy || 1; return { c0: W.coast(x, y), dx: gx / g2, dy: gy / g2 }; });
   // How far up the bared sand the last of each wave's wash runs, in the same units as the tide.
   const up0 = (wx, wy, tw) => { const u = frac((7 * Math.sin(wx / 37 + wy / 61) + tw) / 24), surge = u < 0.2 ? u / 0.2 : 1 - (u - 0.2) / 0.8; return 0.4 + 2.2 * surge + 0.7 * Math.sin(wx / 7 + wy / 9); };
   function tidePools(scr, ox, oy, t, ebb) {
@@ -353,9 +357,13 @@ export function makeCritters(W, opts = {}) {
   function orcas(scr, ox, oy, t) {
     const T = t + orcaAhead - ORCA.first, n = Math.floor(T / ORCA.slot), s = T - n * ORCA.slot, dur = (SEA.h + 80) / ORCA.speed; if (T < 0 || s > dur) return;
     const spy = Math.floor(hash(n, 1, 6301) * POD.length), spyAt = 30 + 30 * hash(n, 2, 6301), sv = s - spyAt;
+    // As the tide goes out the pod keeps the same depth under it, so its line moves out with the water (T15),
+    // in steps of 2; then clear of the stacks by the shared rule.
+    const lift = 2 * Math.round(ebbAt(t) / 2);
     POD.forEach((o, i) => {
-      const row = Math.round(s * ORCA.speed - 20 - o.lag); if (row < 0 || row >= SEA.h) return; const x0 = isoAt(o.c)[row]; if (x0 < 0) return;
-      const x = x0 - ox, y = SEA.y0 + row - oy; if (x < -20 || x > scr.VW + 20 || y < -20 || y > scr.VH + 6) return;
+      const row = Math.round(s * ORCA.speed - 20 - o.lag); if (row < 0 || row >= SEA.h) return; const x0 = isoAt(o.c + lift)[row]; if (x0 < 0) return;
+      const at = col.clear('swimmer', x0, SEA.y0 + row, t, 4); if (!at) return;
+      const x = Math.round(at[0]) - ox, y = Math.round(at[1]) - oy; if (x < -20 || x > scr.VW + 20 || y < -20 || y > scr.VH + 6) return;
       if (i === spy && sv > 0 && sv < 3.2) return spyhop(scr, x, y, sv / 3.2, t);
       const ph = frac(s / 4.2 + i * 0.31), q = ph / 0.55; if (q >= 1) return; const h = Math.sin(Math.PI * q);
       orcaBack(scr, x, y, h, o.bull, t, i);
@@ -409,9 +417,14 @@ export function makeCritters(W, opts = {}) {
   const ferryAt = t => { const u = (t + 0.12 * CROSS) % ROUND, back = u - CROSS - FERRY.away[0]; return u < CROSS ? [u / CROSS, 1] : back >= 0 && back < CROSS ? [1 - back / CROSS, -1] : null; };
   // The course bows out to sea a little in the middle.
   const coursePt = s => { const b = 14 * Math.sin(Math.PI * clamp(s, 0, 1)); return [FA[0] + (FB[0] - FA[0]) * s - 0.56 * b, FA[1] + (FB[1] - FA[1]) * s + 0.83 * b]; };
+  // Where it actually is (T7, T15): on its course, or pushed out to deeper water and away from the stacks
+  // when the course would put any of the hull (bow, middle or stern) on a stack or the bared flat at the
+  // tide of the moment. The wake follows the same way, so it bends with the boat.
+  const HULL = ferryBM.w * 0.38, FDX = (FB[0] - FA[0]) / FLEN, FDY = (FB[1] - FA[1]) / FLEN, PROBE = [[FDX * HULL, FDY * HULL], [-FDX * HULL, -FDY * HULL]];
+  const shipPt = (s, t) => { const p = coursePt(s); return col.clear('boat', p[0], p[1], t, 3, PROBE) || p; };
   function drawWake(scr, ox, oy, t) {
     const at = ferryAt(t + ferryAhead); if (!at) return;
-    const [s, dir] = at, [fx, fy] = coursePt(s), { VW, VH } = scr;
+    const [s, dir] = at, [fx, fy] = shipPt(s, t), { VW, VH } = scr;
     if (fx - ox < -140 || fx - ox > VW + 140 || fy - oy < -120 || fy - oy > VH + 120) return;
     // Nothing of it shows past the edge of the map, where a wide screen has only a plain fill.
     const dot = (wx, wy, c) => { if (wx >= 0 && wy < NH) scr.set(wx - ox, wy - oy, c); };
@@ -419,7 +432,7 @@ export function makeCritters(W, opts = {}) {
     // the bow and break into dashes, and the water churned up astern trails off between them.
     const here = s * FLEN, white = R.white[1];
     for (let n = 0; n < 240; n++) {
-      const k = n / 2, c = here + dir * (19 - k), [qx, qy] = coursePt(c / FLEN);   // k: how far astern of the bow's tip
+      const k = n / 2, c = here + dir * (19 - k), [qx, qy] = shipPt(c / FLEN, t);   // k: how far astern of the bow's tip
       if (k >= 5) {
         const age = (k - 5) / 115, wide = 5.6 + (k - 5) * 0.24, cell = Math.floor(c / 5);
         if (frac(c / 5) < 1 - age * 0.75) for (const side of [-1, 1]) {
@@ -438,7 +451,7 @@ export function makeCritters(W, opts = {}) {
     }
   }
   // Where the hull is and the row its keel sits on, for sorting; null while it is away or off screen.
-  const hullAt = (t, ox, oy, VW, VH) => { const at = ferryAt(t + ferryAhead); if (!at) return null; const [fx, fy] = coursePt(at[0]); if (fx - ox < -60 || fx - ox > VW + 60 || fy - oy < -40 || fy - oy > VH + 40) return null; return { x0: Math.round(fx) - ferryBM.ox, y0: Math.round(fy) - ferryBM.oy, y: Math.round(fy) - ferryBM.oy + ferryBM.h - 1, cx: Math.round(fx) }; };
+  const hullAt = (t, ox, oy, VW, VH) => { const at = ferryAt(t + ferryAhead); if (!at) return null; const [fx, fy] = shipPt(at[0], t); if (fx - ox < -60 || fx - ox > VW + 60 || fy - oy < -40 || fy - oy > VH + 40) return null; return { x0: Math.round(fx) - ferryBM.ox, y0: Math.round(fy) - ferryBM.oy, y: Math.round(fy) - ferryBM.oy + ferryBM.h - 1, cx: Math.round(fx) }; };
   // In the fog bank the whole boat pales by one step, read at its middle, so no edge of the bank cuts
   // across it; in the bank's solid part it is lost in the white. The bank then leaves its pixels alone.
   let hullMask = null, hullMarked = [];
@@ -556,6 +569,8 @@ export function makeCritters(W, opts = {}) {
     findPool: t => FIND && ebbAt(t) - FIND.P.s.cs >= 9 ? FIND.p : null,
     // The water: swells roll in toward the beach, the wash runs up the sand and back, jellyfish pulse.
     ferryHull(t, ox, oy, VW, VH) { return hullAt(t, ox, oy, VW, VH); },
+    // The shared rules of where each kind of mover may be, for the debug overlay and the timed events.
+    collide: col,
     drawHull,
     sea(scr, ox, oy, t) {
       moreWhales();
@@ -597,9 +612,11 @@ export function makeCritters(W, opts = {}) {
       tidePools(scr, ox, oy, t, ebb);
       orcas(scr, ox, oy, t);
       drawWake(scr, ox, oy, t);
+      // Moon jellies drift slowly in open water beyond the surf (T26), each round its own spot, and are pushed
+      // out ahead of a falling tide by the floater rule.
       spots.jelly.forEach(([jx, jy, pale], k) => {
-        const J = jellyOut[k], need = Math.max(0, ebb + 8 - J.c0);
-        const x = jx + Math.round(3 * Math.sin(t * 0.13 + k * 2) + need * J.dx) - ox, y = jy + Math.round(1.5 * Math.sin(t * 0.5 + k) + need * J.dy) - oy;
+        const at = col.clear('floater', jx + 5 * Math.sin(t * 0.05 + k * 2), jy + 2.5 * Math.sin(t * 0.07 + k), t, 2); if (!at) return;
+        const x = Math.round(at[0]) - ox, y = Math.round(at[1] + 1.5 * Math.sin(t * 0.5 + k)) - oy;
         if (x < -4 || y < -6 || x > VW + 4 || y > VH) return;
         const c = pale ? R.white[1] : R.pink[2], d = R.pink[1], shut = frac(t * 0.3 + k * 0.37) < 0.3;
         for (let dx = 0; dx < 3; dx++) scr.set(x + dx, y, c);
