@@ -380,3 +380,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Berries to Pick** (round 5, I2). A few shrubs carry blue berries, and he stops for a handful when one is clicked.
 - **Huckleberry on the Map** (round 5, I2). The plateau on the map gets the same red shrubs in clumps, so the map and the larch basin agree.
 - **A Frame Time Check That Runs Twice** (round 5, I2). The check script measures the frame time twice and takes the lower, so a busy workstation does not fail an item.
+- **The Haystack Itself** (round 5, I3). A small heap of drying flowers under the pika's second rock that grows a little on each trip.
+- **A Second Pika Answers** (round 5, I3). When this one calls, another calls back from the talus further up, heard and not seen.

@@ -133,7 +133,8 @@ function pika(f, pose) {
 // gone on by it looks out, and when he is well away it comes back to its rock.
 // step(t, away): away is how far he is from the rock, in pixels. It answers with what to draw: which
 // picture (bm), how far along the way from the rock to the gap (go, 0 to 1), whether it hops (hop, 0
-// to 1), or null while it is out of sight. called is true on the one step where it calls.
+// to 1), or null while it is out of sight. `sit` is set while it is on its rock and at ease, so a scene
+// can have it doing something there. called is true on the one step where it calls.
 function shyPika() {
   const bm = { sit: pika(0), up: pika(0, 'up'), peek: pika(0, 'peek') }, NEAR = 70, DUCK = 44, CLEAR = 60, FAR = 130;
   let state = 'sit', since = 0;
@@ -153,7 +154,7 @@ function shyPika() {
       else if (state === 'peek' && u > 1.5 && away > FAR) to('back', t);
       else if (state === 'back' && u > 0.4) to('sit', t);
       const v = t - since;
-      if (state === 'sit') return { bm: bm.sit, go: 0, hop: 0 };
+      if (state === 'sit') return { bm: bm.sit, go: 0, hop: 0, sit: true };
       if (state === 'up') return { bm: bm.up, go: 0, hop: 0 };
       if (state === 'run') return { bm: bm.sit, go: Math.min(1, v / 0.3), hop: Math.abs(Math.sin(v / 0.3 * Math.PI * 2)) };
       if (state === 'back') return { bm: bm.sit, go: 1 - Math.min(1, v / 0.4), hop: Math.abs(Math.sin(v / 0.4 * Math.PI * 2)), back: true };

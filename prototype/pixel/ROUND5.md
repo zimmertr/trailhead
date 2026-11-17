@@ -575,7 +575,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 - [x] I1. T64 (scene part): the larch basin opens with TJ on the iron rungs.
 - [x] I2. T65: the red huckleberry drawn as shrubs.
-- [ ] I3. T66: the larch basin's pika squeak and hide.
+- [x] I3. T66: the larch basin's pika squeak and hide.
 - [ ] I4. T67: nothing floats in the larch basin, in Day or at Dusk.
 - [ ] I5. T68: the walk-in at normal pace, and helmets in about 2 s.
 - [ ] I6. T72, T71: the climbing order (leader, woman, TJ) and the second rope from the woman to TJ, on every pitch.
@@ -703,7 +703,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **H11 done.** On each climb's timeline the summit's stop now carries the project's name ("Bluebird Forecast", "TJs-Kubernetes-Service" and so on) where it said "Summit". Each project card ends with a clue to what its summit's thing does, in place of "Click the cairn up there." The six clue lines are drafts for TJ, listed in section 11. Section H is finished.
 - **I1 done.** The larch basin now opens with TJ on iron rungs. A granite cliff as high as the first bench stands across the left of the picture, with a paler slab leaning against it and a line of dark iron staples up the slab. He starts at the bottom rung and climbs hand over foot for 3 seconds while the picture pans down to show the basin, then steps onto the trail and walks on as before. From there on the scene is round 4's.
 - **I2 done.** The red patches on the ground are gone, in the larch basin and at the foot of the climb. In their place the red huckleberry is drawn as low shrubs: a heap of leaves in its own shade, stems fanning out with leaves in pairs, crimson below and orange above with pale tips, and a dark line where each meets the ground. They stand in clumps of three to five, a big one with smaller ones round it, where the red used to be.
-- Next: I3.
+- **I3 done.** The larch basin's pika now behaves like the ones on the moraine. When TJ comes within about 70 px it sits bolt upright on its rock, gives its "eep" and bolts into the gap between its two rocks. Once he has gone by it looks out of the gap, and when he is well away it comes back to its rock. While he is far off it still goes back and forth with flowers for its haystack, as in round 4.
+- Next: I4.
 
 ## 11. Calls made in round 5
 
@@ -1084,3 +1085,9 @@ One line each, newest last: the item, what was decided, and why.
 - I2, not changed: the paintbrush and lupine in the walk-in (`approach.js`) are single-pixel flowers in drifts. TJ's note and picture are of the huckleberry.
 - I2, measured: 2.0 ms a frame in the larch basin at 1920 by 1080, as before. `ground.png` was baked again because `sprites.js` is among the map's imports, and not one pixel differs.
 - I2, the check failed once on the map's frame time (17.8 ms) and passed on the next run (14.5 ms) with nothing changed between. I2 touched no map drawing code and the workstation's load was high at the time (load average 5.9), so I read the first as the machine being busy.
+- I3, how (`larches.js`): it uses `shyPika` from `fauna.js`, the helper G4 wrote for both places. The helper now says when the pika is at ease (`sit`), and the scene plays the haystack trips only then.
+- I3, kept from round 4: the trips for flowers, the name tag, and the find. A click still counts the find at any time. A click now makes it call and bolt, where before it sat up for half a second.
+- I3, call: it bolts from wherever it is on its trip, so it does not jump back to its rock first. When it settles again its trips start from rest on the rock.
+- I3, added: three dark pixels on the ground between the two rocks, the gap it bolts to, as on the moraine.
+- I3, timing: he walks 78 px a second here against 86 on the moraine, so with the same distances the pika is out of sight when he is still about 20 px short of it.
+- I3, filmed at walking pace from before the rocks to well past them: sitting up, gone, then looking out. `ground.png` was baked again because `fauna.js` is among the map's imports, and not one pixel differs. The check passed with nothing moved.

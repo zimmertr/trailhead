@@ -6,7 +6,7 @@ import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, DAY, INK, 
 import { Strip, drawStrip, baseline, shell, blitScaled, paintPeaks } from './side.js';
 import { makeConifer, makeBoulder, makeCloud, makeHuckleberry, huckClumps } from './sprites.js';
 import { makeRunner, sideFig } from './tj.js';
-import { goat, pika } from './fauna.js';
+import { goat, pika, shyPika } from './fauna.js';
 import { NAMES } from './content.js';
 import { PROFICIENCY } from './land.js';
 
@@ -218,7 +218,11 @@ function buildLarches() {
   // Larches and boulders keep clear of the goats and the pika's rocks, and of the slab.
   for (let i = things.length - 1; i >= 0; i--) { const th = things[i]; if ([nanny, kidAt, billy, { x: px + 11, y: py }].some(p => Math.abs(th.x - p.x) < 22 && Math.abs(th.y - p.y) < 14) || !offSlab(th)) things.splice(i, 1); }
   things.push({ bm: rockA, x: px, y: py }, { bm: rockB, x: px + 22, y: py - 2 });
-  let eep = -9;
+  // The pika will not be walked up to (round 5, T66, as on the moraine): when he comes near it sits up, calls
+  // and bolts for the gap between its two rocks, and it looks out once he has gone by. `hx` is the gap, `sat`
+  // where it last was while at ease, and `t0` when it last settled, so its trips for flowers start from rest.
+  const shy = shyPika(), hx = px + rockA.w - rockA.ox + 1, home = { x: px, y: py - rockA.h + 4 }, pk0 = { sat: { ...home }, t0: 0, easy: true };
+  for (const [dx, dy] of [[0, -1], [0, -2], [1, -1]]) main.set(hx + dx, py + dy, INK);
   // A gust now and then (G6): one in each 14 seconds, at a random point in its first 6, lasting 2.6. Needles
   // stream off the larches across the whole view and the trees bend harder. gustGo: a start button's gust.
   const GUST = { slot: 14, len: 2.6 };
@@ -232,9 +236,9 @@ function buildLarches() {
 
   return {
     ...META,
-    enter(scr, arg, q) { cam = xOf(q); st.y = null; st.rung = -1; },
+    enter(scr, arg, q) { cam = xOf(q); st.y = null; st.rung = -1; shy.reset(); pk0.easy = true; },
     focus: () => focus,
-    act(id, env) { if (id === 'pika') { env.sfx('eep'); eep = env.t; env.found('pika'); return true; } return false; },
+    act(id, env) { if (id === 'pika') { if (shy.startle(env.t)) env.sfx('eep'); env.found('pika'); return true; } return false; },
     trigger(name, t) { if (name === 'gust') { gustGo = t; return true; } return false; },
     pick(sx, sy) {
       if (last.dir < 0) sx = last.VW - 1 - sx;
@@ -278,9 +282,20 @@ function buildLarches() {
       list.push({ bm: near ? G.look : G.graze, x: nanny.x, y: nanny.y, flip: near && mx < nanny.x });
       list.push({ bm: hop ? G.hop : G.kid, x: kidAt.x, y: kidAt.y - (hop ? 2 : 0), z: kidAt.y, flip: false });
       list.push({ bm: Math.abs(mx - billy.x) < 160 ? G.look : G.stand, x: billy.x, y: billy.y, flip: mx < billy.x });
-      // The pika, as on the wall: a hop over, a pause with a mouthful of flowers, a hop back; it sits up when clicked.
-      { const u = frac(t / 6), h = u < 0.1 ? u / 0.1 : u < 0.5 ? 1 : u < 0.6 ? 1 - (u - 0.5) / 0.1 : 0, up = t - eep < 0.5;
-        list.push({ bm: pk[u >= 0.5 ? 1 : 0], x: Math.round(px + h * 22), y: py - rockA.h + 4 - Math.round(Math.sin(h * Math.PI) * 6) + Math.round(lerp(0, 2, h)) - (up ? 2 : 0), z: py + 0.5, flip: u > 0.5 && u < 0.62 }); }
+      // The pika. At ease it goes about its haystack: a hop over, a pause with a mouthful of flowers, a hop back.
+      // As he comes up it calls and bolts, from wherever it is, and comes back to its rock when he is well away.
+      { const a = shy.step(t, Math.abs(mx - px - 11));
+        if (shy.called) env.sfx('eep');
+        if (a && a.sit) {
+          if (!pk0.easy) pk0.t0 = t;
+          const u = frac((t - pk0.t0) / 6 + 0.6), h = u < 0.1 ? u / 0.1 : u < 0.5 ? 1 : u < 0.6 ? 1 - (u - 0.5) / 0.1 : 0;
+          pk0.sat.x = Math.round(px + h * 22); pk0.sat.y = home.y - Math.round(Math.sin(h * Math.PI) * 6) + Math.round(lerp(0, 2, h));
+          list.push({ bm: pk[u >= 0.5 ? 1 : 0], x: pk0.sat.x, y: pk0.sat.y, z: py + 0.5, flip: u > 0.5 && u < 0.62 });
+        } else if (a) {
+          if (a.back || a.peek) { pk0.sat.x = home.x; pk0.sat.y = home.y; }
+          list.push({ bm: a.bm, x: Math.round(lerp(pk0.sat.x, hx, a.go)), y: Math.round(lerp(pk0.sat.y, py, a.go) - 2 * a.hop) - (a.peek ? 1 : 0), z: py + (a.peek ? 1.5 : 0.6), flip: !!a.back });
+        }
+        pk0.easy = !!(a && a.sit); }
       list.push({ me: true, x: mx, y: my + 0.5 });
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
       const gu = gustAt(t), ge = gu ? Math.sin(Math.PI * gu[0] / GUST.len) : 0;
