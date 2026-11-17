@@ -653,7 +653,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **Frame time, first measured this round on 2026-11-16 after the corrections** (round 4's number in brackets): map with all events 3.9 ms (3.4), zoomed out 11.6 (12.0), Dusk zoomed out 14.9 (13.5), zoomed out during the sunset blend 15.5 (new view), phone 2.0 (2.5), shore 3.2 (3.3). Ready in 0.78 to 0.80 s. The limit is 16.7 ms: the zoomed-out map at Dusk and in the blend has about 1 ms left.
 - **Paused on 2026-11-16 for section 0** (the review, CI for the prototype, #31's merge by the loop under TJ's one-time exception, which never covers #32, and the plan's changes). D4 is part done and now sits at the end of section D.
 - **Section 0, S1a to S1g done (2026-11-17, on `pixel-round4-opus`).** ESLint's recommended rules cover `prototype/`; `make prototype-smoke` and the "Prototype Smoke" job open the game on 14 addresses; the repo-wide tests walk `prototype/` again; record 0015 is written and the PRD, `CLAUDE.md` and README follow it; `ROUND4.md`'s two open ends are closed.
-- Next: S1h (section 0). After section 0, D5.
+- **S1h, part done (2026-11-17).** #31's description is rewritten (step 1) and `origin/pixel-round4-opus` is merged into `pixel-round5` with round 5's own three lint findings fixed and the ground re-baked, same pixels (step 4, and S2b's lint). Not done: steps 2, 3, 5 and 6. Nothing is tagged and #31 is not merged. `main` has a ruleset (not classic branch protection) that requires the site's checks by name; "Prototype Smoke" is not in it, and adding it is a change in zimmertr/yggdrasil for TJ.
+- Next: S1h from step 2 (section 0). After section 0, D5.
 
 ## 11. Calls made in round 5
 

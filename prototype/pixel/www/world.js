@@ -1,5 +1,5 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
-import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
+import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
 import { breeze, veilTable } from './core.js';
 import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag, makeRegister } from './sprites.js';
 import { SIGNS, NAMES, DEST_NAMES, UI } from './content.js';
@@ -802,7 +802,6 @@ export function makeWorld() {
         for (const [x, y] of X) scr.set(x, y, R.red[1]); scr.set(mx, my, INK); scr.set(mx + 1, my, INK); }
       if (!env.fixed && (DEBUG.roam || DEBUG.trails || DEBUG.camera)) {
         const dot = (x, y, c) => scr.set(Math.round(x) - ox, Math.round(y) - oy, c);
-        const oval = (a, c) => { const n = Math.ceil((a.rx + a.ry) * 2); for (let k = 0; k < n; k += 2) dot(a.x + Math.cos(k / n * TAU) * a.rx, a.y + Math.sin(k / n * TAU) * a.ry, c); };
         const box = (b, c, step) => { for (let x = b.x0; x <= b.x1; x += step) { dot(x, b.y0, c); dot(x, b.y1, c); } for (let y = b.y0; y <= b.y1; y += step) { dot(b.x0, y, c); dot(b.x1, y, c); } };
         // Where each animal wanders and each flock circles (T32): its own bright colour, two pixels wide with a
         // dark inner edge, a light dithered fill and its name. Pink boxes: where the cats keep to.

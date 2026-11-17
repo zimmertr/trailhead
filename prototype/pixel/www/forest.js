@@ -417,7 +417,7 @@ function buildForest() {
 
   return {
     ...META,
-    enter(scr, arg, q) { cam = xOf(q); st.y = null; const d = q * LEN; sasGo = null; },
+    enter(scr, arg, q) { cam = xOf(q); st.y = null; sasGo = null; },
     focus: () => focus,
     // The debug panel's start button (E5f): Sasquatch steps out at the far edge of the view, even if he has been seen this visit.
     trigger(name, t) {

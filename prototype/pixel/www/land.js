@@ -746,9 +746,8 @@ let MONO_OY = 0;
 // reference of a glacier ending in its lake), held on the near side by a low grey rim of moraine with a
 // notch at its middle. From the notch a thread of melt water wanders down, white where it tumbles, to where
 // the lake's stream first shows on the land; its column and its foot are read from the land.
-{ const VI = MATS.indexOf('volc'), cvM = VOLC.cv;
+{
   const paint = (x, y, c) => { if (x >= 0 && y >= 0 && x < NW && y < SH) { g[px(x, y)] = c; painted[px(x, y)] = 1; } };
-  const put = (x, y, c) => { if (x < 0 || y < 0 || x >= NW || y >= SH) return; const i = px(x, y); if (mb[i] === VI || zb[i] > cvM) { g[i] = c; zb[i] = Math.min(zb[i], cvM); mb[i] = VI; painted[i] = 1; } };
   for (const t of TARNS) {
     const e = t.end, hw = Math.round(clamp(e.room * 0.42, 14, 24)), rv = Math.max(4, Math.round(hw * 0.34)), xc = MONO_OX + e.mid;
     // The water's top row at each column is the first row below the ice there, so the ice meets it.
