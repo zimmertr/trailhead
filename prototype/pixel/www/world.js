@@ -516,6 +516,24 @@ export function makeWorld(bake) {
   let past = 0, nowT = 0;
   // walkTo: a leg that is walked over that part of its time and then stood still (the register, L2).
   const where = (leg, q) => { if (leg.walkTo) q = Math.min(1, q / leg.walkTo); const P = paths[leg.path], a = P.at(lerp(leg.from, leg.to, q)), s = leg.to < leg.from ? -1 : 1; return { x: a.x, y: a.y, dx: a.dx * s, dy: a.dy * s, P }; };
+  // Which way he faces (T37): from where the trail takes him over the next 32 pixels (and the 8 behind), not
+  // the step under his feet, since a trail drawn on a diagonal steps sideways and up in turn, and the zigzag
+  // up a cliff is one climb. Then with some give: he turns to
+  // walk up or down the screen only when the way ahead is nearly upright, back to his side only when it
+  // leans clearly sideways, and to his other side only when it leans clearly the other way. In between he
+  // keeps the way he faced.
+  function face(leg, q) {
+    if (leg.walkTo) q = Math.min(1, q / leg.walkTo);
+    const P = paths[leg.path], s = leg.to < leg.from ? -1 : 1, u = lerp(leg.from, leg.to, q), a = P.at(clamp(u - s * 8 / P.len, 0, 1)), b = P.at(clamp(u + s * 32 / P.len, 0, 1));
+    let dx = b.x - a.x, dy = b.y - a.y; const n = Math.hypot(dx, dy);
+    if (n < 3) return;
+    dx /= n; dy /= n;
+    if (facing === 'side') {
+      if (Math.abs(dx) < 0.3) facing = dy < 0 ? 'up' : 'down';
+      else if ((dx < 0) !== flip && Math.abs(dx) > 0.55) flip = dx < 0;
+    } else if (Math.abs(dx) > 0.6) { facing = 'side'; flip = dx < 0; }
+    else if (Math.abs(dx) < 0.3) facing = dy < 0 ? 'up' : 'down';
+  }
   const target = (scr, here, env) => {
     // env.lead: the hand-off from the opening frame to following him, eased over 2 seconds in pixel.js (F6).
     const v = vista(scr), k = !env || env.lead === undefined ? smooth(0, 60, Math.hypot(here.x - T.x, here.y - T.y)) : env.lead;
@@ -555,6 +573,8 @@ export function makeWorld(bake) {
     focus: () => focus,
     // The spot of the map under a point of the screen.
     at: (sx, sy) => ({ x: sx + last.ox, y: sy + last.oy }),
+    // Which way he faces, for the test scripts (B8): 'side-l', 'side-r', 'up' or 'down'.
+    pose: () => facing === 'side' ? (flip ? 'side-l' : 'side-r') : facing,
     // The four places he can be sent to, for the page to pin a name on. The page keeps a name on screen
     // when its place is out of view.
     // A place's tag rises and brightens with it when it lifts (E5j): lift is how far up it is, 0 to 1.
@@ -586,9 +606,7 @@ export function makeWorld(bake) {
       const { VW, VH, fb } = scr, { t, tq, dt } = env; nowT = t;
       regTrip = leg.path === 'register';
       const here = where(leg, q);
-      if (env.moving && Math.abs(here.dx) + Math.abs(here.dy) > 0.01) {
-        if (Math.abs(here.dx) > Math.abs(here.dy) * 0.7) { facing = 'side'; flip = here.dx < 0; } else facing = here.dy < 0 ? 'up' : 'down';
-      }
+      if (env.moving) face(leg, q);
       if (env.home) facing = 'down';
 
       // Camera: the whole view from the Trailhead, then follow him.
