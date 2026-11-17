@@ -169,7 +169,11 @@ export function makeCritters(W, opts = {}) {
   // Once in every 40 to 60 seconds it breaches: out, over and down in under three seconds, then the
   // spray comes down and its flukes lift and slide under after it. Twice in between it rolls at the
   // surface and blows. At time 0 it hangs at the top of a breach, for the block-in page.
-  const whales = BREACH.map(p => W.make.whale(p)), flukes = [0, 0.33, 0.66, 1].map(f => W.make.whale({ fluke: f }));
+  // Drawing the breach took a sixth of the page's start (M3), so only its first drawing is made up front;
+  // the rest are made one a frame once the map is running, and a breach that comes before they are all
+  // made (one started from the debug menu) makes the rest then.
+  const whales = [W.make.whale(BREACH[0])], moreWhales = () => { if (whales.length < BREACH.length) whales.push(W.make.whale(BREACH[whales.length])); };
+  const flukes = [0, 0.33, 0.66, 1].map(f => W.make.whale({ fluke: f }));
   const SLOT = 50, starts = n => 10 * hash(n, 5, 63), T0 = starts(0) + 1.55;
   const back = (() => { const b = new BM(20, 6); b.ox = 10; b.oy = 5; ell(b, 10, 6, 8.5, 4.2, (nx, ny) => R.navy[ny < -0.55 ? 2 : 1]); b.set(13, 1, R.navy[0]); b.set(14, 1, R.navy[0]); outline(b, INK); return b; })();
   items.push({ critter: 'whale', bm: whales[0], x: spots.whale[0], y: spots.whale[1] });
@@ -213,6 +217,7 @@ export function makeCritters(W, opts = {}) {
       }
     }
     ring(-22, wet, 4.6, 30 + 9 * wet, 4 + 2.4 * wet);
+    if (u >= 0 && u < IMPACT + 0.5) while (whales.length < BREACH.length) moreWhales();
     if (u >= 0 && u < IMPACT + 0.5) sunk(scr, whales[Math.min(whales.length - 1, Math.floor(u * FPS))], wx, wy, Math.round(7 * smooth(2.05, IMPACT, u) + 16 * smooth(IMPACT, IMPACT + 0.5, u)), t);
     // The flukes: up, a moment standing, then tipping over and under.
     const uf = wet - 0.6;
@@ -264,7 +269,24 @@ export function makeCritters(W, opts = {}) {
   let tideAhead = typeof location !== 'undefined' ? +(/[?&]tide=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
   const ebbAt = t => { const s = ((t + tideAhead) % TIDE + TIDE) % TIDE; return EBB * smooth(8, 44, s) * smooth(96, 60, s); };
   // Where water lies on in films on the bared flat, shining, 0 to 8 (most where the flat lies lowest).
-  const FILM = new Uint8Array(SEA.cs.length); for (let j = 0; j < FILM.length; j++) { const k = SEA.cs[j]; if (k < 8) continue; const x = j % SEA.w, y = SEA.y0 + ((j / SEA.w) | 0), n = vnoise(x / 13, y / 5, 6108) + 0.25 * smooth(8, 50, k); FILM[j] = Math.max(0, Math.min(8, Math.round((n - 0.6) * 30))); if (frac((k * 0.9 + 0.5 * Math.sin(x / 5)) / 3) < 0.22) FILM[j] |= 16; }
+// Each row of the sea (M3): the runs near the shore that the tide and the wash can reach, and the open
+  // water's glints beyond them, found once, so the open sea's still pixels are not visited every frame.
+  // Each row is found the first time it is drawn, so the page's start does not pay for rows out of sight.
+  const ROWS = new Array(SEA.h);
+  const seaRow = r => ROWS[r] || (ROWS[r] = (() => {
+    const reach = 12 + EBB;
+    {
+      const runs = [], glints = []; let a = -1;
+      for (let x = 0; x <= SEA.w; x++) {
+        const j = r * SEA.w + x, k = x < SEA.w ? SEA.cs[j] : 0, near = k > 0 && k < reach;
+        if (near && a < 0) a = x; else if (!near && a >= 0) { runs.push(a, x); a = -1; }
+        if (x < SEA.w && !near && SEA.gate[j]) glints.push(x);
+      }
+      return { runs, glints: Int16Array.from(glints) };
+    }
+  })());
+  // Only sand the lowest tide can bare is ever read (M3), so the open sea beyond it is skipped.
+  const FILM = new Uint8Array(SEA.cs.length); for (let j = 0; j < FILM.length; j++) { const k = SEA.cs[j]; if (k < 8 || k >= 4 + EBB) continue; const x = j % SEA.w, y = SEA.y0 + ((j / SEA.w) | 0), n = vnoise(x / 13, y / 5, 6108) + 0.25 * smooth(8, 50, k); FILM[j] = Math.max(0, Math.min(8, Math.round((n - 0.6) * 30))); if (frac((k * 0.9 + 0.5 * Math.sin(x / 5)) / 3) < 0.22) FILM[j] |= 16; }
   const csAt = (x, y) => { if (x < 0 || x >= SEA.w || y < SEA.y0 || y >= SEA.y0 + SEA.h) return 0; return SEA.cs[(y - SEA.y0) * SEA.w + x]; };
   // Each jellyfish's way out to sea: the way the distance from the shore grows fastest, in pixels per unit of it.
   const jellyOut = spots.jelly.map(([x, y]) => { const gx = (csAt(x + 4, y) - csAt(x - 4, y)) / 8, gy = (csAt(x, y + 4) - csAt(x, y - 4)) / 8, g2 = gx * gx + gy * gy || 1; return { c0: W.coast(x, y), dx: gx / g2, dy: gy / g2 }; });
@@ -536,12 +558,19 @@ export function makeCritters(W, opts = {}) {
     ferryHull(t, ox, oy, VW, VH) { return hullAt(t, ox, oy, VW, VH); },
     drawHull,
     sea(scr, ox, oy, t) {
+      moreWhales();
       const { VW, VH, fb } = scr, xa = Math.max(0, ox), xb = Math.min(ox + VW, SEA.w), ya = Math.max(oy, SEA.y0), yb = Math.min(oy + VH, SEA.y0 + SEA.h);
       if (xa >= xb || ya >= yb) return;
       const shift = Math.floor(t * 46) % 240, far = R.sea[4], nearC = R.sea[5], white = R.white[1], tw = t * 4.6, ebb = ebbAt(t), CS = SEA.cs, sea4 = R.sea[4], sand0 = R.sand[0], sand1 = R.sand[1];
+      const PH = SEA.ph, GATE = SEA.gate;
       for (let wy = ya; wy < yb; wy++) {
-        let j = (wy - SEA.y0) * SEA.w + xa, i = (wy - oy) * VW + (xa - ox);
-        for (let wx = xa; wx < xb; wx++, j++, i++) {
+        const r = wy - SEA.y0, row = r * SEA.w, irow = (wy - oy) * VW - ox, { runs, glints } = seaRow(r);
+        // Out in the open water only the glints change.
+        for (let g = 0; g < glints.length; g++) { const wx = glints[g]; if (wx < xa) continue; if (wx >= xb) break; let p = PH[row + wx] + shift; if (p >= 240) p -= 240; if (p < 22) fb[irow + wx] = GATE[row + wx] === 2 ? nearC : far; }
+        for (let q = 0; q < runs.length; q += 2) {
+        const x0 = Math.max(xa, runs[q]), x1 = Math.min(xb, runs[q + 1]); if (x0 >= x1) continue;
+        let j = row + x0, i = irow + x0;
+        for (let wx = x0; wx < x1; wx++, j++, i++) {
           const k = CS[j], cs = k ? k - 4 - ebb : 99;
           // Bared by the tide: wet sand, shining just above the water, ripple-marked higher up.
           if (k >= 4 && cs < 0) { const f = FILM[j]; fb[i] = cs > -3 || (f & 15) > ((wx * 3 + wy * 5) & 7) ? ((wx + wy) & 1 ? sea4 : sand0) : f & 16 ? sand1 : sand0; if (cs > -4) { const w = up0(wx, wy, tw); if (cs > -w && (cs < -w + 1.3 || ((wx + wy) & 1))) fb[i] = white; } continue; }
@@ -552,6 +581,7 @@ export function makeCritters(W, opts = {}) {
           const u = frac((7 * Math.sin(wx / 37 + wy / 61) + tw) / 24), surge = u < 0.2 ? u / 0.2 : 1 - (u - 0.2) / 0.8;
           const lace = 1.4 * Math.sin(wx / 7 + wy / 9), up = 0.4 + 3.2 * surge + lace * 0.5, out = 1.6 + 2.4 * surge + lace;
           if (cs > -up && cs < out && (cs < -up + 1.3 || cs > out - 1.2 || ((wx + wy) & 1))) fb[i] = white;
+        }
         }
       }
       // White water round the foot of each sea stack: it swells out as a wave passes the rock and draws back in.

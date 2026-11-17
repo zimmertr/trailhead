@@ -143,7 +143,9 @@ const eastAmt = (u, v) => { const e = eastOf(u, v); return smooth(-120, -40, e) 
 const RA = 14, ridges = (u, v) => RA * rdg(fbm((v + 0.25 * u) / 85, u / 260, 31, 2)) * smooth(-24, -110, coast(u, v)) * (1 - 0.45 * smooth(600, 730, v) * smooth(420, 300, u));
 const wet = (u, v, e) => smooth(e + 130, e - 110, u);
 const edgeE = 590, crestH = (c, a, b) => u => a + b * Math.exp(-sq((u - c) / 150));
-const forestEdge = v => edgeE - 96 * (fbm(v / 110, 2.3, 3, 3) - 0.5) + 30 * (fbm(v / 24, 7.1, 5, 2) - 0.5) + 44 * smooth(440, 260, v);
+// It keeps its last answer (M3): the map is worked out a row at a time, where the depth stays the same.
+let feV = NaN, feE = 0;
+const forestEdge = v => v === feV ? feE : (feV = v, feE = edgeE - 96 * (fbm(v / 110, 2.3, 3, 3) - 0.5) + 30 * (fbm(v / 24, 7.1, 5, 2) - 0.5) + 44 * smooth(440, 260, v));
 // The rainforest's foothills (E5b2), after TJ's two photographs (ROUND4.md section 10) and his note:
 // three big rounded hills wholly under forest, in a line down the forest from the top left to the river's
 // mouth, with the lake loop's forest stretch in the valley between the two larger. By rule, from that
@@ -481,7 +483,7 @@ const parkAmt = (u, v) => Math.max(smooth(1.25, 0.8, ell(C.PK, u, v) + wob(u, v,
 // The parkland's drifts: a slow field over it picks lupine, paintbrush, white, or heather and plain turf.
 // null outside the parkland, where the flowers are scattered by the dice as before.
 const DRIFT = (u, v) => { if (parkAmt(u, v) < 0.45) return null; const k = vnoise(u / 58, v / 34, 470) + 0.08 * (vnoise(u / 9, v / 6, 471) - 0.5); return k < 0.36 ? 'lupine' : k < 0.5 ? 'heather' : k < 0.68 ? 'red' : 'white'; };
-const forestAmt = (u, v) => smooth(forestEdge(v) + 40, forestEdge(v) - 24, u + 30 * (fbm(u / 30, v / 30, 8, 2) - 0.5)) * smooth(-6, -30, coast(u, v)) * (1 - 0.9 * smooth(1.1, 0.7, ell(C.PK, u, v)));
+const forestAmt = (u, v) => { const e = forestEdge(v); return smooth(e + 40, e - 24, u + 30 * (fbm(u / 30, v / 30, 8, 2) - 0.5)) * smooth(-6, -30, coast(u, v)) * (1 - 0.9 * smooth(1.1, 0.7, ell(C.PK, u, v))); };
 // Larches are trees of the high country: none below the second granite step.
 const larchAmt = (u, v) => smooth(1.2, 0.85, ell(C.LB, u, v) + wob(u, v, 204, 0.35)) * smooth(62, 74, hAt(u, v));
 // The old burn lies on the bench at the foot of the Enchantment plateau's cliff (E5g, TJ's red box), at
@@ -781,7 +783,21 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
 // since a bake holds only the finished picture, and lined up with the picture by where its icefall
 // matches the ground best. Each pixel keeps the plain snow that would lie there and how far down the
 // icefall it is (0 to 255). foot is where the snow runs out below it, down the glacier.
+// Where the snow runs out below the icefall, down the glacier, from the covered pixels.
+function coverFoot(at, snow, q, x0, x1, y0, y1, sx, sn) {
+  const cx = Math.round(sn ? sx / sn : (x0 + x1) / 2); let fy = y1, miss = 0;
+  while (fy < SH - 1 && miss < 3) { fy++; const k = RAMP_OF[g[px(cx, fy)]]; miss = k === 'snow' || k === 'serac' ? 0 : miss + 1; }
+  return { at: Int32Array.from(at), snow: Uint8Array.from(snow), q: Uint8Array.from(q), x0, x1, y0, y1, cx, foot: [cx, fy - 3] };
+}
 const MONO_COVER = (() => {
+  // From the bake (M3): the plain snow and the depth down the icefall of each covered pixel, kept as two
+  // planes, so the painting is not worked out again at every start.
+  if (B && B.monoSnow) {
+    const at = [], snow = [], q = []; let x0 = NW, x1 = 0, y0 = SH, y1 = 0, sx = 0, sn = 0;
+    for (let i = 0; i < NW * SH; i++) { const c = B.monoSnow[i]; if (!c) continue; const x = i % NW, y = (i / NW) | 0;
+      at.push(i); snow.push(c); q.push(B.monoQ[i]); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); if (B.monoQ[i] > 200) { sx += x; sn++; } }
+    return at.length < 50 ? null : coverFoot(at, snow, q, x0, x1, y0, y1, sx, sn);
+  }
   const P = paintMonolith(), ox = VOLC.cu - PMCX, n = P.cover.length / 3; if (!n) return null;
   const fit = oy => { let m = 0; for (let j = 0; j < n; j += 5) { const k = P.cover[3 * j], x = ox + k % PMW, y = oy + ((k / PMW) | 0); if (x >= 0 && y >= 0 && x < NW && y < SH && g[px(x, y)] === P.d[k]) m++; } return m; };
   const guess = Math.round(SY - VOLC.cv - VOLC.H - PTOPY); let oy = guess, best = -1;
@@ -790,9 +806,7 @@ const MONO_COVER = (() => {
   for (let j = 0; j < n; j++) { const k = P.cover[3 * j], x = ox + k % PMW, y = oy + ((k / PMW) | 0); if (x < 0 || y < 0 || x >= NW || y >= SH || g[px(x, y)] !== P.d[k]) continue;
     at.push(px(x, y)); snow.push(P.cover[3 * j + 1]); q.push(P.cover[3 * j + 2]); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); if (P.cover[3 * j + 2] > 200) { sx += x; sn++; } }
   if (at.length < 50) return null;
-  const cx = Math.round(sn ? sx / sn : (x0 + x1) / 2); let fy = y1, miss = 0;
-  while (fy < SH - 1 && miss < 3) { fy++; const k = RAMP_OF[g[px(cx, fy)]]; miss = k === 'snow' || k === 'serac' ? 0 : miss + 1; }
-  return { at: Int32Array.from(at), snow: Uint8Array.from(snow), q: Uint8Array.from(q), x0, x1, y0, y1, cx, foot: [cx, fy - 3] };
+  return coverFoot(at, snow, q, x0, x1, y0, y1, sx, sn);
 })();
 // Each destination and its country (D12a, D12b), worked out from the heights, materials and depth the
 // bake already holds, so it costs nothing to keep. First on the map, by rules from the land:
@@ -1151,7 +1165,7 @@ export async function sourceSig() {
   }
   return h.toString(16);
 }
-export const BAKE_ROWS = 8 * SH + 4 * VD;
+export const BAKE_ROWS = 13 * SH + 4 * VD;
 async function readBake() {
   if (globalThis.__noBake) return null;
   try {
@@ -1170,14 +1184,16 @@ async function readBake() {
     if (px.length !== (w + 1) * h) return null;
     // One plane after another, each as wide as the map; every row starts with a 0 (stored as it is).
     let y0 = 0; const plane = rows => { const a = new Uint8Array(NW * rows); for (let y = 0; y < rows; y++) a.set(px.subarray((y0 + y) * (w + 1) + 1, (y0 + y + 1) * (w + 1)), y * NW); y0 += rows; return a; };
-    const g = plane(SH), zh = plane(SH), zl = plane(SH), mb = plane(SH), painted = plane(SH), hh = plane(VD), hl = plane(VD), mg = plane(VD), water = plane(VD), bare = plane(SH), dest = plane(SH), fog = plane(SH);
+    const g = plane(SH), zh = plane(SH), zl = plane(SH), mb = plane(SH), painted = plane(SH), hh = plane(VD), hl = plane(VD), mg = plane(VD), water = plane(VD), bare = plane(SH), dest = plane(SH), fog = plane(SH), hillLight = plane(SH), deck = plane(SH), monoSnow = plane(SH), monoQ = plane(SH), mist = plane(SH);
     const zb = new Float32Array(NW * SH), hg = new Float32Array(NW * VD);
     for (let i = 0; i < zb.length; i++) { const q = zh[i] << 8 | zl[i]; zb[i] = q === 65535 ? 1e9 : q / 64; }
     for (let i = 0; i < hg.length; i++) hg[i] = (hh[i] << 8 | hl[i]) / 32;
-    return { g, zb, mb, painted, hg, mg, water, bare, dest, fog };
+    return { g, zb, mb, painted, hg, mg, water, bare, dest, fog, hillLight, deck, monoSnow, monoQ, mist };
   } catch (e) { console.warn('ground.png could not be read', e); return null; }
 }
-export const LAND = buildLand(await readBake());
+// The bake is kept as well: buildTerrain takes the hills' evening light and the cloud deck from it (M3).
+const BAKED = await readBake();
+export const LAND = buildLand(BAKED);
 const C = LAND.C, sxy = (u, v) => [Math.round(u), LAND.toY(u, v)];
 // How far from the camera the ground drawn at a spot of the picture is. Sky is past everything.
 const vAt = (x, y) => { x = Math.round(x); y = Math.round(y); return x < 0 || y < 0 || x >= NW || y >= SH ? 1e9 : LAND.depth[y * NW + x]; };
@@ -1357,7 +1373,7 @@ export function buildTerrain() {
   // hill's skyline on the picture, more toward its west end), how soon it goes dark (16 to 31: the
   // valleys round and between the hills), or how much light the tree tops standing up to 16 pixels past the skyline
   // catch (32 to 47; world.js lights only what stands there, not the farther ground behind).
-  const hillLight = (() => { const M = new Uint8Array(NW * SH), HL = LAND.hillList(); if (!HL.length) return M;
+  const hillLight = BAKED ? BAKED.hillLight : (() => { const M = new Uint8Array(NW * SH), HL = LAND.hillList(); if (!HL.length) return M;
     const X1 = Math.min(NW, Math.round(Math.max(...HL.map(h => h.cu + h.ru))) + 60), FE = Float32Array.from({ length: VD }, (_, v) => LAND.forestEdge(v));
     for (let y = 0; y < SH; y++) for (let x = 0; x < X1; x++) { const i = y * NW + x, v = LAND.depth[i]; if (v >= VD || LAND.coast(x, v) > -24) continue;
       const up = LAND.hillUp(x, v); let d2 = 9; for (const h of HL) d2 = Math.min(d2, sq((x - h.cu) / h.ru) + sq((v - h.cv) / h.rv));
@@ -1402,7 +1418,7 @@ export function buildTerrain() {
   // in the cloud and the valley floors stay under it; and in a band just above each skyline it covers
   // (the deck's own top), thinning upward. Only the rainforest's own ground takes it, never Mount
   // Monolith, the far ranges or the meadow.
-  const deck = (() => { const M = new Uint8Array(NW * SH), X1 = 860, LANDM = LAND.MATS.indexOf('land');
+  const deck = BAKED ? BAKED.deck : (() => { const M = new Uint8Array(NW * SH), X1 = 860, LANDM = LAND.MATS.indexOf('land');
     for (let y = 0; y < SH; y++) for (let x = 0; x < X1; x++) { const i = y * NW + x, v = LAND.depth[i]; if (v >= VD) continue;
       const cs = LAND.coast(x, v); let d;
       if (cs > -30) d = (0.6 + 0.25 * smooth(-30, 60, cs)) * smooth(170, 90, cs);
@@ -1420,7 +1436,7 @@ export function buildTerrain() {
       if (c === W4 && ![-2, -1, 1, 2].some(d => LAND.g[i + d * NW] === W1)) continue; M[i] = 1; }
     const fall = [], foot = []; for (let i = 0; i < N - NW; i++) if (M[i]) { fall.push(i); if (!M[i + NW]) { const v = LAND.depth[i + NW]; if (v < VD && LAND.water[Math.round(v) * NW + (i % NW)]) foot.push(i + NW); } }
     return { fall: Int32Array.from(fall), foot: Int32Array.from(foot) }; })();
-  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, whiteWater: falls, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, whiteWater: falls, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the
@@ -1429,6 +1445,21 @@ export function buildTerrain() {
 // beach (shore, -1 on rows with no sea), and a coarse picture, two pixels to a cell, of where it may
 // lie: 0 anywhere in the forest, 1 only thinly (over the trail, just in from the beach, over open
 // ground), 2 not at all (the sea and the beach, the sky, the mountains).
+// The mist's layout in one plane of the bake (M3): where it starts and how far east it reaches, each row's
+// fog edge and shore (two bytes each, the shore one up so that none is 0), then the gate of each cell.
+export function packMist(M, out) {
+  const put2 = (o, v) => { out[o] = v >> 8 & 255; out[o + 1] = v & 255; };
+  put2(0, M.y0); put2(2, M.x1);
+  for (let y = 0; y < SH; y++) { put2(4 + 2 * y, M.edge[y]); put2(4 + 2 * SH + 2 * y, M.shore[y] + 1); }
+  out.set(M.gate, 4 + 4 * SH);
+}
+function unpackMist(P) {
+  const get2 = o => P[o] << 8 | P[o + 1], y0 = get2(0), x1 = get2(2), edge = new Int16Array(SH), shore = new Int16Array(SH);
+  for (let y = 0; y < SH; y++) { edge[y] = get2(4 + 2 * y); shore[y] = get2(4 + 2 * SH + 2 * y) - 1; }
+  const M = { x1, y0, w: x1 >> 1, h: Math.ceil((SH - y0) / 2), edge, shore };
+  M.gate = P.slice(4 + 4 * SH, 4 + 4 * SH + M.w * M.h);
+  return M;
+}
 function mistBox(H) {
   const at = (x, y) => y * NW + x, landMat = LAND.MATS.indexOf('land');
   const isFoggy = (x, y) => { const v = LAND.depth[at(x, y)]; return v < VD && LAND.fogAmt(x, v) > 0.35 && LAND.coast(x, v) < -10; };

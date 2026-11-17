@@ -222,7 +222,9 @@ export function makeWorld(bake) {
   // The valleys round the hills go a step darker at Dusk, through a dither. That never changes, so it is
   // done once, in a copy of the ground drawn instead of it once the light is half gone; done each frame
   // it cost 2 ms.
-  const groundDusk = ground.slice(); for (let i = 0; i < ground.length; i++) { const m = W.hillLight[i]; if (m >= 16 && m < 32 && bayer(i % WW, (i / WW) | 0) < (m - 16) * 0.05) groundDusk[i] = SHADE[ground[i]]; }
+  // Made the first time Dusk is drawn (M3), so a visit by Day never pays for it.
+  let groundDuskC = null;
+  const groundDusk = () => { if (groundDuskC) return groundDuskC; const groundDusk = groundDuskC = ground.slice(); for (let i = 0; i < ground.length; i++) { const m = W.hillLight[i]; if (m >= 16 && m < 32 && bayer(i % WW, (i / WW) | 0) < (m - 16) * 0.05) groundDusk[i] = SHADE[ground[i]]; } return groundDuskC; };
   let gNow = ground;
   const keep = m => m && (m < 16 || m >= 32);
   const HLIT = (() => { const M = W.hillLight, rows = new Int32Array(WH + 1); let n = 0; for (let i = 0; i < M.length; i++) if (keep(M[i])) n++;
@@ -348,7 +350,9 @@ export function makeWorld(bake) {
   // That never changes but for where the deck's edge is, so it is done once, in copies of the ground (by
   // Day and at Dusk) drawn west of the edge once the drizzle has wet it; done each frame it cost 4 ms.
   const wetOf = g => { const o = g.slice(); for (let y = 0; y < WH; y++) for (let x = 0; x < 900; x++) { const i = y * WW + x; if (W.depth[i] > 1e8 || KIND[g[i]] === WATERY || bayer(x, y) >= 0.25) continue; o[i] = SHADE[g[i]]; } return o; };
-  const groundWet = wetOf(ground), groundDuskWet = wetOf(groundDusk);
+  // Each copy is made the first time the rain needs it (M3), not at the page's start.
+  let groundWet = null, groundDuskWet = null;
+  const wetCopy = dusk => dusk ? groundDuskWet || (groundDuskWet = wetOf(groundDusk())) : groundWet || (groundWet = wetOf(ground));
   // The veils the fog and the deck lay on, from faint to the strongest (westVeil, above makeWorld).
   const FOGV = [0.12, 0.26, 0.4, 0.53, 0.65, 0.76, 0.86].map(veilTable);
   // For each row of the picture, the columns the fog and the deck can reach, so a frame only visits those.
@@ -612,8 +616,8 @@ export function makeWorld(bake) {
       scr.sky = { ox, oy, w: WW, h: 330, moon: [1180, 60] };
 
       // Ground. West of the weather's edge, once the drizzle has wet it, the wet copy.
-      gNow = env.mix > 0.5 ? groundDusk : ground;
-      const sky = weather(t), wetOn = DEBUG.clouds && sky.wet > 0.3, gWet = env.mix > 0.5 ? groundDuskWet : groundWet;
+      gNow = env.mix > 0.5 ? groundDusk() : ground;
+      const sky = weather(t), wetOn = DEBUG.clouds && sky.wet > 0.3, gWet = wetOn ? wetCopy(env.mix > 0.5) : gNow;
       for (let y = 0; y < VH; y++) {
         const wy = oy + y, row = y * VW;
         if (wy < 0) { fb.fill(R.skyband[0], row, row + VW); continue; }

@@ -403,18 +403,25 @@ export {
 // much. Nearest is judged in Day and in Dusk together, so a veil holds in either light. The neutral
 // greys are never picked (they turn a green forest dirty), nor the colours that cycle or only show at Dusk.
 const NO_VEIL = ['glint', 'star', 'aurora', 'rock', 'gold', 'granite', 'basalt', 'nebel', 'shoe', 'navy', 'far', 'ochre', 'ink', 'fur', 'tortie', 'hair', 'jay', 'skin'];
+// Each table is worked out once and kept (M3): fourteen were made at every start, several twice over. The
+// sums are the same as before, in the same order, so every table is exactly what it was.
+const VEILS = new Map(), WK = [3, 4, 2];
 export function veilTable(amount) {
-  const out = new Uint8Array(256), fog = R.fog[2], skip = new Set(NO_VEIL.flatMap(k => R[k]));
+  if (VEILS.has(amount)) return VEILS.get(amount);
+  const out = new Uint8Array(256), fog = R.fog[2], skip = new Uint8Array(256); for (const j of NO_VEIL.flatMap(k => R[k])) skip[j] = 1;
+  const PS = [DAY, DUSK];
   for (let i = 1; i < N; i++) {
     let best = i, bd = Infinity;
+    const want = []; for (const P of PS) for (let k = 0; k < 3; k++) want.push(P[i][k] + (P[fog][k] - P[i][k]) * amount);
     for (let j = 1; j < N; j++) {
-      if (skip.has(j)) continue;
-      let d = 0;
-      for (const P of [DAY, DUSK]) for (let k = 0; k < 3; k++) { const want = P[i][k] + (P[fog][k] - P[i][k]) * amount; d += (want - P[j][k]) * (want - P[j][k]) * [3, 4, 2][k]; }
+      if (skip[j]) continue;
+      let d = 0, m = 0;
+      for (const P of PS) { const c = P[j]; for (let k = 0; k < 3; k++, m++) { const e = want[m] - c[k]; d += e * e * WK[k]; } }
       if (d < bd) { bd = d; best = j; }
     }
     out[i] = best;
   }
   out[BLACK] = BLACK;
+  VEILS.set(amount, out);
   return out;
 }
