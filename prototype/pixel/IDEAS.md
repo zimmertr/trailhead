@@ -222,3 +222,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **An Outlet for the Lone Tarn** (round 5, D4). The small lake above the two far moraine lakes has no stream. A thread of water down to the nearer lake would tie the whole plateau into one chain.
 - **A Swimming Hole** (round 5, D4). The pond on the east creek is now a level pool above a fall, the kind of place people swim. A rope swing on a branch, or a towel on a rock, would say so.
 - **Dippers at the Falls** (round 5, D4). A small grey bird could bob on a rock at the foot of each fall and fly low up the stream when TJ comes near.
+- **The Sweep as a Check** (round 5, E1). `check.sh` could run the sea sweep for a few hundred seconds and fail if the ferry or an orca is ever short of water, so a change to the coast or the tide cannot bring the grounding back unseen.
+- **The Ferry Sounds Its Horn at the Corner** (round 5, E1). Where its lane bends round the bared flats at low water, one long blast, as a real ferry gives on a blind turn.
+- **A Calf in the Pod** (round 5, E1). A fifth, small orca could keep to one cow's side, on the same lane a little inshore of her, and surface twice as often.
+- **Lanes for the Birds** (round 5, E1). The same two-lane idea would let a line of pelicans or cormorants fly the coast just outside the surf at any tide.

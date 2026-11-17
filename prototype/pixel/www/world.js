@@ -414,7 +414,7 @@ export function makeWorld() {
       const dim = hash(k, Math.floor(t * 1.3), 4901) < 0.12; scr.set(sx, sy + 1, INK); scr.set(sx, sy + 2, INK); scr.set(sx, sy, dim ? R.lamp[0] : R.lamp[1]); if (!dim) { const [ax, ay] = lampAt(Math.min(TRK.L, d + 3)); scr.set(Math.round(ax) - ox, Math.round(ay) - 2 - oy, R.lamp[0]); } }
   }
   // The animals look after themselves: see critters.js. Where each one lives comes from land.js.
-  const crit = makeCritters(W);
+  const crit = makeCritters(W); window.__crit = crit;
   const ev = makeEvents(W, crit.collide);
   for (const it of crit.items) things.push(it);
   const birds = [makeBird(0), makeBird(1)];

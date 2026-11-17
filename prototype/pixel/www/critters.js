@@ -1,7 +1,7 @@
 // The animals of the world map and the water that moves: herds that graze and wander, a bear, squirrels
 // and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
-import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, INK, SHADE, KIND, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
+import { TAU, clamp, lerp, smooth, frac, hash, vnoise, rng, R, INK, SHADE, KIND, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
 import { makeElk, makeBird } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './land.js';
@@ -85,6 +85,16 @@ export function makeCritters(W, opts = {}) {
   const ebbAt = t => { const s = ((t + tideAhead) % TIDE + TIDE) % TIDE; return EBB * smooth(8, 44, s) * smooth(96, 60, s); };
   // Where each kind of mover may be (collide.js): the stacks and the tide above, the land's own rules.
   const col = makeCollide(W, { ebbAt, stacks });
+  // A lane for something that sails or swims along the coast (round 5, T15): how far out it must keep at each
+  // step along its way, smoothed so that it never comes nearer the shore than the rule asked anywhere: the
+  // farthest out within k1 steps either side (sign 1: the greatest number, -1: the least), then the mean
+  // within k2 (k2 no more than k1). A gap (null) stays a gap. Each mover has one lane for high water and one
+  // for the lowest, and is somewhere between the two as the tide stands, so it moves out and back with the
+  // water without a jump. (Until round 5 each was pushed clear afresh every frame, which at low water threw
+  // the ferry 20 px from one frame to the next and now and then left it aground.)
+  const lane = (raw, sign, k1, k2) => { const n = raw.length, far = raw.map((v, i) => { if (v == null) return null; let m = v; for (let j = Math.max(0, i - k1); j <= Math.min(n - 1, i + k1); j++) if (raw[j] != null && sign * raw[j] > sign * m) m = raw[j]; return m; });
+    return far.map((v, i) => { if (v == null) return null; let t = 0, c = 0; for (let j = Math.max(0, i - k2); j <= Math.min(n - 1, i + k2); j++) if (far[j] != null) { t += far[j]; c++; } return t / c; }); };
+  const onSea = (x, y) => { x = Math.round(x); y = Math.round(y); return x >= 0 && x < SEA.w && y >= SEA.y0 && y < SEA.y0 + SEA.h; };
   // The map animals the debug menu can place (C4), and the homes each one's own rule chose for it (habitat in land.js).
   const SPAWN = ['elk', 'goat', 'sheep', 'bear', 'marmot', 'squirrel'];
   const homesOf = k => k === 'elk' ? [spots.elk[0].slice(0, 2)] : k === 'goat' ? spots.goats.filter(g => !g[2]).map(g => g.slice(0, 2)) : k === 'bear' ? [spots.bear.slice(0, 2)] : (k === 'squirrel' ? spots.squirrels : spots[k === 'sheep' ? 'sheep' : 'marmots']).map(g => g.slice(0, 2));
@@ -373,17 +383,29 @@ export function makeCritters(W, opts = {}) {
     const p = (w - 10.9) / (OSP.len - 10.9), x = Math.round(px + p * 150), y = Math.round(py - 4 - p * 110 - 20 * Math.sin(p * Math.PI));
     bird(scr, x, y, Math.floor(t * 6) % 2 ? OSPREY.beat : OSPREY.glide); sockeye(scr, x, y + 4, false);
   }
-  const isoX = new Map(), isoAt = c => { let a = isoX.get(c); if (a) return a; a = new Int16Array(SEA.h).fill(-1);
-    for (let r = 0; r < SEA.h; r++) for (let x = SEA.w - 1; x >= 0; x--) if (SEA.cs[r * SEA.w + x] >= c + 4) { a[r] = x; break; } isoX.set(c, a); return a; };
+  // Each orca's lane, row by row down the sea: the spot nearest the shore that is as far out as its own line
+  // (c from the high-water line, and as much farther as the tide has dropped) and clear of the stacks.
+  const orcaLine = (o, ebb) => lane(Array.from({ length: SEA.h }, (_, r) => { for (let x = SEA.w - 1; x >= 0; x--) if (SEA.cs[r * SEA.w + x] >= o.c + 4 + ebb && col.canBe('swimmer', x, SEA.y0 + r, { ebb }, 4)) return x; return null; }), -1, 44, 40);
+  // len: how far along its high-water lane each row is, so the pod swims at one speed where the coast
+  // turns as well as where it runs straight (it used to cross the map a row at a time, and raced round the corner).
+  const LANES = POD.map(o => { const hi = orcaLine(o, 0), lo = orcaLine(o, EBB), r0 = Math.max(0, hi.findIndex(v => v != null)), len = new Float32Array(SEA.h);
+    for (let r = r0 + 1; r < SEA.h; r++) len[r] = len[r - 1] + (hi[r] == null || hi[r - 1] == null ? 1 : Math.hypot(hi[r] - hi[r - 1], 1)); return { hi, lo, r0, len }; });
+  ORCA.dur = Math.max(...POD.map((o, i) => (LANES[i].len[SEA.h - 1] + 20 + o.lag) / ORCA.speed)) + 2;
+  // Where one of the pod is, s seconds into the pass: on its depth line, then clear of the stacks. Nothing
+  // before it has come onto the map or after it has left, or where no clear water is near.
+  // Where the low-water lane has not begun (the sea is narrow at the top of the map) it counts as just off the
+  // west edge, so at low water the pod comes onto the map farther down. Never drawn where the rule says no.
+  const orcaAt = (i, s, t) => { const { hi, lo, r0, len } = LANES[i], d = s * ORCA.speed - 20 - POD[i].lag; if (d < 0 || d >= len[SEA.h - 1]) return null;
+    let a = r0, b = SEA.h - 1; while (b - a > 1) { const m = (a + b) >> 1; if (len[m] <= d) a = m; else b = m; }
+    if (hi[a] == null || hi[b] == null) return null;
+    const f = (d - len[a]) / Math.max(1e-6, len[b] - len[a]), e = ebbAt(t) / EBB, at = r => lerp(hi[r], lo[r] == null ? -12 : lo[r], e), x = lerp(at(a), at(b), f), y = SEA.y0 + a + f;
+    return col.canBe('swimmer', x, y, t, 4) ? [x, y] : null; };
   function orcas(scr, ox, oy, t) {
-    const T = t + orcaAhead - ORCA.first, n = Math.floor(T / ORCA.slot), s = T - n * ORCA.slot, dur = (SEA.h + 80) / ORCA.speed; if (T < 0 || s > dur) return;
+    const T = t + orcaAhead - ORCA.first, n = Math.floor(T / ORCA.slot), s = T - n * ORCA.slot; if (T < 0 || s > ORCA.dur) return;
     const spy = Math.floor(hash(n, 1, 6301) * POD.length), spyAt = 30 + 30 * hash(n, 2, 6301), sv = s - spyAt;
-    // As the tide goes out the pod keeps the same depth under it, so its line moves out with the water (T15),
-    // in steps of 2; then clear of the stacks by the shared rule.
-    const lift = 2 * Math.round(ebbAt(t) / 2);
+    // As the tide goes out the pod keeps the same depth under it, so its lanes move out with the water (T15).
     POD.forEach((o, i) => {
-      const row = Math.round(s * ORCA.speed - 20 - o.lag); if (row < 0 || row >= SEA.h) return; const x0 = isoAt(o.c + lift)[row]; if (x0 < 0) return;
-      const at = col.clear('swimmer', x0, SEA.y0 + row, t, 4); if (!at) return;
+      const at = orcaAt(i, s, t); if (!at) return;
       const x = Math.round(at[0]) - ox, y = Math.round(at[1]) - oy; if (x < -20 || x > scr.VW + 20 || y < -20 || y > scr.VH + 6) return;
       if (i === spy && sv > 0 && sv < 3.2) return spyhop(scr, x, y, sv / 3.2, t);
       const ph = frac(s / 4.2 + i * 0.31), q = ph / 0.55; if (q >= 1) return; const h = Math.sin(Math.PI * q);
@@ -442,7 +464,17 @@ export function makeCritters(W, opts = {}) {
   // when the course would put any of the hull (bow, middle or stern) on a stack or the bared flat at the
   // tide of the moment. The wake follows the same way, so it bends with the boat.
   const HULL = ferryBM.w * 0.38, FDX = (FB[0] - FA[0]) / FLEN, FDY = (FB[1] - FA[1]) / FLEN, PROBE = [[FDX * HULL, FDY * HULL], [-FDX * HULL, -FDY * HULL]];
-  const shipPt = (s, t) => { const p = coursePt(s); return col.clear('boat', p[0], p[1], t, 3, PROBE) || p; };
+  // Its lane: at each 2 px of the course, how far out to sea (straight off the coast, the way the course
+  // bows) the whole hull first has 2 px of room to spare, at high water and at the lowest. Off the map's edge
+  // it keeps what it had at the edge.
+  const NF = Math.ceil(FLEN / 2), OUT = [-0.56, 0.83];
+  const ferryLane = ebb => { const raw = Array.from({ length: NF + 1 }, (_, k) => { const [px, py] = coursePt(k / NF); if (!onSea(px, py)) return null;
+      for (let d = 0; d < 220; d++) { const x = px + OUT[0] * d, y = py + OUT[1] * d; if ([[0, 0], ...PROBE].every(([a, b]) => !onSea(x + a, y + b) || col.room('boat', x + a, y + b, { ebb }, 3) >= 2)) return d; } return 220; });
+    const first = raw.findIndex(v => v != null), last = raw.length - 1 - [...raw].reverse().findIndex(v => v != null);
+    return lane(raw.map((v, k) => v != null ? v : first < 0 ? 0 : raw[k < first ? first : last]), 1, 24, 16); };
+  const FLANE = [ferryLane(0), ferryLane(EBB)];
+  const shipPt = (s, t) => { const p = coursePt(s), k = clamp(s, 0, 1) * NF, k0 = Math.min(NF - 1, Math.floor(k)), f = k - k0, e = ebbAt(t) / EBB;
+    const d = lerp(lerp(FLANE[0][k0], FLANE[0][k0 + 1], f), lerp(FLANE[1][k0], FLANE[1][k0 + 1], f), e); return [p[0] + OUT[0] * d, p[1] + OUT[1] * d]; };
   function drawWake(scr, ox, oy, t) {
     const at = ferryAt(t + ferryAhead); if (!at) return;
     const [s, dir] = at, [fx, fy] = shipPt(s, t), { VW, VH } = scr;
@@ -589,6 +621,17 @@ export function makeCritters(W, opts = {}) {
     findPool: t => FIND && ebbAt(t) - FIND.P.s.cs >= 9 ? FIND.p : null,
     // The water: swells roll in toward the beach, the wash runs up the sand and back, jellyfish pulse.
     ferryHull(t, ox, oy, VW, VH) { return hullAt(t, ox, oy, VW, VH); },
+    // For the checks (round 5, T15): the ferry and each orca at time t, with the least room the shared rule
+    // gives it there (under 0 it is aground or on a stack). lost: an orca on the map with no clear water found.
+    seaMovers(t) {
+      const out = [], on = onSea, at = ferryAt(t + ferryAhead);
+      if (at) { const [x, y] = shipPt(at[0], t), pts = [[x, y], ...PROBE.map(([px, py]) => [x + px, y + py])].filter(([a, b]) => on(a, b)); if (pts.length) out.push({ kind: 'ferry', x, y, room: Math.min(...pts.map(([a, b]) => col.room('boat', a, b, t, 3))) }); }
+      const T = t + orcaAhead - ORCA.first, s = T - Math.floor(T / ORCA.slot) * ORCA.slot;
+      if (T >= 0 && s <= ORCA.dur) POD.forEach((o, i) => { const d = s * ORCA.speed - 20 - o.lag, L = LANES[i]; if (d < 0 || d >= L.len[SEA.h - 1]) return; const p = orcaAt(i, s, t);
+        if (p) { out.push({ kind: 'orca', i, x: p[0], y: p[1], room: col.room('swimmer', p[0], p[1], t, 4) }); return; }
+        let row = L.r0; while (row < SEA.h - 1 && L.len[row + 1] <= d) row++; const a = L.hi[row], b = L.lo[row]; if (a != null && lerp(a, b == null ? -12 : b, ebbAt(t) / EBB) >= 1) out.push({ kind: 'orca', i, lost: true, row }); });
+      return out;
+    },
     // The shared rules of where each kind of mover may be, for the debug overlay and the timed events.
     collide: col,
     // The debug menu's spawn list (C4): each kind of map animal and the homes its own rule gave it, in world
