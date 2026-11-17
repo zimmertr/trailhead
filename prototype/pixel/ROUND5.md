@@ -519,7 +519,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] D6. T79a: the river mouth shows through the sea fog.
 - [x] D7. T10: the fire lookout on Off By One Peak.
 - [x] D8. T21: flower density from one field, with the four levels.
-- [ ] D9. T22: more larches on the upper plateau. T23: no aspens on the dry side.
+- [x] D9. T22: more larches on the upper plateau. T23: no aspens on the dry side.
 - [ ] D10. T27: the Legacy Range in grey rock with high snow.
 - [ ] D11. T31: Little Tahoma's tip a touch blunter.
 - [ ] D12. T64 (map part): iron rungs up the cliff below the plateau, and the hook straightened into an arc.
@@ -662,7 +662,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **D6 done.** When the marine layer is in, the upper river now shows as clear blue water across the sand to the sea, under the cloud deck and under the fog that follows it. The fog on the sea, on the rest of the beach and in the forest is as it was. The lower river's mouth was already clear of the fog and has not changed.
 - **D7 done.** The fire lookout stands on the crest of Off By One Peak, against the Legacy Range, on a summit cleared of trees. It shows on the first screen, top left. The old site on the smaller hill by Reflection Lake is forest again.
 - **D8 done.** The flowers grow in TJ's four levels: thickest from Monolith's foot round Reflection Lake and across to base camp, a medium amount along the rivers, a small amount round the Trailhead and in the meadow's corner by the forest, and sparse in the rest of the meadows. The meadow below the lake's cliff, which was as thick as the lake's, is now the rivers' medium.
-- Next: D9.
+- **D9 done.** The upper plateau has nine more groups of larches, by its tarns and among its slabs, with open slab between them. No aspen stands on the dry yellow ground any more: they keep to the riverside woods west of the dry edge.
+- Next: D10.
 
 ## 11. Calls made in round 5
 
@@ -759,6 +760,9 @@ One line each, newest last: the item, what was decided, and why.
 - D8. Two changes from round 4 that follow from TJ's sketch and may surprise: the Trailhead's meadow has fewer flowers than round 4 (round 4 had made it thick "as round 3's was"; TJ now marks it small), and the elk's meadow below the lake's cliff lost its thick white and red drifts, because it lies outside his red line.
 - D8. The first build planted heather on the Spires' glacier, because the heather's dice now reach as far as base camp and the heather never checked what it stood on. It now grows on soil only.
 - D8, checks: `check.sh D8 D7` passed, nothing moved, lint clean. The check's frame time read 13.8 ms once, so I measured three times each way: 12.1 to 12.4 ms before and 12.2 to 12.7 ms after, for 220 more plants (6,544 in all). Looked at beside TJ's sketch and beside the build before, by Day and at Dusk.
+- D9, larches. The trees already on the upper plateau stay where they are. The new ones are groups of five to nine with dice of their own, so no other tree moved: the first five groups stand beside a tarn, the rest anywhere on the upper step, and no two groups are closer than 50 px, which keeps slab between them. They are the small larches the plateau already had (trees shrink with height on this map).
+- D9, aspens. An aspen whose own spot is dry ground (`dryAmt` of 0.3 or more) is left out, and the dice roll on as before, so every other aspen and every tree planted after them stands where it did. This removes the groves on the yellow ground and thins the ones on the edge. I did not add groves in the riverside woods to make up the number: TJ asked for them gone from the dry side, not for more elsewhere.
+- D9, checks: `check.sh D9 D8` passed, 12.1 ms a frame zoomed out at Dusk, nothing moved, lint clean, 6,519 plants (25 fewer than D8). Looked at beside the build before at the plateau and along the dry edge. Round 4 has the plateau nearly bare and aspens on the yellow ground.
 
 ## 12. The reference pictures
 

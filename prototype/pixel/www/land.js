@@ -1106,16 +1106,29 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     if (rand() < burnAmt(u, v) * 1.2) { if (rand() < 0.4) put(any(snags), u, v); continue; }
     { const lt = sized(any(larches), u, v, 'larch'); if (talusAt(u, v) < 0.08) plant(lt, u, v); }
   }
+  // More larches on the upper plateau (round 5, T22), in groups: each group stands by one of the plateau's
+  // tarns or 50 px or more from the last group, so open slab lies between them and the plateau still reads
+  // as granite. Their own dice, so no other tree moves.
+  { const lr = rng(6112), anyL = a => a[(lr() * a.length) | 0], upper = (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] === 'gran' && hAt(u, v) > 98 && larchAmt(u, v) > 0.25, groups = [];
+    const tarnNear = (u, v) => C.lakes.some(([cu, cv, ru, rv]) => { const d = Math.hypot((u - cu) / (ru + 16), (v - cv) / (rv + 10)); return d > 0.75 && d < 1.25; });
+    for (let n = 0; n < 4000 && groups.length < 9; n++) {
+      const cu = C.LB[0] - C.LB[2] + lr() * C.LB[2] * 2, cv = C.LB[1] - C.LB[3] + lr() * C.LB[3] * 2, size = 5 + (lr() * 5 | 0);
+      if (!upper(cu, cv) || !open(cu, cv, 0.7) || (groups.length < 5 && !tarnNear(cu, cv)) || groups.some(([p, q]) => Math.hypot(p - cu, (q - cv) * 1.6) < 50)) continue;
+      groups.push([cu, cv]);
+      for (let k = 0; k < size; k++) { const a = lr() * 6.283, d = Math.sqrt(lr()) * 8, u = cu + Math.cos(a) * d * 1.6, v = cv + Math.sin(a) * d * 0.8, lt = sized(anyL(larches), u, v, 'larch'); if (upper(u, v) && open(u, v, 0.7) && talusAt(u, v) < 0.08) plant(lt, u, v); }
+    } }
   const step1 = (u, v) => { const h = hAt(u, v); return u > 1215 && v > 424 && v < 540 ? smooth(36, 42, h) * smooth(66, 58, h) : 0; };
   const band = (u, v) => Math.max(eastAmt(u, v), step1(u, v)) * (1 - larchAmt(u, v)) * (1 - burnAmt(u, v)) * (1 - 0.85 * sageAmt(u, v));
   rand = rng(6105);
   // Aspen groves: a set number of them, each where the aspen country is (picked by its share), at least 26
-  // apart, so how many there are does not hang on the luck of a few rolls.
+  // apart, so how many there are does not hang on the luck of a few rolls. No aspen stands on the dry side
+  // of the dry edge (round 5, T23): a tree whose own spot is dry ground is left out, and the dice roll on
+  // as before so no other tree moves.
   const groves = [];
   for (let n = 0; n < 6000 && groves.length < 36; n++) {
     const cu = 1160 + rand() * 700, cv = rand() * 540, size = 8 + (rand() * 6 | 0), here = rand() < band(cu, cv) * (1 - 0.6 * dryAmt(cu, cv)) && !groves.some(([p, q]) => Math.hypot(p - cu, (q - cv) * 1.6) < 26);
     if (!here) continue; groves.push([cu, cv]);
-    for (let k = 0; k < size; k++) { const a = rand() * 6.283, d = Math.sqrt(rand()) * 9, u = cu + Math.cos(a) * d * 1.5, v = cv + Math.sin(a) * d * 0.8; if (here && open(u, v) && land(u, v)) plant(any(aspens), u, v); }
+    for (let k = 0; k < size; k++) { const a = rand() * 6.283, d = Math.sqrt(rand()) * 9, u = cu + Math.cos(a) * d * 1.5, v = cv + Math.sin(a) * d * 0.8; if (here && open(u, v) && land(u, v)) { const t = any(aspens); if (dryAmt(u, v) < 0.3) plant(t, u, v); } }
   }
   // The dry forest along TJ's line (E5g): ponderosa in the open, lodgepole in close stands, western
   // juniper where it gives out to sage, whitebark pine high on the bench under the plateau. Thinner than
