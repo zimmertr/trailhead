@@ -591,7 +591,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 ### J2. Read it as a page
 
-- [ ] J2. P2: the PAGE view with every card's text, opening from the top bar, the trail map sheet and `#page`. Keyboard and phone checked.
+- [x] J2. P2: the PAGE view with every card's text, opening from the top bar, the trail map sheet and `#page`. Keyboard and phone checked.
 - [ ] J3. **The fonts come from the page's own files.** `index.html` fetches eight font families from Google on every load, a call to someone else's server that the real site would have to answer for. Keep only the families the page uses, serve them as `woff2` files beside the page, add their licences to `NOTICES.md`, and add the files to the publish list in section 2. The page must look the same, with slow fonts too (B9).
 
 ### K. Whole-site checks and the report
@@ -714,7 +714,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **I11 changed by TJ, 2026-11-17 (in chat, mid-item):** "We actually rappeled onto a steep snow slope and had to four-point traverse to the side with ice axes. Can we have the walkoff look like that? They just try and pull the rope, fail, walk off their ledge onto a steep snow slope, and then one-by-one traverse off screen. TJ led the snow traverse IRL, so lets have that here." His answers: the snow slope runs east from the ledge's outer end and falls away to the right, off screen; they cross unroped, facing in, an ice axe in each hand, kicking steps, TJ first, then the leader, then the woman, each in TJ's steps. So the ledge stays (round 4's shelf); my first try, a talus col replacing it, is dropped (kept outside the repo as a scratch file only). Not started.
 - **I11 done, as TJ changed it.** Under the cloud at Proficiency Peak they land on round 4's ledge as before, pull the rope, see it jam, heave, look at each other and shrug. Then one at a time, TJ first, then the leader, then the woman, each walks to the ledge's outer end, steps down onto a steep snow slope that falls away east of it, faces in and traverses down and across it with an ice axe in each hand, kicking steps, until off the picture. The others follow in TJ's steps. The scene ends when the woman is off the picture. The stuck rope is left hanging.
 - **J1 done.** The off-route page has a 404 in its fog: three big digits of slightly greyer, thicker cloud above the ghost ridge, left of TJ, broken up by the fog's own noise and drifting a few pixels. They are easy to miss and readable once seen, in Day, at Dusk and on a phone.
-- Next: J2.
+- **J2 done.** Round 4 already had a page of text, opened from the trail map at `#plain`. It now opens from a **Page** button at the end of the top bar too, lives at `#page` (`#plain` still works), and carries every card's words: the intro, the lake's aside, base camp's line, Bluebird's site and the hardware link, and a draft mark under each draft card. Focus goes to its Back button, the world behind cannot be tabbed to, and Escape or Back returns the visitor to where they were, not to the Trailhead. Two browser tests are new: every card's heading shows, and the button opens it by keyboard and Escape closes it. Artifact version 73.
+- Next: J3.
 
 ## 11. Calls made in round 5
 
@@ -1169,3 +1170,9 @@ One line each, newest last: the item, what was decided, and why.
 - J1, a call: TJ wrote "denser fog". Whiter digits disappeared where the fog is already at the top of the palette, so they are slightly greyer instead, the way thicker cloud looks from inside it. No new colours.
 - J1, a call: they stay out of the 40 rows above the horizon, so the ghost ridge, TJ, the sign and the wand are untouched. On a phone the found-it note covers their top for its first few seconds.
 - J1, looked at beside round 4's page in Day, at Dusk and on a phone. The check passed with nothing moved.
+- J2, how (`app.js` `openPlain`, `leavePlain`, `closePlain`): the page is round 4's `#plain`, extended. `navigate` takes `#page`, and `OLD_SLUGS` turns `#plain` into it. While it is open every other child of the body is `inert`, so Tab stays on the page.
+- J2, a call: Back and Escape used to go to the Trailhead, which would throw away a visitor's place on a route now that the page opens from the top bar mid-route. They now close it where it was opened. Only a visit that started at `#page` goes to the Trailhead from it. Browser back does the same.
+- J2, a call: the six summit clues and the watch card's pitch gauges stay off the page. They are nudges and jokes for the game, and read oddly as resume text.
+- J2, a call: the button says **Page** (the plan's PAGE, in the bar's case), last in the bar as in the mockup. Its word is in `content.js` (`UI.plain.top`), a draft for TJ. On a phone it fits beside Trail map, sound and Auto.
+- J2, a call: a search engine still sees only what the script builds. A page written out at build time is in IDEAS.md.
+- J2, looked at on a 1440 screen, at Dusk and on a 390 phone, and by keyboard (focus in, Escape out, focus back on the button). The check passed with 16 browser tests and nothing moved.

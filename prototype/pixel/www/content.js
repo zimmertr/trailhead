@@ -237,7 +237,8 @@ export const UI = {
     yourName: 'Your name', yourNote: 'A note for the register', notePh: 'A few words', sign: 'Sign the register', mock: 'This is a mock. Entries stay in this browser.'
   },
   plain: {
-    back: 'Back to the world',
+    // The top-bar button that opens it (P2), planner's word for TJ to veto.
+    top: 'Page', back: 'Back to the world',
     // Shown at the top of the page of text when the world itself cannot be drawn.
     down: 'The world could not be drawn here, so this is all of it as one page.',
     mapAlt: 'The map of the world: a lake in a forest, a granite wall and six glaciated summits around a trailhead',

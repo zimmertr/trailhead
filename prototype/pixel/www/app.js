@@ -171,17 +171,20 @@ function drawProfile(p) {
 // ------------------------------------------------------------------ addresses
 
 function setAddress(slug) { try { if (decodeURIComponent(location.hash.slice(1)) !== slug) history.pushState(null, '', slug ? '#' + slug : location.pathname + location.search); } catch { /* sandboxed frames may refuse */ } }
-const OLD_SLUGS = [['about-lake', 'reflection-lake'], ['the-stack', 'proficiency-peak']];
+// Round 4's page of text lived at #plain; round 5 (J2) calls it the page, as its top-bar button does.
+const OLD_SLUGS = [['about-lake', 'reflection-lake'], ['the-stack', 'proficiency-peak'], ['plain', 'page']];
 async function navigate(hash) {
   if (worldDown) return;
   let slug = decodeURIComponent((hash || '').replace(/^#\/?/, ''));
   // Round 3's addresses (L7): the lake and the peak were About Lake and The Stack.
   for (const [was, now] of OLD_SLUGS) if (slug === was || slug.startsWith(was + '/')) { slug = now + slug.slice(was.length); try { history.replaceState(null, '', '#' + slug); } catch { /* sandboxed */ } }
+  // Back in history from the page to where it was opened: the world is as he left it.
+  if (!plain.hidden && plainWas !== null && slug === plainWas) return closePlain();
   closeSheet(); closePlain();
   if (!slug) return home();
   if (slug === 'register') return openBook();
   if (slug === 'map' || slug === 'kiosk' || slug === 'keys') return openSheet(slug);
-  if (slug === 'plain') return openPlain();
+  if (slug === 'page') return openPlain();
   const dest = DESTINATIONS.find(d => d.slug === slug && d.route !== 'spires');
   if (dest) { await api.setRoute(dest.route); buildMarks(); hideCard(); return; }
   const id = Object.keys(CARDS).find(k => CARDS[k].slug === slug) || (slug.startsWith('sideproject-spires/') && PROJECTS[slug.split('/')[1]] ? slug.split('/')[1] : null);
@@ -271,7 +274,7 @@ function trailMap() {
   const side = el('div', { class: 'side' },
     el('h3', { text: UI.map.elsewhere }), el('ul', { class: 'links' }, ...['resume', 'linkedin', 'github', 'strava', 'peakbagger', 'mountainproject'].map(linkLi)),
     el('h3', { text: UI.map.onMap }),
-    el('button', { class: 'plank', onclick: () => navigate('#plain') }, el('span', { text: UI.map.plain })),
+    el('button', { class: 'plank', onclick: () => navigate('#page') }, el('span', { text: UI.map.plain })),
     el('button', { class: 'plank', onclick: () => navigate('#kiosk') }, el('span', { text: UI.kiosk.title })),
     el('button', { class: 'plank', onclick: () => navigate('#register') }, el('span', { text: UI.register.link }), el('small', { text: all ? UI.register.canSign : UI.register.canRead })),
     el('h3', { text: UI.map.settings }),
@@ -301,15 +304,20 @@ function checkRegister() { const d = api.done(); if (d.lake && d.stack && d.spir
 // The whole site as one page of text, for reading or for anything that cannot draw the world.
 function openPlain() {
   const sec = (title, ...kids) => [el('h3', { text: title }), ...kids];
-  const cardOut = id => { const c = CARDS[id]; return [el('h4', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null]; };
+  const draft = () => el('p', { class: 'draft', text: $('card-draft').textContent });
+  const cardOut = id => { const c = CARDS[id]; return [el('h4', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.aside ? el('p', { class: 'aside', text: c.aside }) : null, c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null, c.draft ? draft() : null]; };
   // Without the world there is no picture of the map and no way back to it, and the page says why.
   let still = null;
   if (!worldDown) try { const MAP = api.mapFrame(); still = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', UI.plain.mapAlt); } catch (err) { console.error(err); still = null; }
-  plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: UI.map.title }), worldDown ? null : el('button', { class: 'plank', onclick: () => navigate('') }, el('span', { text: UI.plain.back }))),
-    el('div', { class: 'wrap' }, el('h1', { text: UI.name }), worldDown ? el('p', { class: 'legend', text: UI.plain.down }) : null, still,
+  plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: UI.map.title }), worldDown ? null : el('button', { class: 'plank', onclick: leavePlain }, el('span', { text: UI.plain.back }))),
+    el('div', { class: 'wrap' }, el('h1', { text: UI.name }), el('p', { text: UI.name + ' ' + INTRO }), worldDown ? el('p', { class: 'legend', text: UI.plain.down }) : null, still,
       ...sec(UI.map.lake[0], ...['who', 'mountains', 'note'].flatMap(cardOut)), ...sec(UI.map.stack[0], ...['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'].flatMap(cardOut)),
-      ...sec(UI.map.spires[0], ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h4', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: UI.plain.facts(p.stars, p.release ? UI.plain.released(p.release, ago(p.released)) : UI.plain.noRelease, p.language, p.license) }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, text: 'github.com/' + p.repo })))]; }))));
+      ...sec(UI.map.spires[0], ...CARDS['base-camp'].body.map(t => el('p', { text: t })), ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h4', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: UI.plain.facts(p.stars, p.release ? UI.plain.released(p.release, ago(p.released)) : UI.plain.noRelease, p.language, p.license) }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, target: '_blank', rel: 'noopener', text: 'github.com/' + p.repo })), p.site ? el('li', {}, el('a', { href: p.site, target: '_blank', rel: 'noopener', text: p.site.replace('https://', '') })) : null, ...(p.extra || []).map(([n, h]) => el('li', {}, el('a', { href: h, target: '_blank', rel: 'noopener', text: n }))))]; }))));
+  if (plain.hidden) { plainFrom = document.activeElement; const was = decodeURIComponent(location.hash.slice(1)); plainWas = was === 'page' || was === 'plain' ? null : was; }
+  if (!worldDown) setAddress('page');
   plain.hidden = false; plain.scrollTop = 0; if (api && !worldDown) api.stop();
+  for (const e of document.body.children) if (e !== plain && e.tagName !== 'SCRIPT') e.inert = true;
+  (plain.querySelector('.band button') || plain.querySelector('h1')).focus({ preventScroll: true });
 }
 // The world cannot be drawn: everything that belongs to it goes, and the page of text is what is left.
 function plainOnly() {
@@ -325,7 +333,16 @@ async function washedOut(e) {
   hideCard(); closeSheet(); say(UI.broken, 6000);
   await api.setRoute('off-route'); buildMarks(); api.goto('off-route');
 }
-function closePlain() { plain.hidden = true; }
+// plainWas: the address the page was opened from, or null when the visit started on it (then Back goes home).
+let plainFrom = null, plainWas = null;
+function leavePlain() { if (plainWas === null) return navigate(''); const was = plainWas; closePlain(); setAddress(was); }
+function closePlain() {
+  if (plain.hidden) return;
+  plain.hidden = true; for (const e of document.body.children) e.inert = false;
+  // Opened from the trail map, whose sheet has closed: focus goes to the top bar's button instead.
+  const back = plainFrom && plainFrom.isConnected && plainFrom !== document.body && (!plainFrom.checkVisibility || plainFrom.checkVisibility()) ? plainFrom : $('b-page');
+  if (!worldDown) back.focus({ preventScroll: true }); plainFrom = null;
+}
 
 // ------------------------------------------------------------------ switches
 
@@ -373,7 +390,7 @@ try {
       else if (e.type === 'act') { if (e.id === 'kiosk') openSheet('kiosk'); else if (e.id === 'register') openBook(); else if (e.id.startsWith('spire:')) climb(e.id.slice(6)); else if (e.id.startsWith('dest:')) send(e.id.slice(5)); }
     }
   });
-  $('intro').textContent = INTRO;
+  $('intro').textContent = INTRO; $('b-page').textContent = UI.plain.top;
   const lengths = api.info().lengths;
   for (const d of DESTINATIONS) $('signs').append(el('li', {}, el('button', { class: 'plank choice', 'data-route': d.route, onclick: e => { e.currentTarget.blur(); travel(d.route); } }, el('i', { class: 'arrow ' + d.dir }), el('span', {}, el('span', { text: d.sign }), el('span', { class: 'where', text: d.about })), el('small', { text: UI.map.plank[d.route](lengths[d.route]) }))));
   // Each sign also says how long its route takes there and back, once its scenes are loaded.
@@ -463,6 +480,7 @@ $('b-sound').addEventListener('click', e => { e.currentTarget.blur(); toggleSoun
 $('b-track').addEventListener('click', e => { e.currentTarget.blur(); nextTrack(); });
 $('b-dusk').addEventListener('click', e => { e.currentTarget.blur(); toggleDusk(); });
 $('b-help').addEventListener('click', e => { e.currentTarget.blur(); openSheet('keys'); });
+$('b-page').addEventListener('click', () => navigate('#page'));
 // The debug menu is public (T9): its button sits next to Keys (not on a phone, where the trail map's foot opens it).
 $('b-debug').addEventListener('click', e => { e.currentTarget.blur(); openDebug(debug.hidden); });
 $('close').addEventListener('click', closeSheet);
@@ -474,7 +492,7 @@ addEventListener('keydown', e => {
   audio.start();
   if (e.code === 'Backquote' && !e.metaKey && !e.ctrlKey && !e.altKey) { openDebug(debug.hidden); e.preventDefault(); return; }
   if (e.code === 'Escape' && !book.hidden) { closeBook(); e.preventDefault(); return; }
-  if (e.code === 'Escape') { if (!plain.hidden) navigate(''); else if (!sheet.hidden) closeSheet(); else if (!debug.hidden) openDebug(false); else openSheet('map'); e.preventDefault(); return; }
+  if (e.code === 'Escape') { if (!plain.hidden) leavePlain(); else if (!sheet.hidden) closeSheet(); else if (!debug.hidden) openDebug(false); else openSheet('map'); e.preventDefault(); return; }
   if (!sheet.hidden || !plain.hidden) return;
   // A key held with Command, Control or Alt belongs to the browser.
   if (e.metaKey || e.ctrlKey || e.altKey) return;

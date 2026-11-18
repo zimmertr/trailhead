@@ -279,9 +279,12 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
 #plain .band { margin: 0 0 20px; position: sticky; top: 0; z-index: 1; }
 #plain canvas { width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; border: var(--px) solid var(--ink); }
 #plain h1 { font-size: 45px; line-height: 1; }
+#plain .aside { color: var(--dim); }
+#plain .draft { align-self: flex-start; }
+#plain h1:focus { outline: none; }
 #plain h3 { font-size: 30px; margin-top: 26px; padding-bottom: 4px; border-bottom: var(--px) solid var(--ink); }
 #plain h4 { font-family: var(--read); font-size: 20px; color: var(--blaze); margin: 12px 0 0; }
-#plain .links { margin-top: 4px; }
+#plain .links { margin-top: 4px; gap: 6px 18px; }
 
 @media (max-width: 760px) {
   #fork, #card { left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); width: auto; }
@@ -336,6 +339,7 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   <button class="plank" id="b-dusk">Dusk</button>
   <button class="plank" id="b-help" aria-label="Keys">Keys</button>
   <button class="plank" id="b-debug" aria-haspopup="dialog">Debug</button>
+  <button class="plank" id="b-page">Page</button>
 </header>
 
 <section id="fork" hidden>
@@ -379,6 +383,6 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
 
 <aside id="debug" class="placard" aria-label="Debug" hidden></aside>
 <div id="sheet" role="dialog" aria-modal="true" hidden><section class="placard"><button id="close" class="plank">Close</button><div id="sheet-body"></div></section></div>
-<main id="plain" hidden></main>
+<main id="plain" tabindex="-1" hidden></main>
 
 <script type="module" src="./app.js"></script>

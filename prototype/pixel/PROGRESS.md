@@ -175,7 +175,7 @@ Every item on the checklist is ticked, and each polish pass in the brief has had
 - The branch: https://github.com/zimmertr/trailhead/tree/pixel-mvp
 - This file: https://github.com/zimmertr/trailhead/blob/pixel-mvp/prototype/pixel/PROGRESS.md
 - Ideas for later: https://github.com/zimmertr/trailhead/blob/pixel-mvp/prototype/pixel/IDEAS.md
-- Test addresses, added to the page's address: `?route=stack&stop=2`, `?route=spire:tks&stop=1`, `?dusk=1`, `?sheet=map`, `?done=lake,stack,spires`, `#plain`, `#anything-else` for the off-route page.
+- Test addresses, added to the page's address: `?route=stack&stop=2`, `?route=spire:tks&stop=1`, `?dusk=1`, `?sheet=map`, `?done=lake,stack,spires`, `#page` (or round 4's `#plain`), `#anything-else` for the off-route page.
 
 ## Feedback round (2026-11-14, after the overnight build)
 

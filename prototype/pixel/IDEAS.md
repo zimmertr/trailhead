@@ -410,3 +410,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Axe Sounds** (round 5, I11). A soft thunk each time an axe goes in on the traverse, quieter for the two who follow.
 - **The 404 as a Find** (round 5, J1). Clicking the digits in the fog counts as a find on the kiosk checklist (TJ's call, like every find).
 - **Other Codes in Other Weather** (round 5, J1). A 500 in the smoke of a forest fire, if the site ever has a server error page.
+- **The Page Written Out at Build Time** (round 5, J2). The release writes the page of text into `index.html` as plain HTML, so search engines and link previews read it without running the script.
+- **Print the Page as a Resume** (round 5, J2). A print style for the page that drops the map picture and the buttons, so it prints as a one-page resume.

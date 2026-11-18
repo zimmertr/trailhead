@@ -88,10 +88,31 @@ test('the trail register opens from its address', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
-test('the plain page shows the picture of the map', async ({ page }) => {
-  const problems = await open(page, '/#plain')
+test('the page shows the picture of the map and every card', async ({ page }) => {
+  const problems = await open(page, '/#page')
   await watch(page)
   await expect(page.locator('#plain canvas[role="img"]')).toBeVisible()
+  for (const heading of ['Who TJ is', 'A personal note', 'Platform Engineering', 'Bluebird Forecast', 'Kubernetes-Manifests'])
+    await expect(page.locator('#plain h4', { hasText: heading })).toBeVisible()
+  expect(problems).toEqual([])
+})
+
+// Round 4's address for it, which links may still carry.
+test('the old address still opens the page', async ({ page }) => {
+  const problems = await open(page, '/#plain')
+  await expect(page.locator('#plain')).toBeVisible()
+  expect(problems).toEqual([])
+})
+
+test('the Page button opens it by keyboard and Escape closes it', async ({ page }) => {
+  const problems = await open(page, '/')
+  await page.locator('#b-page').focus()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#plain')).toBeVisible()
+  await expect(page.locator('#plain .band button')).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#plain')).toBeHidden()
+  await expect(page.locator('#b-page')).toBeFocused()
   expect(problems).toEqual([])
 })
 
