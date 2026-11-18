@@ -1,8 +1,19 @@
-<title>Trailhead Pixel Round 4</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+15&family=Silkscreen&family=Tiny5&family=Caveat:wght@500&family=Gochi+Hand&family=Kalam&family=Patrick+Hand&display=swap">
+<title>Trailhead Pixel Round 5</title>
+<link rel="preload" href="fonts/jersey-10.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jersey-15.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/tiny5.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/silkscreen.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+/* The fonts are the page's own files (J3): the Latin set of each family, from Fontsource, licences in
+   NOTICES.md. The four on every screen are preloaded; the register's four hands load when the book opens. */
+@font-face { font-family: 'Jersey 10'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/jersey-10.woff2) format('woff2'); }
+@font-face { font-family: 'Jersey 15'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/jersey-15.woff2) format('woff2'); }
+@font-face { font-family: 'Tiny5'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/tiny5.woff2) format('woff2'); }
+@font-face { font-family: 'Silkscreen'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/silkscreen.woff2) format('woff2'); }
+@font-face { font-family: 'Caveat'; font-style: normal; font-weight: 500; font-display: swap; src: url(fonts/caveat.woff2) format('woff2'); }
+@font-face { font-family: 'Gochi Hand'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/gochi-hand.woff2) format('woff2'); }
+@font-face { font-family: 'Kalam'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/kalam.woff2) format('woff2'); }
+@font-face { font-family: 'Patrick Hand'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/patrick-hand.woff2) format('woff2'); }
 /* The world fills the screen at whole-pixel scale. Everything on top of it is trail furniture:
    routed wooden signs for anything you press, paper placards for anything you read. Lines are
    one world pixel thick (--px) and in the same ink as the sprites' outlines, so the page and the
@@ -119,7 +130,7 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #book .legend { position: absolute; margin: 0; font-family: var(--small); font-size: 12px; color: #8a5a4a; }
 #book .sig { text-align: right; padding-right: 1.5em; }
 #book .pending { font-family: var(--small); font-size: 12px; margin-left: .6em; color: #b0502c; white-space: nowrap; }
-.in-book #bar, .in-book #fork, .in-book #tab, .in-book #names, .in-book #tip { display: none; }
+.in-book #bar, .in-book #fork, .in-book #tab, .in-book #names, .in-book #tip, .in-book #hint { display: none; }
 #tab span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* The junction sign: the placard on top, three planks under it on one post. */
 #fork { background: none; border: 0; box-shadow: none; padding: 0; gap: 0; width: min(420px, calc(100% - 36px)); }
@@ -197,10 +208,19 @@ button.name { pointer-events: auto; }
 #debug .row { display: flex; gap: calc(var(--px) * 1.5); }
 #debug select { flex: 1; min-width: 0; font: inherit; font-family: var(--small); font-size: 15px; padding: calc(var(--px) * 1); background: var(--paper); color: var(--paper-ink); border: var(--px) solid var(--ink); }
 #debug .row .plank { width: auto; }
+#debug .tune { align-items: center; } #debug .tune > span { flex: 1; font-family: var(--small); font-size: 15px; }
+#debug .chips { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 1.5); } #debug .chips .plank { width: auto; min-height: 0; padding: calc(var(--px) * 1) calc(var(--px) * 2); font-size: 13px; }
+#debug input[type=range] { display: block; width: 100%; box-sizing: border-box; margin: 0; accent-color: var(--wood-3); }
+#debug .row:has(select + select) { flex-wrap: wrap; } #debug .row:has(select + select) select { flex-basis: 40%; }
 #debug .speeds { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--px) * 1.5); }
 .debug-sign { margin-top: calc(var(--px) * 4); opacity: .55; }
 .side .debug-sign.plank { display: inline-flex; min-height: 0; padding: 0 calc(var(--px) * 2); font-size: 12px; width: max-content; align-self: flex-start; }
 button.name:hover, .name.done { background: var(--moss); }
+/* The first-visit hint (P1): one small plank low in the middle, above the timeline, until he first moves. The
+   page moves it off him (app.js), and on a phone, where the sign fills the bottom, it stands over his head. */
+#hint { position: fixed; z-index: 1; left: 50%; bottom: calc(var(--px) * 40 + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); min-height: 0; padding: calc(var(--px) * 1) calc(var(--px) * 4); font-size: 15px; white-space: nowrap; pointer-events: none; transition: opacity .6s steps(4); }
+#hint.top { bottom: auto; white-space: normal; text-wrap: balance; text-align: center; width: max-content; max-width: calc(100% - 48px); font-size: 13px; }
+#hint.gone { opacity: 0; }
 #toast { position: fixed; z-index: 4; left: 50%; top: calc(var(--px) * 16); transform: translateX(-50%); max-width: calc(100% - 32px); padding: calc(var(--px) * 1) calc(var(--px) * 4); font-size: 20px; background: var(--paper); border: var(--px) solid var(--ink); box-shadow: var(--px) var(--px) 0 var(--shade); text-align: center; }
 
 /* The route along the bottom: its profile, a flag at each milestone, a marker for him. */
@@ -270,9 +290,12 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
 #plain .band { margin: 0 0 20px; position: sticky; top: 0; z-index: 1; }
 #plain canvas { width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; border: var(--px) solid var(--ink); }
 #plain h1 { font-size: 45px; line-height: 1; }
+#plain .aside { color: var(--dim); }
+#plain .draft { align-self: flex-start; }
+#plain h1:focus { outline: none; }
 #plain h3 { font-size: 30px; margin-top: 26px; padding-bottom: 4px; border-bottom: var(--px) solid var(--ink); }
 #plain h4 { font-family: var(--read); font-size: 20px; color: var(--blaze); margin: 12px 0 0; }
-#plain .links { margin-top: 4px; }
+#plain .links { margin-top: 4px; gap: 6px 18px; }
 
 @media (max-width: 760px) {
   #fork, #card { left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); width: auto; }
@@ -287,13 +310,17 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   .band p { text-align: left; }
   #plain .band { display: flex; align-items: center; }
   #top .plank { padding: calc(var(--px) * 1) calc(var(--px) * 3); }
-  #b-help, #b-track { display: none; }
+  #b-help, #b-track, #b-debug { display: none; }
   .name { font-size: 10px; }
 }
 /* A phone on its side: the signs keep to the left two fifths so he stays in view beside them. */
 @media (max-height: 480px) and (orientation: landscape) {
-  #fork, #card { width: min(456px, 42%); bottom: calc(var(--px) * 30 + env(safe-area-inset-bottom, 0px)); }
+  #fork, #card { width: min(456px, 46%); bottom: calc(var(--px) * 30 + env(safe-area-inset-bottom, 0px)); }
   #card { max-height: calc(100% - var(--px) * 40); padding: calc(var(--px) * 3) calc(var(--px) * 4); }
+  /* A project's licence goes on one row with its label here, so the card is a row shorter and its last
+     line and button stay on the screen. */
+  .facts dt:nth-of-type(4) { grid-column: 1; margin-top: 0; align-self: baseline; }
+  .facts dd:nth-of-type(4) { grid-row: 3; grid-column: 2 / -1; align-self: baseline; }
   #fork .placard { padding: calc(var(--px) * 3) calc(var(--px) * 4); }
   .plank .where { display: none; }
   #line { height: calc(var(--px) * 16); }
@@ -322,6 +349,8 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   <button class="plank" id="b-sound" aria-pressed="false">Sound off</button>
   <button class="plank" id="b-dusk">Dusk</button>
   <button class="plank" id="b-help" aria-label="Keys">Keys</button>
+  <button class="plank" id="b-debug" aria-haspopup="dialog">Debug</button>
+  <button class="plank" id="b-page">Page</button>
 </header>
 
 <section id="fork" hidden>
@@ -355,6 +384,7 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
 <div id="names"></div>
 <div id="tip" class="name" hidden></div>
 <div id="toast" role="status" hidden></div>
+<div id="hint" class="plank" hidden></div>
 
 <nav id="bar" aria-label="Route" hidden>
   <button id="run" class="plank">Start</button>
@@ -364,6 +394,6 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
 
 <aside id="debug" class="placard" aria-label="Debug" hidden></aside>
 <div id="sheet" role="dialog" aria-modal="true" hidden><section class="placard"><button id="close" class="plank">Close</button><div id="sheet-body"></div></section></div>
-<main id="plain" hidden></main>
+<main id="plain" tabindex="-1" hidden></main>
 
 <script type="module" src="./app.js"></script>

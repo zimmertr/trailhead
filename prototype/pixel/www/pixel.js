@@ -4,6 +4,7 @@
 
 import { clamp, lerp, Screen, DEBUG, R } from './core.js';
 import { makeWorld } from './world.js';
+import { BAKE } from './land.js';
 
 // Scenes beyond the world map are built the first time a route needs them.
 const MAKERS = {
@@ -53,18 +54,76 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     'off-route': () => [['offroute', {}]],
     // The register (L2): he walks the few steps to the box (the first 55% of 1.3 s), stands at it while
     // its front comes down, then the close-up of the book.
-    register: () => [['world', { path: 'register', from: 0, to: 1, secs: 1.3, walkTo: 0.55 }], ['register', {}]],
-    // Closing the book (L6): back on the map where he stood at the box, and the few steps back to the junction.
-    'register-back': () => [['world', { path: 'register', from: 1, to: 0, secs: 0.9 }]]
+    // One click on the box opens the book straight away, as the board opens its sheet (TJ, round 5 B2).
+    register: () => [['register', {}]],
+    // Closing the book (L6): back on the map where he stands at the junction (no walk since round 5 B2).
+    'register-back': () => [['world', { path: 'register', from: 0, to: 0, secs: 0.05 }]]
   };
   for (const id of SPIRES) ROUTES['spire:' + id] = () => [['climb', { id }]];
   // One stretch of map walked for its own sake: back to the junction from part way along a trail.
   // `next` is where he sets off for once he gets there.
   let detour = { path: 'lake', from: 0, to: 0 }, next = null;
   ROUTES.back = () => [['world', { ...detour }]];
+  // Click and tap to move (T3): a walk over the trail network to a point on a trail. The network is four
+  // branches out from the Trailhead (the lake loop's way out and its way back, the peak's trail, the Spires'
+  // trail), each sampled every 2 pixels. Two branches run together from the Trailhead until they part, so a
+  // walk from one to another goes back to where they part and out along the other, by the shortest way.
+  let walkLegs = [], walkMark = null, BR = null;
+  ROUTES.walk = () => walkLegs.map(([path, from, to]) => ['world', { path, from, to }]);
+  const branches = () => BR || (BR = [['lake', 0, world.lakeIn], ['lake', 1, world.lakeOut], ['stack', 0, 1], ['spires', 0, 1]].map(([path, a, b]) => {
+    const P = world.paths[path], n = Math.max(2, Math.ceil(P.len * Math.abs(b - a) / 2)), pts = [];
+    for (let k = 0; k <= n; k++) { const s = a + (b - a) * k / n, q = P.at(s); pts.push({ s, f: k / n, x: q.x, y: q.y }); }
+    return { path, a, b, pts };
+  }));
+  const nearestOn = (B, x, y) => { let best = null, bd = 1e9; for (const q of B.pts) { const d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = q; } } return { q: best, d: bd }; };
+  const fracOf = (B, s) => (s - B.a) / (B.b - B.a);
+  // Where branches i and j part: the last point of i still within 3 pixels of j, and its match on j.
+  const PART = new Map(), partOf = (i, j) => { const key = i * 4 + j; if (PART.has(key)) return PART.get(key);
+    const A = branches()[i], B = branches()[j]; let last = A.pts[0]; for (const q of A.pts) { if (nearestOn(B, q.x, q.y).d > 3) break; last = q; }
+    const r = [last.s, nearestOn(B, last.x, last.y).q.s]; PART.set(key, r); return r; };
+  // The branch he is on and where, from the leg of the map he is walking or standing at the end of.
+  function hereOnTrail() {
+    const l = legAt(p); if (!l || l.s !== 'world') return null; const a = l.arg, u = lerp(a.from, a.to, local(l, p));
+    if (a.path === 'register') return { i: 0, s: 0 };
+    const i = a.path === 'lake' ? (u <= world.lakeIn + 1e-6 ? 0 : 1) : a.path === 'stack' ? 2 : a.path === 'spires' ? 3 : -1;
+    return i < 0 ? null : { i, s: u };
+  }
+  function planWalk(from, to) {
+    const Bs = branches(), I = Bs[from.i], J = Bs[to.i];
+    if (from.i === to.i) return [[I.path, from.s, to.s]];
+    const [dI, dJ] = partOf(from.i, to.i);
+    if (fracOf(I, from.s) <= fracOf(I, dI)) { const q = I.path === J.path && I.a === J.a ? { s: from.s } : nearestOn(J, ...(p => [p.x, p.y])(world.paths[I.path].at(from.s))).q; return [[J.path, q.s, to.s]]; }
+    if (fracOf(J, to.s) <= fracOf(J, dJ)) { const q = nearestOn(I, ...(p => [p.x, p.y])(world.paths[J.path].at(to.s))).q; return [[I.path, from.s, q.s]]; }
+    return [[I.path, from.s, dI], [J.path, dJ, to.s]];
+  }
+  // A click at (sx, sy) in pixels of the view: within 24 CSS pixels of a trail (the same feel at every zoom)
+  // he walks there; anywhere else it does nothing. Says whether he set off.
+  async function walkTo(sx, sy) {
+    if (drawn.s !== 'world' || tr) return false;
+    const w = world.at(sx, sy), reach = 24 * (window.devicePixelRatio || 1) / scr.S;
+    let best = null; branches().forEach((B, i) => { const n = nearestOn(B, w.x, w.y); if (n.d < reach && (!best || n.d < best.d)) best = { i, s: n.q.s, d: n.d, x: n.q.x, y: n.q.y }; });
+    const here = hereOnTrail(); if (!best || !here) return false;
+    walkLegs = planWalk(here, best).filter(([, a, b]) => Math.abs(a - b) > 1e-5); if (!walkLegs.length) return false;
+    plan('walk'); p = 0; next = null; leave(); walkMark = { x: best.x, y: best.y }; running = true; emit({ type: 'walk' });
+    return true;
+  }
 
   let route = 'lake', legs = [], stops = [], cues = [], total = 1;
-  let p = 0, running = false, shown = null, mode = theme === 'dark' ? 1 : 0, mix = mode;
+  let p = 0, running = false, shown = null, mix = theme === 'dark' ? 1 : 0;
+  // One world clock for day and dusk (T76), on the map and in every scene. A cycle is 390 s: 165 of day, a 30 s
+  // sunset, 165 of dusk, a 30 s sunrise; a visit starts at the beginning of day. AUTO follows it; DAY or DUSK
+  // hold that light until switched back. The palettes blend through the sunset and the sunrise (the LUT in
+  // core.js is rebuilt in 65 steps, so the blend costs nothing per pixel). time=<seconds into the cycle> in the
+  // address sets the clock, for screenshots.
+  const CYCLE = 390, SUNSET = 165, DUSK_AT = 195, SUNRISE = 360;
+  const clock = { mode: theme === 'dark' ? 'dusk' : 'auto', t: (typeof location !== 'undefined' && +(/[?&]time=([\d.]+)/.exec(location.search) || [])[1]) || 0, speed: 1 };
+  const cycleMix = s => { s = ((s % CYCLE) + CYCLE) % CYCLE; const e = v => v * v * (3 - 2 * v); return s < SUNSET ? 0 : s < DUSK_AT ? e((s - SUNSET) / 30) : s < SUNRISE ? 1 : 1 - e((s - SUNRISE) / 30); };
+  // A visitor who asked for reduced motion gets no day going by on its own (K1): AUTO holds Day until they
+  // choose Dusk or Day themselves.
+  const stillQ = typeof window !== 'undefined' && window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null, still = () => !!stillQ && stillQ.matches;
+  const autoMix = () => (still() ? 0 : cycleMix(clock.t));
+  if (clock.mode === 'auto') mix = autoMix();   // the first frame already has the light of its time
+  let darkNow = mix > 0.5;
   let drawn = null, tr = null, scrubbing = 0, stillAt = performance.now() / 1000;
   // Held down, Space or the Start button doubles his pace for as long as it is held.
   const FAST = 2; let fast = false, pace = 1;
@@ -227,7 +286,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     simT += Math.min(raw, 1) * speed;
     const t = simT, sdt = dt * speed;
     step(sdt);
-    mix += (mode - mix) * (1 - Math.exp(-dt * 3)); if (Math.abs(mix - mode) < 0.002) mix = mode;
+    clock.t = (clock.t + sdt * clock.speed) % CYCLE;
+    { const goal = clock.mode === 'auto' ? autoMix() : clock.mode === 'dusk' ? 1 : 0; mix += (goal - mix) * (1 - Math.exp(-dt * 3)); if (Math.abs(mix - goal) < 0.002) mix = goal; }
+    // The page's own colours (its wood and paper) turn at the middle of the blend.
+    if ((mix > 0.5) !== darkNow) { darkNow = mix > 0.5; emit({ type: 'theme', dark: darkNow }); }
     // A dragged view stays where it is left. Let go near the edge of what a scene lets you see and it
     // eases back inside; it returns to him only when he starts or stops moving.
     if (running !== wasRunning) { wasRunning = running; recentre = true; }
@@ -281,7 +343,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       leadT = calm.matches ? away : clamp(leadT + (away ? dt : -dt) / HAND, 0, 1);
       const easing = leadT > 0 && leadT < 1 && !zUser; env.lead = leadT * leadT * (3 - 2 * leadT);
       if (zT && !zUser && zSet) zT = away ? zFrom + (zTo - zFrom) * env.lead : zTo + (zFrom - zTo) * env.lead;
-      const [lo, hi] = zoomRange(); zT = clamp(zT || zOpen(), lo, hi); if (!zC) zC = calm.matches ? zT : scr.S;
+      const [lo, hi] = zoomRange(); zT = clamp(zT || zOpen(), lo, hi); if (!zC) zC = zT; // the first frame already has the opening's size, with nothing to settle (T1)
       if (DEBUG.snap && !easing && dragging !== 'pinch' && performance.now() - zLast > 260 && zT > 1) { const w = zDir > 0 ? Math.ceil(zT - 0.15) : Math.floor(zT + 0.15); if (w >= lo && w <= hi) zT = w; }
       zC = calm.matches ? zT : zC + (zT - zC) * (1 - Math.exp(-dt * 14)); if (Math.abs(zC - zT) < 0.003) zC = zT;
       if (zC !== scr.S) {
@@ -291,6 +353,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     } else if (scr.S !== scr.S0) scr.setScale(scr.S0);
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
     env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix;
+    env.walkMark = route === 'walk' && p < 1 ? walkMark : null;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
     env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
     // Idle counts from his arrival home too, so the look round waits until the hand-off home has settled.
@@ -315,7 +378,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     scr.present(t, mix);
     if (gliding && !calm.matches) startGlide(gliding);
     const f = drawn.scene.focus();
-    window.__info = { p, route, running, scene: drawn.s, VW: scr.VW, VH: scr.VH, S: scr.S, fx: f.x, fy: f.y, o: drawn.s === 'world' ? world.at(0, 0) : null };
+    window.__info = { p, route, running, baked: BAKE.used, bakeNote: BAKE.note, scene: drawn.s, VW: scr.VW, VH: scr.VH, S: scr.S, fx: f.x, fy: f.y, o: drawn.s === 'world' ? world.at(0, 0) : null, pose: drawn.s === 'world' ? world.pose() : null };
   }
   drawn.scene.enter(scr, drawn.arg, 0);
   requestAnimationFrame(draw);
@@ -353,6 +416,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     if (dragging === 'pinch' || dragging === 'held') { dragging = touches.size ? 'held' : null; lastPt = null; return; }
     if (dragging === 'look' && moved < 5 && e.type === 'pointerup') {
       const [x, y] = toView(e), h = probe(x, y, e.pointerType !== 'mouse');
+      if (!h) walkTo(x, y);
       if (h) { const k = scr.S / (window.devicePixelRatio || 1); if (h.label && !h.named) emit({ type: 'hover', label: h.label, x: h.x * k, y: h.y * k, tap: true }); if (h.act) { if (!drawn.scene.act || !drawn.scene.act(h.act, env)) emit({ type: 'act', id: h.act }); else { hover = null; emit({ type: 'hover', label: null, x: 0, y: 0 }); } } }
     }
     if (dragging === 'look') dragging = null; lastPt = null;
@@ -373,6 +437,15 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // scene he is in (false if that scene has no such event).
     now: () => simT, speeds: SPEEDS, speed: () => speed, setSpeed(k) { if (SPEEDS.includes(k)) speed = k; },
     trigger(name) { const s = drawn.scene; return !!(s.trigger && !tr && s.trigger(name, simT)); },
+    // For the debug menu (C4): the scene on screen, the map animals and their homes, placing one, and a jump to
+    // the start of any scene (the first route that has it, a little way in).
+    scene: () => drawn ? drawn.s : null,
+    spawnList: () => world.spawnList(),
+    spawn: (kind, i) => world.spawn(kind, i),
+    async jumpTo(name) {
+      const r = Object.keys(ROUTES).find(k => !/back|home/.test(k) && ROUTES[k]().some(([n]) => n === name)); if (!r) return false;
+      await api.setRoute(r); const l = legs.find(g => g.s === name); if (l) api.scrub(l.t0 + 0.03 * (l.t1 - l.t0)); return true;
+    },
     async setRoute(r) {
       if (!ROUTES[r]) return;
       await need(ROUTES[r]().map(l => l[0]));
@@ -384,6 +457,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     async go(dest) {
       if (drawn.s !== 'world' || tr || !ROUTES[dest] && dest !== 'trailhead') return null;
       const l = legAt(p), a = l.arg, u = lerp(a.from, a.to, local(l, p));
+      // Stood or walking where a click sent him: back to the Trailhead the way he is (on the lake loop's way
+      // back, round its end), then off on the route.
+      if (route === 'walk') { if (dest !== 'trailhead') await need(ROUTES[dest]().map(x => x[0])); leave(); detour = { path: a.path, from: u, to: a.path === 'lake' && u > world.lakeIn ? 1 : 0 }; plan('back'); p = 0; next = dest === 'trailhead' ? null : dest; running = true; return 'turn'; }
       if (l === legs[0] && a.from === 0 && p === 0) { if (dest === 'trailhead') { recentre = true; return 'home'; } return 'start'; }
       const inbound = a.to === 0 || (a.path === 'lake' && a.to === 1), mine = a.path === dest;
       if (dest !== 'trailhead') await need(ROUTES[dest]().map(x => x[0]));
@@ -396,18 +472,32 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       if (inbound) { next = dest === 'trailhead' ? null : dest; running = true; return 'on'; }
       detour = { path: a.path, from: u, to: 0 }; plan('back'); p = 0; next = dest === 'trailhead' ? null : dest; running = true; return 'turn';
     },
-    theme: () => mode ? 'dark' : 'light',
-    setTheme(th) { mode = th === 'dark' ? 1 : 0; },
-    start() { if (p >= 1) p = 0; leave(); running = true; },
+    theme: () => darkNow ? 'dark' : 'light',
+    setTheme(th) { clock.mode = th === 'dark' ? 'dusk' : th === 'light' ? 'day' : 'auto'; },
+    // The world clock (T76): its mode ('auto', 'day', 'dusk'), where it is in the cycle and how fast it runs.
+    clock: () => ({ mode: clock.mode, t: clock.t, speed: clock.speed, mix, cycle: CYCLE, sunset: SUNSET, sunrise: SUNRISE }),
+    setClock({ mode, t, speed } = {}) { if (mode) clock.mode = mode; if (t != null) clock.t = ((t % CYCLE) + CYCLE) % CYCLE; if (speed) clock.speed = speed; },
+    start() { if (route === 'walk' && p >= 1) return; if (p >= 1) p = 0; leave(); running = true; },
+    walkTo,
     stop() { running = false; pace = 1; },
     boost(on) { fast = !!on; },
     toggle() { if (running) running = false; else api.start(); },
     running: () => running,
+    // The idle tour is running (the first-visit hint keeps out of its way, P1).
+    touring: () => drawn.s === 'world' && !!env.touring,
+    // Where he stands on the page, in CSS pixels (the first-visit hint keeps off him, P1).
+    me: () => { const f = drawn.scene.focus(), k = scr.S / (window.devicePixelRatio || 1); return [f.x * k, f.y * k]; },
+    // For test scripts (K1): where a point of a trail on the map is on the page, in CSS pixels, and the
+    // fractions where the lake loop leaves for the forest and comes back, and where the Spires' trail hands over.
+    trailAt: (path, s) => { const q = world.paths[path].at(s), o = world.at(0, 0), k = scr.S / (window.devicePixelRatio || 1); return [(q.x - o.x) * k, (q.y - o.y) * k]; },
+    trailMarks: () => ({ lakeIn: world.lakeIn, lakeOut: world.lakeOut, spiresIn: world.spiresIn }),
     progress: () => p,
     scrub(f) {
       p = clamp(f, 0, 1); running = false; scrubbing = 0.16;
       const s = stopNear(p); if (s) { if (shown !== s) { shown = null; showStop(s); } } else leave();
     },
+    // A scene that has something open of its own (the binoculars) takes the keys first, down and up.
+    grab(code, down) { return !tr && !!drawn.scene.key && !!drawn.scene.key(code, down, env); },
     key(code) {
       if (code === 'Space') { api.toggle(); return true; }
       if (code === 'Equal' || code === 'NumpadAdd' || code === 'Minus' || code === 'NumpadSubtract') { zoomBy(code === 'Equal' || code === 'NumpadAdd' ? 1 : -1, Math.abs(look.x) + Math.abs(look.y) > 2 ? [innerWidth / 2, innerHeight / 2] : null); return true; }
@@ -423,7 +513,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       return false;
     },
     done: () => ({ ...done }),
-    forget() { for (const k in done) delete done[k]; saveDone(); for (const k in found) delete found[k]; try { localStorage.removeItem('trailhead.found'); } catch { /* private window */ } },
+    forget() { for (const k in done) delete done[k]; saveDone(); for (const k in found) delete found[k]; try { localStorage.removeItem('trailhead.found'); localStorage.removeItem('trailhead.cairn'); } catch { /* private window */ } },
     found: () => ({ ...found }),
     find,
     // For test scripts (L11): where in the view, in CSS pixels, the first thing that answers to a click named
@@ -477,7 +567,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
             const before = legs[j], after = legs[k], P = world.paths[before ? before.arg.path : r];
             if (before && after && before.arg.to !== after.arg.from) {
               let t = 0, T = 0; for (let m = j + 1; m < k; m++) { if (m < i) t += legs[m].dur; else if (m === i) t += st.at * legs[m].dur; T += legs[m].dur; }
-              const a = P.at(lerp(before.arg.to, after.arg.from, t / T)); pt = [a.x, a.y];
+              // On the lake loop each scene has its own part of the hidden trail: the forest as far as the lake's
+              // outlet, the lakeshore from there on. A stop sits along its own scene's part, by time (round 5, F5).
+              const part = r === 'lake' && l.n === 'forest' ? [before.arg.to, world.lakeMid] : r === 'lake' && l.n === 'lakeside' ? [world.lakeMid, after.arg.from] : null;
+              const a = P.at(part ? lerp(part[0], part[1], st.at) : lerp(before.arg.to, after.arg.from, t / T)); pt = [a.x, a.y];
             } else if (r === 'stack') {
               // Stops on the climb, spaced evenly from the foot of the ridge to the summit in their order, stepping
               // left and right of the line as a route zigzags up, so their dots stand clear of each other.

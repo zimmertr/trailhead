@@ -1,13 +1,14 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
-import { DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
+import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
 import { breeze, veilTable } from './core.js';
-import { makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag, makeRegister } from './sprites.js';
-import { SIGNS, NAMES, DEST_NAMES } from './content.js';
+import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag, makeRegister } from './sprites.js';
+import { SIGNS, NAMES, DEST_NAMES, UI } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
 import { makeEvents, drawLens, startLens } from './events.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, NW as WW, NH as WH, T } from './land.js';
+import { faceSnow } from './monolith.js';
 // How much of the bottom of the window the timeline bar covers, in page pixels: from its top edge down, measured
 // from its layout once it shows (F9; 32 of its own pixels, the old guess, was a third too tall on a big window and
 // let rows past the map's foot show above it). Read again only when the page is resized or the bar comes or goes.
@@ -132,11 +133,16 @@ function deckPass(fb, VW, VH, ox, oy, M, VEIL, CHURN, w, t, k, X0, X1) {
 }
 // The drizzle under the deck: short streaks, light and steady, slanting east, over the rainforest and the
 // sea behind the deck's edge. Each streak is pale over dark ground and grey over the pale deck (STREAK), so
-// it shows on both.
+// it shows on both. Every streak belongs to a patch of the world (RCW by RCH map pixels, one streak to a
+// patch) and falls there, so the rain stays with the land under it when the view pans or zooms (T14). A
+// streak starts anywhere in its patch and the one beside it, so the patches never show as a grid.
+const RCW = 20, RCH = 13;
 function drizzle(scr, ox, oy, t, w, F, M, frontAt, STREAK) {
-  const { VW, VH, fb } = scr, n = Math.round(900 * w.rain);
-  for (let i = 0; i < n; i++) {
-    const life = t / 0.5 + (i * 0.618) % 1, c = Math.floor(life), h = hash(i, c, 5150), x = Math.round(ox + hash(i, c, 5151) * VW + (life - c) * 2), y = Math.round(oy + h * VH + (life - c) * 6);
+  const { VW, VH, fb } = scr, gx0 = Math.max(0, Math.floor((ox - 4) / RCW) - 2), gx1 = Math.min(Math.floor((ox + VW) / RCW), Math.floor((w.front + 42) / RCW)), gy0 = Math.max(0, Math.floor((oy - 10) / RCH) - 2), gy1 = Math.min(Math.floor((oy + VH) / RCH), Math.floor(WH / RCH));
+  for (let gy = gy0; gy <= gy1; gy++) for (let gx = gx0; gx <= gx1; gx++) {
+    const id = gy * 97 + gx, life = t / 0.5 + hash(id, 3, 5149), c = Math.floor(life), q = life - c;
+    if (hash(id, c, 5150) > w.rain) continue;
+    const x = Math.round(gx * RCW + hash(id, c, 5151) * 2 * RCW + q * 2), y = Math.round(gy * RCH + hash(id, c, 5152) * 2 * RCH + q * 6);
     if (x < 0 || y < 0 || x >= WW || y >= WH || !(F[y * WW + x] || M[y * WW + x]) || x > frontAt(y, w)) continue;
     for (let j = 0; j < 4; j++) { const X = x + (j >> 1) - ox, Y = y + j - oy; if (X >= 0 && Y >= 0 && X < VW && Y < VH) { const k = Y * VW + X; fb[k] = STREAK[fb[k]]; } }
   }
@@ -152,7 +158,7 @@ function drip(scr, ox, oy, t, w, D, frontAt) {
     if (q > 0.85) { scr.set(x - 1 - ox, y - oy, R.fog[1]); scr.set(x + 1 - ox, y - oy, R.fog[1]); }
   }
 }
-// ---- the avalanche on Mount Monolith's middle icefall (E5c) ----
+// ---- the avalanches on Mount Monolith's icefalls (E5c; all of them since round 5) ----
 // The cover of snow over the icefall, drawn on the bare seracs of the ground: a pixel is covered once
 // the cover has built past its own threshold (the top of the icefall first, as the spindrift settles
 // from above). Before it goes, a crack opens across its top and the slab below the crack creeps down.
@@ -165,23 +171,48 @@ function coverPass(fb, VW, VH, ox, oy, A, cover, crack, creep, crackC) {
     fb[y * VW + x] = crack > 0 && q[j] > 12 && q[j] <= 20 && Math.abs(AX[j] - cx) < crack * half ? crackC : snow[j];
   }
 }
-// The slab once it gives way: it breaks into blocks that slide off faster and faster, each its own way,
-// and comes apart into powder.
+// The slab once it gives way: it breaks into blocks that slide off down the face's own line (ux, uy), faster
+// and faster, each its own way, and comes apart into powder.
 function slabPass(fb, VW, VH, ox, oy, A, a) {
-  const { AX, AY, snow } = A, gone = smooth(0.4, 2.6, a);
+  const { AX, AY, snow, ux, uy } = A, gone = smooth(0.4, 2.6, a);
   for (let j = 0; j < AX.length; j++) {
-    const X = AX[j], Y = AY[j], h = hash(X >> 2, Y >> 2, 4801), off = Math.round(2 + a * a * 16 * (0.75 + 0.5 * h)), y = Y + off - oy, x = X + Math.round((h - 0.5) * a * 6) - ox;
-    if (x < 0 || y < 0 || x >= VW || y >= VH || bayer(X, Y + off) < gone * (0.7 + 0.6 * h)) continue;
+    const X = AX[j], Y = AY[j], h = hash(X >> 2, Y >> 2, 4801), off = 2 + a * a * 16 * (0.75 + 0.5 * h), y = Math.round(Y + off * uy) - oy, x = Math.round(X + off * ux + (h - 0.5) * a * 6) - ox;
+    if (x < 0 || y < 0 || x >= VW || y >= VH || bayer(X, Math.round(Y + off)) < gone * (0.7 + 0.6 * h)) continue;
     fb[y * VW + x] = snow[j];
   }
 }
 // A round cloud of powder, lit from above: white on top, blue-grey snow shade under, with no outline so
 // that puffs laid over each other merge into one billowing cloud. Used for the avalanche's cloud and the
 // plume off the summit.
-function puffAt(fb, VW, VH, ox, oy, cx, cy, r, al, sq) {
+function puffAt(fb, VW, VH, ox, oy, cx, cy, r, al, sq, heavy) {
   for (let dy = -Math.ceil(r); dy <= r * 0.7; dy++) { const y = Math.round(cy + dy) - oy; if (y < 0 || y >= VH) continue;
-    for (let dx = -Math.ceil(r * sq); dx <= r * sq; dx++) { const x = Math.round(cx + dx) - ox; if (x < 0 || x >= VW) continue; const d = Math.hypot(dx / sq, dy) / r; if (d > 1 || bayer(x + ox, y + oy) >= al * (1.3 - d * d)) continue;
-      const f = (dy + r) / (1.7 * r) + 0.25 * (bayer(x + ox + 1, y + oy) - 0.5); fb[y * VW + x] = f < 0.36 ? R.snow[4] : f < 0.62 ? R.snow[3] : R.snow[2]; } }
+    for (let dx = -Math.ceil(r * sq); dx <= r * sq; dx++) { const x = Math.round(cx + dx) - ox; if (x < 0 || x >= VW) continue; const d2 = (dx * dx / (sq * sq) + dy * dy) / (r * r); if (d2 > 1 || bayer(x + ox, y + oy) >= al * (1.3 - d2)) continue;
+      const f = (dy + r) / (1.7 * r) + 0.25 * (bayer(x + ox + 1, y + oy) - 0.5); fb[y * VW + x] = heavy ? (f < 0.26 ? R.snow[4] : f < 0.46 ? R.snow[3] : f < 0.72 ? R.snow[2] : R.snow[1]) : f < 0.36 ? R.snow[4] : f < 0.62 ? R.snow[3] : R.snow[2]; } }
+}
+// The summit squall's curtain of falling snow (round 5, T20): a haze of pale snow colours laid through a
+// dither over the mountain under the cloud, thickest under the middle of the cloud and thinning to the sides
+// and downward. It hangs from the cloud's base (y0) as half an oval rx wide and ry deep, leaning east with
+// the wind, in slanting bands that slide down it, so it is seen to fall. (A first try with the fog's colours
+// tinted the snow green.)
+// (Frame time: each row is walked only between the curtain's own edges, the bands come from a table of sines
+// and each column's share of the wave is worked out once a frame. Done pixel by pixel with two sines each it
+// cost 3 ms.)
+const SINE = new Float32Array(256).map((_, i) => Math.sin(i / 256 * 6.283185)), COLW = new Float32Array(4096);
+function squallVeil(fb, VW, VH, ox, oy, cx, y0, rx, ry, den, t) {
+  const ya = Math.max(0, Math.round(y0) - oy), yb = Math.min(VH, Math.round(y0 + ry) - oy), K = 256 / 6.283185, sh = t * 30, S2 = R.snow[2], S3 = R.snow[3];
+  for (let x = 0; x < VW && x < 4096; x++) { const wx = x + ox; COLW[x] = (wx * 0.5 / 4.5 + 2 * Math.sin(wx / 17)) * K; }
+  for (let y = ya; y < yb; y++) { const wy = y + oy, v = (wy - y0) / ry, row = y * VW, mid = cx + 0.25 * (wy - y0), half = rx * Math.sqrt(Math.max(0, 1 - v * v * 0.8)), rowW = (wy - sh) / 4.5 * K, v2 = v * v * 0.8;
+    for (let x = Math.max(0, Math.ceil(mid - half) - ox), xb = Math.min(VW, Math.floor(mid + half) - ox); x < xb; x++) { const wx = x + ox, u = (wx - mid) / rx, bay = bayer(wx, wy);
+      const al = den * (1 - u * u - v2) * (0.62 + 0.38 * SINE[(rowW + COLW[x]) & 255]) * 0.7; if (bay >= al) continue;
+      fb[row + x] = bay < al * 0.45 ? S3 : S2; } }
+}
+// The flakes in it: each falls down its own line of the curtain and starts again at the cloud, drawn in a
+// colour that shows on what is behind it (FLAKE: grey-blue on snow, white on rock and sky).
+const FLK = 1500, FLH = new Float32Array(FLK * 3).map((_, i) => hash(Math.floor(i / 3), 1 + i % 3, 4811));
+function squallFlakes(fb, VW, VH, ox, oy, FLAKE, cx, y0, rx, ry, den, t) {
+  const n = Math.round(FLK * den);
+  for (let k = 0; k < n; k++) { const fall = frac(FLH[3 * k + 1] + t * (0.15 + 0.1 * FLH[3 * k + 2])), wy = y0 + fall * ry, wx = cx + (FLH[3 * k] * 2 - 1) * rx * Math.sqrt(Math.max(0, 1 - fall * fall * 0.8)) + 0.25 * (wy - y0) + 2 * SINE[(t * 80 + k * 41) & 255];
+    const x = Math.round(wx) - ox, y = Math.round(wy) - oy; if (x < 0 || y < 0 || x >= VW || y >= VH - 1) continue; fb[y * VW + x] = FLAKE[fb[y * VW + x]]; if (k & 1) fb[(y + 1) * VW + x] = FLAKE[fb[(y + 1) * VW + x]]; }
 }
 // Every waterfall and rapid moves (E8a): white water streams down it in streaks that slide down the
 // screen, and at its foot the water churns. P and F: the falls' and the feet's pixels as x and y.
@@ -236,15 +267,19 @@ export function makeWorld() {
   const lenticular = (scr, ox, oy, t) => drawLens(scr, spots.summit[0], spots.summit[1], t, 1, ox, oy);
   // The serac fall (E4): every 40 to 50 seconds, the first about 15 seconds after the page opens (E5a), a block of ice breaks off one of the icefalls (spots.seracs),
   // tumbles down the slope under it with a puff of powder following and spreading, and a low rumble comes
-  // a moment later, as sound would from that far off. Never twice running from the same place.
+  // a moment later, as sound would from that far off. Never twice running from the same place, and never
+  // from a face of Mount Monolith that is still under snow (round 5, T11): each fall picks, as it starts,
+  // among the spots on bare ice.
   // serac=<seconds> in the address starts the clock that far on, for screenshots.
   const SER = spots.seracs; let serAhead = typeof location !== 'undefined' ? +(/[?&]serac=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0; const SLOT = 40;
-  const serAt = n => { let k = Math.floor(hash(0, 1, 4741) * SER.length); for (let m = 1; m <= n; m++) k = (k + 1 + Math.floor(hash(m, 2, 4741) * (SER.length - 1))) % SER.length; return k; };
+  let serPick = { n: -1, k: -1 };
+  const serAt = n => { if (serPick.n === n) return serPick.k; const ok = SER.map((_, k) => k).filter(k => serFace[k] < 0 || FACE[serFace[k]].cover <= 0.5), pool = ok.length > 1 ? ok.filter(k => k !== serPick.k) : ok;
+    serPick = { n, k: pool.length ? pool[Math.floor(hash(n, 2, 4741) * pool.length)] : -1 }; return serPick.k; };
   let rumbled = -1;
   function seracFall(scr, ox, oy, t, env) {
     if (SER.length < 2) return;
     const T = t + serAhead + SLOT - 15, n = Math.floor(T / SLOT), a = T - n * SLOT - 10 * hash(n, 3, 4741); if (a < 0 || a > 4.5) return;
-    const sk = serAt(n); if (midSerac[sk] && AVA.cover > 0.5) return;
+    const sk = serAt(n); if (sk < 0) return;
     const [sx, sy] = SER[sk], fall = 40, path = q => [sx + Math.round(2 * Math.sin(q * 5 + n)), sy + Math.round(fall * Math.pow(q, 1.6))];
     const on = sx - ox > -20 && sx - ox < scr.VW + 20 && sy - oy > -40 && sy - oy < scr.VH + 10;
     if (on && a > 0.9 && rumbled !== n) { rumbled = n; env.sfx('rumble'); }
@@ -255,62 +290,94 @@ export function makeWorld() {
     // The block itself, until it is lost in its own powder.
     if (a < 1.4) { const [bx, by] = path(a / 1.4); for (let i = -2; i <= 1; i++) { dot(bx + i, by - 1, R.white[1]); dot(bx + i, by, R.serac[i < 1 ? 2 : 1]); dot(bx + i, by + 1, R.serac[0]); } }
   }
-  // The avalanche (E5c). The middle icefall begins each visit under a cover of snow. About 40 s in (and
-  // whenever the debug button says) it warns: a crack across the top, a creep of a pixel or two, a few
-  // bits trickling off its foot, a breath, and then it goes: the slab breaks and slides, a cloud of powder
-  // pours down the glacier and billows, a deep rumble, a fan of debris at the glacier's foot that fades
-  // over a minute. The blue seracs it leaves fall in turn with the other icefalls'. From then on a plume
-  // of spindrift streams off the summit now and then and drifts down onto the icefall, each one leaving
-  // it whiter, until it is buried and looks like plain snow again, and a while later it can go again.
-  // It lives as long as the page does, through scene changes; a reload starts it covered.
-  const AV = W.avalanche ? (() => { const A = W.avalanche, n = A.at.length, AX = new Int16Array(n), AY = new Int16Array(n), thr = new Float32Array(n);
+  // The avalanches (E5c; on every icefall since round 5, T11). Each of Mount Monolith's icefalls begins a
+  // visit under a cover of snow. About 40 s in, and then every 60 to 120 s (and whenever a debug button
+  // says), one of the faces still under snow, picked at random, warns: a crack across the top, a creep of a
+  // pixel or two, a few bits trickling off its foot, a breath, and then it goes: the slab breaks and slides,
+  // a cloud of powder pours down the glacier and billows, a deep rumble, a fan of debris at the glacier's
+  // foot that fades over a minute. Never two at once. The blue seracs a slide leaves can fall like any
+  // other icefall's; a face still under snow drops none.
+  // The summit squall (round 5, T20) puts the snow back. It comes only when every face is bare, 60 to 120 s
+  // after the last one slid: a bank of cloud builds on the summit and hides it, snow falls from it over the
+  // upper mountain for about 15 s, the bare faces whiten under the falling snow from their tops down, and
+  // the cloud thins and lifts off east with a banner of spindrift streaming from the summit. Then every face
+  // is under snow and the round starts over. (Round 4 built the snow up a little at a time from plumes off
+  // the summit; TJ: "The way the snow just accumulates on it again looks a bit strange.")
+  // It all lives as long as the page does, through scene changes; a reload starts every face covered.
+  const AVS = (W.avalanche || []).map((A, f) => { const n = A.at.length, AX = new Int16Array(n), AY = new Int16Array(n), thr = new Float32Array(n);
     for (let j = 0; j < n; j++) { AX[j] = A.at[j] % WW; AY[j] = (A.at[j] / WW) | 0; thr[j] = Math.min(0.999, 0.55 * hash(AX[j], AY[j], 4790) + 0.44 * A.q[j] / 255); }
-    return { ...A, AX, AY, thr, set: new Set(A.at) }; })() : null;
-  const AVA = { phase: 'covered', start: 40, cover: 1, plume: -1, nextPlume: 0, gone: false, heard: -1 };
-  const AV_RELEASE = 4.2, PLUMES = 7;
-  const midSerac = SER.map(([x, y]) => !!AV && [0, 1, 2, 3].some(d => AV.set.has((y + d) * WW + x)));
-  function avalancheStep(t, env, on) {
-    if (!AV) return;
-    if (AVA.phase === 'covered' && t >= AVA.start) { AVA.phase = 'falling'; AVA.gone = false; }
-    if (AVA.phase === 'falling') { const a = t - AVA.start;
-      if (a >= AV_RELEASE && !AVA.gone) { AVA.gone = true; AVA.cover = 0; if (on) env.sfx('avalanche'); }
-      if (a > 75) { AVA.phase = 'bare'; AVA.nextPlume = t + 15; } }
-    if (AVA.phase === 'bare') {
-      if (AVA.plume < 0 && t >= AVA.nextPlume) AVA.plume = t;
-      if (AVA.plume >= 0 && t - AVA.plume > 9) { AVA.plume = -1; AVA.cover = Math.min(1, AVA.cover + 1 / PLUMES); AVA.nextPlume = t + 18 + 10 * hash(Math.floor(t), 2, 4791);
-        if (AVA.cover >= 0.999) { AVA.cover = 1; AVA.phase = 'covered'; AVA.start = t + 45; } }
-    }
+    return { ...A, f, AX, AY, thr, set: new Set(A.at) }; });
+  // Each face: 'covered', 'falling' (from its warning until its debris has faded) or 'bare'.
+  const FACE = AVS.map(() => ({ phase: 'covered', start: 0, cover: 1, gone: false }));
+  const AVA = { next: 40, count: 0, last: 0, squall: -1, squallAt: -1 };
+  const AV_RELEASE = 4.2, AV_LONG = 75, AV_GAP = [60, 120];
+  // The squall, in seconds from its start: the cloud has built by build, the faces whiten over white, the
+  // snow stops and the cloud starts to clear at clear, and all is over at end.
+  const SQ = { build: 6, white: [10, 21], clear: 21, end: 30 };
+  // A face with no snow on it, or with its slab already gone.
+  const bareNow = F => F.phase === 'bare' || (F.phase === 'falling' && F.gone);
+  const snowyFaces = () => FACE.map((F, f) => F.phase === 'covered' ? f : -1).filter(f => f >= 0);
+  // What the lake scene shows of the same mountain (monolith.js): an icefall is under snow there while its
+  // face here is more than half covered. An icefall that is no face on the map stays bare, as it is painted.
+  const tellLake = () => { const on = faceSnow.on.map((_, k) => { const f = AVS.findIndex(A => A.k === k); return f >= 0 && FACE[f].cover > 0.5; }); if (on.some((v, k) => v !== faceSnow.on[k])) { faceSnow.on = on; faceSnow.rev++; } };
+  tellLake();
+  const slide = (f, t) => { const F = FACE[f]; F.phase = 'falling'; F.start = t; F.gone = false; F.cover = 1; AVA.count++; AVA.last = t; AVA.next = t + lerp(AV_GAP[0], AV_GAP[1], hash(AVA.count, 6, 4792)); };
+  // Which face a serac's spot is on (-1: none of Monolith's, so the Spires' icefall, which is always bare).
+  const serFace = SER.map(([x, y]) => AVS.findIndex(A => [0, 1, 2, 3].some(d => A.set.has((y + d) * WW + x))));
+  function startSquall(t, env, ox, oy, VW, VH) { AVA.squall = t; const [sx, sy] = spots.summit; if (env && sx - ox > -60 && sx - ox < VW + 60 && sy - oy > -80 && sy - oy < VH) env.sfx('wind'); }
+  function avalancheStep(t, env, ox, oy, VW, VH) {
+    if (!AVS.length) return;
+    if (t >= AVA.next) { const snowy = snowyFaces(); if (snowy.length) slide(snowy[Math.floor(hash(AVA.count, 5, 4792) * snowy.length)], t); }
+    FACE.forEach((F, f) => { if (F.phase !== 'falling') return; const a = t - F.start, A = AVS[f];
+      if (a >= AV_RELEASE && !F.gone) { F.gone = true; F.cover = 0; if (A.cx - ox > -40 && A.cx - ox < VW + 40 && A.y0 - oy > -60 && A.y0 - oy < VH) env.sfx('avalanche'); }
+      if (a > AV_LONG) F.phase = 'bare'; });
+    // Every face bare: the squall is due 60 to 120 s after the last slide began.
+    if (AVA.squall < 0) { if (!FACE.every(bareNow)) AVA.squallAt = -1; else { if (AVA.squallAt < 0) AVA.squallAt = AVA.last + lerp(AV_GAP[0], AV_GAP[1], hash(AVA.count, 9, 4792)); if (t >= AVA.squallAt) startSquall(t, env, ox, oy, VW, VH); } }
+    if (AVA.squall >= 0) { const q = t - AVA.squall, w = smooth(SQ.white[0], SQ.white[1], q);
+      // Every face that is not under snow whitens together, and is a covered face again once it is white.
+      for (const F of FACE) if (F.phase !== 'covered' && (F.phase !== 'falling' || F.gone)) { F.cover = Math.max(F.cover, w); if (w >= 1) { F.cover = 1; F.phase = 'covered'; } }
+      if (q >= SQ.end) { AVA.squall = -1; AVA.squallAt = -1; AVA.next = t + lerp(AV_GAP[0], AV_GAP[1], hash(AVA.count, 7, 4792)); } }
+    tellLake();
   }
   function avalancheCover(fb, VW, VH, ox, oy, t) {
-    if (!AV || AV.x1 < ox || AV.x0 > ox + VW || AV.y1 + 4 < oy || AV.y0 > oy + VH) return;
-    let crack = 0, creep = 0;
-    if (AVA.phase === 'falling') { const a = t - AVA.start; if (a >= AV_RELEASE) return; crack = smooth(0, 1.4, a); creep = a < 1.6 ? 0 : a < 2.2 ? 1 : 2; }
-    if (AVA.cover > 0) coverPass(fb, VW, VH, ox, oy, AV, AVA.cover, crack, creep, R.serac[0]);
+    AVS.forEach((A, f) => { const F = FACE[f]; if (F.cover <= 0 || A.x1 < ox || A.x0 > ox + VW || A.y1 + 4 < oy || A.y0 > oy + VH) return;
+      let crack = 0, creep = 0;
+      // (A face whose slab has gone has cover again only once the squall is whitening it.)
+      if (F.phase === 'falling' && !F.gone) { const a = t - F.start; crack = smooth(0, 1.4, a); creep = a < 1.6 ? 0 : a < 2.2 ? 1 : 2; }
+      coverPass(fb, VW, VH, ox, oy, A, F.cover, crack, creep, R.serac[0]); });
+  }
+  // One face's slide, a seconds after its warning began.
+  function slideFx(scr, ox, oy, A, a) {
+    const { fb, VW, VH } = scr, w = A.x1 - A.x0, [fx, fy] = A.foot, mx = (A.top[0] + A.low[0]) / 2, my = (A.top[1] + A.low[1]) / 2, sd = 4800 + 20 * A.f;
+    // A few bits of snow trickle off the slab's foot before it goes.
+    if (a > 2.4 && a < AV_RELEASE + 0.3) for (let k = 0; k < 6; k++) { const s = (a - 2.4 - k * 0.27); if (s < 0 || s > 0.9) continue; const o = (hash(k, 1, sd + 2) - 0.5) * w * 0.7, x = Math.round(A.low[0] + o + A.ux * s * s * 30) - ox, y = Math.round(A.low[1] + 2 + A.uy * s * s * 30) - oy; if (x >= 0 && y >= 0 && x < VW && y < VH) fb[y * VW + x] = R.white[1]; }
+    if (a < AV_RELEASE) return; const b = a - AV_RELEASE;
+    if (b < 3) slabPass(fb, VW, VH, ox, oy, A, b);
+    // The powder: puffs thrown off along the way down, each growing, rising and thinning.
+    for (let k = 0; k < 34; k++) { const te = k * 0.13, age = b - te; if (age < 0) continue; const u = k / 33, h = hash(k, 3, sd + 3), grow = Math.min(1, age / 2.5), v = Math.pow(u, 1.1);
+      const r = (4 + 17 * Math.sqrt(grow)) * (0.7 + 0.6 * h) * (0.8 + 0.5 * u), al = smooth(18, 4, age) * 0.97, side = (h - 0.5) * w * (1.1 - 0.3 * u) * (1 + 0.5 * grow);
+      if (al > 0.02) puffAt(fb, VW, VH, ox, oy, lerp(mx, fx, v) + side * A.uy, lerp(my, fy, v) - side * A.ux - age * 2, r, al, 1.35); }
+    // The debris: a fan of snow at the foot of the glacier, fading over a minute.
+    const den = smooth(5, 9, b) * smooth(70, 35, b);
+    if (den > 0.01) for (let dy = -2; dy <= 8; dy++) for (let dx = -Math.round(w * 0.45); dx <= w * 0.45; dx++) { const e = (dx / (w * 0.45)) ** 2 + ((dy + 2) / 10) ** 2; if (e > 1) continue; const x = fx + dx - ox, y = fy + dy - oy; if (x < 0 || y < 0 || x >= VW || y >= VH || bayer(fx + dx, fy + dy) >= den * (1.1 - e)) continue; fb[y * VW + x] = hash(fx + dx, fy + dy, sd + 4) < 0.5 ? R.white[1] : R.snow[3]; }
   }
   function avalancheFx(scr, ox, oy, t) {
-    if (!AV) return;
-    const { fb, VW, VH } = scr, w = AV.x1 - AV.x0, ym = (AV.y0 + AV.y1) / 2, [fx, fy] = AV.foot;
-    if (AVA.phase === 'falling') { const a = t - AVA.start;
-      // A few bits of snow trickle off the slab's foot before it goes.
-      if (a > 2.4 && a < AV_RELEASE + 0.3) for (let k = 0; k < 6; k++) { const s = (a - 2.4 - k * 0.27); if (s < 0 || s > 0.9) continue; const x = AV.cx + Math.round((hash(k, 1, 4802) - 0.5) * w * 0.7) - ox, y = AV.y1 + 2 + Math.round(s * s * 30) - oy; if (x >= 0 && y >= 0 && x < VW && y < VH) fb[y * VW + x] = R.white[1]; }
-      if (a >= AV_RELEASE) { const b = a - AV_RELEASE;
-        if (b < 3) slabPass(fb, VW, VH, ox, oy, AV, b);
-        // The powder: puffs thrown off along the way down, each growing, rising and thinning.
-        for (let k = 0; k < 34; k++) { const te = k * 0.13, age = b - te; if (age < 0) continue; const u = k / 33, h = hash(k, 3, 4803), grow = Math.min(1, age / 2.5);
-          const r = (4 + 17 * Math.sqrt(grow)) * (0.7 + 0.6 * h) * (0.8 + 0.5 * u), al = smooth(18, 4, age) * 0.97;
-          if (al > 0.02) puffAt(fb, VW, VH, ox, oy, AV.cx + (h - 0.5) * w * (1.1 - 0.3 * u) * (1 + 0.5 * grow), lerp(ym, fy, Math.pow(u, 1.1)) - age * 2, r, al, 1.35); }
-        // The debris: a fan of snow at the foot of the glacier, fading over a minute.
-        const den = smooth(5, 9, b) * smooth(70, 35, b);
-        if (den > 0.01) for (let dy = -2; dy <= 8; dy++) for (let dx = -Math.round(w * 0.45); dx <= w * 0.45; dx++) { const e = (dx / (w * 0.45)) ** 2 + ((dy + 2) / 10) ** 2; if (e > 1) continue; const x = fx + dx - ox, y = fy + dy - oy; if (x < 0 || y < 0 || x >= VW || y >= VH || bayer(fx + dx, fy + dy) >= den * (1.1 - e)) continue; fb[y * VW + x] = hash(fx + dx, fy + dy, 4804) < 0.5 ? R.white[1] : R.snow[3]; }
-      } }
-    // The plume: spindrift torn off the summit by the wind, streaming east against the sky as a banner
-    // (white on the snow would not show), and a fall of fine snow sinking out of it onto the icefall.
-    if (AVA.plume >= 0) { const p = t - AVA.plume, [sx, sy] = spots.summit, head = Math.min(1, p / 4), al = smooth(0, 1.2, p) * smooth(9, 6.5, p);
-      for (let k = 0; k <= 20; k++) { const u = k / 20; if (u > head) break; const x = sx + 6 + 120 * u + p * 3, y = sy - 4 + 14 * u * u + 2 * Math.sin(u * 9 + p);
-        puffAt(fb, VW, VH, ox, oy, x, y, 2 + 6 * u, al * (0.9 - 0.45 * u), 2.4); }
-      for (let k = 0; k < 40; k++) { const h = hash(k, 7, 4805), born = 1 + 6 * h, q = (p - born) / 3; if (q < 0 || q > 1) continue; const u = 0.15 + 0.6 * hash(k, 8, 4805);
-        const x0 = sx + 6 + 120 * u, y0 = sy + 14 * u * u, tx = AV.x0 + (AV.x1 - AV.x0) * hash(k, 9, 4805), x = Math.round(lerp(x0, tx, q) + 3 * Math.sin(q * 7 + k)) - ox, y = Math.round(lerp(y0, AV.y0 + 4, q)) - oy;
-        if (x >= 0 && y >= 0 && x < VW && y < VH && al > 0.3) fb[y * VW + x] = (k & 1) ? R.snow[2] : R.snow[1]; } }
+    if (!AVS.length) return;
+    const { fb, VW, VH } = scr;
+    FACE.forEach((F, f) => { if (F.phase === 'falling') slideFx(scr, ox, oy, AVS[f], t - F.start); });
+    if (AVA.squall < 0) return;
+    const q = t - AVA.squall, [sx, sy] = spots.summit, grow = smooth(0, SQ.build, q), fade = smooth(SQ.end, SQ.clear, q), den = smooth(SQ.build - 3, SQ.build + 2, q) * smooth(SQ.clear + 2, SQ.clear - 3, q);
+    // The snow falling under the cloud, from its base down past the foot of the lowest face.
+    if (den > 0.02) { const y0 = sy + 4, ry = Math.max(...AVS.map(A => A.y1)) + 30 - y0; squallVeil(fb, VW, VH, ox, oy, sx, y0, 150, ry, den, t); squallFlakes(fb, VW, VH, ox, oy, FLAKE, sx, y0, 150, ry, den, t); }
+    // The cloud: a bank that builds on the summit and hides it down to the dome's shoulders, heavier under
+    // than a fair-weather cloud and slowly churning. As it clears it thins, lifts and moves off east.
+    if (grow * fade > 0.02) { const off = 1 - fade, wide = 0.4 + 0.6 * grow, big = 0.55 + 0.45 * grow, al = grow * fade;
+      // Its base, low on the dome's shoulders, then its bright top over the summit.
+      for (let k = 0; k < 12; k++) { const u = k / 11 * 2 - 1, h = hash(k, 1, 4812); puffAt(fb, VW, VH, ox, oy, sx + u * 122 * wide + 5 * Math.sin(t * 0.45 + k * 1.7) + off * 34, sy + 12 + 20 * u * u + (h - 0.5) * 8 - off * 18, (13 + 9 * (1 - u * u) + 4 * h) * big, al * (0.85 + 0.15 * (1 - Math.abs(u))), 1.9, true); }
+      for (let k = 0; k < 9; k++) { const u = k / 8 * 2 - 1, h = hash(k, 2, 4812); puffAt(fb, VW, VH, ox, oy, sx + u * 88 * wide + 4 * Math.sin(t * 0.6 + k * 2.3) + off * 40, sy - 5 + 11 * u * u + (h - 0.5) * 8 - off * 22, (12 + 10 * (1 - u * u) + 3 * h) * big, al * (0.85 + 0.15 * (1 - Math.abs(u))), 1.9); } }
+    // As it clears, spindrift is torn off the summit by the wind and streams east against the sky as a banner.
+    const p = q - SQ.clear + 2; if (p > 0) { const head = Math.min(1, p / 4), al = smooth(0, 1.2, p) * smooth(SQ.end - SQ.clear + 2, SQ.end - SQ.clear - 1, p);
+      for (let k = 0; k <= 20; k++) { const u = k / 20; if (u > head) break; puffAt(fb, VW, VH, ox, oy, sx + 6 + 120 * u + p * 3, sy - 4 + 14 * u * u + 2 * Math.sin(u * 9 + p), 2 + 6 * u, al * (0.9 - 0.45 * u), 2.4); } }
   }
   // ---- the weather in the west: the marine layer (E5e) ----
   // Rain in the Northwest seldom comes as a storm. A low grey deck rolls in off the sea ten seconds after
@@ -365,6 +432,8 @@ export function makeWorld() {
   const VEIL = new Uint8Array(7 * 256); FOGV.forEach((t, k) => VEIL.set(t, k * 256));
   // A drizzle streak's colour over each colour: grey over light ones, pale over dark ones.
   const STREAK = new Uint8Array(256).map((_, c) => { const p = DAY[c] || [0, 0, 0]; return 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2] > 150 ? R.nebel[1] : R.fog[1]; });
+  // A snowflake's colour over each colour (the summit squall): grey-blue over light ones, white over dark ones.
+  const FLAKE = new Uint8Array(256).map((_, c) => { const p = DAY[c] || [0, 0, 0]; return 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2] > 170 ? R.snow[1] : R.white[1]; });
   // A cloud drawn in pixels: rounded lobes along a flat base, tallest in the middle, white with the sky's
   // blue underneath (the fair-weather clouds).
   const puff = (w, h, seed) => {
@@ -384,7 +453,6 @@ export function makeWorld() {
   const things = [];
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
   const put = (bm, x, y, extra = {}) => things.push({ bm, x: Math.round(x), y: Math.round(y), ...extra });
-  put(makeSignpost(), spots.signpost[0], spots.signpost[1]);
   for (const s of spots.signs) put(makeSmallSign(), s[0], s[1]);
   put(makeJournal(), spots.journal[0], spots.journal[1]); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
   const REGS = [...Array(16).keys()].map(k => makeRegister(k & 7, k > 7)), regBox = { bm: REGS[0], x: spots.register[0], y: spots.register[1] }; things.push(regBox);
@@ -415,8 +483,8 @@ export function makeWorld() {
       const dim = hash(k, Math.floor(t * 1.3), 4901) < 0.12; scr.set(sx, sy + 1, INK); scr.set(sx, sy + 2, INK); scr.set(sx, sy, dim ? R.lamp[0] : R.lamp[1]); if (!dim) { const [ax, ay] = lampAt(Math.min(TRK.L, d + 3)); scr.set(Math.round(ax) - ox, Math.round(ay) - 2 - oy, R.lamp[0]); } }
   }
   // The animals look after themselves: see critters.js. Where each one lives comes from land.js.
-  const crit = makeCritters(W);
-  const ev = makeEvents(W);
+  const crit = makeCritters(W); window.__crit = crit;
+  const ev = makeEvents(W, crit.collide);
   for (const it of crit.items) things.push(it);
   const birds = [makeBird(0), makeBird(1)];
   const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 330 + 40, y: 50 + (i & 1) * 70 + i * 18, v: 3 + (i % 4) }));
@@ -442,9 +510,13 @@ export function makeWorld() {
   // read the way the land lays it out: a pixel's row plus its depth, less for higher ground.
   const spiresIn = (() => { const P = paths.spires, h = q => { const a = P.at(q); return -(W.vAt(a.x, a.y) + a.y); }, h0 = h(0), h1 = h(1); for (let q = 0; q < 1; q += 0.002) if (h(q) - h0 >= 0.4 * (h1 - h0)) return q; return 0.5; })();
   const lakeOut = (() => { const P = paths.lake; let best = 0, bd = 1e9; for (let q = 0.5; q < 1; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - spots.lakeShore[0], a.y - spots.lakeShore[1]); if (d < bd) { bd = d; best = q; } } return best; })();
+  // Between the two the map is not shown: the forest scene stands for the trail from lakeIn to the lake's outlet
+  // (lakeMid: where the trail comes nearest the lake's west end) and the lakeshore scene for the rest (round 5, F5).
+  const lakeMid = (() => { const P = paths.lake; let best = lakeIn, bd = 1e9; for (let q = lakeIn; q < lakeOut; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - spots.lakeWest[0], a.y - spots.lakeWest[1]); if (d < bd) { bd = d; best = q; } } return best; })();
 
-  // Where each place's name is pinned: over the signpost, on the lake's near shore, on the wall's rim, on the ice under the summits.
-  const PLACES = [{ id: 'trailhead', x: T.x - 4, y: T.y - 31 }, ...['lake', 'stack', 'spires'].map(id => ({ id, x: spots.places[id][0], y: spots.places[id][1] }))];
+  // Where each place's name is pinned: over the junction, a little to his left so it clears the register's box
+  // beside the board (round 5 B2), on the lake's near shore, on the wall's rim, on the ice under the summits.
+  const PLACES = [{ id: 'trailhead', x: T.x - 12, y: T.y - 31 }, ...['lake', 'stack', 'spires'].map(id => ({ id, x: spots.places[id][0], y: spots.places[id][1] }))];
   // How far from the camera he is on a trail, from the trail's own points.
   const vOn = (path, x, y) => { let best = 0, bd = 1e9; for (const p of W.lines[path]) { const d = Math.abs(p[0] - x) + Math.abs(p[1] - y); if (d < bd) { bd = d; best = p[2]; } } return best; };
   const saved = new Uint8Array(25 * 34);
@@ -505,7 +577,10 @@ export function makeWorld() {
   // goes to each destination in the order of the junction sign, rests there, and comes home, over and over.
   // A destination's rest puts its name a little above the middle, right of the sign, so its peaks and its country show.
   // On an upright phone the sign spans the bottom, so the name sits 40% of the way down what shows above it, centred across the narrow view (F8). Skipped when everything is in frame.
-  const ROUND = { hold: 5, go: 3.5 };
+  // It starts after 2 minutes with no input at all (T2, round 5): an idle animation, never part of the opening.
+  // Any key, click, tap, wheel or drag stops it, and the camera eases back to him. tour=<seconds> in the
+  // address starts it sooner, for screenshots.
+  const ROUND = { hold: 5, go: 3.5 }, TOUR = (typeof location !== 'undefined' && +(/[?&]tour=([\d.]+)/.exec(location.search) || [])[1]) || 120;
   const lookRound = (scr, t, hx, hy) => {
     const { VW, VH } = scr, stops = [[hx, hy]];
     for (let k = 1; k <= 3; k++) { const b = W.destBox[k], p = PLACES[k], cx = scr.narrow ? p.x : (b.x0 + b.x1) / 2 - VW * 0.1, cy = scr.narrow ? p.y + VH / 2 - 0.4 * (VH - openCover) : p.y + VH * 0.06; if (p.x - hx < -VW / 2 + 40 || p.x - hx > VW / 2 - 40 || p.y - hy < -VH / 2 + 20 || p.y - hy > VH / 2 - 60) stops.push([cx, cy]); }
@@ -513,17 +588,64 @@ export function makeWorld() {
     const leg = ROUND.hold + ROUND.go, n = stops.length, i = Math.floor(t / leg) % n, u = smooth(ROUND.hold, leg, t % leg), a = stops[i], b = stops[(i + 1) % n];
     return [lerp(a[0], b[0], u), lerp(a[1], b[1], u)];
   };
-  let past = 0, nowT = 0;
+  // The page never opens on a pan (T1). A new view size (the first frame, the canvas growing once the fonts
+  // are in, a turned phone) puts the camera straight at its rest, and so does the sign settling in during the
+  // first 3 seconds or while the web fonts are still loading (it is taller until its font loads). Later changes,
+  // such as closing the sign, still ease. sized, seenKey: what the camera last settled for; born: its first frame.
+  let past = 0, nowT = 0, sized = '', seenKey = null, born = null;
   // walkTo: a leg that is walked over that part of its time and then stood still (the register, L2).
   const where = (leg, q) => { if (leg.walkTo) q = Math.min(1, q / leg.walkTo); const P = paths[leg.path], a = P.at(lerp(leg.from, leg.to, q)), s = leg.to < leg.from ? -1 : 1; return { x: a.x, y: a.y, dx: a.dx * s, dy: a.dy * s, P }; };
+  // Which way he faces (T37): from where the trail takes him over the next 32 pixels (and the 8 behind), not
+  // the step under his feet, since a trail drawn on a diagonal steps sideways and up in turn, and the zigzag
+  // up a cliff is one climb. Then with some give: he turns to
+  // walk up or down the screen only when the way ahead is nearly upright, back to his side only when it
+  // leans clearly sideways, and to his other side only when it leans clearly the other way. In between he
+  // keeps the way he faced.
+  function face(leg, q) {
+    if (leg.walkTo) q = Math.min(1, q / leg.walkTo);
+    const P = paths[leg.path], s = leg.to < leg.from ? -1 : 1, u = lerp(leg.from, leg.to, q), a = P.at(clamp(u - s * 8 / P.len, 0, 1)), b = P.at(clamp(u + s * 32 / P.len, 0, 1));
+    let dx = b.x - a.x, dy = b.y - a.y; const n = Math.hypot(dx, dy);
+    if (n < 3) return;
+    dx /= n; dy /= n;
+    if (facing === 'side') {
+      if (Math.abs(dx) < 0.3) facing = dy < 0 ? 'up' : 'down';
+      else if ((dx < 0) !== flip && Math.abs(dx) > 0.55) flip = dx < 0;
+    } else if (Math.abs(dx) > 0.6) { facing = 'side'; flip = dx < 0; }
+    else if (Math.abs(dx) < 0.3) facing = dy < 0 ? 'up' : 'down';
+  }
   const target = (scr, here, env) => {
     // env.lead: the hand-off from the opening frame to following him, eased over 2 seconds in pixel.js (F6).
     const v = vista(scr), k = !env || env.lead === undefined ? smooth(0, 60, Math.hypot(here.x - T.x, here.y - T.y)) : env.lead;
     return [lerp(v.x, here.x, k), lerp(v.y, here.y - 24, k)];
   };
 
+  // The roam areas' colours, one per kind, none of them a colour of the ground (T32).
+  const ROAM_C = { elk: R.yellow[1], moose: R.lupine[2], goat: R.white[1], sheep: R.lamp[0], bear: R.pink[2], marmot: R.sky[4] || R.white[0], squirrel: R.red[1], gulls: R.jay[3], birds: R.aurora[2] };
+  function roamArea(scr, a, ox, oy) {
+    const c = ROAM_C[a.kind] || R.white[1], cx = a.x - ox, cy = a.y - oy, x0 = Math.floor(cx - a.rx - 2), x1 = Math.ceil(cx + a.rx + 2), y0 = Math.floor(cy - a.ry - 2), y1 = Math.ceil(cy + a.ry + 2);
+    if (x1 < 0 || y1 < 0 || x0 >= scr.VW || y0 >= scr.VH) return;
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const q = Math.hypot((x - cx) / a.rx, (y - cy) / a.ry), edge = (1 - q) * Math.min(a.rx, a.ry);
+      if (edge < -2 || edge > 1.2 && ((x + y) & 3)) continue;
+      scr.set(x, y, edge < 0 ? c : edge < 1.2 ? INK : c);
+    }
+    tinyText(scr, Math.round(cx), Math.round(cy - a.ry - 9), (UI.debug.animals[a.kind] || a.kind).toUpperCase(), c);
+  }
+  // The spawn menu (C4): each map animal with its homes, each named after the nearest place the map names
+  // (a joke sign within 160 pixels, else the nearest of the four places, as "near ..." or "east of ...").
+  const placeName = (x, y) => {
+    let best = null, bd = 160; for (const [sx, sy, id] of spots.signs) { const d = Math.hypot(sx - x, sy - y); if (d < bd && SIGNS[id]) { bd = d; best = SIGNS[id].split(',')[0]; } }
+    if (best) return best;
+    let pd = 1e9, at = null; for (const p of PLACES) { const d = Math.hypot(p.x - x, p.y - y); if (d < pd) { pd = d; at = p; } }
+    const dx = x - at.x, dy = y - at.y, way = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'east' : 'west') : (dy > 0 ? 'south' : 'north');
+    return (pd < 150 ? UI.debug.near : way + ' of') + (at.id === 'trailhead' ? ' the ' : ' ') + DEST_NAMES[at.id];
+  };
+  // A name that comes up twice in one animal's list gets a number, so every choice reads differently.
+  const spawnList = () => crit.homes().map(({ kind, homes }) => { const names = homes.map(([x, y]) => placeName(x, y)), seen = {};
+    return { kind, name: UI.debug.animals[kind] || kind, homes: names.map(n => names.filter(m => m === n).length > 1 ? n + ' ' + (seen[n] = (seen[n] || 0) + 1) : n) }; });
+
   return {
-    name: 'world', paths, lakeIn, lakeOut, spiresIn, T, WW, WH,
+    name: 'world', paths, spawnList, spawn: (kind, i) => { const ok = crit.spawn(kind, i); for (const it of crit.items) if (!things.includes(it)) { things.push(it); still = null; } return ok; }, lakeIn, lakeMid, lakeOut, spiresIn, T, WW, WH,
     // For the trail map sheet (L9): the peak's summit and the six Spires summits on the map, and the picture's
     // frame: the box round the Trailhead and the three destinations' countries with a margin, widened to the
     // sheet's shape (8 by 5) and kept on the map.
@@ -555,6 +677,8 @@ export function makeWorld() {
     focus: () => focus,
     // The spot of the map under a point of the screen.
     at: (sx, sy) => ({ x: sx + last.ox, y: sy + last.oy }),
+    // Which way he faces, for the test scripts (B8): 'side-l', 'side-r', 'up' or 'down'.
+    pose: () => facing === 'side' ? (flip ? 'side-l' : 'side-r') : facing,
     // The four places he can be sent to, for the page to pin a name on. The page keeps a name on screen
     // when its place is out of view.
     // A place's tag rises and brightens with it when it lifts (E5j): lift is how far up it is, 0 to 1.
@@ -568,14 +692,20 @@ export function makeWorld() {
       { const [rx, ry] = spots.register; if (Math.abs(wx - rx) < 6 && wy > ry - 21 && wy < ry + 2) return { label: NAMES.register, x: rx - last.ox, y: ry - 21 - last.oy, act: 'register' }; }
       { const [kx, ky] = spots.kiosk; if (Math.abs(wx - kx) < 14 && wy > ky - 27 && wy < ky + 3) return { label: NAMES.kiosk, x: kx - last.ox, y: ky - 27 - last.oy, act: 'kiosk' }; }
       // The tide pool to find (E7), only while the low water has left it.
-      { const p = crit.findPool(nowT); if (p && Math.abs(wx - p.x) <= p.rx + 2 && Math.abs(wy - p.y) <= 4) return { label: NAMES.tidepool, x: p.x - last.ox, y: p.y - 6 - last.oy, act: 'pool' }; }
+      { const p = crit.findPool(nowT); if (p && Math.abs(wx - p.x) <= p.rx + 3 && Math.abs(wy - p.y) <= p.ry + 3) return { label: NAMES.tidepool, x: p.x - last.ox, y: p.y - p.ry - 5 - last.oy, act: 'pool' }; }
       { const k = destUnder(wx, wy); if (k) return { label: DEST_NAMES[W.DEST[k]], named: true, x: sx, y: sy, act: 'dest:' + W.DEST[k] }; }
       return null;
     },
     // The debug panel's start buttons (E5f): each moves its event's clock so the event begins now.
     trigger(name, t) {
       if (name === 'shower') { const n = Math.floor((t + rainAhead + RAIN.cycle - 10) / RAIN.cycle) + 1; rainAhead = n * RAIN.cycle - t - RAIN.cycle + 10; return true; }
-      if (name === 'avalanche') { if (!AV) return false; AVA.phase = 'covered'; AVA.cover = 1; AVA.plume = -1; AVA.start = t; return true; }
+      // An avalanche now: on a face still under snow, picked at random (any face, covered again first, if none
+      // is), or on the face asked for (ava0 is the westernmost).
+      if (name === 'avalanche' || /^ava\d$/.test(name)) { let f = name === 'avalanche' ? -1 : +name[3]; if (!AVS.length || f >= AVS.length) return false;
+        if (f < 0) { const snowy = snowyFaces(), pool = snowy.length ? snowy : AVS.map((_, k) => k); f = pool[Math.floor(hash(Math.floor(t * 10), 8, 4792) * pool.length)]; }
+        AVA.squall = -1; slide(f, t); return true; }
+      // The summit squall now: it puts the snow back on every bare face.
+      if (name === 'squall') { if (!AVS.length) return false; startSquall(t); return true; }
       if (name === 'serac') { if (SER.length < 2) return false; const n = Math.floor((t + serAhead + SLOT - 15) / SLOT) + 1; serAhead = n * SLOT + 10 * hash(n, 3, 4741) - t - SLOT + 15; return true; }
       if (name === 'lens') return startLens(t);
       return ev.trigger(name, t) || crit.trigger(name, t);
@@ -585,15 +715,16 @@ export function makeWorld() {
       const { VW, VH, fb } = scr, { t, tq, dt } = env; nowT = t;
       regTrip = leg.path === 'register';
       const here = where(leg, q);
-      if (env.moving && Math.abs(here.dx) + Math.abs(here.dy) > 0.01) {
-        if (Math.abs(here.dx) > Math.abs(here.dy) * 0.7) { facing = 'side'; flip = here.dx < 0; } else facing = here.dy < 0 ? 'up' : 'down';
-      }
+      if (env.moving) face(leg, q);
       if (env.home) facing = 'down';
 
       // Camera: the whole view from the Trailhead, then follow him.
       let [tx, ty] = target(scr, here, env);
-      if (env.home && env.idle > 4 && !env.calm && Math.abs(env.look.x) + Math.abs(env.look.y) < 1) [tx, ty] = lookRound(scr, env.idle - 4, tx, ty);
-      const damp = env.calm ? 1 : 1 - Math.exp(-dt * 3.2);
+      env.touring = env.home && env.idle > TOUR && !env.calm && Math.abs(env.look.x) + Math.abs(env.look.y) < 1;
+      if (env.touring) [tx, ty] = lookRound(scr, env.idle - TOUR, tx, ty);
+      if (born === null) born = t;
+      const size = VW + 'x' + VH + (scr.narrow ? 'n' : ''), jump = env.home && (size !== sized || ((t - born < 3 || (document.fonts && document.fonts.status === 'loading')) && openKey !== seenKey)); sized = size; seenKey = openKey;
+      const damp = env.calm || jump ? 1 : 1 - Math.exp(-dt * 3.2);
       cam.x += (tx - cam.x) * damp; cam.y += (ty - cam.y) * damp;
       // A zoom step keeps one spot of the map under the pointer: the camera goes straight to its new rest and the dragged view makes up the difference.
       if (env.anchor && !env.fixed) { const a = env.anchor; cam.x = tx; cam.y = ty; env.look.x = a.wx - a.sx + VW / 2 - cam.x; env.look.y = a.wy - a.sy + VH / 2 - cam.y; env.anchor = null; }
@@ -605,7 +736,7 @@ export function makeWorld() {
       if (!env.fixed) { const M = 26, b = { x0: Math.min(0, VW / 2 + M - cam.x), x1: Math.max(0, WW - VW / 2 - M - cam.x), y0: Math.min(0, VH / 2 + M - cam.y), y1: Math.max(0, WH - VH / 2 - M + bar - cam.y) }; if (VW >= WW) b.x0 = b.x1 = 0; env.lookBox = b; }
       let cx = cam.x + env.look.x, cy = cam.y + env.look.y;
       cx = VW >= WW ? WW / 2 : clamp(cx, VW / 2, WW - VW / 2);
-      past += ((scr.narrow && env.home ? VH * 0.34 : 0) - past) * (env.fixed ? 0 : Math.min(1, dt * 4));
+      past += ((scr.narrow && env.home ? VH * 0.34 : 0) - past) * (env.fixed ? 0 : jump ? 1 : Math.min(1, dt * 4));
       // Down, the view may go past the map's foot by what the bar (and on a phone the panels) cover. The
       // limit closes smoothly as the view grows to the map's height, so a zoom out never jumps at the end (F4).
       cy = clamp(cy, VH / 2, Math.max(VH / 2, WH - VH / 2 + past + bar));
@@ -628,7 +759,7 @@ export function makeWorld() {
       }
       // With the Trees switch off, the snags and shadows painted into the ground give way to what lay under them.
       if (!DEBUG.trees) for (let y = Math.max(0, -oy); y < Math.min(VH, WH - oy); y++) { const wy = y + oy, row = y * VW; for (let x = Math.max(0, -ox); x < Math.min(VW, WW - ox); x++) { const c = W.bare[wy * WW + x + ox]; if (c) fb[row + x] = c; } }
-      avalancheStep(t, env, !!AV && AV.cx - ox > -40 && AV.cx - ox < VW + 40 && AV.y0 - oy > -60 && AV.y0 - oy < VH);
+      avalancheStep(t, env, ox, oy, VW, VH);
       avalancheCover(fb, VW, VH, ox, oy, t);
       crit.weather(Math.max(sky.fog, sky.deck * 0.8), (x, y) => fogIn(x, y, sky));
       if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], H = TIP_H[n], k = 6 + n;
@@ -680,6 +811,7 @@ export function makeWorld() {
         else drawStill(scr, th, tq, ox, oy, dl, clipBlit, flags, t);
       }
 
+      if (crit.sounds.length) { for (const name of crit.sounds) env.sfx(name); crit.sounds.length = 0; }
       ev.draw(scr, ox, oy, t, env.mix || 0);
       if (env.mix > 0.02) duskHills(fb, VW, VH, ox, oy, HLIT, gNow, env.mix, WARM);
       // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge. Each is
@@ -740,12 +872,19 @@ export function makeWorld() {
         }
       }
       // The debug panel's outlines, over the finished map.
+      // Where the chosen kind of mover may not go (collide.js), tinted, under the outlines.
+      if (DEBUG.collide) crit.collide.overlay(scr, DEBUG.collide, ox, oy, t, R.red[1]);
+      // Where a click sent him (T3): a red cross hovering over the spot on the trail, gone when he gets there.
+      if (env.walkMark) { const mx = Math.round(env.walkMark.x) - ox, my = Math.round(env.walkMark.y) - oy, bob = Math.floor(t * 3) & 1;
+        const X = [], Y = my - 4 - bob; for (let k = -3; k <= 3; k++) for (const d of [0, 1]) X.push([mx + k + d, Y + k], [mx + k + d, Y - k]);
+        for (const [x, y] of X) for (const [ax, ay] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) scr.set(x + ax, y + ay, INK);
+        for (const [x, y] of X) scr.set(x, y, R.red[1]); scr.set(mx, my, INK); scr.set(mx + 1, my, INK); }
       if (!env.fixed && (DEBUG.roam || DEBUG.trails || DEBUG.camera)) {
         const dot = (x, y, c) => scr.set(Math.round(x) - ox, Math.round(y) - oy, c);
-        const oval = (a, c) => { const n = Math.ceil((a.rx + a.ry) * 2); for (let k = 0; k < n; k += 2) dot(a.x + Math.cos(k / n * TAU) * a.rx, a.y + Math.sin(k / n * TAU) * a.ry, c); };
         const box = (b, c, step) => { for (let x = b.x0; x <= b.x1; x += step) { dot(x, b.y0, c); dot(x, b.y1, c); } for (let y = b.y0; y <= b.y1; y += step) { dot(b.x0, y, c); dot(b.x1, y, c); } };
-        // Red ovals: where each animal wanders and each flock circles. Pink boxes: where the cats keep to.
-        if (DEBUG.roam) { for (const a of crit.areas()) oval(a, R.red[1]); for (const b of kit.areas()) box(b, R.pink[1], 2); }
+        // Where each animal wanders and each flock circles (T32): its own bright colour, two pixels wide with a
+        // dark inner edge, a light dithered fill and its name. Pink boxes: where the cats keep to.
+        if (DEBUG.roam) { for (const a of crit.areas()) roamArea(scr, a, ox, oy); for (const b of kit.areas()) box(b, R.pink[1], 2); }
         // Each trail as the line he actually follows, with a knot every twenty pixels, and a white cross
         // where the lake loop goes into the forest and where it comes back out.
         if (DEBUG.trails) {
@@ -765,3 +904,10 @@ export function makeWorld() {
   };
 }
 
+// A 3 by 5 pixel letter set for the debug labels on the map (T32), with a dark box behind for contrast.
+const GLYPHS = { A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', F: '111100110100100', G: '011100101101011', H: '101101111101101', I: '111010010010111', J: '001001001101010', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', Q: '010101101110011', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', V: '101101101101010', W: '101101111111101', X: '101101010101101', Y: '101101010010010', Z: '111001010100111' };
+function tinyText(scr, cx, y, str, c) {
+  const w = str.length * 4 - 1, x0 = cx - (w >> 1);
+  for (let j = -1; j <= 5; j++) for (let i = -1; i <= w; i++) scr.set(x0 + i, y + j, INK);
+  for (let n = 0; n < str.length; n++) { const g = GLYPHS[str[n]]; if (!g) continue; for (let k = 0; k < 15; k++) if (g[k] === '1') scr.set(x0 + n * 4 + (k % 3), y + ((k / 3) | 0), c); }
+}

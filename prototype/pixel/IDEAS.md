@@ -47,7 +47,6 @@ Things that would make the pixel trailhead look, feel, perform and behave better
 - **Pause when hidden.** Stop drawing and stop the music when the tab is in the background.
 - **Build scenes off the main thread.** The forest and the wall take a moment to paint at load. A worker could paint them while the map is already on screen.
 - **A smaller first load.** The page is about 1 MB of script with no build step, and `ground.png` 1.5 MB. Minified and compressed the script would be a fraction of that, and the fonts could be cut down to the letters in use.
-- **Fonts in the repo.** The four pixel fonts and the register's four handwriting faces come from Google Fonts. Hosting them with the site removes the outside requests and the moment of fallback text.
 
 ## Sound
 
@@ -153,3 +152,266 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Something left in the box.** Real register boxes collect a lost glove or a sticker; one small object in the corner of the box could change with the season or the time of day.
 - **Turn the page.** With more entries than one page holds, a corner of the right-hand page could lift, and a tap turns back to older pages.
 - **The pencil writes.** While a visitor types on the left-hand page, the pencil could lift off the page and follow the last letter.
+
+## Round 5 planning (2026-11-16)
+
+### Offered to TJ for round 5 and not picked (kept for later)
+
+- **A slow-phone check.** Round 4's frame times come from a fast machine in Docker. Measure at 4x CPU slowdown, and let the game drop its costliest layers by itself (mist detail, the zoomed-out redraw) when a frame runs long.
+- **A link preview.** A page title, description and a preview image (a good render of the map at golden hour) so a link shared on LinkedIn or Slack looks like the site.
+- **Reduced motion.** The camera (round 4), AUTO and the idle tour (round 5, K1) already follow the system's reduce-motion setting. What is left is fewer screen-wide effects for that visitor: the glissade's burst of snow and the whiteout on the Kubernetes-Manifests climb.
+- **A copy review page.** Generated from `content.js`: every line a visitor can read, grouped by place, so TJ can review all the draft copy in one sitting.
+
+### Climb scenes for later (TJ asked for these to be kept, 2026-11-16)
+
+- **A Tyrolean traverse.** A rope strung between two towers that TJ pulls himself across, hanging below it, the gap and the glacier far underneath. Easy to read side-on. Offered as the fallback for trailhead's knife-edge.
+- **A corniced snow ridge.** A snow crest with an overhanging cornice on one side and his boot track kept well back on the safe side, a chunk of cornice breaking off and tumbling down the far face.
+
+### My own, written while planning round 5
+
+- **Kayti's painting grows.** Her watercolour at base camp gains a little more of the Spires each time a summit is done, and a click shows it full size. Done all six, and it's finished and signed.
+- **Footprints that stay.** TJ's boot prints on the bared sand at low tide and on the glacier's snow, fading after a while and washed out when the tide comes in.
+- **The eagle and the gulls.** Gulls mob the eagle when it carries a fish past the stacks, and now and then it drops the fish and a gull takes it.
+- **A rainbow in the waterfall's spray** on the new switchback climb, when the sun is low on the Auto clock.
+- **Sunset alpenglow on Monolith and the Spires** as the Auto clock passes through sunset: the high snow goes pink for those 30 seconds. It brings back the round 3 Dusk TJ liked without a sky to light.
+- **Lights in the lookout.** At Dusk a warm window glows in the fire lookout on Off By One Peak, and a tiny figure looks out.
+- **The bear family reacts to TJ.** When his figure passes close to the clearing, the sow stands up to look and the cubs scramble behind her.
+- **A moose in the river.** The bull stands knee-deep in the river now and then, dripping, with water plants hanging from his mouth.
+- **The register knows the time.** Entries signed at dusk on the Auto clock are written by headlamp, with a small lamp drawn on the page.
+- **A trail-running Strava segment.** On hevy-garmin-sync's run, a tiny "segment" banner shows his time against a ghost of his best.
+- **Pika haystacks.** In the larch basin and on the moraine, the pika's little piles of drying grass under the boulders, which a curious visitor can click.
+- **Cloud shadows** drifting across the map on the wind, slow and soft, darker over the meadow, so the land never sits completely still.
+
+- **A Flag on the Register** (round 5, B2). Once a visitor has finished all three and can sign, the register's lid stands open a crack or a small red flag goes up on its post, like a mailbox, so they know without opening it.
+- **The Owl Answers** (round 5, B6). Clicking the owl on its limb turns its head all the way round and gives a soft two-note hoot, and at Dusk its eyes catch the light like the deer's.
+- **Elk on the Move** (round 5, D1). Now and then the herd crosses the bottom trail in single file in front of TJ, and he stops on the trail to let them pass before walking on.
+- **Ice Calving into the Moraine Lakes** (round 5, D2). Now and then a block of ice drops off a snout into its moraine lake with a soft splash and a ring, and a small floe drifts for a while.
+- **Clouded Inflows** (round 5, D2). Where the milky streams run into Reflection Lake, a pale plume spreads into the clear water and fades, so you can see the glacier's flour arrive.
+- **A Longer Swim** (round 5, D2). The lake is bigger now, so the swim to the island could pass a loon or a floating log on the way.
+- **A Kingfisher on the Lake's Outflow** (round 5, D3). With the heron gone, a belted kingfisher could perch on a snag over the stream below the fall and rattle off downstream when TJ passes, a smaller, quicker riverside moment.
+- **A Film That Repeats Exactly** (round 5, S1a). `frames.sh` would pause the page's clock, hold it still while the page loads, and seed the last few real-time choices, so two runs of the same code give the same pixels and "this change moved nothing" becomes a check a script can make.
+- **Types Without a Port** (round 5, S1a). `// @ts-check` and a few JSDoc types on the modules the page talks to (`api` in `pixel.js`, `window.__info`) would have caught the plain page reading an undefined `MAP` at edit time.
+- **Shorebirds at the River Mouth** (round 5, D5). At low tide a few sandpipers work the edge of the new channel on the flat, running ahead of the wash and lifting off together when the ferry sounds.
+- **The Channel Moves With the Flow** (round 5, D5). The water in the beach channel and in the rivers could drift downstream a pixel at a time, so a river reads as running and not as a blue road.
+- **The Fog Parts Along the Water** (round 5, D6). As the marine layer comes in, the fog could reach up each river valley first and lie along the water in the morning, then lift off the rivers last, the way valley fog does.
+- **A Foghorn in the Marine Layer** (round 5, D6). While the fog lies on the sea, the ferry or a far lighthouse sounds a low horn now and then, so the weather can be heard as well as seen.
+- **Someone Keeps the Lookout** (round 5, D7). A keeper could stand on the lookout's catwalk with binoculars by day and go in at Dusk when the window lights, and wave if TJ is in sight.
+- **A Trail to the Lookout** (round 5, D7). A side trail could climb Off By One Peak to the tower, as a fourth short walk with the widest view on the map and a logbook in the cab.
+- **Smoke on the Horizon** (round 5, D7). Once in a long while a thin smoke rises from the burn, and a light blinks from the lookout until it is out.
+- **Flowers Follow the Season of the Walk** (round 5, D8). The one density field could take a season: avalanche lilies at the snow's edge early, lupine and paintbrush at the peak, and seed heads and red huckleberry leaves late, picked by the date or by a switch.
+- **Bees and Butterflies Where the Flowers Are Thickest** (round 5, D8). A few butterflies and bumblebees could work the thickest drifts, placed by the same field, and lift off as TJ walks through.
+- **A Debug View of the Fields** (round 5, D8). The Debug panel could tint the map by a chosen field (flowers, forest, dry side, fog), so a sketch like TJ's can be checked against the rule at a glance.
+- **Larch Needles on the Tarns** (round 5, D9). The tarns beside a larch group could carry a scatter of gold needles on the water, drifting to the outflow.
+- **Cottonwoods on the Dry Side's Rivers** (round 5, D9). With the aspens gone from the dry side, a few cottonwoods or willows could line the rivers where they cross the sage, as they do in the real Palouse and the coulees.
+- **Alpenglow That Moves** (round 5, D10). At Dusk the pink light could climb the Legacy Range's snow over a minute and go out summit by summit, the way it does on a real range.
+- **Two Free Colours** (round 5, D10). The palette has two colours left. A hazed grey pair for far rock would let the distant ranges sit further back without the dithered haze.
+- **A Cloud Cap on the Tooth** (round 5, D11). Now and then a small banner cloud could trail east off Little Tahoma's tip while the summit wears its lens cloud.
+- **Hand Over Hand on the Rungs** (round 5, D12). On the map TJ could climb the rungs with his own climbing frames, slower than he walks, and a goat could watch from the lip.
+- **Rungs on the Lower Cliff** (round 5, D12). The trail's gap through the lower band of cliff could take a short run of rungs or a few cut steps, so both cliffs on the way are crossed on purpose.
+- **A Log Jam at the River's Mouth** (round 5, D13). Where the biggest river meets the sea, a dozen logs could pile against each other, the way they do at the mouth of a real coastal river.
+- **Walk the Logs** (round 5, D13). In a free explore mode TJ could balance along a driftwood log, arms out, and hop off its end.
+- **Logs That Float on a High Tide** (round 5, D13). On the highest tide one or two logs nearest the water could lift, drift a few pixels and settle somewhere new when the water goes out.
+- **Wands Across the Ice** (round 5, D14). The boot track from the moraine to the island could be marked with a few bamboo wands with small flags, as a real glacier crossing is, so the way reads at a glance.
+- **TJ and Kayti at the Tent on the Map** (round 5, D14). When the Spires walk is finished, two tiny figures could sit by the tent on the island, and the stove's smoke would have someone to cook for.
+- **A Camp Light You Can See From the Trailhead** (round 5, D14). At Dusk the tent's glow could be the one warm light on the whole glacier, bright enough to pick out from the opening view.
+- **Goats on the Island** (round 5, D14). A goat could wander onto the island for the salt while nobody is home, as the camp scene's goats keep to their knoll.
+- **The Water Audit as a Check** (round 5, D4). `check.sh` could walk every stream's line and fail when a point of it is not water in the picture, so a change to the land can never again leave a stream cut in two without anyone looking.
+- **Baked Against Fresh as a Check** (round 5, D4). `bake.sh` could compare what the page reads from `ground.png` with what the land works out fresh (the fall, the trails, every sign's place) and refuse to write a bake that disagrees. The doubled waterfall was this kind of fault.
+- **An Outlet for the Lone Tarn** (round 5, D4). The small lake above the two far moraine lakes has no stream. A thread of water down to the nearer lake would tie the whole plateau into one chain.
+- **A Swimming Hole** (round 5, D4). The pond on the east creek is now a level pool above a fall, the kind of place people swim. A rope swing on a branch, or a towel on a rock, would say so.
+- **Dippers at the Falls** (round 5, D4). A small grey bird could bob on a rock at the foot of each fall and fly low up the stream when TJ comes near.
+- **The Sweep as a Check** (round 5, E1). `check.sh` could run the sea sweep for a few hundred seconds and fail if the ferry or an orca is ever short of water, so a change to the coast or the tide cannot bring the grounding back unseen.
+- **The Ferry Sounds Its Horn at the Corner** (round 5, E1). Where its lane bends round the bared flats at low water, one long blast, as a real ferry gives on a blind turn.
+- **A Calf in the Pod** (round 5, E1). A fifth, small orca could keep to one cow's side, on the same lane a little inshore of her, and surface twice as often.
+- **Lanes for the Birds** (round 5, E1). The same two-lane idea would let a line of pelicans or cormorants fly the coast just outside the surf at any tide.
+- **A Bloom of Jellies** (round 5, E2). Once in a long while forty small jellyfish could drift through together on the current, a pale cloud in the water that the ferry parts.
+- **Jellies That Glow at Dusk** (round 5, E2). At Dusk each jellyfish could carry one soft light pixel that pulses with its bell.
+- **A Sea Turtle After the Jellies** (round 5, E2). A leatherback could surface near a jellyfish now and then, as they do off this coast in late summer, and the jellyfish would be gone when it dives.
+- **Stranded on the Flats** (round 5, E2). When the tide goes out, one jellyfish could be left on the wet sand as a clear blob, there until the water comes back.
+- **Look Into the Pool** (round 5, E3). Tapping the tide pool could open a close view of it, the way a climb opens its wall: the same animals drawn large, with a hermit crab changing shells.
+- **An Oystercatcher at the Pools** (round 5, E3). A black bird with a long orange bill could work the flats at low water, walk from pool to pool and fly off as the tide turns.
+- **The Anemones Close** (round 5, E3). When a glint or the crab passes over an anemone it could pull its tentacles in for a few seconds and open again.
+- **Sea Stars That Walk** (round 5, E3). Over a whole low tide a sea star could cross a few pixels of its pool, too slowly to see unless you come back.
+- **A Different Pool Each Visit** (round 5, E3). The big pool's animals could be dealt from a longer list each visit (a nudibranch, a chiton, a gunnel), so it is worth checking again.
+- **Rings on the Water** (round 5, E4). Now that each streak of drizzle lands on a spot of the map, one that lands on a lake, a river or the sea could leave a small ring there for a moment.
+- **Rain That Thins Toward Its Edge** (round 5, E4). The patches nearest the deck's front could deal a streak less often, so the drizzle tails off into dry air and never stops at a line.
+- **A Gust Bends the Rain** (round 5, E4). When a gust crosses the forest, the streaks in its path could slant harder for a second, the way the trees already lean.
+- **Elk Shake Off the Rain** (round 5, E4). An animal standing under the drizzle could shake itself once the deck lifts.
+- **The Eagle Calls** (round 5, E5). A bald eagle's call is a thin, high chatter, nothing like the scream films give it. One short call as it lifts off would tell a visitor to look at the stacks.
+- **Gulls Mob the Eagle** (round 5, E5). When the eagle circles, two of the gulls could break from their own circle and chase it for a lap, as gulls do.
+- **The Eagle Robs the Osprey** (round 5, E5). Bald eagles steal fish from ospreys in the air. Once in a long while the eagle could cross to the lake, harry the osprey until it drops its catch, and take it.
+- **An Osprey Nest on a Snag** (round 5, E5). A big stick nest on a dead tree's top in the forest west of the lake would give the osprey somewhere to come from and go to, and a second bird could sit on it.
+- **A Missed Dive** (round 5, E5). One plunge in three could come up empty: the osprey shakes, circles once more and tries again.
+- **Feathers on the Rock** (round 5, E5). After the eagle has eaten, a few pale specks could be left on the stack's top until the next rain washes them off.
+- **A Young Eagle** (round 5, E5). A mottled brown bird with no white head could sit on a lower stack and watch the adult fish.
+- **The Splash Has a Sound** (round 5, E5). The osprey's plunge deserves a short slap and hiss, heard only when the lake is on screen.
+- **The Avalanche Seen From the Lake** (round 5, E6). The lake scene knows when a face slides on the map. It could show the slide too: a small white cloud pouring down the far mountain, and the rumble arriving late across the water.
+- **Fresh Debris on the Glacier** (round 5, E6). The fan of snow at a glacier's foot could stay as a paler patch until the next snowfall, so a visitor can tell which face went last.
+- **Climbers Wait It Out** (round 5, E6). Two tiny headlamps or dots on the summit dome could stop and wait while a face below them slides, then go on.
+- **A Slide That Sets Off Its Neighbour** (round 5, E6). Now and then the cloud from one face could shake a cornice loose on the next, a small sluff a few seconds later that does not bare it.
+- **The Order Tells a Story** (round 5, E6). The east face gets the morning sun first, so in the Day's first half it could be the likeliest to go, and the west face the likeliest toward Dusk.
+- **The Squall From the Lake** (round 5, E7). The lake scene could show the cloud bank on the far summit and the snow falling from it, and its reflection going grey on the water.
+- **The Squall Darkens the Meadow** (round 5, E7). While the cloud sits on the summit its shadow could dim the flower parkland below for those 20 seconds.
+- **Graupel at the Trailhead** (round 5, E7). When the squall is at its height a few flakes could drift as far as the Trailhead and melt on the board.
+- **A Snow Line That Moves** (round 5, E7). After a squall the snow could reach a few rows lower on the cleavers' rock for a minute and then draw back as it melts.
+- **Thunder Snow** (round 5, E7). Once in a long while, one soft flash inside the cloud and a rumble a few seconds later.
+- **The Lenticular Cloud Becomes the Squall** (round 5, E7). When the lenticular cloud is standing as a squall is due, it could thicken and sink onto the summit and become the squall's cloud, as cap clouds do before weather.
+- **A Dust Devil You Can See From the Trailhead** (round 5, E8). The column is thin over the sage. It could be denser at the foot, carry a few sage leaves and twigs round it, and lay a faint shadow on the ground, so it reads at the default zoom.
+- **Dust Devils Only on Hot Afternoons** (round 5, E8). They could spin up only in the middle of the day, when the ground is hottest, and never at Dusk or in the rain.
+- **The Sheep Notice** (round 5, E8). When a dust devil passes within 40 px, the bighorn could lift their heads and step a few paces away.
+- **A Dust Devil Picks Up a Tumbleweed** (round 5, E8). If a tumbleweed rolls into one, it could be carried round the column twice and thrown clear.
+- **The Sow Stands Up When He Passes** (round 5, E9). As TJ walks the Spires trail past the clearing, the sow could rear up to look, and the cubs could bolt up the nearest trunk until he has gone.
+- **A Cub Falls Off** (round 5, E9). One climb in ten, the cub could slip the last two pixels, land on its rump and shake itself.
+- **Berries** (round 5, E9). The huckleberry bush in the clearing could be where the sow feeds: she strips it, and the berries are back the next morning.
+- **Cubs Wrestle and Roll Together** (round 5, E9). The play could end in a tumble: both cubs in one ball rolling a few pixels downhill.
+- **The Sow Calls the Cubs Down** (round 5, E9). When she moves off, she could stop, look back and huff (one soft sound) until the cub on the trunk is down.
+- **The Forest-Edge Family Fishes** (round 5, E9). They stand by the creeks' meeting: the sow could wade in to her ankles and swipe at the water while the cubs watch from the bank.
+- **A Field Checklist Find** (round 5, E9). "A sow and two cubs" could be a find, ticked by clicking the family. Held for TJ: finds are his to choose.
+- **Bear Tracks** (round 5, E9). Where the sow has walked, faint prints could stay in the grass for a minute.
+- **The Moose Wades** (round 5, E10). The bull could step into the river to his knees and lift his head with water weed hanging from his mouth, dripping.
+- **Velvet and Shed** (round 5, E10). A second bull drawing with the antlers in velvet, or none at all, picked by the season if the map ever has seasons.
+- **Rams Butt Heads** (round 5, E10). Now and then two bighorn rams could back off, rear and crack horns, with a sound that carries across the coulee.
+- **Sheep on the Skyline** (round 5, E10). One sheep could stand at the very lip of the bench at Dusk, dark against the sky.
+- **A Ewe and a Lamb** (round 5, E10). The band is four rams. A ewe with a lamb at her heels would use the same follow rule as the calf.
+- **Animals Step Aside for TJ** (round 5, E10). Walkers may now cross the trail on their way: if TJ is coming, the animal could wait at the edge until he has passed.
+- **The Old Sheep Ground** (round 5, E10). The head of the coulee is empty since the sheep moved. A coyote trotting through at Dusk would suit it. Held for TJ.
+- **Calf Nurses** (round 5, E10). Wrong for a bull and calf, which TJ chose for the antlers: if a cow ever joins them the calf could nurse.
+- **Marmots Answer Each Other** (round 5, E11). When one whistles, the other across the stream could sit up and answer a second later.
+- **The Whistle Sends the Squirrels Running** (round 5, E11). A marmot's alarm when TJ comes near could make any squirrel within 80 px bolt.
+- **A Marmot Flattens for the Eagle** (round 5, E11). If the eagle's shadow ever crosses the parkland, the marmots could drop flat and stay down until it has gone.
+- **Marmots Wrestle** (round 5, E11). Two young marmots standing chest to chest and pushing, as they do on Rainier's meadows in July.
+- **A Burrow** (round 5, E11). A dark hole beside each boulder that the marmot dives into when TJ comes within 20 px, and peers out of.
+- **Whistle Marks** (round 5, E11). Two or three small curved lines by the marmot's mouth for the half second it whistles, for visitors with the sound off.
+- **Pika Calls From the Talus** (round 5, E11). The same list of animal sounds could carry a pika's "eep" from the larch talus on the map.
+- **Beard That Sways** (round 5, F1). The old man's beard on the forest's middle ground moving a pixel or two with the wind, as the near limbs' moss curtains could too.
+- **Licorice Ferns on the Limbs** (round 5, F1). Small ferns growing out of the moss on top of the big limbs, as they do on bigleaf maples in the Hoh.
+- **A Bigleaf Maple** (round 5, F1). One broad, many-armed maple in the middle ground, every arm sleeved in moss, to break the row of straight conifer trunks.
+- **Devil's Club and Skunk Cabbage** (round 5, F1). Two more rainforest plants for the wet ground by the creek: big spiny leaves, and yellow hoods in spring.
+- **Drip From the Beard** (round 5, F1). After the shower event, a drop falling now and then from the tips of the hanging lichen.
+- **Monolith Rises Over the Rim** (round 5, F2). As he climbs the legs, Mount Monolith's summit comes up over the rock band's rim, so the lakeshore's big view is promised before the scene changes.
+- **The Fall's Roar** (round 5, F2). A waterfall sound in the forest scene that grows as he nears the rock band, over the forest's own ambience.
+- **A Rainbow in the Spray** (round 5, F2). A faint arc in the mist at the fall's foot when the light shafts fall on it, by Day only.
+- **A Dipper on the Pool** (round 5, F2). An American dipper bobbing on a stone in the fall's pool and diving in, as they do below every Cascade waterfall.
+- **Walking Down the Legs** (round 5, F2). If the loop is ever walked the other way, the same legs taken downhill, with him leaning back.
+- **Wet Rock Glints** (round 5, F2). A few pixels of the rock beside the fall catching the light now and then, where the spray keeps it wet.
+- **A Bench at the Rim** (round 5, F2). A log bench where the top leg meets the rim, looking back over the forest's canopy.
+- **The Moraine Lakes From the Shore** (round 5, F3). A notch in the far forest under each glacier, so a sliver of each milky moraine lake shows from the lakeshore.
+- **The Inflows' Sound** (round 5, F3). A faint rush of water from across the lake when an inflow is in view and the scene is quiet.
+- **Fish Rise at the Plume** (round 5, F3). The rings of rising trout gather where the silt plume meets clear water, as they do at real inlets.
+- **The Mirror Breaks in Wind** (round 5, F3). A gust now and then that ruffles the whole lake for a few seconds, wiping out the mountain's mirror until it settles.
+- **A Limb as a Frame** (round 5, F4). One mossy limb reaching in along the top of the map stop's view, so the forest still frames the lake without a trunk crossing it.
+- **The Stop's View by Window Width** (round 5, F4). Clear the forest edge's giants by how wide the window is, so a very wide screen's stop is as clean as a laptop's.
+- **The Legs on the Map** (round 5, F5). The map's trail climbing beside the outflow fall in a small zig-zag, so the map shows the switchbacks the scene walks.
+- **Leaning on the Rail** (round 5, F5). If he stops on the lip's footbridge, he leans on the handrail and looks down the fall.
+- **Spray on the Footbridge** (round 5, F5). The planks of the lower footbridge darker and shining where the fall's spray wets them.
+- **Scenes Named on the Trail Map** (round 5, F5). The trail map's hidden stretch drawn as two parts with small labels, forest and lakeshore, now that each scene has its own part of it.
+- **Crampons at the Ice's Edge** (round 5, G1). He stops for a second where the moraine meets the ice, puts crampons on, and his steps crunch from there to camp.
+- **A Rope Team Up the Glacier** (round 5, G1). Three tiny figures on a rope far up the ice under the towers, moving a few pixels a second.
+- **The Moulin** (round 5, G1). The meltwater channel ends in a blue hole in the ice with a low roar as he passes.
+- **The Walk Turns to Face the Towers** (round 5, G1). In place of the cut to camp, the walk's last second swings the view round to camp's picture: the walls slide apart and the ice tilts up.
+- **Boots Sound Different on Each Ground** (round 5, G1). Dirt, gravel and ice each with their own footstep, so the step onto the glacier can be heard.
+- **The Glacier Table** (round 5, G1). One of the stones on the ice sits up on a pedestal of ice it has shaded from the sun.
+- **The Tent Glows at Camp** (round 5, G2). At Dusk the tent in the walk and at camp glows from inside, as the map's tent does.
+- **The Pot Boils** (round 5, G2). The stove's smoke turns to puffs of steam and the lid rattles now and then, with a small sound.
+- **Ice Axes by the Tent** (round 5, G2). Two axes stuck in the snow beside the tent, one each, and a coiled rope on the rock.
+- **Her Painting Keeps Up** (round 5, G2). The page on Kayti's knee gains a small flag on each tower he has climbed.
+- **Snow That Melts With the Season** (round 5, G3). The patches a little smaller each time the visitor comes back, gone by the tenth visit, with flowers where they lay.
+- **Glacier Lilies at the Snow's Edge** (round 5, G3). A ring of yellow lilies in the wet ground round each patch, as they come up where snow has just gone.
+- **Footprints Kept in the Snow** (round 5, G3). His own prints stay in a patch after he has crossed it, until he leaves the scene.
+- **Watermelon Snow** (round 5, G3). A faint pink stain on the oldest patch, the algae that grow on summer snow.
+- **The Pika's Haystack** (round 5, G4). A small pile of drying flowers beside one pika's rock, which grows by a stem each time he passes.
+- **Pika Answer Each Other** (round 5, G4). When one calls, the next one along the moraine answers a second later, further off and quieter.
+- **The Marmot Hides Too** (round 5, G4). The marmots drop behind their rocks after whistling, the way the pika bolt, and come back up when he has gone.
+- **A Weasel on the Moraine** (round 5, G4). Now and then a short-tailed weasel runs the crest ahead of him and every pika is out of sight before he gets there.
+- **The Far Crest Kept Under the Six** (round 5, H1). On the map a crest behind the Spires shows over the wall between the second and third summits and reads as a seventh top. Lower it there so only the six break the skyline.
+- **Heights on the Name Tags** (round 5, H1). Each summit's tag at camp shows a made-up height, trailhead's the greatest, so the order can be read as well as seen.
+- **A Summit Cairn You Can See From Camp** (round 5, H1). A tiny cairn on each top he has stood on, beside the flag, growing with the cairn in that climb.
+- **The Forecast Phone Is the Real App** (round 5, H2). The pop-up shows the app's real hour-by-hour strip for the next day at the Spires, fetched from Bluebird Forecast itself when the site is live.
+- **Tap the Phone to Play the Forecast** (round 5, H2). Tapping the play button on his phone runs the slider forward early, and the weather clears early with it.
+- **Wet Rock That Dries** (round 5, H2). The slabs are a shade darker while it rains and dry in patches from the top down as he climbs.
+- **A Rainbow as the Lid Breaks** (round 5, H2). For a few seconds after the rain stops, a faint arc stands over the far peaks.
+- **Other Shelterers Under the Boulder** (round 5, H2). A pika or a marmot is already sitting out the rain under the prow and shuffles over for him.
+- **Big Pixel Words on Small Screens** (round 5, H2). A phone held sideways still draws scene words (BANG!, the forecast) at one screen pixel a dot. Draw every in-scene word at twice the size whenever a scene pixel is one screen pixel.
+- **Rain on the Other Climbs** (round 5, H2). The drizzle can come over any climb now and then, by the same dice as the map's weather.
+- **The Bluebird Lands on His Hat** (round 5, H3). On a second click it skips the station and perches on his beanie, and he looks up.
+- **A Pair of Bluebirds** (round 5, H3). The female, grey with blue in her wings and tail, follows a second behind and takes the other box.
+- **Bluebirds on the Map in Fair Weather** (round 5, H3). When the map's weather is clear, one sits on the Spires' signpost, and it is gone when the weather turns.
+- **The Bird Reads the Station** (round 5, H3). While it sits on the box the anemometer stops, and it starts again when the bird leaves.
+- **An Ice Screw Half Way Up** (round 5, H4). On the tall wall he stops once, places a screw and clips it, and the rope trails below him to the top.
+- **Ice Chips Land on the Bench** (round 5, H4). The chips his tools knock off pile up as a small heap at the wall's foot while he climbs.
+- **A Second Line on the Wall** (round 5, H4). On a return visit he takes the wall's other side, so the climb is not the same film twice.
+- **The Watch Shows TJ's Real Last Workout** (round 5, H5). The watch's sync screen names the routine and the date of the last workout hevy-garmin-sync really moved, read from Hevy when the site is live.
+- **Sets on the Watch at the Bench** (round 5, H5). While he presses, the watch counts the reps and shows the set, as a Garmin strength workout does.
+- **Cut the Switchback** (round 5, H5). Tapping a corner makes him cut straight up to the next straight, and a marmot whistles at him for it.
+- **Other Runners on the Trail** (round 5, H5). Now and then a runner comes down the switchbacks the other way, and they pass on a straight.
+- **A Trail Kit for Every Fair-Weather Scene** (round 5, H5). The kit he wears could follow the weather: shorts on dry ground, the alpine kit on snow, changed at camp.
+- **Fellfield on the Map Under hevy-garmin-sync** (round 5, H5). On the map the spire's south side could show the same turf and the zigzag of the trail, so the climb is announced before he starts it.
+- **A Tyrolean Traverse Between Towers** (round 5, H6, TJ's alternative to the knife-edge). A rope strung between two towers, and he crosses hanging under it, hand over hand, with the drop under him. It reads cleanly from the side, which the knife-edge does not. For a future climb.
+- **A Corniced Snow Ridge** (round 5, H6, TJ's alternative to the knife-edge). A snow crest with a cornice curling out over one side. He keeps well back from the edge, a piece of the cornice breaks off behind him and falls. For a future climb.
+- **Stones Knocked Off the Knife-Edge** (round 5, H6). While he shuffles astride, a stone goes from under his hand and falls a long way into the haze, with a late clatter.
+- **A Raven Under the Knife-Edge** (round 5, H6). A raven soars past below the crest, small against the haze, so the depth has something to measure it.
+- **Cloud Filling the Gap** (round 5, H6). On some visits a bank of cloud lies under the knife-edge in place of the haze, level with the far ridges.
+- **A Coin for the Binoculars** (round 5, H7). They are coin-operated: he drops a coin in with a clink before the view opens, and a small timer dial runs down without ever closing it.
+- **Zoom in the Binoculars** (round 5, H7). The plus and minus keys (or a pinch) bring the cats twice as close.
+- **Other Things to Find Through Them** (round 5, H7). Panned to its edge, the view shows something that is only there through the binoculars: the bear at the berries, or the elk in the meadow.
+- **The Cats Look Back** (round 5, H7). After a few seconds in the view one cat turns and looks straight up the lens.
+- **Keys for Every Scene** (round 5, H7). Now that a scene can take the keys, the register and the kiosk could use the arrows too.
+- **Clip Only at the Walls** (round 5, H8). On the easy ground he walks with a hand on the cable and the lanyards slide along it. He stops to move them only at the foot and the top of each wall.
+- **One Lanyard at a Time Shown Large** (round 5, H8). The first clip-in is shown close up once, like the phone and the watch, so the two-lanyard rule is understood and later ones can pass quickly.
+- **A Climb Length Check** (round 5, H8). The check script prints every climb's length and warns when one goes over 30 s.
+- **Glissade Into the Cloud** (round 5, H9). On Kubernetes-Manifests the slide down starts above the sea of cloud and drops into it, and he comes out underneath near the tent.
+- **The Other Summits by Name** (round 5, H9). The peaks that stand out of the cloud are the other five climbs, each with its own shape and the thing on its top, so the view from one summit shows the rest.
+- **A Brocken Spectre** (round 5, H9). At the cloud's top, with the sun behind him, his shadow falls on the cloud below inside a ring of colour.
+- **Cloud Sea From the Map** (round 5, H9). On the days the map's weather is low cloud, the spires on the map stand out of it too.
+- **A Cairn Everyone Builds** (round 5, H10). The count lives on the server and not in one browser, so every visitor's stone is on the same pile and the card says how many people have been up.
+- **A Cairn That Widens** (round 5, H10). Past six stones the pile grows at its foot as well as its top, so a full cairn is a broad cone and not a thin stack.
+- **The Cairn on the Map** (round 5, H10). The spire's summit on the map and on camp's backdrop shows the cairn at the height this visitor has built it.
+- **A Stone From Each Place** (round 5, H10). The stone he adds is the colour of the last place he visited: basalt from the sea stack, granite from the lake, red rock from the Palouse.
+- **A Clue That Changes Once Found** (round 5, H11). After the find, the card's last line says what happened ("You left a stone. 4 on the pile.") where it gave the clue.
+- **Summit Marks on a Phone** (round 5, H11). Narrow screens show no marks on the timeline. The summit's name alone could be shown there, above the bar.
+- **The Clue in the World** (round 5, H11). TJ's other option for T54: the hint drawn at the summit itself, such as a red light blinking on the rack or a coin slot glinting on the binoculars.
+- **A Name on the Rungs** (round 5, I1). Hovering the rungs names them, with a nod to the ones above Snow Lake.
+- **The Walk Up to the Rungs** (round 5, I1). The scene starts a few steps before the slab, on the lower trail, so the cliff is seen whole before he is on it.
+- **A Hiker Coming Down** (round 5, I1). Now and then someone is on the rungs coming the other way, and he waits at the bottom for them.
+- **Snow Lake Below** (round 5, I1). From the top of the rungs, a long blue lake shows far below and behind him for a moment as the picture pans.
+- **Shrubs That Move in a Gust** (round 5, I2). The huckleberry leans a pixel with the larches when the gust comes through the basin.
+- **Berries to Pick** (round 5, I2). A few shrubs carry blue berries, and he stops for a handful when one is clicked.
+- **Huckleberry on the Map** (round 5, I2). The plateau on the map gets the same red shrubs in clumps, so the map and the larch basin agree.
+- **A Frame Time Check That Runs Twice** (round 5, I2). The check script measures the frame time twice and takes the lower, so a busy workstation does not fail an item.
+- **The Haystack Itself** (round 5, I3). A small heap of drying flowers under the pika's second rock that grows a little on each trip.
+- **A Second Pika Answers** (round 5, I3). When this one calls, another calls back from the talus further up, heard and not seen.
+- **A Check for Things in the Air** (round 5, I4). Each side scene can list what it places, and the check script tests that the pixel under every tree, rock and cairn is painted ground.
+- **Strips That Size Themselves** (round 5, I4). `Strip` grows upward when a scene paints above its top, so no scene can cut its own ground off.
+- **Gearing Up Seen** (round 5, I5). The leader racks cams onto his harness one at a time while the others walk over, and each one is on the rack he climbs with.
+- **A Kit Change at the Packs** (round 5, I5). TJ arrives in his trail clothes and cap, and swaps the cap for his helmet at the packs, so his kit does not change between scenes.
+- **Rope Flaked Out** (round 5, I5). The woman flakes the rope into a pile at the foot of the climb before anyone ties in, and the pile shrinks as the leader climbs.
+- **Rope Stacked at the Belay** (round 5, I6). The rope taken in piles up in coils over the belayer's tether, and the pile runs out again as the next one climbs.
+- **Belay Calls** (round 5, I6). A small word bubble at each handover: "On belay", "Climbing", "Off belay", gone in a second.
+- **The Trailed Rope Snags** (round 5, I6). Once on the crest the orange rope catches behind a horn, and the woman flicks it free before TJ can follow.
+- **Camera Keeps TJ in the Picture** (round 5, I6). On a narrow screen the view pulls back while someone else climbs, so TJ at the belay is never off the edge.
+- **A Speed Control for the Climb** (round 5, I7). The boost key cycles the climb through 1, 2 and 4 times its pace, with the number shown beside the timeline.
+- **Chalk Puffs at Speed** (round 5, I7). A small puff of chalk each time a hand goes to a new hold, so fast climbing reads as effort and not as sliding.
+- **The Camera Leads the Climber** (round 5, I7). At this pace the view looks a little ahead of whoever is moving, so the next piece and the belay come into the picture before they are reached.
+- **Glints on the Far Tarn** (round 5, I8). A few pixels of the big tarn's water sparkle on and off, more when a gust crosses the ridge.
+- **The Tarn on the Map** (round 5, I8). The same tarn, with its island and outlet, drawn below Proficiency Peak on the world map, so the view from the climb is a place he can also see from above.
+- **Cloud Shadows on the Basin** (round 5, I8). The shadows of the three fair-weather clouds drift slowly over the benches and darken the tarn as they pass.
+- **A Tent by the Tarn** (round 5, I8). One tiny orange tent on the tarn's point, two pixels, for whoever looks closely.
+- **A Shout from the Top** (round 5, I9). A small word bubble over the two on top with each heave ("Heave!"), and one over TJ as he comes off.
+- **A Dropped Cam** (round 5, I9). As he is dragged past the big cam it slips from his hand and falls glinting into the cloud.
+- **Sore Arms on the Summit** (round 5, I9). After the haul TJ flops down on the top instead of walking up for the first high five, and the leader comes to him.
+- **The Haul on the Elevation Chart** (round 5, I9). The four yanks show as four steps on the timeline's elevation line.
+- **Wisps Up the Tower** (round 5, I10). A few thin wisps run up the rock ahead of the rising cloud's edge, like fog climbing a face on a cold morning.
+- **The Cloud on the Map** (round 5, I10). Once a visitor has seen the summit, the world map shows a small patch of cloud around Proficiency Peak's foot, gone after a while.
+- **Shadow on the Sea** (round 5, I10). The tower casts a long faint shadow across the top of the cloud sea, away from the sun, longer at Dusk.
+- **Spindrift** (round 5, I11). Now and then a little powder slides down the runnels past them on the snow slope.
+- **A Last Look Back** (round 5, I11). The woman, last off the ledge, turns and looks up at the stuck rope before she steps onto the snow.
+- **Axe Sounds** (round 5, I11). A soft thunk each time an axe goes in on the traverse, quieter for the two who follow.
+- **The 404 as a Find** (round 5, J1). Clicking the digits in the fog counts as a find on the kiosk checklist (TJ's call, like every find).
+- **Other Codes in Other Weather** (round 5, J1). A 500 in the smoke of a forest fire, if the site ever has a server error page.
+- **The Page Written Out at Build Time** (round 5, J2). The release writes the page of text into `index.html` as plain HTML, so search engines and link previews read it without running the script.
+- **Fonts From the Lockfile** (round 5, J3). When `web` serves the prototype, take the eight `@fontsource` packages as dependencies like National Park, so Renovate keeps them current and `tests/notices.test.ts` checks their licences.
+- **Only the Letters Used** (round 5, J3). Subset Jersey 10, Tiny5 and Silkscreen to the characters the site's own words use, which could halve the 40 KB the first screen waits for.
+- **The Walk in CI** (round 5, K1). Run `walk.sh`'s walk of every route as a Playwright test in the Prototype Smoke job, at 8x on the page's clock, so a stop that never lets him go fails the PR; time the heaviest views against 16.7 ms there too, and attach the sheet of stops to the run. The smoke test round 5 added (S1b) covers the start, a few points of each route and a clean console.
+- **Views by Place, Not by Fraction** (round 5, K2). Give `refs.sh` views named by stop or scene (`stop=` or a scene's own start) instead of `p`, so two builds with different scene lengths still compare the same place.
+- **Bake the Places Too** (round 5, K3). `habitat()` and the trail routing run on every start; their results could go into the bake beside the ground, which would take most of the remaining 70 to 90 ms back.
+- **Load Time in CI** (round 5, K3). The Prototype Smoke job could time the start three times and fail over 0.9 s, so a slow search like E8's is caught the day it lands.

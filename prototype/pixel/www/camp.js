@@ -1,4 +1,4 @@
-// Sideproject Spires, base camp: two tents on a moraine in the middle of a great glacier, under the
+// Sideproject Spires, base camp: one tent on a rock island in the middle of a great glacier, under the
 // granite wall of the Spires and its six summits, one per project, with the ice sheet running off to
 // far ranges behind. Click a summit and he sets off. The picture is painted to fit the screen it is on, at the same pixel size
 // as everything else, and keeps the towers and the camp clear of the card.
@@ -33,6 +33,17 @@ export function dome(c) {
   return b;
 }
 
+// The camp stove with a pot on it, where the smoke comes from.
+export function stove() {
+  const b = new BM(7, 8); b.ox = 3; b.oy = 7;
+  for (let x = 1; x < 6; x++) { b.set(x, 1, R.rock[4]); b.set(x, 2, R.rock[x < 3 ? 4 : 3]); b.set(x, 3, R.rock[2]); }
+  b.set(3, 4, R.yellow[1]); b.set(2, 4, R.tent[1]); b.set(4, 4, R.tent[1]);
+  for (let x = 2; x < 5; x++) b.set(x, 5, R.rock[0]);
+  b.set(1, 6, R.rock[1]); b.set(3, 6, R.rock[0]); b.set(5, 6, R.rock[1]);
+  outline(b, INK);
+  return b;
+}
+
 // A goat out in the middle distance: the same cream animal as the big one in fauna.js, drawn to a few
 // pixels. pose: 'stand', 'look' with the head up, 'graze' with it down.
 function farGoat(pose, kid) {
@@ -54,14 +65,15 @@ function farGoat(pose, kid) {
 // The Spires as the map draws them (section 4a, the six climbs): one jagged granite wall, its skyline
 // a crowd of pinnacles over six summits, west to east in the order of SPIRES. Bluebird Forecast is the
 // west end summit, standing clear; TJs-Kubernetes-Service the second, with the icefall under it;
-// hevy-garmin-sync the third and highest, a long snow gully running down from the notch beside it;
-// trailhead the knife-edge between the third and fourth; yggdrasil the fifth, on the dry rock of the
-// east arm, where no snow lies; Kubernetes-Manifests the east end summit above the crevassed tongue.
+// hevy-garmin-sync the third, a long snow gully running down from the notch beside it; trailhead
+// the fourth and the highest of the six (round 5, T57), the knife-edge running up to it from the
+// third; yggdrasil the fifth, on the dry rock of the east arm, where no snow lies;
+// Kubernetes-Manifests the east end summit above the crevassed tongue.
 // Painted into b between x0 and x1, its foot at yb, the highest summit H above it. Returns where each
 // project's summit is (geo, in SPIRES order) and the wall's foot in each column (feet).
 // Each summit: where it stands across the wall (u), its height, and how wide its mass is (half width).
-const SUMMITS = [[0.08, 0.68, 0.13], [0.26, 0.82, 0.14], [0.45, 1, 0.16], [0.63, 0.84, 0.13], [0.79, 0.7, 0.13], [0.94, 0.53, 0.12]];
-const AT = [0.08, 0.26, 0.45, 0.54, 0.79, 0.94];
+const SUMMITS = [[0.08, 0.68, 0.13], [0.26, 0.82, 0.14], [0.45, 0.9, 0.15], [0.63, 1, 0.14], [0.79, 0.7, 0.13], [0.94, 0.53, 0.12]];
+const AT = SUMMITS.map(s => s[0]);
 const GULLIES = [[0.355, 1], [0.17, 0.6], [0.71, 0.45]];
 export function paintSpires(b, x0, x1, yb, H, feet) {
   const span = x1 - x0, U = x => (x - x0) / span, sc = Math.min(1, span / 220);
@@ -98,7 +110,7 @@ export function paintSpires(b, x0, x1, yb, H, feet) {
     }
     if (feet) feet.push([x, foot]);
   }
-  return SPIRES.map((sp, k) => { const x = Math.round(x0 + AT[k] * span); let t = top(x); for (let i = -4; i <= 4; i++) t = Math.min(t, top(x + i)); return { id: sp.id, name: sp.name, x, top: Math.round(t), by: yb, w: Math.round(span * (k === 3 ? 0.08 : 0.2)), h: Math.round(yb - t) }; });
+  return SPIRES.map((sp, k) => { const x = Math.round(x0 + AT[k] * span); let t = top(x); for (let i = -4; i <= 4; i++) t = Math.min(t, top(x + i)); return { id: sp.id, name: sp.name, x, top: Math.round(t), by: yb, w: Math.round(span * 0.2), h: Math.round(yb - t) }; });
 }
 
 // One granite tower, painted a column at a time: a jagged skyline, lit on the left, cut by a dark
@@ -128,11 +140,14 @@ export function tower(b, n, bx, by, h, w, feet) {
   return top;
 }
 
+// How tall the Spires' wall stands in camp's picture on a screen VH high. The walk to camp grows its
+// own towers to this height, so the two pictures agree.
+export const wallTall = (VH, narrow) => { const Y0 = narrow ? Math.round(VH * 0.045) + 12 : 16, Y1 = narrow ? Math.round(VH * 0.47) : VH - 40; return Math.round((Y1 - Y0) * 0.58) - 22; };
 function build(VW, VH, narrow) {
   const back = new BM(VW, VH), front = new BM(VW, VH);
   // The part of the screen the card and the bars leave clear.
   const X0 = narrow ? 4 : Math.round(VW * 0.345), X1 = VW - 4, Y0 = narrow ? Math.round(VH * 0.045) + 12 : 16, Y1 = narrow ? Math.round(VH * 0.47) : VH - 40;
-  const bw = X1 - X0, bh = Y1 - Y0, yb = Y0 + Math.round(bh * 0.58), yh = yb - Math.round(bh * 0.08), H = yb - Y0 - 12;
+  const bw = X1 - X0, bh = Y1 - Y0, yb = Y0 + Math.round(bh * 0.58), yh = yb - Math.round(bh * 0.08), H = wallTall(VH, narrow) + 10;
 
   // ---- the sky and the far ranges across the ice sheet --------------------------------------
   const sb = R.skyband;
@@ -153,12 +168,14 @@ function build(VW, VH, narrow) {
   // ---- the wall of the Spires, as on the map ----------------------------------------------------
   const tw = new BM(VW, VH), feet = [];
   // A little under the full height, so the highest summit's flag and name tag clear the buttons at the top.
-  const geo = paintSpires(tw, X0 + bw * (narrow ? 0.1 : 0.02), X1 - bw * (narrow ? 0.1 : 0.04), yb, H - 10, feet);
+  // The east end stops short of the picture's edge, so the last summit stands whole (round 5, T61).
+  const geo = paintSpires(tw, X0 + bw * (narrow ? 0.1 : 0.02), X1 - bw * 0.1, yb, H - 10, feet);
   outline(tw, INK);
   // Two walls too big for the picture close it at the sides (a wide screen only: a phone has no room).
   const side = new BM(VW, VH), sides = [];
   if (!narrow) {
-    sides.push({ x: Math.round(X0 * 0.2), by: Math.round(yb + bh * 0.3), h: Math.round(H * 2.5), w: Math.round(H * 1.5) }, { x: VW + Math.round(bw * 0.06), by: Math.round(yb + bh * 0.26), h: Math.round(H * 2.1), w: Math.round(H * 1.15) });
+    // The east one stands far enough off the picture's edge to leave Kubernetes-Manifests clear (T61).
+    sides.push({ x: Math.round(X0 * 0.2), by: Math.round(yb + bh * 0.3), h: Math.round(H * 2.5), w: Math.round(H * 1.5) }, { x: VW + Math.round(bw * 0.15), by: Math.round(yb + bh * 0.26), h: Math.round(H * 2.1), w: Math.round(H * 0.95) });
     sides.forEach((s, k) => tower(side, 7 + k, s.x, s.by, s.h, s.w, feet));
     outline(side, INK);
   }
@@ -214,7 +231,7 @@ function build(VW, VH, narrow) {
   }
   const r0 = rng(77);
   for (let k = 0; k < (narrow ? 6 : 9); k++) { const b = makeBoulder(520 + k, 2.4 + r0() * 3.4), x = Math.round(camp[0] + (r0() - 0.5) * rx * 1.9), y = Math.round(camp[1] + (r0() - 0.5) * ry * 1.5 + 3); for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) { const c = b.d[j * b.w + i]; if (c) front.set(x - b.ox + i, y - b.oy + j, c); } }
-  // A knoll of rock breaks the ice half way to the towers. The goats keep to it, well away from the tents.
+  // A knoll of rock breaks the ice half way to the towers. The goats keep to it, well away from the tent.
   const knoll = [Math.round(X0 + bw * 0.3), Math.round(yh + span * 0.47)], kx = Math.max(19, Math.round(bw * 0.075));
   for (let x = knoll[0] - kx - 3; x <= knoll[0] + kx + 3; x++) {
     const u = (x - knoll[0]) / kx, top = knoll[1] - Math.round(9 * Math.max(0, 1 - u * u) * (0.55 + 0.45 * vnoise(x / 4, 3, 290)) + (Math.abs(u) < 1 ? 2 : 0)), foot = knoll[1] + Math.round(2 * (1 - u * u) + vnoise(x / 3, 4, 291));
@@ -233,7 +250,7 @@ export function makeCamp() {
   const heart = new BM(9, 8);
   ['.XX.XX.', 'XoXXXXX', 'XXXXXXx', '.XXXXx.', '..XXx..', '...x...'].forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') heart.set(x + 1, y + 1, ch === 'o' ? R.red[2] : ch === 'x' ? R.red[0] : R.red[1]); }));
   outline(heart, INK);
-  const tents = [dome('tent'), dome('red')], flags = [makeFlag(0), makeFlag(1)];
+  const tent = dome('tent'), pot = stove(), flags = [makeFlag(0), makeFlag(1)];
   const goats = { stand: farGoat('stand'), look: farGoat('look'), graze: farGoat('graze'), kid: farGoat('stand', true) }, bird = [speck(0), speck(1)];
   const clouds = [0, 1, 2, 3].map(i => ({ bm: makeCloud(630 + i), x: i * 170, y: 0.1 + (i % 3) * 0.22 + i * 0.04, v: 3 + i * 1.6 }));
   const focus = { x: 0, y: 0 };
@@ -276,10 +293,10 @@ export function makeCamp() {
         const age = frac(t * 0.42 + k / 14 + g.x * 0.01), x = Math.round(g.x + 2 + age * (20 + (k % 4) * 5)), y = Math.round(g.top + 1 - Math.sin(age * 2.6) * 3 + (k % 3) - age * 2);
         if (age < 0.55 || bayer(x, y) > (age - 0.55) / 0.45) scr.set(x, y, age < 0.3 ? R.snow[4] : R.snow[3]);
       }
-      // Tents and their smoke, flags on the tops he has stood on.
+      // The tent, the stove and its smoke, flags on the tops he has stood on.
       const [cx, cy] = camp;
-      scr.put(tents[0], cx - 16, cy - 1, false); scr.put(tents[1], cx + 13, cy + 4, false);
-      for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx - 1 + age * 9 + Math.sin(age * 6 + k)), Math.round(cy - 6 - age * 24), age < 0.5 ? R.white[1] : R.white[0]); }
+      scr.put(tent, cx - 12, cy, false); scr.put(pot, cx + 9, cy + 3, false);
+      for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx + 9 + age * 9 + Math.sin(age * 6 + k)), Math.round(cy - 4 - age * 24), age < 0.5 ? R.white[1] : R.white[0]); }
       for (const g of geo) if (env.done['spire:' + g.id]) scr.blit(flags[Math.floor(t * 5) & 1], g.x - 2, g.top - 14);
       // The goats on their knoll out on the ice: the nanny looks about, the billy grazes at the lichen, and
       // every few seconds the kid bounces twice on the spot.
@@ -287,7 +304,7 @@ export function makeCamp() {
 
       { const [kx, ky] = seat(); kayti.draw(scr, kx, ky, t, t - waved < 1.6); }
 
-      // He walks in along the moraine from the west, the way the trail brought him, past the tents and past
+      // He walks in along the island from the west, the way the trail brought him, past the tent and past
       // her, and sits down at her side, out of her view of the towers.
       const [kx, ky] = seat(), WALK = Math.round(rx * 0.56) + 45, sx = kx + 23;
       const mx = sx - Math.round((1 - q) * WALK), my = ky + 1 + Math.round(5 * smooth(1, 0.86, q));

@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const [out = 'frames.png', query = '', w = '1440', h = '900', steps = 'film=8x100', dpr = '1', clip = '', cols = '6', cellW = '240'] = process.argv.slice(2);
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.json': 'application/json' };
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.png': 'image/png', '.json': 'application/json', '.woff2': 'font/woff2' };
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   const file = path.join('/www', path.normalize(url.pathname === '/' ? '/index.html' : url.pathname));
@@ -28,9 +28,12 @@ const page = await browser.newPage({ viewport: { width: +w, height: +h }, device
 const errors = [];
 page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') errors.push(m.type() + ': ' + m.text()); });
 page.on('pageerror', e => errors.push('pageerror: ' + e.message + '\n' + (e.stack || '')));
+// SLOWFONT=<ms> holds every font file back that long, as a slow connection would (B9, J3).
+if (process.env.SLOWFONT) await page.route('**/*.woff2', async r => { await new Promise(t => setTimeout(t, +process.env.SLOWFONT)); await r.continue(); });
+const cdp = process.env.SLOWFONT ? await page.context().newCDPSession(page) : null;
 // The page's clock only moves when this script says so, so every run films the same frames.
 await page.clock.install({ time: 0 });
-await page.goto('http://localhost:8080/' + (query ? '?' + query : ''), { waitUntil: 'load' });
+await page.goto('http://localhost:8080/' + (query ? '?' + query : ''), { waitUntil: process.env.SLOWFONT ? 'commit' : 'load' });
 let ready = false;
 for (let i = 0; i < 600 && !ready; i++) { await page.clock.runFor(50); ready = await page.evaluate(() => window.__ready === true); if (!ready) await new Promise(r => setTimeout(r, 50)); }
 if (!ready) errors.push('never became ready');
@@ -47,7 +50,9 @@ async function frame(label) {
     else [x, y, cw, ch] = clip.split(',').map(Number);
     opt = { clip: { x: x * S, y: y * S, width: cw * S, height: ch * S } };
   }
-  shots.push({ label, png: (await page.screenshot(opt)).toString('base64'), p: i.p, S: i.S, o: i.o });
+  // Playwright's screenshot waits for the fonts, so with fonts held back the frame comes from Chrome itself.
+  const png = cdp ? (await cdp.send('Page.captureScreenshot', { format: 'png', ...(opt.clip ? { clip: { ...opt.clip, scale: 1 } } : {}) })).data : (await page.screenshot(opt)).toString('base64');
+  shots.push({ label, png, p: i.p, S: i.S, o: i.o });
 }
 let views = false;
 for (const st of steps.split(';').filter(Boolean)) {

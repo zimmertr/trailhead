@@ -14,8 +14,8 @@ export const INTRO = "is a principal platform engineer based out of Seattle, WA.
 
 export const DESTINATIONS = [
   { route: 'lake', sign: 'Run to Reflection Lake', about: 'to learn more about TJ', dir: 'left', slug: 'reflection-lake' },
-  { route: 'stack', sign: 'Climb Proficiency Peak', about: 'to learn more about his skills', dir: 'up', slug: 'proficiency-peak' },
-  { route: 'spires', sign: 'Climb the Sideproject Spires', about: 'to see some of his personal projects', dir: 'right', slug: 'sideproject-spires' }
+  { route: 'stack', sign: 'Climb Proficiency Peak', about: 'to learn more about his skills', dir: 'right', slug: 'proficiency-peak' },
+  { route: 'spires', sign: 'Climb the Sideproject Spires', about: 'to see some of his personal projects', dir: 'up', slug: 'sideproject-spires' }
 ];
 
 // kind is the thing the card comes out of, which decides how it is drawn.
@@ -68,14 +68,16 @@ export const CARDS = {
   }
 };
 
-// The numbers were read from GitHub on 2026-11-14.
+// The numbers were read from GitHub on 2026-11-14. `clue` is the last line of the card: a nudge toward what
+// the thing on the summit does when it is clicked (round 5, T54). All six are drafts for TJ, and the one on
+// TJs-Kubernetes-Service is his own.
 export const PROJECTS = {
-  bluebird: { name: 'Bluebird Forecast', top: 'A weather station', repo: 'zimmertr/bluebird', site: 'https://bluebirdforecast.com', stars: 2, release: 'v0.141.8', released: '2026-11-14', language: 'TypeScript', license: 'PolyForm Noncommercial 1.0.0', body: ['The weather window finder. It discovers hiking and mountaineering destinations and ranks them by wildfire activity, precipitation, temperature, wind and air quality, so you can find the bluebird day before it gets here.'] },
-  tks: { name: 'TJs-Kubernetes-Service', top: 'A server rack', repo: 'zimmertr/TJs-Kubernetes-Service', stars: 557, release: 'v4.0.38', released: '2026-11-14', language: 'HCL', license: 'GPL-3.0', body: ['TKS is a collection of Terraform configurations that deploy Talos Linux Kubernetes clusters to Proxmox VE.', 'This site runs at home on one of them: Proxmox, Terraform, Talos Linux, Kubernetes, Istio and MetalLB.'], extra: [['The hardware', 'https://github.com/zimmertr/TJs-Kubernetes-Service']] },
-  'hevy-garmin-sync': { name: 'hevy-garmin-sync', top: 'A weight bench', repo: 'zimmertr/hevy-garmin-sync', stars: 2, release: 'v0.13.0', released: '2026-11-14', language: 'Python', license: 'MIT', body: ['Turns Hevy routines (and Hevy Trainer workouts) into Garmin Connect strength workouts on your watch.'] },
-  trailhead: { name: 'trailhead', top: 'A pair of coin-operated binoculars', repo: 'zimmertr/trailhead', stars: 0, release: 'v0.1.5', released: '2026-11-14', language: 'TypeScript', license: 'PolyForm Noncommercial 1.0.0', body: ['This site. You are standing on it.'] },
-  yggdrasil: { name: 'yggdrasil', top: 'The world tree', repo: 'zimmertr/yggdrasil', stars: 1, release: 'v2.0.0', released: '2026-11-14', language: 'HCL', license: 'GPL-3.0', body: ['Shared, versioned CI modules, and the Terraform that manages my GitHub repos and orgs. Every other project here hangs off it.'] },
-  'kubernetes-manifests': { name: 'Kubernetes-Manifests', top: 'A cairn', repo: 'zimmertr/Kubernetes-Manifests', stars: 120, release: null, released: null, language: 'Shell', license: 'GPL-3.0', body: ['A collection of my Kubernetes manifests, managed by Kustomize and Argo CD.'] }
+  bluebird: { name: 'Bluebird Forecast', top: 'A weather station', clue: "The station's forecast says bluebird skies. Maybe ask it to prove it.", repo: 'zimmertr/bluebird', site: 'https://bluebirdforecast.com', stars: 2, release: 'v0.141.8', released: '2026-11-14', language: 'TypeScript', license: 'PolyForm Noncommercial 1.0.0', body: ['The weather window finder. It discovers hiking and mountaineering destinations and ranks them by wildfire activity, precipitation, temperature, wind and air quality, so you can find the bluebird day before it gets here.'] },
+  tks: { name: 'TJs-Kubernetes-Service', top: 'A server rack', clue: 'The hardware seems to be malfunctioning, maybe try some percussive maintenance.', repo: 'zimmertr/TJs-Kubernetes-Service', stars: 557, release: 'v4.0.38', released: '2026-11-14', language: 'HCL', license: 'GPL-3.0', body: ['TKS is a collection of Terraform configurations that deploy Talos Linux Kubernetes clusters to Proxmox VE.', 'This site runs at home on one of them: Proxmox, Terraform, Talos Linux, Kubernetes, Istio and MetalLB.'], extra: [['The hardware', 'https://github.com/zimmertr/TJs-Kubernetes-Service']] },
+  'hevy-garmin-sync': { name: 'hevy-garmin-sync', top: 'A weight bench', clue: 'Nobody leaves a bench this high without doing a set.', repo: 'zimmertr/hevy-garmin-sync', stars: 2, release: 'v0.13.0', released: '2026-11-14', language: 'Python', license: 'MIT', body: ['Turns Hevy routines (and Hevy Trainer workouts) into Garmin Connect strength workouts on your watch.'] },
+  trailhead: { name: 'trailhead', top: 'A pair of coin-operated binoculars', clue: 'The binoculars are coin-operated. You look like you have a coin.', repo: 'zimmertr/trailhead', stars: 0, release: 'v0.1.5', released: '2026-11-14', language: 'TypeScript', license: 'PolyForm Noncommercial 1.0.0', body: ['This site. You are standing on it.'] },
+  yggdrasil: { name: 'yggdrasil', top: 'The world tree', clue: "The world tree's roots reach into every repo. Give it a closer look.", repo: 'zimmertr/yggdrasil', stars: 1, release: 'v2.0.0', released: '2026-11-14', language: 'HCL', license: 'GPL-3.0', body: ['Shared, versioned CI modules, and the Terraform that manages my GitHub repos and orgs. Every other project here hangs off it.'] },
+  'kubernetes-manifests': { name: 'Kubernetes-Manifests', top: 'A cairn', clue: "Every visitor leaves a stone. It's tradition.", repo: 'zimmertr/Kubernetes-Manifests', stars: 120, release: null, released: null, language: 'Shell', license: 'GPL-3.0', body: ['A collection of my Kubernetes manifests, managed by Kustomize and Argo CD.'] }
 };
 export const SPIRE_ORDER = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
@@ -126,7 +128,7 @@ export const DEST_NAMES = { trailhead: 'Trailhead', lake: 'Reflection Lake', sta
 
 // The joke place names that stand as signs on the world map. habitat() in land.js finds where each one stands.
 export const SIGNS = {
-  'scope-creep': 'Scope Creep Glacier', segfault: 'Segfault Scree', 'merge-conflict': 'Merge Conflict Col', 'yak-shave': 'Yak Shave Meadow', 'reflection-lake': 'Reflection Lake, 2.4 km',
+  'scope-creep': 'Scope Creep Glacier', segfault: 'Segfault Scree', 'merge-conflict': 'Merge Conflict Col', 'yak-shave': 'Yak Shave Meadow',
   rollback: 'Rollback Basin', 'feature-flag': 'Feature Flag Tarns', hotfix: 'Hotfix Burn', postmortem: 'Postmortem Burn', 'cron-job': 'Cron Job Coulee', 'tech-debt': 'Tech Debt Badlands',
   'off-by-one': 'Off By One Peak', dependency: 'Dependency Range', 'stack-trace': 'Stack Trace Thicket', monorepo: 'Monorepo Woods', 'cache-miss': 'Cache Miss Cove', latency: 'Latency Bay'
 };
@@ -140,7 +142,7 @@ export const NAMES = {
   climb: { crevasse: 'Tech Debt Crevasse', ridge: 'Race Condition Ridge' },
   offroute: { wand: 'The only wand for miles' },
   larches: { goats: 'Nanny and kid', billy: 'On-call billy goat', pika: 'Pika' },
-  approach: { marmot: 'Hoary marmot' }
+  approach: { marmot: 'Hoary marmot', pika: 'Pika' }
 };
 // Every joke place name, for the legend on the trail map.
 const PLACE_NAMES = [...Object.values(SIGNS).filter(n => !n.includes(',')), NAMES.forest.sign, NAMES.forest.creek, NAMES.lakeside.sign, NAMES.wall.ledge, NAMES.wall.roof, NAMES.climb.crevasse, NAMES.climb.ridge, NAMES.lookout].filter((n, i, a) => a.indexOf(n) === i);
@@ -152,12 +154,20 @@ export const SET_NAMES = ['Console', 'Handheld', 'Music box'];
 // The words of the interface itself: buttons, headings and messages. A function takes the numbers it needs.
 export const UI = {
   name: 'TJ Zimmerman',
-  run: ['Start', 'Stop'], home: ['Trailhead', 'Camp'], sound: ['Sound on', 'Sound off'], theme: ['Dusk', 'Day'],
+  // The first-visit hint (P1), a draft for TJ: with a mouse, then on a touch screen.
+  hint: ['Click a sign or a trail to start walking.', 'Tap a sign or a trail to start walking.'],
+  run: ['Start', 'Stop'], home: ['Trailhead', 'Camp'], sound: ['Sound on', 'Sound off'], theme: { auto: 'Auto', day: 'Day', dusk: 'Dusk' },
   // On the Sound button until the first click, tap or key: a browser plays nothing before one. With a mouse, then with a finger.
   soundWaits: ['Click for sound', 'Tap for sound'],
   auto: name => 'Auto: ' + name,
   // The word in the burst when the server rack on TJs-Kubernetes-Service is hit. Drawn in pixels, capitals only.
   bang: 'BANG!',
+  // On his phone on Bluebird Forecast: the app's name in two lines, and the one word under the weather, before and after it turns. Drawn in pixels, capitals only.
+  forecast: { app: ['BLUEBIRD', 'FORECAST'], wet: 'DRIZZLE', clear: 'CLEARING' },
+  // Under the binoculars' view on trailhead: the button that closes it, and how to look about and leave, with a keyboard and without. Drawn in pixels, capitals only.
+  viewer: { back: 'BACK', hint: ['ARROWS: LOOK   SPACE: BACK', 'DRAG TO LOOK'] },
+  // On his watch on hevy-garmin-sync: the word before the lap's number, and the three lines it shows at the bench. Drawn in pixels, capitals only.
+  watch: { lap: 'LAP', synced: ['WORKOUT', 'SYNCED', 'FROM HEVY'] },
   found: (name, n, of) => 'Found: ' + name + '. ' + n + ' of ' + of + ' on the kiosk checklist.',
   allDone: 'All three done. The trail register at the Trailhead is yours to sign.',
   fail: 'The world could not be drawn here. The trail map has everything as text.',
@@ -167,20 +177,28 @@ export const UI = {
   wait: { go: 'Press Space or Start to carry on.', belay: 'Press Space or Start to climb.' },
   card: {
     summit: top => 'On the summit: ' + top.toLowerCase(),
-    egg: top => 'Click ' + top.toLowerCase().replace(/^a /, 'the ') + ' up there.',
     facts: ['Stars', 'Latest release', 'Language', 'License'], noRelease: 'none yet',
     pitches: [['Pitch 1', 100, 'sent'], ['Pitch 2', 100, 'sent'], ['Pitch 3', 100, 'one fall, caught'], ['Pitch 4', 8, 'next']],
     github: 'GitHub', climbed: 'climbed', walkOut: 'Walk out to the Trailhead', glissade: 'Glissade to camp'
   },
-  marks: { camp: 'Base camp', trailhead: 'Trailhead', summit: 'Summit' },
+  marks: { camp: 'Base camp', trailhead: 'Trailhead' },
   keys: { title: 'Keys', note: 'Everything also works by touch.' },
   // The hidden panel behind the backtick key and the small sign at the foot of the trail map.
   debug: {
-    title: 'Debug', close: 'Close', layers: 'Layers', outlines: 'Outlines', zoom: 'Zoom', cats: 'Cats', set: 'Set', offRoute: 'Go to the off-route page', breakScene: 'Break this scene',
+    ground: ['Ground: read from the bake', 'Ground: worked out on this page'],
+    title: 'Debug', close: 'Close', layers: 'Layers', outlines: 'Outlines',
+    // Where each kind of mover may not go (collide.js), one kind at a time.
+    time: 'Time of day', sunset: 'Jump to sunset', sunrise: 'Jump to sunrise', clockSpeeds: [1, 10, 60],
+    // The animals' names on the roam areas and in the spawn menu (C4).
+    animals: { elk: 'Elk', moose: 'Moose', goat: 'Mountain goats', sheep: 'Bighorn sheep', bear: 'Black bears', marmot: 'Marmots', squirrel: 'Squirrels', eagle: 'Bald eagle', osprey: 'Osprey', gulls: 'Gulls', birds: 'Crows' },
+    spawn: 'Spawn', spawnAll: 'everywhere it lives', near: 'near', scene: 'Jump to a scene', breakGroup: 'Break a scene', inScene: 'In this scene', mapEvents: 'On the map',
+    scenes: { forest: 'Forest', lakeside: 'Reflection Lake', larches: 'Larch basin', wall: 'West Ridge', approach: 'Walk to base camp', camp: 'Base camp', climb: 'A Spires climb', register: 'Trail register', offroute: 'Off route' },
+    sounds: 'Sounds', effects: 'Effects', tunesH: 'Tunes, one part at a time', places: 'Background', backToAuto: 'Music back to Auto',
+    noGo: 'No-go areas', noGoKinds: { '': 'off', boat: 'Ferry', whale: 'Whale', swimmer: 'Orcas', floater: 'Jellyfish', land: 'Land animals' }, zoom: 'Zoom', cats: 'Cats', set: 'Set', offRoute: 'Go to the off-route page', breakScene: 'Break this scene',
     toggles: { trees: 'Trees', clouds: 'Clouds', mist: 'Mist', labels: 'Labels', animals: 'Animals', roam: 'Roam areas', taps: 'Tap targets', trails: 'Trail lines', camera: 'Camera limits', snap: 'Snap to pixels' },
     speed: 'Time', speeds: ['Pause', '0.5\u00d7', '1\u00d7', '2\u00d7', '4\u00d7', '8\u00d7'],
     startMap: 'Start now, on the map', startForest: 'Start now, in the forest run', startLarches: 'Start now, in the larch basin', startRidge: 'Start now, on the West Ridge', startLake: 'Start now, at Reflection Lake',
-    events: { gust: 'Larch needle gust', ridgegust: 'Gust on the ridge', raven: 'Raven in the updraft', shower: 'Marine layer', breach: 'Humpback breach', blow: 'Humpback blow', ferry: 'Ferry sets out', tide: 'Low tide', orcas: 'Orca pod', salmon: 'Salmon leap', osprey: 'Osprey dives', serac: 'Serac fall', avalanche: 'Avalanche', lens: 'Lenticular cloud', heron: 'Heron lifts off', tumble: 'Tumbleweed', devil: 'Dust devil', star: 'Shooting star (Dusk)', plane: 'Float plane', jay: "Steller's jay", bear: 'Bear', sasquatch: 'Sasquatch', eyeshine: 'Deer eyeshine (Dusk)' },
+    events: { gust: 'Larch needle gust', ridgegust: 'Gust on the ridge', raven: 'Raven in the updraft', shower: 'Marine layer', breach: 'Humpback breach', blow: 'Humpback blow', ferry: 'Ferry sets out', tide: 'Low tide', orcas: 'Orca pod', eagle: 'Eagle fishes', osprey: 'Osprey dives', cubplay: 'Bear cubs play', cubclimb: 'Bear cub climbs a tree', marmot: 'Marmots whistle', serac: 'Serac fall', avalanche: 'Avalanche', ava0: 'Avalanche, west face', ava1: 'Avalanche, middle face', ava2: 'Avalanche, east face', squall: 'Summit squall', lens: 'Lenticular cloud', tumble: 'Tumbleweed', devil: 'Dust devil', star: 'Shooting star (Dusk)', sasquatch: 'Sasquatch', eyeshine: 'Deer eyeshine (Dusk)' },
     note: 'Roam areas, trail lines and camera limits show on the map. Tap targets show in every scene. A start button works only in its own scene.'
   },
   map: {
@@ -189,7 +207,7 @@ export const UI = {
     dots: { summit: 'The summit', 'base-camp': 'Base camp' },
     lake: [DEST_NAMES.lake, km => km + ' km loop, on foot'], stack: [DEST_NAMES.stack, km => km + ' km in, five pitches up'], spires: [DEST_NAMES.spires, km => km + ' km to base camp, six summits'],
     elsewhere: 'TJ elsewhere', onMap: 'On this map', plain: 'Read as a page',
-    settings: 'Settings', sound: 'Sound', onOff: ['on', 'off'], music: 'Music', playedOn: 'Played on', dusk: 'Day or dusk', clear: 'Clear my flags', cleared: 'Flags and footprints cleared.',
+    settings: 'Settings', sound: 'Sound', onOff: ['on', 'off'], music: 'Music', musicStyle: 'Music style', dusk: 'Time of day', clear: 'Clear my flags', cleared: 'Flags and footprints cleared.',
     // What each plank of the junction sign says beside its name (L8): the distance there, as a trail sign gives
     // it. Longer words widened the column and wrapped the Spires' plank; the trail map says what each is.
     plank: { lake: km => km + ' km', stack: km => km + ' km', spires: km => km + ' km' },
@@ -201,8 +219,8 @@ export const UI = {
     up: s => s < 90 ? s + (s === 1 ? ' second' : ' seconds') : Math.round(s / 60) + ' minutes',
     status: ['Status', 'All trails open'], open: 'Open', lakeDone: 'Run. Flag flying.', stackDone: 'Climbed. Flag flying.', summits: n => n + ' of 6 summits',
     // What the board says lives here and happens here (L10), kept to what the world really has.
-    wildlife: ['Wildlife', 'Elk in the meadow, squirrels and chipmunks by the trail. Mountain goats, bighorn sheep and marmots up high, and a pika in the larch talus. A humpback and an orca pod offshore, gulls round the sea stacks. Sockeye at the lake\'s fall, with an osprey after them. A heron in the oxbow, a jay and an owl in the forest, two cats at this kiosk, and some days a bear'],
-    seen: ['Also seen', 'Serac falls, an avalanche and a cap cloud on Mount Monolith, rain showers over the hills, the marine layer off the sea, low tide, the ferry and a float plane, tumbleweeds and dust devils in the sage. At Dusk: shooting stars, the aurora, foxfire in the forest and headlamps on the Spires\' glacier'],
+    wildlife: ['Wildlife', 'Elk in the meadow, a bull moose and a calf in the riverside woods, squirrels and chipmunks by the trail. Mountain goats, bighorn sheep and marmots up high, and a pika in the larch talus. A humpback and an orca pod offshore, gulls and a bald eagle on the sea stacks. An osprey fishing at Reflection Lake. A black bear and her two cubs in the firs below the Spires waterfall, and some days a second family at the forest edge. An owl in the forest and two cats at this kiosk'],
+    seen: ['Also seen', 'Serac falls, an avalanche and a cap cloud on Mount Monolith, rain showers over the hills, the marine layer off the sea, low tide, the ferry, tumbleweeds and dust devils in the sage. At Dusk: shooting stars, the aurora, foxfire in the forest and headlamps on the Spires\' glacier'],
     checklist: (n, of) => 'Field checklist: ' + n + ' of ' + of + ' found', notFound: 'Not found yet', got: 'Found'
   },
   register: {
@@ -219,7 +237,8 @@ export const UI = {
     yourName: 'Your name', yourNote: 'A note for the register', notePh: 'A few words', sign: 'Sign the register', mock: 'This is a mock. Entries stay in this browser.'
   },
   plain: {
-    back: 'Back to the world',
+    // The top-bar button that opens it (P2), planner's word for TJ to veto.
+    top: 'Page', back: 'Back to the world',
     // Shown at the top of the page of text when the world itself cannot be drawn.
     down: 'The world could not be drawn here, so this is all of it as one page.',
     mapAlt: 'The map of the world: a lake in a forest, a granite wall and six glaciated summits around a trailhead',
