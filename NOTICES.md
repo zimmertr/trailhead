@@ -29,9 +29,9 @@ The pixel prototype (`prototype/pixel/www`) serves eight font families from its 
 | [Tiny5](https://github.com/Gissio/font_tiny5) | small print | Copyright 2022-2024 The Tiny5 Project Authors (https://github.com/Gissio/font_tiny5) |
 | [Silkscreen](https://github.com/googlefonts/silkscreen) | the routed wooden signs | Copyright 2001 The Silkscreen Project Authors (https://github.com/googlefonts/silkscreen) |
 | [Caveat](https://github.com/googlefonts/caveat) | the trail register | Copyright 2014 The Caveat Project Authors (https://github.com/googlefonts/caveat) |
-| [Gochi Hand](https://fonts.google.com/specimen/Gochi+Hand) | the trail register | Copyright (c) 2011, HT Fonts (www.htfonts.com info@htfonts.com), with Reserved Font Names "Gochi" and "Gochi Hand" |
-| [Kalam](https://fonts.google.com/specimen/Kalam) | the trail register | Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com) |
-| [Patrick Hand](https://fonts.google.com/specimen/Patrick+Hand) | the trail register | Copyright (c) 2010-2012 Patrick Wagesreiter (mail@patrickwagesreiter.at) |
+| [Gochi Hand](https://fonts.google.com/specimen/Gochi+Hand) | the trail register | Copyright (c) 2011, HT Fonts, with Reserved Font Names "Gochi" and "Gochi Hand" |
+| [Kalam](https://fonts.google.com/specimen/Kalam) | the trail register | Copyright (c) 2014 Indian Type Foundry |
+| [Patrick Hand](https://fonts.google.com/specimen/Patrick+Hand) | the trail register | Copyright (c) 2010-2012 Patrick Wagesreiter |
 
 ## Base images
 
