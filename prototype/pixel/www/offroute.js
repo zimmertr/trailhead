@@ -24,6 +24,32 @@ function fog404(u, w) {
   const v = (at(ix - 1, iy - 1) * (1 - ax) + at(ix, iy - 1) * ax) * (1 - ay) + (at(ix - 1, iy) * (1 - ax) + at(ix, iy) * ax) * ay;
   return v <= 0.3 ? 0 : v >= 0.7 ? 1 : (v - 0.3) / 0.4;
 }
+// fog404 for every pixel of the digits' box, worked out once for a size of cell (gc pixels), with the
+// box starting one cell above and left of the first digit (K3: asked per pixel, it doubled the frame).
+let MASK = null;
+function maskFor(gc) {
+  if (MASK && MASK.gc === gc) return MASK;
+  const w = 13 * gc, h = 7 * gc, d = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) d[y * w + x] = fog404((x - gc) / gc, (y - gc) / gc);
+  return (MASK = { gc, w, h, d });
+}
+// The cloud and the snow, every pixel: the cloud above with the ghost of a ridge that comes and goes and
+// the 404 in it, wind-packed snow below, the horizon somewhere between.
+function paintFog(scr, t, base, M, gx0, gy0) {
+  const { VW, VH, fb } = scr, snow = R.snow;
+  for (let y = 0; y < VH; y++) {
+    const my = y - gy0 + M.gc, inRows = y < base - 40 && my >= 0 && my < M.h;
+    for (let x = 0; x < VW; x++) {
+      const d = (y - base) / 60, n = fbm((x + t * 14) / 70, y / 26 + t * 0.05, 400, 3);
+      let v = y < base ? 0.62 + 0.3 * n : 0.9 - 0.3 * clamp(d, 0, 1) + 0.14 * (n - 0.5);
+      if (y < base) { const ridge = base - 60 - 50 * fbm(x / 90, 3, 403, 3), show = fbm(x / 140 + t * 0.03, 7, 404, 2); if (y > ridge && show > 0.5) v -= 0.16 * Math.min(1, (show - 0.5) * 6) * (1 - (y - ridge) / (base - ridge)); }
+      if (y >= base && fbm(x / 14, y / 2.5, 401, 2) > 0.62) v -= 0.12;
+      if (inRows) { const mx = x - gx0 + M.gc; if (mx >= 0 && mx < M.w) { const g = M.d[my * M.w + mx]; if (g > 0) v -= 0.075 * g * (0.6 + 0.8 * n); } }
+      const f = clamp(v, 0, 0.999) * 4, i = Math.floor(f);
+      fb[y * VW + x] = snow[Math.min(4, i + (bayer(x, y) < f - i ? 1 : 0))];
+    }
+  }
+}
 
 export function makeOffroute() {
   const run = makeRunner('alpine'), idle = frontFig('alpine'), st = {}, focus = { x: 0, y: 0 };
@@ -39,21 +65,11 @@ export function makeOffroute() {
     focus: () => focus,
     pick(sx, sy) { return Math.abs(sx - focus.x - 26) < 8 && Math.abs(sy - focus.y) < 22 ? { label: NAMES.offroute.wand, x: focus.x + 26, y: focus.y - 16 } : null; },
     draw(scr, env, arg, q) {
-      const { VW, VH, fb } = scr, { t } = env, base = baseline(scr, env.shown, st), cx = Math.round(scr.narrow ? VW * 0.5 : VW * 0.62);
+      const { VW, VH } = scr, { t } = env, base = baseline(scr, env.shown, st), cx = Math.round(scr.narrow ? VW * 0.5 : VW * 0.62);
       // Where the 404 sits: in the cloud left of him and above the ghost ridge, a quarter of the picture
       // high and never wider than four fifths of it, drifting a few pixels.
       const gc = Math.max(6, Math.min(22, Math.round(base * 0.12), Math.floor(VW * 0.8 / 11))), gx0 = Math.round((scr.narrow ? VW * 0.5 : VW * 0.36) - 5.5 * gc + 6 * Math.sin(t * 0.09)), gy0 = Math.round(base * 0.36 - 2.5 * gc + 3 * Math.sin(t * 0.07 + 1));
-      // Snow underfoot fading into cloud: the horizon is somewhere in there.
-      for (let y = 0; y < VH; y++) for (let x = 0; x < VW; x++) {
-        const d = (y - base) / 60, n = fbm((x + t * 14) / 70, y / 26 + t * 0.05, 400, 3);
-        // Cloud above, with the ghost of a ridge that comes and goes; wind-packed snow below.
-        let v = y < base ? 0.62 + 0.3 * n : 0.9 - 0.3 * clamp(d, 0, 1) + 0.14 * (n - 0.5);
-        if (y < base) { const ridge = base - 60 - 50 * fbm(x / 90, 3, 403, 3), show = fbm(x / 140 + t * 0.03, 7, 404, 2); if (y > ridge && show > 0.5) v -= 0.16 * Math.min(1, (show - 0.5) * 6) * (1 - (y - ridge) / (base - ridge)); }
-        if (y >= base && fbm(x / 14, y / 2.5, 401, 2) > 0.62) v -= 0.12;
-        if (y < base - 40) { const g = fog404((x - gx0) / gc, (y - gy0) / gc); if (g > 0) v -= 0.075 * g * (0.6 + 0.8 * n); }
-        const f = clamp(v, 0, 0.999) * 4, i = Math.floor(f);
-        fb[y * VW + x] = R.snow[Math.min(4, i + (bayer(x, y) < f - i ? 1 : 0))];
-      }
+      paintFog(scr, t, base, maskFor(gc), gx0, gy0);
       // His own tracks, coming in from the left and stopping.
       const mx = cx - Math.round((1 - q) * 70), my = base + 6;
       for (let x = cx - 150; x < mx - 3; x += 5) scr.set(x, my + ((x / 5) & 1), R.snow[0]);

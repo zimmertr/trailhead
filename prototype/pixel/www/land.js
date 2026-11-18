@@ -1498,7 +1498,9 @@ function habitat() {
   const tumbles = find(3, (u, v) => S.sageAmt(u, v) > 0.6 && firm(u, v, 0.5) && shows(u, v, 6) && [30, 60, 90, 120].every(d => firm(u + d, v, 0.9)), 60);
   const dryFlat = (u, v) => S.dryAmt(u, v) > 0.6 && S.sageAmt(u, v) > 0.3 && firm(u, v, 0.4);
   const DRY = GRID.filter(([u, v]) => dryFlat(u, v) && S.toY(u, v) < SH), dxs = DRY.map(p => p[0]), dys = DRY.map(p => S.toY(...p));
-  const dryX = f => lerp(Math.min(...dxs), Math.max(...dxs), f), dryY = f => lerp(Math.min(...dys), Math.max(...dys), f);
+  // The corner's extent, worked out once: the search below asks it for every point of the grid (K3).
+  const [x0, x1, y0, y1] = DRY.length ? [Math.min(...dxs), Math.max(...dxs), Math.min(...dys), Math.max(...dys)] : [0, 0, 0, 0];
+  const dryX = f => lerp(x0, x1, f), dryY = f => lerp(y0, y1, f);
   const WANDER = Array.from({ length: 13 }, (_, k) => k * 6 - 18);
   const devils = DRY.length ? find(3, (u, v) => { const y = S.toY(u, v); return u > dryX(0.2) && u < dryX(0.5) && y > dryY(0.1) && y < dryY(0.6) && (!herd || apartFrom([herd], u, v, 90)) && WANDER.every(d => dryFlat(u + d, v) && shows(u + d, v, 40) && Math.abs(S.toY(u + d, v) - y) <= 4); }, 90) : [];
   const out = (u, v) => [Math.round(u), S.toY(u, v)];

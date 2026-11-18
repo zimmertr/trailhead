@@ -416,3 +416,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Only the Letters Used** (round 5, J3). Subset Jersey 10, Tiny5 and Silkscreen to the characters the site's own words use, which could halve the 40 KB the first screen waits for.
 - **The Walk in CI** (round 5, K1). Run `walk.sh`'s walk of every route as a Playwright test in the Prototype Smoke job, at 8x on the page's clock, so a stop that never lets him go fails the PR.
 - **Views by Place, Not by Fraction** (round 5, K2). Give `refs.sh` views named by stop or scene (`stop=` or a scene's own start) instead of `p`, so two builds with different scene lengths still compare the same place.
+- **Bake the Places Too** (round 5, K3). `habitat()` and the trail routing run on every start; their results could go into the bake beside the ground, which would take most of the remaining 70 to 90 ms back.
+- **Load Time in CI** (round 5, K3). The Prototype Smoke job could time the start three times and fail over 0.9 s, so a slow search like E8's is caught the day it lands.
