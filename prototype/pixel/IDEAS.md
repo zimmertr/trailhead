@@ -412,3 +412,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Other Codes in Other Weather** (round 5, J1). A 500 in the smoke of a forest fire, if the site ever has a server error page.
 - **The Page Written Out at Build Time** (round 5, J2). The release writes the page of text into `index.html` as plain HTML, so search engines and link previews read it without running the script.
 - **Print the Page as a Resume** (round 5, J2). A print style for the page that drops the map picture and the buttons, so it prints as a one-page resume.
+- **Fonts From the Lockfile** (round 5, J3). When `web` serves the prototype, take the eight `@fontsource` packages as dependencies like National Park, so Renovate keeps them current and `tests/notices.test.ts` checks their licences.
+- **Only the Letters Used** (round 5, J3). Subset Jersey 10, Tiny5 and Silkscreen to the characters the site's own words use, which could halve the 40 KB the first screen waits for.

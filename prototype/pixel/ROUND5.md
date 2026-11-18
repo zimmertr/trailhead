@@ -592,7 +592,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 ### J2. Read it as a page
 
 - [x] J2. P2: the PAGE view with every card's text, opening from the top bar, the trail map sheet and `#page`. Keyboard and phone checked.
-- [ ] J3. **The fonts come from the page's own files.** `index.html` fetches eight font families from Google on every load, a call to someone else's server that the real site would have to answer for. Keep only the families the page uses, serve them as `woff2` files beside the page, add their licences to `NOTICES.md`, and add the files to the publish list in section 2. The page must look the same, with slow fonts too (B9).
+- [x] J3. **The fonts come from the page's own files.** `index.html` fetches eight font families from Google on every load, a call to someone else's server that the real site would have to answer for. Keep only the families the page uses, serve them as `woff2` files beside the page, add their licences to `NOTICES.md`, and add the files to the publish list in section 2. The page must look the same, with slow fonts too (B9).
 
 ### K. Whole-site checks and the report
 
@@ -715,7 +715,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **I11 done, as TJ changed it.** Under the cloud at Proficiency Peak they land on round 4's ledge as before, pull the rope, see it jam, heave, look at each other and shrug. Then one at a time, TJ first, then the leader, then the woman, each walks to the ledge's outer end, steps down onto a steep snow slope that falls away east of it, faces in and traverses down and across it with an ice axe in each hand, kicking steps, until off the picture. The others follow in TJ's steps. The scene ends when the woman is off the picture. The stuck rope is left hanging.
 - **J1 done.** The off-route page has a 404 in its fog: three big digits of slightly greyer, thicker cloud above the ghost ridge, left of TJ, broken up by the fog's own noise and drifting a few pixels. They are easy to miss and readable once seen, in Day, at Dusk and on a phone.
 - **J2 done.** Round 4 already had a page of text, opened from the trail map at `#plain`. It now opens from a **Page** button at the end of the top bar too, lives at `#page` (`#plain` still works), and carries every card's words: the intro, the lake's aside, base camp's line, Bluebird's site and the hardware link, and a draft mark under each draft card. Focus goes to its Back button, the world behind cannot be tabbed to, and Escape or Back returns the visitor to where they were, not to the Trailhead. Two browser tests are new: every card's heading shows, and the button opens it by keyboard and Escape closes it. Artifact version 73.
-- Next: J3.
+- **J3 done.** The page loads nothing from anywhere else. Its eight font families (all eight are in use: four for the page, four hands in the register) are now `woff2` files in `www/fonts`, the Latin set of each from Fontsource 5.3.0, 160 KB together, with `fonts/LICENSE.txt` beside them and a new section in `NOTICES.md`. The four on every screen are preloaded. The page looks the same as J2's in Day, on a phone and in the register, and with fonts held back it shows the same fallback and holds still exactly as before. The browser tests now fail on any request to another host. The publish list in section 2 has the font files. Artifact version 74, checked in Chrome.
+- Next: K1.
 
 ## 11. Calls made in round 5
 
@@ -1176,3 +1177,8 @@ One line each, newest last: the item, what was decided, and why.
 - J2, a call: the button says **Page** (the plan's PAGE, in the bar's case), last in the bar as in the mockup. Its word is in `content.js` (`UI.plain.top`), a draft for TJ. On a phone it fits beside Trail map, sound and Auto.
 - J2, a call: a search engine still sees only what the script builds. A page written out at build time is in IDEAS.md.
 - J2, looked at on a 1440 screen, at Dusk and on a 390 phone, and by keyboard (focus in, Escape out, focus back on the button). The check passed with 16 browser tests and nothing moved.
+- J3, how: `index.html` declares the eight `@font-face` rules itself and preloads Jersey 10, Jersey 15, Tiny5 and Silkscreen. The register's four hands (Caveat 500, Gochi Hand, Kalam, Patrick Hand) load when the book first needs them, as before. The files came from the Fontsource packages on npm, fetched in Docker, the same source the repo uses for National Park.
+- J3, a call: only the Latin set of each family. Every character the page's own words use is in it (the one outside ASCII is the debug menu's multiplication sign). A visitor's name in another script in the register falls back to the next font in the list.
+- J3, a call: `fonts/LICENSE.txt` ships beside the fonts because the OFL asks that each copy travel with its copyright line and the licence. The eight licence texts are the same, so it holds the eight copyright lines and one copy of the text.
+- J3, the tool (`frames.mjs`): `SLOWFONT=<ms>` holds the font files back. Two things hid slow fonts before: Playwright's screenshot waits for fonts to load, and a held font holds the load event back too. With `SLOWFONT` the film starts at the first response and frames come from Chrome's own capture.
+- J3, looked at beside J2's build in Day on a 1440 screen, on a 390 phone and in the register book: the same. With fonts held back on a phone, beside J2's build with its Google fonts held back the same way: the same Courier fallback, and no camera move. Frame time 12.3 ms. The check passed with nothing moved.
