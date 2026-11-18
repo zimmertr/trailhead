@@ -98,6 +98,17 @@ test('the page shows the picture of the map and every card', async ({ page }) =>
   expect(problems).toEqual([])
 })
 
+// A visitor who asked for reduced motion: AUTO holds Day even at an hour that would be Dusk (round 5, K1).
+test('reduced motion holds AUTO at Day', async ({ browser }) => {
+  const page = await browser.newPage({ reducedMotion: 'reduce' })
+  const problems = await open(page, '/?time=250')
+  await watch(page)
+  const clock = await page.evaluate(() => (window as unknown as { __api: { clock: () => { mode: string; mix: number } } }).__api.clock())
+  expect(clock).toMatchObject({ mode: 'auto', mix: 0 })
+  expect(problems).toEqual([])
+  await page.close()
+})
+
 // Round 4's address for it, which links may still carry.
 test('the old address still opens the page', async ({ page }) => {
   const problems = await open(page, '/#plain')

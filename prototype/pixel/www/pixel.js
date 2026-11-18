@@ -118,7 +118,11 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   const CYCLE = 390, SUNSET = 165, DUSK_AT = 195, SUNRISE = 360;
   const clock = { mode: theme === 'dark' ? 'dusk' : 'auto', t: (typeof location !== 'undefined' && +(/[?&]time=([\d.]+)/.exec(location.search) || [])[1]) || 0, speed: 1 };
   const cycleMix = s => { s = ((s % CYCLE) + CYCLE) % CYCLE; const e = v => v * v * (3 - 2 * v); return s < SUNSET ? 0 : s < DUSK_AT ? e((s - SUNSET) / 30) : s < SUNRISE ? 1 : 1 - e((s - SUNRISE) / 30); };
-  if (clock.mode === 'auto') mix = cycleMix(clock.t);   // the first frame already has the light of its time
+  // A visitor who asked for reduced motion gets no day going by on its own (K1): AUTO holds Day until they
+  // choose Dusk or Day themselves.
+  const stillQ = typeof window !== 'undefined' && window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null, still = () => !!stillQ && stillQ.matches;
+  const autoMix = () => (still() ? 0 : cycleMix(clock.t));
+  if (clock.mode === 'auto') mix = autoMix();   // the first frame already has the light of its time
   let darkNow = mix > 0.5;
   let drawn = null, tr = null, scrubbing = 0, stillAt = performance.now() / 1000;
   // Held down, Space or the Start button doubles his pace for as long as it is held.
@@ -283,7 +287,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     const t = simT, sdt = dt * speed;
     step(sdt);
     clock.t = (clock.t + sdt * clock.speed) % CYCLE;
-    { const goal = clock.mode === 'auto' ? cycleMix(clock.t) : clock.mode === 'dusk' ? 1 : 0; mix += (goal - mix) * (1 - Math.exp(-dt * 3)); if (Math.abs(mix - goal) < 0.002) mix = goal; }
+    { const goal = clock.mode === 'auto' ? autoMix() : clock.mode === 'dusk' ? 1 : 0; mix += (goal - mix) * (1 - Math.exp(-dt * 3)); if (Math.abs(mix - goal) < 0.002) mix = goal; }
     // The page's own colours (its wood and paper) turn at the middle of the blend.
     if ((mix > 0.5) !== darkNow) { darkNow = mix > 0.5; emit({ type: 'theme', dark: darkNow }); }
     // A dragged view stays where it is left. Let go near the edge of what a scene lets you see and it
@@ -483,6 +487,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     touring: () => drawn.s === 'world' && !!env.touring,
     // Where he stands on the page, in CSS pixels (the first-visit hint keeps off him, P1).
     me: () => { const f = drawn.scene.focus(), k = scr.S / (window.devicePixelRatio || 1); return [f.x * k, f.y * k]; },
+    // For test scripts (K1): where a point of a trail on the map is on the page, in CSS pixels, and the
+    // fractions where the lake loop leaves for the forest and comes back, and where the Spires' trail hands over.
+    trailAt: (path, s) => { const q = world.paths[path].at(s), o = world.at(0, 0), k = scr.S / (window.devicePixelRatio || 1); return [(q.x - o.x) * k, (q.y - o.y) * k]; },
+    trailMarks: () => ({ lakeIn: world.lakeIn, lakeOut: world.lakeOut, spiresIn: world.spiresIn }),
     progress: () => p,
     scrub(f) {
       p = clamp(f, 0, 1); running = false; scrubbing = 0.16;

@@ -414,3 +414,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Print the Page as a Resume** (round 5, J2). A print style for the page that drops the map picture and the buttons, so it prints as a one-page resume.
 - **Fonts From the Lockfile** (round 5, J3). When `web` serves the prototype, take the eight `@fontsource` packages as dependencies like National Park, so Renovate keeps them current and `tests/notices.test.ts` checks their licences.
 - **Only the Letters Used** (round 5, J3). Subset Jersey 10, Tiny5 and Silkscreen to the characters the site's own words use, which could halve the 40 KB the first screen waits for.
+- **The Walk in CI** (round 5, K1). Run `walk.sh`'s walk of every route as a Playwright test in the Prototype Smoke job, at 8x on the page's clock, so a stop that never lets him go fails the PR.
