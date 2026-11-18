@@ -587,7 +587,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 
 ### J. The off-route page
 
-- [ ] J1. T78: a subtle 404 in the fog.
+- [x] J1. T78: a subtle 404 in the fog.
 
 ### J2. Read it as a page
 
@@ -713,7 +713,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **I10 done.** There is one cloud sea on Proficiency Peak now. As soon as the haul starts, the cloud climbs the tower from the bottom of the picture, always below TJ, and swallows the ridge they came up and the tower's foot. By the time he is at the belay it stands just under the summit block. They stand on top above it, and rappel down into it as before. Nothing fills in during the rappel any more.
 - **I11 changed by TJ, 2026-11-17 (in chat, mid-item):** "We actually rappeled onto a steep snow slope and had to four-point traverse to the side with ice axes. Can we have the walkoff look like that? They just try and pull the rope, fail, walk off their ledge onto a steep snow slope, and then one-by-one traverse off screen. TJ led the snow traverse IRL, so lets have that here." His answers: the snow slope runs east from the ledge's outer end and falls away to the right, off screen; they cross unroped, facing in, an ice axe in each hand, kicking steps, TJ first, then the leader, then the woman, each in TJ's steps. So the ledge stays (round 4's shelf); my first try, a talus col replacing it, is dropped (kept outside the repo as a scratch file only). Not started.
 - **I11 done, as TJ changed it.** Under the cloud at Proficiency Peak they land on round 4's ledge as before, pull the rope, see it jam, heave, look at each other and shrug. Then one at a time, TJ first, then the leader, then the woman, each walks to the ledge's outer end, steps down onto a steep snow slope that falls away east of it, faces in and traverses down and across it with an ice axe in each hand, kicking steps, until off the picture. The others follow in TJ's steps. The scene ends when the woman is off the picture. The stuck rope is left hanging.
-- Next: J1.
+- **J1 done.** The off-route page has a 404 in its fog: three big digits of slightly greyer, thicker cloud above the ghost ridge, left of TJ, broken up by the fog's own noise and drifting a few pixels. They are easy to miss and readable once seen, in Day, at Dusk and on a phone.
+- Next: J2.
 
 ## 11. Calls made in round 5
 
@@ -1164,3 +1165,7 @@ One line each, newest last: the item, what was decided, and why.
 - I11, a call: once they let go, the stuck rope lies from a coil on the ledge up the face to the flake, and stays there.
 - I11, no new sounds. The scene is 20 s longer (182 s).
 - I11, looked at in motion from the landing to the end, close up on the traverse, at Dusk and on a phone. Frame time under the cloud is about 8 ms (was about 5), from painting the snow. The check passed with nothing moved.
+- J1, how (`offroute.js`, `GLYPH`, `fog404`): the digits come from a 3 by 5 font, blurred between its cells, and lower the fog's value by up to 0.075 (of 1) inside them, modulated by the fog's noise. They sit a quarter of the picture high, centred at 36% across (half way on a phone), never wider than four fifths of the picture, and drift by up to 6 px sideways and 3 px up and down over about a minute.
+- J1, a call: TJ wrote "denser fog". Whiter digits disappeared where the fog is already at the top of the palette, so they are slightly greyer instead, the way thicker cloud looks from inside it. No new colours.
+- J1, a call: they stay out of the 40 rows above the horizon, so the ghost ridge, TJ, the sign and the wand are untouched. On a phone the found-it note covers their top for its first few seconds.
+- J1, looked at beside round 4's page in Day, at Dusk and on a phone. The check passed with nothing moved.

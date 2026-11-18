@@ -408,3 +408,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Spindrift** (round 5, I11). Now and then a little powder slides down the runnels past them on the snow slope.
 - **A Last Look Back** (round 5, I11). The woman, last off the ledge, turns and looks up at the stuck rope before she steps onto the snow.
 - **Axe Sounds** (round 5, I11). A soft thunk each time an axe goes in on the traverse, quieter for the two who follow.
+- **The 404 as a Find** (round 5, J1). Clicking the digits in the fog counts as a find on the kiosk checklist (TJ's call, like every find).
+- **Other Codes in Other Weather** (round 5, J1). A 500 in the smoke of a forest fire, if the site ever has a server error page.
