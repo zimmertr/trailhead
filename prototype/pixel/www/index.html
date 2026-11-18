@@ -1,8 +1,19 @@
 <title>Trailhead Pixel Round 5</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jersey+10&family=Jersey+15&family=Silkscreen&family=Tiny5&family=Caveat:wght@500&family=Gochi+Hand&family=Kalam&family=Patrick+Hand&display=swap">
+<link rel="preload" href="fonts/jersey-10.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jersey-15.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/tiny5.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/silkscreen.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+/* The fonts are the page's own files (J3): the Latin set of each family, from Fontsource, licences in
+   NOTICES.md. The four on every screen are preloaded; the register's four hands load when the book opens. */
+@font-face { font-family: 'Jersey 10'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/jersey-10.woff2) format('woff2'); }
+@font-face { font-family: 'Jersey 15'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/jersey-15.woff2) format('woff2'); }
+@font-face { font-family: 'Tiny5'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/tiny5.woff2) format('woff2'); }
+@font-face { font-family: 'Silkscreen'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/silkscreen.woff2) format('woff2'); }
+@font-face { font-family: 'Caveat'; font-style: normal; font-weight: 500; font-display: swap; src: url(fonts/caveat.woff2) format('woff2'); }
+@font-face { font-family: 'Gochi Hand'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/gochi-hand.woff2) format('woff2'); }
+@font-face { font-family: 'Kalam'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/kalam.woff2) format('woff2'); }
+@font-face { font-family: 'Patrick Hand'; font-style: normal; font-weight: 400; font-display: swap; src: url(fonts/patrick-hand.woff2) format('woff2'); }
 /* The world fills the screen at whole-pixel scale. Everything on top of it is trail furniture:
    routed wooden signs for anything you press, paper placards for anything you read. Lines are
    one world pixel thick (--px) and in the same ink as the sprites' outlines, so the page and the

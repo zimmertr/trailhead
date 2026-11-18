@@ -18,6 +18,21 @@ The direct dependencies the images ship. `tests/notices.test.ts` fails when this
 
 The typeface is [National Park](https://nationalparktypeface.com), drawn by Jeremy Shellhorn, Jeffrey Schwab, Andrew Herzog and Miranda Schweitzer from the routed wooden signs of the US National Park Service, and released under the SIL Open Font License 1.1.
 
+## Fonts in the pixel prototype
+
+The pixel prototype (`prototype/pixel/www`) serves eight font families from its own `fonts` folder, each the Latin set of the family from [Fontsource](https://fontsource.org) 5.3.0. All eight are under the SIL Open Font License 1.1, and `fonts/LICENSE.txt` beside them carries every copyright line and the full licence text.
+
+| Font | Used for | Copyright |
+|---|---|---|
+| [Jersey 10](https://github.com/scfried/soft-type-jersey) | reading text | Copyright 2023 The Soft Type Project Authors (https://github.com/scfried/soft-type-jersey) |
+| [Jersey 15](https://github.com/scfried/soft-type-jersey) | titles | Copyright 2023 The Soft Type Project Authors (https://github.com/scfried/soft-type-jersey) |
+| [Tiny5](https://github.com/Gissio/font_tiny5) | small print | Copyright 2022-2024 The Tiny5 Project Authors (https://github.com/Gissio/font_tiny5) |
+| [Silkscreen](https://github.com/googlefonts/silkscreen) | the routed wooden signs | Copyright 2001 The Silkscreen Project Authors (https://github.com/googlefonts/silkscreen) |
+| [Caveat](https://github.com/googlefonts/caveat) | the trail register | Copyright 2014 The Caveat Project Authors (https://github.com/googlefonts/caveat) |
+| [Gochi Hand](https://fonts.google.com/specimen/Gochi+Hand) | the trail register | Copyright (c) 2011, HT Fonts (www.htfonts.com info@htfonts.com), with Reserved Font Names "Gochi" and "Gochi Hand" |
+| [Kalam](https://fonts.google.com/specimen/Kalam) | the trail register | Copyright (c) 2014 Indian Type Foundry (info@indiantypefoundry.com) |
+| [Patrick Hand](https://fonts.google.com/specimen/Patrick+Hand) | the trail register | Copyright (c) 2010-2012 Patrick Wagesreiter (mail@patrickwagesreiter.at) |
+
 ## Base images
 
 | Image | Used by | License |

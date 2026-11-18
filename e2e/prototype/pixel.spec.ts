@@ -23,6 +23,10 @@ async function open(page: Page, address: string): Promise<string[]> {
     if (message.type() === 'error' || message.type() === 'warning') problems.push(`console ${message.type()}: ${message.text()}`)
   })
   page.on('pageerror', (error) => problems.push(`page: ${error.message}`))
+  // The page loads nothing from anywhere else (round 5, J3): its fonts are its own files.
+  page.on('request', (request) => {
+    if (!request.url().startsWith(origin) && !/^(data|blob):/.test(request.url())) problems.push(`elsewhere: ${request.url()}`)
+  })
   await page.route(`${origin}/**`, (route) => {
     const { pathname } = new URL(route.request().url())
     const file = join(www, normalize(pathname === '/' ? '/index.html' : pathname))
@@ -30,9 +34,6 @@ async function open(page: Page, address: string): Promise<string[]> {
     problems.push(`missing: ${pathname}`)
     return route.fulfill({ status: 404 })
   })
-  // The fonts come from Google today. The game must stand without them, and
-  // a test must not fail because their host was slow.
-  await page.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, (route) => route.fulfill({ contentType: 'text/css', body: '' }))
   await page.goto(origin + address)
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 30_000 })
   return problems
