@@ -602,7 +602,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] K3. Frame time for every view (section 7's list plus the new views) under 16.7 ms. Ready in under 0.9 s. Colours counted.
 - [x] K4. The off-route page, a scene that throws and one that fails to load all behave as before. Breaking from the public DEBUG menu works.
 - [x] K5. `IDEAS.md` has every idea from the round (with no built ones left in it). No em dashes anywhere. `PROGRESS.md` gets the round 5 report.
-- [ ] K6. The report, at the end of section 10 and in chat. It covers what was done, what is still below round 4 and why, every new line of copy for TJ to approve, what was removed, the sounds nobody has heard yet, what changed the planner's mind, and the links. Mark the PR ready for review only once CI passes, then end the loop. Never merge it: TJ reviews round 5 and merges it himself (section 0).
+- [x] K6. The report, at the end of section 10 and in chat. It covers what was done, what is still below round 4 and why, every new line of copy for TJ to approve, what was removed, the sounds nobody has heard yet, what changed the planner's mind, and the links. Mark the PR ready for review only once CI passes, then end the loop. Never merge it: TJ reviews round 5 and merges it himself (section 0).
 
 ## 9. Steps (how one item goes)
 
@@ -722,7 +722,51 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **K3 done.** Every view draws in under 16.7 ms: the heaviest are the off-route page at 12 ms (24.4 ms before this item), the Kubernetes-Manifests climb at 13.7 ms (round 4: 13.1 at the same size) and the zoomed-out map at Dusk with every event running at 11.4 to 12.7 ms (round 4: 13.5). The page is ready in 0.78 to 0.82 s on desktop and phone (0.93 to 0.96 s before this item; round 4: 0.69 to 0.74). The palette is round 4's: 251 of 254 colours. Two fixes, neither changing a pixel: the dust devils' spot search (E8) took 150 ms of every start, and the 404 in the fog (J1) doubled the off-route page's frame. Artifact version 76.
 - **K4 done.** Every way it can go wrong behaves as in round 4, filmed side by side: an address that goes nowhere opens the off-route page; a scene that throws (`break=forest`) puts him there with "That stretch of trail has washed out. He is off route."; a scene that fails to load (`break=load:forest`) is stepped over on the map; the public DEBUG menu's "Break this scene" does what `break=` does; a broken renderer or start falls back to the page of text, which now carries J2's intro and draft marks. No code changed, so the artifact stays at version 76.
 - **K5 done.** `IDEAS.md` holds 348 ideas, every one from the round among them, and none that round 5 built: "Fonts in the repo" (J3) and "A smoke test for the prototype in CI" (S1b) are out, "Reduced motion" is cut down to what is left, my J2 print idea is folded into the older one-page resume, and "The Walk in CI" takes the smoke test's unbuilt half. No em dash anywhere in the repository. `PROGRESS.md` has the round 5 report. No code changed, so the artifact stays at version 76.
-- Next: K6.
+- **K6 done.** The round is finished. The report is below and in `PROGRESS.md`, and https://github.com/zimmertr/trailhead/pull/32 is ready for TJ's review. The loop did not merge it.
+
+### The round 5 report (2026-11-17)
+
+**What was done.** Every item in section 8 is ticked: TJ's 79 notes and the three additions he picked, plus section 0's CI work. `PROGRESS.md` has a summary by place under "Round 5 report", and each item's own paragraph is above. The whole-site checks: every route through every stop in Auto, Day and Dusk on desktop and phone, with a clean console and no request to another host. All 72 of round 4's views were compared and none is below round 4. Every view draws in under 16.7 ms. The page is ready in 0.8 s, it uses 251 of 254 colours, and every kind of breakage behaves as it did before.
+
+**Still below round 4, and why.**
+- **The Start** - ready in 0.78 to 0.82 s against round 4's 0.69 to 0.74. The new map's own work (more water, flowers, larches, animals) adds to the start. One search that cost 150 ms is fixed. Baking more of the map is in `IDEAS.md`.
+- **The West Ridge** - it climbs about 3.4 times round 4's pace where TJ asked for 4. The movement is exactly 4 times faster. The stops are a third of round 4's length, not a quarter, so each cam can still be seen going in, and the new order with its rope swaps adds about 6 s.
+- **The Glissade Burst** - scrubbed to the exact moment he pushes off, the screen stays half white until he moves. Round 4 did the same. The fix would draw the burst only while he runs.
+
+**New copy for TJ to approve.** Every line is a draft in `www/content.js`, and none of it is TJ's except where noted.
+- **First-Visit Hint** (`UI.hint`) - "Click a sign or a trail to start walking." and, on a touch screen, "Tap a sign or a trail to start walking."
+- **Top Bar** - "Page" (`UI.plain.top`), and the clock's three states "Auto", "Day" and "Dusk".
+- **Summit Clues** (`clue` on each project, the last line of its card):
+  - Bluebird Forecast: "The station's forecast says bluebird skies. Maybe ask it to prove it."
+  - TJs-Kubernetes-Service: "The hardware seems to be malfunctioning, maybe try some percussive maintenance." (TJ's own)
+  - hevy-garmin-sync: "Nobody leaves a bench this high without doing a set."
+  - trailhead: "The binoculars are coin-operated. You look like you have a coin."
+  - yggdrasil: "The world tree's roots reach into every repo. Give it a closer look."
+  - Kubernetes-Manifests: "Every visitor leaves a stone. It's tradition."
+- **Drawn in Pixels** - the phone (`UI.forecast`): BLUEBIRD / FORECAST, DRIZZLE, CLEARING. The watch (`UI.watch`): LAP, then WORKOUT / SYNCED / FROM HEVY (TJ wrote "Workout synced from Hevy"). The binoculars (`UI.viewer`): BACK, "ARROWS: LOOK   SPACE: BACK" and "DRAG TO LOOK".
+- **Kiosk Notes** - the Wildlife note now names the bull moose and calf, the bald eagle on the sea stacks, the osprey at Reflection Lake, the black bear and two cubs below the Spires waterfall and a second family at the forest edge. The heron, the jay and the sockeye are gone from it. "Also seen" lost the float plane.
+- **Settings and Debug** - "Music style" and "Time of day" in Settings. In the public DEBUG menu: the two ground lines ("Ground: read from the bake", "Ground: worked out on this page"), "Time of day", "Jump to sunset", "Jump to sunrise", "No-go areas" with Ferry, Whale, Orcas, Jellyfish and Land animals, "Spawn" with "everywhere it lives" and "near", the animals' names, "Jump to a scene" with the nine scene names, "Break a scene", "In this scene", "On the map", "Sounds", "Effects", "Tunes, one part at a time", "Background", "Music back to Auto", and the new event buttons ("Eagle fishes", which is TJ's, plus "Bear cubs play", "Bear cub climbs a tree", "Marmots whistle", "Summit squall", "Avalanche, west face", "Avalanche, middle face", "Avalanche, east face"). The approach scene's spawn list gained "Pika".
+- **Copy Taken Out** - the map's "Reflection Lake, 2.4 km" sign, the "Summit" mark on the climbs' timelines (each now shows the project's name), and the "Click the ... up there." line that each card ended with.
+
+**What was removed**, all at TJ's request (section 5): the float plane, the salmon leap, the heron and its oxbow, the Steller's jay on the stump and its call, the standing bear in the forest, the Trailhead signpost and the Reflection Lake sign near it, the second tent, the cairn kick, the bluebird already flying at Bluebird Forecast's summit, the inversion at the end of Bluebird Forecast, the aspens in the Palouse, and two trail stretches. hevy-garmin-sync's gully, sets, slip and snow went when it became a trail run (H5). The larch basin's red patches and floating things are fixed, not removed (I2, I4). The col descent I built was taken out again when TJ described the real day (I11).
+
+**Sounds nobody has heard yet.** The loop checks that each sound plays without an error, but it cannot listen. The new effects in `audio.js` are `drizzle` (rain on the lake loop), `warble` (the bluebird's song), `lap` (the watch's blip), `chime` (the phone's notice) and `clack` (a stone set on the cairn). The jay's call is gone. The DEBUG menu's sound test (C6) plays every effect and every part of the tunes one at a time.
+
+**Calls for TJ to check**, from section 11:
+- The lake scene's mountain is plainer on a short visit than round 4's, since its blue ice falls show only once they have slid (E6). Keeping them always bare there is one condition in `paintPeak` (`lakeside.js`).
+- The bigger lake is 1.6 times the old width as the plan says, where his sketch in `30-*` measures about 2.2 (D1).
+- The sign's planks kept their order and only the arrows swapped (B3). The resting frame on desktop is round 4's, which keeps the three destinations in view (B9).
+- A cairn stone is one per time on the summit, not one per page load (H10).
+- Things that differ from round 4 on purpose (K2): the West Ridge's pace, camp later in the walk, one tent, trailhead the highest summit, hevy-garmin-sync on turf, the snow traverse, and the hint over the map.
+- Waiting for him outside this PR: https://github.com/zimmertr/trailhead/pull/42 (Renovate, moves the lab image and its playwright package together; the one to merge) and https://github.com/zimmertr/trailhead/pull/43 (Dependabot, package only; close it). Together they clear the high Dependabot alert on the lab's `playwright`.
+
+**What changed the planner's mind**: the descent (a col, then TJ's real rappel and snow traverse), the 404 (whiter digits vanished in white fog, so they are greyer), the slow-font films (Playwright waits for fonts, so the frames now come from Chrome), and the start (one 150 ms search found by measuring each section, and a humpback blamed by one profile that averaging cleared).
+
+**Links.**
+- Round 5: https://claude.ai/artifact/1VdS5Q3uSMTpEuGEm39SZr (version 76)
+- TJ's screenshots, by note: https://claude.ai/artifact/C3vp7qfxAtoHGnTioe2sNs
+- PR: https://github.com/zimmertr/trailhead/pull/32, branch https://github.com/zimmertr/trailhead/tree/pixel-round5
+- Round 4, unchanged: https://claude.ai/artifact/JoMxgPjCfo87iZPgFwXQRk (tag `archive/pixel-r4-final`)
 
 ## 11. Calls made in round 5
 
@@ -1202,3 +1246,5 @@ One line each, newest last: the item, what was decided, and why.
 - K2, for TJ, one small thing round 4 also had: the burst of snow as he pushes off into a glissade fills the screen for half a second. Scrubbed to that exact moment and stopped (hevy-garmin-sync at `p=0.85` lands there now), the screen stays half white until he moves. Fixing it would mean drawing the burst only while he runs. Left as it is, since round 4 did the same.
 - K1, found nothing to fix besides AUTO under reduced motion. The same check on J3's build fails (the light was 70% of the way to Dusk after two minutes at home).
 - J3, looked at beside J2's build in Day on a 1440 screen, on a 390 phone and in the register book: the same. With fonts held back on a phone, beside J2's build with its Google fonts held back the same way: the same Courier fallback, and no camera move. Frame time 12.3 ms. The check passed with nothing moved.
+- K6, a call: the report lists the debug menu's words as a group rather than one per line, to keep the list readable. Copy is read from the diff of `content.js` against `origin/main`, so nothing round 4 already had is listed as new.
+- K6, a call: PR #32 is marked ready only after every check passes on the last commit. The loop ends there and does not merge it.
