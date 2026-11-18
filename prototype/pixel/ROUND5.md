@@ -583,7 +583,7 @@ Work it from the top, one item at a time. An item is done when it does what sect
 - [x] I8. T70: a large tarn far below, like Shield Lake.
 - [x] I9. T73: TJ's fall on the off-width and the 3:1 haul.
 - [x] I10. T74: one cloud sea that rises during the haul, then the rappel into it.
-- [ ] I11. T75: they reach the ground before tugging on the stuck rope.
+- [x] I11. T75: they reach the ground before tugging on the stuck rope.
 
 ### J. The off-route page
 
@@ -712,7 +712,8 @@ The loop prompt TJ starts round 5 with (paste it after `/loop`; rewritten on 202
 - **I9 done.** On the last pitch the leader and the woman climb the off-width as before. TJ struggles up the first 30% of it, comes off, drops and swings out over the air left of the headwall. The woman holds him. The two on top rig a haul at the summit anchor, face the load and yank on it together four times, a reach down the rope and a heave back each time, and every yank lifts TJ a quarter of the way to them. The fourth brings him to the belay.
 - **I10 done.** There is one cloud sea on Proficiency Peak now. As soon as the haul starts, the cloud climbs the tower from the bottom of the picture, always below TJ, and swallows the ridge they came up and the tower's foot. By the time he is at the belay it stands just under the summit block. They stand on top above it, and rappel down into it as before. Nothing fills in during the rappel any more.
 - **I11 changed by TJ, 2026-11-17 (in chat, mid-item):** "We actually rappeled onto a steep snow slope and had to four-point traverse to the side with ice axes. Can we have the walkoff look like that? They just try and pull the rope, fail, walk off their ledge onto a steep snow slope, and then one-by-one traverse off screen. TJ led the snow traverse IRL, so lets have that here." His answers: the snow slope runs east from the ledge's outer end and falls away to the right, off screen; they cross unroped, facing in, an ice axe in each hand, kicking steps, TJ first, then the leader, then the woman, each in TJ's steps. So the ledge stays (round 4's shelf); my first try, a talus col replacing it, is dropped (kept outside the repo as a scratch file only). Not started.
-- Next: I11 (as changed above).
+- **I11 done, as TJ changed it.** Under the cloud at Proficiency Peak they land on round 4's ledge as before, pull the rope, see it jam, heave, look at each other and shrug. Then one at a time, TJ first, then the leader, then the woman, each walks to the ledge's outer end, steps down onto a steep snow slope that falls away east of it, faces in and traverses down and across it with an ice axe in each hand, kicking steps, until off the picture. The others follow in TJ's steps. The scene ends when the woman is off the picture. The stuck rope is left hanging.
+- Next: J1.
 
 ## 11. Calls made in round 5
 
@@ -1154,3 +1155,12 @@ One line each, newest last: the item, what was decided, and why.
 - I10, a call: the far sea's own level is not raised. It already reads as the high sea from the summit, and raising it would have moved the rappel's numbers (the zip into the cloud is worked out from CLOUDH).
 - I10, a cost: each frame from the haul to the rappel keeps a copy of the screen after the far sea, to know which pixels were drawn in front of it. Frame time in the scene stays about 5 ms.
 - I10, looked at beside the build before from the haul to the rappel, close up during the haul, at Dusk and on a phone both ways. The check passed with nothing moved.
+- I11, TJ's change (2026-11-17, in chat, mid-item; quoted in section 10): the walk-off is a four-point snow traverse with ice axes, one at a time, TJ leading. His answers: east off the ledge's end, off the right of the picture; unroped. That replaced the section 5 text ("they reach the ground before tugging"). The merge exception ended with that message; nothing was merged.
+- I11, a dropped try: before TJ's change I replaced the ledge with a talus col at the foot of the face. TJ's words ("walk off their ledge") keep the ledge, so it was put back as round 4 drew it and the col is not in the repo.
+- I11, the snow slope (`ridge.js`, `SNOW`): steep snow seen face on, under the ledge and east of it, its upper edge rising east into the cloud's underside, bounded on the west by the tower's own face (traced down row by row; the same trace as the col try). Flat grey-blue light, runnels down the fall line, a few rocks, darker toward the bottom. It is painted once into a typed array, kept apart and drawn only under the cloud, like the ledge, so nothing of it shows from above.
+- I11, the traverse (`SN`, `snowAt`): each starts `gap` 2.2 s after the one before, walks to the ledge's end in 1.4 s, steps down 6 px onto the snow in 0.5 s, then traverses at 22 px a second, down 1 px for every 4 across, until 330 px out. Facing in, seen from behind: right axe up, left axe up, right foot up, left foot up, each axe drawn with its pick in the snow above the hand. TJ's kicked steps are left as a line of small pits behind him.
+- I11, a call: TJ is the first off the ledge, though he lands nearest the rock; he walks out behind the other two along the ledge.
+- I11, a call: the camera pans 70 px east as TJ starts across, so the snow they cross is in the picture. On a 1920-wide screen the last steps of each may still be in the picture when the scene ends; on a laptop and a phone all three are off it.
+- I11, a call: once they let go, the stuck rope lies from a coil on the ledge up the face to the flake, and stays there.
+- I11, no new sounds. The scene is 20 s longer (182 s).
+- I11, looked at in motion from the landing to the end, close up on the traverse, at Dusk and on a phone. Frame time under the cloud is about 8 ms (was about 5), from painting the snow. The check passed with nothing moved.

@@ -699,7 +699,13 @@ const ZIP = 2.6, DESC = { walk: { lead: [0, 1.2], tj: [1.0, 2.2], red: [1.6, 3.0
 // the way back to the packs. Nobody climbs the stuck rope.
 DESC.under = DESC.turn.tj + 1.5 + 0.8 * ZIP;
 const UNDER = { out: 1.2, land: 3.0, unclip: 3.6, snag: 6.2, heave: [6.4, 9.4], look: 9.6, shrug: [11.0, 12.2], walk: 12.6 };
-const DESC_LEN = DESC.under + UNDER.walk + 1.3;
+// The walk-off (round 5, T75, TJ: they rappelled onto a steep snow slope and traversed off it, four
+// points on, with ice axes, TJ leading): after the shrug each in turn (TJ, the leader, the woman, `gap`
+// seconds apart) walks to the ledge's outer end (`ledge` s), steps down onto the snow (`step` s), faces
+// in and traverses down and across it at `v` px a second, in TJ's steps, until `off` px out, off the
+// picture on a laptop screen. The scene ends when the last of them is there.
+const SN = { gap: 2.2, ledge: 1.4, step: 0.5, v: 22, off: 330, order: { tj: 0, lead: 1, red: 2 } };
+const DESC_LEN = DESC.under + UNDER.walk + 2 * SN.gap + SN.ledge + SN.step + SN.off / SN.v + 0.5;
 function makeScript() {
   const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [], anc = [];
   let slipAt = -1, fallAt = -1, whipAt = -1, haulAt = -1, rigAt = -1, upAt = -1; const yanks = [];
@@ -1087,6 +1093,43 @@ function buildRidge() {
   // it, painted into the rock: a sliver standing off the face with a dark crack behind it.
   const LH = Math.round(CLOUDH - 85), E0 = EAST(LH), CB = LH + 70, LX = EAST(LH + 8) + 8, LANDS = {};
   for (const [w, dx] of [['tj', 0], ['lead', 13], ['red', 25]]) LANDS[w] = { x: LX + dx, h: LH };
+  // The snow slope (round 5, T75): steep snow seen face on, falling away under the ledge and east of it,
+  // its upper edge rising east into the cloud's underside. XE is where they stand at the ledge's outer
+  // end; the traverse runs from just below it down and across the face (snowAt: where along it, sp px
+  // out). Painted once, kept apart and drawn only under the cloud, like the ledge.
+  const XE = E0 + 44, snowAt = sp => ({ x: XE + 6 + sp, h: LH - 6 - 0.25 * sp });
+  let SNOW = [];
+  {
+    // The tower's own east face at each row down from the ledge: the first gap going east from inside
+    // the tower, never more than 3 px east of the row above (EAST is the last rock in a wide window,
+    // which below the ledge is the spires beyond). Where the tower and a spire meet there is no gap,
+    // and from there down the face is carried on at the lean it had over its last 12 rows.
+    const solid = (x, h) => ID[(main.up - h) * W + x], FACE = new Map(), seen = [];
+    for (let h = LH + 2, prev = E0 + 3, merged = false; h > LH - 562; h--) {
+      let x = prev - 8; while (x < prev + 3 && solid(x + 1, h)) x++;
+      if (merged || solid(x + 1, h)) { merged = true; const n = Math.min(12, seen.length - 1); x = Math.round(prev + (n > 0 ? (seen[seen.length - 1] - seen[seen.length - 1 - n]) / n : 0)); }
+      else seen.push(x);
+      FACE.set(h, x); prev = x;
+    }
+    for (let x = E0; x < E0 + 480; x++) {
+      const tp = Math.min(CB + 30, x <= XE + 3 ? LH - 4 : Math.round(LH - 4 + 0.55 * (x - XE - 3) + 3 * (vnoise(x / 14, 1, 797) - 0.5) * 2));
+      for (let h = tp; h > LH - 560; h--) {
+        const f = FACE.get(h) ?? EAST(h); if (x <= f) continue;
+        const k = tp - h, dd = clamp((LH - h) / 260, 0, 1), n = bayer(x, h);
+        // Flat grey light under the cloud: pale snow with the fall line's runnels in it, a few rocks
+        // standing out, and darker toward the bottom.
+        let c = n < 0.25 + 0.6 * dd ? R.snow[1] : R.snow[2];
+        if (dd > 0.55 && n < (dd - 0.55) * 1.5) c = R.snow[0];
+        if (fbm(x / 2.5, h / 18, 798, 2) > 0.72) c = dd > 0.5 ? R.snow[0] : R.snow[1];
+        if (fbm(x / 9, h / 6, 799, 3) > 0.8) c = pick('granite', 0.42 - 0.3 * dd, x, h);
+        if (k === 0) c = R.snow[3]; else if (k === 1) c = R.snow[2];
+        if (x === f + 1 && k > 0) c = INK;
+        SNOW.push(x, h, c);
+      }
+      if (tp < CB + 30) SNOW.push(x, tp + 1, INK);
+    }
+    SNOW = Int32Array.from(SNOW);
+  }
   // The ledge they land on: a shelf of the tower's pale rock standing out from the east face, lit on
   // top, thinning toward its end, ink under it and a dark joint where it meets the face. It is kept
   // apart and drawn only under the cloud, so it does not stick out of the tower all through pitch 5.
@@ -1130,8 +1173,15 @@ function buildRidge() {
     if (a < UNDER.look) return { x: L.x, h: L.h, dp: 'stand', left: true };
     if (a < UNDER.shrug[0]) return { x: L.x, h: L.h, dp: 'stand', left: w !== 'tj' };
     if (a < UNDER.shrug[1]) return { x: L.x, h: L.h, dp: 'shrug', left: true };
-    if (w === 'tj' && a >= UNDER.walk) return { x: L.x - 24 * (a - UNDER.walk), h: L.h, dp: 'walk', left: true, where: 'n' };
-    return { x: L.x, h: L.h, dp: 'stand', left: w !== 'tj' || a < UNDER.walk - 0.2 };
+    const s0 = UNDER.walk + SN.order[w] * SN.gap;
+    if (a >= s0) {
+      const b = a - s0;
+      if (b < SN.ledge) return { x: lerp(L.x, XE, smooth(0, SN.ledge, b)), h: L.h, dp: 'walk', left: false };
+      if (b < SN.ledge + SN.step) { const u = (b - SN.ledge) / SN.step; return { x: lerp(XE, XE + 6, u), h: lerp(LH, LH - 6, u), dp: 'snow', sp: 0, left: false }; }
+      const sp = (b - SN.ledge - SN.step) * SN.v, q = snowAt(sp);
+      return { x: q.x, h: q.h, dp: 'snow', sp, left: false };
+    }
+    return { x: L.x, h: L.h, dp: 'stand', left: a < s0 - 0.3 && (w !== 'tj' || a < UNDER.walk - 0.3) };
   };
   // Where one of them is v seconds into the descent, in what pose (dp), facing which way (left).
   const descAt = (w, v) => {
@@ -1165,6 +1215,10 @@ function buildRidge() {
   for (const w of WHO) KH[w] = { ...KO(w), hood: true };
   // She sits and eats bare-headed, and her helmet goes on with his at the foot of the climb.
   const BARE = kitFrames(PAIR[1]);
+  // On the snow, facing in, an ice axe in each hand: right axe up, left axe up, right foot up, left foot up.
+  // The axe: held near the foot of its shaft, its head above the hand with the pick driven into the snow.
+  const axe = (b, x, y) => { for (let k = 1; k <= 4; k++) b.set(x, y - k, R.bark[2]); for (let k = -1; k <= 2; k++) b.set(x + k, y - 5, R.rock[k === 2 ? 0 : 1]); b.set(x + 2, y - 4, R.rock[0]); b.set(x - 1, y - 6, R.rock[3]); };
+  const SNOWF = {}; for (const w of WHO) SNOWF[w] = [[[-8, -16], [9, -21], [-4, 10], [4, 10]], [[-9, -21], [8, -16], [-4, 10], [4, 10]], [[-8, -18], [8, -18], [-4, 10], [5, 5]], [[-8, -18], [8, -18], [-5, 5], [4, 10]]].map(([a, b2, c, d]) => backFig(KIT[w], { hands: [a, b2], feet: [c, d], tool: axe }));
   const F = { tj: kitFrames(KIT.tj, R.blaze), lead: kitFrames(KIT.lead), red: kitFrames(KIT.red) }, FH = { tj: kitFrames(KH.tj, R.blaze), lead: kitFrames(KH.lead), red: kitFrames(KH.red) };
   // On the face their hands and feet are on the holds (H10). The drawings are made as they are needed
   // and kept: the limbs fall on whole pixels, so the same few come round again and again. right, when
@@ -1221,7 +1275,8 @@ function buildRidge() {
       rope(scr, rp, false); return;
     }
     if (a < UNDER.unclip || a >= UNDER.shrug[0]) {
-      rp.push(Math.round(P.lead.x) - 3 - cx, rowOf(P.lead.h + 1), EAST(foot) + 2 - cx, rowOf(foot)); up(rp, foot + 6, 1, cx, rowOf); rope(scr, rp, false);
+      if (a >= UNDER.walk) rp.push(EAST(foot) + 9 - cx, rowOf(foot - 1)); else rp.push(Math.round(P.lead.x) - 3 - cx, rowOf(P.lead.h + 1));
+      rp.push(EAST(foot) + 2 - cx, rowOf(foot)); up(rp, foot + 6, 1, cx, rowOf); rope(scr, rp, false);
     } else {
       for (const w of ['red', 'lead', 'tj']) { const q = P[w]; rp.push(Math.round(q.x) - 5 - cx, rowOf(q.h + (q.dp === 'heave' ? 13 : 17))); }
       rp.push(EAST(foot + 10) + 1 - cx, rowOf(foot + 10)); up(rp, foot + 16, 1, cx, rowOf); rope(scr, rp, false);
@@ -1265,7 +1320,7 @@ function buildRidge() {
       const ends = live.length ? live.map(r => held(r) ? mid(posAt(S[r.a].d), posAt(S[r.b].d)) : posAt(S[r.b].d)) : [posAt(S.tj.d)], at = { x: ends.reduce((a, p) => a + p.x, 0) / ends.length, h: ends.reduce((a, p) => a + p.h, 0) / ends.length };
       const dv = tau - SCRIPT.descT;
       if (dv >= 0) { at.x = LIPX + 6; at.h = CAMD; }
-      if (dv >= DESC.under) { at.x = LX + 24; at.h = LH + 45; }
+      if (dv >= DESC.under) { at.x = LX + 24 + 70 * smooth(UNDER.walk + 1.4, UNDER.walk + 6, dv - DESC.under); at.h = LH + 45; }
       camX += (at.x - camX) * k; camH += (at.h - camH) * k;
       // The wind where the camera is, and the gust's strength; a whoosh as each gust arrives, louder
       // high up (none at the foot, where there is no wind to speak of).
@@ -1339,6 +1394,7 @@ function buildRidge() {
           if (s.dp === 'pull') { put(fr.pull[Math.floor(t * 4) & 1], sx, sy, true); return; }
           if (s.dp === 'heave') { put(fr.heave, sx, sy, true); return; }
           if (s.dp === 'shrug') { put(fr.shrug, sx, sy, false); return; }
+          if (s.dp === 'snow') { put(SNOWF[w][Math.floor(s.sp / 3) % 4], sx, sy - 12, false); return; }
           // Waiting their turn, they watch the edge.
           put(fr.idle, sx, sy, s.left); return;
         }
@@ -1380,7 +1436,12 @@ function buildRidge() {
       };
       for (const w of WHO) if (P[w].where === 'n') draw1(w);
       drawStrip(scr, main, cx, base + camH, false, R.grass[0]);
-      if (dv >= DESC.under) paintPts(scr, LEDGE, cx, rowOf);
+      if (dv >= DESC.under) {
+        paintMany(scr, SNOW, cx, rowOf(0));
+        // The steps TJ kicks, a pit every 4 px behind him.
+        if (P.tj.dp === 'snow') for (let sp = 0; sp < P.tj.sp - 2; sp += 4) { const q = snowAt(sp), x = Math.round(q.x) - cx, y = rowOf(Math.round(q.h)); scr.set(x, y, R.snow[1]); scr.set(x + 1, y, R.snow[0]); }
+        paintPts(scr, LEDGE, cx, rowOf);
+      }
       for (const th of things) {
         const sx = th.x - cx, sy = rowOf(th.h);
         if (sx < -40 || sx > VW + 40) continue;
@@ -1509,6 +1570,11 @@ function buildRidge() {
 }
 
 // Pixels kept as a flat list of x, h, colour, drawn in the world.
+// The same for a long list (x, h, colour triples in a typed array), with the screen row of h = 0 given.
+function paintMany(scr, pts, cx, y0) {
+  const { VW, VH, fb } = scr;
+  for (let i = 0; i < pts.length; i += 3) { const x = pts[i] - cx, y = y0 - pts[i + 1]; if (x >= 0 && x < VW && y >= 0 && y < VH) fb[y * VW + x] = pts[i + 2]; }
+}
 function paintPts(scr, pts, cx, rowOf) { for (let i = 0; i < pts.length; i += 3) scr.set(pts[i] - cx, rowOf(pts[i + 1]), pts[i + 2]); }
 // The upper hull of a run of points along the crest (x rising): the line a rope stretched over it takes.
 function overHull(pts) {

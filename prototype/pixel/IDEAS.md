@@ -405,3 +405,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Wisps Up the Tower** (round 5, I10). A few thin wisps run up the rock ahead of the rising cloud's edge, like fog climbing a face on a cold morning.
 - **The Cloud on the Map** (round 5, I10). Once a visitor has seen the summit, the world map shows a small patch of cloud around Proficiency Peak's foot, gone after a while.
 - **Shadow on the Sea** (round 5, I10). The tower casts a long faint shadow across the top of the cloud sea, away from the sun, longer at Dusk.
+- **Spindrift** (round 5, I11). Now and then a little powder slides down the runnels past them on the snow slope.
+- **A Last Look Back** (round 5, I11). The woman, last off the ledge, turns and looks up at the stuck rope before she steps onto the snow.
+- **Axe Sounds** (round 5, I11). A soft thunk each time an axe goes in on the traverse, quieter for the two who follow.
