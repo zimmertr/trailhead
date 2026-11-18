@@ -47,7 +47,6 @@ Things that would make the pixel trailhead look, feel, perform and behave better
 - **Pause when hidden.** Stop drawing and stop the music when the tab is in the background.
 - **Build scenes off the main thread.** The forest and the wall take a moment to paint at load. A worker could paint them while the map is already on screen.
 - **A smaller first load.** The page is about 1 MB of script with no build step, and `ground.png` 1.5 MB. Minified and compressed the script would be a fraction of that, and the fonts could be cut down to the letters in use.
-- **Fonts in the repo.** The four pixel fonts and the register's four handwriting faces come from Google Fonts. Hosting them with the site removes the outside requests and the moment of fallback text.
 
 ## Sound
 
@@ -158,10 +157,9 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 
 ### Offered to TJ for round 5 and not picked (kept for later)
 
-- **A smoke test for the prototype in CI.** A Docker job on every PR that walks each route headless, fails on any console error or on frame time over budget, and attaches a sheet of screenshots. It would turn "every route runs clean" from a claim in a report into a check that runs on its own.
 - **A slow-phone check.** Round 4's frame times come from a fast machine in Docker. Measure at 4x CPU slowdown, and let the game drop its costliest layers by itself (mist detail, the zoomed-out redraw) when a frame runs long.
 - **A link preview.** A page title, description and a preview image (a good render of the map at golden hour) so a link shared on LinkedIn or Slack looks like the site.
-- **Reduced motion.** Follow the system's reduce-motion setting: gentler camera moves and fewer screen-wide effects.
+- **Reduced motion.** The camera (round 4), AUTO and the idle tour (round 5, K1) already follow the system's reduce-motion setting. What is left is fewer screen-wide effects for that visitor: the glissade's burst of snow and the whiteout on the Kubernetes-Manifests climb.
 - **A copy review page.** Generated from `content.js`: every line a visitor can read, grouped by place, so TJ can review all the draft copy in one sitting.
 
 ### Climb scenes for later (TJ asked for these to be kept, 2026-11-16)
@@ -411,10 +409,9 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The 404 as a Find** (round 5, J1). Clicking the digits in the fog counts as a find on the kiosk checklist (TJ's call, like every find).
 - **Other Codes in Other Weather** (round 5, J1). A 500 in the smoke of a forest fire, if the site ever has a server error page.
 - **The Page Written Out at Build Time** (round 5, J2). The release writes the page of text into `index.html` as plain HTML, so search engines and link previews read it without running the script.
-- **Print the Page as a Resume** (round 5, J2). A print style for the page that drops the map picture and the buttons, so it prints as a one-page resume.
 - **Fonts From the Lockfile** (round 5, J3). When `web` serves the prototype, take the eight `@fontsource` packages as dependencies like National Park, so Renovate keeps them current and `tests/notices.test.ts` checks their licences.
 - **Only the Letters Used** (round 5, J3). Subset Jersey 10, Tiny5 and Silkscreen to the characters the site's own words use, which could halve the 40 KB the first screen waits for.
-- **The Walk in CI** (round 5, K1). Run `walk.sh`'s walk of every route as a Playwright test in the Prototype Smoke job, at 8x on the page's clock, so a stop that never lets him go fails the PR.
+- **The Walk in CI** (round 5, K1). Run `walk.sh`'s walk of every route as a Playwright test in the Prototype Smoke job, at 8x on the page's clock, so a stop that never lets him go fails the PR; time the heaviest views against 16.7 ms there too, and attach the sheet of stops to the run. The smoke test round 5 added (S1b) covers the start, a few points of each route and a clean console.
 - **Views by Place, Not by Fraction** (round 5, K2). Give `refs.sh` views named by stop or scene (`stop=` or a scene's own start) instead of `p`, so two builds with different scene lengths still compare the same place.
 - **Bake the Places Too** (round 5, K3). `habitat()` and the trail routing run on every start; their results could go into the bake beside the ground, which would take most of the remaining 70 to 90 ms back.
 - **Load Time in CI** (round 5, K3). The Prototype Smoke job could time the start three times and fail over 0.9 s, so a slow search like E8's is caught the day it lands.
