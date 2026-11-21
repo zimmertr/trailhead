@@ -12,7 +12,8 @@ export const MW = 600, MH = 360, MCX = 300;
 
 // The outline from the south, [x, y] in the picture: Liberty Cap's shoulder to the west, a broad top
 // of three low bumps, a long east ridge down to a saddle and Little Tahoma's sharp tooth beyond it.
-const SKY = [[0, 362], [30, 346], [70, 318], [110, 280], [150, 236], [186, 192], [214, 154], [236, 124], [252, 104], [264, 92], [274, 86], [284, 88], [294, 83], [306, 76], [320, 72], [334, 70], [350, 72], [364, 70], [378, 76], [392, 86], [408, 102], [426, 124], [444, 146], [458, 156], [468, 150], [476, 136], [482, 125], [489, 136], [500, 158], [520, 192], [548, 242], [574, 292], [600, 348], [604, 362]];
+// The tooth's tip is two pixels across and a little uneven, not a single pixel (round 5, T31): still sharp, less jaggy.
+const SKY = [[0, 362], [30, 346], [70, 318], [110, 280], [150, 236], [186, 192], [214, 154], [236, 124], [252, 104], [264, 92], [274, 86], [284, 88], [294, 83], [306, 76], [320, 72], [334, 70], [350, 72], [364, 70], [378, 76], [392, 86], [408, 102], [426, 124], [444, 146], [458, 156], [468, 150], [476, 136], [480, 128], [481, 127], [482, 127], [483, 128], [485, 130], [489, 136], [500, 158], [520, 192], [548, 242], [574, 292], [600, 348], [604, 362]];
 const along = (pts, x) => { if (x <= pts[0][0]) return pts[0][1]; for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; return lerp(y0, y1, (x - x0) / (x1 - x0)); } return pts[pts.length - 1][1]; };
 export const skyline = x => along(SKY, x);
 // The same outline as a share of the summit's height, by distance from the summit's column in map
@@ -36,8 +37,14 @@ const RIDGES = [
 // as a range of distance from the summit.
 const SNOUT = [266, 300, 296, 334, 290, 316, 282, 306, 268];
 const FALLS = { 2: [128, 186], 3: [150, 214], 4: [96, 150], 7: [120, 160] };
-// The middle icefall, the large one low in the centre, is the one the avalanche bares (E5c).
+// The middle icefall, the large one low in the centre. Round 4's avalanche bared only this one (E5c); since
+// round 5 (T11) every icefall starts under snow and any of them can slide. FALL_IDS: the glaciers that have
+// one, west to east.
 export const MID_FALL = 3;
+const FALL_IDS = Object.keys(FALLS).map(Number);
+// Which icefalls lie under snow now, by their place in FALL_IDS. The map keeps this up to date as its
+// avalanches run and the lake scene reads it, so both show the same mountain. rev counts the changes.
+export const faceSnow = { on: FALL_IDS.map(() => true), rev: 0 };
 const SUM = [324, 70];
 const rOf = (x, y) => Math.hypot((x - SUM[0]) * 0.72, y - SUM[1]);
 // The summit snowfield: above this the glaciers have not begun.
@@ -49,12 +56,33 @@ function ridgeAt(r, y) {
   return null;
 }
 
+// Round 5 (T30): where glacier gi ends, for the moraine lake at its foot. The two cleavers either side of
+// it on the row its ice ends (the next one along on the east where a short cleaver stops higher up), the
+// column halfway between them, and snout(x): the last row of ice at column x, by the very rule the painting
+// uses below. A glacier whose west cleaver stops above its snout row does not reach down that far (the
+// painting gives those rows to the glacier west of it), so it has no end of its own here.
+export function glacierEnd(gi) {
+  const y = SNOUT[gi], l = ridgeAt(RIDGES[gi - 1], y); let r = null;
+  for (let k = gi; k < RIDGES.length && !r; k++) r = ridgeAt(RIDGES[k], y);
+  if (!l || !r) return null;
+  const snout = x => SNOUT[gi] + 10 * vnoise(x / 9, gi, 907) - 6 * Math.sin(Math.PI * clamp((x - l[0]) / (r[0] - l[0]), 0, 1));
+  return { gi, mid: Math.round((l[0] + r[0]) / 2), room: (r[0] - r[1]) - (l[0] + l[1]), snout };
+}
+// The glacier whose foot is above picture column x: the one between the nearest cleavers either side on
+// the rows where the ice ends.
+export function glacierOver(x) { let best = null; for (let gi = 1; gi < SNOUT.length; gi++) { const e = glacierEnd(gi); if (e && Math.abs(e.mid - x) < e.room / 2 && (!best || Math.abs(e.mid - x) < Math.abs(best.mid - x))) best = e; } return best; }
+// The glaciers that end in moraine lakes (T30, TJ): the middle one, with the big icefall, whose lake is the
+// new river's source, and the one above the old stream under the east foot (picture column 466, where that
+// stream rose in round 4). The map (land.js) and the lake scene (lakeside.js) both read this list.
+export const moraineLakes = () => [glacierEnd(MID_FALL), glacierOver(466)].filter(Boolean);
+
 export function paintMonolith() {
   // own marks the mountain proper; the meadow at its foot is only a stand-in for the mockup, and in the
   // game the land's own meadow, trees and flowers are drawn there instead.
   const own = new Uint8Array(MW * MH), d = new Uint8Array(MW * MH), snow = R.snow, ice = R.serac, rock = R.mauve;
-  // For each pixel of the middle icefall: its index, the plain snow that would lie there with no icefall,
-  // and how far down the icefall it is (0 at its top, 1 at its foot).
+  // For each pixel of an icefall: its index, the plain snow that would lie there with no icefall, and one
+  // byte saying which icefall (its place in FALL_IDS, in the top two bits) and how far down the icefall the
+  // pixel is (0 at its top to 63 at its foot, in the low six).
   const cover = [];
   // The relief: each cleaver is a ridge with a sharp crest and slopes either side; between them the
   // glaciers lie in troughs. It is only used for light, so it is worked out at every pixel of the picture.
@@ -159,7 +187,7 @@ export function paintMonolith() {
         const topH = 0.22 + 0.25 * hash(col, row, 926);
         d[i] = fy < topH ? snow[blk < 0.2 ? 3 : 4] : fy > 0.86 ? ice[0] : fx > 0.75 ? ice[1] : fx < 0.2 ? ice[4] : blk < 0.12 ? snow[3] : ice[L > 0.5 ? 3 : 2];
       } else if (edge > 0.25) d[i] = blk < 0.85 ? ice[fy > 0.5 ? 0 : 1] : snowC(L - 0.2, x, y);
-      if (d[i] !== before) { if (gi === MID_FALL) cover.push(i, plain(), Math.round(255 * clamp((rr - f0) / (f1 - f0), 0, 1))); continue; }
+      if (d[i] !== before) { cover.push(i, plain(), (FALL_IDS.indexOf(gi) << 6) | Math.round(63 * clamp((rr - f0) / (f1 - f0), 0, 1))); continue; }
     }
     // Crevasses: short arcs across the ice, not everywhere: in bands where the glacier bends or steepens.
     d[i] = plain();

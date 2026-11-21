@@ -268,6 +268,45 @@ function makeLog(seed = 0, bare = false) {
   if (rand() < 0.5) { const d = b.d.slice(); for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) b.d[y * b.w + x] = d[y * b.w + b.w - 1 - x]; b.ox = b.w - 1 - b.ox; }
   return b;
 }
+// Driftwood on the beach (round 5, T8: the logs were a forest log painted pale, and read as blobs). A
+// sun-bleached trunk lying at its own angle: silver on top, grain running along it, a darker underside,
+// one end broken off in splinters with a crack running in from it, the other a root wad or a snapped butt,
+// the stub of a branch or two, and its shadow on the sand. Thicker at the butt, as a tree is.
+function makeDriftwood(seed = 0) {
+  const rand = rng(4800 + seed), len = 18 + (rand() * 14 | 0), slope = (rand() - 0.5) * 0.76, rad = 2 + rand() * 0.9, roots = rand() < 0.5, G = R.gold;
+  const W = len + 16, H = Math.ceil(Math.abs(slope) * len) + 18, b = new BM(W, H), x0 = 8, cy = t => H / 2 + slope * (t - len / 2), rAt = t => rad * (1 - 0.35 * t / len);
+  for (let t = 0; t < len; t++) {
+    const c = cy(t), r = rAt(t), y0 = Math.round(c - r), y1 = Math.round(c + r), splinter = Math.max(0, (t - (len - 4)) / 3);
+    for (let y = y0; y <= y1; y++) {
+      if (splinter && hash(t, y, seed + 71) < 0.5 * splinter) continue;
+      const j = y - Math.round(c), grain = vnoise(t / 7 + j * 2.7, j * 5.3, seed + 72), knot = hash(t >> 1, j, seed + 73) < 0.04;
+      b.set(x0 + t, y, y === y1 ? G[2] : y === y0 ? G[6] : y === y1 - 1 && r > 1.8 ? G[3] : knot ? G[2] : grain > 0.62 ? G[4] : grain < 0.3 ? G[6] : G[5]);
+    }
+  }
+  // The crack: a dark line in from the broken end, along the grain.
+  { const n = 3 + (rand() * 3 | 0); for (let k = 0; k < n; k++) { const t = len - 1 - k; b.set(x0 + t, Math.round(cy(t)), G[1]); } }
+  // Branch stubs: bleached like the trunk, standing off its upper side.
+  for (let k = 0, n = 1 + (rand() < 0.5 ? 1 : 0); k < n; k++) {
+    const t = Math.round(len * (0.25 + 0.5 * rand())), top = Math.round(cy(t) - rAt(t)), lean = rand() < 0.5 ? -1 : 1, tall = 2 + (rand() * 3 | 0);
+    for (let q = 1; q <= tall; q++) b.set(x0 + t + lean * Math.floor(q / 2), top - q, q === tall ? G[6] : q === 1 ? G[3] : G[5]);
+  }
+  if (roots) {
+    // A root wad: the torn roots fan out from the butt, pale at their tips, with the dark of the hollow between.
+    const c = cy(0);
+    for (let k = 0, n = 5; k < n; k++) { const a = Math.PI + (k - (n - 1) / 2) * 0.52 + (rand() - 0.5) * 0.2, L = 3 + rand() * 2.5; for (let q = 0; q <= L; q++) b.set(x0 - 1 + Math.cos(a) * q, c + Math.sin(a) * q * 1.15, q < 1 ? G[2] : q > L - 1 ? G[6] : G[4]); }
+    b.set(x0 - 1, c, G[1]); b.set(x0, c, G[2]);
+  } else {
+    // A snapped butt: the end grain a step darker, with its heart darker still.
+    const c = cy(0), r = Math.round(rAt(0)); for (let dy = -r; dy <= r; dy++) b.set(x0 - 1, c + dy, dy === 0 ? G[2] : G[3]);
+  }
+  // Outlined in the wood's own dark, not in ink: ink round a log this thin is most of what shows.
+  outline(b, G[1]);
+  // Its shadow, on the sand below and to the east of it.
+  { const solid = b.d.slice(); for (let x = 0; x < W - 1; x++) for (let y = H - 2; y >= 0; y--) if (solid[y * W + x]) { for (const dx of [0, 1]) if (!solid[(y + 1) * W + x + dx]) b.d[(y + 1) * W + x + dx] = R.sand[0]; break; } }
+  b.ox = W >> 1; b.oy = Math.min(H - 1, Math.round(H / 2 + rad + 2));
+  if (rand() < 0.5) { const d = b.d.slice(); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) b.d[y * W + x] = d[y * W + W - 1 - x]; b.ox = W - 1 - b.ox; }
+  return b;
+}
 function makeCloud(seed) {
   const rand = rng(seed), b = new BM(56, 20); b.ox = 0; b.oy = 0;
   const blobs = []; for (let k = 0; k < 6; k++) blobs.push([8 + k * 8 + rand() * 4, 12 - rand() * 6 - (k > 1 && k < 4 ? 4 : 0), 5 + rand() * 4]);
@@ -376,6 +415,36 @@ function makeElk(headDown, step = 0, bull = true) {
   }
   return b;
 }
+// A moose, facing left like the elk and a head taller: a dark body on long pale legs, a hump over the shoulders,
+// a long head with a drooping nose and a bell under the throat. The bull carries broad palmate antlers (T35, TJ: "so
+// that one can have antlers"). The calf is small, red-brown and all legs.
+function makeMoose(calf, headDown, step = 0) {
+  const b = calf ? new BM(26, 24) : new BM(40, 38); b.ox = calf ? 13 : 20; b.oy = b.h - 1;
+  const oval = (cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
+  const coat = calf ? (nx, ny, x, y) => pick('bark', 0.68 - ny * 0.3 + nx * 0.05, x, y, 0.5) : (nx, ny, x, y) => pick('fur', 0.42 - ny * 0.34 + 0.16 * (hash(x, y, 14) - 0.5), x, y, 0.6);
+  const dark = calf ? R.bark[1] : R.fur[1], sock = calf ? R.bark[2] : R.dirt[3];
+  if (calf) {
+    for (const [lx, far] of [[8, 1], [10, 0], [16, 1], [18, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 13; y < 23; y++) b.set(lx + (y > 18 ? sw : 0), y, y > 17 ? sock : R.bark[far ? 0 : 1]); }
+    oval(13, 11.5, 5.4, 3, coat);
+    const hx = headDown ? 5 : 4.5, hy = headDown ? 19 : 7;
+    if (headDown) thick(b, 8, 12, 6, 17, 3, dark); else thick(b, 8, 10, 6, 8, 3, dark);
+    oval(hx, hy, 2.6, 1.7, coat); b.set(hx - 2, hy + 1, dark); b.set(hx - 3, hy + 1, dark); b.set(hx - 1, hy - 1, INK); b.set(hx + 2, hy - 2, R.bark[2]); b.set(hx + 3, hy - 3, R.bark[2]);
+    outline(b, INK); return b;
+  }
+  // The legs: dark above the knee, pale below; the near and far ones swing opposite ways when it walks.
+  for (const [lx, far] of [[12, 1], [15, 0], [26, 1], [29, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 21; y < 37; y++) b.set(lx + (y > 29 ? sw : 0), y, y > 28 ? sock : R.fur[far ? 0 : 1]); if (!far) for (let y = 21; y < 29; y++) b.set(lx - 1, y, R.fur[1]); }
+  oval(21, 19.5, 9.5, 4.6, coat); oval(14.5, 17, 4.6, 5, coat); oval(28, 19, 3.4, 4.4, coat);
+  const hx = headDown ? 6 : 6, hy = headDown ? 30 : 14;
+  if (headDown) thick(b, 12, 19, 9, 27, 5, dark); else thick(b, 12, 16, 9, 14, 5, dark);
+  oval(hx, hy, 3.6, 2.1, coat); oval(hx - 2.4, hy + 1.6, 2.2, 1.9, coat);
+  b.set(hx + 1, hy - 1, INK); b.set(hx + 4, hy - 3, dark); b.set(hx + 5, hy - 3, dark);
+  if (!headDown) { b.set(hx + 4, hy + 4, dark); b.set(hx + 4, hy + 5, dark); }
+  outline(b, INK);
+  // The antlers go on after the outline, as the elk's do: a broad palm with points along its top, the far one a shade darker.
+  const palm = [[3, -3], [4, -4], [2, -5], [3, -5], [4, -5], [5, -5], [6, -5], [7, -5], [8, -5], [3, -6], [4, -6], [5, -6], [6, -6], [7, -6], [8, -6], [9, -6], [3, -7], [5, -7], [7, -7], [9, -7], [10, -7], [1, -4], [0, -5]];
+  for (const [dx, dy, c] of [[-4, 0, R.dirt[3]], [0, 0, R.white[0]]]) for (const [x, y] of palm) b.set(hx + x + dx, hy + y + dy, c);
+  return b;
+}
 function makeSlug() {
   const b = new BM(8, 4); b.ox = 4; b.oy = 3;
   for (let x = 1; x < 7; x++) b.set(x, 2, R.yellow[1]);
@@ -434,6 +503,44 @@ function makeBush(seed, kind) {
   outline(b, R.moss[1]);
   return b;
 }
+// Red huckleberry in autumn (round 5, T65): a low shrub. A heap of leaves in its own shade, stems fanning
+// out of it with leaves in pairs up to their tips, crimson below and orange where the light catches them (it
+// comes from the upper left), and a dark line under it where it meets the ground. size scales it: nearer
+// the viewer it is bigger.
+function makeHuckleberry(seed, size = 1) {
+  const rand = rng(seed), w = Math.round((9 + rand() * 6) * size), h = Math.round((5 + rand() * 3) * size), b = new BM(w + 8, h + 5); b.ox = (w + 8) >> 1; b.oy = h + 3;
+  const cx = b.ox, by = b.oy;
+  const tone = (x, y, o) => { const lit = (cx - x) / w + (by - y) / h + 0.25 * (o - 0.5); return lit > 0.78 ? (o < 0.6 ? R.blaze[1] : R.red[1]) : lit > 0.36 ? (o < 0.2 ? R.blaze[1] : R.red[1]) : R.red[0]; };
+  for (let y = by - 1; y > by - h * 0.6; y--) { const half = (w / 2) * Math.sqrt(Math.max(0, 1 - sq((by - y) / (h * 0.6)))); for (let x = Math.ceil(cx - half); x <= cx + half; x++) if (rand() < (y === by - 1 ? 0.6 : 0.9)) b.set(x, y, tone(x, y, rand() * 0.6)); }
+  const n = 4 + Math.round(w / 4);
+  for (let k = 0; k < n; k++) {
+    const a = ((k + 0.5) / n - 0.5) * 2.2 + (rand() - 0.5) * 0.3, L = h * (0.8 + 0.3 * rand()) * (1 - 0.25 * Math.abs(a)), x0 = cx + (k / (n - 1) - 0.5) * w * 0.4;
+    for (let s = 0; s <= L; s++) {
+      const x = x0 + Math.sin(a) * s, y = by - 1 - Math.cos(a) * s, o = rand();
+      if (s < L * 0.35) { if (!b.get(x, y)) b.set(x, y, R.bark[1]); continue; }
+      b.set(x, y, tone(x, y, o)); if (s % 2 < 1) b.set(x + (k & 1 ? 1 : -1), y, tone(x, y, o));
+    }
+    b.set(x0 + Math.sin(a) * L, by - 1 - Math.cos(a) * L, a < 0.4 ? R.red[2] : R.blaze[1]);
+  }
+  for (let x = 0; x < b.w; x++) for (let y = by; y >= by - 2; y--) if (b.get(x, y)) { b.set(x, y + 1, INK); break; }
+  return b;
+}
+// Where huckleberry grows, in clumps: each cell of a coarse grid may hold one clump, at a spot of its own
+// inside it, if `grows` is high there. A clump is a big shrub with two to four smaller ones close round it.
+// `ok` says whether a shrub may stand at a spot. Returns the shrubs as { x, y, v: which drawing, s: 0 small
+// to 2 big, flip }, sorted so the upper ones come first. Nothing here throws a scene's own dice.
+function huckClumps(x0, x1, y0, y1, grows, ok, seed) {
+  const out = [];
+  for (let gx = x0; gx < x1; gx += 46) for (let gy = y0; gy < y1; gy += 22) {
+    const cx = gx + Math.floor(hash(gx, gy, seed) * 46), cy = gy + Math.floor(hash(gx, gy, seed + 1) * 22);
+    if (grows(cx, cy) < 0.55) continue;
+    for (let k = 0, n = 3 + Math.floor(hash(gx, gy, seed + 2) * 3); k < n; k++) {
+      const x = cx + (k ? Math.round((hash(gx + k, gy, seed + 3) - 0.5) * 34) : 0), y = cy + (k ? Math.round((hash(gx + k, gy, seed + 4) - 0.5) * 12) : 0);
+      if (ok(x, y)) out.push({ x, y, v: Math.floor(hash(gx + k, gy, seed + 5) * 6), s: k ? (hash(gx + k, gy, seed + 6) < 0.5 ? 0 : 1) : 2, flip: hash(gx + k, gy, seed + 7) < 0.5 });
+    }
+  }
+  return out.sort((p, q) => p.y - q.y);
+}
 // A summit flag on a pole, in two frames so it can flutter.
 // The trail register (L1), after TJ's photographs: a small wooden box on a post, its lid sloping over a
 // pale plaque, its front a flap that folds down into a desk (the dark line is the hinge), rocks piled round
@@ -476,5 +583,5 @@ function makeFlag(f, ramp = R.red) {
   return b;
 }
 
-export { makeRegister };
-export { makeSnag, makeBush, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeRegister, makeMoose };
+export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };

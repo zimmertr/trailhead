@@ -34,9 +34,14 @@ export function makeKayti() {
   const rock = makeBoulder(531, 5.5);
   // The open tin: three pans of colour. And her pack, set down a little way behind her, past where he sits.
   const tin = new BM(7, 4); for (let x = 1; x < 6; x++) { tin.set(x, 1, R.rock[4]); tin.set(x, 2, [R.red[1], R.red[1], R.yellow[1], R.glac[1], R.glac[1]][x - 1]); } outline(tin, INK);
-  const pack = new BM(10, 11); pack.ox = 5; pack.oy = 10;
-  for (let y = 1; y < 10; y++) for (let x = 1 + (y < 3 ? 1 : 0); x < 9 - (y < 3 ? 1 : 0); x++) pack.set(x, y, y === 4 ? R.teal[0] : x < 4 ? R.teal[2] : R.teal[1]);
-  pack.set(4, 6, R.rock[4]); pack.set(5, 6, R.rock[4]); outline(pack, INK);
+  // Drawn so it reads as a rucksack: a lid held down by two straps with their buckles, a dent in
+  // its side where it has slumped, a loop to lift it by, and a shoulder strap trailing out on the rock.
+  // l, t, d: teal from light to dark; g: a buckle; n: a strap. s: the loop and the trailing strap, which
+  // go on after the outline so they stay thin.
+  const pack = new BM(22, 16); pack.ox = 12; pack.oy = 14;
+  const ROWS = ['............ss......', '.........llllltttt..', '........llllltttttd.', '........llnllttttnd.', '........ddnddddddnd.', '.......lltnttttttnd.', '.....s..ltgtttttgtd.', '....s..lltnttttttnd.', '...s..llttnttttttnd.', '...s..llttttttttttdd', '..s...lltttttttttddd', '..s...lltttttttttddd', '.ss...dddddddddddddd'];
+  const ink = { l: R.teal[2], t: R.teal[1], d: R.teal[0], g: R.rock[4], n: R.navy[0], s: R.navy[1] };
+  for (const strap of [false, true]) { ROWS.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.' && (ch === 's') === strap) pack.set(x + 1, y + 1, ink[ch]); })); if (!strap) outline(pack, INK); }
   return {
     // She faces left, toward the towers. x, y is where her feet rest.
     draw(scr, x, y, t, waving) {
