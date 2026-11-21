@@ -104,6 +104,9 @@ export function makeEvents(W, col) {
       if ((e = now('devil', t)) && EV.devil.ok()) devil(scr, ox, oy, e[0], e[1], t);
       if ((e = now('star', t)) && EV.star.ok()) star(scr, ox, oy, e[0], e[1]);
     },
+    // Where a tumbleweed or a dust devil starts, for the debug panel to look there first. A shooting star
+    // crosses whatever sky is in view, so it has no place.
+    where(name) { const s = name === 'tumble' ? spots.tumbles : name === 'devil' ? spots.devils : null; return s && s.length ? s[0] : null; },
     // The debug panel's start buttons. The shooting star only shows at Dusk, so its button says no by Day.
     trigger(name, t) {
       if (!EV[name] || !EV[name].ok()) return false;

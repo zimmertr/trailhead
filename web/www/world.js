@@ -702,6 +702,18 @@ export function makeWorld() {
       { const k = destUnder(wx, wy); if (k) return { label: DEST_NAMES[W.DEST[k]], named: true, x: sx, y: sy, act: 'dest:' + W.DEST[k] }; }
       return null;
     },
+    // Where a map event happens (round 6, note 26): the face or the serac that falls, the summit, the edge of
+    // the marine layer, or what the animals and the timed events say. And how far to look from where the
+    // camera rests to put a point of the map in the middle of the view.
+    where(name) {
+      if (/^ava\d$/.test(name)) { const A = AVS[+name[3]]; return A ? [A.AX[A.AX.length >> 1], A.AY[A.AY.length >> 1]] : null; }
+      if (name === 'avalanche') return AVS.length ? [AVS[AVS.length >> 1].AX[AVS[AVS.length >> 1].AX.length >> 1], AVS[AVS.length >> 1].AY[AVS[AVS.length >> 1].AY.length >> 1]] : null;
+      if (name === 'serac') return SER.length ? [SER[0][0], SER[0][1]] : null;
+      if (name === 'squall' || name === 'lens') return spots.summit || null;
+      if (name === 'shower') return [lx0 - 50, (ly0 + ly1) >> 1];
+      return crit.where(name) || ev.where(name);
+    },
+    lookFor: (x, y) => [x - cam.x, y - cam.y],
     // The debug panel's start buttons (E5f): each moves its event's clock so the event begins now.
     trigger(name, t) {
       if (name === 'shower') { const n = Math.floor((t + rainAhead + RAIN.cycle - 10) / RAIN.cycle) + 1; rainAhead = n * RAIN.cycle - t - RAIN.cycle + 10; return true; }
@@ -899,10 +911,13 @@ export function makeWorld() {
         }
         // Yellow: where the middle of the view may go. Orange: where a drag starts to be pushed back.
         // White: the edge of the world. Yellow cross: where the camera rests. White cross: the middle of the view.
+        // Drawn bold since round 6 (note 24), as the roam areas are: two pixels of colour with a dark inner
+        // edge, and each line's name inside its top left corner.
         if (DEBUG.camera) {
-          box({ x0: VW / 2, x1: WW - VW / 2, y0: VH / 2, y1: WH - VH / 2 + past }, R.yellow[1], 2);
-          box({ x0: VW / 2 + 26, x1: WW - VW / 2 - 26, y0: VH / 2 + 26, y1: WH - VH / 2 - 26 }, R.blaze[1], 3);
-          box({ x0: 0, x1: WW - 1, y0: 0, y1: WH - 1 }, R.white[1], 1);
+          const L = UI.debug.cameraLines;
+          boldBox(scr, { x0: VW / 2, x1: WW - VW / 2, y0: VH / 2, y1: WH - VH / 2 + past }, R.yellow[1], ox, oy, L[0]);
+          boldBox(scr, { x0: VW / 2 + 26, x1: WW - VW / 2 - 26, y0: VH / 2 + 26, y1: WH - VH / 2 - 26 }, R.blaze[1], ox, oy, L[1]);
+          boldBox(scr, { x0: 0, x1: WW - 1, y0: 0, y1: WH - 1 }, R.white[1], ox, oy, L[2]);
           for (let k = -4; k <= 4; k++) { dot(cam.x + k, cam.y, R.yellow[1]); dot(cam.x, cam.y + k, R.yellow[1]); dot(ox + VW / 2 + k, oy + VH / 2, R.white[1]); dot(ox + VW / 2, oy + VH / 2 + k, R.white[1]); }
         }
       }
@@ -910,6 +925,16 @@ export function makeWorld() {
   };
 }
 
+// A debug outline in the roam areas' style (round 6, note 24): a rectangle of the map two pixels wide in its
+// colour with a dark inner edge, drawn only where it is on screen, and its name inside the top left corner.
+function boldBox(scr, b, c, ox, oy, label) {
+  const X0 = Math.round(b.x0) - ox, X1 = Math.round(b.x1) - ox, Y0 = Math.round(b.y0) - oy, Y1 = Math.round(b.y1) - oy, { VW, VH } = scr;
+  const xa = Math.max(X0, -3), xb = Math.min(X1, VW + 3), ya = Math.max(Y0, -3), yb = Math.min(Y1, VH + 3);
+  const put = (x, y, k) => { if (x >= 0 && y >= 0 && x < VW && y < VH) scr.set(x, y, k < 2 ? c : INK); };
+  for (let x = xa; x <= xb; x++) for (let k = 0; k < 3; k++) { if (Y0 + k <= Y1) put(x, Y0 + k, k); if (Y1 - k >= Y0) put(x, Y1 - k, k); }
+  for (let y = ya; y <= yb; y++) for (let k = 0; k < 3; k++) { put(X0 + k, y, k); put(X1 - k, y, k); }
+  if (label && X1 > 0 && Y1 > 0 && X0 < VW && Y0 < VH) tinyText(scr, Math.max(X0, 0) + 6 + label.length * 2, Math.max(Y0, 0) + 6, label.toUpperCase(), c);
+}
 // A 3 by 5 pixel letter set for the debug labels on the map (T32), with a dark box behind for contrast.
 const GLYPHS = { A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', F: '111100110100100', G: '011100101101011', H: '101101111101101', I: '111010010010111', J: '001001001101010', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', Q: '010101101110011', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', V: '101101101101010', W: '101101111111101', X: '101101010101101', Y: '101101010010010', Z: '111001010100111' };
 function tinyText(scr, cx, y, str, c) {

@@ -717,6 +717,17 @@ export const W = {
     "sasquatch": "Sasquatch",
     "eyeshine": "Deer eyeshine (Dusk)"
    },
+   "families": {
+    "humpback": "Humpback",
+    "cubs": "Bear cubs",
+    "avalanche": "Avalanche"
+   },
+   "pick": "Pick one",
+   "cameraLines": [
+    "View middle",
+    "Push back",
+    "World edge"
+   ],
    "note": "Roam areas, trail lines and camera limits show on the map. Tap targets show in every scene. A start button works only in its own scene."
   },
   "map": {

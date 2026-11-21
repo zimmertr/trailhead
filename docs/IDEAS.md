@@ -429,3 +429,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Hear a Track Before Picking It** (round 6, B4). Holding the pointer over a track in the music menu could play its first bar softly, the way the debug menu's sound test does.
 - **Stop Labels That Read at a Glance** (round 6, B5; #33's last step). The timeline's stop labels are small tags above the bar; they could grow on hover, or show only the next stop's name in full, so the route reads at a glance without crowding a phone.
 - **The Board Read in Place** (round 6, B5). The notice on the register box's back wall could carry the whole board when the screen is tall enough, as TJ's second idea in note 23 has it, and open the sheet only on a phone.
+- **Follow the Event** (round 6, B6). After the view moves to a map event, it could keep following a moving one (the ferry, the orcas, the tumbleweed) until it ends, then ease back to him.

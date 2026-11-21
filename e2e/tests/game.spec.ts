@@ -10,7 +10,7 @@ const origin = process.env.BASE_URL ?? 'http://localhost:8080'
 // the suite, so the page's request is answered here.
 const LIVE = { projects: [{ slug: 'bluebird', name: 'Bluebird Forecast', repo: 'zimmertr/bluebird', url: 'https://github.com/zimmertr/bluebird', stars: 4242, language: 'TypeScript', license: 'NOASSERTION', release: { tag: 'v9.9.9', publishedAt: '2026-11-20T00:00:00Z' }, fetchedAt: '2026-11-21T00:00:00Z' }] }
 
-type Info = { p: number; route: string | null; scene: string; baked: boolean; bakeNote: string }
+type Info = { p: number; route: string | null; scene: string; baked: boolean; bakeNote: string; o: { x: number; y: number } }
 declare global {
   interface Window {
     __ready?: boolean
@@ -158,6 +158,20 @@ test('C opens the trail conditions over the register, and its notice opens them 
   await expect(page.locator('#sheet .board')).toBeVisible()
   await page.waitForTimeout(1000)
   expect(await axe(page).then(found)).toEqual([])
+  expect(problems).toEqual([])
+})
+
+// A debug start button on the map first moves the view to where its event happens (round 6, note 26), and
+// related events share one split button whose arrow lists each (note 27).
+test('the debug panel shows a map event where it happens, from a split button', async ({ page }) => {
+  const problems = await open(page, '/')
+  await page.keyboard.press('Backquote')
+  const before = (await info(page))?.o
+  const avalanche = page.locator('#debug .split', { hasText: 'Avalanche' })
+  await avalanche.locator('.more').click()
+  await expect(avalanche.getByRole('menuitem')).toHaveCount(3)
+  await avalanche.getByRole('menuitem').first().click()
+  await expect.poll(async () => { const o = (await info(page))?.o; return o && before ? Math.hypot(o.x - before.x, o.y - before.y) : 0 }, { timeout: 5_000 }).toBeGreaterThan(100)
   expect(problems).toEqual([])
 })
 

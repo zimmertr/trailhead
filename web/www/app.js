@@ -256,7 +256,22 @@ function openDebug(on) {
   // The timed events of the scene on screen (E5f): the map's, or the scene's own.
   const SCENE_EVENTS = { world: ['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'squall', 'lens', 'tumble', 'devil', 'star'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
   const here = api.scene(), events = SCENE_EVENTS[here] || [];
-  const starts = ids => ids.map(id => el('button', { class: 'plank', onclick: () => { audio.sfx(api.trigger(id) ? 'step' : 'close'); } }, el('span', { text: D.events[id] })));
+  // On the map a start button first eases the view to where its event happens, then starts it (note 26).
+  const fire = id => { const ms = api.showEvent(id); setTimeout(() => audio.sfx(api.trigger(id) ? 'step' : 'close'), ms); };
+  // Related events share one split button (note 27): its name starts one of them at random (the avalanche picks
+  // its own face), and the arrow opens a list of each.
+  const FAMILIES = { humpback: ['breach', 'blow'], cubs: ['cubplay', 'cubclimb'], avalanche: ['ava0', 'ava1', 'ava2'] };
+  const one = id => el('button', { class: 'plank', onclick: () => fire(id) }, el('span', { text: D.events[id] }));
+  const split = (fam, ids) => {
+    const list = el('div', { class: 'split-list', role: 'menu', hidden: '' }, ...ids.map(id => el('button', { class: 'plank', role: 'menuitem', onclick: () => { list.hidden = true; more.setAttribute('aria-expanded', 'false'); fire(id); } }, el('span', { text: D.events[id] }))));
+    const more = el('button', { class: 'plank more', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': D.families[fam] + ': ' + D.pick, onclick: () => { list.hidden = !list.hidden; more.setAttribute('aria-expanded', String(!list.hidden)); } }, el('i', { class: 'arrow down' }));
+    const main = el('button', { class: 'plank', onclick: () => fire(fam === 'avalanche' ? 'avalanche' : ids[Math.floor(Math.random() * ids.length)]) }, el('span', { text: D.families[fam] }));
+    return el('div', { class: 'split' }, el('div', { class: 'split-row' }, main, more), list);
+  };
+  const starts = ids => { const out = [], done = new Set();
+    for (const id of ids) { if (done.has(id)) continue; const fam = Object.keys(FAMILIES).find(f => FAMILIES[f].includes(id) || (f === 'avalanche' && id === 'avalanche'));
+      if (fam) { for (const k of FAMILIES[fam]) done.add(k); if (fam === 'avalanche') done.add('avalanche'); out.push(split(fam, FAMILIES[fam].filter(k => ids.includes(k)))); } else out.push(one(id)); }
+    return out; };
   debug.replaceChildren(
     el('h2', {}, el('span', { text: D.title }), el('button', { class: 'plank', style: 'width:auto', onclick: () => openDebug(false) }, el('span', { text: D.close }))),
     // Whether the map came from ground.png or was worked out on this page, and why (S2c): the one place a host that

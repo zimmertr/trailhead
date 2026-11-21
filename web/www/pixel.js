@@ -129,6 +129,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // Held down, Space or the Start button doubles his pace for as long as it is held.
   const FAST = 2; let fast = false, pace = 1;
   const look = { x: 0, y: 0 }, FREE = { x0: -150, x1: 150, y0: -40, y1: 40 };
+  let panTo = null;   // where the debug panel has sent the view (round 6, note 26)
   let recentre = false, wasRunning = false;
   // Zoom, on the map only. The pixel size eases toward the one asked for, any size in between, about
   // the point under the pointer. It goes out until the map fills the window one way (the whole map shows
@@ -297,7 +298,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     if (dragging !== 'look') {
       // Reduced motion (F7): every ease of the camera is a cut.
       const b = env.lookBox, k = calm.matches ? 1 : 1 - Math.exp(-dt * 7), r = calm.matches ? 0 : Math.exp(-dt * 4);
-      if (recentre) { look.x *= r; look.y *= r; if (Math.abs(look.x) + Math.abs(look.y) < 0.5) { look.x = look.y = 0; recentre = false; } }
+      if (panTo) { look.x += (panTo.x - look.x) * k; look.y += (panTo.y - look.y) * k; if (Math.abs(panTo.x - look.x) + Math.abs(panTo.y - look.y) < 1) panTo = null; }
+      else if (recentre) { look.x *= r; look.y *= r; if (Math.abs(look.x) + Math.abs(look.y) < 0.5) { look.x = look.y = 0; recentre = false; } }
       else { look.x += (clamp(look.x, b.x0, b.x1) - look.x) * k; look.y += (clamp(look.y, b.y0, b.y1) - look.y) * k; }
     }
     env.lookBox = FREE;
@@ -438,6 +440,14 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // scene he is in (false if that scene has no such event).
     now: () => simT, speeds: SPEEDS, speed: () => speed, setSpeed(k) { if (SPEEDS.includes(k)) speed = k; },
     trigger(name) { const s = drawn.scene; return !!(s.trigger && !tr && s.trigger(name, simT)); },
+    // The view eases to where a map event happens, so its start button shows it (note 26). Answers how many
+    // milliseconds to wait before starting it: none when it has no place or the map is not on screen.
+    showEvent(name) {
+      const s = drawn && drawn.scene; if (!s || drawn.s !== 'world' || !s.where) return 0;
+      const p = s.where(name); if (!p) return 0;
+      const [x, y] = s.lookFor(p[0], p[1]); running = false; recentre = false; panTo = { x, y };
+      return calm.matches ? 0 : 900;
+    },
     // For the debug menu (C4): the scene on screen, the map animals and their homes, placing one, and a jump to
     // the start of any scene (the first route that has it, a little way in).
     scene: () => drawn ? drawn.s : null,

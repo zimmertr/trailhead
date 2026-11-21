@@ -1061,6 +1061,19 @@ export function makeCritters(W, opts = {}) {
     // The mist over the forest and the fog bank off the coast, laid over everything that stands. It parts
     // round him as it does round a sign.
     weather(sea, at) { fogSea = sea; fogAt = at; },
+    // Where each of its events happens, in map pixels, for the debug panel to look there first (round 6, note 26).
+    where(name) {
+      const sow = items.find(a => a.sow), mar = spots.marmots && spots.marmots[0];
+      if (name === 'breach' || name === 'blow' || name === 'orcas') return spots.whale;
+      if (name === 'tide') { const p = FIND && FIND.p; return p ? [p.x, p.y] : spots.whale; }
+      // The middle of its crossing: its west end is against the map's edge, past where the view can centre.
+      if (name === 'ferry') { const [A, B] = spots.ferry; return [(A[0] + B[0]) >> 1, (A[1] + B[1]) >> 1]; }
+      if (name === 'eagle') return TOPS.length ? [TOPS[0].x, TOPS[0].y] : null;
+      if (name === 'osprey') return OSPREY ? OSPREY.dive : null;
+      if (name === 'cubplay' || name === 'cubclimb') return sow ? [sow.fx, sow.fy] : null;
+      if (name === 'marmot') return mar ? [mar[0], mar[1]] : null;
+      return null;
+    },
     // The debug panel's start buttons (E5f): the humpback breaches now, or rolls and blows now (its first
     // blow after a breach), or the ferry sets out from the west end now.
     trigger(name, t) {

@@ -199,6 +199,19 @@ UI:
       star: Shooting star (Dusk)
       sasquatch: Sasquatch
       eyeshine: Deer eyeshine (Dusk)
+    # Related start buttons become one each (round 6, note 27): its name starts one of them at random, and the
+    # arrow beside it, named by pick, lists them.
+    families:
+      humpback: Humpback
+      cubs: Bear cubs
+      avalanche: Avalanche
+    pick: Pick one
+    # The names of the camera outlines on the map, drawn in capitals: where the middle of the view may go,
+    # where a drag starts to be pushed back, and the edge of the world.
+    cameraLines:
+      - View middle
+      - Push back
+      - World edge
     note: Roam areas, trail lines and camera limits show on the map. Tap targets show in every scene. A start button works only in its own scene.
   map:
     sub: TJ Zimmerman, Seattle, Washington
