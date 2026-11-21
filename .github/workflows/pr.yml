@@ -81,7 +81,7 @@ jobs:
   # and a failure on any fixable Critical or High. A job of the repo's own
   # because the module builds only `<context>/Dockerfile`, and every image
   # here builds from the repo root with its Dockerfile in its folder
-  # (record 0009).
+  # (record 0007).
   image:
     name: Image (${{ matrix.service }})
     runs-on: ubuntu-latest

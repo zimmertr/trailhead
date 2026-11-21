@@ -1,4 +1,4 @@
-# 0011. The content compiles to one JSON file, and the pages are written from it at build time
+# 0009. The content compiles to one JSON file that the services build from
 
 - Status: Accepted
 - Date: 2026-11-12
@@ -14,7 +14,7 @@ The 3D cards, the plain page and the API read the same words. The plain page is 
 ## Decision
 
 - `content/src/build.ts` reads `content/site.md`, `places/`, `milestones/` and `projects/`, checks them against `content/src/schema.ts` (strict fields, links that resolve, no duplicates, no first person, no email address), renders the prose with micromark (raw HTML escaped), and writes `content/dist/content.json`. The build stops on any problem and lists them all.
-- `web` imports it at build time and writes the home page's still and the whole plain page into the HTML (`web/src/render.ts`, `web/vite.config.ts`). `api` and `fetcher` bundle it.
+- `api` and `fetcher` bundle it. Until round 6 (2026-11-21) `web` also wrote its pages from it; the game's own words are in `web/www/content.js` until round 6's item A4 moves them here.
 
 ## Evidence
 
@@ -27,4 +27,4 @@ No dated measurement.
 
 ## Consequences
 
-Every build and test target runs `npm run content` first. A content change is a rebuild of `web`, `api` and `fetcher`.
+Every build and test target runs `npm run content` first. A content change is a rebuild of `api` and `fetcher`.

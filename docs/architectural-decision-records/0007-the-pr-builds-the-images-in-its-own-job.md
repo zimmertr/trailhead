@@ -1,4 +1,4 @@
-# 0009. The PR checks build the four images in a job of the repo's own
+# 0007. The PR checks build the four images in a job of the repo's own
 
 - Status: Accepted
 - Date: 2026-11-12

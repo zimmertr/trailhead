@@ -1,4 +1,4 @@
-# 0013. The API's rate limit counts clients by CF-Connecting-IP alone
+# 0011. The API's rate limit counts clients by CF-Connecting-IP alone
 
 - Status: Accepted
 - Date: 2026-11-12

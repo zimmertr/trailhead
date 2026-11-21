@@ -1,4 +1,4 @@
-# 0008. Each Node service ships as one bundled file on Alpine, and web as static files on unprivileged nginx Alpine
+# 0006. Each Node service ships as one bundled file on Alpine, and web as static files on unprivileged nginx Alpine
 
 - Status: Accepted
 - Date: 2026-11-12
@@ -14,7 +14,7 @@ Four images go to GHCR and run with a read-only root filesystem as uid 10001 (th
 ## Decision
 
 - `api`, `admin` and `fetcher` are Fastify 5 (api, admin) and plain Node on Node 26, bundled by esbuild into one ES module file per entry point (`tools/bundle.ts`). The runtime image is `node:26-alpine` with npm, npx and yarn removed, holding the bundle, its `third-party-licenses.txt`, `LICENSE` and, for the fetcher, `db/`. No `node_modules`.
-- `web` is `nginxinc/nginx-unprivileged:1.30-alpine` serving Vite's output, with nginx writing only under `/tmp`.
+- `web` is `nginxinc/nginx-unprivileged:1.31-alpine` serving the game's files as they are (`web/build.mjs` copies them and writes the page's head), with nginx writing only under `/tmp`. Until round 6 (2026-11-21) it served Vite's output.
 - Every image runs `apk upgrade` after its build arguments and ends as `USER 10001:10001`.
 
 ## Evidence

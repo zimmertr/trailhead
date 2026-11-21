@@ -1,4 +1,4 @@
-# 0012. ESLint runs on TypeScript 6 in a package of its own, while the repo type-checks with TypeScript 7
+# 0010. ESLint runs on TypeScript 6 in a package of its own, while the repo type-checks with TypeScript 7
 
 - Status: Accepted
 - Date: 2026-11-12

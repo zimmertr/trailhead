@@ -1,4 +1,4 @@
-# 0004. A rollout is gated by scripted checks, never by live traffic
+# 0005. A rollout is gated by scripted checks, never by live traffic
 
 - Status: Accepted
 - Date: 2026-11-12

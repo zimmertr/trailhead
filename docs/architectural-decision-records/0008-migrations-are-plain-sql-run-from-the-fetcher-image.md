@@ -1,4 +1,4 @@
-# 0010. Migrations are plain SQL, run by the fetcher image's `migrate.js`, with the grants reapplied every run
+# 0008. Migrations are plain SQL, run by the fetcher image's `migrate.js`, with the grants reapplied every run
 
 - Status: Accepted
 - Date: 2026-11-12

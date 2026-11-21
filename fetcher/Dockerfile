@@ -2,7 +2,7 @@
 # holds the one lockfile and the content every image reads:
 #   docker build -f fetcher/Dockerfile .
 # The four Dockerfiles share one shape, and tests/dockerfiles.test.ts holds
-# them to it. Records 0008 and 0009.
+# them to it. Records 0006 and 0007.
 
 # The build stage bundles the service with esbuild into one file and writes
 # the license text of every package in that bundle beside it.
@@ -28,7 +28,7 @@ COPY fetcher/ fetcher/
 RUN npm run build -w content && node tools/bundle.ts fetcher fetcher/src/main.ts fetcher/src/migrate.ts
 
 # Alpine over Debian, and the bundle over node_modules, by measured findings
-# (record 0008).
+# (record 0006).
 FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5
 LABEL org.opencontainers.image.title="trailhead-fetcher" \
       org.opencontainers.image.description="Reads the project numbers from GitHub into Postgres; also runs the migrations" \

@@ -8,7 +8,7 @@ CI is the test runner: branch, open a draft PR, push small commits, and read the
 docker compose up --build
 ```
 
-The site is on http://localhost:8080 (the plain page at `/page/`), the API on http://localhost:8081, the admin panel on http://localhost:8082, and the API's metrics on http://localhost:9464/metrics. `migrate` applies the database's migrations and exits, then `fetcher` reads the six projects' numbers from GitHub once and exits; set `GITHUB_TOKEN` in your shell to send a token. `make down` removes the containers and the database.
+The site is on http://localhost:8080 (the page of text at `/#page`), the API on http://localhost:8081, the admin panel on http://localhost:8082, and the API's metrics on http://localhost:9464/metrics. `migrate` applies the database's migrations and exits, then `fetcher` reads the six projects' numbers from GitHub once and exits; set `GITHUB_TOKEN` in your shell to send a token. `make down` removes the containers and the database.
 
 ## Checks
 
@@ -16,8 +16,8 @@ Each target is what one CI job runs ([CICD.md](CICD.md)).
 
 | Target | Runs |
 |---|---|
-| `make lint` | ESLint over the repo with `--max-warnings 0`, then `tools/eslint/selftest.js`, which fails unless each custom rule trips on its fixture. ESLint has its own package on TypeScript 6 (record [0012](architectural-decision-records/0012-eslint-runs-on-typescript-6-in-its-own-package.md)) |
-| `make typecheck` | `tsc` (TypeScript 7) over the Node side and over `web/` |
+| `make lint` | ESLint over the repo with `--max-warnings 0`, then `tools/eslint/selftest.js`, which fails unless each custom rule trips on its fixture. ESLint has its own package on TypeScript 6 (record [0010](architectural-decision-records/0010-eslint-runs-on-typescript-6-in-its-own-package.md)) |
+| `make typecheck` | `tsc` (TypeScript 7) over the Node side. The game is plain JavaScript and is linted, not type-checked |
 | `make test` | The unit suite with line and branch coverage, HTML in `coverage/unit/` |
 | `make test-db` | The database suite against a throwaway Postgres it starts and removes |
 | `make check-openapi` | Fails when `api/openapi.json` differs from the routes. `make openapi` rewrites it |
@@ -30,6 +30,20 @@ Each target is what one CI job runs ([CICD.md](CICD.md)).
 | `make compose-smoke` | `docker-compose.yml` up, checked from outside, then down |
 | `make check-unused` | Knip over the workspaces. Not in CI: run it before a refactor lands |
 | `make lock` | Rewrites both lockfiles from the manifests. A pin change ships with its lock |
+
+## The pixel world
+
+The game is in `web/www/` and runs in the browser as it is ([`web/CLAUDE.md`](../web/CLAUDE.md)). Its tools are shell scripts in `tools/pixel/` that run headless Chromium in their own image (built from `tools/pixel/lab/` on first use) and write pictures to `tools/pixel/out/`:
+
+| Script | Does |
+|---|---|
+| `shot.sh` | One screenshot of any address, with steps (keys, clicks, waits) |
+| `frames.sh` | Films anything that moves, frame by frame, on a fixed page clock |
+| `sheet.sh` | Lays pictures side by side |
+| `walk.sh` | Walks routes through every stop at 8x and reports what went wrong |
+| `refs.sh` | The standard set of views, for comparing two builds |
+| `bake.sh` | Writes `web/www/ground.png`, the baked map. Run it after any change to `land.js` or the palette |
+| `check.sh` | One item's check: every module parses, `make browser`, frame time, and what moved on the map |
 
 ## The workspaces
 

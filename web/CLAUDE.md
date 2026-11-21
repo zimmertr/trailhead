@@ -1,6 +1,6 @@
 # web
 
-The pixel world, served by nginx as it is: plain browser JavaScript with no build step and no types (record 0015). `build.mjs` writes `dist/` for the image.
+The pixel world, served by nginx as it is: plain browser JavaScript with no build step and no types (record 0001). `build.mjs` writes `dist/` for the image.
 
 | Path | Owns |
 |---|---|

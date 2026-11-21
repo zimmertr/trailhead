@@ -1,4 +1,4 @@
-# 0003. The Helm chart lives in its own repo
+# 0004. The Helm chart lives in its own repo
 
 - Status: Accepted
 - Date: 2026-11-12

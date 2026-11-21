@@ -1,11 +1,11 @@
-# 0007. Position, pose and camera are computed from one progress number
+# 0002. Position, pose and camera are computed from one progress number
 
 - Status: Accepted
 - Date: 2026-11-12
 - Decider: TJ signed off the PRD that states it on 2026-11-12. The design answers his Round 3 feedback: a timeline to scrub both ways, a camera that never loses the character, and feet that stay on the ground.
 - Issues and PRs: none yet
 - Cited in code as: none
-- Guide: [`docs/PRD.md`](../PRD.md), PRD section 4, Core components
+- Guide: [`CLAUDE.md`](../../CLAUDE.md), Rules, One progress number
 
 ## Context
 
@@ -13,11 +13,11 @@ The Round 3 prototypes ran each scene as a small simulation with its own control
 
 ## Decision
 
-Each route has one number: how far along it the character is. The timeline, the scroll wheel, the keys and the start and stop toggle change only that number. His position, his pose and the camera are pure functions of it and of the ground under him. Nothing is integrated frame to frame.
+Each route has one number: how far along it the character is. The timeline, the keys, the start and stop toggle and a click on the trail change only that number. His position, his pose and the camera are pure functions of it and of the ground under him. Nothing is integrated frame to frame.
 
 ## Evidence
 
-No dated measurement. The Round 4 prototype is the test.
+No dated measurement. Every round of the pixel world since round 4 is built this way, and `tools/pixel/walk.sh` walks each route through every stop on it.
 
 ## Alternatives rejected
 

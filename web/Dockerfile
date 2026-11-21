@@ -2,7 +2,7 @@
 # nginx. Built from the repo root, which holds the one lockfile:
 #   docker build -f web/Dockerfile .
 # The four Dockerfiles share one shape, and tests/dockerfiles.test.ts holds
-# them to it. Records 0008, 0009 and 0011.
+# them to it. Records 0006, 0007 and 0009.
 
 # The build stage writes dist/ from the game in web/www (web/build.mjs): the
 # files as they are, the page's head, and the fonts' licences.
@@ -25,7 +25,7 @@ COPY web/ web/
 RUN npm run build -w web
 
 # The unprivileged nginx build, which listens on 8080 and needs no root.
-# Alpine, by measured findings (record 0008).
+# Alpine, by measured findings (record 0006).
 FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
 LABEL org.opencontainers.image.title="trailhead-web" \
       org.opencontainers.image.description="The pixel world of tjzimmerman.com" \

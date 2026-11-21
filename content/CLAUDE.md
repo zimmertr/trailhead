@@ -1,6 +1,6 @@
 # content
 
-The site's words, written once, in third person. Every reader (`web`, `api`, `fetcher`) takes them from `dist/content.json`, which `npm run content` writes.
+The site's words, written once, in third person. `api` and `fetcher` take them from `dist/content.json`, which `npm run content` writes. The game's words join them in round 6 (item A4); until then they are in `web/www/content.js`.
 
 | Path | Holds |
 |---|---|
@@ -13,4 +13,4 @@ The site's words, written once, in third person. Every reader (`web`, `api`, `fe
 | `src/cli.ts` | `npm run content`: writes `dist/content.json` |
 | `src/index.ts` | What the other workspaces import |
 
-New words need TJ's approval before they ship. A new project is a new file in `projects/`. Record: [0011](../docs/architectural-decision-records/0011-the-pages-are-written-from-the-content-at-build-time.md)
+New words need TJ's approval before they ship. A new project is a new file in `projects/`. Record: [0009](../docs/architectural-decision-records/0009-the-content-compiles-to-one-json-file.md)

@@ -30,7 +30,7 @@ BUILD_ARGS := --build-arg APP_VERSION=0.0.0-ci --build-arg APP_COMMIT=$(shell gi
 content:
 	$(NODE) "$(INSTALL)"
 
-# ESLint (its own package, record 0012), then its self-test.
+# ESLint (its own package, record 0010), then its self-test.
 lint:
 	$(NODE) "npm ci --prefix tools/eslint --ignore-scripts && $(INSTALL) && tools/eslint/node_modules/.bin/eslint --config tools/eslint/eslint.config.js --max-warnings 0 . && node tools/eslint/selftest.js"
 

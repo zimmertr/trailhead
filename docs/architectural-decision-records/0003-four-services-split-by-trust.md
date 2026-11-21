@@ -1,4 +1,4 @@
-# 0002. The backend is four services split by trust, not by feature
+# 0003. The backend is four services split by trust, not by feature
 
 - Status: Accepted
 - Date: 2026-11-12
