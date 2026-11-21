@@ -6,7 +6,8 @@ What the repo builds, how the parts fit, and where each is defined. The product 
 
 ```mermaid
 flowchart LR
-    md["content/*.md<br>the words"] -- "npm run content" --> json[("content/dist/content.json")]
+    md["content/game/*.yaml<br>the words"] -- "npm run content" --> json[("content/dist/content.json")]
+    md -- "make words" --> www
     www["web/www<br>the pixel world"] --> web["web<br>nginx: the game"]
     web -. "the game asks /api/v1/projects" .-> api
     json --> api["api<br>public JSON, no tokens"]
@@ -19,7 +20,7 @@ flowchart LR
 
 | Folder | What it is | Image |
 |---|---|---|
-| [`content/`](../content/CLAUDE.md) | The site's words, one Markdown file per place, milestone and project, and the build that checks them and writes `content/dist/content.json` | none: built into the others |
+| [`content/`](../content/CLAUDE.md) | Every word the game shows, one YAML file per place, and the build that checks them, writes `content/dist/content.json` and copies them into `web/www/words.js` | none: built into the others |
 | [`common/`](../common/CLAUDE.md) | What the three Node services share: the redacting logger, the error shape and security headers, settings, the database pool and the migration runner | none |
 | [`web/`](../web/CLAUDE.md) | The pixel world (`www/`), served by nginx as it is; the game reads live project numbers from `api` | `ghcr.io/zimmertr/trailhead-web` |
 | [`api/`](../api/CLAUDE.md) | The public API under `/api`, with its metrics on a port of their own | `ghcr.io/zimmertr/trailhead-api` |
@@ -59,4 +60,4 @@ The database suite checks each role can do what this table says and no more.
 
 ## Content
 
-`content/src/build.ts` checks every file against `content/src/schema.ts` and writes `content/dist/content.json`; the build stops on any problem and lists them all (record [0009](architectural-decision-records/0009-the-content-compiles-to-one-json-file.md)). `web` writes both pages from it at build time, and `api` and `fetcher` bundle it, so the words are written once.
+`content/src/build.ts` merges `content/game/*.yaml`, checks it against `content/src/schema.ts` and writes `content/dist/content.json`, the projects `api` and `fetcher` bundle; the build stops on any problem and lists them all (record [0009](architectural-decision-records/0009-the-words-live-in-content-game.md)). `make words` writes the same words into `web/www/words.js`, which is checked in because the game has no build step, and a unit test fails while it is behind. So the words are written once.

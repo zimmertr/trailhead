@@ -24,7 +24,7 @@ let worldDown = false;
 const linkLi = key => { const [name, href] = LINKS[key]; return el('li', {}, el('a', { href, target: '_blank', rel: 'noopener', text: name })); };
 const projectOf = id => PROJECTS[id];
 // Live stars and releases from the site's API, which web's build names in a meta tag. Without it (the
-// artifact, the tools) or when the API can't be reached, the numbers written in content.js stand.
+// artifact, the tools) or when the API can't be reached, the numbers in content/game/sideproject-spires.yaml stand.
 // Asked once, when a project card first opens, so a visit that never reaches the Spires asks nothing.
 const liveFrom = document.querySelector('meta[name="trailhead:stars"]');
 let liveAsked = null;

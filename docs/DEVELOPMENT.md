@@ -61,4 +61,4 @@ TypeScript runs as written: Node strips the types of `.ts` files, so scripts run
 
 ## Content
 
-The words live in `content/` ([`content/CLAUDE.md`](../content/CLAUDE.md)). `npm run content` checks them and writes `content/dist/content.json`; every target runs it first. New user-facing words need TJ's approval before they ship.
+The words live in `content/game/` ([`content/CLAUDE.md`](../content/CLAUDE.md)). After an edit, `make words` checks them and rewrites the game's copy, `web/www/words.js`; `make test` fails until you do. Every target also runs `npm run content`, which writes `content/dist/content.json` for the services. New user-facing words need TJ's approval before they ship.

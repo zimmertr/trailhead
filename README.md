@@ -14,7 +14,7 @@ My personal site, https://tjzimmerman.com, as a small pixel-art world. Start at 
 
 ## How It Works
 
-The site is four small services and a Postgres database. `web` serves the pages, `api` answers the project numbers under `/api`, `admin` is a private panel I reach from home, and `fetcher` pulls each project's numbers from GitHub once an hour. The words live in Markdown files under `content/`, and the pages and the API all read them from there. The [architecture](docs/ARCHITECTURE.md) doc has the rest.
+The site is four small services and a Postgres database. `web` serves the pages, `api` answers the project numbers under `/api`, `admin` is a private panel I reach from home, and `fetcher` pulls each project's numbers from GitHub once an hour. The words live in YAML files under `content/game/`, one file per place, and the game and the API both read them from there. The [architecture](docs/ARCHITECTURE.md) doc has the rest.
 
 <hr>
 

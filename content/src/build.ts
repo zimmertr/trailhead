@@ -1,18 +1,7 @@
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
-import { micromark } from 'micromark'
 import { parse as parseYaml } from 'yaml'
-import type { z } from 'zod'
-import {
-  type Content,
-  type Milestone,
-  type Place,
-  type Project,
-  milestoneFields,
-  placeFields,
-  projectFields,
-  siteFields,
-} from './schema.ts'
+import { type Content, type GameWords, gameWords } from './schema.ts'
 
 export type SourceFile = { path: string; source: string }
 
@@ -24,143 +13,95 @@ export class ContentError extends Error {
   }
 }
 
-const FRONT_MATTER = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/
-
-// The site talks about TJ, never as him (PRD requirement 10). Curly and
-// straight apostrophes both, since an editor may swap one for the other.
-const FIRST_PERSON = [/\bI(?:['\u2019](?:m|ve|d|ll))?\b/, /\b(?:me|my|mine|myself)\b/i]
-// The site carries no email address (PRD, and the repo is public).
+// The site carries no email address (the repo is public). There is no first
+// person check: the journal card, the register and TJ's note in it, and the
+// visitor's own buttons speak as themselves on purpose.
 const EMAIL = /[^\s@]+@[^\s@]+\.[a-z]{2,}/i
 
-export function splitFrontMatter(path: string, source: string): { fields: unknown; body: string } {
-  const match = FRONT_MATTER.exec(source)
-  if (!match) throw new ContentError([`${path}: starts without a --- block of YAML fields`])
-  return { fields: parseYaml(match[1] ?? '', { uniqueKeys: true }), body: (match[2] ?? '').trim() }
+// Each card file adds its cards to the one CARDS table; every other section
+// lives in exactly one file.
+const MERGED = new Set(['CARDS'])
+
+function strings(value: unknown, path: string, out: [string, string][] = []): [string, string][] {
+  if (typeof value === 'string') out.push([path, value])
+  else if (Array.isArray(value)) value.forEach((v, i) => strings(v, `${path}.${i}`, out))
+  else if (value && typeof value === 'object') for (const [k, v] of Object.entries(value)) strings(v, `${path}.${k}`, out)
+  return out
 }
 
-// micromark escapes raw HTML unless told otherwise, so prose can't smuggle
-// markup or script into the pages that print it.
-function render(body: string): string {
-  return body === '' ? '' : micromark(body).trim()
-}
-
-function issues(path: string, error: z.ZodError): string[] {
-  return error.issues.map((issue) => `${path}: ${issue.path.join('.') || '(fields)'}: ${issue.message}`)
-}
-
-function duplicates(values: string[]): string[] {
-  return [...new Set(values.filter((value, index) => values.indexOf(value) !== index))]
-}
-
-export function buildContent(files: SourceFile[]): Content {
+export function buildWords(files: SourceFile[]): GameWords {
   const problems: string[] = []
-  let site: Content['site'] | undefined
-  const places: Place[] = []
-  const milestones: Milestone[] = []
-  const projects: Project[] = []
+  const merged: Record<string, unknown> = {}
+  const from: Record<string, string> = {}
 
   for (const { path, source } of files) {
-    for (const pattern of FIRST_PERSON) {
-      const hit = pattern.exec(source)
-      if (hit) problems.push(`${path}: "${hit[0]}" is first person; the site talks about TJ in the third person`)
-    }
-    if (EMAIL.test(source)) problems.push(`${path}: holds an email address`)
-
-    let parsed: { fields: unknown; body: string }
+    let data: unknown
     try {
-      parsed = splitFrontMatter(path, source)
+      data = parseYaml(source, { uniqueKeys: true })
     } catch (error) {
-      if (!(error instanceof ContentError)) throw error
-      problems.push(...error.problems)
+      problems.push(`${path}: ${(error as Error).message.split('\n')[0]}`)
       continue
     }
-    const { fields, body } = parsed
-    const kind = (fields as { kind?: unknown } | null)?.kind
-
-    if (kind === 'site') {
-      const result = siteFields.safeParse(fields)
-      if (!result.success) problems.push(...issues(path, result.error))
-      else if (site) problems.push(`${path}: a second site file`)
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      problems.push(`${path}: holds no sections`)
+      continue
+    }
+    for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+      for (const [where] of strings(value, key).filter(([, s]) => EMAIL.test(s))) problems.push(`${path}: ${where} holds an email address`)
+      if (MERGED.has(key) && value && typeof value === 'object') {
+        const into = (merged[key] ??= {}) as Record<string, unknown>
+        for (const [id, item] of Object.entries(value as Record<string, unknown>)) {
+          if (id in into) problems.push(`${path}: ${key}.${id} is also in ${from[`${key}.${id}`]}`)
+          into[id] = item
+          from[`${key}.${id}`] = path
+        }
+      } else if (key in merged) problems.push(`${path}: ${key} is also in ${from[key]}`)
       else {
-        if (body !== '') problems.push(`${path}: the site file holds fields only`)
-        site = { name: result.data.name, profiles: result.data.profiles }
+        merged[key] = value
+        from[key] = path
       }
-    } else if (kind === 'place') {
-      const result = placeFields.safeParse(fields)
-      if (!result.success) problems.push(...issues(path, result.error))
-      else {
-        const { kind: _, ...rest } = result.data
-        places.push({ ...rest, html: render(body) })
-      }
-    } else if (kind === 'milestone') {
-      const result = milestoneFields.safeParse(fields)
-      if (!result.success) problems.push(...issues(path, result.error))
-      else if (body === '') problems.push(`${path}: a milestone needs its card's words below the fields`)
-      else {
-        const { kind: _, ...rest } = result.data
-        milestones.push({ ...rest, html: render(body) })
-      }
-    } else if (kind === 'project') {
-      const result = projectFields.safeParse(fields)
-      if (!result.success) problems.push(...issues(path, result.error))
-      else if (body === '') problems.push(`${path}: a project needs its card's words below the fields`)
-      else {
-        const { kind: _, ...rest } = result.data
-        projects.push({ ...rest, html: render(body) })
-      }
-    } else {
-      problems.push(`${path}: kind must be site, place, milestone or project`)
     }
   }
 
-  if (!site) problems.push('no site file')
-  const profileIds = new Set(site?.profiles.map((p) => p.id))
-  const placeSlugs = new Set(places.map((p) => p.slug))
-
-  for (const id of duplicates(site?.profiles.map((p) => p.id) ?? [])) problems.push(`profile id ${id} is used twice`)
-  for (const slug of duplicates(places.map((p) => p.slug))) problems.push(`place ${slug} is defined twice`)
-  for (const order of duplicates(places.map((p) => String(p.order)))) problems.push(`two places share order ${order}`)
-  for (const slug of duplicates(projects.map((p) => p.slug))) problems.push(`project ${slug} is defined twice`)
-  for (const repo of duplicates(projects.map((p) => p.repo.toLowerCase()))) problems.push(`repo ${repo} is listed twice`)
-  for (const order of duplicates(projects.map((p) => String(p.order)))) problems.push(`two projects share order ${order}`)
-  for (const key of duplicates(milestones.map((m) => `${m.place}/${m.slug}`))) problems.push(`milestone ${key} is defined twice`)
-  for (const key of duplicates(milestones.map((m) => `${m.place}/${m.order}`))) problems.push(`two milestones share order ${key}`)
-
-  for (const place of places) {
-    for (const sign of place.signs) {
-      if (!placeSlugs.has(sign.place)) problems.push(`place ${place.slug}: a sign points at ${sign.place}, which is no place`)
+  const result = gameWords.safeParse(merged)
+  if (!result.success) {
+    // A misspelt name is reported once per name, at the name itself, so the
+    // file it is in can be found.
+    const report = (path: PropertyKey[], message: string) =>
+      problems.push(`${from[path.slice(0, 2).join('.')] ?? from[String(path[0])] ?? 'content/game'}: ${path.join('.')}: ${message}`)
+    for (const issue of result.error.issues) {
+      if (issue.code === 'unrecognized_keys') for (const key of issue.keys) report([...issue.path, key], 'the game reads no such name')
+      else report(issue.path, issue.message)
     }
   }
-  for (const milestone of milestones) {
-    if (!placeSlugs.has(milestone.place)) problems.push(`milestone ${milestone.slug}: place ${milestone.place} does not exist`)
-    for (const link of milestone.links) {
-      if (!profileIds.has(link)) problems.push(`milestone ${milestone.slug}: link ${link} is no profile in site.md`)
-    }
-  }
+  if (problems.length > 0 || !result.success) throw new ContentError(problems)
 
-  if (problems.length > 0 || !site) throw new ContentError(problems)
-
-  return {
-    site,
-    places: places.toSorted((a, b) => a.order - b.order),
-    milestones: milestones.toSorted(
-      (a, b) =>
-        (places.find((p) => p.slug === a.place)?.order ?? 0) - (places.find((p) => p.slug === b.place)?.order ?? 0) ||
-        a.order - b.order,
-    ),
-    projects: projects.toSorted((a, b) => a.order - b.order),
+  const words = result.data
+  for (const [id, card] of Object.entries(words.CARDS)) {
+    for (const link of card.links ?? []) if (!(link in words.LINKS)) problems.push(`${from[`CARDS.${id}`]}: CARDS.${id} links to ${link}, which is not in LINKS`)
   }
+  const repos = Object.values(words.PROJECTS).map((p) => p.repo.toLowerCase())
+  for (const repo of repos.filter((r, i) => repos.indexOf(r) !== i)) problems.push(`${from.PROJECTS}: repo ${repo} is listed twice`)
+  if (problems.length > 0) throw new ContentError(problems)
+  return words
 }
 
-function markdownIn(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true, recursive: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
-    .map((entry) => join(entry.parentPath, entry.name))
+// What the API and the fetcher need: the projects, in the order base camp
+// lists them.
+export function buildContent(words: GameWords): Content {
+  return { projects: Object.entries(words.PROJECTS).map(([slug, p], order) => ({ slug, name: p.name, repo: p.repo, order })) }
 }
 
-// Only these folders hold words, so a README or CLAUDE.md beside them is
-// never read as content.
-export function readContentFiles(root: string): SourceFile[] {
-  const paths = [join(root, 'site.md'), ...['places', 'milestones', 'projects'].flatMap((dir) => markdownIn(join(root, dir)))]
-  return paths.toSorted().map((path) => ({ path: relative(root, path), source: readFileSync(path, 'utf8') }))
+// The game's copy of the words. It is checked in because the game runs with
+// no build step (record 0001); a unit test fails when it falls behind.
+export function wordsModule(words: GameWords): string {
+  return `// Written by \`npm run words\` from content/game/*.yaml. Edit those files, not this one.\nexport const W = ${JSON.stringify(words, null, 1)};\n`
+}
+
+export function readGameFiles(root: string): SourceFile[] {
+  const dir = join(root, 'game')
+  return readdirSync(dir)
+    .filter((name) => name.endsWith('.yaml'))
+    .toSorted()
+    .map((name) => ({ path: relative(join(root, '..'), join(dir, name)), source: readFileSync(join(dir, name), 'utf8') }))
 }

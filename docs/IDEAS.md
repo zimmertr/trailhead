@@ -423,4 +423,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Live Numbers on the Page of Text** (round 6, A2). The page of text could show each project's stars and release under its name, asked from `api` when the page opens, as the cards do.
 - **When the Numbers Were Read** (round 6, A2). A project card could say "as of" the API's `fetchedAt`, small under the stars, so a stale count reads as stale.
 - **Axe on Every Scene** (round 6, A2). The browser suite runs axe on the world and the page of text; it could also run it on an open card, the trail map, the register and the debug menu.
-
+- **Drafts Marked Line by Line** (round 6, A4). A card is a draft or not as a whole today, so a card with one line of TJ's and three of the planner's says "draft" over all of it. Now that the words are YAML, a `draft: true` beside one line (or a list of approved lines) could let the page of text and the card mark exactly the words TJ has not approved yet.
+- **Words That Fit** (round 6, A4). A test could set every card's words in the card's own width and font (the browser suite already opens each one) and fail when a line TJ writes runs past the placard or wraps a plank, so an edit in `content/game/` can't break the layout unseen.

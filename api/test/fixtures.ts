@@ -11,7 +11,6 @@ export const project = (fields: Partial<Project> = {}): Project => ({
   name: 'Bluebird Forecast',
   repo: 'zimmertr/bluebird',
   order: 1,
-  html: '<p>Finds weather windows.</p>',
   ...fields,
 })
 

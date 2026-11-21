@@ -23,12 +23,17 @@ IMAGE ?= trailhead-$(SERVICE):pr-scan
 # comes back, which proves the build argument reached the endpoint.
 BUILD_ARGS := --build-arg APP_VERSION=0.0.0-ci --build-arg APP_COMMIT=$(shell git rev-parse HEAD 2>/dev/null || echo dev) --build-arg APP_BUILT_AT=1970-01-01T00:00:00Z
 
-.PHONY: content lint typecheck test coverage test-db check-openapi openapi lock check-unused \
+.PHONY: content words lint typecheck test coverage test-db check-openapi openapi lock check-unused \
 	image images hadolint smoke scan browser browser-run lighthouse lighthouse-run compose-smoke up down
 
-# Builds content/dist/content.json from the Markdown, and fails on a problem.
+# Builds content/dist/content.json from content/game, and fails on a problem.
 content:
 	$(NODE) "$(INSTALL)"
+
+# The same, and rewrites the game's copy of its words (web/www/words.js).
+# Run it after editing content/game; a unit test fails until you do.
+words:
+	$(NODE) "npm ci --ignore-scripts && npm run words"
 
 # ESLint (its own package, record 0010), then its self-test.
 lint:

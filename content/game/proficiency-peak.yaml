@@ -1,0 +1,77 @@
+# Proficiency Peak: its four cards.
+# Every line here is shown in the game. New lines are drafts for TJ until he approves them.
+# After an edit, npm run words (make words) writes web/www/words.js.
+
+# kind is the thing the card comes out of, which decides how it is drawn. A card marked draft shows a note that its words are draft copy.
+CARDS:
+  platform-engineering:
+    route: stack
+    slug: proficiency-peak/platform-engineering
+    kind: rack
+    from: The rack on his harness
+    title: Platform Engineering
+    draft: true
+    body:
+      - TJ builds the paved road that other engineers ship on. He has led moves from hand-rolled pipelines to GitOps platforms that developers own themselves, and rebuilt fragile automation as versioned infrastructure as code.
+      - 'The goal is always the same: make the right way the easy way.'
+    tools:
+      - Kubernetes
+      - Argo CD
+      - Argo Rollouts
+      - Helm
+      - Terraform
+      - GitLab CI
+      - GitHub Actions
+    links: []
+    go: Climb on
+  site-reliability-engineering:
+    route: stack
+    slug: proficiency-peak/site-reliability-engineering
+    kind: watch
+    from: His watch
+    title: Site Reliability Engineering
+    draft: true
+    body:
+      - Things break, so TJ plans for the fall. He made canary releases the default way to ship, built the dashboards and monitors that catch trouble early, and wrote the post-mortems and runbooks that stop it coming back.
+      - He has carried the pager too.
+    tools:
+      - Istio
+      - Datadog
+      - Prometheus
+      - Grafana
+      - PagerDuty
+      - SLOs
+    links: []
+    go: Climb on
+  software-engineering:
+    route: stack
+    slug: proficiency-peak/software-engineering
+    kind: guide
+    from: The guidebook
+    title: Software Engineering
+    draft: true
+    body:
+      - TJ writes software to remove toil, from command line tools and automation up to whole web applications like Bluebird Forecast.
+      - 'These days he works with AI coding agents the way a climber uses beta: he follows most of the suggestions and skips the ones that lead nowhere.'
+    tools:
+      - Python
+      - TypeScript
+      - Bash
+      - Java
+      - HCL
+      - Claude Code
+    links: []
+    go: To the summit
+  summit:
+    route: stack
+    slug: proficiency-peak/summit
+    kind: summit
+    from: The summit
+    title: The top of Proficiency Peak
+    draft: true
+    body:
+      - Five pitches, one flag. The whole route is written down in the two places below.
+    links:
+      - resume
+      - linkedin
+    go: Rappel

@@ -1,0 +1,53 @@
+# Reflection Lake: its three cards.
+# Every line here is shown in the game. New lines are drafts for TJ until he approves them.
+# After an edit, npm run words (make words) writes web/www/words.js.
+
+# kind is the thing the card comes out of, which decides how it is drawn. A card marked draft shows a note that its words are draft copy.
+CARDS:
+  who:
+    route: lake
+    slug: reflection-lake/who
+    kind: sign
+    from: Trail sign
+    title: Who TJ is
+    body:
+      - TJ Zimmerman is a principal platform engineer based out of Seattle, WA. When he's not playing in the mountains, he's usually hacking on computers.
+    aside: Mountains, cats, and computers.
+    links:
+      - linkedin
+      - github
+      - resume
+    go: Keep running
+  mountains:
+    route: lake
+    slug: reflection-lake/in-the-mountains
+    kind: map
+    from: The map from his pocket
+    title: In the mountains
+    draft: true
+    body:
+      - TJ is a peakbagger, a lakebagger and a trail runner, and most weekends he is somewhere in the Cascades doing one of the three. He climbs rock and glaciers as well, and keeps a wilderness first aid card current for the days that go sideways.
+      - His tracks, summits and ticks are all public, so feel free to follow along.
+    links:
+      - strava
+      - peakbagger
+      - mountainproject
+    go: Keep running
+  note:
+    route: lake
+    slug: reflection-lake/a-personal-note
+    kind: journal
+    from: His trail journal
+    title: A personal note
+    draft: true
+    body:
+      - I started out in Michigan, studied computers there, and then moved to Seattle for the mountains. So for about ten years now I have built platforms during the week and disappeared into the hills on the weekend.
+      - However, the two have more in common than you would think. Both reward patience, both punish shortcuts, and both go better with good partners. Therefore I built this site to show you both at once, instead of another page of bullet points.
+      - Feel free to wander. And say hi to Doot Doot and Peevers on your way out (they run the place).
+    links:
+      - linkedin
+      - github
+      - strava
+      - peakbagger
+      - mountainproject
+    go: Run home
