@@ -201,7 +201,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 **B. The page round the world**
 
-- [ ] B1. Remove the first-visit hint (note 6).
+- [x] B1. Remove the first-visit hint (note 6).
 - [ ] B2. The opening view: TJ a little below-right of centre (note 7).
 - [ ] B3. The sign's planks flush left (note 31).
 - [ ] B4. The top bar: sound merged into the music button, the sun or moon on AUTO, AUTO about 75% day (notes 29, 30, 32).
@@ -288,8 +288,9 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **A4 done.** Every word the game shows is in `content/game/`, seven YAML files: the Trailhead, each place's cards, Sideproject Spires with the six projects, the names, and the interface. Each file opens with what it holds and carries the notes the old `content.js` had on what each line is for. `make words` checks them and writes `web/www/words.js`, which is checked in so the game, the tools and the artifact still run with no build step; a unit test fails while it is behind the YAML, and another fails if a sentence the game builds keeps a `{brace}`. `content.js` is code only: it fills the `{braces}` in sixteen templates (and how long ago a date was) and builds the map's legend from the names. Every export of the old file, its functions called on sample numbers, compared equal with the new one. The old Markdown words (`site.md`, `places/`, `milestones/`, `projects/`) and the micromark dependency are gone: nothing read the first three, and the API and the fetcher now take the projects from the same file the game does, so the six projects are listed once. Record 0009 is rewritten for this. 140 unit tests and the 19 browser tests pass; frame time 10.9 ms zoomed out at Dusk; nothing moved. The game looks and reads exactly as before, so the artifact goes to version 3 only for the new file.
 - **Known flake.** Lighthouse's largest-paint budget (3 s) failed once on A3, at 12.3 s in all three runs, with no game change, and passed on a rerun. Probably which text block Lighthouse counts as the largest paint: the "Drawing the world" line, or the intro placard once the world is drawn. Fix it with the performance work in section K if it recurs.
 - **Found, not fixed.** `make check-unused` (knip) is in no CI job and reports 812 false unused files, because it has no config for the workspaces. For the repo cleanup.
-- **A5 done.** Two issues filed with the `create-issue` skill: https://github.com/zimmertr/trailhead/issues/55 (whether to keep each card's own style, note 20; three options, the planner recommends one shared placard with a small icon of each card's source) and https://github.com/zimmertr/trailhead/issues/56 (the trail register service for round 7: a table, `api` routes, the queue in `admin`, the game posting entries; it carries over what #3 settled). The PR body closes #14, #15, #16, #17, #33, #34, #36 and #38 and names the two new issues. The PRD and the register's code comment point at them. No game change, so the artifact stays at version 3.
-- Next: B1.
+- **A5 done.** Two issues filed with the `create-issue` skill: https://github.com/zimmertr/trailhead/issues/55 (whether to keep each card's own style, note 20; three options, the planner recommends one shared placard with a small icon of each card's source) and https://github.com/zimmertr/trailhead/issues/56 (the trail register service for round 7: a table, `api` routes, the queue in `admin`, the game posting entries; it carries over what #3 settled). The PR body closes #14, #15, #16, #17, #33, #34, #36 and #38 and names the two new issues. The PRD and the register's code comment point at them. Artifact version 4 (the comment only).
+- **B1 done.** The first-visit hint ("Click a sign or a trail to start walking.") is gone: its element, its placing code in `app.js`, its styles and its two lines of words. The space bar still waits until a destination is picked, as before. Side by side with round 5 at the opening, desktop and phone, the only change is the missing plank. Frame time 10.5 ms zoomed out at Dusk; nothing moved.
+- Next: B2.
 
 ## 11. Calls made in round 6
 
@@ -304,6 +305,7 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - A4: the old comments that named round items (P1, L8, T54 and the like) lost those codes on the way into the YAML; the explanations stay.
 - A5: #55 is a `question` at P2, since TJ put it off; #56 is an `enhancement` at P1, since it is the next round. #56 recommends a rate limit and length caps as the spam guard, as #3 did, and lists the rest as TJ's to decide.
 - A5: #56 does not block on #4 (the panel's login). It says approval before #4 relies on `admin` being reachable only from the home network.
+- B1: `__api.touring()` and `__api.me()` stay, though the hint was their only use in the game: the test scripts and section 2 use them.
 
 ## 12. TJ's pictures for this round
 

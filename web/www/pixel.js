@@ -483,9 +483,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     boost(on) { fast = !!on; },
     toggle() { if (running) running = false; else api.start(); },
     running: () => running,
-    // The idle tour is running (the first-visit hint keeps out of its way, P1).
+    // The idle tour is running (for test scripts).
     touring: () => drawn.s === 'world' && !!env.touring,
-    // Where he stands on the page, in CSS pixels (the first-visit hint keeps off him, P1).
+    // Where he stands on the page, in CSS pixels (for test scripts).
     me: () => { const f = drawn.scene.focus(), k = scr.S / (window.devicePixelRatio || 1); return [f.x * k, f.y * k]; },
     // For test scripts (K1): where a point of a trail on the map is on the page, in CSS pixels, and the
     // fractions where the lake loop leaves for the forest and comes back, and where the Spires' trail hands over.

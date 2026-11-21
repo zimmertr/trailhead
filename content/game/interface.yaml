@@ -4,10 +4,6 @@
 
 UI:
   name: TJ Zimmerman
-  # The first-visit hint: with a mouse, then on a touch screen.
-  hint:
-    - Click a sign or a trail to start walking.
-    - Tap a sign or a trail to start walking.
   run:
     - Start
     - Stop

@@ -501,10 +501,6 @@ export const W = {
  ],
  "UI": {
   "name": "TJ Zimmerman",
-  "hint": [
-   "Click a sign or a trail to start walking.",
-   "Tap a sign or a trail to start walking."
-  ],
   "run": [
    "Start",
    "Stop"

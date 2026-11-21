@@ -452,23 +452,6 @@ const press = { down: false, was: false, held: false, t: 0 };
 // The space bar does nothing until the visitor has picked where to go (T36): a plank, a name tag, the menu,
 // the timeline, a trail point, or an address that names a route. From then on it starts and stops him.
 let chosen = !!(new URLSearchParams(location.search).get('route') || location.hash.length > 1);
-// The first-visit hint (P1): up until he first moves, gone for the rest of the visit. It keeps right of the
-// sign and off him, hides while the idle tour runs, and on a phone stands over his head, clear of his name tag.
-const hint = $('hint'), touch = window.matchMedia && matchMedia('(hover: none)').matches;
-let hintGone = chosen;
-hint.textContent = UI.hint[touch ? 1 : 0];
-function placeHint() {
-  if (hintGone) return;
-  if (chosen) { hintGone = true; hint.classList.add('gone'); setTimeout(() => { hint.hidden = true; }, 700); return; }
-  const narrow = innerWidth <= 760; hint.hidden = !!api && api.touring(); if (hint.hidden) return;
-  hint.classList.toggle('top', narrow);
-  if (narrow) { hint.style.left = ''; hint.style.top = Math.round(Math.max(60, api.me()[1] - 70 - hint.offsetHeight)) + 'px'; return; }
-  // Centred in the room right of the sign, then nudged left of him if it would cover him.
-  const f = fork.hidden ? null : fork.getBoundingClientRect(), x0 = f ? f.right + 12 : 12, w = hint.offsetWidth;
-  let cx = Math.max(x0 + w / 2, (x0 + innerWidth) / 2);
-  if (api) { const [mx, my] = api.me(), r = hint.getBoundingClientRect(); if (my > r.top - 40 && my < r.bottom + 60 && Math.abs(mx - cx) < w / 2 + 24) cx = Math.max(x0 + w / 2, mx - w / 2 - 24); }
-  hint.style.left = Math.round(cx) + 'px';
-}
 function pressDown() { if (press.down) return; press.down = true; press.held = false; press.was = api.running(); audio.start(); if (!press.was) api.start(); clearTimeout(press.t); press.t = setTimeout(() => { if (press.down) { press.held = true; api.boost(true); } }, 250); }
 function pressUp() { if (!press.down) return; press.down = false; clearTimeout(press.t); if (press.held) api.boost(false); else if (press.was) api.stop(); }
 addEventListener('blur', () => { if (press.down) { press.down = false; clearTimeout(press.t); api.boost(false); } });
@@ -534,7 +517,6 @@ addEventListener('resize', () => { nameBox = null; });
   $('run').textContent = UI.run[running ? 1 : 0];
   const atFork = !(running || p > 0.002 || shown != null || api.route() !== 'lake');
   if (!atFork) chosen = true;
-  placeHint();
   if (timeSlider && !debug.hidden && document.activeElement !== timeSlider) timeSlider.value = Math.round(api.clock().t);
   fork.hidden = !atFork || forkShut;
   { const text = shown && cardShut ? LABELS[shown] || (PROJECTS[shown] ? PROJECTS[shown].name : CARDS[shown].title) : atFork && forkShut ? DEST_NAMES.trailhead : '';
