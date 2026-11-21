@@ -7,7 +7,7 @@ const www = join(import.meta.dirname, '..', '..', 'prototype', 'pixel', 'www')
 // than the map it was baked from. That warning fails a test like any other.
 const origin = 'http://localhost:8080'
 
-type Info = { p: number; route: string | null; scene: string }
+type Info = { p: number; route: string | null; scene: string; baked: boolean; bakeNote: string }
 declare global {
   interface Window {
     __ready?: boolean
@@ -23,6 +23,10 @@ async function open(page: Page, address: string): Promise<string[]> {
     if (message.type() === 'error' || message.type() === 'warning') problems.push(`console ${message.type()}: ${message.text()}`)
   })
   page.on('pageerror', (error) => problems.push(`page: ${error.message}`))
+  // The page loads nothing from anywhere else (round 5, J3): its fonts are its own files.
+  page.on('request', (request) => {
+    if (!request.url().startsWith(origin) && !/^(data|blob):/.test(request.url())) problems.push(`elsewhere: ${request.url()}`)
+  })
   await page.route(`${origin}/**`, (route) => {
     const { pathname } = new URL(route.request().url())
     const file = join(www, normalize(pathname === '/' ? '/index.html' : pathname))
@@ -30,9 +34,6 @@ async function open(page: Page, address: string): Promise<string[]> {
     problems.push(`missing: ${pathname}`)
     return route.fulfill({ status: 404 })
   })
-  // The fonts come from Google today. The game must stand without them, and
-  // a test must not fail because their host was slow.
-  await page.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, (route) => route.fulfill({ contentType: 'text/css', body: '' }))
   await page.goto(origin + address)
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 30_000 })
   return problems
@@ -54,7 +55,10 @@ const watch = (page: Page) => page.waitForTimeout(1000)
 test('the Trailhead draws the map', async ({ page }) => {
   const problems = await open(page, '/')
   await watch(page)
-  expect((await info(page))?.scene).toBe('world')
+  const { scene, baked, bakeNote } = (await info(page)) ?? {}
+  expect(scene).toBe('world')
+  // The map came from ground.png, not from a second of working it out. The note says why when it did not.
+  expect({ baked, bakeNote }).toEqual({ baked: true, bakeNote: '' })
   expect(problems).toEqual([])
 })
 
@@ -85,10 +89,42 @@ test('the trail register opens from its address', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
-test('the plain page shows the picture of the map', async ({ page }) => {
-  const problems = await open(page, '/#plain')
+test('the page shows the picture of the map and every card', async ({ page }) => {
+  const problems = await open(page, '/#page')
   await watch(page)
   await expect(page.locator('#plain canvas[role="img"]')).toBeVisible()
+  for (const heading of ['Who TJ is', 'A personal note', 'Platform Engineering', 'Bluebird Forecast', 'Kubernetes-Manifests'])
+    await expect(page.locator('#plain h4', { hasText: heading })).toBeVisible()
+  expect(problems).toEqual([])
+})
+
+// A visitor who asked for reduced motion: AUTO holds Day even at an hour that would be Dusk (round 5, K1).
+test('reduced motion holds AUTO at Day', async ({ browser }) => {
+  const page = await browser.newPage({ reducedMotion: 'reduce' })
+  const problems = await open(page, '/?time=250')
+  await watch(page)
+  const clock = await page.evaluate(() => (window as unknown as { __api: { clock: () => { mode: string; mix: number } } }).__api.clock())
+  expect(clock).toMatchObject({ mode: 'auto', mix: 0 })
+  expect(problems).toEqual([])
+  await page.close()
+})
+
+// Round 4's address for it, which links may still carry.
+test('the old address still opens the page', async ({ page }) => {
+  const problems = await open(page, '/#plain')
+  await expect(page.locator('#plain')).toBeVisible()
+  expect(problems).toEqual([])
+})
+
+test('the Page button opens it by keyboard and Escape closes it', async ({ page }) => {
+  const problems = await open(page, '/')
+  await page.locator('#b-page').focus()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#plain')).toBeVisible()
+  await expect(page.locator('#plain .band button')).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#plain')).toBeHidden()
+  await expect(page.locator('#b-page')).toBeFocused()
   expect(problems).toEqual([])
 })
 

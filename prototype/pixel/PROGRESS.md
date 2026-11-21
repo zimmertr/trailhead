@@ -175,7 +175,7 @@ Every item on the checklist is ticked, and each polish pass in the brief has had
 - The branch: https://github.com/zimmertr/trailhead/tree/pixel-mvp
 - This file: https://github.com/zimmertr/trailhead/blob/pixel-mvp/prototype/pixel/PROGRESS.md
 - Ideas for later: https://github.com/zimmertr/trailhead/blob/pixel-mvp/prototype/pixel/IDEAS.md
-- Test addresses, added to the page's address: `?route=stack&stop=2`, `?route=spire:tks&stop=1`, `?dusk=1`, `?sheet=map`, `?done=lake,stack,spires`, `#plain`, `#anything-else` for the off-route page.
+- Test addresses, added to the page's address: `?route=stack&stop=2`, `?route=spire:tks&stop=1`, `?dusk=1`, `?sheet=map`, `?done=lake,stack,spires`, `#page` (or round 4's `#plain`), `#anything-else` for the off-route page.
 
 ## Feedback round (2026-11-14, after the overnight build)
 
@@ -525,3 +525,41 @@ Round 4 rebuilt the world as one flat map on rails (layout 1, the land climbing 
 - Checkpoints: 2, the map https://claude.ai/artifact/USrZi6317Qi7j7AYQamUBu; 3, the larch basin https://claude.ai/artifact/SE9Zd6bFoTbpe7auBQNJoD; 4, the West Ridge https://claude.ai/artifact/MTcnFZLanLsZaiDyqpSprJ; 5, Reflection Lake https://claude.ai/artifact/EDjsTpeZNLKeSUzjc54vYe; 6, the walk to camp https://claude.ai/artifact/Un32mmD5aUe9tAi1m9Lt1p; 7, the six climbs https://claude.ai/artifact/PcapMy398JpSpc5UmJKvTK. The block-ins, the quality pass and 2a are in section 8 of `ROUND4.md`.
 - Branch: https://github.com/zimmertr/trailhead/tree/pixel-round4-opus, with a branch for each checkpoint (`pixel-r4-map` to `pixel-r4-final`).
 - To compare with, unchanged: round 3 https://claude.ai/artifact/EcPQ1pDmeJQvZEqSHtgEF1 (tag `pixel-r3-final`).
+
+## Round 5 report (2026-11-17)
+
+Round 5 worked through TJ's 79 notes on round 4 and the three additions he picked. Every note, call, number and lesson is in `ROUND5.md` (sections 5, 10 and 11). The work is one branch, `pixel-round5`, and one draft PR, https://github.com/zimmertr/trailhead/pull/32, for TJ to review and merge.
+
+### What is done
+
+- The repository: round 4 merged into `main` as https://github.com/zimmertr/trailhead/pull/31, ESLint and a Playwright smoke test over the prototype in CI, decision record 0015 (the world is pixel art served as plain JavaScript), and `check.sh` for each item.
+- The opening: the sign's arrows match the map, the first frame is the resting view on desktop and phone, the space bar waits for a destination, and a first-visit hint says what to do. The float plane, the forest's standing bear and the Steller's jay are gone.
+- New systems: no-go areas for every kind of mover, the idle tour after two minutes, one world clock with Auto, Day and Dusk, a public DEBUG menu with a sound test, and click or tap to walk along the trails.
+- The map: the trails out of the Trailhead reworked, a bigger Reflection Lake fed by two moraine lakes, rivers across the beach at low tide, the fire lookout, flowers in four levels, more larches, the Legacy Range in grey rock, iron rungs on the plateau's cliff, new driftwood, and base camp as one tent on an island in the glacier.
+- Life on the map: the ferry, orcas and jellyfish keep to deep water at every tide, a bigger tide pool with animals, drizzle that stays with the land, a bald eagle and a diving osprey, Monolith's ice falls sliding one at a time and a squall that snows them back, dust devils, two black bear families, bighorn sheep, a bull moose and calf, and marmots.
+- The lake loop: moss and rainforest plants in the forest, a switchback climb beside the fall at its end, a deeper lake with a taller mirror, and a clean view at the lakeshore stop.
+- The Spires: the walk to camp goes up the glacier, one tent everywhere, trailhead the highest summit, and each climb reworked to TJ's notes (the weather window, one ice wall, a trail run with the watch and the Hevy sync, the knife-edge as a fin, the binoculars that stay open, fewer anchors, out of the whiteout, the cairn that grows a stone a visit, and each summit named, with a clue to its find).
+- Proficiency Peak: rungs into the larch basin, the walk-in and the climbing much faster, the leader, the woman and TJ in that order with the ropes swapped as real parties do, the tarn below, the whipper on the last pitch and the haul that follows, one cloud sea that rises after it, and the descent ending on the steep snow traverse TJ led in real life.
+- The rest: a 404 in the off-route page's fog, the page of text opening from a Page button and at `#page` with every card's words, the fonts served from the site's own files with their licences, and the reduced-motion setting holding AUTO at Day.
+- Whole-site checks: every route through every stop in Auto, Day and Dusk on desktop and phone with nothing in the console (`walk.sh`); all 72 of round 4's views compared and nothing below them; every view under 16.7 ms a frame; ready in 0.8 s; 251 of 254 colours; every kind of breakage behaving as before.
+
+### What is weak
+
+- The start is about 80 ms slower than round 4's (0.78 to 0.82 s against 0.69 to 0.74). It is under the 0.9 s line, and the rest is the new map's own work spread across the start; baking it is in `IDEAS.md`.
+- The West Ridge climbs about 3.4 times round 4's pace where TJ asked for 4. The moving is exactly 4 times faster, but the stops are a third of round 4's rather than a quarter, so each cam is still seen going into the crack, and the order with its rope swaps adds about 6 s.
+- Scrubbed to the exact moment he pushes off into a glissade, the screen stays half white until he moves. Round 4 did the same.
+- All new copy is draft for TJ: the hint, the Page button, the six summit clues, the Hevy sync line, the phone's line, and the debug menu's words.
+
+### What I changed my mind about
+
+- The descent from Proficiency Peak. I built a col to walk off along; TJ described the real day (a rappel onto steep snow and a four-point traverse with ice axes, which he led), so the walk-off became that.
+- The 404. I made the digits whiter; they vanished where the fog is already as white as the palette goes, so they are greyer, the way thicker cloud looks from inside it.
+- Slow fonts. My first films with the fonts held back showed nothing wrong, because Playwright's screenshot waits for fonts; the film tool now takes its frames from Chrome itself.
+- The start. I took round 5's start to be round 4's until K3 measured 0.95 s. Measuring the build at each section found 150 ms in one search for the dust devils; a single profile also blamed the humpback, which averaging showed was noise.
+
+### Links
+
+- Round 5, republished after each item: https://claude.ai/artifact/1VdS5Q3uSMTpEuGEm39SZr
+- TJ's screenshots for round 5, by note: https://claude.ai/artifact/C3vp7qfxAtoHGnTioe2sNs
+- Branch: https://github.com/zimmertr/trailhead/tree/pixel-round5, PR https://github.com/zimmertr/trailhead/pull/32
+- To compare with, unchanged: round 4 https://claude.ai/artifact/JoMxgPjCfo87iZPgFwXQRk (tag `archive/pixel-r4-final`).

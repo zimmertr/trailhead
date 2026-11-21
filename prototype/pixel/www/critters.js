@@ -1,10 +1,11 @@
-// The animals of the world map and the water that moves: herds that graze and wander, a bear, squirrels
-// and chipmunks that dart, marmots that sit up as he passes, birds that circle, a whale, jellyfish, the
+// The animals of the world map and the water that moves: herds that graze and wander, a moose and its calf, bears with cubs, squirrels
+// and chipmunks that dart, marmots that sit up and whistle, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
-import { TAU, clamp, smooth, frac, hash, vnoise, rng, R, INK, SHADE, KIND, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
-import { makeElk, makeBird } from './sprites.js';
-import { ell, goat, marmot, heron } from './fauna.js';
+import { TAU, clamp, lerp, smooth, frac, hash, vnoise, rng, R, INK, SHADE, KIND, RAMP_OF, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
+import { makeElk, makeBird, makeMoose } from './sprites.js';
+import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './land.js';
+import { makeCollide } from './collide.js';
 
 // A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass.
 export function mapBear(pose, step = 0) {
@@ -16,6 +17,30 @@ export function mapBear(pose, step = 0) {
   thick(b, 18, 7, hx - 1, hy, 4, R.fur[1]); ell(b, hx, hy, 2.8, 2.5, fur);
   b.set(hx + 3, hy + 1, R.dirt[2]); b.set(hx + 4, hy + 1, R.dirt[2]); b.set(hx + 3, hy + 2, R.dirt[1]);
   b.set(hx - 1, hy - 3, R.fur[1]); b.set(hx + 1, hy - 3, R.fur[1]); b.set(hx + 1, hy - 1, R.white[1]);
+  outline(b, INK);
+  return b;
+}
+// A black bear cub, facing right: half its mother's length, with a cub's big head and round ears. pose: 'look';
+// 'sniff', nose down; 'roll', on its back with its paws in the air; 'rear', up on its hind legs to bat at its
+// twin; 'climb', seen from behind as it hugs a trunk. step is the second drawing of each.
+export function mapCub(pose, step = 0) {
+  const b = new BM(15, 12); b.ox = 7; b.oy = 11;
+  const fur = (nx, ny, x, y) => pick('fur', 0.6 - ny * 0.3 + 0.2 * (hash(x, y, 9) - 0.5), x, y, 0.6), dark = R.fur[1];
+  if (pose === 'climb') {
+    ell(b, 7, 7, 2.6, 3.2, fur); ell(b, 7, 3, 2.2, 1.8, fur); b.set(5, 1, dark); b.set(9, 1, dark);
+    b.set(4, step ? 4 : 5, dark); b.set(10, step ? 5 : 4, dark); b.set(4, step ? 10 : 9, dark); b.set(10, step ? 9 : 10, dark);
+  } else if (pose === 'rear') {
+    ell(b, 6, 7, 2.5, 3.2, fur); ell(b, 7.5, 3, 2.1, 1.8, fur); b.set(6, 1, dark); b.set(8, 1, dark);
+    b.set(10, 4, R.dirt[2]); thick(b, 8, 6, 10, step ? 5 : 7, 1, dark); b.set(5, 10, dark); b.set(7, 10, dark);
+  } else if (pose === 'roll') {
+    ell(b, 6.5, 8, 3.6, 2.2, fur); ell(b, 11, 8, 2, 1.8, fur); b.set(13, 8, R.dirt[2]); b.set(11, 6, dark);
+    b.set(4, step ? 5 : 4, dark); b.set(5, step ? 4 : 5, dark); b.set(8, step ? 4 : 5, dark); b.set(9, step ? 5 : 4, dark);
+  } else {
+    for (const [lx, far] of [[4, 1], [5, 0], [8, 1], [9, 0]]) { const sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 8, lx + sw, 10, 1, R.fur[far ? 0 : 1]); }
+    ell(b, 6.5, 6.5, 3.6, 2.3, fur);
+    const hx = 11, hy = pose === 'sniff' ? 8 : 5;
+    ell(b, hx, hy, 2.1, 1.8, fur); b.set(hx - 1, hy - 2, dark); b.set(hx + 1, hy - 2, dark); b.set(hx + 2, hy + 1, R.dirt[2]);
+  }
   outline(b, INK);
   return b;
 }
@@ -32,21 +57,103 @@ export const BREACH = Array.from({ length: Math.ceil(IMPACT * FPS) + 1 }, (_, i)
     roll: 90 - 28 * smooth(0.3, 1.3, u) - 38 * smooth(1.2, 1.9, u) - 14 * smooth(1.9, IMPACT, u), sweep: 1.1 - 0.9 * smooth(0.5, 1.5, u) - 0.3 * smooth(1.6, 2.6, u)
   };
 });
+// Where each river runs on across the tidal flat (T25): one byte a cell of the sea's corner, 2 for its water and
+// 1 for the wet sand at its edge. Worked out once, from the ground's picture and the beach's slope, so it follows
+// the rivers wherever a later change to the land puts their mouths.
+function riverOnFlat(SEA, g, EBB, csAt) {
+  const CHAN = new Uint8Array(SEA.cs.length), wet = new Set([R.water[3], R.water[4], ...R.glint]), seen = new Uint8Array(SEA.cs.length), mouths = [];
+  // The mouths: each patch of river water lying within a few pixels of the high-water line.
+  for (let j = 0; j < CHAN.length; j++) {
+    const k = SEA.cs[j]; if (seen[j] || k < 1 || k > 6 || !wet.has(g[(SEA.y0 + ((j / SEA.w) | 0)) * NW + j % SEA.w])) continue;
+    const q = [j]; seen[j] = 1; let sx = 0, sy = 0, n = 0;
+    while (q.length) {
+      const c = q.pop(), x = c % SEA.w, y = (c / SEA.w) | 0; sx += x; sy += y; n++;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, ny = y + dy, m = ny * SEA.w + nx; if (nx < 0 || ny < 0 || nx >= SEA.w || ny >= SEA.h || seen[m]) continue; const km = SEA.cs[m]; if (km < 1 || km > 6 || !wet.has(g[(SEA.y0 + ny) * NW + nx])) continue; seen[m] = 1; q.push(m); }
+    }
+    if (n >= 4) mouths.push({ x: sx / n, y: SEA.y0 + sy / n, half: clamp(n / 11, 2.6, 3.4) });   // the patch is about 6 long, so this is half the river's width
+  }
+  const mark = (x, y, r) => { for (let dy = -Math.ceil(r + 2.2); dy <= Math.ceil(r + 2.2); dy++) for (let dx = -Math.ceil(r + 2.2); dx <= Math.ceil(r + 2.2); dx++) { const px = Math.round(x) + dx, py = Math.round(y) + dy - SEA.y0; if (px < 0 || py < 0 || px >= SEA.w || py >= SEA.h) continue; const d = Math.hypot(px - x, py + SEA.y0 - y), j = py * SEA.w + px; if (d <= r) CHAN[j] = 2; else if (d <= r + 2.2 && !CHAN[j]) CHAN[j] = 1; } };
+  for (const [n, M] of mouths.entries()) {
+    let x = M.x, y = M.y, dist = 0, gx0 = 0, gy0 = 0;
+    for (let step = 0; step < 400; step++) {
+      // Down the beach: toward where the low-water line lies, read over a wide enough reach that one ripple of the shore does not turn it.
+      let gx = csAt(Math.round(x + 5), Math.round(y)) - csAt(Math.round(x - 5), Math.round(y)), gy = csAt(Math.round(x), Math.round(y + 5)) - csAt(Math.round(x), Math.round(y - 5)); const gl = Math.hypot(gx, gy);
+      if (gl < 0.5) { gx = gx0; gy = gy0; } else { gx /= gl; gy /= gl; if (step) { gx = 0.7 * gx0 + 0.3 * gx; gy = 0.7 * gy0 + 0.3 * gy; const l = Math.hypot(gx, gy) || 1; gx /= l; gy /= l; } }
+      if (!gx && !gy) break; gx0 = gx; gy0 = gy;
+      const k = csAt(Math.round(x), Math.round(y)), f = clamp((k - 4) / EBB, 0, 1); if (k >= 4 + EBB + 3 || x < 2 || y > SEA.y0 + SEA.h - 2) break;
+      const nx = -gy, ny = gx, swing = 3 * f * Math.sin(dist / 9 + n * 2.1);
+      mark(x + nx * swing, y + ny * swing, M.half * (1 - 0.35 * f));
+      // Two more threads leave the main one as the flat levels out, one to each side, and wander on their own.
+      const b = smooth(0.22, 0.5, f), c = smooth(0.45, 0.75, f);
+      if (b > 0) { const o = swing + b * (7.5 + 2 * Math.sin(dist / 6 + n)) + 1; mark(x + nx * o, y + ny * o, 1.7); }
+      if (c > 0) { const o = swing - c * (7 + 1.8 * Math.sin(dist / 5 + 2 + n)) - 1; mark(x + nx * o, y + ny * o, 1.5); }
+      x += gx; y += gy; dist++;
+    }
+  }
+  return CHAN;
+}
 // opts.bear: true or false puts the bear there or not, whatever the dice say (the block-in page asks for it).
 export function makeCritters(W, opts = {}) {
   const { spots, sea: SEA, g } = W, items = [];
+  // The sea stacks, found among the things that stand in the water, for the white water round their feet.
+  const stacks = W.things.filter(th => !th.tree && th.bm && th.bm.h >= 14 && th.x < SEA.w && W.coast(th.x, th.y) > 14).map(th => ({ x: th.x, y: th.y, half: th.bm.w / 2, tall: th.bm.h, bm: th.bm, cs: W.coast(th.x, th.y) }));
+  // The tide (E6). Every 100 s the sea draws back off the beach and comes in again: out over 36 s, low for
+  // 16 s, in over 36 s, high for 12 s; the first low is 44 s after the page opens. At low water the line
+  // stands far enough out that the two sea stacks nearest the beach stand on the bared flat with tide
+  // pools round their feet (14 past the second of them). What it bares is wet sand: a shine of water just
+  // above the line, ripple marks higher up. The jellyfish drift out ahead of it, so they stay afloat. The
+  // sea left at low water is still most of the corner, so the whale, the ferry and the orcas keep to it.
+  // tide=<seconds> in the address moves its clock on, for screenshots.
+  const TIDE = 100, byCs = [...stacks].sort((a, b) => a.cs - b.cs), POOLED = byCs.slice(0, 2), EBB = POOLED.length > 1 ? POOLED[1].cs + 14 : 40;
+  let tideAhead = typeof location !== 'undefined' ? +(/[?&]tide=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
+  const ebbAt = t => { const s = ((t + tideAhead) % TIDE + TIDE) % TIDE; return EBB * smooth(8, 44, s) * smooth(96, 60, s); };
+  // Where each kind of mover may be (collide.js): the stacks and the tide above, the land's own rules.
+  const col = makeCollide(W, { ebbAt, stacks });
+  // A lane for something that sails or swims along the coast (round 5, T15): how far out it must keep at each
+  // step along its way, smoothed so that it never comes nearer the shore than the rule asked anywhere: the
+  // farthest out within k1 steps either side (sign 1: the greatest number, -1: the least), then the mean
+  // within k2 (k2 no more than k1). A gap (null) stays a gap. Each mover has one lane for high water and one
+  // for the lowest, and is somewhere between the two as the tide stands, so it moves out and back with the
+  // water without a jump. (Until round 5 each was pushed clear afresh every frame, which at low water threw
+  // the ferry 20 px from one frame to the next and now and then left it aground.)
+  function onSeaAt(x, y) { x = Math.round(x); y = Math.round(y); return x >= 0 && x < SEA.w && y >= SEA.y0 && y < SEA.y0 + SEA.h; }
+  const lane = (raw, sign, k1, k2) => { const n = raw.length, far = raw.map((v, i) => { if (v == null) return null; let m = v; for (let j = Math.max(0, i - k1); j <= Math.min(n - 1, i + k1); j++) if (raw[j] != null && sign * raw[j] > sign * m) m = raw[j]; return m; });
+    return far.map((v, i) => { if (v == null) return null; let t = 0, c = 0; for (let j = Math.max(0, i - k2); j <= Math.min(n - 1, i + k2); j++) if (far[j] != null) { t += far[j]; c++; } return t / c; }); };
+  // The jellyfish (round 5, T26) work the same way with two homes each: where it floats at high water (its
+  // own spot, or the nearest water round it with 8 px to spare, since it drifts up to 6 from there) and where it floats at the
+  // lowest (the nearest such water from there that it can reach in a straight line with room all the way as
+  // the tide falls, so it never drifts through a stack or over the flats). The tide picks the point between.
+  const JELLY = spots.jelly.map(([jx, jy]) => {
+    // Nor may it float where a stack's drawing stands over the water behind its foot: there it showed as a
+    // jelly stuck to the side of the rock.
+    const hidden = (x, y) => stacks.some(s => Math.abs(x - s.x) < s.half + 4 && y < s.y + 2 && y > s.y - s.tall - 4);
+    const room1 = (x, y, ebb) => onSeaAt(x, y) && !hidden(x, y) ? col.room('floater', x, y, { ebb }, 2) : -1, DRIFT = [[5, 0], [-5, 0], [0, 2.5], [0, -2.5], [5, 2.5], [-5, 2.5], [5, -2.5], [-5, -2.5]];
+    // The room at a spot, or -1 if any point of the drift round it is short of water.
+    const room = (x, y, ebb) => DRIFT.every(([a, b]) => room1(x + a, y + b, ebb) >= 1) ? room1(x, y, ebb) : -1, ring = (cx, cy, fits) => { for (let r = 0; r <= 150; r += 3) for (let a = 0; a < (r ? 16 : 1); a++) { const x = cx + r * Math.cos(a * TAU / 16), y = cy + r * Math.sin(a * TAU / 16); if (fits(x, y)) return [x, y]; } return null; };
+    const lowFrom = hi => ring(hi[0], hi[1], (x, y) => { if (room(x, y, EBB) < 8) return false; const n = Math.ceil(Math.hypot(x - hi[0], y - hi[1])); for (let k = 1; k < n; k++) if (room(lerp(hi[0], x, k / n), lerp(hi[1], y, k / n), EBB * k / n) < 7) return false; return true; });
+    // A high-water home with no clear way out (a pocket between two stacks) is passed over for the next nearest.
+    // None is nearer the shore than 50 from the high-water line, the nearest their own spots may be (land.js).
+    let lo = null; const hi = ring(jx, jy, (x, y) => W.coast(x, y) >= 50 && room(x, y, 0) >= 8 && !!(lo = lowFrom([x, y])));
+    return hi && { hi, lo }; });
+  const jellyAt = (k, t) => { const J = JELLY[k]; if (!J) return null; const e = ebbAt(t) / EBB, x = lerp(J.hi[0], J.lo[0], e) + 5 * Math.sin(t * 0.05 + k * 2), y = lerp(J.hi[1], J.lo[1], e) + 2.5 * Math.sin(t * 0.07 + k); return col.canBe('floater', x, y, t, 2) ? [x, y] : null; };
+  const onSea = (x, y) => onSeaAt(x, y);
+  // The map animals the debug menu can place (C4), and the homes each one's own rule chose for it (habitat in land.js).
+  const SPAWN = ['elk', 'moose', 'goat', 'sheep', 'bear', 'marmot', 'squirrel', 'eagle', 'osprey'];
+  const homesOf = k => k === 'eagle' ? TOPS.map(p => [p.x, p.s.y]) : k === 'osprey' ? (OSPREY ? [OSPREY.dive] : []) : k === 'elk' ? [spots.elk[0].slice(0, 2)] : k === 'moose' ? (spots.moose ? [spots.moose] : []) : k === 'goat' ? spots.goats.filter(g => !g[2]).map(g => g.slice(0, 2)) : k === 'bear' ? [...(spots.bearHome ? [spots.bearHome.slice(0, 2)] : []), spots.bear.slice(0, 2)] : (k === 'squirrel' ? spots.squirrels : spots[k === 'sheep' ? 'sheep' : 'marmots']).map(g => g.slice(0, 2));
   // Where the trees stand, so a wandering animal goes round them, and the ground just behind anything
   // tall (a tree, a snag, a big rock), where it would stand hidden.
-  const CELL = 8, GW = Math.ceil(NW / CELL), GH = Math.ceil(NH / CELL), wood = new Uint8Array(GW * GH), hid = new Uint8Array(GW * GH);
+  const CELL = 8, GW = Math.ceil(NW / CELL), GH = Math.ceil(NH / CELL), wood = new Uint8Array(GW * GH), bole = new Uint8Array(GW * GH), hid = new Uint8Array(GW * GH);
   for (const th of W.things) {
-    if (th.tree) wood[Math.floor(th.y / CELL) * GW + Math.floor(th.x / CELL)] = 1;
+    if (th.tree) { wood[Math.floor(th.y / CELL) * GW + Math.floor(th.x / CELL)] = 1; if (!th.tree.low) bole[Math.floor(th.y / CELL) * GW + Math.floor(th.x / CELL)] = 1; }
     const w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h; if (h < 14) continue;
     for (let y = th.y - Math.min(h, 34) + 5; y <= th.y + 1; y += CELL / 2) for (let x = th.x - w / 2 - 3; x <= th.x + w / 2 + 3; x += CELL / 2) { const cx = Math.floor(x / CELL), cy = Math.floor(y / CELL); if (cx >= 0 && cy >= 0 && cx < GW && cy < GH) hid[cy * GW + cx] = 1; }
   }
   const kindAt = (x, y) => KIND[g[Math.round(y) * NW + Math.round(x)]];
   const clear = (x, y) => x > 8 && y > 8 && x < NW - 8 && y < NH - 4 && W.open(x, y) && !wood[Math.floor(y / CELL) * GW + Math.floor(x / CELL)] && !wood[Math.floor((y - 5) / CELL) * GW + Math.floor(x / CELL)] && !hid[Math.floor(y / CELL) * GW + Math.floor(x / CELL)];
   const meadow = (x, y) => clear(x, y) && kindAt(x, y) >= 1 && kindAt(x, y) <= 3 && W.forestAmt(x, y) < 0.45 && !W.nearTrail(x, y, 5);
-  const way = (ok, x0, y0, x1, y1) => { for (let k = 1; k <= 5; k++) if (!ok(x0 + (x1 - x0) * k / 5, y0 + (y1 - y0) * k / 5)) return false; return true; };
+  // A straight line an animal may walk: every 3 px of it is ground it may stand on. (Until E9 it was tried at
+  // five points however long it was, and a bear could step over a creek between two of them.)
+  const way = (ok, x0, y0, x1, y1) => { const n = Math.max(5, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 3)); for (let k = 1; k <= n; k++) if (!ok(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)) return false; return true; };
 
   // ---- the animals that graze and wander ----------------------------------------------------
   const elkBull = { look: makeElk(false), graze: makeElk(true), walk: [makeElk(false, 1), makeElk(false, 2)] };
@@ -58,37 +165,125 @@ export function makeCritters(W, opts = {}) {
   const rand = rng(77);
   // faces: the way the drawing looks, -1 left or 1 right. r: how far it strays from where it was put.
   // An animal is put where it was meant to stand, or on the nearest ground it may stand on if a tree has since been planted there.
-  const settle = (ok, x, y) => { if (ok(x, y)) return [x, y]; for (let r = 4; r <= 48; r += 4) for (let k = 0; k < 12; k++) { const an = k / 12 * TAU, px = Math.round(x + Math.cos(an) * r), py = Math.round(y + Math.sin(an) * r * 0.6); if (ok(px, py)) return [px, py]; } return [x, y]; };
-  const walker = (kind, f, x0, y0, o) => { const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
+  const settle = (ok, x, y) => { if (ok(x, y)) return [x, y]; for (let r = 3; r <= 60; r += 3) for (let k = 0; k < 20; k++) { const an = k / 20 * TAU, px = Math.round(x + Math.cos(an) * r), py = Math.round(y + Math.sin(an) * r * 0.6); if (ok(px, py)) return [px, py]; } return [x, y]; };
+  // Each keeps to its own country (o.ok) and to the ground any land animal may stand on (collide.js: firm,
+  // open, clear of the buildings).
+  // Where it may stop is its country (o.ok); what it may walk across on the way is any ground a land animal
+  // may stand on that is not a tree's foot (pass), so it can go behind a tree, through the sage or over a trail to the next open patch.
+  const pass = (x, y) => col.canBe('land', x, y, 0) && !bole[Math.floor(y / CELL) * GW + Math.floor(x / CELL)];
+  const walker = (kind, f, x0, y0, o) => { const own = o.ok; o = { ...o, ok: (x, y) => own(x, y) && col.canBe('land', x, y, 0) }; const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, h0: [x, y], st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
   // The herd keeps together: each elk strays only a little from its own place in it.
   spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look' }));
   spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null }));
-  spots.sheep.forEach(([x, y, d]) => walker('sheep', ram, x, y, { faces: 1, r: 34, v: 6, ok: clear, start: d ? 'graze' : 'look' }));
-  // The bear is not always about: it is there on roughly one visit in three. For screenshots, bear=1 or
-  // bear=0 in the address settles it.
+  spots.sheep.forEach(([x, y, d]) => walker('sheep', ram, x, y, { faces: 1, r: 34, v: 6, ok: clear, roam: 0.6, start: d ? 'graze' : 'look' }));
+  // The moose (T35): a bull and a calf that wander the riverside woods together, the calf at his heels (it
+  // follows him as a kid follows its nanny). They keep off the trail.
+  const mooseF = calf => ({ look: makeMoose(calf, false), graze: makeMoose(calf, true), walk: [makeMoose(calf, false, 1), makeMoose(calf, false, 2)] });
+  if (spots.moose) { const inWoods = (x, y) => clear(x, y) && !W.nearTrail(x, y, 10);
+    walker('moose', mooseF(false), spots.moose[0], spots.moose[1], { faces: -1, r: 64, v: 5, ok: inWoods, roam: 0.7, start: 'look' });
+    walker('moose', mooseF(true), spots.moose[0] + 16, spots.moose[1] + 5, { faces: -1, r: 15, v: 9, ok: inWoods, roam: 0.3, mum: items[items.length - 1] }); }
   const asked = typeof location !== 'undefined' && /[?&]bear=([01])/.exec(location.search);
-  if (opts.bear != null ? opts.bear : asked ? asked[1] === '1' : Math.random() < 0.35) walker('bear', bearF, spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 7, ok: meadow, roam: 0.4 });
+  // The bears (round 5, T34 and T44): each is a sow with two cubs. The cubs keep within a few pixels of her:
+  // when she moves off they trail her, one at each side, and while she stays they sniff about, roll on their
+  // backs, rear up and bat at each other, and now and then one climbs a step up the nearest trunk, clings
+  // there and comes down. A cub is not a walker: cubStep moves it.
+  const cubF = { look: mapCub('look'), sniff: mapCub('sniff'), walk: [mapCub('look', 1), mapCub('look', 2)], roll: [mapCub('roll'), mapCub('roll', 1)], rear: [mapCub('rear'), mapCub('rear', 1)], climb: [mapCub('climb'), mapCub('climb', 1)] };
+  // v: a cub's speed. near, far: how far from her it may be while she walks, and while she stays. up: seconds to climb. high: how far up.
+  const CUB = { v: 13, near: 28, far: 34, up: 1.3, high: 6 };
+  const TRUNKS = W.things.filter(th => th.tree && !th.tree.low && th.tree.h >= 18).map(th => ({ x: th.x, y: th.y, w: th.tree.w, h: th.tree.h }));
+  // The nearest trunk a cub may climb: close to it and to her (the start button reaches twice as far), with no other tree standing in front of its foot.
+  const trunkFor = (a, reach = 22) => { let top = null, bd = reach; for (const T of TRUNKS) { const d = Math.hypot(T.x - a.fx, (T.y - a.fy) / 0.6); if (d >= bd || Math.hypot(T.x - a.mum.fx, (T.y - a.mum.fy) / 0.6) > reach + 8) continue; if (TRUNKS.some(Q => Q !== T && Q.y > T.y && Q.y - T.y < Math.min(Q.h, 30) && Math.abs(Q.x - T.x) < Q.w / 2 + 2)) continue; top = T; bd = d; } return top; };
+  const cubOf = (sow, n, twin) => { const [ax, ay] = besideHer({ mum: sow, n, sib: twin }, 22, 3 + n), x = Math.round(sow.x + ax), y = Math.round(sow.y + ay); return { critter: 'bear', cub: true, mum: sow, n, f: cubF, bm: cubF.look, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'idle', pose: 'look', until: 1 + rand() * 4, flip: rand() < 0.5, hop: 0, lift: 0 }; };
+  // A family needs room: she is put on the nearest ground to her spot, up to 90 away, that has a clear place for a cub on each side of her.
+  const family = (x, y, o, roamer) => { const g = (px, py) => o.ok(px, py) && land(px, py), room = (px, py) => g(px, py) && way(g, px, py, px - 22, py + 3) && way(g, px, py, px + 22, py + 4) && land(px - 27, py + 3) && land(px + 27, py + 4);
+    if (!room(x, y)) search: for (let r = 4; r <= 90; r += 4) for (let k = 0; k < 20; k++) { const px = Math.round(x + Math.cos(k / 20 * TAU) * r), py = Math.round(y + Math.sin(k / 20 * TAU) * r * 0.6); if (room(px, py)) { x = px; y = py; break search; } }
+    walker('bear', bearF, x, y, o); const sow = items[items.length - 1]; sow.sow = true; sow.roamer = roamer; const first = cubOf(sow, 0), cubs = [first, cubOf(sow, 1, first)]; cubs[0].sib = cubs[1]; cubs[1].sib = cubs[0]; items.push(...cubs); return sow; };
+  const rest = (a, t, wait) => { a.st = 'idle'; a.hop = a.lift = 0; a.until = t + wait; };
+  // Back to its own side of her, clear of her drawing: or, where she stands against trees or the trail, the
+  // other side, or the grass just in front of her feet, and never its twin's place. The first of these she could walk to herself in a
+  // straight line, with dry ground 5 either side of it, so no creek lies between it and her or under its paws. A cub crosses nothing a land animal may not (collide.js):
+  // landWay is a straight line clear of all that.
+  const land = (x, y) => col.canBe('land', x, y, 0), landWay = (x0, y0, x1, y1) => way(land, x0, y0, x1, y1);
+  const besideHer = (a, d, dy) => { const M = a.mum, B = a.sib, sd = a.n ? 1 : -1, tw = !B ? null : B.st === 'walk' && B.goal === 'mum' ? [M.fx + B.off[0], M.fy + B.off[1]] : [B.fx, B.fy];
+    for (const o of [[sd * d, dy], [-sd * d, dy + 1], [sd * d, -1], [-sd * d, -2], [sd * d, dy + 7], [-sd * d, dy + 8], [sd * 13, 7], [-sd * 13, 8]]) { const x = M.fx + o[0], y = M.fy + o[1]; if (tw && Math.hypot(x - tw[0], y - tw[1]) < 10) continue; if (M.ok(x, y) && land(x - 5, y) && land(x + 5, y) && way(M.ok, M.fx, M.fy, x, y)) return o; }
+    return [sd * 8, 7]; };
+  const toSide = a => { a.st = 'walk'; a.goal = 'mum'; a.hop = a.lift = 0; a.off = besideHer(a, 21 + rand() * 5, 3 + rand() * 4); };
+  function cubStep(a, dt, t) {
+    const M = a.mum, B = a.sib, side = a.n ? 1 : -1, dM = Math.hypot(a.fx - M.fx, (a.fy - M.fy) / 0.6);
+    if (a.st === 'climb') {
+      const T = a.trunk, s = t - a.t0;
+      if (dM > CUB.far + 8 && s < CUB.up + a.hold) a.hold = Math.max(0, s - CUB.up);   // she has moved off, so down it comes
+      const h = CUB.high * smooth(0, CUB.up, s) * smooth(2 * CUB.up + a.hold, CUB.up + a.hold, s), cling = s > CUB.up && s < CUB.up + a.hold;
+      // Drawn just in front of the tree it is on, lifted up the trunk.
+      a.x = T.x; a.y = T.y + 1; a.hop = a.lift = 1 + Math.round(h); a.flip = false; a.bm = a.f.climb[cling ? 0 : Math.floor(t * 5) & 1];
+      if (s >= 2 * CUB.up + a.hold) { a.fx = T.x + side * 3; a.fy = T.y + 2; a.x = Math.round(a.fx); a.y = Math.round(a.fy); a.pose = 'look'; rest(a, t, 1 + rand() * 2); }
+      return;
+    }
+    if (a.st === 'roll') { a.bm = a.f.roll[Math.floor((t - a.t0) * 3.5) & 1]; if (t < a.until && dM <= CUB.far + 6) return; a.pose = 'look'; rest(a, t, 0.6 + rand() * 2); }
+    if (a.st === 'play') {
+      a.bm = a.f.rear[Math.floor(t * 3.2 + a.n * 0.5) & 1]; a.flip = B.fx < a.fx; a.hop = (Math.floor(t * 3.2) + a.n) % 4 === 0 ? 1 : 0;
+      if (t < a.until && dM <= CUB.far + 6 && B.st === 'play') return;
+      if (B.st === 'play') toSide(B); toSide(a);
+    }
+    if (a.st === 'walk') {
+      if (a.goal === 'mum') { if (!M.ok(M.fx + a.off[0], M.fy + a.off[1])) a.off = besideHer(a, 22, 4); a.tx = M.fx + a.off[0]; a.ty = M.fy + a.off[1]; }
+      const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
+      if (d >= 0.8) {
+        const st = Math.min(d, CUB.v * dt), nx = a.fx + dx / d * st, ny = a.fy + dy / d * st;
+        // Water or a cliff ahead: it makes straight for her instead, along the way she came, or waits.
+        if (!land(nx, ny) && land(a.fx, a.fy)) { if (a.goal === 'mum' && Math.abs(a.off[0]) > 5) a.off = [side * 5, 6]; else { a.pose = 'look'; rest(a, t, 1.5); a.bm = a.f.look; } return; }
+        a.fx = nx; a.fy = ny; a.x = Math.round(a.fx); a.y = Math.round(a.fy);
+        if (Math.abs(dx) > 0.5) a.flip = dx < 0; a.bm = a.f.walk[Math.floor(t * 7 + a.n) & 1]; return;
+      }
+      if (a.goal === 'trunk') { a.st = 'climb'; a.t0 = t; a.hold = 1.5 + rand() * 2.5; return; }
+      if (a.goal === 'twin' && B.st === 'idle' && Math.hypot(B.fx - a.fx, B.fy - a.fy) < 11) { a.st = B.st = 'play'; a.until = B.until = t + 2.5 + rand() * 2.5; return; }
+      if (a.goal === 'mum' && M.st === 'walk') { a.bm = a.f.look; return; }
+      a.pose = 'look'; rest(a, t, 1 + rand() * 3);
+    }
+    a.bm = a.pose === 'sniff' ? a.f.sniff : a.f.look;
+    if (M.st === 'walk' ? dM > CUB.near : dM > CUB.far) { toSide(a); return; }
+    if (t < a.until) return;
+    const roll = rand();
+    if (M.st !== 'walk') {
+      if (roll < 0.16) { a.st = 'roll'; a.t0 = t; a.until = t + 1.6 + rand() * 1.6; return; }
+      if (roll < 0.34 && B.st === 'idle' && landWay(a.fx, a.fy, B.fx, B.fy)) { a.tx = B.fx + (a.fx < B.fx ? -8 : 8); a.ty = B.fy; a.goal = 'twin'; a.st = 'walk'; B.until = Math.max(B.until, t + 3); return; }
+      if (roll < 0.46) { const T = trunkFor(a); if (T && landWay(a.fx, a.fy, T.x, T.y + 1)) { a.trunk = T; a.tx = T.x; a.ty = T.y + 1; a.goal = 'trunk'; a.st = 'walk'; return; } }
+      if (roll < 0.62) { const tx = M.fx + side * (19 + rand() * 8), ty = M.fy + 2 + (rand() * 2 - 1) * 6; if (M.ok(tx, ty) && landWay(a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.goal = 'spot'; a.st = 'walk'; return; } }
+    }
+    a.pose = roll < 0.8 ? 'sniff' : 'look'; a.until = t + 2 + rand() * 4; if (rand() < 0.3) a.flip = !a.flip;
+  }
+  // One family lives in its clearing in the firs below the Spires' waterfall and is always there (T34): it
+  // keeps to the open patch (the room land.js measured) and off the trail beside it. The other is at the
+  // forest's edge on roughly one visit in three (T44). For screenshots, bear=1 or bear=0 in the address settles that one.
+  const addBear = () => family(spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 7, ok: meadow, roam: 0.4 }, true);
+  if (opts.bear != null ? opts.bear : asked ? asked[1] === '1' : Math.random() < 0.35) addBear();
+  if (spots.bearHome) family(spots.bearHome[0], spots.bearHome[1], { faces: 1, r: spots.bearHome[2] + 2, v: 5, ok: (x, y) => meadow(x, y) && !W.nearTrail(x, y, 9), roam: 0.3 }, false);
 
   function walk(a, dt, t) {
     if (a.st === 'walk') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
-      if (d < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; }
+      if (d < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; a.fx = a.tx; a.fy = a.ty; }   // it stops on the spot it chose, which is ground it may stand on
       else { const s = Math.min(d, a.v * dt); a.fx += dx / d * s; a.fy += dy / d * s * 0.7; if (Math.abs(dx) > 0.5) a.flip = (dx > 0 ? 1 : -1) !== a.faces; }
       a.x = Math.round(a.fx); a.y = Math.round(a.fy);
       a.bm = a.f.walk[Math.floor(t * 4.5 + a.hx) & 1];
-      if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; }
+      if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; a.fx = a.tx; a.fy = a.ty; a.x = Math.round(a.fx); a.y = Math.round(a.fy); }
       return;
     }
     a.bm = a.st === 'graze' ? a.f.graze : a.f.stand && frac(t * 0.11 + a.hx * 0.37) < 0.5 ? a.f.stand : a.f.look;
-    if (t < a.until) return;
-    const roll = rand();
+    // A kid that has been left behind (its mother has walked off) goes after her at once.
+    const lag = a.mum && Math.hypot(a.fx - a.mum.fx, (a.fy - a.mum.fy) / 0.6) > a.r + 8;
+    if (t < a.until && !lag) return;
+    const roll = lag ? 0 : rand();
     if (roll < (a.roam || 0.25)) {
-      // A kid keeps near its mother; everyone else keeps near home.
-      const cx = a.mum ? a.mum.x : a.hx, cy = a.mum ? a.mum.y + 5 : a.hy;
-      for (let k = 0; k < 6; k++) {
+      // A kid keeps near its mother, or near where she is walking to; everyone else keeps near home.
+      const far = a.mum && a.mum.st === 'walk', cx = a.mum ? (far ? a.mum.tx : a.mum.x) : a.hx, cy = a.mum ? (far ? a.mum.ty : a.mum.y) + 5 : a.hy;
+      for (let k = 0; k < 10; k++) {
         const an = rand() * TAU, rr = a.r * (0.35 + 0.65 * rand()), tx = cx + Math.cos(an) * rr, ty = cy + Math.sin(an) * rr * 0.6;
-        if (a.ok(tx, ty) && way(a.ok, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; }
+        if (a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; }
       }
+      // No straight way to her (a trunk or a bend of the creek between them): it works round, to any spot it can
+      // reach that is 6 or more nearer her.
+      if (lag) { const dNow = Math.hypot(a.fx - cx, a.fy - cy); for (let k = 0; k < 12; k++) { const an = rand() * TAU, rr = 10 + 22 * rand(), tx = a.fx + Math.cos(an) * rr, ty = a.fy + Math.sin(an) * rr * 0.6; if (Math.hypot(tx - cx, ty - cy) < dNow - 6 && a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; } } }
     }
     a.st = roll < 0.72 ? 'graze' : 'look'; a.until = t + (a.st === 'look' ? 2.5 + rand() * 4 : 5 + rand() * 11);
     if (a.st === 'look' && rand() < 0.3) a.flip = !a.flip;
@@ -96,7 +291,7 @@ export function makeCritters(W, opts = {}) {
 
   // ---- squirrels and chipmunks: sit, then dart ----------------------------------------------
   const sq = [0, 1].map(chip => ({ sit: W.make.squirrel(!!chip), run: W.make.squirrel(!!chip, true) }));
-  for (const [x, y, chip] of spots.squirrels) items.push({ critter: 'squirrel', dart: true, f: sq[chip ? 1 : 0], bm: sq[chip ? 1 : 0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: 3 + rand() * 12, flip: rand() < 0.5 });
+  for (const [x, y, chip] of spots.squirrels) items.push({ h0: [x, y], critter: 'squirrel', dart: true, f: sq[chip ? 1 : 0], bm: sq[chip ? 1 : 0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: 3 + rand() * 12, flip: rand() < 0.5 });
   function dart(a, dt, t, here) {
     if (a.st === 'run') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
@@ -122,9 +317,17 @@ export function makeCritters(W, opts = {}) {
   const mar = { sun: marmot('sun'), up: marmot('up') };
   // Each has a few rocks' worth of ground round its own (E5i, TJ: no animal just stands still): now and then
   // it scurries a little way to sun somewhere else, and it still sits up when he comes by.
-  spots.marmots.forEach(([x, y], n) => items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, fx: x, fy: y, tx: x, ty: y, r: 16, st: 'sun', until: 4 + rand() * 10 }));
+  // Round 5 (T43, T29): the two in the parkland below Mount Monolith lie on a boulder each (perch: how high its
+  // top stands) and keep to it. Every 26 s, and when he comes near, a marmot sits up and whistles, then drops
+  // down again; the whistle sounds if the marmot is on screen. None sets foot on ice or snow.
+  const MAR = { cycle: 26, up: 2.6 }, sounds = [];
+  spots.marmots.forEach(([x, y0, perch = 0], n) => { const y = y0 + (perch ? 1 : 0); items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: perch ? 0 : 16, perch, lift: perch, st: 'sun', until: 4 + rand() * 10 }); });
+  const offIce = (x, y) => { const k = RAMP_OF[g[Math.round(y) * NW + Math.round(x)]]; return k !== 'glac' && k !== 'snow' && k !== 'farsnow'; };
   function scurry(a, dt, t, here) {
-    const up = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / 11 + a.n * 0.37) < 0.2;
+    const up = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / MAR.cycle + a.n * 0.37) < MAR.up / MAR.cycle || (a.call != null && t - a.call < MAR.up);
+    if (up && !a.wasUp) a.rose = t; else if (!up && a.wasUp && rand() < 0.5) a.flip = !a.flip;
+    a.wasUp = up;
+    if (a.perch) { a.bm = up ? mar.up : mar.sun; return; }
     if (a.st === 'run') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
       if (d < 0.8) { a.st = 'sun'; a.until = t + 6 + rand() * 12; a.hop = 0; }
@@ -132,32 +335,8 @@ export function makeCritters(W, opts = {}) {
     }
     a.bm = up ? mar.up : mar.sun;
     if (up || t < a.until) return;
-    for (let k = 0; k < 6; k++) { const an = rand() * TAU, rr = a.r * (0.3 + 0.7 * rand()), tx = a.hx + Math.cos(an) * rr, ty = a.hy + Math.sin(an) * rr * 0.6; if (W.open(tx, ty) && way((x, y) => W.open(x, y), a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'run'; return; } }
+    for (let k = 0; k < 6; k++) { const an = rand() * TAU, rr = a.r * (0.3 + 0.7 * rand()), tx = a.hx + Math.cos(an) * rr, ty = a.hy + Math.sin(an) * rr * 0.6; if (W.open(tx, ty) && offIce(tx, ty) && way((x, y) => W.open(x, y) && offIce(x, y), a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'run'; return; } }
     a.until = t + 5;
-  }
-
-  // ---- the heron: still in the oxbow until he runs close by (E5j) ----------------------------------
-  // It stands and now and then turns. When he comes within 60 on the move it lifts off slowly, away from
-  // him, climbing low over the meadow on slow wingbeats, and is gone; 35 s later it glides back the
-  // same way and stands again. The debug panel can send it off at any time.
-  const her = { stand: heron('stand'), fly: [heron('fly0'), heron('fly1')] }, HER = { out: 9, back: 44, home: 53 };
-  if (spots.heron) items.push({ critter: 'heron', bm: her.stand, x: spots.heron[0], y: spots.heron[1], hx: spots.heron[0], hy: spots.heron[1], st: 'stand', t0: 0, dir: -1, last: null });
-  const herItem = items.find(a => a.critter === 'heron');
-  const takeOff = (a, t, from) => { a.st = 'fly'; a.t0 = t; a.dir = from && from.x > a.hx ? -1 : from ? 1 : -1; };
-  function wade(a, dt, t, here) {
-    const moved = here && a.last && Math.hypot(here.x - a.last.x, here.y - a.last.y) > 0.05;
-    a.last = here ? { x: here.x, y: here.y } : null;
-    if (a.st === 'stand') {
-      a.bm = her.stand; a.hop = 0; a.x = a.hx; a.y = a.hy; a.flip = frac(t / 23 + 0.3) < 0.35;
-      if (moved && Math.hypot(here.x - a.hx, (here.y - a.hy) * 1.4) < 60) takeOff(a, t, here);
-      return;
-    }
-    const s = t - a.t0; if (s >= HER.home) { a.st = 'stand'; return; }
-    // Out along a slow climb, then back along the same line, gliding in on fewer beats.
-    const out = s < HER.out, back = s >= HER.back, k = out ? s : back ? HER.home - s : 0;
-    if (!out && !back) { a.x = -999; return; }
-    a.x = Math.round(a.hx + a.dir * (9 * k + 2.2 * k * k)); a.y = a.hy; a.hop = Math.round(16 * smooth(0, 2.5, k) + 2.4 * k);
-    a.flip = out ? a.dir < 0 : a.dir > 0; a.bm = back && k < 2.5 ? her.stand : her.fly[Math.floor(s * (back ? 1.2 : 2.2)) & 1];
   }
 
   // For screenshots, sea=90 in the address starts the ferry's and the whale's clocks that many seconds on.
@@ -194,9 +373,10 @@ export function makeCritters(W, opts = {}) {
   // Where it comes up (E6a): a different spot for each breach and each blow, picked by rule from open
   // water in view (clear of the page's buttons along the top and the timeline along the bottom): well out
   // past the low-water line, clear of the stacks, with room for the spray.
-  let OPEN = null;
+  // LOW: the lowest tide, so a spot picked is deep enough whenever the whale comes up.
+  let OPEN = null; const LOW = { ebb: EBB };
   const openWater = () => OPEN || (OPEN = (() => { const out = []; for (let y = SEA.y0 + 30; y < SEA.y0 + SEA.h - 12; y += 6) for (let x = 60; x < SEA.w - 16; x += 6) {
-    if (csAt(x, y) < EBB + 48 || [-56, -28, 12].some(d => csAt(x + d, y) < EBB + 34) || stacks.some(s => Math.abs(s.x - x) < 70 && Math.abs(s.y - y) < 26)) continue; out.push([x, y]); } return out; })());
+    if (!col.canBe('whale', x, y, LOW, 8) || [-56, -28, 12].some(d => !col.canBe('whale', x + d, y, LOW)) || stacks.some(s => Math.abs(s.x - x) < 70 && Math.abs(s.y - y) < 26)) continue; out.push([x, y]); } return out; })());
   const pickOpen = (key, ox, oy, VW, VH) => { const all = openWater(); if (!all.length) return spots.whale; const seen = all.filter(([x, y]) => x - 60 > ox && x + 16 < ox + VW && y - 46 > oy + 40 && y + 10 < oy + VH - 130), from = seen.length ? seen : all; return from[Math.floor(hash(key, 7, 6201) * from.length)]; };
   function drawWhale(scr, a, ox, oy, t) {
     const T = t + whaleAhead + T0, n = Math.floor(T / SLOT), u = T - n * SLOT - starts(n);
@@ -256,18 +436,6 @@ export function makeCritters(W, opts = {}) {
     }
   }
 
-  // The sea stacks, found among the things that stand in the water, for the white water round their feet.
-  const stacks = W.things.filter(th => !th.tree && th.bm && th.bm.h >= 14 && th.x < SEA.w && W.coast(th.x, th.y) > 14).map(th => ({ x: th.x, y: th.y, half: th.bm.w / 2, cs: W.coast(th.x, th.y) }));
-  // The tide (E6). Every 100 s the sea draws back off the beach and comes in again: out over 36 s, low for
-  // 16 s, in over 36 s, high for 12 s; the first low is 44 s after the page opens. At low water the line
-  // stands far enough out that the two sea stacks nearest the beach stand on the bared flat with tide
-  // pools round their feet (14 past the second of them). What it bares is wet sand: a shine of water just
-  // above the line, ripple marks higher up. The jellyfish drift out ahead of it, so they stay afloat. The
-  // sea left at low water is still most of the corner, so the whale, the ferry and the orcas keep to it.
-  // tide=<seconds> in the address moves its clock on, for screenshots.
-  const TIDE = 100, byCs = [...stacks].sort((a, b) => a.cs - b.cs), POOLED = byCs.slice(0, 2), EBB = POOLED.length > 1 ? POOLED[1].cs + 14 : 40;
-  let tideAhead = typeof location !== 'undefined' ? +(/[?&]tide=([\d.]+)/.exec(location.search) || [])[1] || 0 : 0;
-  const ebbAt = t => { const s = ((t + tideAhead) % TIDE + TIDE) % TIDE; return EBB * smooth(8, 44, s) * smooth(96, 60, s); };
   // Where water lies on in films on the bared flat, shining, 0 to 8 (most where the flat lies lowest).
 // Each row of the sea (M3): the runs near the shore that the tide and the wash can reach, and the open
   // water's glints beyond them, found once, so the open sea's still pixels are not visited every frame.
@@ -288,24 +456,60 @@ export function makeCritters(W, opts = {}) {
   // Only sand the lowest tide can bare is ever read (M3), so the open sea beyond it is skipped.
   const FILM = new Uint8Array(SEA.cs.length); for (let j = 0; j < FILM.length; j++) { const k = SEA.cs[j]; if (k < 8 || k >= 4 + EBB) continue; const x = j % SEA.w, y = SEA.y0 + ((j / SEA.w) | 0), n = vnoise(x / 13, y / 5, 6108) + 0.25 * smooth(8, 50, k); FILM[j] = Math.max(0, Math.min(8, Math.round((n - 0.6) * 30))); if (frac((k * 0.9 + 0.5 * Math.sin(x / 5)) / 3) < 0.22) FILM[j] |= 16; }
   const csAt = (x, y) => { if (x < 0 || x >= SEA.w || y < SEA.y0 || y >= SEA.y0 + SEA.h) return 0; return SEA.cs[(y - SEA.y0) * SEA.w + x]; };
-  // Each jellyfish's way out to sea: the way the distance from the shore grows fastest, in pixels per unit of it.
-  const jellyOut = spots.jelly.map(([x, y]) => { const gx = (csAt(x + 4, y) - csAt(x - 4, y)) / 8, gy = (csAt(x, y + 4) - csAt(x, y - 4)) / 8, g2 = gx * gx + gy * gy || 1; return { c0: W.coast(x, y), dx: gx / g2, dy: gy / g2 }; });
+  // Each river carries on across the sand the tide bares (T25). CHAN marks, over the same cells as the tide, where
+  // its water runs (2) and the wet sand beside it (1). A mouth is found where river water in the ground's picture
+  // meets the high-water line. From there the channel takes the beach's own fall line to the lowest water, swinging
+  // a little, and splits into two and then three shallow threads as the flat levels out. The sea's loop draws a
+  // cell of it only while the tide has that cell bared, so the tide coming in covers it again from the far end.
+  const CHAN = riverOnFlat(SEA, g, EBB, csAt);
   // How far up the bared sand the last of each wave's wash runs, in the same units as the tide.
   const up0 = (wx, wy, tw) => { const u = frac((7 * Math.sin(wx / 37 + wy / 61) + tw) / 24), surge = u < 0.2 ? u / 0.2 : 1 - (u - 0.2) / 0.8; return 0.4 + 2.2 * surge + 0.7 * Math.sin(wx / 7 + wy / 9); };
+  // The tide pools' animals (round 5, T33, TJ: "animate teh animals inside. Not just red blobs painted on
+  // the map"). Each is drawn from a few pixels and moves on its own slow clock; k tells two of a kind apart.
+  // A sea star, 5 px across: each arm's tip shifts a pixel now and then, so its shape slowly changes.
+  const TIPS = [[[0, -2], [1, -2]], [[-2, 0], [-2, -1]], [[2, 0], [2, -1]], [[-2, 2], [-1, 2]], [[2, 2], [2, 1]]];
+  const starAt = (scr, x, y, c, t, k) => { for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [-1, 1], [1, 1]]) scr.set(x + dx, y + dy, c[1]); scr.set(x, y, c[2]);
+    TIPS.forEach(([p, q], n) => { const [dx, dy] = frac(t / (5 + n * 1.3) + k * 0.37 + n * 0.21) < 0.35 ? q : p; scr.set(x + dx, y + dy, c[0]); }); };
+  // A small one for the small pools, 3 px across: a plus that turns to a cross and back.
+  const smallStar = (scr, x, y, c, t, k) => { const turn = frac(t / 7 + k * 0.43) < 0.4; scr.set(x, y, c[2]); for (const [dx, dy] of turn ? [[-1, -1], [1, -1], [-1, 1], [1, 1]] : [[-1, 0], [1, 0], [0, -1], [0, 1]]) scr.set(x + dx, y + dy, c[1]); };
+  // A green anemone: a short column with its mouth, and tentacles that lean one way and then the other.
+  const anemoneAt = (scr, x, y, t, k) => { const s = Math.round(1.2 * Math.sin(t * 1.1 + k * 1.7)), M = R.moss;
+    for (let dx = -1; dx <= 1; dx++) { scr.set(x + dx, y, dx ? M[4] : M[1]); scr.set(x + dx, y + 1, M[2]); }
+    scr.set(x, y - 1, M[6]); for (const [dx, dy] of [[-2, -1], [-1, -2], [1, -2], [2, -1]]) scr.set(x + dx + (dy === -2 ? s : Math.sign(dx) === Math.sign(s) ? 0 : s), y + dy, M[5]); };
+  // A purple urchin: its spines bristle.
+  const urchinAt = (scr, x, y, t, k) => { const out = frac(t * 0.45 + k * 0.3) < 0.5; scr.set(x, y, R.lupine[1]); for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) scr.set(x + dx, y + dy, R.lupine[0]); for (const [dx, dy] of out ? [[-1, -1], [1, 1]] : [[1, -1], [-1, 1]]) scr.set(x + dx, y + dy, R.mauve[0]); };
+  // A crab, 5 px across: it goes sideways for a couple of seconds, legs working, and stops for a couple.
+  // along(t): how far it has gone in all, so it stands still while it is stopped.
+  const crabGone = (t, k) => { const T = t + k * 1.9, n = Math.floor(T / 4.2); return { d: (n * 2.4 + Math.min(T - n * 4.2, 2.4)) * 4, going: T - n * 4.2 < 2.4 }; };
+  const crabAt = (scr, x, y, going, t) => { const leg = going ? Math.floor(t * 9) & 1 : 0;
+    for (let dx = -1; dx <= 1; dx++) { scr.set(x + dx, y, R.red[1]); scr.set(x + dx, y + 1, R.red[0]); }
+    scr.set(x - 2, y - 1, R.red[2]); scr.set(x + 2, y - 1, R.red[2]); scr.set(x - 2, y + 1 - leg, R.red[0]); scr.set(x + 2, y + leg, R.red[0]); };
+  // A sculpin, 4 px long: it lies still on the bottom, then darts to another spot.
+  const sculpinAt = (scr, px, py, spots, t) => { const u = frac(t / 5.5), n = Math.floor(t / 5.5), a = spots[n % spots.length], b = spots[(n + 1) % spots.length], f = smooth(0.92, 1, u), x = Math.round(lerp(a[0], b[0], f)) + px, y = Math.round(lerp(a[1], b[1], f)) + py, d = b[0] >= a[0] ? 1 : -1;
+    scr.set(x + d, y, R.ochre[0]); scr.set(x, y, R.ochre[0]); scr.set(x - d, y, R.ochre[1]); scr.set(x - 2 * d, y, R.ochre[0]); scr.set(x, y + 1, R.ochre[1]); };
+  const STAR_C = [R.lupine, R.blaze, [R.pink[0], R.pink[1], R.pink[2]]];
   function tidePools(scr, ox, oy, t, ebb) {
-    for (const P of pools) { const e = ebb - P.s.cs; if (e < 3) continue; const show = smooth(3, 9, e), sx = P.s.x - ox, sy = P.s.y - oy; if (sx < -40 || sx > scr.VW + 40 || sy < -20 || sy > scr.VH + 20) continue;
+    for (const P of pools) { const e = ebb - P.s.cs; if (e < 3) continue; const show = smooth(3, 9, e), sx = P.s.x - ox, sy = P.s.y - oy; if (sx < -60 || sx > scr.VW + 60 || sy < -30 || sy > scr.VH + 30) continue;
       // Mussels in a dark band round the foot of the rock, barnacles white on them.
       for (let dx = -Math.ceil(P.s.half) - 1; dx <= P.s.half + 1; dx++) for (let dy = -1; dy <= 1; dy++) { if (bayerish(dx, dy, P.s.x) > show) continue; scr.set(sx + dx, sy + dy, hash(dx, dy, P.s.x + 6105) < 0.25 ? R.white[0] : R.jay[0]); }
-      for (const p of P.pools) { const px = p.x - ox, py = p.y - oy;
-        for (let dy = -p.ry; dy <= p.ry; dy++) for (let dx = -p.rx; dx <= p.rx; dx++) { const q = (dx / (p.rx + 0.5)) ** 2 + (dy / (p.ry + 0.5)) ** 2; if (q > 1 || bayerish(dx, dy, p.x) > show) continue; scr.set(px + dx, py + dy, dy === -p.ry ? R.sea[1] : q < 0.4 && ((dx + dy) & 1) ? R.sea[3] : R.sea[2]); }
-        if (show < 0.7) continue;
-        if (p.life === 3) { for (const [dx, dy] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) scr.set(px - 1 + dx, py + dy, R.red[1]); scr.set(px + 2, py, R.moss[5]); scr.set(px + 2, py - 1, R.moss[4]); scr.set(px + 1, py + 1, R.jay[1]); scr.set(px + 2, py + 1, R.jay[1]); }
-        else if (p.life === 0) { const c = hash(p.x, p.y, 6106) < 0.5 ? R.red[1] : R.pink[0]; scr.set(px, py, c); scr.set(px - 1, py, c); scr.set(px + 1, py, c); scr.set(px, py - 1, c); scr.set(px, py + 1, c); }
-        else if (p.life === 1) { scr.set(px, py, R.moss[5]); scr.set(px - 1, py, R.moss[4]); scr.set(px + 1, py, R.moss[4]); }
-        else { scr.set(px, py, R.jay[1]); scr.set(px + 1, py, R.jay[1]); scr.set(px, py - 1, R.pink[0]); } }
-      // A crab sidles over the sand from pool to pool, stopping now and then.
-      if (show > 0.7) { const a = P.pools[0], b = P.pools[P.pools.length - 1], q = 0.5 + 0.5 * Math.sin(t * 0.35 + P.s.x), stop = frac(t * 0.5) < 0.3, x = Math.round(a.x + (b.x - a.x) * q) - ox, y = Math.round(a.y + (b.y - a.y) * q) - oy + 2;
-        scr.set(x, y, R.red[0]); scr.set(x + 1, y, R.red[0]); scr.set(x - 1, y - (stop ? 0 : (Math.floor(t * 6) & 1)), R.red[1]); scr.set(x + 2, y - (stop ? 0 : (Math.floor(t * 6 + 1) & 1)), R.red[1]); }
+      P.pools.forEach((p, k) => { const px = p.x - ox, py = p.y - oy;
+        for (const [dx, dy, c] of p.px) if (bayerish(dx, dy, p.x) <= show) scr.set(px + dx, py + dy, c);
+        if (show < 0.7) return;
+        // Light on the water: a glint or two that wanders.
+        { const n = Math.floor(t / 1.6), gx = Math.round((hash(n, k, 6111) - 0.5) * p.rx * 1.2), gy = Math.round((hash(n, k, 6112) - 0.5) * p.ry); if (frac(t / 1.6) < 0.5 && p.wet(gx, gy) && p.wet(gx + 1, gy)) { scr.set(px + gx, py + gy, R.sea[5]); scr.set(px + gx + 1, py + gy, R.sea[5]); } }
+        if (p.life === 3) {
+          // The pool to find: two sea stars, two anemones, an urchin, a sculpin, and a crab along its near rim.
+          sculpinAt(scr, px, py, [[1, 1], [-4, -3], [8, -3], [2, 4], [-9, 3]], t);
+          starAt(scr, px - 7, py, R.lupine, t, 0); starAt(scr, px + 5, py + 1, R.blaze, t, 1);
+          anemoneAt(scr, px - 1, py - 1, t, 0); anemoneAt(scr, px + 10, py, t, 1); urchinAt(scr, px - 2, py + 3, t, 0);
+          const g = crabGone(t, 0), L = 2 * p.rx - 6, q = g.d % (2 * L), cx = px - p.rx + 3 + (q < L ? q : 2 * L - q); crabAt(scr, Math.round(cx), py + p.ry + 5, g.going, t);
+        } else if (p.life === 0) smallStar(scr, px, py, STAR_C[(k + (P.s.x & 1)) % 3], t, k + P.s.x);
+        else if (p.life === 1) anemoneAt(scr, px, py + 1, t, k + P.s.x);
+        else urchinAt(scr, px, py, t, k + P.s.x); });
+      // Where there is no big pool, a crab sidles over the sand beside the pools, from the first to the last,
+      // stopping now and then.
+      if (show > 0.7 && !P.pools.some(p => p.life === 3)) { const a = P.pools[0], b = P.pools[P.pools.length - 1], side = Math.max(...P.pools.map(p => p.x + p.rx)) + 5, g = crabGone(t, 3), L = Math.max(6, Math.abs(b.y - a.y) + 6), q = g.d % (2 * L), f = (q < L ? q : 2 * L - q) / L;
+        crabAt(scr, side - ox + Math.round(3 * f), Math.round(lerp(Math.min(a.y, b.y) - 3, Math.max(a.y, b.y) + 3, f)) - oy, g.going, t); }
     }
   }
   // ---- the orca pod (E6a) ----
@@ -317,45 +521,195 @@ export function makeCritters(W, opts = {}) {
   // about 100 s, every 160 s, the first 30 s after the page opens.
   const POD = [{ c: 66, lag: 0, bull: true }, { c: 71, lag: 18, bull: false }, { c: 62, lag: 31, bull: false }, { c: 68, lag: 45, bull: false }];
   const ORCA = { slot: 160, first: 30, speed: 6.5 }; let orcaAhead = ahead;
-  // Salmon at Reflection Lake's fall (E9): the one fall on a river that reaches the sea, and low enough to
-  // leap. Every SAL.slot seconds a burst of one or two sockeye (red, green heads) leap from the plunge pool;
-  // most fall back, now and then one clears the lip. An osprey comes by every OSP.slot seconds, circles
-  // over the pool, folds and dives, and flies off with a fish.
-  const SAL = { slot: 20, first: 5, gap: 1.3 }, OSP = { slot: 75, first: 22, len: 17 }; let salAhead = 0, ospAhead = 0;
-  const sockeye = (scr, x, y, up) => { scr.set(x, y, up ? R.moss[3] : R.red[0]); scr.set(x, y + 1, R.red[1]); scr.set(x, y + 2, up ? R.red[0] : R.moss[3]); scr.set(x + (up ? -1 : 1), y + (up ? 2 : 0), R.red[2]); };
-  function salmon(scr, ox, oy, t) {
-    const F = (W.falls || [])[0]; if (!F) return; const x0 = F.x - ox, ya = F.y0 - oy, yb = F.y1 - oy; if (x0 < -40 || x0 > scr.VW + 40 || yb < -40 || ya > scr.VH + 40) return;
-    const s = t + salAhead - SAL.first; if (s < 0) return; const n = Math.floor(s / SAL.slot), u = s - n * SAL.slot, leaps = hash(n, 1, 571) < 0.55 ? 1 : 2;
-    for (let k = 0; k < leaps; k++) { const a = u - k * SAL.gap; if (a < 0 || a > 1.2) continue;
-      const clear = hash(n, k, 572) < 0.3, side = Math.round((hash(n, k, 574) - 0.5) * 5), drop = yb - ya;
-      if (clear) { const p = a / 1.1; if (p > 1) continue; const y = Math.round(yb - (drop + 3) * Math.sin(Math.min(1, p / 0.7) * Math.PI / 2)), x = x0 + side - Math.round(p * 2);
-        if (p < 0.7) sockeye(scr, x, y, true); else if (hash(Math.floor(t * 12), k, 575) < 0.8) { scr.set(x - 1, ya, R.white[1]); scr.set(x + 1, ya, R.white[1]); }
-        if (p < 0.12) { scr.set(x - 1, yb + 1, R.white[1]); scr.set(x + 1, yb + 1, R.white[1]); } continue; }
-      const p = a / 0.9; if (p > 1) { if (a < 1.2) { scr.set(x0 + side - 1, yb + 1, R.white[1]); scr.set(x0 + side + 2, yb + 1, R.white[1]); scr.set(x0 + side, yb, R.white[1]); } continue; }
-      const H = drop * (0.45 + 0.35 * hash(n, k, 573)), y = Math.round(yb - 4 * H * p * (1 - p)), x = x0 + side + Math.round((p - 0.5) * 3);
-      sockeye(scr, x, y, p < 0.5); if (p < 0.12) { scr.set(x - 1, yb + 1, R.white[1]); scr.set(x + 1, yb + 1, R.white[1]); } }
+  // ---- the two fishing birds (round 5, T28 with T16 and T19) ----
+  // A bald eagle keeps the top of the tallest sea stack. Every 40 to 70 s it lifts off, circles the stacks'
+  // tops two or three times, glides out over open water, swoops low, takes a fish off the surface with a
+  // splash and carries it back to its perch, where it eats. An osprey comes to Reflection Lake every 50 to
+  // 80 s: in from the forest, twice round high over the water, a hover on fast wings, then it folds and
+  // plunges feet first, comes up with a fish, shakes the water off and flies back the way it came. Both are
+  // flyers under the shared rule (collide.js): free anywhere in the air, perching only on a perch. Each
+  // flight is worked out from the clock alone, so it is the same however the clock is moved.
+  const EAG = { slot: 55, first: 6, vary: 15, seed: 580 }, OSP = { slot: 65, first: 12, vary: 15, seed: 590, hover: 1.7, plunge: 0.45, under: 0.7, rise: 1.7, high: 22, hang: 18 };
+  let eagAhead = 0, ospAhead = 0, eagleAt = 0;
+  // Whether the ferry is passing a spot about then (set once the ferry is made, below): the eagle fishes elsewhere.
+  let ferryNear = () => false;
+  // The flight a clock is in (each slot has one, starting a little later or sooner), and how far into it.
+  const slotOf = (S, t, ahead) => { const T = t + ahead, n = Math.floor(T / S.slot); return [n, T - n * S.slot - S.first - S.vary * hash(n, 1, S.seed)]; };
+  const startNow = (S, t) => { const n = Math.floor(t / S.slot) + 1; return n * S.slot + S.first + S.vary * hash(n, 1, S.seed) - t; };
+  // A flight course through way points [x, y, height above the ground, speed, name]: a smooth curve through
+  // all of them (a long leg is first cut into short ones, so the curve never swings wide), flown at each
+  // leg's speed. mark: when it reaches each named point.
+  function course(way) {
+    const P = [way[0]], T = [0], mark = {};
+    for (let k = 1; k < way.length; k++) { const a = way[k - 1], b = way[k], n = Math.max(1, Math.ceil(Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]) / 26));
+      for (let j = 1; j <= n; j++) { const q = [lerp(a[0], b[0], j / n), lerp(a[1], b[1], j / n), lerp(a[2], b[2], j / n)], z = P[P.length - 1]; T.push(T[T.length - 1] + Math.max(0.05, Math.hypot(q[0] - z[0], q[1] - z[1], q[2] - z[2]) / b[3])); P.push(q); }
+      if (b[4]) mark[b[4]] = T[T.length - 1]; }
+    const cr = (a, b, c, d, u) => 0.5 * (2 * b + (c - a) * u + (2 * a - 5 * b + 4 * c - d) * u * u + (3 * b - a - 3 * c + d) * u * u * u), N = P.length - 1;
+    const at = s => { s = clamp(s, 0, T[N] - 1e-4); let k = 0; while (T[k + 1] <= s) k++;
+      const u = (s - T[k]) / (T[k + 1] - T[k]), a = P[Math.max(0, k - 1)], b = P[k], c = P[k + 1], d = P[Math.min(N, k + 2)];
+      return [cr(a[0], b[0], c[0], d[0], u), cr(a[1], b[1], c[1], d[1], u), Math.max(0, cr(a[2], b[2], c[2], d[2], u))]; };
+    return { len: T[N], mark, at };
   }
-  // The osprey, seen from above as the map sees it: long bent brown wings with dark tips, a white head and
-  // breast that show against the forest; gliding, beating, folded for the dive.
-  const OSPREY = { glide: ['kb.........bk', '.bbbb.w.bbbb.', '....bwwwb....', '......b......'], beat: ['......w......', '..kbbbwbbbk..', '.bb..www..bb.', 'k.....b.....k'], fold: ['.w.', 'bwb', 'bwb', 'kbk'] };
-  const bird = (scr, x, y, rows) => rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) if (r[i] !== '.') scr.set(x - (r.length >> 1) + i, y + j, r[i] === 'w' ? R.white[1] : r[i] === 'k' ? R.bark[0] : R.wood[2]); });
-  function osprey(scr, ox, oy, t) {
-    const F = (W.falls || [])[0]; if (!F) return; const o = t + ospAhead - OSP.first; if (o < 0) return; const w = o - Math.floor(o / OSP.slot) * OSP.slot; if (w > OSP.len) return;
-    const px = F.x + 4 - ox, py = F.y1 - oy, cx = px, cy = py - 40, beat = Math.floor(t * 5) % 2 ? OSPREY.beat : OSPREY.glide, A = 9 * 1.3;
-    if (w < 9) { const an = w * 1.3 + 2; bird(scr, Math.round(cx + Math.cos(an) * 34), Math.round(cy + Math.sin(an) * 10), hash(Math.floor(t * 2), 0, 576) < 0.25 ? beat : OSPREY.glide); return; }
-    if (w < 10.2) { const p = ((w - 9) / 1.2) ** 2, sx = cx + Math.cos(A + 2) * 34, sy = cy + Math.sin(A + 2) * 10; bird(scr, Math.round(sx + (px - sx) * p), Math.round(sy + (py - 3 - sy) * p), OSPREY.fold); return; }
-    if (w < 10.9) { for (let k = 0; k < 6; k++) { const an = k / 6 * Math.PI * 2, r = 2 + (w - 10.2) * 6; scr.set(Math.round(px + Math.cos(an) * r), Math.round(py + Math.sin(an) * r * 0.4), R.white[1]); } bird(scr, px, py - 3, OSPREY.fold); return; }
-    const p = (w - 10.9) / (OSP.len - 10.9), x = Math.round(px + p * 150), y = Math.round(py - 4 - p * 110 - 20 * Math.sin(p * Math.PI));
-    bird(scr, x, y, Math.floor(t * 6) % 2 ? OSPREY.beat : OSPREY.glide); sockeye(scr, x, y + 4, false);
+  // A raptor on the wing, seen from behind and a little above, as the map sees everything: a short body,
+  // head up, a wing out to each side. up: how far a wing's tip stands above the shoulder (below it, under
+  // 0), so a wingbeat is up swinging from high to low and a glide is up held still. bank tips one wing up
+  // and the other down. An eagle's wings are long straight planks; an osprey's rise to the wrist and droop
+  // from there. sc under 1 draws it smaller, for a bird far off. carry: its feet down, or a fish in them.
+  const BIRD = {
+    eagle: { half: 11, wrist: 0, top: R.bark[1], under: R.bark[0], tip: R.fur[0], back: 3, tail: [R.white[1], R.white[1], R.white[0]], mask: 0 },
+    osprey: { half: 9, wrist: 0.45, top: R.wood[2], under: R.wood[1], tip: R.bark[0], back: 3, tail: [R.wood[2], R.wood[1]], mask: R.bark[0] }
+  };
+  const fishAt = (scr, x, y, face) => { scr.set(x - 2 * face, y, R.shoe[0]); for (let i = -1; i <= 1; i++) { scr.set(x + i, y, R.shoe[1]); scr.set(x + i, y + 1, R.shoe[2]); } scr.set(x + 2 * face, y, R.shoe[2]); };
+  function raptor(scr, x, y, K, up, face, bank = 0, sc = 1, carry = null) {
+    const half = Math.max(2, Math.round(K.half * sc)), small = sc < 0.6;
+    for (const s of [-1, 1]) { const lift = up + s * bank;
+      for (let i = 2; i <= half + 1; i++) { const f = (i - 1) / half, dy = Math.round(K.wrist ? (f < K.wrist ? -(lift + 1.5) * f / K.wrist : -(lift + 1.5) + (f - K.wrist) / (1 - K.wrist) * (2.5 + 0.4 * lift)) : -lift * f);
+        scr.set(x + s * i, y + dy, f > 0.8 ? K.tip : K.top); if (!small) { if (f < 0.86) scr.set(x + s * i, y + dy + 1, f > 0.8 ? K.tip : f < 0.45 ? K.top : K.under); if (f < 0.45) scr.set(x + s * i, y + dy + 2, K.under); } } }
+    if (small) { scr.set(x, y - 1, R.white[1]); scr.set(x, y, K.top); scr.set(x, y + 1, K.under); return; }
+    for (let i = -1; i <= 1; i++) { scr.set(x + i, y - 2, R.white[1]); scr.set(x + i, y - 1, R.white[i === -face ? 0 : 1]); for (let j = 0; j < K.back; j++) scr.set(x + i, y + j, i ? K.top : K.under); }
+    if (K.mask) scr.set(x + face, y - 1, K.mask); else scr.set(x + 2 * face, y - 1, R.yellow[1]);
+    // The tail: an eagle's is a white fan, widest in the middle.
+    K.tail.forEach((c, j) => { const w = K.tail.length > 2 && j === 1 ? 2 : 1; for (let i = -w; i <= w; i++) scr.set(x + i, y + K.back + j, c); });
+    if (carry) { const yf = y + K.back + K.tail.length - 1; scr.set(x - 1, yf, R.yellow[1]); scr.set(x + 1, yf, R.yellow[1]); if (carry === 'fish') fishAt(scr, x, yf + 1, face); }
   }
-  const isoX = new Map(), isoAt = c => { let a = isoX.get(c); if (a) return a; a = new Int16Array(SEA.h).fill(-1);
-    for (let r = 0; r < SEA.h; r++) for (let x = SEA.w - 1; x >= 0; x--) if (SEA.cs[r * SEA.w + x] >= c + 4) { a[r] = x; break; } isoX.set(c, a); return a; };
+  // Its shadow on the ground or the water under it, smaller the higher it flies.
+  const shade = (scr, x, y, h) => { const { VW, VH, fb } = scr, w = h > 26 ? 2 : h > 10 ? 3 : 4; for (let dy = 0; dy < 2; dy++) for (let dx = -w + dy; dx <= w - dy; dx++) { const sx = x + dx, sy = y + dy; if (sx >= 0 && sy >= 0 && sx < VW && sy < VH) fb[sy * VW + sx] = SHADE[fb[sy * VW + sx]]; } };
+  // Where it strikes the water (age 0 to 1): a ring that spreads to r and breaks up, a crown of drops thrown
+  // up that fall back, white water in the middle.
+  function splash(scr, x, y, age, r) {
+    const rx = 2 + r * Math.sqrt(age), ry = rx * 0.42, n = Math.round(10 + r * 2.4), W1 = R.white[1];
+    for (let k = 0; k < n; k++) { if (hash(k, 7, 583) < age * age) continue; const an = k / n * TAU; scr.set(Math.round(x + Math.cos(an) * rx), Math.round(y + Math.sin(an) * ry), W1); }
+    if (age < 0.6) { const u = age / 0.6; for (let k = 0; k < r + 2; k++) scr.set(Math.round(x + (hash(k, 1, 584) - 0.5) * (4 + r * 1.4 * u)), Math.round(y - (3 + r * 0.9 * hash(k, 2, 584)) * 4 * u * (1 - u)), W1); }
+    if (age < 0.45) for (let i = -2; i <= 2; i++) { scr.set(x + i, y, W1); if (Math.abs(i) < 2) scr.set(x + i, y - 1, age < 0.25 ? W1 : R.fog[2]); }
+  }
+  // A bird somewhere along a course: its shadow, then the bird, turned the way it is heading and banked
+  // into its turn. Returns where it is.
+  function aloft(scr, ox, oy, c, s, K, up, sc, carry) {
+    const [x, y, h] = c.at(s), [x0, y0] = c.at(s - 0.2), [x1, y1] = c.at(s + 0.2), ax = x - x0, ay = y - y0, bx = x1 - x, by = y1 - y, m = Math.hypot(ax, ay) * Math.hypot(bx, by);
+    const X = Math.round(x) - ox, Y = Math.round(y) - oy; if (X < -30 || X > scr.VW + 30 || Y - h > scr.VH + 20 || Y < -20) return [x, y, h];
+    if (sc >= 0.6) shade(scr, X, Y, h);
+    raptor(scr, X, Math.round(y - h) - oy, K, up, x1 >= x0 ? 1 : -1, m > 0.01 ? clamp(-9 * (ax * by - ay * bx) / m, -2, 2) : 0, sc, carry);
+    return [x, y, h];
+  }
+  // The eagle on its perch, facing right: white head and tail, dark brown body, yellow beak and feet. Standing
+  // up, and bowed over a fish it holds down on the rock.
+  const perched = (rows, fish) => { const b = new BM(12, rows.length + 2); b.ox = 4; b.oy = rows.length;
+    const C = { w: R.white[1], g: R.white[0], y: R.yellow[1], k: R.fur[0], K: R.bark[0], b: R.bark[1], e: INK, s: R.shoe[1], S: R.shoe[2], t: R.shoe[0] };
+    rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) if (C[r[i]]) b.set(i + 1, j + 1, C[r[i]]); });
+    if (fish) { const j = rows.length; 'tsssS'.split('').forEach((ch, i) => b.set(6 + i, j, C[ch])); }
+    outline(b, INK); return b; };
+  const SIT = ['..www...', '.wwwwy..', '.gwewyy.', '..gww...', '.kKKKk..', 'kKKbKKk.', 'kKKKbKk.', 'kKKKKKk.', '.kKKKk..', '.wwKk...', '.gw.yy..'];
+  const BOW = ['........', '........', '........', '........', '.kKKk...', 'kKKKKww.', 'kKKbKwwy', 'kKKKKgey', '.kKKKk..', '.wwKk...', '.gw.yy..'];
+  const EAGLE_BM = { sit: perched(SIT), fed: perched(SIT, true), bow: perched(BOW, true), none: new BM(1, 1) };
+  // No bird flies where a stack's drawing would hide the water it strikes.
+  const hiddenBy = (x, y) => stacks.some(s => Math.abs(x - s.x) < s.half + 6 && y < s.y + 4 && y > s.y - s.tall - 6);
+  // The eagle's perches: the top of each stack's drawing (its highest row, at that row's middle), the tallest
+  // first. Its own is the tallest; the debug menu can move it to another.
+  const TOPS = stacks.map(s => { const b = s.bm; for (let j = 0; j < b.h; j++) { let a = -1, z = -1; for (let i = 0; i < b.w; i++) if (b.d[j * b.w + i]) { if (a < 0) a = i; z = i; } if (a >= 0) return { s, x: s.x - b.ox + ((a + z) >> 1), y: s.y - b.oy + j, tall: b.oy - j }; } return null; })
+    .filter(p => p && p.x > 44 && p.y > 20 && p.tall >= 28).sort((a, b) => b.tall - a.tall);
+  const eagles = TOPS.map(() => null);
+  const eagle = () => { const p = TOPS[eagleAt]; if (!p) return null; if (eagles[eagleAt]) return eagles[eagleAt];
+    // It circles the tops of the stacks that stand round its own: a ring at the height of its own top, behind
+    // it on the far side and across the stack's head on the near side.
+    const near = TOPS.filter(q => Math.hypot(q.s.x - p.s.x, q.s.y - p.s.y) < 80), A = p.tall + 2, C = [near.reduce((a, q) => a + q.s.x, 0) / near.length, p.s.y + 6], RX = 30, RY = 12;
+    // Where it fishes: open water 60 to 140 from its stack that is deep at the lowest tide, well clear of every
+    // stack and not hidden behind one.
+    const fish = []; for (let r = 60; r <= 140 && fish.length < 5; r += 10) for (let a = 0; a < 16; a++) { const x = Math.round(p.s.x + r * Math.cos(a * TAU / 16 + r)), y = Math.round(p.s.y + r * 0.6 * Math.sin(a * TAU / 16 + r));
+      if (x > 60 && y < NH - 30 && onSeaAt(x, y) && col.canBe('swimmer', x, y, { ebb: EBB }, 6) && !hiddenBy(x, y) && fish.every(f => Math.hypot(f[0] - x, f[1] - y) > 34)) fish.push([x, y]); }
+    const memo = {}, flight = n => { if (memo.n === n) return memo.c; memo.n = n; memo.c = null; if (!fish.length) return null;
+      const laps = hash(n, 2, 581) < 0.5 ? 2 : 3, k0 = (hash(n, 3, 581) * fish.length) | 0, t0 = n * EAG.slot + EAG.first + EAG.vary * hash(n, 1, EAG.seed) - eagAhead, dir = hash(n, 4, 581) < 0.5 ? 1 : -1, a0 = hash(n, 5, 581) * TAU;
+      const plan = F => {
+      const pt = j => [C[0] + RX * Math.cos(a0 + dir * j * TAU / 8), C[1] + RY * Math.sin(a0 + dir * j * TAU / 8)];
+      // It leaves the circle where the circle is heading for the fish.
+      const aim = j => { const [x, y] = pt(j), [x2, y2] = pt(j + 0.2), tx = x2 - x, ty = y2 - y, fx = F[0] - x, fy = F[1] - y; return (tx * fx + ty * fy) / (Math.hypot(tx, ty) * Math.hypot(fx, fy) || 1); };
+      let last = laps * 8; for (let j = last + 1; j < laps * 8 + 8; j++) if (aim(j) > aim(last)) last = j;
+      const way = [[p.x, p.s.y, p.tall + 6, 20]]; for (let j = 0; j <= last; j++) way.push([...pt(j), A, j ? 34 : 22, j ? (j === last ? 'leave' : null) : 'round']);
+      const [ex, ey] = pt(last), d = Math.hypot(F[0] - ex, F[1] - ey) || 1, ux = (F[0] - ex) / d, uy = (F[1] - ey) / d, run = Math.min(30, d * 0.6);
+      way.push([F[0] - ux * run, F[1] - uy * run, 9, 46], [F[0], F[1], 1.5, 46, 'fish']);
+      // On past the fish, climbing, and round to the perch.
+      const bx = F[0] + ux * 26, by = F[1] + uy * 26, hd = Math.hypot(p.x - bx, p.s.y - by) || 1, hx = (p.x - bx) / hd, hy = (p.s.y - by) / hd;
+      way.push([bx + hx * 8, by + hy * 8, 11, 34], [p.x - hx * 16, p.s.y - hy * 16, p.tall + 13, 36], [p.x, p.s.y, p.tall + 6, 18]);
+      return Object.assign(course(way), { F }); };
+      // The first of its fishing spots, starting from this flight's own, that the ferry is not passing as it strikes.
+      for (let i = 0; i < fish.length; i++) { memo.c = plan(fish[(k0 + i) % fish.length]); if (!ferryNear(memo.c.F[0], memo.c.F[1], t0 + memo.c.mark.fish)) break; }
+      return memo.c; };
+    return eagles[eagleAt] = { p, C, RX, RY, A, fish, flight }; };
+  // The eagle as a thing on the map, so it is drawn with its stack and the fog covers both: on its perch it
+  // looks about, and for a while after a catch it eats. In the air this thing is empty and over() draws it.
+  const eagleItem = TOPS.length ? { critter: 'eagle', bm: EAGLE_BM.sit, x: 0, y: 0, hop: 0, lift: 0, flip: false } : null;
+  if (eagleItem) items.push(eagleItem);
+  let nowT = 0;
+  function eagleSits(t) {
+    const E = eagle(); if (!E) return; const a = eagleItem, [n, s] = slotOf(EAG, t, eagAhead), c = E.flight(n), fed = c ? s - c.len : -1;
+    a.x = E.p.x; a.y = E.p.s.y + 1; a.hop = a.lift = E.p.s.y + 1 - E.p.y;
+    if (c && s >= 0 && fed < 0) { a.bm = EAGLE_BM.none; return; }
+    a.flip = fed >= 0 && fed < 10 ? hash(n, 6, 581) < 0.5 : hash(Math.floor(t / 4.3), 2, 582) < 0.5;
+    a.bm = fed >= 0 && fed < 10 ? (fed > 1 && frac(fed / 1.6) < 0.45 ? EAGLE_BM.bow : EAGLE_BM.fed) : EAGLE_BM.sit;
+  }
+  function eagleFlies(scr, ox, oy, t) {
+    const E = eagle(); if (!E) return; const [n, s] = slotOf(EAG, t, eagAhead), c = E.flight(n); if (!c || s < 0 || s >= c.len) return;
+    const sf = s - c.mark.fish; if (sf >= 0 && sf < 1) splash(scr, Math.round(c.F[0]) - ox, Math.round(c.F[1]) - oy, sf, 5);
+    const up = s < c.mark.round ? 4.5 * Math.sin(s * TAU * 3.2)                                   // lifting off
+      : s < c.mark.leave ? (frac(s / 2.6 + 0.3) < 0.22 ? 3.5 * Math.sin(s * TAU * 3) : 1)          // circling, mostly on set wings
+      : sf < -0.7 ? 1.2 : sf < 0.25 ? 5                                                            // the glide out, then wings high and feet down
+      : sf < 2.4 ? 4.5 * Math.sin(s * TAU * 3.4)                                                   // hauling the fish up
+      : s > c.len - 0.7 ? 5 * Math.abs(Math.sin(s * TAU * 3)) : frac(s / 2.2) < 0.5 ? 4 * Math.sin(s * TAU * 3) : 1;
+    aloft(scr, ox, oy, c, s, BIRD.eagle, up, 1, sf >= 0 ? 'fish' : sf > -0.7 ? 'feet' : null);
+  }
+  if (eagleItem) eagleSits(0);
+  // The osprey at Reflection Lake. It dives where the land says (the middle of the lake's open water), and
+  // comes from and goes back to the thickest forest within reach of the lake. It flies low enough over the
+  // lake (OSP.high) that it is drawn over the water: the lake is a shallow oval on the picture, and a bird
+  // high above it would be drawn over the meadow behind.
+  const OSPREY = (() => { const L = spots.osprey; if (!L) return null; const [cx, cy, rx, ry] = L.lake, dive = L.dive, FAR = 250;
+    let best = -1e9, home = [-1, 0]; for (let a = 0; a < 16; a++) { const ux = Math.cos(a * TAU / 16), uy = Math.sin(a * TAU / 16) * 0.6; let f = 0; for (const r of [110, 160, 210]) { const x = cx + ux * r, y = cy + uy * r; f += x > 30 && y > 30 && x < NW - 30 && y < NH - 30 ? W.forestAmt(x, y) : -1; } if (f > best) { best = f; home = [ux, uy]; } }
+    const far = [cx + home[0] * FAR, cy + home[1] * FAR], mid = [cx + home[0] * 110, cy + home[1] * 110], a0 = Math.atan2(home[1] / (ry * 0.4), home[0] / (rx * 0.55)), HI = OSP.high, HV = OSP.hang;
+    const pt = j => [cx + rx * 0.55 * Math.cos(a0 + j * TAU / 8), cy + ry * 0.3 + ry * 0.4 * Math.sin(a0 + j * TAU / 8)];
+    // Twice round, then on round to the point of the circle nearest its dive.
+    let last = 16; for (let j = 17; j < 24; j++) if (Math.hypot(pt(j)[0] - dive[0], pt(j)[1] - dive[1]) < Math.hypot(pt(last)[0] - dive[0], pt(last)[1] - dive[1])) last = j;
+    const way = [[...far, 64, 58], [...mid, 40, 52]]; for (let j = 0; j <= last; j++) way.push([...pt(j), HI, 30]); way.push([dive[0], dive[1], HV, 20]);
+    return { dive, lake: L.lake, home, inn: course(way), out: course([[dive[0], dive[1], 9, 30], [...mid, 36, 44], [...far, 64, 58]]), sc: (x, y) => smooth(FAR - 10, 130, Math.hypot(x - cx, (y - cy) / 0.6)) }; })();
+  function ospreyFlies(scr, ox, oy, t) {
+    const O = OSPREY; if (!O) return; const [, s] = slotOf(OSP, t, ospAhead); if (s < 0) return;
+    const K = BIRD.osprey, dx = Math.round(O.dive[0]) - ox, dy = Math.round(O.dive[1]) - oy, a = s - O.inn.len;
+    // In from the forest and round over the lake, mostly on set wings.
+    if (a < 0) { const [x, y] = O.inn.at(s); aloft(scr, ox, oy, O.inn, s, K, frac(s / 2.3) < 0.3 ? 4 * Math.sin(s * TAU * 3.4) : 0, O.sc(x, y), null); return; }
+    // The hover: fast wingbeats, hanging over one spot.
+    if (a < OSP.hover) { shade(scr, dx, dy, OSP.hang); raptor(scr, dx + Math.round(Math.sin(t * 3)), dy - OSP.hang - Math.round(Math.sin(t * 5.3)), K, [5, 0.5, -4][Math.floor(t * 20) % 3], 1, 0, 1, a > OSP.hover - 0.5 ? 'feet' : null); return; }
+    // It folds its wings and drops feet first, faster and faster.
+    if (a < OSP.hover + OSP.plunge) { const p = (a - OSP.hover) / OSP.plunge, h = OSP.hang * (1 - p * p); shade(scr, dx, dy, h); raptor(scr, dx, dy - Math.round(h), K, 6, 1, 0, 0.6, 'feet'); return; }
+    const w = a - OSP.hover - OSP.plunge; if (w < 2.2) splash(scr, dx, dy, w / 2.2, 12); if (w > 0.3 && w < 2) splash(scr, dx, dy, (w - 0.3) / 1.7, 6);
+    if (w < OSP.under) return;
+    // Up out of the water on heavy wings with the fish, drops falling from it, and a shake to throw them off.
+    const r = w - OSP.under; if (r < OSP.rise) { const h = 1 + 8 * smooth(0, OSP.rise, r), shake = r > 0.9 && r < 1.4 ? (Math.floor(t * 14) & 1 ? 1 : -1) : 0;
+      for (let k = 0; k < 5; k++) { const age = frac(t * 2.2 + k / 5); if (hash(k, Math.floor(t * 2.2 + k / 5), 592) < 0.75 - r / OSP.rise * 0.5) scr.set(dx + Math.round((hash(k, 3, 592) - 0.5) * 12), dy - Math.round(h) + 4 + Math.round(age * (h + 2)), R.white[1]); }
+      shade(scr, dx, dy, h); raptor(scr, dx + shake, dy - Math.round(h), K, 4.5 * Math.sin(r * TAU * 4.5), 1, 0, 1, 'fish'); return; }
+    const q = r - OSP.rise; if (q < O.out.len) { const [x, y] = O.out.at(q); aloft(scr, ox, oy, O.out, q, K, frac(q / 2.1) < 0.6 ? 4 * Math.sin(q * TAU * 3.6) : 0, O.sc(x, y), 'fish'); }
+  }
+  // Each orca's lane, row by row down the sea: the spot nearest the shore that is as far out as its own line
+  // (c from the high-water line, and as much farther as the tide has dropped) and clear of the stacks.
+  const orcaLine = (o, ebb) => lane(Array.from({ length: SEA.h }, (_, r) => { for (let x = SEA.w - 1; x >= 0; x--) if (SEA.cs[r * SEA.w + x] >= o.c + 4 + ebb && col.canBe('swimmer', x, SEA.y0 + r, { ebb }, 4)) return x; return null; }), -1, 44, 40);
+  // len: how far along its high-water lane each row is, so the pod swims at one speed where the coast
+  // turns as well as where it runs straight (it used to cross the map a row at a time, and raced round the corner).
+  const LANES = POD.map(o => { const hi = orcaLine(o, 0), lo = orcaLine(o, EBB), r0 = Math.max(0, hi.findIndex(v => v != null)), len = new Float32Array(SEA.h);
+    for (let r = r0 + 1; r < SEA.h; r++) len[r] = len[r - 1] + (hi[r] == null || hi[r - 1] == null ? 1 : Math.hypot(hi[r] - hi[r - 1], 1)); return { hi, lo, r0, len }; });
+  ORCA.dur = Math.max(...POD.map((o, i) => (LANES[i].len[SEA.h - 1] + 20 + o.lag) / ORCA.speed)) + 2;
+  // Where one of the pod is, s seconds into the pass: on its depth line, then clear of the stacks. Nothing
+  // before it has come onto the map or after it has left, or where no clear water is near.
+  // Where the low-water lane has not begun (the sea is narrow at the top of the map) it counts as just off the
+  // west edge, so at low water the pod comes onto the map farther down. Never drawn where the rule says no.
+  const orcaAt = (i, s, t) => { const { hi, lo, r0, len } = LANES[i], d = s * ORCA.speed - 20 - POD[i].lag; if (d < 0 || d >= len[SEA.h - 1]) return null;
+    let a = r0, b = SEA.h - 1; while (b - a > 1) { const m = (a + b) >> 1; if (len[m] <= d) a = m; else b = m; }
+    if (hi[a] == null || hi[b] == null) return null;
+    const f = (d - len[a]) / Math.max(1e-6, len[b] - len[a]), e = ebbAt(t) / EBB, at = r => lerp(hi[r], lo[r] == null ? -12 : lo[r], e), x = lerp(at(a), at(b), f), y = SEA.y0 + a + f;
+    return col.canBe('swimmer', x, y, t, 4) ? [x, y] : null; };
   function orcas(scr, ox, oy, t) {
-    const T = t + orcaAhead - ORCA.first, n = Math.floor(T / ORCA.slot), s = T - n * ORCA.slot, dur = (SEA.h + 80) / ORCA.speed; if (T < 0 || s > dur) return;
+    const T = t + orcaAhead - ORCA.first, n = Math.floor(T / ORCA.slot), s = T - n * ORCA.slot; if (T < 0 || s > ORCA.dur) return;
     const spy = Math.floor(hash(n, 1, 6301) * POD.length), spyAt = 30 + 30 * hash(n, 2, 6301), sv = s - spyAt;
+    // As the tide goes out the pod keeps the same depth under it, so its lanes move out with the water (T15).
     POD.forEach((o, i) => {
-      const row = Math.round(s * ORCA.speed - 20 - o.lag); if (row < 0 || row >= SEA.h) return; const x0 = isoAt(o.c)[row]; if (x0 < 0) return;
-      const x = x0 - ox, y = SEA.y0 + row - oy; if (x < -20 || x > scr.VW + 20 || y < -20 || y > scr.VH + 6) return;
+      const at = orcaAt(i, s, t); if (!at) return;
+      const x = Math.round(at[0]) - ox, y = Math.round(at[1]) - oy; if (x < -20 || x > scr.VW + 20 || y < -20 || y > scr.VH + 6) return;
       if (i === spy && sv > 0 && sv < 3.2) return spyhop(scr, x, y, sv / 3.2, t);
       const ph = frac(s / 4.2 + i * 0.31), q = ph / 0.55; if (q >= 1) return; const h = Math.sin(Math.PI * q);
       orcaBack(scr, x, y, h, o.bull, t, i);
@@ -387,14 +741,36 @@ export function makeCritters(W, opts = {}) {
   // living in it (a starfish, an anemone, an urchin), a band of mussels and barnacles round the foot of
   // the rock, and a crab picking over the sand between. A pool goes only where the low water bares the
   // sand well and where the rock does not stand over it (beside it or in front, never behind).
-  const pools = POOLED.map((s, n) => { const list = [];
-    for (let k = 0; k < 40 && list.length < 5; k++) { const a = hash(k, n, 6101) * TAU, rr = s.half + 4 + 9 * hash(k, n, 6102), x = Math.round(s.x + Math.cos(a) * rr), y = Math.round(s.y + 1 + Math.sin(a) * rr * 0.4);
-      if (csAt(x, y) - 4 > EBB - 8 || (Math.abs(x - s.x) <= s.half + 3 && y <= s.y) || list.some(p => Math.abs(p.x - x) < 7 && Math.abs(p.y - y) < 4)) continue;
-      list.push({ x, y, rx: 3 + Math.round(2 * hash(k, n, 6103)), ry: 2, life: list.length % 3 }); }
-    return { s, pools: list }; }).filter(P => P.pools.length >= 2);
-  // The pool to find (E7): the biggest of them all, with an ochre star, a green anemone and a purple
-  // urchin in it together; it can be tapped once the water has left it.
-  const FIND = (() => { let best = null; for (const P of pools) for (const p of P.pools) if (!best || p.rx > best.p.rx) best = { P, p }; if (best) best.p.life = 3; return best; })();
+  // Round 5 (T33, TJ: "too small and hard to see. Make them larger"): each pool is a basin with a rim of
+  // rock round clear water, drawn once into p.px as [dx, dy, colour]: the far rim in the light with
+  // barnacles on it, the near rim in shade, a dark line of water under the far rim, pale shallows inside
+  // the rim and deeper water in the middle. Its outline wobbles, so no two are the same oval.
+  const basin = (x, y, rx, ry, life) => { const s1 = hash(x, y, 6113) * TAU, s2 = hash(x, y, 6114) * TAU, W2 = 2 * rx + 9, at = new Map(), key = (dx, dy) => (dy + ry + 4) * W2 + dx + rx + 4;
+    const rr = (dx, dy) => { const a = Math.atan2(dy / ry, dx / rx); return Math.hypot(dx / (rx + 0.5), dy / (ry + 0.5)) / (1 + 0.06 * Math.sin(3 * a + s1) + 0.04 * Math.sin(5 * a + s2)); }, wet = (dx, dy) => rr(dx, dy) <= 1;
+    const px = [];
+    for (let dy = -ry - 4; dy <= ry + 4; dy++) for (let dx = -rx - 4; dx <= rx + 4; dx++) {
+      if (wet(dx, dy)) { const r = rr(dx, dy), edge = !wet(dx - 1, dy) || !wet(dx + 1, dy) || !wet(dx, dy + 1), under = !wet(dx, dy - 1);
+        px.push([dx, dy, under ? R.sea[1] : edge ? R.sea[4] : r < 0.5 && ((dx + dy) & 1) ? R.sea[2] : R.sea[3]]); at.set(key(dx, dy), 1); continue; }
+      let near = false; for (let b = -2; b <= 2 && !near; b++) for (let a = -2; a <= 2; a++) if (Math.abs(a) + Math.abs(b) <= 3 && wet(dx + a, dy + b)) { near = true; break; }
+      if (!near) { if (wet(dx, dy - 3) || wet(dx - 1, dy - 3) || wet(dx + 1, dy - 3)) px.push([dx, dy, R.sand[0]]); continue; }
+      const far = wet(dx, dy + 1) || wet(dx, dy + 2), front = wet(dx, dy - 1) || wet(dx, dy - 2), k = hash(x + dx, y + dy, 6115);
+      px.push([dx, dy, far ? (k < 0.12 ? R.white[0] : wet(dx, dy + 1) ? R.rock[3] : R.rock[4]) : front ? (k < 0.07 ? R.white[0] : wet(dx, dy - 1) ? R.rock[1] : R.rock[0]) : R.rock[k < 0.5 ? 2 : 1]]); }
+    return { x, y, rx, ry, life, px, wet }; };
+  const bared = (x, y) => { const c = csAt(x, y); return c >= 6 && c - 4 <= EBB - 8; };
+  // The pool to find (E7, and round 5's T33: "about twice the size"): one big basin, 27 by 13, beside the
+  // first of the two stacks with room for it, on sand the low water bares from end to end, clear of the
+  // rock's drawing. It can be tapped once the water has left it.
+  const BIG = (() => { const RX = 13, RY = 6;
+    for (const s of POOLED) for (const side of [1, -1]) for (const dy of [3, 6, 0, 9]) for (const gap of [4, 7, 10, 14]) { const x = Math.round(s.x + side * (s.half + RX + gap)), y = s.y + dy;
+      if ([[-RX - 3, 0], [RX + 3, 0], [0, -RY - 3], [0, RY + 5], [-RX, -RY], [RX, -RY], [-RX, RY + 3], [RX, RY + 3]].every(([a, b]) => bared(x + a, y + b)) && !stacks.some(o => Math.abs(o.x - x) < o.half + RX + 4 && y - RY < o.y + 2 && y + RY > o.y - o.tall)) return { s, x, y, rx: RX, ry: RY, life: 3 }; }
+    return null; })();
+  // The small pools keep clear of it and of each other.
+  const pools = POOLED.map((s, n) => { const list = BIG && BIG.s === s ? [BIG] : [];
+    for (let k = 0; k < 80 && list.length < 4; k++) { const a = hash(k, n, 6101) * TAU, rr = s.half + 7 + 22 * hash(k, n, 6102), x = Math.round(s.x + Math.cos(a) * rr), y = Math.round(s.y + 2 + Math.sin(a) * rr * 0.5), rx = 4 + Math.round(2 * hash(k, n, 6103));
+      if (!bared(x - rx - 2, y) || !bared(x + rx + 2, y) || stacks.some(o => Math.abs(x - o.x) < o.half + rx + 4 && y - 4 < o.y + 2 && y + 4 > o.y - o.tall) || list.some(p => Math.abs(p.x - x) < p.rx + rx + 5 && Math.abs(p.y - y) < p.ry + 3 + (p.life === 3 ? 2 : 4))) continue;
+      list.push({ x, y, rx, ry: 3, life: list.filter(p => p.life !== 3).length % 3 }); }
+    return { s, pools: list.map(p => basin(p.x, p.y, p.rx, p.ry, p.life)) }; }).filter(P => P.pools.length >= 2 || P.pools.some(p => p.life === 3));
+  const FIND = (() => { for (const P of pools) { const p = P.pools.find(q => q.life === 3); if (p) return { P, p }; } return null; })();
 
   // ---- the ferry -----------------------------------------------------------------------------
   // It sails the length of the water outside the sea stacks, is gone past the edge of the map for half
@@ -409,9 +785,24 @@ export function makeCritters(W, opts = {}) {
   const ferryAt = t => { const u = (t + 0.12 * CROSS) % ROUND, back = u - CROSS - FERRY.away[0]; return u < CROSS ? [u / CROSS, 1] : back >= 0 && back < CROSS ? [1 - back / CROSS, -1] : null; };
   // The course bows out to sea a little in the middle.
   const coursePt = s => { const b = 14 * Math.sin(Math.PI * clamp(s, 0, 1)); return [FA[0] + (FB[0] - FA[0]) * s - 0.56 * b, FA[1] + (FB[1] - FA[1]) * s + 0.83 * b]; };
+  // Where it actually is (T7, T15): on its course, or pushed out to deeper water and away from the stacks
+  // when the course would put any of the hull (bow, middle or stern) on a stack or the bared flat at the
+  // tide of the moment. The wake follows the same way, so it bends with the boat.
+  const HULL = ferryBM.w * 0.38, FDX = (FB[0] - FA[0]) / FLEN, FDY = (FB[1] - FA[1]) / FLEN, PROBE = [[FDX * HULL, FDY * HULL], [-FDX * HULL, -FDY * HULL]];
+  // Its lane: at each 2 px of the course, how far out to sea (straight off the coast, the way the course
+  // bows) the whole hull first has 2 px of room to spare, at high water and at the lowest. Off the map's edge
+  // it keeps what it had at the edge.
+  const NF = Math.ceil(FLEN / 2), OUT = [-0.56, 0.83];
+  const ferryLane = ebb => { const raw = Array.from({ length: NF + 1 }, (_, k) => { const [px, py] = coursePt(k / NF); if (!onSea(px, py)) return null;
+      for (let d = 0; d < 220; d++) { const x = px + OUT[0] * d, y = py + OUT[1] * d; if ([[0, 0], ...PROBE].every(([a, b]) => !onSea(x + a, y + b) || col.room('boat', x + a, y + b, { ebb }, 3) >= 2)) return d; } return 220; });
+    const first = raw.findIndex(v => v != null), last = raw.length - 1 - [...raw].reverse().findIndex(v => v != null);
+    return lane(raw.map((v, k) => v != null ? v : first < 0 ? 0 : raw[k < first ? first : last]), 1, 24, 16); };
+  const FLANE = [ferryLane(0), ferryLane(EBB)];
+  const shipPt = (s, t) => { const p = coursePt(s), k = clamp(s, 0, 1) * NF, k0 = Math.min(NF - 1, Math.floor(k)), f = k - k0, e = ebbAt(t) / EBB;
+    const d = lerp(lerp(FLANE[0][k0], FLANE[0][k0 + 1], f), lerp(FLANE[1][k0], FLANE[1][k0 + 1], f), e); return [p[0] + OUT[0] * d, p[1] + OUT[1] * d]; };
   function drawWake(scr, ox, oy, t) {
     const at = ferryAt(t + ferryAhead); if (!at) return;
-    const [s, dir] = at, [fx, fy] = coursePt(s), { VW, VH } = scr;
+    const [s, dir] = at, [fx, fy] = shipPt(s, t), { VW, VH } = scr;
     if (fx - ox < -140 || fx - ox > VW + 140 || fy - oy < -120 || fy - oy > VH + 120) return;
     // Nothing of it shows past the edge of the map, where a wide screen has only a plain fill.
     const dot = (wx, wy, c) => { if (wx >= 0 && wy < NH) scr.set(wx - ox, wy - oy, c); };
@@ -419,7 +810,7 @@ export function makeCritters(W, opts = {}) {
     // the bow and break into dashes, and the water churned up astern trails off between them.
     const here = s * FLEN, white = R.white[1];
     for (let n = 0; n < 240; n++) {
-      const k = n / 2, c = here + dir * (19 - k), [qx, qy] = coursePt(c / FLEN);   // k: how far astern of the bow's tip
+      const k = n / 2, c = here + dir * (19 - k), [qx, qy] = shipPt(c / FLEN, t);   // k: how far astern of the bow's tip
       if (k >= 5) {
         const age = (k - 5) / 115, wide = 5.6 + (k - 5) * 0.24, cell = Math.floor(c / 5);
         if (frac(c / 5) < 1 - age * 0.75) for (const side of [-1, 1]) {
@@ -438,7 +829,9 @@ export function makeCritters(W, opts = {}) {
     }
   }
   // Where the hull is and the row its keel sits on, for sorting; null while it is away or off screen.
-  const hullAt = (t, ox, oy, VW, VH) => { const at = ferryAt(t + ferryAhead); if (!at) return null; const [fx, fy] = coursePt(at[0]); if (fx - ox < -60 || fx - ox > VW + 60 || fy - oy < -40 || fy - oy > VH + 40) return null; return { x0: Math.round(fx) - ferryBM.ox, y0: Math.round(fy) - ferryBM.oy, y: Math.round(fy) - ferryBM.oy + ferryBM.h - 1, cx: Math.round(fx) }; };
+  ferryNear = (x, y, t) => [-2, 0, 2].some(d => { const at = ferryAt(t + d + ferryAhead); if (!at) return false; const [fx, fy] = shipPt(at[0], t + d); return Math.hypot(fx - x, fy - y) < 44; });
+  eagles.fill(null);
+  const hullAt = (t, ox, oy, VW, VH) => { const at = ferryAt(t + ferryAhead); if (!at) return null; const [fx, fy] = shipPt(at[0], t); if (fx - ox < -60 || fx - ox > VW + 60 || fy - oy < -40 || fy - oy > VH + 40) return null; return { x0: Math.round(fx) - ferryBM.ox, y0: Math.round(fy) - ferryBM.oy, y: Math.round(fy) - ferryBM.oy + ferryBM.h - 1, cx: Math.round(fx) }; };
   // In the fog bank the whole boat pales by one step, read at its middle, so no edge of the bank cuts
   // across it; in the bank's solid part it is lost in the white. The bank then leaves its pixels alone.
   let hullMask = null, hullMarked = [];
@@ -539,29 +932,74 @@ export function makeCritters(W, opts = {}) {
 
   return {
     items,
+    // Sounds the animals made while they were drawn this frame; the map plays them and empties the list.
+    sounds,
     update(dt, t, here) {
+      nowT = t; if (eagleItem) eagleSits(t);
       for (const a of items) {
         if (a.walker) walk(a, dt, t);
+        else if (a.cub) cubStep(a, dt, t);
         else if (a.dart) dart(a, dt, t, here);
         else if (a.critter === 'marmot') scurry(a, dt, t, here);
-        else if (a.critter === 'heron') wade(a, dt, t, here);
       }
     },
     draw(scr, a, ox, oy, t) {
       if (a.critter === 'whale') return drawWhale(scr, a, ox, oy, t);
-      if (a.walker || a.critter === 'marmot') scr.shadow(a.x - ox, a.y - oy, a.critter === 'marmot' ? 5 : 7, 1);
-      scr.put(a.bm, a.x - ox, a.y - oy - (a.hop || 0), a.flip);
+      if (a.walker || (a.critter === 'marmot' && !a.perch)) scr.shadow(a.x - ox, a.y - oy, a.critter === 'marmot' ? 5 : 7, 1);
+      else if (a.cub && !a.lift) scr.shadow(a.x - ox, a.y - oy, 4, 1);
+      // A marmot that has just sat up whistles, if it is being drawn (so only when it is on screen).
+      if (a.critter === 'marmot' && a.rose != null && a.sung !== a.rose && t - a.rose < 0.5) { a.sung = a.rose; sounds.push('whistle'); }
+      scr.put(a.bm, a.x - ox, a.y - oy - (a.hop || 0) - (a.perch || 0), a.flip);
     },
     tideAt: t => ebbAt(t) / EBB,
+    // For the checks: where the two fishing birds live and how far into its flight each is (under 0: not yet).
+    birds: t => { const E = eagle(), c = E && E.flight(slotOf(EAG, t, eagAhead)[0]); return { eagle: E && { perch: [E.p.x, E.p.y, E.p.tall], over: E.C, fish: E.fish, tops: TOPS.map(p => [p.x, p.y, p.tall]), s: slotOf(EAG, t, eagAhead)[1], len: c && c.len, mark: c && c.mark },
+      osprey: OSPREY && { dive: OSPREY.dive, lake: OSPREY.lake, home: OSPREY.home, s: slotOf(OSP, t, ospAhead)[1], inn: OSPREY.inn.len, out: OSPREY.out.len } }; },
     findPool: t => FIND && ebbAt(t) - FIND.P.s.cs >= 9 ? FIND.p : null,
+    // For the checks: every tide pool, by the stack it lies beside.
+    pools: () => pools.map(P => ({ stack: [P.s.x, P.s.y, P.s.half, P.s.cs], pools: P.pools.map(p => [p.x, p.y, p.rx, p.ry, p.life]) })),
     // The water: swells roll in toward the beach, the wash runs up the sand and back, jellyfish pulse.
     ferryHull(t, ox, oy, VW, VH) { return hullAt(t, ox, oy, VW, VH); },
+    // For the checks (round 5, T15): the ferry and each orca at time t, with the least room the shared rule
+    // gives it there (under 0 it is aground or on a stack). lost: an orca on the map with no clear water found.
+    seaMovers(t) {
+      const out = [], on = onSea, at = ferryAt(t + ferryAhead);
+      if (at) { const [x, y] = shipPt(at[0], t), pts = [[x, y], ...PROBE.map(([px, py]) => [x + px, y + py])].filter(([a, b]) => on(a, b)); if (pts.length) out.push({ kind: 'ferry', x, y, room: Math.min(...pts.map(([a, b]) => col.room('boat', a, b, t, 3))) }); }
+      const T = t + orcaAhead - ORCA.first, s = T - Math.floor(T / ORCA.slot) * ORCA.slot;
+      if (T >= 0 && s <= ORCA.dur) POD.forEach((o, i) => { const d = s * ORCA.speed - 20 - o.lag, L = LANES[i]; if (d < 0 || d >= L.len[SEA.h - 1]) return; const p = orcaAt(i, s, t);
+        if (p) { out.push({ kind: 'orca', i, x: p[0], y: p[1], room: col.room('swimmer', p[0], p[1], t, 4) }); return; }
+        let row = L.r0; while (row < SEA.h - 1 && L.len[row + 1] <= d) row++; const a = L.hi[row], b = L.lo[row]; if (a != null && lerp(a, b == null ? -12 : b, ebbAt(t) / EBB) >= 1) out.push({ kind: 'orca', i, lost: true, row }); });
+      spots.jelly.forEach((j, k) => { const p = jellyAt(k, t); out.push(p ? { kind: 'jelly', i: k, x: p[0], y: p[1], room: col.room('floater', p[0], p[1], t, 2), cs: W.coast(p[0], p[1]) } : { kind: 'jelly', i: k, lost: true }); });
+      return out;
+    },
+    // The shared rules of where each kind of mover may be, for the debug overlay and the timed events.
+    collide: col,
+    // The debug menu's spawn list (C4): each kind of map animal and the homes its own rule gave it, in world
+    // pixels. spawn(kind, i) moves that kind there (a herd as one, a mother with her kid), adding it if it is
+    // absent this visit; spawn(kind, 'all') puts every one of that kind back on its own home.
+    homes: () => SPAWN.map(k => ({ kind: k, homes: homesOf(k) })).filter(k => k.homes.length),
+    spawn(kind, i) {
+      // The eagle moves to that stack's top (every one of them, or "everywhere", is its own again); the osprey
+      // is brought straight to its hover over the lake.
+      if (kind === 'eagle') { if (!TOPS.length) return false; eagleAt = i === 'all' ? 0 : clamp(i, 0, TOPS.length - 1); eagleSits(nowT); return true; }
+      if (kind === 'osprey') { if (!OSPREY) return false; ospAhead += startNow(OSP, nowT + ospAhead) + OSPREY.inn.len; return true; }
+      // The bears' homes are one family's each: the clearing's family first, then the one at the forest's edge,
+      // which is added if it is not about this visit. Each goes back to where it was first put (the roomy ground nearest its home).
+      const roamAt = spots.bearHome ? 1 : 0;
+      if (kind === 'bear' && (i === 'all' || i === roamAt) && !items.some(a => a.sow && a.roamer)) addBear();
+      const all = items.filter(a => a.critter === kind && !a.mum);
+      const put = (a, x, y) => { const [sx, sy] = a.ok ? settle(a.ok, x, y) : [x, y], dx = sx - a.hx, dy = sy - a.hy; for (const b of [a, ...items.filter(k => k.mum === a)]) { b.hx += dx; b.hy += dy; b.fx = b.tx = b.x = b.hx; b.fy = b.ty = b.y = b.hy; if (b.walker) b.st = 'graze'; else if (b.cub) rest(b, nowT, 1); } };
+      if (i === 'all') { for (const a of all) put(a, a.h0[0], a.h0[1]); return all.length > 0; }
+      const h = homesOf(kind)[i]; if (!h || !all.length) return false;
+      if (kind === 'elk') { const lead = all[0], dx = h[0] - lead.hx, dy = h[1] - lead.hy; for (const a of all) put(a, a.hx + dx, a.hy + dy); } else if (kind === 'bear') { const sow = all.find(a => !!a.roamer === (i === roamAt)); if (!sow) return false; put(sow, sow.h0[0], sow.h0[1]); } else if (kind === 'marmot') { if (!all[i]) return false; put(all[i], all[i].h0[0], all[i].h0[1]); } else put(all[0], h[0], h[1]);
+      return true;
+    },
     drawHull,
     sea(scr, ox, oy, t) {
       moreWhales();
       const { VW, VH, fb } = scr, xa = Math.max(0, ox), xb = Math.min(ox + VW, SEA.w), ya = Math.max(oy, SEA.y0), yb = Math.min(oy + VH, SEA.y0 + SEA.h);
       if (xa >= xb || ya >= yb) return;
-      const shift = Math.floor(t * 46) % 240, far = R.sea[4], nearC = R.sea[5], white = R.white[1], tw = t * 4.6, ebb = ebbAt(t), CS = SEA.cs, sea4 = R.sea[4], sand0 = R.sand[0], sand1 = R.sand[1];
+      const shift = Math.floor(t * 46) % 240, far = R.sea[4], nearC = R.sea[5], white = R.white[1], tw = t * 4.6, ebb = ebbAt(t), CS = SEA.cs, sea4 = R.sea[4], sand0 = R.sand[0], sand1 = R.sand[1], wat3 = R.water[3], wat4 = R.water[4];
       const PH = SEA.ph, GATE = SEA.gate;
       for (let wy = ya; wy < yb; wy++) {
         const r = wy - SEA.y0, row = r * SEA.w, irow = (wy - oy) * VW - ox, { runs, glints } = seaRow(r);
@@ -573,7 +1011,7 @@ export function makeCritters(W, opts = {}) {
         for (let wx = x0; wx < x1; wx++, j++, i++) {
           const k = CS[j], cs = k ? k - 4 - ebb : 99;
           // Bared by the tide: wet sand, shining just above the water, ripple-marked higher up.
-          if (k >= 4 && cs < 0) { const f = FILM[j]; fb[i] = cs > -3 || (f & 15) > ((wx * 3 + wy * 5) & 7) ? ((wx + wy) & 1 ? sea4 : sand0) : f & 16 ? sand1 : sand0; if (cs > -4) { const w = up0(wx, wy, tw); if (cs > -w && (cs < -w + 1.3 || ((wx + wy) & 1))) fb[i] = white; } continue; }
+          if (k >= 4 && cs < 0) { const f = FILM[j], c = CHAN[j]; fb[i] = c === 2 ? ((wx + 2 * wy) % 5 < 2 ? wat4 : wat3) : c === 1 || cs > -3 || (f & 15) > ((wx * 3 + wy * 5) & 7) ? ((wx + wy) & 1 ? sea4 : sand0) : f & 16 ? sand1 : sand0; if (cs > -4) { const w = up0(wx, wy, tw); if (cs > -w && (cs < -w + 1.3 || ((wx + wy) & 1))) fb[i] = white; } continue; }
           const gt = SEA.gate[j];
           if (gt && cs >= 8) { let p = SEA.ph[j] + shift; if (p >= 240) p -= 240; if (p < 22) fb[i] = gt === 2 ? nearC : far; continue; }
           if (!k || cs >= 8) continue;
@@ -597,9 +1035,11 @@ export function makeCritters(W, opts = {}) {
       tidePools(scr, ox, oy, t, ebb);
       orcas(scr, ox, oy, t);
       drawWake(scr, ox, oy, t);
-      spots.jelly.forEach(([jx, jy, pale], k) => {
-        const J = jellyOut[k], need = Math.max(0, ebb + 8 - J.c0);
-        const x = jx + Math.round(3 * Math.sin(t * 0.13 + k * 2) + need * J.dx) - ox, y = jy + Math.round(1.5 * Math.sin(t * 0.5 + k) + need * J.dy) - oy;
+      // Moon jellies drift slowly in open water beyond the surf (T26), each round its own spot, and move out
+      // ahead of a falling tide and back in with it (jellyAt, above).
+      spots.jelly.forEach(([, , pale], k) => {
+        const at = jellyAt(k, t); if (!at) return;
+        const x = Math.round(at[0]) - ox, y = Math.round(at[1] + 1.5 * Math.sin(t * 0.5 + k)) - oy;
         if (x < -4 || y < -6 || x > VW + 4 || y > VH) return;
         const c = pale ? R.white[1] : R.pink[2], d = R.pink[1], shut = frac(t * 0.3 + k * 0.37) < 0.3;
         for (let dx = 0; dx < 3; dx++) scr.set(x + dx, y, c);
@@ -617,7 +1057,6 @@ export function makeCritters(W, opts = {}) {
         for (let k = 0; k < 7; k++) { const a = hash(k, Math.floor(t * 6), 462), b = hash(k, Math.floor(t * 6), 463); scr.set(Math.round(x0 + (a - 0.5) * 9), yb + 1 + Math.round((b - 0.5) * 3), R.white[1]); }
         for (let k = 0; k < 6; k++) { const age = frac(t * 0.4 + k / 6), sx = Math.round(x0 + (k - 2.5) * 1.6 + age * 5 * Math.sin(k * 2.1)), sy = Math.round(yb - age * 9); if (hash(k, Math.floor(t * 4), 464) < 1 - age) scr.set(sx, sy, age < 0.4 ? R.white[1] : R.fog[2]); }
       }
-      salmon(scr, ox, oy, t);
     },
     // The mist over the forest and the fog bank off the coast, laid over everything that stands. It parts
     // round him as it does round a sign.
@@ -626,9 +1065,15 @@ export function makeCritters(W, opts = {}) {
     // blow after a breach), or the ferry sets out from the west end now.
     trigger(name, t) {
       if (name === 'breach' || name === 'blow') { const n = Math.floor((t + whaleAhead + T0) / SLOT) + (name === 'breach' ? 1 : 0); whaleAhead = n * SLOT + starts(n) + (name === 'blow' ? 16.6 : 0) - t - T0; return true; }
-      if (name === 'heron') { if (!herItem || herItem.st !== 'stand') return false; takeOff(herItem, t, null); return true; }
-      if (name === 'salmon') { salAhead = (((SAL.first - t) % SAL.slot) + SAL.slot) % SAL.slot; return true; }
-      if (name === 'osprey') { ospAhead = (((OSP.first - t) % OSP.slot) + OSP.slot) % OSP.slot; return true; }
+      if (name === 'eagle') { eagAhead += startNow(EAG, t + eagAhead); return true; }
+      if (name === 'marmot') { let n = 0; for (const a of items) if (a.critter === 'marmot') { a.call = t; n++; } return n > 0; }
+      // In each bear family: the cubs play now, or the first cub with a trunk near climbs it now.
+      if (name === 'cubplay' || name === 'cubclimb') { let did = false;
+        for (const sow of items.filter(a => a.sow)) { const cubs = items.filter(a => a.mum === sow && a.cub);
+          if (name === 'cubplay') { const [a, b] = cubs; if (!a || !b || a.st === 'climb' || b.st === 'climb') continue; a.tx = b.fx + (a.fx < b.fx ? -8 : 8); a.ty = b.fy; a.goal = 'twin'; a.st = 'walk'; a.hop = a.lift = 0; rest(b, t, 6); did = true; }
+          else for (const a of cubs) { const T = a.st !== 'climb' && trunkFor(a, 44); if (!T) continue; if (a.st === 'play' && a.sib.st === 'play') rest(a.sib, t, 1); a.trunk = T; a.tx = T.x; a.ty = T.y + 1; a.goal = 'trunk'; a.st = 'walk'; a.hop = a.lift = 0; did = true; break; } }
+        return did; }
+      if (name === 'osprey') { ospAhead += startNow(OSP, t + ospAhead); return true; }
       if (name === 'orcas') { orcaAhead = (((ORCA.first - t) % ORCA.slot) + ORCA.slot) % ORCA.slot; return true; }
       if (name === 'tide') { tideAhead = (((8 - t) % TIDE) + TIDE) % TIDE; return true; }
       if (name === 'ferry') { ferryAhead = (((-(t + 0.12 * CROSS)) % ROUND) + ROUND) % ROUND; return true; }
@@ -694,11 +1139,12 @@ export function makeCritters(W, opts = {}) {
     // Where each animal may wander and each flock circles, as ovals on the map, for the debug panel.
     // Every animal that moves, for the debug panel's Roam areas: walkers, squirrels (they dart up to 28
     // from home), marmots, and the flocks' circles.
-    areas: () => [...items.filter(a => a.walker || a.critter === 'marmot').map(a => ({ x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...items.filter(a => a.dart).map(a => ({ x: a.hx, y: a.hy, rx: 28, ry: 17 })), ...FLOCKS.map(F => ({ x: F.cx, y: F.cy, rx: F.rx, ry: F.ry }))],
+    areas: () => [...items.filter(a => a.walker || a.critter === 'marmot').map(a => ({ kind: a.critter, x: a.mum ? a.mum.x : a.hx, y: a.mum ? a.mum.y + 5 : a.hy, rx: a.r, ry: a.r * 0.6 })), ...items.filter(a => a.dart).map(a => ({ kind: 'squirrel', x: a.hx, y: a.hy, rx: 28, ry: 17 })), ...FLOCKS.map(F => ({ kind: F.gull ? 'gulls' : 'birds', x: F.cx, y: F.cy, rx: F.rx, ry: F.ry })),
+      ...(eagle() ? [{ kind: 'eagle', x: eagle().C[0], y: eagle().C[1], rx: eagle().RX, ry: eagle().RY }] : []), ...(OSPREY ? [{ kind: 'osprey', x: OSPREY.lake[0], y: OSPREY.lake[1], rx: OSPREY.lake[2] * 0.55, ry: OSPREY.lake[3] * 0.5 }] : [])],
     // What flies over everything else.
     over(scr, ox, oy, t) {
       const { VW, VH, fb } = scr;
-      osprey(scr, ox, oy, t);
+      eagleFlies(scr, ox, oy, t); ospreyFlies(scr, ox, oy, t);
       for (const F of FLOCKS) for (let k = 0; k < F.n; k++) {
         const an = t * F.w + k * TAU / F.n + 0.5 * Math.sin(t * 0.3 + k * 2), wob = 1 + 0.14 * Math.sin(t * 0.21 + k * 3);
         const x = Math.round(F.cx + Math.cos(an) * F.rx * wob - ox), y = Math.round(F.cy + Math.sin(an) * F.ry * wob - oy);

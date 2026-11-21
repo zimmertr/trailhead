@@ -11,7 +11,7 @@
 import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, DEBUG } from './core.js';
 import { goat } from './fauna.js';
 import { Strip, drawStrip, baseline, shell } from './side.js';
-import { makeConifer, makeCloud } from './sprites.js';
+import { makeConifer, makeCloud, makeHuckleberry, huckClumps } from './sprites.js';
 import { sideFig, frontFig, backFig, FEET, HANDS, KITS } from './tj.js';
 import { makeCragPair, PAIR } from './people.js';
 
@@ -201,7 +201,7 @@ function paintRidge(S) {
 
 // The ground: the knob's heather and dwarf pine at the left, talus and larches under the face.
 function paintGround(S, things) {
-  const rand = rng(735);
+  const rand = rng(735), grass = {};
   for (let x = 0; x < W; x++) {
     const f = x < 236 ? knob(x) : lerp(knob(236) - 4, foot(x) - 30, smooth(236, 330, x));
     for (let h = Math.round(f); h > -DOWN; h--) {
@@ -210,11 +210,16 @@ function paintGround(S, things) {
       let c;
       if (hash(x >> 1, h >> 1, 736) < tal) c = pick('rock', 0.25 + 0.6 * hash(x >> 1, h >> 1, 737), x, h);
       else if (fbm(x / 26, h / 10, 748, 3) > 0.62) c = pick('rock', 0.5 + 0.3 * (fbm(x / 9, h / 5, 749, 2) - 0.5) - smooth(0, 300, depth) * 0.2, x, h, 0.6);
-      else { const bf = fbm(x / 9, h / 4, 747, 3); c = bf > 0.72 ? R.red[bf > 0.8 && hash(x, h, 746) < 0.5 ? 1 : 0] : pick(fbm(x / 20, h / 9, 738, 2) > 0.55 ? 'moss' : 'grass', 0.45 + 0.4 * (fbm(x / 22, h / 12, 739, 3) - 0.5) - smooth(0, 300, depth) * 0.25, x, h, 0.35); }
+      else { grass[x + '.' + h] = 1; c = pick(fbm(x / 20, h / 9, 738, 2) > 0.55 ? 'moss' : 'grass', 0.45 + 0.4 * (fbm(x / 22, h / 12, 739, 3) - 0.5) - smooth(0, 300, depth) * 0.25, x, h, 0.35); }
       if (depth < 1.5 && !(hash(x >> 1, h >> 1, 736) < tal)) c = R.moss[2];
       S.set(x, -h, c);
     }
   }
+  // Red huckleberry (round 5, T65): shrubs in clumps where the heather used to be painted red, and only
+  // where a shrub's whole foot is on grass. The lower ones are nearer and bigger.
+  const hucks = [0, 1, 2, 3, 4, 5].map(i => [0.8, 1.05, 1.35, 1.7].map(s => makeHuckleberry(680 + i, s)));
+  for (const p of huckClumps(0, W, -40, DOWN, (x, y) => fbm(x / 9, -y / 4, 747, 3), (x, y) => [-5, 0, 5].every(d => grass[(x + d) + '.' + (-y)] && grass[(x + d) + '.' + (-y + 3)]), 750))
+    S.stamp(hucks[p.v][p.s + (p.y > 120 ? 1 : 0)], p.x, p.y, p.flip);
   // Dwarf pine in knee-high mats on the knob and in the cracks low on the ridge; larches below.
   for (let n = 0; n < 40; n++) { const x = 20 + rand() * 240, h = (x < 236 ? knob(x) : along(LOW, x)) - rand() * 6; things.push({ pine: 3 + rand() * 5, x: Math.round(x), h: Math.round(h) }); }
   for (let n = 0; n < 22; n++) { const x = 250 + rand() * 900, f = foot(x) - 34 - rand() * 160, H = 14 + rand() * 26; things.push({ tree: makeConifer(740 + n, Math.round(H), Math.round(H / 2.6), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: 0.2, droop: 0.6 }), x: Math.round(x), h: Math.round(f) }); }
@@ -243,6 +248,22 @@ function paintFar() {
 // and a shaded riser; tarns lie on the benches; and the larches are gold dots in drifts along the
 // benches and round the tarns. Placed by rule: peaks spread across the strip, tarns on bench flats,
 // larches where the bench is flat and dry.
+// Round 5, T70: one large tarn lies in the bottom of the basin, like Shield Lake under Prusik Peak, where
+// the basin shows left of the ridge on the first two pitches. It has a ragged shore with bays, a granite
+// point and an island, a dark far bank and pale slabs along the near one, larches thick round it, and an
+// outlet that runs down the benches through two smaller tarns.
+const LAKE = { x: 425, y: 62, a: 100, b: 12, point: 40, isle: -46 };
+const lakeMid = x => LAKE.y + 4 * Math.sin((x - LAKE.x) / 46) + 6 * (vnoise(x / 50, 4, 781) - 0.5);
+const lakeSpan = x => {
+  const u = (x - LAKE.x) / LAKE.a; if (Math.abs(u) >= 1) return null;
+  const hb = LAKE.b * Math.pow(1 - u * u, 0.55) * (0.55 + 0.9 * fbm(x / 30, 2, 782, 3)), m = lakeMid(x);
+  return [m - 0.7 * hb, m + 1.3 * hb];
+};
+function inLake(x, y) {
+  const sp = lakeSpan(x); if (!sp || y < sp[0] || y > sp[1]) return false;
+  const pt = 1 - Math.abs(x - (LAKE.x + LAKE.point) - 0.8 * (sp[1] - y)) / 15; if (pt > 0 && y > sp[1] - (sp[1] - sp[0]) * 0.42 * Math.min(1, 2.4 * pt)) return false;
+  return ((x - (LAKE.x + LAKE.isle)) / 9) ** 2 + ((y - (sp[0] + sp[1]) / 2 - 1) / 2.4) ** 2 >= 1;
+}
 function paintBasin() {
   const BW = 1200, S = new Strip(BW, 200, 260), rand = rng(760);
   const peaks = []; for (let k = 0; k < 5; k++) peaks.push({ x: 110 + k * 240 + 70 * hash(k, 1, 761), h: 50 + 60 * hash(k, 2, 761), w: 60 + 50 * hash(k, 3, 761) });
@@ -271,21 +292,74 @@ function paintBasin() {
       let c;
       // A lit lip, a shaded riser, then the bench's flat, with the pale bare granite slabs the basin is
       // known for showing through in patches.
-      if (u < 0.1) c = R.far[3]; else if (u < 0.32) c = pick('far', 0.04 + 0.08 * vnoise(x / 3, y, 769), x, y);
+      // The lips are broken into ledges (unbroken, they read as swell on a sea: TJ, round 5).
+      if (u < 0.1 && vnoise(x / 17, b * 7.3, 787) > 0.4) c = R.far[3]; else if (u < 0.32) c = pick('far', 0.04 + 0.08 * vnoise(x / 3, y, 769), x, y);
       else { const slab = fbm(x / 14, y / 5, 773, 3); c = slab > 0.64 ? (bayer(x, y) < (slab - 0.64) * 3 ? R.far[3] : R.far[2]) : pick('far', 0.32 + 0.16 * (vnoise(x / 11, y / 5, 770) - 0.5), x, y); if (u > 0.4 && u < 0.85 && (x & 3) === 0 && (y & 1) === 0) flats.push([x, y, b]); }
       S.set(x, y, c);
     }
   }
-  // Tarns, one on each of a few benches, turquoise with the sky's light along the far shore.
-  const tarns = [];
-  for (let k = 0; k < 7; k++) {
-    const [x, y] = flats[Math.floor(hash(k, 4, 771) * flats.length)], a = 14 + 22 * hash(k, 5, 771), b = 2.5 + 2.5 * hash(k, 6, 771);
-    if (tarns.some(t => Math.abs(t.x - x) < t.a + a + 20 && Math.abs(t.y - y) < 18)) continue;
-    tarns.push({ x, y, a, b });
+  const tree = (x, y) => {
+    if (rand() < 0.1) { S.set(x, y, R.conifer[1]); S.set(x, y - 1, R.conifer[2]); S.set(x, y - 2, R.conifer[2]); return; }
+    S.set(x, y, R.larch[1]); S.set(x, y - 1, R.larch[rand() < 0.5 ? 2 : 3]); S.set(x, y - 2, R.larch[rand() < 0.4 ? 4 : 3]); if (rand() < 0.5) S.set(x + 1, y - 1, R.larch[2]);
+  };
+  const pool = (x, y, a, b) => {
     for (let dy = -Math.ceil(b); dy <= Math.ceil(b); dy++) for (let dx = -Math.ceil(a); dx <= Math.ceil(a); dx++) {
       const q = (dx / a) ** 2 + (dy / b) ** 2; if (q > 1) continue;
       S.set(x + dx, y + dy, q > 0.75 && dy < 0 ? R.tarn[5] : dy === Math.round(-b * 0.3) && Math.abs(dx) < a * 0.5 ? R.tarn[5] : R.tarn[q < 0.3 ? 3 : 4]);
     }
+  };
+  // The large tarn. First the flat it lies on: the benches' lips and risers are cleared round it.
+  const X0 = LAKE.x - LAKE.a - 30, X1 = LAKE.x + LAKE.a + 30, Y0 = LAKE.y - 26, Y1 = LAKE.y + 34;
+  for (let x = X0; x <= X1; x++) for (let y = Y0; y <= Y1; y++) {
+    const g = ((x - LAKE.x) / (LAKE.a + 26)) ** 2 + ((y - LAKE.y - 4) / (LAKE.b + 15)) ** 2;
+    if (y < edge(x) + 3 || g > 0.8 + 0.35 * vnoise(x / 15, y / 5, 785)) continue;
+    const slab = fbm(x / 14, y / 5, 773, 3);
+    S.set(x, y, slab > 0.6 ? (bayer(x, y) < (slab - 0.6) * 3 ? R.far[3] : R.far[2]) : pick('far', 0.34 + 0.16 * (vnoise(x / 11, y / 5, 770) - 0.5), x, y));
+  }
+  // The water: the sky's light along the far shore, deeper toward the near one, a few bright streaks.
+  for (let x = X0; x <= X1; x++) for (let y = Y0; y <= Y1; y++) {
+    if (!inLake(x, y)) continue;
+    const sp = lakeSpan(x), f = (y - sp[0]) / (sp[1] - sp[0]), n = bayer(x, y);
+    let c = f < 0.07 ? R.tarn[5] : f < 0.22 ? (n < (f - 0.07) / 0.15 ? R.tarn[4] : R.tarn[5]) : f < 0.5 ? (n < (f - 0.22) / 0.28 ? R.tarn[3] : R.tarn[4]) : f < 0.82 ? R.tarn[3] : (n < (f - 0.82) / 0.18 ? R.tarn[2] : R.tarn[3]);
+    if (f > 0.3 && f < 0.85 && hash(Math.floor((x + y * 5) / 9), y, 784) < 0.12) c = R.tarn[4];
+    // The far bank's dark reflection lies along the water under it.
+    if (!inLake(x, y - 1) && vnoise(x / 6, 3, 788) > 0.3) c = R.tarn[2];
+    S.set(x, y, c);
+  }
+  // Its banks: dark where the far shore stands over the water, pale slabs along the near shore.
+  for (let x = X0; x <= X1; x++) for (let y = Y0; y <= Y1; y++) {
+    if (inLake(x, y)) continue;
+    if (inLake(x, y + 1)) { S.set(x, y, R.far[0]); if (vnoise(x / 4, 1, 788) > 0.45) S.set(x, y - 1, R.far[0]); }
+    else if (inLake(x, y - 1)) { S.set(x, y, R.far[3]); if (vnoise(x / 5, 2, 788) > 0.5) S.set(x, y + 1, R.far[3]); }
+  }
+  // The outlet: out of the near shore and down the benches, white where it drops over a riser, through
+  // two smaller tarns.
+  const OUT = [[LAKE.x - 16, 0], [LAKE.x + 2, 98], [LAKE.x + 38, 130]]; OUT[0][1] = Math.round(lakeSpan(OUT[0][0])[1]);
+  for (let k = 1; k < OUT.length; k++) {
+    const [ax, ay] = OUT[k - 1], [bx, by] = OUT[k];
+    for (let y = ay; y <= by; y++) {
+      const x = Math.round(lerp(ax, bx, (y - ay) / (by - ay)) + 3 * (vnoise(y / 5, k, 789) - 0.5) * 2), v = (y - Math.round(edge(x))) / 22 + 0.5 * vnoise(x / 70, 3, 768), u = v - Math.floor(v);
+      if (!inLake(x, y)) S.set(x, y, u < 0.32 ? R.farsnow[1] : R.tarn[4]);
+    }
+  }
+  const tarns = [{ x: LAKE.x, y: LAKE.y + 4, a: LAKE.a, b: 16, lake: true }, { x: OUT[1][0], y: OUT[1][1], a: 20, b: 3.2 }, { x: OUT[2][0], y: OUT[2][1], a: 27, b: 4.2 }];
+  for (const t of tarns) if (!t.lake) pool(t.x, t.y, t.a, t.b);
+  // Larches thick along both shores in clumps, a few on the point and the island.
+  for (let i = 0; i < 230; i++) {
+    const x = Math.round(LAKE.x + (rand() * 2 - 1) * (LAKE.a + 16)), far = rand() < 0.5, sp = lakeSpan(x) || [lakeMid(x), lakeMid(x)];
+    const y = Math.round(far ? sp[0] - 2 - rand() * 6 : sp[1] + 3 + rand() * 9);
+    if (vnoise(x / 20, far ? 1 : 2, 786) < 0.36 || y < edge(x) + 4 || inLake(x, y) || inLake(x, y - 2)) continue;
+    tree(x, y);
+  }
+  for (const [dx, n] of [[LAKE.point, 5], [LAKE.isle, 4]]) for (let j = 0; j < n; j++) {
+    const x = Math.round(LAKE.x + dx + (rand() - 0.5) * (dx === LAKE.isle ? 12 : 8)), sp = lakeSpan(x), y = Math.round(dx === LAKE.isle ? (sp[0] + sp[1]) / 2 + 1 : sp[1] - rand() * 4);
+    if (!inLake(x, y) && !inLake(x, y - 1)) tree(x, y);
+  }
+  // Tarns, one on each of a few benches, turquoise with the sky's light along the far shore.
+  for (let k = 0; k < 7; k++) {
+    const [x, y] = flats[Math.floor(hash(k, 4, 771) * flats.length)], a = 14 + 22 * hash(k, 5, 771), b = 2.5 + 2.5 * hash(k, 6, 771);
+    if (tarns.some(t => Math.abs(t.x - x) < t.a + a + 20 && Math.abs(t.y - y) < 18)) continue;
+    tarns.push({ x, y, a, b }); pool(x, y, a, b);
   }
   // Larches: gold dots in drifts, thicker near the tarns, never on the water.
   // Each drift is a loose clump of a few trees; each tree a lit gold top over a deeper gold, a few of
@@ -297,9 +371,8 @@ function paintBasin() {
     const n = 3 + Math.floor(rand() * 7);
     for (let j = 0; j < n; j++) {
       const x = Math.round(cx0 + (rand() - 0.5) * 18), y = Math.round(cy0 + (rand() - 0.5) * 5);
-      if (tarns.some(t => ((x - t.x) / (t.a + 2)) ** 2 + ((y - t.y) / (t.b + 2)) ** 2 < 1)) continue;
-      if (rand() < 0.1) { S.set(x, y, R.conifer[1]); S.set(x, y - 1, R.conifer[2]); S.set(x, y - 2, R.conifer[2]); continue; }
-      S.set(x, y, R.larch[1]); S.set(x, y - 1, R.larch[rand() < 0.5 ? 2 : 3]); S.set(x, y - 2, R.larch[rand() < 0.4 ? 4 : 3]); if (rand() < 0.5) S.set(x + 1, y - 1, R.larch[2]);
+      if (tarns.some(t => t.lake ? inLake(x, y) || inLake(x, y - 2) : ((x - t.x) / (t.a + 2)) ** 2 + ((y - t.y) / (t.b + 2)) ** 2 < 1)) continue;
+      tree(x, y);
     }
   }
   return S;
@@ -308,8 +381,12 @@ function paintBasin() {
 // filling it, until by the top they look down on a sea of cloud with peaks standing out of it. top is
 // the screen row of the sea's surface, c how far it has gathered (0 to 1), sx the basin's scroll, so
 // the billows stay with the ground under them and drift slowly east.
-function cloudSea(scr, top, c, t, sx, bot = 1e9) {
-  if (c <= 0) return;
+// rec, if given, gets the row of the surface in each column. mask, if given, is { snap, tops }: the
+// screen as it was just after the far sea was drawn and that sea's surface rows; below its surface this
+// sea is then drawn only over what was drawn in front of it since (rock, ground), so the near part of
+// the sea and the far part read as one (round 5, T74).
+function cloudSea(scr, top, c, t, sx, bot = 1e9, rec = null, mask = null) {
+  if (c <= 0) { if (rec) rec.fill(32767); return; }
   const { VW, VH, fb } = scr;
   for (let x = 0; x < VW; x++) {
     const wx = x + sx, d = clamp((c * 1.8 - vnoise(wx / 150, 5, 775)) / 0.6, -1, 1);
@@ -317,8 +394,9 @@ function cloudSea(scr, top, c, t, sx, bot = 1e9) {
     // billows that drift slowly east.
     const bil = 5 * vnoise(wx / 21 - t * 0.04, 1, 776) + 3 * Math.abs(Math.sin(wx / 7 + 3 * vnoise(wx / 30, 3, 776) - t * 0.15)) + 6 * d;
     const y0 = Math.round(top - bil + (d < 0 ? smooth(0, 1, -d) * 45 : 0));
+    if (rec) rec[x] = y0;
     if (y0 >= VH) continue;
-    cloudCol(fb, VW, VH, x, Math.max(0, y0), y0, wx, bot + Math.round(4 * vnoise(wx / 11, 9, 778) + 2 * Math.sin(wx / 5 + t * 0.2)));
+    cloudCol(fb, VW, VH, x, Math.max(0, y0), y0, wx, bot + Math.round(4 * vnoise(wx / 11, 9, 778) + 2 * Math.sin(wx / 5 + t * 0.2)), mask);
   }
 }
 // Under the cloud (H16a): grey, flat light from the cloud's underside fading darker toward the ground.
@@ -331,9 +409,10 @@ function gloom(scr, y0) {
 }
 // One column of the cloud sea from its top down: a sunlit top, a soft shaded band under it, then
 // the sea itself with the rolls of further billows in it, wider apart the nearer they are.
-function cloudCol(fb, VW, VH, x, ys, y0, wx, yb = 1e9) {
-  const end = Math.min(VH, yb);
+function cloudCol(fb, VW, VH, x, ys, y0, wx, yb = 1e9, mask = null) {
+  const end = Math.min(VH, yb), under = mask ? mask.tops[x] : 1e9;
   for (let y = ys; y < end; y++) {
+    if (y >= under && fb[y * VW + x] === mask.snap[y * VW + x]) continue;
     const k = y - y0, per = 6 + k * 0.12, roll = (k + 3 * vnoise(wx / 13, Math.floor(k / per), 777)) % per;
     let col = k < 1 ? R.white[1] : k < 3 ? R.farsnow[1] : k < 8 ? (bayer(x, y) < (k - 3) / 5 ? R.farsnow[0] : R.farsnow[1]) : R.farsnow[0];
     if (k >= 8 && roll < 1) col = R.farsnow[1]; else if (k >= 8 && roll < 2 && bayer(x, y) < 0.5) col = R.sky[4];
@@ -423,20 +502,32 @@ const BOUNDS = []; { let prev = null; for (let d = 0; d <= LEN; d++) { const st 
 const FACE_BELAYS = ['a1', 'a2', 'a3', 'a4', 'top'].filter(m => posAt(MARK[m]).where === 's');
 const below = d => { let k = 0; for (let i = 0; i < ANCHORS.length; i++) if (MARK[ANCHORS[i]] <= d + 1e-6) k = i; return ANCHORS[k]; };
 
-// The script: who does what, when. Three of them: TJ, the black-haired man who leads every pitch, and the
-// red-haired woman. Each has a track of moves (from, to along the line, in a pose); the tracks meet at
+// The script: who does what, when. Three of them, in the order they climb every pitch (round 5, T72): the
+// black-haired man leads; the red-haired woman follows on his rope, trailing a second rope down to TJ;
+// TJ comes last on that second rope and takes the gear out.
+// Each has a track of moves (from, to along the line, in a pose); the tracks meet at
 // sync points (no one sets off up a pitch until the anchor is built, and so on). Live ropes, the gear
 // and the stops are kept beside them. Everything on the ridge is read off this at a moment of the
 // scene, so the timeline can be dragged either way.
 // The two followers climb differently (H7): TJ quick and steady, straight up the line, never stopping
 // to rest; the woman slower and careful, wandering a little either side of it and stopping once a
 // pitch to shake out an arm.
-const SPEED = { walk: 24, lead: 11, tj: 17, red: 13 };
+// On the ground they walk at the pace he came through the larch basin at (round 5, T68). On the rock
+// they climb at four times round 4's pace (round 5, T69: TJ watched the scene at 4x and liked it better).
+const SPEED = { walk: 78, lead: 44, tj: 68, red: 52 };
+// How long each stop on a pitch takes, in seconds, at about a third of round 4's: placing a cam or clipping
+// a fixed piece, swapping the ropes at one, taking one out or unclipping it, shaking out an arm, clipping
+// in at a belay, taking a belay apart; hanging after a fall and shaking out after it, hanging after a
+// slip; and the least any move takes. An anchor is `first` before its first piece goes in, `each` a
+// piece, then `tie` to bring the slings together and tie in.
+const BEAT = { place: 0.5, clip: 0.3, swap: 0.3, swapFixed: 0.2, clean: 0.4, unclip: 0.25, rest: 0.6, tieIn: 0.3, strip: 0.5, hang: 1.4, shake: 0.8, held: 1.0, least: 0.3 };
+const ANC = { first: 0.2, each: 0.25, tie: 0.35 };
 const WHO = ['tj', 'lead', 'red'];
 const dAtX = x => { for (let i = 1; i < ROUTE.length; i++) if (ROUTE[i][0] >= x) return lerp(DIST[i - 1], DIST[i], clamp((x - ROUTE[i - 1][0]) / (ROUTE[i][0] - ROUTE[i - 1][0]), 0, 1)); return LEN; };
-// Where each of them stands at an anchor: the leader on it, TJ a stride below, the woman a stride below
-// him (closer, and on the crest they stood half inside one another).
-const AT = { tj: -14, lead: 0, red: -28 };
+// Where each of them stands at an anchor: the leader on it, the woman a stride below, TJ a stride below
+// her (closer, and on the crest they stood half inside one another). The last one up stands lowest, so
+// nobody climbs through anybody.
+const AT = { tj: -28, lead: 0, red: -14 };
 const PACKS = dAtX(198), TIE = dAtX(231);
 const PITCH = ['tie', 'a1', 'a2', 'a3', 'a4', 'top'];
 // The wind (H11) comes from the west across the ridge, nothing at the foot and strong at the top. Above
@@ -542,8 +633,9 @@ function paintHolds(S) {
 // the face (never on the crest or behind it, where there is nothing to reach up to), plus the fixed
 // piton and bolt, which are in the rock from the start. Pitch 3 is the piton and one tiny cam at the
 // slab's foot and nothing above (the run-out is the point of the slab); pitch 4 has two, and the rope
-// runs over the fins between them.
-const GEAR = { 1: 4, 2: 4, 3: 0, 4: 2, 5: 4 };
+// runs over the fins between them. Round 5, T69: fewer than round 4's four on pitches 1, 2 and 5, and
+// still two or three on every pitch.
+const GEAR = { 1: 3, 2: 3, 3: 0, 4: 2, 5: 2 };
 function gearOn(p) {
   const d0 = MARK[PITCH[p - 1]], d1 = MARK[PITCH[p]], face = [], out = [];
   for (let d = d0 + 10; d < d1 - 8; d++) if (posAt(d).where === 's' && posAt(d - 10).where === 's') face.push(d);
@@ -565,8 +657,8 @@ const FALL = (() => {
   }
   return { p: best.p, from: best.last + 0.5 * best.run, to: best.last + 2 };
 })();
-// Where the woman slips once and is held (H7): the steepest stretch she follows on a pitch where TJ
-// belays her from above (pitches 2 to 5), halfway up it; ties go to the first.
+// Where the woman slips once and is held by the leader's belay from above (H7): the steepest stretch she
+// follows on pitches 2 to 5, halfway up it; ties go to the first.
 const SLIP = (() => {
   let best = null, bs = -1;
   for (let p = 2; p <= 5; p++) for (let i = 1; i < ROUTE.length; i++) {
@@ -577,6 +669,17 @@ const SLIP = (() => {
   }
   return best;
 })();
+// Where TJ comes off (round 5, T73: in real life he could not climb the off-width at the end): 30% of the
+// way up pitch 5's off-width, after a struggle. He drops `drop` along the line as the rope stretches and
+// swings out over the air left of the headwall. The other two then rig a 3:1 haul at the summit anchor
+// (`rig` seconds) and yank on it together `yanks` times: each yank is a reach down the rope and a heave
+// back, and lifts him a quarter of the way from where he hangs to his place at the belay, so the last
+// one brings him to them.
+const WHIP = (() => {
+  let a = -1, b = -1; for (let d = Math.ceil(MARK.a4); d < MARK.top; d++) if (styleAt(d) === 'ow') { if (a < 0) a = d; b = d; }
+  return { p: 5, ow0: a, at: a + 0.3 * (b - a), drop: 20 };
+})();
+const HAUL = { swing: 2.0, rig: 1.5, yanks: 4, reach: 0.4, heave: 0.5, lift: 0.3 };
 // What each belay is built from (TJ, section 5): the sling-wrapped block backed up with two cams, the two
 // slung horns, three cams by the flake, a horn, a cam and a nut, and the summit block.
 const ANCHOR_KIT = { a1: ['block', 'cam', 'cam'], a2: ['horn', 'horn'], a3: ['cam', 'cam', 'cam'], a4: ['horn', 'cam', 'nut'], top: ['block'] };
@@ -596,93 +699,128 @@ const ZIP = 2.6, DESC = { walk: { lead: [0, 1.2], tj: [1.0, 2.2], red: [1.6, 3.0
 // the way back to the packs. Nobody climbs the stuck rope.
 DESC.under = DESC.turn.tj + 1.5 + 0.8 * ZIP;
 const UNDER = { out: 1.2, land: 3.0, unclip: 3.6, snag: 6.2, heave: [6.4, 9.4], look: 9.6, shrug: [11.0, 12.2], walk: 12.6 };
-const DESC_LEN = DESC.under + UNDER.walk + 1.3;
+// The walk-off (round 5, T75, TJ: they rappelled onto a steep snow slope and traversed off it, four
+// points on, with ice axes, TJ leading): after the shrug each in turn (TJ, the leader, the woman, `gap`
+// seconds apart) walks to the ledge's outer end (`ledge` s), steps down onto the snow (`step` s), faces
+// in and traverses down and across it at `v` px a second, in TJ's steps, until `off` px out, off the
+// picture on a laptop screen. The scene ends when the last of them is there.
+const SN = { gap: 2.2, ledge: 1.4, step: 0.5, v: 22, off: 330, order: { tj: 0, lead: 1, red: 2 } };
+const DESC_LEN = DESC.under + UNDER.walk + 2 * SN.gap + SN.ledge + SN.step + SN.off / SN.v + 0.5;
 function makeScript() {
   const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [], anc = [];
-  let slipAt = -1, fallAt = -1;
+  let slipAt = -1, fallAt = -1, whipAt = -1, haulAt = -1, rigAt = -1, upAt = -1; const yanks = [];
   const pos = { tj: 0, lead: MARK.tie, red: dAtX(183) }, pose = { tj: 'walk', lead: 'rack', red: 'sit' }, clock = { tj: 0, lead: 0, red: 0 };
   const go = (k, to, p, dur, after) => { tr[k].push({ t0: clock[k], t1: clock[k] + dur, d0: pos[k], d1: to, pose: p }); clock[k] += dur; pos[k] = to; pose[k] = after || p; };
   const move = (k, to, p, v, after) => {
     const d0 = pos[k], dir = Math.sign(to - d0);
-    if (!dir) return go(k, to, p, 0.8, after);
+    if (!dir) return go(k, to, p, BEAT.least, after);
     const cuts = BOUNDS.filter(b => (b - d0) * dir > 0 && (to - b) * dir > 0); if (dir < 0) cuts.reverse();
     const legs = []; let a = d0;
     for (const b of [...cuts, to]) { legs.push([b, Math.abs(b - a) / (v * (p === 'walk' ? 1 : SLOW[styleAt((a + b) / 2)] || 1))]); a = b; }
-    const pad = Math.max(0, 0.8 - legs.reduce((t, l) => t + l[1], 0));
+    const pad = Math.max(0, BEAT.least - legs.reduce((t, l) => t + l[1], 0));
     legs.forEach(([b, t], i) => { const last = i === legs.length - 1; go(k, b, p, t + (last ? pad : 0), last ? after : p); });
   };
   const hold = (k, until) => { if (until > clock[k] + 1e-6) go(k, pos[k], pose[k], until - clock[k]); };
   const sync = () => { const t = Math.max(clock.tj, clock.lead, clock.red); for (const k of WHO) hold(k, t); return t; };
   // He walks in over the knob past the balanced rock, puts his pack under the overhanging rock with
   // theirs, walks on to the start tree and ties in beside the leader, who is racking up; the woman,
-  // eating by the packs, gets up and ties in too. Then he waits for Space, and they bump fists.
-  move('tj', PACKS, 'walk', SPEED.walk, 'stand'); go('tj', PACKS, 'drop', 0.9, 'stand'); move('tj', TIE, 'walk', SPEED.walk, 'stand');
-  hold('red', clock.tj - 1.3); move('red', dAtX(214), 'walk', 30, 'stand');
-  sync(); go('tj', TIE, 'tie', 1.4, 'belay'); go('red', pos.red, 'tie', 1.4, 'stand');
+  // eating by the packs, gets up and ties in too. Then he waits for Space, and they bump fists. She
+  // belays the leader, so TJ then steps back to where she stood and she steps up to the foot of the climb.
+  move('tj', PACKS, 'walk', SPEED.walk, 'stand'); go('tj', PACKS, 'drop', 0.6, 'stand'); move('tj', TIE, 'walk', SPEED.walk, 'stand');
+  hold('red', clock.tj - 0.8); move('red', dAtX(214), 'walk', SPEED.walk, 'stand');
+  // Helmets on and tied in, as one quick beat of about 2 s (round 5, T68): hands to the head, her helmet
+  // on at `lidAt`, then the knots.
+  const lidAt = sync() + 0.35; for (const k of ['tj', 'red']) go(k, pos[k], 'lid', 0.7, 'stand');
+  go('tj', TIE, 'tie', 1.1, 'stand'); go('red', pos.red, 'tie', 1.1, 'stand');
   stops.push({ id: 'wait:belay', t: sync() });
-  const bumpAt = clock.tj; go('tj', TIE, 'bump', 1.0, 'belay'); go('lead', pos.lead, 'bump', 1.0, 'lead');
+  const bumpAt = clock.tj; go('tj', TIE, 'bump', 1.0, 'stand'); go('lead', pos.lead, 'bump', 1.0, 'stand');
+  { const back = pos.red; hold('red', clock.tj); move('red', TIE, 'walk', SPEED.walk, 'belay'); move('tj', back, 'walk', SPEED.walk, 'stand'); }
   const CARD = { a1: 'platform-engineering', a3: 'site-reliability-engineering', a4: 'software-engineering' };
   for (let p = 1; p <= 5; p++) {
     const a = MARK[PITCH[p]], t0 = sync(), gear = gearOn(p);
     // The card opened at the last anchor stays readable until everyone is up and the next pitch starts.
     for (const st of stops) if (st.settle == null && st.id !== 'wait:belay') st.settle = t0;
-    // The leader climbs on TJ's belay, stopping at each piece to place it (or clip it, if fixed), then
-    // builds the anchor and takes the followers on belay from above.
+    // The leader climbs on the woman's belay, stopping at each piece to place it (or clip it, if fixed),
+    // then builds the anchor and takes her on belay from above. The second rope hangs between her and TJ.
     // A cam goes from the rack to his hand to the crack (in at t), then the rope is clipped (clip).
     for (const g of gear) {
       move('lead', Math.max(pos.lead, g.d - 15), 'lead', SPEED.lead); const s = clock.lead;
-      go('lead', pos.lead, 'place', g.fixed ? 0.6 : 1.2); pro.push({ ...g, p, t0: s, t: s + (g.fixed ? 0 : 0.7), clip: s + (g.fixed ? 0.35 : 0.95), gone: Infinity });
+      const len = g.fixed ? BEAT.clip : BEAT.place; go('lead', pos.lead, 'place', len); pro.push({ ...g, p, t0: s, t: s + (g.fixed ? 0 : 0.6 * len), clip: s + (g.fixed ? 0.6 : 0.8) * len, gone: Infinity });
     }
     // On FALL's pitch he runs it out, comes off, slides down the slab past his last pieces until the rope
     // comes tight on them, hangs, shakes out, and goes again.
     if (p === FALL.p) {
       move('lead', FALL.from, 'lead', SPEED.lead); fallAt = clock.lead;
       go('lead', lerp(FALL.from, FALL.to, 0.35), 'fall', 0.35); go('lead', FALL.to, 'fall', 0.3);
-      go('lead', FALL.to, 'hang', 2.2); go('lead', FALL.to, 'rest', 1.6);
+      go('lead', FALL.to, 'hang', BEAT.hang); go('lead', FALL.to, 'rest', BEAT.shake);
     }
     // The anchor: each piece in turn, then the slings brought to one locking carabiner (te), then he
     // ties in to it and takes the followers in.
     move('lead', a, 'lead', SPEED.lead);
-    { const kinds = ANCHOR_KIT[PITCH[p]], s0 = clock.lead; go('lead', a, 'anchor', 0.7 * kinds.length + 1.3, 'tbelay'); anc.push({ m: PITCH[p], kinds, t0: s0, te: s0 + 0.5 + 0.7 * kinds.length, gone: Infinity }); }
-    pose.tj = 'belay';
-    // TJ holds the fall: braced, leaning back, looking up the rope.
-    if (p === FALL.p) { hold('tj', fallAt + 0.5); go('tj', pos.tj, 'catch', 2.2, 'belay'); }
-    hold('tj', clock.lead); ropes.push({ a: 'tj', b: 'lead', t0, t1: clock.lead });
+    { const kinds = ANCHOR_KIT[PITCH[p]], s0 = clock.lead; go('lead', a, 'anchor', ANC.first + ANC.each * kinds.length + ANC.tie, 'tbelay'); anc.push({ m: PITCH[p], kinds, t0: s0, te: s0 + ANC.first + ANC.each * kinds.length, gone: Infinity }); }
+    pose.red = 'belay'; pose.tj = 'stand';
+    // The woman holds the fall: braced, leaning back, looking up the rope.
+    if (p === FALL.p) { hold('red', fallAt + 0.5); go('red', pos.red, 'catch', BEAT.hang + 0.2, 'belay'); }
+    hold('red', clock.lead); hold('tj', clock.lead);
+    ropes.push({ a: 'red', b: 'lead', t0, t1: clock.lead }, { a: 'tj', b: 'red', t0, t1: clock.lead, two: true, idle: true });
     const t1 = sync(), mine = pro.filter(g => g.p === p);
-    // The woman comes last and takes the gear out as she reaches it; at the piton and the bolt she
-    // only unclips the carabiner, and they stay in the rock.
-    // Before she leaves the anchor below (not the ground), she takes it apart; at the top she clips in.
-    // On the way she rests once (halfway through her pieces, from pitch 2 on), and on SLIP's pitch her
-    // foot goes: she drops a little, the rope comes tight, she hangs, then climbs on.
+    // The woman comes second on the leader's rope, trailing the second rope, which TJ pays out from
+    // below. At each piece she takes the leader's rope out of the carabiner and clips the second rope in
+    // (at `swap`), so TJ's rope runs through every piece below her. At the top she clips in and takes
+    // TJ on belay. On the way she rests once (halfway through the pieces, from pitch 2 on), and on SLIP's
+    // pitch her foot goes: she drops a little, the rope comes tight, she hangs, then climbs on.
     let slip = 0;
     const up = to => {
-      if (SLIP && p === SLIP.p && !slip && SLIP.d > pos.red && SLIP.d < to) { move('red', SLIP.d, 'climb', SPEED.red); slip = clock.red; go('red', SLIP.d - 9, 'slip', 0.3); go('red', pos.red, 'hang', 1.6); }
+      if (SLIP && p === SLIP.p && !slip && SLIP.d > pos.red && SLIP.d < to) { move('red', SLIP.d, 'climb', SPEED.red); slip = clock.red; go('red', SLIP.d - 9, 'slip', 0.3); go('red', pos.red, 'hang', BEAT.held); }
       move('red', Math.max(pos.red, to), 'climb', SPEED.red);
     };
-    const clean = () => {
-      if (p > 1) { go('red', pos.red, 'anchor', 1.4); anc[p - 2].gone = clock.red - 0.2; }
-      mine.forEach((g, i) => { up(g.d - 6); go('red', pos.red, 'clean', g.fixed ? 0.6 : 1.0); g.gone = clock.red - 0.3; if (p > 1 && i === Math.floor(mine.length / 2)) go('red', pos.red, 'rest', 1.6); });
-      up(a + AT.red); pose.red = 'stand'; go('red', pos.red, 'anchor', 0.8, 'stand');
+    pose.tj = 'belay';
+    mine.forEach((g, i) => { up(g.d - 6); go('red', pos.red, 'unclip', g.fixed ? BEAT.swapFixed : BEAT.swap); g.swap = clock.red - 0.1; if (p > 1 && i === Math.floor(mine.length / 2)) go('red', pos.red, 'rest', BEAT.rest); });
+    up(a + AT.red); go('red', pos.red, 'anchor', BEAT.tieIn, 'tbelay');
+    ropes.push({ a: 'lead', b: 'red', t0: t1, t1: clock.red }, { a: 'tj', b: 'red', t0: t1, t1: clock.red, two: true, trail: true });
+    // The leader catches her: he braces and locks off the rope as it comes tight, then takes in again.
+    // His job is then done until the next pitch: he belays her right up to the anchor, then rests.
+    if (slip) { hold('lead', slip); go('lead', pos.lead, 'catch', 0.3 + BEAT.held, 'tbelay'); slipAt = slip; }
+    hold('lead', clock.red); pose.lead = 'stand'; hold('tj', clock.red);
+    // TJ comes last on the second rope, on her belay from above, and takes the gear out as he reaches
+    // it; at the piton and the bolt he only unclips the carabiner, and they stay in the rock. Before he
+    // leaves the anchor below (not the ground), he takes it apart; at the top he clips in, and then the
+    // card opens, with everyone up.
+    const t2 = clock.tj;
+    if (p > 1) { go('tj', pos.tj, 'anchor', BEAT.strip); anc[p - 2].gone = clock.tj - 0.1; }
+    // He climbs to `to` at pace v, taking out each piece he comes to on the way (every piece left, if all).
+    const tjUp = (to, v, all) => {
+      for (const g of mine) if (g.gone === Infinity && (all || g.d - 6 <= to)) { move('tj', Math.max(pos.tj, g.d - 6), 'climb', v); go('tj', pos.tj, 'clean', g.fixed ? BEAT.unclip : BEAT.clean); g.gone = clock.tj - 0.1; }
+      if (!all) move('tj', Math.max(pos.tj, to), 'climb', v);
     };
-    if (p === 1) {
-      // Pitch 1: both followers at once on two ropes, the woman a few moves behind. Each piece has both
-      // ropes through it: he stops to unclip his and leaves the piece for her, so the two stay a body
-      // length or so apart instead of him running away from her. He clips in to the anchor, and then
-      // the card opens.
-      for (const g of mine) if (!g.fixed && g.d - 6 > pos.tj) { move('tj', g.d - 6, 'climb', SPEED.tj); go('tj', pos.tj, 'unclip', 0.8); }
-      move('tj', a + AT.tj, 'climb', SPEED.tj, 'stand'); go('tj', pos.tj, 'anchor', 1.0, 'stand'); stops.push({ id: CARD.a1, t: clock.tj });
-      hold('red', t1 + 1.8); clean();
-      ropes.push({ a: 'lead', b: 'tj', t0: t1, t1: clock.tj }, { a: 'lead', b: 'red', t0: t1, t1: clock.red, two: true });
+    if (p === WHIP.p) {
+      // The off-width beats him: slower and slower up it, a rest, a slide back, another rest, a last
+      // lunge, and off. He drops, swings out and hangs.
+      tjUp(WHIP.ow0, SPEED.tj); const span = WHIP.at - pos.tj;
+      tjUp(WHIP.at - 0.6 * span, 0.5 * SPEED.tj); go('tj', pos.tj, 'rest', 0.5);
+      tjUp(WHIP.at - 0.15 * span, 0.5 * SPEED.tj); go('tj', pos.tj - 0.15 * span, 'climb', 0.25); go('tj', pos.tj, 'rest', 0.5);
+      tjUp(WHIP.at, 0.3 * SPEED.tj); go('tj', pos.tj, 'rest', 0.25);
+      whipAt = clock.tj; go('tj', pos.tj - WHIP.drop, 'whip', 0.45, 'swing'); go('tj', pos.tj, 'swing', HAUL.swing);
+      // She holds him; then the two of them rig the haul and yank on it together.
+      hold('red', whipAt + 0.3); go('red', pos.red, 'catch', 1.2, 'tbelay'); hold('red', clock.tj); hold('lead', clock.tj);
+      rigAt = clock.red; for (const k of ['lead', 'red']) go(k, pos[k], 'rig', HAUL.rig);
+      haulAt = clock.red - 0.5; hold('tj', clock.red);
+      const d0 = pos.tj, d1 = a + AT.tj;
+      for (let j = 1; j <= HAUL.yanks; j++) {
+        for (const k of ['lead', 'red']) { go(k, pos[k], 'pull', HAUL.reach); go(k, pos[k], 'heave', HAUL.heave); }
+        hold('tj', clock.tj + HAUL.reach); const s0 = clock.tj, to = lerp(d0, d1, j / HAUL.yanks); yanks.push(s0);
+        // He snatches each piece out as he is dragged past it.
+        for (const g of mine) if (g.gone === Infinity && g.d <= to) g.gone = s0 + HAUL.lift * clamp((g.d - pos.tj) / (to - pos.tj), 0, 1);
+        go('tj', to, 'hauled', HAUL.lift, 'swing'); hold('tj', clock.red);
+      }
+      upAt = clock.tj; pose.red = 'tbelay'; pose.lead = 'stand'; go('tj', pos.tj, 'anchor', BEAT.tieIn, 'stand');
+      ropes.push({ a: 'red', b: 'tj', t0: t2, t1: haulAt, two: true }, { a: 'red', b: 'tj', t0: haulAt, t1: clock.tj, two: true, haul: true }, { a: 'lead', b: 'red', t0: t2, t1: haulAt, idle: true });
     } else {
-      // Then caterpillar: the leader brings TJ up, then TJ brings the woman up.
-      move('tj', a + AT.tj, 'climb', SPEED.tj, 'tbelay'); go('tj', pos.tj, 'anchor', 1.0, 'tbelay'); ropes.push({ a: 'lead', b: 'tj', t0: t1, t1: clock.tj });
-      // The leader's job is done until the next pitch: he belays TJ right up to the anchor, then rests.
-      hold('lead', clock.tj); pose.lead = 'stand';
-      if (CARD[PITCH[p]]) stops.push({ id: CARD[PITCH[p]], t: clock.tj });
-      hold('red', clock.tj); const t2 = clock.red; clean(); ropes.push({ a: 'tj', b: 'red', t0: t2, t1: clock.red });
-      // TJ catches her: he braces and locks off the rope as it comes tight, then takes in again.
-      if (slip) { hold('tj', slip); go('tj', pos.tj, 'catch', 2.0, 'tbelay'); slipAt = slip; }
+      tjUp(0, SPEED.tj, true); move('tj', a + AT.tj, 'climb', SPEED.tj, 'stand'); go('tj', pos.tj, 'anchor', BEAT.tieIn, 'stand');
+      ropes.push({ a: 'red', b: 'tj', t0: t2, t1: clock.tj, two: true }, { a: 'lead', b: 'red', t0: t2, t1: clock.tj, idle: true });
     }
+    if (CARD[PITCH[p]]) stops.push({ id: CARD[PITCH[p]], t: clock.tj });
+    hold('red', clock.tj); pose.red = 'stand';
   }
   // The summit (H15): once she is up, TJ steps up onto the top boulder beside the leader and they high
   // five; she comes up after him and he turns to high five her too; then she sits just below on the
@@ -692,9 +830,17 @@ function makeScript() {
   stops.push({ id: 'summit', t: sumT + SUMMIT_LEN - 0.4 });
   // The summit anchor comes down as they set off for the edge.
   const descT = sync(); for (const k of WHO) go(k, pos[k], 'desc', DESC_LEN); anc[anc.length - 1].gone = descT + 0.6;
-  return { tr, ropes, stops, pro, anc, slipAt, fallAt, bumpAt, sumT, descT, dropAt: tr.tj[1].t0 + 0.5, dur: clock.tj };
+  return { tr, ropes, stops, pro, anc, slipAt, fallAt, whipAt, haulAt, rigAt, upAt, yanks, bumpAt, sumT, descT, lidAt, dropAt: tr.tj[1].t0 + 0.35, dur: clock.tj };
 }
 const SCRIPT = makeScript(), DUR = SCRIPT.dur;
+// How far TJ hangs out from the line at a moment after he comes off: out over the air and back to kick
+// off the rock, less each time, and a smaller swing after each yank of the haul.
+function swingAt(tau) {
+  let t0 = SCRIPT.whipAt + 0.2, A = 30;
+  for (const y of SCRIPT.yanks) if (tau >= y) { t0 = y; A = 6; }
+  const v = Math.max(0, tau - t0);
+  return { x: -A * Math.exp(-v / 1.3) * Math.abs(Math.sin(v * 2.3)), h: -2 * Math.exp(-v * 2.5) * Math.cos(v * 9) };
+}
 // Each of them at a moment: where along the line, in what pose, how far through it, whether moving;
 // and the ropes that are live then.
 function stateAt(tau) {
@@ -712,7 +858,7 @@ const META = {
   stops: () => SCRIPT.stops.map(s => ({ id: s.id, at: s.t / DUR })),
   elev: (arg, q) => { const tau = q * DUR, top = posAt(LEN).h; return tau < SCRIPT.descT ? posAt(stateAt(tau).tj.d).h : top * (1 - smooth(0, DESC_LEN, tau - SCRIPT.descT)); },
   // The fist bump, and a click of metal as each piece goes in.
-  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, ...FIVES.map(v => ({ at: (SCRIPT.sumT + v.at) / DUR, name: 'slap' })), { at: (SCRIPT.sumT + 4.4) / DUR, name: 'summit' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' })), ...[2.0, 2.8].map(v => ({ at: (SCRIPT.descT + v) / DUR, name: 'place' })), ...WHO.flatMap(w => [{ at: (SCRIPT.descT + DESC.turn[w] + 1.1) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.turn[w] + 1.55) / DUR, name: 'glissade' }]), { at: (SCRIPT.descT + DESC.under + UNDER.unclip - 0.4) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.under + UNDER.snag) / DUR, name: 'catch' }]
+  cues: () => [{ at: (SCRIPT.bumpAt + 0.45) / DUR, name: 'slap' }, ...FIVES.map(v => ({ at: (SCRIPT.sumT + v.at) / DUR, name: 'slap' })), { at: (SCRIPT.sumT + 4.4) / DUR, name: 'summit' }, { at: SCRIPT.fallAt / DUR, name: 'fall' }, { at: (SCRIPT.fallAt + 0.65) / DUR, name: 'catch' }, { at: SCRIPT.whipAt / DUR, name: 'fall' }, { at: (SCRIPT.whipAt + 0.45) / DUR, name: 'catch' }, { at: (SCRIPT.haulAt - 0.4) / DUR, name: 'place' }, { at: SCRIPT.haulAt / DUR, name: 'place' }, ...SCRIPT.yanks.map(y => ({ at: y / DUR, name: 'catch' })), ...(SCRIPT.slipAt > 0 ? [{ at: SCRIPT.slipAt / DUR, name: 'fall' }, { at: (SCRIPT.slipAt + 0.35) / DUR, name: 'catch' }] : []), ...SCRIPT.pro.map(g => ({ at: g.t / DUR, name: 'place' })), ...[2.0, 2.8].map(v => ({ at: (SCRIPT.descT + v) / DUR, name: 'place' })), ...WHO.flatMap(w => [{ at: (SCRIPT.descT + DESC.turn[w] + 1.1) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.turn[w] + 1.55) / DUR, name: 'glissade' }]), { at: (SCRIPT.descT + DESC.under + UNDER.unclip - 0.4) / DUR, name: 'place' }, { at: (SCRIPT.descT + DESC.under + UNDER.snag) / DUR, name: 'catch' }]
 };
 
 // Every drawing one of them needs, in their own kit. On the ground: walking, standing, crouched,
@@ -720,15 +866,21 @@ const META = {
 // and paying out; from above, looking down and taking in hand over hand. On the rock, seen from behind:
 // climbing, placing a cam (the cam in the hand going into the crack), building an anchor, cleaning
 // (a hand up at the piece, then at the harness clipping it on), and falling.
-function kitFrames(kit) {
+function kitFrames(kit, cord = R.teal) {
   const side = [0, 1, 2, 3, 4, 5].map(f => sideFig(kit, { feet: [FEET[f], FEET[(f + 3) % 6]], hands: [HANDS[f], HANDS[(f + 3) % 6]], bob: [0, -1, -1, 0, -1, -1][f] }));
-  const knot = (b, cx, y) => { b.set(cx, y + 7, R.white[1]); b.set(cx - 1, y + 7, R.teal[2]); b.set(cx + 1, y + 7, R.teal[2]); b.set(cx + 1, y + 8, R.teal[1]); };
+  const knot = (b, cx, y) => { b.set(cx, y + 7, R.white[1]); b.set(cx - 1, y + 7, cord[2]); b.set(cx + 1, y + 7, cord[2]); b.set(cx + 1, y + 8, cord[1]); };
   const tying = f => frontFig(kit, { held: (b, cx, y) => { knot(b, cx, y); for (const [dx, dy] of f ? [[-2, 6], [2, 7]] : [[-2, 7], [2, 6]]) { b.set(cx + dx, y + dy, R.skin[2]); b.set(cx + dx + (dx < 0 ? -1 : 1), y + dy, R.teal[1]); } } });
   const holding = cam => (b, x, y) => { if (!cam || x < 22) return; b.set(x + 1, y, R.rock[4]); b.set(x + 2, y, R.rock[3]); b.set(x + 1, y + 1, R.red[1]); b.set(x + 1, y + 2, R.red[1]); };
   return {
     side, idle: sideFig(kit, { lean: 0 }), blow: [sideFig(kit, { lean: 0, hands: [[6, -4], [6, -2]] }), sideFig(kit, { lean: 0, hands: [[5, -2], [6, -5]] })], crouch: sideFig(kit, { crouch: 4, lean: 5, hands: [[6, 9], [3, 8]], look: 'down', feet: [[3, 8.5], [-3, 8.5]] }),
     rack: [sideFig(kit, { lean: 1, hands: [[3, 5], [1, 6]], look: 'down' }), sideFig(kit, { lean: 1, hands: [[2, 6], [3, 4]], look: 'down' })],
     tie: [tying(0), tying(1)],
+    // A helmet going on: both hands up at its rim, then at the chin strap. The hands are drawn again over
+    // the head, which would otherwise hide them.
+    lid: [1, 0].map(up => sideFig(kit, { lean: 0, hands: up ? [[3, -5], [-1, -5]] : [[3, -2], [1, -3]], held: (b, sh) => {
+      const k = typeof kit === 'string' ? KITS[kit] : kit;
+      for (const [x, y, c] of up ? [[4, -5, k.top[1]], [4, -6, k.top[1]], [4, -7, k.top[2]], [4, -8, k.hand[1]], [4, -9, k.hand[1]], [-2, -8, k.hand[0]], [-2, -9, k.hand[0]]] : [[3, -2, k.hand[1]], [2, -2, k.hand[0]], [3, -1, k.top[2]]]) b.set(sh[0] + x, sh[1] + y, c);
+    } })),
     // A high five, one hand up and forward; sitting on a block's edge with the legs forward.
     five: sideFig(kit, { lean: 0, hands: [[5, -6], [1, 5]] }), sit: sideFig(kit, { crouch: 6, lean: 2, hands: [[5, 3], [3, 4]], feet: [[6, 8.5], [3, 8.5]] }),
     bump: [sideFig(kit, { lean: 0, hands: [[1, 4], [-1, 6]] }), sideFig(kit, { lean: 1, hands: [[6, 4], [-1, 6]] })],
@@ -941,6 +1093,43 @@ function buildRidge() {
   // it, painted into the rock: a sliver standing off the face with a dark crack behind it.
   const LH = Math.round(CLOUDH - 85), E0 = EAST(LH), CB = LH + 70, LX = EAST(LH + 8) + 8, LANDS = {};
   for (const [w, dx] of [['tj', 0], ['lead', 13], ['red', 25]]) LANDS[w] = { x: LX + dx, h: LH };
+  // The snow slope (round 5, T75): steep snow seen face on, falling away under the ledge and east of it,
+  // its upper edge rising east into the cloud's underside. XE is where they stand at the ledge's outer
+  // end; the traverse runs from just below it down and across the face (snowAt: where along it, sp px
+  // out). Painted once, kept apart and drawn only under the cloud, like the ledge.
+  const XE = E0 + 44, snowAt = sp => ({ x: XE + 6 + sp, h: LH - 6 - 0.25 * sp });
+  let SNOW = [];
+  {
+    // The tower's own east face at each row down from the ledge: the first gap going east from inside
+    // the tower, never more than 3 px east of the row above (EAST is the last rock in a wide window,
+    // which below the ledge is the spires beyond). Where the tower and a spire meet there is no gap,
+    // and from there down the face is carried on at the lean it had over its last 12 rows.
+    const solid = (x, h) => ID[(main.up - h) * W + x], FACE = new Map(), seen = [];
+    for (let h = LH + 2, prev = E0 + 3, merged = false; h > LH - 562; h--) {
+      let x = prev - 8; while (x < prev + 3 && solid(x + 1, h)) x++;
+      if (merged || solid(x + 1, h)) { merged = true; const n = Math.min(12, seen.length - 1); x = Math.round(prev + (n > 0 ? (seen[seen.length - 1] - seen[seen.length - 1 - n]) / n : 0)); }
+      else seen.push(x);
+      FACE.set(h, x); prev = x;
+    }
+    for (let x = E0; x < E0 + 480; x++) {
+      const tp = Math.min(CB + 30, x <= XE + 3 ? LH - 4 : Math.round(LH - 4 + 0.55 * (x - XE - 3) + 3 * (vnoise(x / 14, 1, 797) - 0.5) * 2));
+      for (let h = tp; h > LH - 560; h--) {
+        const f = FACE.get(h) ?? EAST(h); if (x <= f) continue;
+        const k = tp - h, dd = clamp((LH - h) / 260, 0, 1), n = bayer(x, h);
+        // Flat grey light under the cloud: pale snow with the fall line's runnels in it, a few rocks
+        // standing out, and darker toward the bottom.
+        let c = n < 0.25 + 0.6 * dd ? R.snow[1] : R.snow[2];
+        if (dd > 0.55 && n < (dd - 0.55) * 1.5) c = R.snow[0];
+        if (fbm(x / 2.5, h / 18, 798, 2) > 0.72) c = dd > 0.5 ? R.snow[0] : R.snow[1];
+        if (fbm(x / 9, h / 6, 799, 3) > 0.8) c = pick('granite', 0.42 - 0.3 * dd, x, h);
+        if (k === 0) c = R.snow[3]; else if (k === 1) c = R.snow[2];
+        if (x === f + 1 && k > 0) c = INK;
+        SNOW.push(x, h, c);
+      }
+      if (tp < CB + 30) SNOW.push(x, tp + 1, INK);
+    }
+    SNOW = Int32Array.from(SNOW);
+  }
   // The ledge they land on: a shelf of the tower's pale rock standing out from the east face, lit on
   // top, thinning toward its end, ink under it and a dark joint where it meets the face. It is kept
   // apart and drawn only under the cloud, so it does not stick out of the tower all through pitch 5.
@@ -984,8 +1173,15 @@ function buildRidge() {
     if (a < UNDER.look) return { x: L.x, h: L.h, dp: 'stand', left: true };
     if (a < UNDER.shrug[0]) return { x: L.x, h: L.h, dp: 'stand', left: w !== 'tj' };
     if (a < UNDER.shrug[1]) return { x: L.x, h: L.h, dp: 'shrug', left: true };
-    if (w === 'tj' && a >= UNDER.walk) return { x: L.x - 24 * (a - UNDER.walk), h: L.h, dp: 'walk', left: true, where: 'n' };
-    return { x: L.x, h: L.h, dp: 'stand', left: w !== 'tj' || a < UNDER.walk - 0.2 };
+    const s0 = UNDER.walk + SN.order[w] * SN.gap;
+    if (a >= s0) {
+      const b = a - s0;
+      if (b < SN.ledge) return { x: lerp(L.x, XE, smooth(0, SN.ledge, b)), h: L.h, dp: 'walk', left: false };
+      if (b < SN.ledge + SN.step) { const u = (b - SN.ledge) / SN.step; return { x: lerp(XE, XE + 6, u), h: lerp(LH, LH - 6, u), dp: 'snow', sp: 0, left: false }; }
+      const sp = (b - SN.ledge - SN.step) * SN.v, q = snowAt(sp);
+      return { x: q.x, h: q.h, dp: 'snow', sp, left: false };
+    }
+    return { x: L.x, h: L.h, dp: 'stand', left: a < s0 - 0.3 && (w !== 'tj' || a < UNDER.walk - 0.3) };
   };
   // Where one of them is v seconds into the descent, in what pose (dp), facing which way (left).
   const descAt = (w, v) => {
@@ -1017,7 +1213,13 @@ function buildRidge() {
   const KIT = { tj: 'wall', lead: { ...PAIR[0], bare: false, hat: R.red, rack: true }, red: { ...PAIR[1], bare: false, hat: [R.white[0], R.white[1], R.white[1]] } };
   const KO = w => typeof KIT[w] === 'string' ? KITS[KIT[w]] : KIT[w], KH = {};
   for (const w of WHO) KH[w] = { ...KO(w), hood: true };
-  const F = { tj: kitFrames(KIT.tj), lead: kitFrames(KIT.lead), red: kitFrames(KIT.red) }, FH = { tj: kitFrames(KH.tj), lead: kitFrames(KH.lead), red: kitFrames(KH.red) };
+  // She sits and eats bare-headed, and her helmet goes on with his at the foot of the climb.
+  const BARE = kitFrames(PAIR[1]);
+  // On the snow, facing in, an ice axe in each hand: right axe up, left axe up, right foot up, left foot up.
+  // The axe: held near the foot of its shaft, its head above the hand with the pick driven into the snow.
+  const axe = (b, x, y) => { for (let k = 1; k <= 4; k++) b.set(x, y - k, R.bark[2]); for (let k = -1; k <= 2; k++) b.set(x + k, y - 5, R.rock[k === 2 ? 0 : 1]); b.set(x + 2, y - 4, R.rock[0]); b.set(x - 1, y - 6, R.rock[3]); };
+  const SNOWF = {}; for (const w of WHO) SNOWF[w] = [[[-8, -16], [9, -21], [-4, 10], [4, 10]], [[-9, -21], [8, -16], [-4, 10], [4, 10]], [[-8, -18], [8, -18], [-4, 10], [5, 5]], [[-8, -18], [8, -18], [-5, 5], [4, 10]]].map(([a, b2, c, d]) => backFig(KIT[w], { hands: [a, b2], feet: [c, d], tool: axe }));
+  const F = { tj: kitFrames(KIT.tj, R.blaze), lead: kitFrames(KIT.lead), red: kitFrames(KIT.red) }, FH = { tj: kitFrames(KH.tj, R.blaze), lead: kitFrames(KH.lead), red: kitFrames(KH.red) };
   // On the face their hands and feet are on the holds (H10). The drawings are made as they are needed
   // and kept: the limbs fall on whole pixels, so the same few come round again and again. right, when
   // given, is where the right hand is busy (placing, clipping, cleaning, shaking out) instead.
@@ -1031,7 +1233,7 @@ function buildRidge() {
   };
   const packs = [makePack(R.teal), makePack(R.red), makePack([R.mustard[0], R.mustard[1], R.mustard[2]])], dropAt = SCRIPT.dropAt;
   const ropePts = [];
-  let camX = 0, camH = 0;
+  let camX = 0, camH = 0, seaSnap = null, seaTops = null;
   // While a card is open at a belay (H17), the ridge plays on behind it at its own pace, the followers
   // climbing up, until everyone is at the anchor: ahead is how far it has got. When the visitor carries
   // on, the timeline jumps by that much (skip), so nothing is watched twice.
@@ -1073,7 +1275,8 @@ function buildRidge() {
       rope(scr, rp, false); return;
     }
     if (a < UNDER.unclip || a >= UNDER.shrug[0]) {
-      rp.push(Math.round(P.lead.x) - 3 - cx, rowOf(P.lead.h + 1), EAST(foot) + 2 - cx, rowOf(foot)); up(rp, foot + 6, 1, cx, rowOf); rope(scr, rp, false);
+      if (a >= UNDER.walk) rp.push(EAST(foot) + 9 - cx, rowOf(foot - 1)); else rp.push(Math.round(P.lead.x) - 3 - cx, rowOf(P.lead.h + 1));
+      rp.push(EAST(foot) + 2 - cx, rowOf(foot)); up(rp, foot + 6, 1, cx, rowOf); rope(scr, rp, false);
     } else {
       for (const w of ['red', 'lead', 'tj']) { const q = P[w]; rp.push(Math.round(q.x) - 5 - cx, rowOf(q.h + (q.dp === 'heave' ? 13 : 17))); }
       rp.push(EAST(foot + 10) + 1 - cx, rowOf(foot + 10)); up(rp, foot + 16, 1, cx, rowOf); rope(scr, rp, false);
@@ -1111,11 +1314,13 @@ function buildRidge() {
       // The camera holds on whoever is on the live end of a rope (between the two of them on pitch 1, and
       // between climber and belayer while someone hangs on the rope, so the catch is seen),
       // so it does not jump back to the belayer each time the climber stops; him the rest of the time.
-      const held = r => S[r.b].pose === 'slip' || S[r.b].pose === 'hang' || S[r.b].pose === 'fall', mid = (p, q) => ({ x: (p.x + q.x) / 2, h: (p.h + q.h) / 2 });
-      const ends = S.ropes.length ? S.ropes.map(r => held(r) ? mid(posAt(S[r.a].d), posAt(S[r.b].d)) : posAt(S[r.b].d)) : [posAt(S.tj.d)], at = { x: ends.reduce((a, p) => a + p.x, 0) / ends.length, h: ends.reduce((a, p) => a + p.h, 0) / ends.length };
+      const held = r => OFF.includes(S[r.b].pose), mid = (p, q) => ({ x: (p.x + q.x) / 2, h: (p.h + q.h) / 2 });
+      // A rope hanging slack between two at a stance, and the one she trails, do not lead the camera.
+      const live = S.ropes.filter(r => !r.idle && !r.trail);
+      const ends = live.length ? live.map(r => held(r) ? mid(posAt(S[r.a].d), posAt(S[r.b].d)) : posAt(S[r.b].d)) : [posAt(S.tj.d)], at = { x: ends.reduce((a, p) => a + p.x, 0) / ends.length, h: ends.reduce((a, p) => a + p.h, 0) / ends.length };
       const dv = tau - SCRIPT.descT;
       if (dv >= 0) { at.x = LIPX + 6; at.h = CAMD; }
-      if (dv >= DESC.under) { at.x = LX + 24; at.h = LH + 45; }
+      if (dv >= DESC.under) { at.x = LX + 24 + 70 * smooth(UNDER.walk + 1.4, UNDER.walk + 6, dv - DESC.under); at.h = LH + 45; }
       camX += (at.x - camX) * k; camH += (at.h - camH) * k;
       // The wind where the camera is, and the gust's strength; a whoosh as each gust arrives, louder
       // high up (none at the foot, where there is no wind to speak of).
@@ -1131,7 +1336,15 @@ function buildRidge() {
       drawStrip(scr, far, 120 + cx * 0.15, base + camH * 0.08 + 60, false, R.far[1]);
       drawStrip(scr, basin, 300 + cx * 0.4, base + camH * 0.12 - 25, false, R.far[1]);
       const seaC = smooth(220, 430, camH), seaTop = base + camH * 0.12 - 25 + 40 - 31 * seaC, seaX = Math.round(300 + cx * 0.4);
-      cloudSea(scr, seaTop, seaC, t, seaX);
+      // The one cloud sea (round 5, T74): from when the haul starts its near part rises up the tower from
+      // the bottom of the picture, always below TJ, until by the time he is up it stands at CLOUDH, the
+      // height they rappel into it at. Below the far sea's surface it is drawn only over rock, so the
+      // two are one sea.
+      const rising = SCRIPT.haulAt > 0 && tau >= SCRIPT.haulAt && dv < DESC.under;
+      if (rising && (!seaSnap || seaSnap.length !== fb.length)) seaSnap = new fb.constructor(fb.length);
+      if (rising && (!seaTops || seaTops.length !== VW)) seaTops = new Int16Array(VW);
+      cloudSea(scr, seaTop, seaC, t, seaX, 1e9, rising ? seaTops : null);
+      if (rising) seaSnap.set(fb);
       const cbH = CB - 8 * Math.max(0, camH - (LH + 45));
       if (dv >= DESC.under) gloom(scr, Math.max(0, rowOf(cbH)));
 
@@ -1139,6 +1352,10 @@ function buildRidge() {
       const P = {};
       for (const w of WHO) { const s = S[w], p = posAt(s.d); P[w] = { ...s, ...p, steep: p.where === 's' && Math.abs(p.dh) > Math.abs(p.dx) * 0.8 }; }
       if (P.red.where === 's' && P.red.moving) P.red.x += 1.5 * Math.sin(P.red.d / 7);
+      if (P.tj.pose === 'whip' || P.tj.pose === 'swing' || P.tj.pose === 'hauled') { const sw = swingAt(tau); P.tj.x += sw.x; P.tj.h += sw.h; }
+      // For the haul the woman steps down the rope from the leader so the two pull one behind the other,
+      // and each throws their weight back a step on every heave.
+      { const apart = smooth(SCRIPT.rigAt, SCRIPT.rigAt + 0.4, tau) * (1 - smooth(SCRIPT.upAt, SCRIPT.upAt + 0.3, tau)); P.red.x -= 8 * apart; for (const w of ['lead', 'red']) P[w].x += P[w].pose === 'heave' ? 5 : P[w].pose === 'pull' ? -3 : 0; }
       // On the face, hands and feet on the holds, and the hips between them.
       for (const w of WHO) { P[w].hood = P[w].h >= HOOD_H; P[w].fig = null; }
       // On the summit each eases over to their spot as they walk up to it.
@@ -1151,12 +1368,12 @@ function buildRidge() {
       // feet; they ease over in their last few moves to it and back onto the line as they leave.
       for (const m of FACE_BELAYS) for (const w of ['tj', 'red']) {
         const e = smooth(0, 1, 1 - Math.abs(P[w].d - (MARK[m] + AT[w])) / 12);
-        if (e > 0) { const a = posAt(MARK[m]); P[w].x = lerp(P[w].x, a.x + (w === 'tj' ? 12 : 24), e); P[w].h = lerp(P[w].h, a.h - (w === 'tj' ? 12 : 22), e); }
+        if (e > 0) { const a = posAt(MARK[m]); P[w].x = lerp(P[w].x, a.x + (w === 'red' ? 12 : 24), e); P[w].h = lerp(P[w].h, a.h - (w === 'red' ? 12 : 22), e); }
       }
       const bumping = S.tj.pose === 'bump';
       const rateOf = w => { const r = S.ropes.find(r => r.a === w); return r && S[r.b].moving; };
       const draw1 = w => {
-        const s = P[w], fr = (s.hood ? FH : F)[w], sx = Math.round(s.x) - cx, sy = rowOf(s.h);
+        const s = P[w], fr = w === 'red' && tau < SCRIPT.lidAt ? BARE : (s.hood ? FH : F)[w], sx = Math.round(s.x) - cx, sy = rowOf(s.h);
         const put = (bm, x, y, f) => { scr.put(bm, x, y, f); s.fig = { x, y, f, back: bm.oy === 28, side: bm.oy === 36 }; };
         const u = s.u, flick = Math.floor(t * 3) & 1;
         if (s.pose === 'sit') { pair.snack(scr, 1, sx, sy, t, 0); return; }
@@ -1177,12 +1394,21 @@ function buildRidge() {
           if (s.dp === 'pull') { put(fr.pull[Math.floor(t * 4) & 1], sx, sy, true); return; }
           if (s.dp === 'heave') { put(fr.heave, sx, sy, true); return; }
           if (s.dp === 'shrug') { put(fr.shrug, sx, sy, false); return; }
+          if (s.dp === 'snow') { put(SNOWF[w][Math.floor(s.sp / 3) % 4], sx, sy - 12, false); return; }
           // Waiting their turn, they watch the edge.
           put(fr.idle, sx, sy, s.left); return;
         }
+        // Off the off-width: falling, then hanging on the rope while he swings and is hauled.
+        if (s.pose === 'whip') { put(fr.fall[Math.floor(t * 20) & 1], sx, sy - 12, false); return; }
+        if (s.pose === 'swing' || s.pose === 'hauled') { put(fr.hang, sx, sy - 12, false); return; }
+        // The haul: crouched over the rope rigging it; then, facing the load, a reach down the rope and a heave back.
+        if (s.pose === 'rig') { put(fr.rig[Math.floor(t * 3) & 1], sx, sy, true); return; }
+        if (s.pose === 'pull') { put(fr.rig[0], sx, sy, true); return; }
+        if (s.pose === 'heave') { put(fr.heave, sx, sy - (u < 0.5 ? 1 : 0), true); return; }
         if (s.pose === 'walk' || (s.moving && !s.steep && s.pose !== 'drop')) { put(env.moving && s.moving ? fr.side[Math.floor(s.d / 4.2) % 6] : fr.idle, sx, sy, s.dir < 0); return; }
         if (s.pose === 'drop') { put(u < 0.25 || u > 0.85 ? fr.idle : fr.crouch, sx, sy, true); return; }
         if (s.pose === 'rack') { put(fr.rack[Math.floor(t * 1.5) & 1], sx, sy, true); return; }
+        if (s.pose === 'lid') { put(fr.lid[tau < SCRIPT.lidAt ? 0 : 1], sx, sy, false); return; }
         if (s.pose === 'tie') { put(fr.tie[Math.floor(t * 6) & 1], sx, sy, false); return; }
         if (s.pose === 'bump') { put(u < 0.2 || u > 0.85 ? fr.idle : fr.bump[u > 0.45 && u < 0.7 ? 1 : 0], sx, sy, w !== 'tj'); return; }
         if (s.pose === 'lead' || s.pose === 'climb') { const st = styleAt(s.d); if (st || !s.lb) put(st ? fr[st][Math.floor(s.d / 4) & 1] : fr.anchor[0], sx, sy - 12, false); else put(figAt(w, s.lb, null, 0, s.hood), sx + s.bx, sy - 12, false); return; }
@@ -1210,7 +1436,12 @@ function buildRidge() {
       };
       for (const w of WHO) if (P[w].where === 'n') draw1(w);
       drawStrip(scr, main, cx, base + camH, false, R.grass[0]);
-      if (dv >= DESC.under) paintPts(scr, LEDGE, cx, rowOf);
+      if (dv >= DESC.under) {
+        paintMany(scr, SNOW, cx, rowOf(0));
+        // The steps TJ kicks, a pit every 4 px behind him.
+        if (P.tj.dp === 'snow') for (let sp = 0; sp < P.tj.sp - 2; sp += 4) { const q = snowAt(sp), x = Math.round(q.x) - cx, y = rowOf(Math.round(q.h)); scr.set(x, y, R.snow[1]); scr.set(x + 1, y, R.snow[0]); }
+        paintPts(scr, LEDGE, cx, rowOf);
+      }
       for (const th of things) {
         const sx = th.x - cx, sy = rowOf(th.h);
         if (sx < -40 || sx > VW + 40) continue;
@@ -1223,22 +1454,28 @@ function buildRidge() {
       const pro = SCRIPT.pro, lit = i => tau >= pro[i].clip && tau < pro[i].gone;
       // The live ropes, from the belayer's hands through the carabiner of every piece clipped between
       // them, in order, to the climber's waist; where the line between two of those goes along or
-      // behind the crest, over the crest along its upper hull.
+      // behind the crest, over the crest along its upper hull. A piece holds the leader's rope until the
+      // woman swaps the second rope into it, and the second rope from then until TJ takes it out.
+      let haul = null;
       for (const r of S.ropes) {
         const a = P[r.a], c = P[r.b], lo = Math.min(a.d, c.d), hi = Math.max(a.d, c.d);
         // A leader's rope also runs up to the piece he has just clipped above his waist and back down,
         // and after a fall up to the pieces that held him and back down to where he hangs.
-        const via = []; for (let i = 0; i < pro.length; i++) if (lit(i) && pro[i].d > lo && pro[i].d < (c.d > a.d ? hi + 80 : hi)) via.push(i);
+        // The rope she trails also runs up to the piece she has just swapped it into, above her waist.
+        const via = []; if (!r.idle) for (let i = 0; i < pro.length; i++) if (lit(i) && (tau >= pro[i].swap) === !!r.two && pro[i].d > lo && pro[i].d < (c.d > a.d ? hi + (r.trail ? 10 : 80) : hi)) via.push(i);
         via.sort((i, j) => (pro[i].d - pro[j].d) * (c.d > a.d ? 1 : -1));
-        const onRock = c.pose === 'lead' || c.pose === 'climb' || c.pose === 'place' || c.pose === 'clean' || c.pose === 'unclip' || c.pose === 'rest' || c.pose === 'slip' || c.pose === 'hang';
-        const ends = [{ d: a.d, x: Math.round(a.x) + (c.x > a.x ? 5 : -5), h: a.h + 9 }, ...via.map(i => ({ d: pro[i].d, x: SPOT[i].x, h: SPOT[i].bi })), { d: c.d, x: Math.round(c.x) + c.bx, h: c.h + (onRock ? 12 : 9) }];
+        const onRock = c.pose === 'lead' || c.pose === 'climb' || c.pose === 'place' || c.pose === 'clean' || c.pose === 'unclip' || c.pose === 'rest' || OFF.includes(c.pose);
+        // The rope he is hauled on runs to the pulley at the summit anchor, not to her hands.
+        const top = ASPOT[ASPOT.length - 1].M;
+        const ends = [r.haul ? { d: a.d, x: top.x, h: top.h } : { d: a.d, x: Math.round(a.x) + (c.x > a.x ? 5 : -5), h: a.h + 9 }, ...via.map(i => ({ d: pro[i].d, x: SPOT[i].x, h: SPOT[i].bi })), { d: c.d, x: Math.round(c.x) + c.bx, h: c.h + (onRock ? 12 : 9) }];
         // Between two points it hangs free it sags: a leader's rope more (the belayer pays out ahead of
         // him), with a loop below him for a moment after each clip (he pulled up an armful to clip);
         // a follower's rope, taken in from above, only a little. Where it lies over the crest it does
         // not sag, and on a fall or a held follower it comes tight and straight.
-        const lead = c.d > a.d, tight = c.pose === 'fall' || c.pose === 'hang' || c.pose === 'slip';
+        const lead = c.d > a.d, tight = OFF.includes(c.pose);
         let lastClip = -Infinity; for (const i of via) if (pro[i].clip <= tau) lastClip = Math.max(lastClip, pro[i].clip);
-        const loop = lead ? 10 * smooth(0, 1, Math.max(0, 1 - (tau - lastClip) / 2.2)) : 0;
+        // Slack between two at a stance hangs in a loop.
+        const loop = r.idle ? 7 : lead && !r.trail ? 10 * smooth(0, 1, Math.max(0, 1 - (tau - lastClip) / 0.8)) : 0;
         ropePts.length = 0;
         for (let k = 0; k < ends.length; k++) {
           const x = ends[k].x - cx, y = rowOf(ends[k].h);
@@ -1250,22 +1487,23 @@ function buildRidge() {
           ropePts.push(x, y);
         }
         rope(scr, ropePts, r.two);
+        if (r.haul) haul = haulRopes(scr, ropePts, [P.red, P.lead], cx, rowOf);
       }
       // The gear on the rock, over the rope so its sling shows and the rope runs into its carabiner, and
-      // behind whoever is in front of it: a cam from when it is in until the woman takes it out; the
-      // piton and the bolt always, with a carabiner from when he clips them until she unclips it.
+      // behind whoever is in front of it: a cam from when it is in until TJ takes it out; the
+      // piton and the bolt always, with a carabiner from when the leader clips them until TJ unclips it.
       for (let i = 0; i < pro.length; i++) {
         const g = pro[i], sp = SPOT[i];
         if (g.fixed || (tau >= g.t && tau < g.gone)) drawPiece(scr, sp.x - cx, rowOf(sp.h), g.kind);
         if (g.fixed ? lit(i) : tau >= g.t && tau < g.gone) drawBiner(scr, sp.x - cx, rowOf(sp.bi));
       }
-      // The anchors: each piece as it goes in, then its sling to the locking carabiner, until the woman
+      // The anchors: each piece as it goes in, then its sling to the locking carabiner, until TJ
       // strips it; and a tether from the waist of whoever stands at a built anchor to that carabiner.
       SCRIPT.anc.forEach((A, k) => {
-        if (tau < A.t0 + 0.5 || tau >= A.gone) return;
+        if (tau < A.t0 + ANC.first || tau >= A.gone) return;
         const sp = ASPOT[k], mx = sp.M.x - cx, my = rowOf(sp.M.h);
         A.kinds.forEach((kd, i) => {
-          if (tau < A.t0 + 0.5 + 0.7 * i) return;
+          if (tau < A.t0 + ANC.first + ANC.each * i) return;
           const q = sp.p[i], bot = anchorPiece(scr, q, kd, cx, rowOf);
           if (tau >= A.te) strap(scr, q.x - cx, bot, mx, my, SLING[i % SLING.length]);
         });
@@ -1274,10 +1512,13 @@ function buildRidge() {
           const s2 = P[w];
           if (s2.moving || Math.abs(s2.d - (MARK[A.m] + AT[w])) > 1.5) continue;
           const back = s2.pose === 'anchor' || s2.pose === 'clean';
-          strap(scr, Math.round(s2.x) - cx + 1, rowOf(s2.h + (back ? 12 : 9)), mx, my, w === 'red' ? R.blaze : R.teal);
+          strap(scr, Math.round(s2.x) - cx + 1, rowOf(s2.h + (back ? 12 : 9)), mx, my, w === 'tj' ? R.blaze : R.teal);
         }
         drawBiner(scr, mx, my); scr.set(mx, my, R.white[1]);
       });
+      // The haul's hardware, drawn small over the anchor: a pulley on its carabiner and a red rope grab
+      // on the loaded rope below it.
+      if (haul) { for (const [dx, dy, c] of [[0, 0, R.white[1]], [1, 0, R.rock[3]], [0, 1, R.rock[3]], [1, 1, R.rock[1]]]) scr.set(haul.mx + dx, haul.my + dy, c); for (const [dx, dy] of [[0, 0], [1, 0], [0, -1], [1, -1]]) scr.set(haul.gx + dx, haul.gy + dy, R.red[dy ? 2 : 1]); }
       if (dv > DESC.rig[0] + 0.8) {
         anchorPiece(scr, RAPA, 'block', cx, rowOf);
         if (dv > DESC.rig[0] + 1.6) { const rx = RAPA.x - cx, ry = rowOf(RAPA.bot); drawBiner(scr, rx, ry); }
@@ -1292,15 +1533,19 @@ function buildRidge() {
         if (fg.back) { flap(scr, fg.x + 5, fg.y - 1, ko.top, t, wnd, g, sd); if (!s.hood && ko.long && ko.hair) hair(scr, fg.x + 4, fg.y - 13, ko.hair, t, wnd, g, sd); }
         else if (fg.side) { flap(scr, fg.x + 3, fg.y - 9, ko.top, t, wnd, g, sd); if (!s.hood && ko.long && ko.hair && fg.f) hair(scr, fg.x + 5, fg.y - 17, ko.hair, t, wnd, g, sd); }
       }
-      // The cloud wells up the tower as they come down, in front of the rock, until its top is the sea's.
-      // Going under, the cloud's top races up out of sight as the camera sinks into it.
+      // The near part of the cloud sea, in front of the rock and of anyone below its top. Going under, the
+      // cloud's top races up out of sight as the camera sinks into it.
       if (dv >= DESC.under) cloudSea(scr, rowOf(CLOUDH + 6 * Math.max(0, CAMD - camH)), 1, t, seaX, rowOf(cbH));
-      else if (dv > 0.5) cloudSea(scr, seaTop + (1 - smooth(0.5, 4.0, dv)) * VH, seaC, t, seaX);
+      else if (rising) {
+        let h = lerp(base + camH - VH - 4, CLOUDH, smooth(SCRIPT.haulAt, SCRIPT.upAt + 0.6, tau));
+        if (tau < SCRIPT.upAt) h = Math.min(h, P.tj.h - 30);
+        cloudSea(scr, rowOf(h), 1, t, seaX, 1e9, null, { snap: seaSnap, tops: seaTops });
+      }
       // While he places a cam: in his raised hand, lobes shut, then pushed up into the crack.
       for (let i = 0; i < pro.length; i++) {
         const g = pro[i], sp = SPOT[i];
-        if (g.fixed || tau < g.t0 + 0.25 || tau >= g.t) continue;
-        const e = smooth(g.t0 + 0.4, g.t, tau), hx = Math.round(P.lead.x) + P.lead.bx + 6, hh = P.lead.h + 27;
+        if (g.fixed || tau < lerp(g.t0, g.t, 0.35) || tau >= g.t) continue;
+        const e = smooth(lerp(g.t0, g.t, 0.55), g.t, tau), hx = Math.round(P.lead.x) + P.lead.bx + 6, hh = P.lead.h + 27;
         drawPiece(scr, Math.round(lerp(hx, sp.x, e)) - cx, rowOf(Math.round(lerp(hh, sp.h, e))), g.kind, 0);
       }
       // When he skates off the slab, grit his feet scraped loose skitters down it after him.
@@ -1325,6 +1570,11 @@ function buildRidge() {
 }
 
 // Pixels kept as a flat list of x, h, colour, drawn in the world.
+// The same for a long list (x, h, colour triples in a typed array), with the screen row of h = 0 given.
+function paintMany(scr, pts, cx, y0) {
+  const { VW, VH, fb } = scr;
+  for (let i = 0; i < pts.length; i += 3) { const x = pts[i] - cx, y = y0 - pts[i + 1]; if (x >= 0 && x < VW && y >= 0 && y < VH) fb[y * VW + x] = pts[i + 2]; }
+}
 function paintPts(scr, pts, cx, rowOf) { for (let i = 0; i < pts.length; i += 3) scr.set(pts[i] - cx, rowOf(pts[i + 1]), pts[i + 2]); }
 // The upper hull of a run of points along the crest (x rising): the line a rope stretched over it takes.
 function overHull(pts) {
@@ -1357,8 +1607,24 @@ function sagTo(out, x1, y1, slack, loop = 0, wob = 0, wt = 0) {
   for (let i = 1; i < n; i++) { const u = i / n, b = 4 * u * (1 - u), o = s * b, f = wob * b * Math.sin(wt * 9 + u * 7 + x0 * 0.13); out.push(Math.round(x0 + dx * u - o * fx - dy / len * f), Math.round(y0 + dy * u + o * fy + loop * Math.sqrt(b) + dx / len * f)); }
 }
 
+// The poses in which someone is off the rock and on the rope: the rope is tight and the camera shows
+// both ends of it.
+const OFF = ['fall', 'hang', 'slip', 'whip', 'swing', 'hauled'];
+// The 3:1 haul's ropes (round 5, T73), beside the loaded rope already drawn from the pulley at the anchor
+// (pts starts there) down to him: back from the pulley to the rope grab down the load past the two who
+// pull, and from there up through their hands, the nearer to the edge first. They face the load and pull
+// back toward the anchor. Returns where the pulley and the grab are, for the hardware drawn over the ropes.
+function haulRopes(scr, pts, who, cx, rowOf) {
+  const mx = pts[0], my = pts[1]; let gx = mx, gy = my, left = 34;
+  for (let i = 2; i < pts.length && left > 0; i += 2) { const L = Math.hypot(pts[i] - pts[i - 2], pts[i + 1] - pts[i - 1]) || 1, u = Math.min(1, left / L); gx = Math.round(lerp(pts[i - 2], pts[i], u)); gy = Math.round(lerp(pts[i - 1], pts[i + 1], u)); left -= L; }
+  rope(scr, [mx, my - 1, gx, gy - 1], true);
+  const strand = [gx, gy];
+  for (const q of who) strand.push(Math.round(q.x) - (q.pose === 'heave' ? 3 : 6) - cx, rowOf(q.h + (q.pose === 'heave' ? 13 : 6)));
+  rope(scr, strand, true);
+  return { mx, my, gx, gy };
+}
 // A rope through a list of screen points: dark edges, a bright core with a fleck every few pixels.
-// The second rope on pitch 1 is orange, so the two followers' ropes can be told apart.
+// The second rope, from the woman to TJ, is orange, so the two can be told apart.
 function rope(scr, pts, two) {
   const px = [];
   for (let i = 2; i < pts.length; i += 2) {

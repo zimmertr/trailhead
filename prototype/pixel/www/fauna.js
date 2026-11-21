@@ -1,5 +1,5 @@
 // The animals of the side-view scenes, each drawn in code at the same pixel size as everything else.
-import { hash, R, INK, BM, outline, disc, thick, pick } from './core.js';
+import { hash, frac, R, INK, BM, outline, disc, thick, pick } from './core.js';
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
 
@@ -19,21 +19,6 @@ function elk(pose, step = 0, alt = 0) {
     for (const s of [0, 1]) { const ax = 33 - s * 2; thick(b, ax, 6, ax - 5, 1, 1, R.dirt[4]); thick(b, ax - 2, 4, ax - 1, 0, 1, R.dirt[4]); thick(b, ax - 4, 2, ax - 8, 3, 1, R.dirt[4]); b.set(ax + 1, 3, R.dirt[4]); }
   }
   ell(b, 27, 23, 4, 4.5, dark);
-  outline(b, INK);
-  return b;
-}
-
-// A black bear on its hind legs, peering round a trunk. Facing left.
-function bear(blink) {
-  const b = new BM(22, 38); b.ox = 11; b.oy = 37;
-  const fur = (nx, ny, x, y) => pick('fur', 0.4 - nx * 0.25 - ny * 0.2 + 0.2 * (hash(x, y, 4) - 0.5), x, y, 0.6);
-  ell(b, 12, 26, 7, 11, fur);
-  thick(b, 9, 34, 9, 37, 3, R.fur[0]); thick(b, 15, 34, 15, 37, 3, R.fur[0]);
-  thick(b, 8, 20, 4, 26, 3, R.fur[1]); b.set(3, 27, R.fur[2]);
-  ell(b, 10, 10, 6, 5.5, fur);
-  disc(b, 6, 4.5, 2, () => R.fur[1]); disc(b, 14, 4.5, 2, () => R.fur[1]); b.set(6, 5, R.fur[3]); b.set(14, 5, R.fur[3]);
-  ell(b, 6, 12, 3.4, 2.4, () => R.dirt[2]); b.set(3, 11, INK); b.set(4, 13, R.dirt[1]);
-  if (!blink) { b.set(8, 9, R.white[1]); b.set(12, 9, R.white[1]); }
   outline(b, INK);
   return b;
 }
@@ -117,33 +102,23 @@ function marmot(pose) {
   return b;
 }
 
-// A great blue heron (E5j), facing right. pose: 'stand' (still in the shallows, neck in an S), 'fly0' and
-// 'fly1' (slow wingbeats up and down, neck drawn in, legs trailing behind).
-function heron(pose) {
-  if (pose === 'stand') {
-    const b = new BM(13, 16); b.ox = 5; b.oy = 15;
-    ell(b, 4.5, 8, 3.4, 2.1, (nx, ny) => ny < -0.3 ? R.nebel[2] : R.nebel[1]); b.set(2, 9, R.nebel[0]); b.set(1, 9, R.nebel[0]);
-    for (const [x, y] of [[7, 7], [7, 6], [8, 5], [8, 4], [7, 3]]) b.set(x, y, R.white[0]);
-    b.set(8, 6, R.nebel[2]); b.set(8, 2, R.white[1]); b.set(9, 2, R.white[1]); b.set(7, 2, INK); b.set(6, 2, INK);
-    outline(b, INK);
-    b.set(10, 2, R.yellow[0]); b.set(11, 2, R.yellow[0]); b.set(12, 3, R.yellow[0]);
-    for (let y = 10; y <= 15; y++) { b.set(4, y, R.ochre[1]); b.set(5, y, R.ochre[0]); }
-    return b;
+// A pika with a mouthful of flowers for its haystack. pose 'up': sitting bolt upright to call;
+// 'peek': only its head, looking out of a gap in the rocks.
+function pika(f, pose) {
+  if (pose === 'up') {
+    const u = new BM(9, 11); u.ox = 4; u.oy = 10;
+    ell(u, 4, 7, 2.5, 3.1, nx => R.dirt[nx > 0.15 ? 4 : nx > -0.5 ? 3 : 2]);
+    disc(u, 5, 3, 1.8, () => R.dirt[3]); u.set(4, 1, R.dirt[2]); u.set(5, 1, R.dirt[4]); u.set(6, 3, INK); u.set(7, 4, R.dirt[1]);
+    u.set(3, 10, R.dirt[1]); u.set(6, 10, R.dirt[1]);
+    outline(u, INK);
+    return u;
   }
-  const up = pose === 'fly0', b = new BM(17, 11); b.ox = 8; b.oy = 10;
-  ell(b, 8, 5, 4.2, 1.6, (nx, ny) => ny < 0 ? R.nebel[2] : R.nebel[1]);
-  b.set(12, 4, R.white[0]); b.set(13, 4, R.white[1]); b.set(13, 3, INK);
-  // The broad wing, beating slowly: its dark flight feathers at the tip.
-  if (up) { thick(b, 9, 4, 6, 0, 2, R.nebel[2]); b.set(5, 0, R.nebel[0]); b.set(6, 0, R.nebel[0]); }
-  else { thick(b, 9, 6, 6, 10, 2, R.nebel[1]); b.set(5, 10, R.nebel[0]); b.set(6, 10, R.nebel[0]); }
-  outline(b, INK);
-  b.set(14, 4, R.yellow[0]); b.set(15, 4, R.yellow[0]);
-  for (let x = 0; x < 4; x++) b.set(x, 5, R.ochre[0]);
-  return b;
-}
-
-// A pika with a mouthful of flowers for its haystack.
-function pika(f) {
+  if (pose === 'peek') {
+    const h = new BM(7, 6); h.ox = 3; h.oy = 5;
+    disc(h, 3, 3, 1.8, () => R.dirt[3]); h.set(2, 1, R.dirt[2]); h.set(3, 1, R.dirt[4]); h.set(4, 3, INK);
+    outline(h, INK);
+    return h;
+  }
   const b = new BM(11, 8); b.ox = 5; b.oy = 7;
   ell(b, 5, 5, 3.6, 2.4, (nx, ny) => R.dirt[ny < -0.2 ? 3 : 2]);
   disc(b, 8, 3.5, 1.8, () => R.dirt[3]); b.set(7, 1, R.dirt[2]); b.set(8, 1, R.dirt[4]); b.set(9, 3, INK);
@@ -151,6 +126,43 @@ function pika(f) {
   b.set(3, 7, R.dirt[1]); b.set(7, 7, R.dirt[1]);
   outline(b, INK);
   return b;
+}
+
+// A pika that will not be walked up to (round 5, T47 and T66). It sits on its rock. When he comes
+// within a few steps it sits bolt upright and calls, then bolts for a gap in the rocks. When he has
+// gone on by it looks out, and when he is well away it comes back to its rock.
+// step(t, away): away is how far he is from the rock, in pixels. It answers with what to draw: which
+// picture (bm), how far along the way from the rock to the gap (go, 0 to 1), whether it hops (hop, 0
+// to 1), or null while it is out of sight. `sit` is set while it is on its rock and at ease, so a scene
+// can have it doing something there. called is true on the one step where it calls.
+function shyPika() {
+  const bm = { sit: pika(0), up: pika(0, 'up'), peek: pika(0, 'peek') }, NEAR = 70, DUCK = 44, CLEAR = 60, FAR = 130;
+  let state = 'sit', since = 0;
+  const to = (s, t) => { state = s; since = t; };
+  return {
+    called: false,
+    reset() { state = 'sit'; since = 0; this.called = false; },
+    // Clicked: it calls and bolts, wherever he is.
+    startle(t) { if (state === 'sit') { to('up', t); return true; } return false; },
+    step(t, away) {
+      const u = t - since; this.called = false;
+      if (state === 'sit' && away < NEAR) { to('up', t); this.called = true; }
+      else if (state === 'up' && u > 0.35) to('run', t);
+      else if (state === 'run' && u > 0.3) to('hid', t);
+      else if (state === 'hid' && u > 1.2 && away > CLEAR) to('peek', t);
+      else if (state === 'peek' && away < DUCK) to('hid', t);
+      else if (state === 'peek' && u > 1.5 && away > FAR) to('back', t);
+      else if (state === 'back' && u > 0.4) to('sit', t);
+      const v = t - since;
+      if (state === 'sit') return { bm: bm.sit, go: 0, hop: 0, sit: true };
+      if (state === 'up') return { bm: bm.up, go: 0, hop: 0 };
+      if (state === 'run') return { bm: bm.sit, go: Math.min(1, v / 0.3), hop: Math.abs(Math.sin(v / 0.3 * Math.PI * 2)) };
+      if (state === 'back') return { bm: bm.sit, go: 1 - Math.min(1, v / 0.4), hop: Math.abs(Math.sin(v / 0.4 * Math.PI * 2)), back: true };
+      // Looking out: the head comes up, and now and then ducks for a moment.
+      if (state === 'peek') return frac(v / 2.6) > 0.86 ? null : { bm: bm.peek, go: 1, hop: 0, peek: true };
+      return null;
+    }
+  };
 }
 
 // A mountain goat, white and shaggy, facing right. pose: 'stand', 'look' (head turned to watch), 'graze'.
@@ -178,15 +190,34 @@ function goat(pose, kid, step = 0) {
   return b;
 }
 
-// A bluebird, for the summit of Bluebird Forecast. Two wing frames.
+// A mountain bluebird, for the summit of Bluebird Forecast (redrawn larger in round 5, T51): sky blue
+// above, paler on the breast and white under the tail, with dark wing tips, a thin dark bill and a dark
+// eye. Flying, it has four wing frames (0 to 3: up, level, down, level). 'sit' is perched and 'call' is
+// perched with its bill open and its tail flicked. All face right.
+const BIRD = {
+  body: ['...............MMMM', '..............MLLLLL', '.........MMMMMLLLLKLGG', '.DD....MMLLLLLLLLLLLL', 'DMMMMMMLLLLLLLLLLLPP', '.DMMMMLLLLLLLLPPPPPP', 'DD...LLLLPPPPPPPPPP', '.......WWPPPPPPPP', '.........WWWPP'],
+  up: ['...DD', '...DLLM', '....DLLM', '....LLLLM', '.....LLLLM', '.....LLLLLM', '......LLLLLM', '......LLLLLLM', '.......LLLLLL'],
+  down: ['.......LLLLLL', '......LLLLLLM', '......LLLLLM', '.....LLLLLM', '.....LLLLM', '....LLLLM', '....DLLM', '...DLLM', '...DD'],
+  level: ['...DDMMMMMMMMM', '......LLLLLLLL'],
+  sit: ['.....MMMM', '....MLLLLL', '....LLLLKLGG', '....LLLLLPP', '...MLLLPPPP', '..MMLLPPPPPP', '..MMLLPPPPPP', '..MMMLPPPPPP', '..DMMLLPPPWW', '..DMMMLPPWWW', '..DDMMLLWWW', '..DDMM.LWW', '.DDM...G.G', '.DD....G.G', 'DD.....GG.GG'],
+};
 function bluebird(f) {
-  const b = new BM(9, 7); b.ox = 4; b.oy = 3;
-  b.set(3, 3, R.jay[3]); b.set(4, 3, R.jay[3]); b.set(5, 3, R.jay[2]); b.set(6, 3, R.jay[3]); b.set(7, 3, INK); b.set(4, 4, R.blaze[2]); b.set(5, 4, R.blaze[2]); b.set(2, 3, R.jay[1]); b.set(1, 4, R.jay[1]);
-  if (f) { b.set(4, 2, R.jay[2]); b.set(4, 1, R.jay[2]); b.set(3, 0, R.jay[3]); } else { b.set(4, 5, R.jay[2]); b.set(3, 6, R.jay[2]); }
+  const ink = { K: INK, D: R.jay[1], M: R.jay[2], L: R.jay[3], P: R.ice[3], W: R.white[1], G: R.rock[0] };
+  const put = (b, rows, x, y) => rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== '.') b.set(x + i, y + j, ink[ch]); }));
+  if (f === 'sit' || f === 'call') {
+    const b = new BM(16, 18); b.ox = 8; b.oy = 16; put(b, BIRD.sit, 1, 1);
+    // Calling: its bill opens and its head goes up a little.
+    if (f === 'call') { b.set(11, 3, 0); b.set(12, 3, 0); b.set(11, 2, ink.G); b.set(12, 1, ink.G); b.set(11, 4, ink.G); }
+    outline(b, INK);
+    return b;
+  }
+  const b = new BM(26, 22); b.ox = 13; b.oy = 12; put(b, BIRD.body, 1, 8);
+  if (f === 0) put(b, BIRD.up, 1, 2); else if (f === 2) put(b, BIRD.down, 1, 12); else put(b, BIRD.level, 1, f === 1 ? 10 : 11);
+  outline(b, INK);
   return b;
 }
 
 // A little bird far off: a pair of wing strokes.
 function speck(f) { const b = new BM(7, 4); b.ox = 3; b.oy = 2; (f ? [0, 1, 2, 2, 2, 1, 0] : [2, 2, 1, 2, 1, 2, 2]).forEach((y, x) => b.set(x, y, INK)); return b; }
 
-export { ell, elk, bear, sasquatch, jay, slug, owl, marmot, heron, pika, goat, bluebird, speck };
+export { ell, elk, sasquatch, jay, slug, owl, marmot, pika, shyPika, goat, bluebird, speck };

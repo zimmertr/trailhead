@@ -18,13 +18,13 @@ await new Promise(r => server.listen(8080, r));
 const browser = await chromium.launch(), page = await browser.newPage();
 page.on('pageerror', e => { console.error('page error: ' + e.message); process.exitCode = 1; });
 await page.goto('http://localhost:8080/bake.html'); await page.waitForFunction(() => window.__ready === true, null, { timeout: 60000 });
-const { w, h, data, sig } = await page.evaluate(() => window.__bake); await browser.close(); server.close();
+const { w, h, data, sig, falls } = await page.evaluate(() => window.__bake); await browser.close(); server.close();
 const px = Buffer.from(data, 'base64'); if (px.length !== w * h) throw new Error('the page handed over ' + px.length + ' bytes, not ' + w * h);
 // A grey PNG, eight bits to a pixel. Every row starts with a 0: stored as it is, not as a difference from the row above.
 const rows = Buffer.alloc((w + 1) * h); for (let y = 0; y < h; y++) px.copy(rows, y * (w + 1) + 1, y * w, (y + 1) * w);
 const chunk = (type, body) => { const head = Buffer.alloc(8), tail = Buffer.alloc(4); head.writeUInt32BE(body.length); head.write(type, 4, 'latin1'); tail.writeUInt32BE(zlib.crc32(Buffer.concat([head.subarray(4), body]))); return Buffer.concat([head, body, tail]); };
 const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr[8] = 8;
-const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('tEXt', Buffer.from('sig\0' + sig, 'latin1')), chunk('IDAT', zlib.deflateSync(rows, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
+const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('tEXt', Buffer.from('sig\0' + sig, 'latin1')), chunk('tEXt', Buffer.from('falls\0' + falls, 'latin1')), chunk('IDAT', zlib.deflateSync(rows, { level: 9 })), chunk('IEND', Buffer.alloc(0))]);
 const out = '/www/ground.png', same = fs.existsSync(out) && fs.readFileSync(out).equals(png);
 if (!same) fs.writeFileSync(out, png);
 console.log((same ? 'ground.png was already up to date' : 'ground.png written') + ' (' + Math.round(png.length / 1024) + ' KB)');

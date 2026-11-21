@@ -3,7 +3,7 @@
 import { mount } from './pixel.js';
 import { makeAudio } from './audio.js';
 import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, UI, NAMES, DEST_NAMES, ago } from './content.js';
-import { OX, OY } from './land.js';
+import { OX, OY, BAKE } from './land.js';
 import { DEBUG } from './core.js';
 import { TRICKS } from './cats.js';
 
@@ -51,7 +51,7 @@ function showCard(id) {
     for (const s of SPIRE_ORDER) menu.append(el('li', {}, el('button', { class: 'plank choice', onclick: () => climb(s) }, el('i', { class: 'arrow up' }), el('span', { text: PROJECTS[s].name }), el('small', { text: done['spire:' + s] ? UI.card.climbed : '' }))));
     menu.append(el('li', {}, el('button', { class: 'plank choice', onclick: walkOut }, el('i', { class: 'arrow left' }), el('span', { text: UI.card.walkOut }))));
   }
-  $('card-egg').hidden = !pr; if (pr) $('card-egg').textContent = UI.card.egg(pr.top);
+  $('card-egg').hidden = !pr; if (pr) $('card-egg').textContent = pr.clue;
   $('card-draft').hidden = !((c && c.draft) || (pr && false));
   const go = $('card-go'); go.hidden = id === 'base-camp'; go.querySelector('span').textContent = pr ? UI.card.glissade : c.go || '';
   card.hidden = false; card.scrollTop = 0; audio.focus(1);
@@ -62,10 +62,10 @@ function hideCard() { shown = null; cardShut = false; card.hidden = true; audio.
 async function home() { inBook(false); hideCard(); await api.setRoute('lake'); audio.place('world'); lastScene = 'world'; buildMarks(); setAddress(''); checkRegister(); }
 async function travel(route) { audio.start(); audio.sfx('select'); await api.setRoute(route); buildMarks(); api.start(); }
 async function climb(id) { audio.sfx('select'); hideCard(); await api.setRoute('spire:' + id); buildMarks(); api.start(); }
-// The register (L2): he walks to the box and folds its front down, and the scene changes to the book.
+// The register (L2): one click on the box and the scene changes to the book (no walk since round 5 B2).
 async function openBook() { audio.start(); audio.sfx('select'); hideCard(); closeSheet(); tip.hidden = true; handsReady(); document.documentElement.classList.add('in-book'); setAddress('register'); await api.setRoute('register'); buildMarks(); api.start(); }
-// Closing the book (L6): the map again with him at the box, its front shut, and the few steps back to the
-// junction; from there it is the Trailhead as he left it.
+// Closing the book (L6): the round window opens back on the map with him at the junction, the Trailhead as he
+// left it.
 async function closeBook() { inBook(false); audio.sfx('close'); setAddress(''); await api.setRoute('register-back'); buildMarks(); api.start(); }
 // The book's way out shows once it is open; the map's tags and the route bar go as he sets off for it.
 function inBook(on) { document.documentElement.classList.toggle('in-book', on); $('book-x').hidden = !on; book.hidden = !on; if (on) { fillBook(); handsReady().then(() => { if (!book.hidden) fillBook(); }); } }
@@ -139,7 +139,7 @@ function say(text, ms = 4200) { toast.textContent = text; toast.hidden = false; 
 function buildMarks() {
   const marks = $('marks'); marks.replaceChildren();
   const r = api.route(), stops = api.stops();
-  const all = [{ at: 0, label: r === 'back' ? '' : r.startsWith('spire:') || r === 'spires-home' ? UI.marks.camp : UI.marks.trailhead }, ...stops.filter(s => s.at < 0.995 && !isWait(s.id)).map(s => ({ at: s.at, label: LABELS[s.id] || (PROJECTS[s.id] ? UI.marks.summit : s.id) })), { at: 1, label: r.startsWith('spire:') ? UI.marks.camp : ENDS[r] || UI.marks.trailhead }];
+  const all = [{ at: 0, label: r === 'back' ? '' : r.startsWith('spire:') || r === 'spires-home' ? UI.marks.camp : UI.marks.trailhead }, ...stops.filter(s => s.at < 0.995 && !isWait(s.id)).map(s => ({ at: s.at, label: LABELS[s.id] || (PROJECTS[s.id] ? PROJECTS[s.id].name : s.id) })), { at: 1, label: r.startsWith('spire:') ? UI.marks.camp : ENDS[r] || UI.marks.trailhead }];
   for (const m of all) if (m.label) marks.append(el('span', { class: 'mark' + (m.at === 0 ? ' first' : m.at === 1 ? ' last' : ''), style: 'left:' + (m.at * 100) + '%', 'data-at': m.at, text: m.label }));
   profile = api.profile(160);
   nudgeMarks();
@@ -171,17 +171,20 @@ function drawProfile(p) {
 // ------------------------------------------------------------------ addresses
 
 function setAddress(slug) { try { if (decodeURIComponent(location.hash.slice(1)) !== slug) history.pushState(null, '', slug ? '#' + slug : location.pathname + location.search); } catch { /* sandboxed frames may refuse */ } }
-const OLD_SLUGS = [['about-lake', 'reflection-lake'], ['the-stack', 'proficiency-peak']];
+// Round 4's page of text lived at #plain; round 5 (J2) calls it the page, as its top-bar button does.
+const OLD_SLUGS = [['about-lake', 'reflection-lake'], ['the-stack', 'proficiency-peak'], ['plain', 'page']];
 async function navigate(hash) {
   if (worldDown) return;
   let slug = decodeURIComponent((hash || '').replace(/^#\/?/, ''));
   // Round 3's addresses (L7): the lake and the peak were About Lake and The Stack.
   for (const [was, now] of OLD_SLUGS) if (slug === was || slug.startsWith(was + '/')) { slug = now + slug.slice(was.length); try { history.replaceState(null, '', '#' + slug); } catch { /* sandboxed */ } }
+  // Back in history from the page to where it was opened: the world is as he left it.
+  if (!plain.hidden && plainWas !== null && slug === plainWas) return closePlain();
   closeSheet(); closePlain();
   if (!slug) return home();
   if (slug === 'register') return openBook();
   if (slug === 'map' || slug === 'kiosk' || slug === 'keys') return openSheet(slug);
-  if (slug === 'plain') return openPlain();
+  if (slug === 'page') return openPlain();
   const dest = DESTINATIONS.find(d => d.slug === slug && d.route !== 'spires');
   if (dest) { await api.setRoute(dest.route); buildMarks(); hideCard(); return; }
   const id = Object.keys(CARDS).find(k => CARDS[k].slug === slug) || (slug.startsWith('sideproject-spires/') && PROJECTS[slug.split('/')[1]] ? slug.split('/')[1] : null);
@@ -203,6 +206,7 @@ function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; audio.sfx('clo
 // ------------------------------------------------------------------ the debug panel
 // Hidden: the backtick key opens and closes it, and so does the small sign at the foot of the trail map.
 const debug = $('debug');
+let timeSlider = null;
 function openDebug(on) {
   if (!on) { debug.hidden = true; return; }
   const D = UI.debug, onOff = k => UI.map.onOff[DEBUG[k] ? 0 : 1];
@@ -211,20 +215,44 @@ function openDebug(on) {
   const trick = el('select', { 'aria-label': D.set }, ...TRICKS.map(s => el('option', { value: s, text: s })));
   // Time (E5f): how fast the scenes' clock runs, and a button for each timed event to start it now.
   const speeds = api.speeds.map((k, n) => el('button', { class: 'plank', 'aria-pressed': String(api.speed() === k), onclick: e => { api.setSpeed(k); for (const b of e.currentTarget.parentNode.children) b.setAttribute('aria-pressed', String(b === e.currentTarget)); audio.sfx('step'); } }, el('span', { text: D.speeds[n] })));
+  // Each press shows the next kind's no-go areas, then none.
+  const noGo = (() => { const kinds = Object.keys(D.noGoKinds); return el('button', { class: 'plank', 'aria-pressed': String(!!DEBUG.collide), onclick: e => { DEBUG.collide = kinds[(kinds.indexOf(DEBUG.collide) + 1) % kinds.length]; e.currentTarget.setAttribute('aria-pressed', String(!!DEBUG.collide)); e.currentTarget.querySelector('small').textContent = D.noGoKinds[DEBUG.collide]; audio.sfx('step'); } }, el('span', { text: D.noGo }), el('small', { text: D.noGoKinds[DEBUG.collide] })); })();
+  // Time of day (T76): a slider over the whole cycle (it follows the clock while the panel is open), the
+  // clock's speed, and jumps to the sunset and the sunrise. Moving the slider puts the clock on AUTO.
+  const C = api.clock();
+  timeSlider = el('input', { type: 'range', min: 0, max: C.cycle, step: 1, value: Math.round(C.t), 'aria-label': D.time, oninput: e => { api.setClock({ mode: 'auto', t: +e.currentTarget.value }); syncTop(); } });
+  const clockSpeeds = D.clockSpeeds.map(k => el('button', { class: 'plank', 'aria-pressed': String(C.speed === k), onclick: e => { api.setClock({ speed: k }); for (const b of e.currentTarget.parentNode.children) b.setAttribute('aria-pressed', String(b === e.currentTarget)); audio.sfx('step'); } }, el('span', { text: k + 'x' })));
+  const jump = (label, t) => el('button', { class: 'plank', onclick: () => { api.setClock({ mode: 'auto', t }); syncTop(); audio.sfx('step'); } }, el('span', { text: label }));
+  // Spawn an animal (C4): which animal, which of its homes (or everywhere it lives), then Spawn.
+  const kinds = api.spawnList(), animal = el('select', { 'aria-label': D.spawn }, ...kinds.map((k, n) => el('option', { value: n, text: k.name })));
+  const place = el('select', { 'aria-label': D.spawn });
+  const fillPlaces = () => { const k = kinds[+animal.value]; place.replaceChildren(...k.homes.map((h, n) => el('option', { value: n, text: h })), el('option', { value: 'all', text: D.spawnAll })); };
+  animal.addEventListener('change', fillPlaces); fillPlaces();
+  // The timed events of the scene on screen (E5f): the map's, or the scene's own.
+  const SCENE_EVENTS = { world: ['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'squall', 'lens', 'tumble', 'devil', 'star'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
+  const here = api.scene(), events = SCENE_EVENTS[here] || [];
   const starts = ids => ids.map(id => el('button', { class: 'plank', onclick: () => { audio.sfx(api.trigger(id) ? 'step' : 'close'); } }, el('span', { text: D.events[id] })));
   debug.replaceChildren(
     el('h2', {}, el('span', { text: D.title }), el('button', { class: 'plank', style: 'width:auto', onclick: () => openDebug(false) }, el('span', { text: D.close }))),
+    // Whether the map came from ground.png or was worked out on this page, and why (S2c): the one place a host that
+    // serves the files differently can be read from, since nothing outside the page can ask it.
+    el('p', { class: 'legend', text: BAKE.used ? D.ground[0] : D.ground[1] + (BAKE.note ? ' (' + BAKE.note + ')' : '') }),
+    el('h3', { text: D.time }), timeSlider, el('div', { class: 'speeds' }, ...clockSpeeds), jump(D.sunset, C.sunset - 2), jump(D.sunrise, C.sunrise - 2),
     el('h3', { text: D.layers }), ...['trees', 'clouds', 'mist', 'labels', 'animals'].map(toggle),
-    el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle),
+    el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle), noGo,
     el('h3', { text: D.zoom }), toggle('snap'),
     el('h3', { text: D.speed }), el('div', { class: 'speeds' }, ...speeds),
-    el('h3', { text: D.startMap }), ...starts(['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'salmon', 'osprey', 'serac', 'avalanche', 'lens', 'heron', 'tumble', 'devil', 'star', 'plane']),
-    el('h3', { text: D.startForest }), ...starts(['jay', 'bear', 'sasquatch', 'eyeshine']),
-    el('h3', { text: D.startLarches }), ...starts(['gust']),
-    el('h3', { text: D.startRidge }), ...starts(['ridgegust', 'raven']),
-    el('h3', { text: D.startLake }), ...starts(['lens']),
+    ...(events.length ? [el('h3', { text: here === 'world' ? D.mapEvents : D.inScene + ': ' + (D.scenes[here] || here) }), ...starts(events)] : []),
+    el('h3', { text: D.spawn }), el('div', { class: 'row' }, animal, place, el('button', { class: 'plank', onclick: () => { audio.sfx(api.spawn(kinds[+animal.value].kind, place.value === 'all' ? 'all' : +place.value) ? 'step' : 'close'); } }, el('span', { text: D.spawn }))),
     el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, api.now(), { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
+    el('h3', { text: D.scene }), ...Object.keys(D.scenes).filter(s => s !== 'offroute').map(s => el('button', { class: 'plank', onclick: () => { hideCard(); closeSheet(); api.jumpTo(s).then(() => { buildMarks(); openDebug(true); }); audio.sfx('step'); } }, el('span', { text: D.scenes[s] }))),
     el('button', { class: 'plank', onclick: () => navigate('#off-route') }, el('span', { text: D.offRoute })),
+    // The sound test (P3): every effect, each part of every tune, each place's background, as named in audio.js.
+    el('h3', { text: D.sounds }), el('p', { class: 'legend', text: D.effects }), el('div', { class: 'chips' }, ...audio.fxNames().map(n => el('button', { class: 'plank', onclick: () => { audio.start(); audio.sfx(n); } }, el('span', { text: n })))),
+    el('p', { class: 'legend', text: D.tunesH }), ...audio.tunes().map((n, k) => el('div', { class: 'row tune' }, el('span', { text: n }), el('button', { class: 'plank', onclick: () => audio.preview(k, 'a') }, el('span', { text: 'A' })), el('button', { class: 'plank', onclick: () => audio.preview(k, 'b') }, el('span', { text: 'B' })))),
+    el('button', { class: 'plank', onclick: () => audio.endPreview() }, el('span', { text: D.backToAuto })),
+    el('p', { class: 'legend', text: D.places }), el('div', { class: 'chips' }, ...['world', 'forest', 'lakeside', 'larches', 'wall', 'approach', 'camp'].map(n => el('button', { class: 'plank', onclick: () => { audio.start(); audio.ambience(n, true); } }, el('span', { text: n })))),
+    el('h3', { text: D.breakGroup }),
     el('button', { class: 'plank', onclick: () => api.breakScene() }, el('span', { text: D.breakScene })),
     el('p', { class: 'legend', text: D.note }));
   debug.hidden = false;
@@ -246,14 +274,14 @@ function trailMap() {
   const side = el('div', { class: 'side' },
     el('h3', { text: UI.map.elsewhere }), el('ul', { class: 'links' }, ...['resume', 'linkedin', 'github', 'strava', 'peakbagger', 'mountainproject'].map(linkLi)),
     el('h3', { text: UI.map.onMap }),
-    el('button', { class: 'plank', onclick: () => navigate('#plain') }, el('span', { text: UI.map.plain })),
+    el('button', { class: 'plank', onclick: () => navigate('#page') }, el('span', { text: UI.map.plain })),
     el('button', { class: 'plank', onclick: () => navigate('#kiosk') }, el('span', { text: UI.kiosk.title })),
     el('button', { class: 'plank', onclick: () => navigate('#register') }, el('span', { text: UI.register.link }), el('small', { text: all ? UI.register.canSign : UI.register.canRead })),
     el('h3', { text: UI.map.settings }),
     el('button', { class: 'plank', onclick: e => { toggleSound(); e.currentTarget.querySelector('small').textContent = UI.map.onOff[audio.muted() ? 1 : 0]; } }, el('span', { text: UI.map.sound }), el('small', { text: UI.map.onOff[audio.muted() ? 1 : 0] })),
     el('button', { class: 'plank', onclick: e => { nextTrack(); e.currentTarget.querySelector('small').textContent = trackName(); } }, el('span', { text: UI.map.music }), el('small', { text: trackName() })),
-    el('button', { class: 'plank', onclick: e => { audio.start(); e.currentTarget.querySelector('small').textContent = audio.setSet(audio.set().index + 1); audio.sfx('flag'); } }, el('span', { text: UI.map.playedOn }), el('small', { text: audio.set().name })),
-    el('button', { class: 'plank', onclick: () => { toggleDusk(); } }, el('span', { text: UI.map.dusk })),
+    el('button', { class: 'plank', onclick: e => { audio.start(); e.currentTarget.querySelector('small').textContent = audio.setSet(audio.set().index + 1); audio.sfx('flag'); } }, el('span', { text: UI.map.musicStyle }), el('small', { text: audio.set().name })),
+    el('button', { class: 'plank', onclick: e => { toggleDusk(); e.currentTarget.querySelector('small').textContent = UI.theme[api.clock().mode]; } }, el('span', { text: UI.map.dusk }), el('small', { text: UI.theme[api.clock().mode] })),
     // Clear my flags (L11): the finished routes and the finds, and the note that the register is open, so
     // finishing all three again says so again. A signed register entry is the visitor's own words and stays.
     el('button', { class: 'plank', onclick: () => { api.forget(); try { localStorage.removeItem('trailhead.told'); } catch { /* private window */ } buildMarks(); say(UI.map.cleared); closeSheet(); } }, el('span', { text: UI.map.clear })),
@@ -276,15 +304,20 @@ function checkRegister() { const d = api.done(); if (d.lake && d.stack && d.spir
 // The whole site as one page of text, for reading or for anything that cannot draw the world.
 function openPlain() {
   const sec = (title, ...kids) => [el('h3', { text: title }), ...kids];
-  const cardOut = id => { const c = CARDS[id]; return [el('h4', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null]; };
+  const draft = () => el('p', { class: 'draft', text: $('card-draft').textContent });
+  const cardOut = id => { const c = CARDS[id]; return [el('h4', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.aside ? el('p', { class: 'aside', text: c.aside }) : null, c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null, c.draft ? draft() : null]; };
   // Without the world there is no picture of the map and no way back to it, and the page says why.
   let still = null;
   if (!worldDown) try { const MAP = api.mapFrame(); still = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', UI.plain.mapAlt); } catch (err) { console.error(err); still = null; }
-  plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: UI.map.title }), worldDown ? null : el('button', { class: 'plank', onclick: () => navigate('') }, el('span', { text: UI.plain.back }))),
-    el('div', { class: 'wrap' }, el('h1', { text: UI.name }), worldDown ? el('p', { class: 'legend', text: UI.plain.down }) : null, still,
+  plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: UI.map.title }), worldDown ? null : el('button', { class: 'plank', onclick: leavePlain }, el('span', { text: UI.plain.back }))),
+    el('div', { class: 'wrap' }, el('h1', { text: UI.name }), el('p', { text: UI.name + ' ' + INTRO }), worldDown ? el('p', { class: 'legend', text: UI.plain.down }) : null, still,
       ...sec(UI.map.lake[0], ...['who', 'mountains', 'note'].flatMap(cardOut)), ...sec(UI.map.stack[0], ...['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'].flatMap(cardOut)),
-      ...sec(UI.map.spires[0], ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h4', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: UI.plain.facts(p.stars, p.release ? UI.plain.released(p.release, ago(p.released)) : UI.plain.noRelease, p.language, p.license) }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, text: 'github.com/' + p.repo })))]; }))));
+      ...sec(UI.map.spires[0], ...CARDS['base-camp'].body.map(t => el('p', { text: t })), ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h4', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: UI.plain.facts(p.stars, p.release ? UI.plain.released(p.release, ago(p.released)) : UI.plain.noRelease, p.language, p.license) }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, target: '_blank', rel: 'noopener', text: 'github.com/' + p.repo })), p.site ? el('li', {}, el('a', { href: p.site, target: '_blank', rel: 'noopener', text: p.site.replace('https://', '') })) : null, ...(p.extra || []).map(([n, h]) => el('li', {}, el('a', { href: h, target: '_blank', rel: 'noopener', text: n }))))]; }))));
+  if (plain.hidden) { plainFrom = document.activeElement; const was = decodeURIComponent(location.hash.slice(1)); plainWas = was === 'page' || was === 'plain' ? null : was; }
+  if (!worldDown) setAddress('page');
   plain.hidden = false; plain.scrollTop = 0; if (api && !worldDown) api.stop();
+  for (const e of document.body.children) if (e !== plain && e.tagName !== 'SCRIPT') e.inert = true;
+  (plain.querySelector('.band button') || plain.querySelector('h1')).focus({ preventScroll: true });
 }
 // The world cannot be drawn: everything that belongs to it goes, and the page of text is what is left.
 function plainOnly() {
@@ -300,7 +333,16 @@ async function washedOut(e) {
   hideCard(); closeSheet(); say(UI.broken, 6000);
   await api.setRoute('off-route'); buildMarks(); api.goto('off-route');
 }
-function closePlain() { plain.hidden = true; }
+// plainWas: the address the page was opened from, or null when the visit started on it (then Back goes home).
+let plainFrom = null, plainWas = null;
+function leavePlain() { if (plainWas === null) return navigate(''); const was = plainWas; closePlain(); setAddress(was); }
+function closePlain() {
+  if (plain.hidden) return;
+  plain.hidden = true; for (const e of document.body.children) e.inert = false;
+  // Opened from the trail map, whose sheet has closed: focus goes to the top bar's button instead.
+  const back = plainFrom && plainFrom.isConnected && plainFrom !== document.body && (!plainFrom.checkVisibility || plainFrom.checkVisibility()) ? plainFrom : $('b-page');
+  if (!worldDown) back.focus({ preventScroll: true }); plainFrom = null;
+}
 
 // ------------------------------------------------------------------ switches
 
@@ -308,9 +350,11 @@ function toggleSound() { audio.start(); audio.setMuted(!audio.muted()); syncTop(
 let lastScene = 'world';
 const trackName = () => { const k = audio.track(); return k.auto ? UI.auto(k.name) : k.name; };
 function nextTrack() { audio.start(); if (audio.muted()) audio.setMuted(false); audio.cycle(); syncTop(); }
-function toggleDusk() { api.setTheme(api.theme() === 'dark' ? 'light' : 'dark'); syncTop(); audio.sfx('select'); if (api.theme() === 'dark') setTimeout(() => api.find('dusk'), 2500); try { localStorage.setItem('trailhead.theme', api.theme()); } catch { /* private window */ } }
+// The time of day (T76): AUTO (the default on every visit) follows the world clock, DAY and DUSK hold that light.
+const CLOCK_MODES = ['auto', 'day', 'dusk'];
+function toggleDusk() { const m = api.clock().mode; api.setClock({ mode: CLOCK_MODES[(CLOCK_MODES.indexOf(m) + 1) % 3] }); syncTop(); audio.sfx('select'); }
 const coarse = window.matchMedia ? matchMedia('(pointer: coarse)') : { matches: false };
-function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = trackName(); $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? UI.sound[1] : audio.live() ? UI.sound[0] : UI.soundWaits[coarse.matches ? 1 : 0]; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = UI.theme[api.theme() === 'dark' ? 1 : 0]; }
+function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = trackName(); $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? UI.sound[1] : audio.live() ? UI.sound[0] : UI.soundWaits[coarse.matches ? 1 : 0]; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = UI.theme[api.clock().mode]; }
 
 // The pointer is drawn like everything else: an arrow in the sprites' ink, yellow over anything
 // that can be pressed.
@@ -326,22 +370,27 @@ try {
   // ?break=forest (any scene), ?break=load:forest, ?break=renderer or ?break=mount: see what happens when it goes wrong.
   const breakAt = new URLSearchParams(location.search).get('break');
   if (breakAt === 'mount') throw new Error('Broken on purpose: the start');
+  // A visit that opens at the Trailhead shows the sign before the first frame, so the map's first frame is
+  // already framed round it and the camera has nothing to catch up on (T1). The page's tick keeps it right after.
+  fork.hidden = !!(new URLSearchParams(location.search).get('route') || location.hash.length > 1);
   api = await mount($('c'), {
     theme: 'light', breakAt,
     onEvent(e) {
       if (e.type === 'broken') washedOut(e);
       else if (e.type === 'stop') { if (isWait(e.id)) { waiting = true; say(UI.wait[e.id.slice(5)] || UI.wait.go, 600000); } else { if (waiting) { waiting = false; toast.hidden = true; } showCard(e.id); } }
       else if (e.type === 'leave') { hideCard(); if (waiting) { waiting = false; toast.hidden = true; } }
-      else if (e.type === 'end') { if (e.route === 'register') inBook(true); else if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
+      else if (e.type === 'end') { if (e.route === 'walk') { /* he stays where the click sent him */ } else if (e.route === 'register') inBook(true); else if (e.route.startsWith('spire:')) toCamp().then(checkRegister); else home().then(() => { if (e.next) travel(e.next); }); }
       else if (e.type === 'sfx') audio.sfx(e.name);
-      else if (e.type === 'scene') { audio.ambience(e.name === 'register' ? 'world' : e.name); audio.place(e.name === 'world' && lastScene !== 'world' && lastScene !== 'register' ? 'out' : e.name); lastScene = e.name; syncTop(); }
+      else if (e.type === 'walk') { hideCard(); buildMarks(); }
+      else if (e.type === 'theme') { syncTop(); if (e.dark) setTimeout(() => { if (api.theme() === 'dark') api.find('dusk'); }, 2500); }
+      else if (e.type === 'scene') { if (!debug.hidden) openDebug(true); audio.ambience(e.name === 'register' ? 'world' : e.name); audio.place(e.name === 'world' && lastScene !== 'world' && lastScene !== 'register' ? 'out' : e.name); lastScene = e.name; syncTop(); }
       else if (e.type === 'say') say(e.text);
       else if (e.type === 'found' && FINDS[e.id]) { const n = Object.keys(api ? api.found() : {}).filter(k => FINDS[k]).length; if (e.id !== 'kiosk') { say(UI.found(FINDS[e.id][0], n, Object.keys(FINDS).length), 5200); audio.sfx('egg'); } }
       else if (e.type === 'hover') { tip.hidden = !e.label; if (e.label) { tip.textContent = e.label; const hw = tip.offsetWidth / 2 + 6; tip.style.left = Math.min(Math.max(e.x, hw), innerWidth - hw) + 'px'; tip.style.top = (e.y - 4) + 'px'; if (e.tap) { clearTimeout(tip._t); tip._t = setTimeout(() => { tip.hidden = true; }, 2200); } } }
       else if (e.type === 'act') { if (e.id === 'kiosk') openSheet('kiosk'); else if (e.id === 'register') openBook(); else if (e.id.startsWith('spire:')) climb(e.id.slice(6)); else if (e.id.startsWith('dest:')) send(e.id.slice(5)); }
     }
   });
-  $('intro').textContent = INTRO;
+  $('intro').textContent = INTRO; $('b-page').textContent = UI.plain.top;
   const lengths = api.info().lengths;
   for (const d of DESTINATIONS) $('signs').append(el('li', {}, el('button', { class: 'plank choice', 'data-route': d.route, onclick: e => { e.currentTarget.blur(); travel(d.route); } }, el('i', { class: 'arrow ' + d.dir }), el('span', {}, el('span', { text: d.sign }), el('span', { class: 'where', text: d.about })), el('small', { text: UI.map.plank[d.route](lengths[d.route]) }))));
   // Each sign also says how long its route takes there and back, once its scenes are loaded.
@@ -362,12 +411,13 @@ try {
   // ?start=avalanche,osprey starts those timed events (the debug menu's names) once the opening is done,
   // for screenshots; the clocks' own switches (sea=, tide=, serac=, lens=, rain=, bear=) still set where a clock begins.
   if (q.get('start')) setTimeout(() => { for (const id of q.get('start').split(',')) api.trigger(id.trim()); }, 900);
-  // It starts in Day whatever the device prefers; a visitor who chose Dusk gets Dusk next time.
-  let dusk = false; try { dusk = localStorage.getItem('trailhead.theme') === 'dark'; } catch { /* private window */ }
-  if (q.get('dusk') || dusk) { api.setTheme('dark'); syncTop(); }
+  // Every visit starts on AUTO at the beginning of day (T76); dusk=1 holds Dusk, for screenshots.
+  if (q.get('dusk')) api.setTheme('dark');
+  syncTop();
   if (q.get('sheet')) openSheet(q.get('sheet'));
   // ?debug=roam,taps,-trees opens the panel with those outlines on and those layers off.
-  if (q.get('debug') != null) { for (const k of q.get('debug').split(',')) { const off = k.startsWith('-'), key = off ? k.slice(1) : k; if (key in DEBUG) DEBUG[key] = !off; } document.body.classList.toggle('no-labels', !DEBUG.labels); openDebug(true); }
+  // ?debug=collide:boat shows that kind's no-go areas.
+  if (q.get('debug') != null) { for (const k of q.get('debug').split(',')) { const off = k.startsWith('-'), key = off ? k.slice(1) : k; if (key.startsWith('collide:')) DEBUG.collide = key.slice(8); else if (key in DEBUG) DEBUG[key] = !off; } document.body.classList.toggle('no-labels', !DEBUG.labels); openDebug(true); }
   if (location.hash.length > 1 && !q.get('route')) await navigate(location.hash);
   audio.ambience('world'); audio.onchange = syncTop;
   // Where a browser lets a page make sound unasked (Firefox says so), the music starts with the page.
@@ -390,6 +440,26 @@ addEventListener('popstate', () => navigate(location.hash));
 // Space and the Start button: a press starts or stops him. Held for more than a quarter of a second, he goes
 // faster for as long as it is held, and carries on at his own pace when it is let go.
 const press = { down: false, was: false, held: false, t: 0 };
+// The space bar does nothing until the visitor has picked where to go (T36): a plank, a name tag, the menu,
+// the timeline, a trail point, or an address that names a route. From then on it starts and stops him.
+let chosen = !!(new URLSearchParams(location.search).get('route') || location.hash.length > 1);
+// The first-visit hint (P1): up until he first moves, gone for the rest of the visit. It keeps right of the
+// sign and off him, hides while the idle tour runs, and on a phone stands over his head, clear of his name tag.
+const hint = $('hint'), touch = window.matchMedia && matchMedia('(hover: none)').matches;
+let hintGone = chosen;
+hint.textContent = UI.hint[touch ? 1 : 0];
+function placeHint() {
+  if (hintGone) return;
+  if (chosen) { hintGone = true; hint.classList.add('gone'); setTimeout(() => { hint.hidden = true; }, 700); return; }
+  const narrow = innerWidth <= 760; hint.hidden = !!api && api.touring(); if (hint.hidden) return;
+  hint.classList.toggle('top', narrow);
+  if (narrow) { hint.style.left = ''; hint.style.top = Math.round(Math.max(60, api.me()[1] - 70 - hint.offsetHeight)) + 'px'; return; }
+  // Centred in the room right of the sign, then nudged left of him if it would cover him.
+  const f = fork.hidden ? null : fork.getBoundingClientRect(), x0 = f ? f.right + 12 : 12, w = hint.offsetWidth;
+  let cx = Math.max(x0 + w / 2, (x0 + innerWidth) / 2);
+  if (api) { const [mx, my] = api.me(), r = hint.getBoundingClientRect(); if (my > r.top - 40 && my < r.bottom + 60 && Math.abs(mx - cx) < w / 2 + 24) cx = Math.max(x0 + w / 2, mx - w / 2 - 24); }
+  hint.style.left = Math.round(cx) + 'px';
+}
 function pressDown() { if (press.down) return; press.down = true; press.held = false; press.was = api.running(); audio.start(); if (!press.was) api.start(); clearTimeout(press.t); press.t = setTimeout(() => { if (press.down) { press.held = true; api.boost(true); } }, 250); }
 function pressUp() { if (!press.down) return; press.down = false; clearTimeout(press.t); if (press.held) api.boost(false); else if (press.was) api.stop(); }
 addEventListener('blur', () => { if (press.down) { press.down = false; clearTimeout(press.t); api.boost(false); } });
@@ -410,6 +480,9 @@ $('b-sound').addEventListener('click', e => { e.currentTarget.blur(); toggleSoun
 $('b-track').addEventListener('click', e => { e.currentTarget.blur(); nextTrack(); });
 $('b-dusk').addEventListener('click', e => { e.currentTarget.blur(); toggleDusk(); });
 $('b-help').addEventListener('click', e => { e.currentTarget.blur(); openSheet('keys'); });
+$('b-page').addEventListener('click', () => navigate('#page'));
+// The debug menu is public (T9): its button sits next to Keys (not on a phone, where the trail map's foot opens it).
+$('b-debug').addEventListener('click', e => { e.currentTarget.blur(); openDebug(debug.hidden); });
 $('close').addEventListener('click', closeSheet);
 sheet.addEventListener('pointerdown', e => { if (e.target === sheet) closeSheet(); });
 
@@ -419,17 +492,18 @@ addEventListener('keydown', e => {
   audio.start();
   if (e.code === 'Backquote' && !e.metaKey && !e.ctrlKey && !e.altKey) { openDebug(debug.hidden); e.preventDefault(); return; }
   if (e.code === 'Escape' && !book.hidden) { closeBook(); e.preventDefault(); return; }
-  if (e.code === 'Escape') { if (!plain.hidden) navigate(''); else if (!sheet.hidden) closeSheet(); else if (!debug.hidden) openDebug(false); else openSheet('map'); e.preventDefault(); return; }
+  if (e.code === 'Escape') { if (!plain.hidden) leavePlain(); else if (!sheet.hidden) closeSheet(); else if (!debug.hidden) openDebug(false); else openSheet('map'); e.preventDefault(); return; }
   if (!sheet.hidden || !plain.hidden) return;
   // A key held with Command, Control or Alt belongs to the browser.
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.code === 'KeyM') { openSheet('map'); return; }
   if (e.code === 'KeyT') { toggleDusk(); return; }
+  if (api && api.grab(e.code, true)) { e.preventDefault(); return; }
   if (e.target.closest && e.target.closest('button, a') && (e.code === 'Space' || e.code === 'Enter')) return;
-  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat) pressDown(); return; }
+  if (e.code === 'Space') { e.preventDefault(); if (!e.repeat && chosen) pressDown(); return; }
   if (api.key(e.code)) e.preventDefault();
 });
-addEventListener('keyup', e => { if (e.code === 'Space') pressUp(); });
+addEventListener('keyup', e => { if (api) api.grab(e.code, false); if (e.code === 'Space') pressUp(); });
 
 let dragging = false;
 const scrubTo = e => { const r = line.getBoundingClientRect(); api.scrub((e.clientX - r.left) / r.width); };
@@ -450,6 +524,9 @@ addEventListener('resize', () => { nameBox = null; });
   document.querySelectorAll('.mark').forEach(d => d.classList.toggle('passed', +d.dataset.at <= p + 0.001));
   $('run').textContent = UI.run[running ? 1 : 0];
   const atFork = !(running || p > 0.002 || shown != null || api.route() !== 'lake');
+  if (!atFork) chosen = true;
+  placeHint();
+  if (timeSlider && !debug.hidden && document.activeElement !== timeSlider) timeSlider.value = Math.round(api.clock().t);
   fork.hidden = !atFork || forkShut;
   { const text = shown && cardShut ? LABELS[shown] || (PROJECTS[shown] ? PROJECTS[shown].name : CARDS[shown].title) : atFork && forkShut ? DEST_NAMES.trailhead : '';
     tab.hidden = !text || !sheet.hidden || !plain.hidden; if (text && text !== tabText) { tabText = text; tab.querySelector('span').textContent = text; } }

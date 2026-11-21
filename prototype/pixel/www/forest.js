@@ -4,14 +4,14 @@
 // in: west, away from the Trailhead.
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, disc, windAt } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
-import { makeMaple, makeSpruce, makeBoulder } from './sprites.js';
-import { elk, bear, sasquatch, jay, slug, owl } from './fauna.js';
+import { makeMaple, makeSpruce, makeFir, makeBoulder } from './sprites.js';
+import { elk, sasquatch, jay, slug, owl } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
 import { NAMES } from './content.js';
 
 const SW = 1640, UP = 480, DOWN = 240;
-const X0 = SW - 500, LEN = 640, DUR = 8.2;
-const D_SIGN = 300, D_SLUG = 372, D_ELK = 452, D_BEAR = 524, D_JAY = 132;
+const X0 = SW - 500, LEN = 640;
+const D_SIGN = 300, D_SLUG = 372, D_ELK = 452, D_GIANT = 524, D_STUMP = 132;
 let sasquatchSeen = false;
 
 // How far the forest has thinned out: 0 in the thick of it, 1 where it ends at the lake, and 1 again
@@ -25,6 +25,96 @@ const farBank = x => 17 + Math.round(2.5 * Math.sin(x / 23) + 2 * vnoise(x / 9, 
 const nearBank = x => 60 + Math.round(5 * Math.sin(x / 31 + 1) + 4 * vnoise(x / 13, 2, 82));
 // Shafts of light slant down from the upper left and land on the ground in bands.
 const beamAt = c => { const k = Math.floor(c / 118), o = hash(k, 3, 83) * 60, w = 12 + hash(k, 4, 83) * 22, d = Math.abs(c - k * 118 - 30 - o); return hash(k, 5, 83) < 0.2 ? 0 : d < w * 0.5 ? 2 : d < w ? 1 : 0; };
+
+// The climb at the forest's end (round 5, T40). The trail runs on along the foot of the rock band below the
+// lake's bench, crosses the channel of the lake's outflow fall on a log footbridge, and stops at FOOT, just
+// west of the fall. From there he zig-zags up four short legs cut into the face, tops out heading right and
+// walks the rim east over the outflow's lip on a second footbridge (the one the map shows at the lake's
+// outlet), which is the way the lakeshore is walked. FALL: the fall's column. ZIG: the corners. RIM: the top
+// of the rock at x. along(d): where he is d pixels into the scene, as
+// [x, y, facing (-1 left, 1 right), leg (0 the forest run, 1 to 4 the legs, 5 the rim)].
+const FOOT = X0 - 678, FALL = FOOT + 24, RUN = X0 - FOOT, RIM0 = FOOT + 6, CW = 700, LEDGE = -56, TOP_X = 560;
+const RIM = x => -114 - Math.round(2 * Math.sin(x / 23) + 1.5 * Math.sin(x / 9));
+const ZIG = [[FOOT, g(FOOT)], [FOOT - 84, -30], [FOOT, -58], [FOOT - 84, -86], [RIM0, RIM(RIM0)]];
+const ZLEN = ZIG.slice(1).map((b, i) => Math.hypot(b[0] - ZIG[i][0], b[1] - ZIG[i][1]));
+const TOTAL = RUN + ZLEN.reduce((a, b) => a + b, 0) + TOP_X - RIM0, DUR = 8.2 * TOTAL / LEN;
+function along(d) {
+  if (d <= RUN) { const x = X0 - d; return [x, g(x), -1, 0]; }
+  let r = d - RUN;
+  for (let i = 0; i < ZLEN.length; i++) { if (r <= ZLEN[i]) { const u = r / ZLEN[i], a = ZIG[i], b = ZIG[i + 1]; return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, b[0] > a[0] ? 1 : -1, i + 1]; } r -= ZLEN[i]; }
+  const x = Math.min(TOP_X, RIM0 + r); return [x, RIM(Math.round(x)), 1, 5];
+}
+// The trail's tread seen from the side: three rows of dirt, lit on top, and the shadow of its cut edge under it.
+function paintTread(S, x, y) {
+  S.set(x, y, pick('dirt', 0.72 + 0.24 * (hash(x, 3, 4010) - 0.5), x, y, 0.7)); S.set(x, y + 1, pick('dirt', 0.4, x, y + 1, 0.7));
+  S.set(x, y + 2, hash(x, 5, 4010) < 0.2 ? R.moss[3] : R.dirt[0]); S.set(x, y + 3, R.rock[0]); if (hash(x >> 1, 6, 4010) < 0.5) S.set(x, y + 4, R.rock[0]);
+  if (hash(x, 7, 4010) < 0.07) S.set(x, y, R.rock[3]);
+}
+// The rock band, painted once: bedded, jointed rock with moss on its ledges and wet moss by the fall, turf
+// on the rim with moss hanging from it, the four legs with a log-walled landing at each turn and a few log
+// steps before it, and the fall, which lands on a ledge half way and falls again. Its right end shows in
+// clumps, as the far trees thin. Returns the strip, the fall's pixels (each column streams at its own length
+// p and phase o; e marks its edges), where the spray rises (foam), and ledges for ferns (perches).
+function buildCrag() {
+  const S = new Strip(CW, 200, 24), bedOf = (x, y) => (y + 13 * vnoise(x / 64, 2, 4002) + 5 * vnoise(x / 17, y / 34, 4008)) / 15;
+  const fallX = y => (y < LEDGE ? FALL : FALL + 5) + Math.round(2 * Math.sin(y / 13));
+  for (let x = 0; x < CW; x++) {
+    const shown = smooth(640, 560, x) * 1.15, rim = RIM(x) + (Math.abs(x - FALL) < 9 ? 3 : 0), hang = 3 + Math.round(hash(x, 1, 4006) * hash(x >> 1, 2, 4006) * 14);
+    for (let y = rim; y < 24; y++) {
+      if (shown < 1.15 && 0.3 * bayer(x, y) + 0.7 * vnoise(x / 12, y / 90, 4007) >= shown) continue;
+      // Beds of uneven thickness (one ledge line in three is missing, so some beds are twice as thick), each
+      // lit along its top and dark under the ledge above; joints at uneven gaps, leaning a little, one bed tall.
+      const d = y - rim, bo = bedOf(x, y), bi = Math.floor(bo), ledge = hash(bi, 1, 4009) > 0.34, bed = bo - bi, jx = x + (y * 0.3) * (hash(bi, 2, 4009) - 0.5);
+      const joint = hash(Math.floor(jx / 3), bi, 4003) < 0.085 && frac(jx / 3) < 0.34, wet = smooth(16, 5, Math.abs(x - fallX(y)));
+      const mossy = fbm(x / 16, y / 9, 4005, 3) + (ledge && bed < 0.2 ? 0.2 : 0) + wet * 0.22 + 0.14 * smooth(-34, 6, y) + 0.1 * smooth(14, 0, d);
+      let c;
+      if (d < 2) c = R.moss[5 - d];
+      else if (d < hang && hash(x, 3, 4006) < 0.45) c = R.moss[d < 4 ? 4 : 3];
+      else if (mossy > 0.62) c = pick('moss', 0.22 + (mossy - 0.62) * 1.5 + (ledge && bed < 0.12 ? 0.16 : 0), x, y, 0.8);
+      else c = pick('rock', 0.31 + 0.3 * (fbm(x / 22, y / 11, 4004, 3) - 0.5) + 0.14 * (vnoise(x / 80, y / 44, 4015) - 0.5) + (ledge ? (bed < 0.08 ? 0.24 : bed > 0.8 ? -0.9 * (bed - 0.8) : 0) : 0) - (joint ? 0.2 : 0) - wet * 0.12 - 0.1 * smooth(-30, 14, y), x, y, 0.8);
+      S.set(x, y, c);
+    }
+  }
+  const legY = (i, x) => ZIG[i][1] + (ZIG[i + 1][1] - ZIG[i][1]) * (x - ZIG[i][0]) / (ZIG[i + 1][0] - ZIG[i][0]);
+  for (let i = 0; i < ZIG.length - 1; i++) { const a = ZIG[i], b = ZIG[i + 1], dir = b[0] > a[0] ? 1 : -1;
+    for (let x = a[0]; x !== b[0] + dir; x += dir) paintTread(S, x, Math.round(legY(i, x)));
+    for (let k = 0; k < 3; k++) { const x = b[0] - dir * (7 + k * 7), y = Math.round(legY(i, x)); for (let j = 0; j < 3; j++) { S.set(x - dir * j, y - 2, R.wood[2]); S.set(x - dir * j, y - 1, R.wood[1]); } }
+    if (i > 0) for (let k = -2; k < 9; k++) { const x = a[0] - dir * k, y = Math.round(a[1]); if (k > 0) paintTread(S, x, y); S.set(x, y + 2, R.wood[2]); S.set(x, y + 3, R.wood[1]); S.set(x, y + 4, hash(x, 1, 4011) < 0.3 ? R.wood[0] : R.wood[1]); S.set(x, y + 5, R.rock[0]); }
+  }
+  for (let x = RIM0; x < CW; x++) if (S.get(x, RIM(x) + 8)) paintTread(S, x, RIM(x));
+  // The footbridge over the outflow's lip: planks on two logs, a post at each end and a handrail.
+  for (let x = FALL - 13; x <= FALL + 13; x++) { const y = RIM(x), end = Math.abs(x - FALL) === 13;
+    for (let j = 3; j < 8; j++) S.set(x, y + j, 0);
+    S.set(x, y - 1, 0); S.set(x, y, (x - FALL + 40) % 3 === 0 ? R.wood[2] : R.wood[3]); S.set(x, y + 1, R.wood[1]); S.set(x, y + 2, R.wood[0]);
+    if (end) for (let j = 1; j < 8; j++) S.set(x, y - j, R.wood[1]); else S.set(x, y - 7, R.wood[2]); }
+  const F = { x: [], y: [], o: [], p: [], e: [], foam: [[FALL + 2, LEDGE, 6], [FALL + 5, -7, 12]] };
+  for (let y = RIM(FALL) + 3; y <= -6; y++) { const hw = (y < LEDGE ? 4 : 6) + (Math.abs(y - LEDGE) < 3 ? 3 : 0) - (y < RIM(FALL) + 7 ? 1 : 0), cx = fallX(y);
+    for (let dx = -hw; dx <= hw; dx++) { const x = cx + dx; S.set(x, y, R.white[1]); F.x.push(x); F.y.push(y); F.o.push(hash(x, 0, 4012)); F.p.push(7 + hash(x, 1, 4013) * 6); F.e.push(Math.abs(dx) >= hw ? 1 : 0); } }
+  const nearTread = (x, y) => ZIG.slice(1).some((b, i) => { const a = ZIG[i], lo = Math.min(a[0], b[0]) - 12, hi = Math.max(a[0], b[0]) + 12; if (x < lo || x > hi) return false; const ty = legY(i, clamp(x, lo + 12, hi - 12)); return y > ty - 30 && y < ty + 9; });
+  const perches = [];
+  for (let n = 0; n < 90 && perches.length < 14; n++) { const x = 14 + Math.round(hash(n, 1, 4014) * 600); let y = RIM(x) + 14 + Math.round(hash(n, 2, 4014) * 92); while (y < 0 && (frac(bedOf(x, y)) > 0.08 || hash(Math.floor(bedOf(x, y)), 1, 4009) <= 0.34)) y++;
+    if (y >= -8 || Math.abs(x - FALL - 2) < 16 || x > 556 || nearTread(x, y) || perches.some(q => Math.abs(q[0] - x) < 26 && Math.abs(q[1] - y) < 12)) continue; perches.push([x, y, n % 3]); }
+  return { S, F, perches };
+}
+// The rock band on the screen. It does not wrap: it stands at the forest's west end only.
+function drawCrag(scr, S, camX, base) {
+  const { VW, VH, fb } = scr, x0 = Math.max(0, -camX), x1 = Math.min(VW, S.w - camX);
+  for (let y = Math.max(0, base - S.up), y1 = Math.min(VH, base - S.up + S.h); y < y1; y++) { const row = y * VW, si = (y - base + S.up) * S.w + camX;
+    for (let x = x0; x < x1; x++) { const c = S.d[si + x]; if (c) fb[row + x] = c; } }
+}
+// The fall moves as the map's falls do: white water in streaks that slide down, bluer at its edges, and spray
+// that jumps where it lands (on the ledge, and in the pool at its foot).
+function fallWater(scr, camX, base, t, F) {
+  const { VW, VH, fb } = scr, W1 = R.white[1], W4 = R.water[4], W3 = R.water[3], sh = t * 30;
+  for (let k = 0; k < F.x.length; k++) { const sx = F.x[k] - camX, sy = F.y[k] + base; if (sx < 0 || sy < 0 || sx >= VW || sy >= VH) continue;
+    const u = frac((F.y[k] - sh) / F.p[k] + F.o[k]); fb[sy * VW + sx] = u < (F.e[k] ? 0.45 : 0.7) ? W1 : u < 0.9 ? W4 : W3; }
+  const beat = Math.floor(t * 8);
+  for (const [x, y, r] of F.foam) for (let n = 0; n < r * 5; n++) { const a = hash(n, beat, 4031) * Math.PI, d = Math.sqrt(hash(n, beat, 4032)) * r, px = Math.round(x + Math.cos(a) * d * 1.3) - camX, py = Math.round(y - Math.sin(a) * d * 0.8) + base;
+    if (px >= 0 && px < VW && py >= 0 && py < VH) fb[py * VW + px] = hash(n, 3, 4033) < 0.6 ? W1 : R.pool[6]; }
+}
+// The outflow's last few yards: how far (x, r rows below the trail's line) lies outside the channel that runs
+// from the pool at the fall's foot across to the creek. Negative inside it.
+const chanD = (x, r) => x < FALL - 31 || x > FALL + 39 || r >= farBank(x) ? 9 : Math.abs(x - FALL - 3 - (r + 6) * 0.2) - (13 - 4 * smooth(-8, 6, r) + 5 * smooth(9, 17, r) + 1.5 * (vnoise(r / 5, 3, 4040) - 0.5));
 
 // A sword fern: fronds arching out of one crown, each a spine with leaflets either side.
 function swordFern(seed, r) {
@@ -153,6 +243,45 @@ export { makeTrunk, makeLimb, swordFern };
 // Noise along a strip that joins up where the strip wraps round.
 const loopN = (x, W, s, seed) => { const a = x / W * TAU, r = W / (TAU * s); return fbm(Math.cos(a) * r + 40, Math.sin(a) * r + 40, seed, 3); };
 
+// Old man's beard (round 5, T39): a tuft of pale lichen hanging from a limb, widest where it is fastened and
+// tapering to a wisp, a little wavy. put(x, y, colour); c is its body and tip is its last two pixels.
+function beard(put, x, y, len, half, c, tip, id) {
+  for (let dx = -half; dx <= half; dx++) {
+    const l = Math.round(len * (1 - Math.abs(dx) / (half + 1)) * (0.65 + 0.35 * hash(dx + 9, id, 771))), ph = hash(id, dx, 772) * 6;
+    for (let j = 0; j < l; j++) put(x + dx + Math.round(0.7 * Math.sin(j / 4 + ph)), y + j, j >= l - 2 ? tip : c);
+  }
+}
+// A limb of the middle ground, alive: thick where it leaves the trunk, moss heaped along its top, old man's
+// beard hanging from it in tufts. C: { wood, moss, top, beard, tip }.
+function mossLimb(put, x0, y0, dir, len, id, C) {
+  const yAt = i => y0 - Math.sin(i / len * 2) * 6 + i * i / len * 0.2;
+  for (let i = 0; i < len; i++) {
+    const yy = Math.round(yAt(i)), th = i < len * 0.35 ? 3 : i < len * 0.75 ? 2 : 1, m = (i < len * 0.5 ? 2 : 1) + (vnoise(i / 3.5, id, 773) > 0.55 ? 1 : 0) - (i > len - 3 ? 1 : 0);
+    for (let j = 0; j < th; j++) put(x0 + dir * i, yy + j, C.wood);
+    for (let j = 1; j <= m; j++) put(x0 + dir * i, yy - j, j === m ? C.top : C.moss);
+  }
+  for (let n = 0, nt = 3 + Math.floor(len / 6); n < nt; n++) {
+    const i = Math.round(1 + hash(n, id, 774) * (len - 3)), near = 1 - i / len;
+    beard(put, x0 + dir * i, Math.round(yAt(i)) + (i < len * 0.35 ? 3 : 2), 6 + hash(n, id, 775) * (10 + 13 * near), hash(n, id, 776) < 0.6 ? 2 : 1, C.beard, C.tip, id * 13 + n);
+  }
+}
+// The rainforest's understory along the middle ground's edge (T39): a sword fern, a clump of salal, or a
+// young hemlock with its top nodding over. Each is drawn in the mist's colours, so it stays in the fog.
+function midPlant(put, kind, x, gy, rand, C) {
+  if (kind === 'fern') {
+    const n = 6 + (rand() * 3 | 0), L = 8 + rand() * 6;
+    for (let f = 0; f < n; f++) { const a = (-1.25 + 2.5 * (f + 0.5) / n) + (rand() - 0.5) * 0.2, l = L * (0.7 + 0.3 * rand());
+      for (let q = 0; q <= l; q++) { const u = q / l, px = x + Math.sin(a) * q, py = gy - Math.cos(a) * q + u * u * l * 0.55; put(px, py, C.moss); if (q > 1 && q % 2 === 0) { put(px, py - 1, C.top); if (q < l - 2) put(px + (a < 0 ? -1 : 1), py + 1, C.moss); } } }
+  } else if (kind === 'salal') {
+    const rx = 6 + rand() * 6, ry = 4 + rand() * 3;
+    for (let dy = -ry * 2; dy <= 0; dy++) for (let dx = -rx; dx <= rx; dx++) { const e = sq(dx / rx) + sq((dy + ry * 0.8) / (ry * 1.25)); if (e > 1) continue; const leaf = ((Math.round(x) + dx) + 2 * (Math.round(gy) + dy)) % 4; put(x + dx, gy + dy, e > 0.75 && hash(dx, dy, 777) < 0.4 ? 0 : leaf === 0 ? C.top : leaf === 1 ? C.moss : C.wood); }
+  } else {
+    const h = 16 + rand() * 20, nod = rand() < 0.5 ? -1 : 1;
+    for (let j = 0; j < h; j++) { const y = gy - h + j, hw = j < 3 ? 0 : 1 + (j - 2) * 0.3 * (j % 5 === 4 ? 0.55 : 1), cx = x + (j < 4 ? nod * (4 - j) * 0.7 : 0);
+      for (let i = -Math.round(hw); i <= Math.round(hw); i++) put(cx + i, y + (Math.abs(i) > hw * 0.6 && hw > 1.5 ? 1 : 0), i < -hw * 0.3 ? C.moss : C.wood); }
+    put(x, gy, C.wood); put(x, gy + 1, C.wood);
+  }
+}
 // One far layer of the forest. Trunks stand in uneven groups with gaps of light between the groups,
 // some of them broken off short. Each layer has its own ground, higher up the view the further off
 // it is, with undergrowth and young firs along it; limbs trail moss, boughs hang higher up, and the
@@ -174,10 +303,17 @@ function farLayer(S, seed, o) {
     // Limbs droop away from the trunk and trail moss.
     for (let k = 0, n = snag ? 1 : Math.round(o.limbs * (0.4 + 1.2 * rand())); k < n; k++) {
       const up = Math.min(foot - top - 8, 50 + rand() * 300), dir = rand() < 0.5 ? -1 : 1, len = 6 + w * (1.5 + rand() * 2.5);
+      // Round 5 (T39): the limb is thick where it leaves the trunk and mossed along its top, and what hangs from it
+      // hangs in tufts of old man's beard, not as a comb of single threads. A snag's one limb stays bare.
+      const yAt = i => foot - up - Math.sin(i / len * 2) * len * 0.2 + i * i / len * 0.24;
       for (let i = 0; i < len; i++) {
-        const yy = foot - up - Math.sin(i / len * 2) * len * 0.2 + i * i / len * 0.24, lx = at(up) + dir * (w / 2 + i);
-        put(lx, yy, body); if (i < len * 0.5 && w > 5) put(lx, yy + 1, body);
-        if (hash(i, k, Math.round(x)) < o.moss) for (let j = 1; j < 3 + hash(i, Math.round(x), 2) * w; j++) put(lx, yy + j, body);
+        const yy = yAt(i), lx = at(up) + dir * (w / 2 + i);
+        put(lx, yy, body); if (i < len * 0.6 && w > 3) put(lx, yy + 1, body); if (i < len * 0.3 && w > 6) put(lx, yy + 2, body);
+        if (!snag && w > 3 && vnoise(i / 3, k, Math.round(x)) > 0.3) put(lx, yy - 1, lit);
+      }
+      if (!snag) for (let n = 0, nt = Math.round((2 + len / 7) * (0.5 + o.moss * 1.7)); n < nt; n++) {
+        const i = Math.round(1 + hash(n, k, Math.round(x) + 5) * (len - 2));
+        beard(put, at(up) + dir * (w / 2 + i), Math.round(yAt(i)) + 1, 3 + hash(n, k + 2, Math.round(x)) * (3 + w * 1.3), w > 6 && hash(n, 7, Math.round(x)) < 0.5 ? 2 : w > 3 ? 1 : 0, body, body, Math.round(x) * 7 + k * 3 + n);
       }
     }
     // Boughs: flat sprays of needles, fringed underneath, more of them the higher up.
@@ -223,18 +359,19 @@ function lakeLight(scr, camX, base, t) {
   const { VW, VH, fb } = scr, T = R.tarn;
   for (let x = 0; x < VW; x++) {
     const wx = camX + x, k = farThin(wx); if (k <= 0) continue;
-    const lake = wx < 900, top = base - 52 - Math.round(22 * k), bot = base - 36;
+    const lake = wx < 580, top = base - 131 - Math.round(4 * k), bot = base - 110;
     for (let y = 0, y1 = Math.min(VH, base + 14); y < y1; y++) {
       const b = 0.3 * bayer(x, y) + 0.7 * vnoise((camX * 0.6 + x) / 12, y / 90, 320);
       if (b >= k * 0.9) continue;
       let c = b < (k - 0.45) * 1.2 ? R.sky[4] : R.mist[5];
       if (lake && y >= top && y < bot) {
         const r = y - top;
-        if (r === 0) c = R.mist[2];
-        else if (r === 1) c = T[3];
+        // The far shore: a line of trees, ragged on top (T40: the lake lies up on its bench, over the rock band's rim).
+        if (r < 5) { if (r < 3 - Math.round(3 * hash(wx >> 1, 1, 322) * hash(wx >> 2, 2, 322))) continue; c = r < 4 ? R.mist[2] : R.mist[1]; }
+        else if (r === 5) c = T[3];
         else {
           const glint = hash(Math.floor((wx * 0.6 + t * 4) / 5), y, 321) < 0.12 + 0.35 * k && (x + y) % 3 !== 0;
-          c = glint ? T[5] : r < 5 ? T[3] : T[4];
+          c = glint ? T[5] : r < 9 ? T[3] : T[4];
         }
       }
       fb[y * VW + x] = c;
@@ -245,9 +382,9 @@ function lakeLight(scr, camX, base, t) {
 const META = {
   name: 'forest',
   dur: () => DUR,
-  stops: () => [{ id: 'who', at: D_SIGN / LEN }],
-  elev: (arg, q) => -g(X0 - q * LEN) * 1.5,
-  cues: () => [{ at: (D_SLUG - 11) / LEN, name: 'hop' }, { at: (D_JAY - 20) / LEN, name: 'jay' }]
+  stops: () => [{ id: 'who', at: D_SIGN / TOTAL }],
+  elev: (arg, q) => -along(q * TOTAL)[1] * 1.5,
+  cues: () => [{ at: (D_SLUG - 11) / TOTAL, name: 'hop' }]
 };
 export const makeForest = () => shell(META, buildForest, ['enter', 'focus', 'pick', 'draw', 'trigger']);
 function buildForest() {
@@ -261,6 +398,7 @@ function buildForest() {
   // The far trees used to take their numbers from the same run of dice as everything below. The
   // run is still wound on by as much as they took, so every trunk, fern and log stands where it did.
   for (let x = 4; x < SW; x += 13 + rand() * 24) { rand(); rand(); }
+  const midPut = (x, y, c) => { if (c) mid.set(Math.round(x), Math.round(y), c); }, MIDC = { wood: R.mist[1], moss: R.moss[3], top: R.moss[4], beard: R.mist[3], tip: R.mist[4] }, MIDP = { wood: R.moss[2], moss: R.moss[3], top: R.moss[4] };
   for (let x = 20; x < SW; x += 46 + rand() * 60) {
     const w = 9 + (rand() * 11 | 0), lean = (rand() - 0.5) * 0.04;
     for (let y = -UP; y < 6; y++) {
@@ -269,25 +407,38 @@ function buildForest() {
     }
     for (let k = 0; k < 3; k++) {
       const by = -70 - rand() * 300, dir = rand() < 0.5 ? -1 : 1, len = 14 + rand() * 30;
-      for (let i = 0; i < len; i++) { const yy = by - Math.sin(i / len * 2) * 6 + i * i / len * 0.2; mid.set(x + (dir > 0 ? w : 0) + dir * i, yy, R.mist[2]); mid.set(x + (dir > 0 ? w : 0) + dir * i, yy + 1, R.mist[1]); if (hash(i, k, x) < 0.3) for (let j = 2; j < 4 + hash(i, x, 2) * 9; j++) mid.set(x + (dir > 0 ? w : 0) + dir * i, yy + j, R.mist[2]); }
+      mossLimb(midPut, x + (dir > 0 ? w : 0) + lean * -by, by, dir, len, Math.round(x) * 5 + k, MIDC);
     }
+    // Two more limbs lower down, where the eye rests, and moss in patches up the trunk's lit side (T39). Their
+    // own dice (hash), so nothing else in the forest moves.
+    for (let k = 3; k < 5; k++) { const hx = Math.round(x) * 5 + k, by = -52 - hash(hx, 1, 778) * 150, dir = hash(hx, 2, 778) < 0.5 ? -1 : 1, len = 12 + hash(hx, 3, 778) * 26; mossLimb(midPut, x + (dir > 0 ? w : 0) + lean * -by, by, dir, len, hx, MIDC); }
+    for (let y = -UP; y < 0; y++) for (let dx = 0; dx < w * 0.55; dx++) if (fbm((x + dx) / 5, y / 14, 779, 3) > 0.6 - 0.12 * smooth(-160, 0, y)) mid.set(x + dx + lean * -y, y, dx < 2 ? R.moss[3] : R.moss[2]);
   }
   for (let x = 0; x < SW; x++) {
     // High enough to show over the bank behind the trail, as the nearest of the three far ground lines.
     const top = -41 - 12 * fbm(x / 17, 4, 88, 3) - 5 * Math.max(0, Math.sin(x / 6.5) * vnoise(x / 30, 3, 89));
-    for (let y = Math.round(top); y < 30; y++) mid.set(x, y, y - top < 1.5 ? R.mist[3] : y - top < 5 ? R.mist[2] : R.mist[1]);
+    // Moss lies on this floor in patches (T39): the pale, fog-lit edge stays where the moss is thin.
+    const mossy = vnoise(x / 26, 7, 780) + 0.3 * vnoise(x / 5, 8, 780);
+    for (let y = Math.round(top); y < 30; y++) { const d = y - top;
+      mid.set(x, y, mossy > 0.52 ? (d < 1.5 ? R.moss[4] : d < 4 ? R.moss[3] : d < 7 + 3 * mossy && ((x + y) & 1 || d < 5.5) ? R.moss[2] : R.mist[1]) : d < 1.5 ? R.mist[3] : d < 5 ? R.mist[2] : R.mist[1]); }
     for (let y = -UP; y < -200 - 110 * fbm(x / 50, 5, 90, 3); y++) if (fbm(x / 16, y / 13, 91, 3) > 0.46) mid.set(x, y, fbm(x / 16, (y - 3) / 13, 91, 3) > 0.46 ? R.mist[1] : R.mist[2]);
   }
+  // The middle ground's understory (T39): sword ferns, salal and young hemlocks along its edge, with dice of their own.
+  { const pr = rng(3902), midTop = x => -41 - 12 * fbm(x / 17, 4, 88, 3) - 5 * Math.max(0, Math.sin(x / 6.5) * vnoise(x / 30, 3, 89));
+    for (let x = 8; x < SW - 8; x += 14 + pr() * 30) { const k = pr(); midPlant(midPut, k < 0.45 ? 'fern' : k < 0.75 ? 'salal' : 'hemlock', x, Math.round(midTop(x)) + 2, pr, MIDP); } }
 
   // The ground: back bank, trail, verge, the far bank of the stream, and the near bank in front.
   const main = new Strip(SW, 60, DOWN), water = new Strip(SW, 0, 90);
   for (let x = 0; x < SW; x++) {
-    const gy = g(x), bt = gy - 34 - 9 * fbm(x / 26, 6, 92, 3), fb = gy + farBank(x), nb = gy + nearBank(x);
+    // At the rock band the bank behind the trail drops to a low mossy foot (T40), and the trail stops where the
+    // first leg leaves it. The fall's channel crosses the bank and the trail to the creek, under a footbridge.
+    const gy = g(x), bt = gy - (34 + 9 * fbm(x / 26, 6, 92, 3)) * (1 - 0.7 * smooth(600, 530, x)), fb = gy + farBank(x), nb = gy + nearBank(x);
     for (let y = Math.round(bt); y < DOWN; y++) {
-      const r = y - gy; let c;
+      const r = y - gy, cd = chanD(x, r), deck = cd < 3 && r >= -6 && r <= 5; let c;
+      if (cd < 0 && !deck) continue;
       const lit = beamAt(x - 0.6 * r + 9 * (vnoise(x / 6, y / 3, 105) - 0.5)) * 0.09 + thinAt(x) * 0.05;
       if (r < -5) c = pick('moss', 0.1 + 0.3 * smooth(-40, -5, r) + lit * smooth(-30, -5, r) + 0.24 * (fbm(x / 9, y / 5, 93, 3) - 0.5) + (y - bt < 2 ? 0.25 : 0), x, y, 0.8);
-      else if (r <= 4) {
+      else if (r <= 4 && x >= FOOT - 12 + Math.abs(r + 0.5) * 1.5) {
         const e = Math.abs(r + 0.5) / 5;
         c = hash(x, y, 94) < 0.05 ? R.rock[2] : pick('dirt', 0.5 - e * 0.3 + lit * 1.6 + 0.22 * (vnoise(x / 5, y / 2, 95) - 0.5), x, y, 0.7);
         if (r === -5 || r === 4) c = hash(x, 7, 96) < 0.4 ? R.moss[3] : R.dirt[0];
@@ -295,9 +446,14 @@ function buildForest() {
       else if (y < fb) c = hash(x, y, 98) < 0.4 ? R.bark[0] : R.moss[1];
       else if (y < nb) continue;
       else c = y - nb < 2 ? R.moss[hash(x, 9, 99) < 0.5 ? 4 : 3] : pick('moss', 0.14 + 0.2 * (fbm(x / 11, y / 6, 100, 3) - 0.5) + 0.1 * smooth(30, 0, y - nb), x, y, 0.8);
+      // The footbridge: planks across the trail's width on two logs, their ends resting on the banks.
+      if (deck) c = r === -6 || r === 5 ? R.wood[0] : (x - FALL + 40) % 4 === 0 ? R.wood[1] : R.wood[r < -1 ? 3 : 2];
+      else if (cd < 2) c = hash(x, y, 98) < 0.4 ? R.bark[0] : R.moss[1];
       main.set(x, y, c);
     }
   }
+  // The first leg leaves the trail across the bank's low foot.
+  for (let x = FOOT + 2; x > FOOT - 60; x--) { const y = Math.round(ZIG[0][1] + (ZIG[1][1] - ZIG[0][1]) * (ZIG[0][0] - x) / (ZIG[0][0] - ZIG[1][0])); if (main.get(x, y + 1)) paintTread(main, x, y); }
   // Roots across the trail, wood sorrel, trillium and mushrooms on the banks.
   for (let n = 0; n < 60; n++) { const x = rand() * SW, gy = g(x); for (let i = 0; i < 9; i++) main.set(x + i * 0.5 + (rand() - 0.5), gy - 5 + i, i === 4 ? R.bark[3] : R.bark[2]); }
   for (let n = 0; n < 900; n++) {
@@ -313,26 +469,29 @@ function buildForest() {
   const things = [];
   const trunks = [];
   const reserve = [[X0 - D_SIGN - 34, X0 - D_SIGN + 10], [X0 - D_ELK - 34, X0 - D_ELK + 34]];
-  let bearTrunk = null;
+  // One giant always stands at D_GIANT. The bear leaned out from behind it until round 5 (T41); it stays so the
+  // rest of the forest, the owl's tree among it, stands where it always did.
+  let giant = null;
   for (let x = 40; x < SW - 30; x += 78 + rand() * 62) {
-    let tx = x; if (!bearTrunk && Math.abs(x - (X0 - D_BEAR)) < 70) tx = X0 - D_BEAR;
+    let tx = x; if (!giant && Math.abs(x - (X0 - D_GIANT)) < 70) tx = X0 - D_GIANT;
     if (reserve.some(([a, b]) => tx > a - 22 && tx < b + 22)) continue;
     // Toward the lake more and more of the giants are missing. A missing one still takes its turns
     // of the dice and keeps its place clear, so the rest of the forest stands where it always did.
-    const w = 20 + (rand() * 22 | 0), by = -8 - (rand() * 20 | 0), gone = tx !== X0 - D_BEAR && hash(Math.round(tx), 7, 310) < thinAt(tx) * 0.9;
+    const w = 20 + (rand() * 22 | 0), by = -8 - (rand() * 20 | 0), gone = tx !== X0 - D_GIANT && (hash(Math.round(tx), 7, 310) < thinAt(tx) * 0.9 || (tx > 300 && tx < 600));   // none in front of the fall and the legs (T40)
     const t = { bm: gone ? null : makeTrunk(1000 + (tx | 0), w, UP + by + 20), x: Math.round(tx), y: g(tx) + by, tall: true, w };
-    if (tx === X0 - D_BEAR) bearTrunk = t;
+    if (tx === X0 - D_GIANT) giant = t;
     trunks.push(t); if (!gone) things.push(t);
     for (let k = 0; k < 3; k++) { const dir = rand() < 0.5 ? -1 : 1, len = 30 + (rand() * 46 | 0), up = 96 + rand() * 300; if (!gone) things.push({ bm: makeLimb(2000 + tx + k, len, dir), x: t.x + dir * (w / 2 - 2), y: t.y - up, z: t.y + 0.1, sway: 0.5 }); }
   }
   const maples = Array.from({ length: 6 }, (_, i) => makeMaple(120 + i)), spruces = Array.from({ length: 4 }, (_, i) => makeSpruce(220 + i));
   const free = (x, r) => !trunks.some(t => Math.abs(t.x - x) < t.w * 0.8 + r) && !reserve.some(([a, b]) => x > a - r && x < b + r);
-  for (let n = 0; n < 70; n++) { const x = rand() * SW, by = -9 - rand() * 22; if (!free(x, 14)) continue; things.push({ tree: rand() < 0.7 ? maples[(rand() * 6) | 0] : spruces[(rand() * 4) | 0], x: Math.round(x), y: g(x) + Math.round(by) }); }
+  for (let n = 0; n < 70; n++) { const x = rand() * SW, by = -9 - rand() * 22; if (!free(x, 14)) continue; const th = { tree: rand() < 0.7 ? maples[(rand() * 6) | 0] : spruces[(rand() * 4) | 0], x: Math.round(x), y: g(x) + Math.round(by) }; if (x <= 300 || x >= 600) things.push(th); }
   const ferns = [5, 6, 7, 8, 10, 12, 15, 19, 23].map((r, i) => swordFern(300 + i, r));
   for (let n = 0; n < 330; n++) {
     const x = rand() * SW, zone = rand(), gy = g(x);
-    if (zone < 0.5) things.push({ bm: ferns[2 + (rand() * 5 | 0)], x: Math.round(x), y: gy - 6 - Math.round(rand() * 26), sway: 0.6 });
-    else if (zone < 0.72) things.push({ bm: ferns[(rand() * 3) | 0], x: Math.round(x), y: gy + 7 + Math.round(rand() * 7), sway: 0.6 });
+    // None on the bank where the legs and the fall's channel are, nor on the channel in front of it (T40).
+    if (zone < 0.5) { const th = { bm: ferns[2 + (rand() * 5 | 0)], x: Math.round(x), y: gy - 6 - Math.round(rand() * 26), sway: 0.6 }; if (x <= FOOT - 110 || x >= FALL + 40) things.push(th); }
+    else if (zone < 0.72) { const th = { bm: ferns[(rand() * 3) | 0], x: Math.round(x), y: gy + 7 + Math.round(rand() * 7), sway: 0.6 }; if (x <= FALL - 28 || x >= FALL + 34) things.push(th); }
     else { const dy = sq(rand()) * 150; things.push({ bm: ferns[Math.min(8, 3 + Math.round(dy / 30) + (rand() * 3 | 0))], x: Math.round(x), y: gy + nearBank(x) + 6 + Math.round(dy), sway: 0.6 }); }
   }
   for (let n = 0; n < 150; n++) { const x = rand() * SW, dy = 30 + rand() * 170; things.push({ bm: ferns[5 + (rand() * 4 | 0)], x: Math.round(x), y: g(x) + nearBank(x) + Math.round(dy), sway: 0.6 }); }
@@ -340,18 +499,17 @@ function buildForest() {
   const TRAIL_LOGS = [[590, 0, -12], [206, 1, -15], [-150, 0, -14], [840, 1, -11]];
   for (const [d, k, by] of TRAIL_LOGS) { const x = X0 - d; things.push({ bm: logs[k], x, y: g(x) + by }); }
   for (let n = 0; n < 9; n++) { const x = n * 190 + rand() * 120; things.push({ bm: logs[n & 1], x: Math.round(x), y: g(x) + nearBank(x) + 26 + Math.round(rand() * 110), flip: n % 3 === 0 }); }
-  const stump = makeStump(5), stumpX = X0 - D_JAY;
+  const stump = makeStump(5), stumpX = X0 - D_STUMP;
   things.push({ bm: stump, x: stumpX, y: g(stumpX) - 9 });
   const signX = X0 - D_SIGN - 15;
   things.push({ bm: makeTrailSign(), x: signX, y: g(signX) - 6 });
   // The eerie corner of the rainforest (E5d), by rule, with no turns of the dice so nothing else moves.
-  // The owl: on a low limb of the giant in the thick of the forest that stands farthest from every other
-  // animal and sign along the run, with no tree in front of it to hide it.
-  const busy = [D_SIGN, D_SLUG, D_ELK, D_BEAR, D_JAY];
-  let owlT = null, owlScore = -1;
-  for (const t of trunks) { const d = X0 - t.x; if (!t.bm || t === bearTrunk || d < 40 || d > LEN - 40 || thinAt(t.x) > 0.05 || things.some(th => th.tree && Math.abs(th.x - t.x) < 44)) continue;
-    const s = Math.min(...busy.map(b => Math.abs(d - b))); if (s > owlScore) { owlScore = s; owlT = t; } }
-  const perch = owlT && (() => { const bm = makeLimb(2900, 28, 1), x = owlT.x + Math.round(owlT.w / 2 - 2), y = owlT.y - 52, col = bm.ox + 14; let top = 0; while (top < bm.h && !bm.d[top * bm.w + col]) top++;
+  // The owl: on a mossy limb of the giant right behind the stump (TJ, round 5 T38). The Steller's jay that sat
+  // on the stump is gone, so the owl has the middle of the run to itself. The limb is high enough to clear
+  // the young trees in front of the giant.
+  const busy = [D_SIGN, D_SLUG, D_ELK, D_GIANT, D_STUMP];
+  const owlT = trunks.filter(t => t.bm).reduce((a, t) => !a || Math.abs(t.x - stumpX) < Math.abs(a.x - stumpX) ? t : a, null);
+  const perch = owlT && (() => { const bm = makeLimb(2900, 28, 1), x = owlT.x + Math.round(owlT.w / 2 - 2), y = owlT.y - 84, col = bm.ox + 14; let top = 0; while (top < bm.h && !bm.d[top * bm.w + col]) top++;
     things.push({ bm, x, y, z: owlT.y + 0.1 }); return { x: x + 14, y: y - bm.oy + top, z: owlT.y + 0.2 }; })();
   const owlBM = { r: owl('r'), f: owl('f'), l: owl('l'), rb: owl('r', 1), fb: owl('f', 1), lb: owl('l', 1) };
   // Foxfire: on the nurse log by the trail that lies deepest in the forest, glowing in clusters along
@@ -371,8 +529,17 @@ function buildForest() {
   const stones = [];
   for (let n = 0; n < 26; n++) { const x = Math.round(rand() * SW), y = g(x) + farBank(x) + 6 + Math.round(rand() * (nearBank(x) - farBank(x) - 10)), bm = boulders[(rand() * 4) | 0]; stones.push({ bm, x, y }); }
 
+  // The rock band at the forest's end (T40), and what stands on it: ferns on its ledges, boulders fallen at
+  // its foot, firs along its rim (none where he walks the rim). All by rule, with no turns of the dice.
+  const crag = buildCrag();
+  for (const [x, y, k] of crag.perches) things.push({ bm: ferns[k], x, y, z: -300, sway: 0.6 });
+  for (let n = 0; n < 9; n++) { const x = 16 + Math.round(hash(n, 1, 4020) * 570); if (x > FOOT - 56 && x < FALL + 44) continue; things.push({ bm: boulders[n & 3], x, y: g(x) - 7 - Math.round(hash(n, 2, 4020) * 4), z: -60 }); }
+  const firs = Array.from({ length: 5 }, (_, i) => makeFir(330 + i));
+  for (let x = 6, n = 0; x < 600; x += hash(n, 1, 4021) < 0.45 ? 9 + hash(n, 2, 4021) * 8 : 30 + hash(n, 2, 4021) * 44, n++) { const xx = Math.round(x); if (xx > FOOT - 24 && xx < 588) continue; things.push({ tree: hash(n, 3, 4021) < 0.2 ? spruces[n & 3] : firs[n % 5], x: xx, y: RIM(xx) + 1, z: -310 - hash(n, 4, 4021) }); }
+
   // The stream mirrors what stands behind it: build the still picture once and reflect it.
   const still = new Strip(SW, UP, DOWN);
+  for (let y = -200; y < 24; y++) for (let x = 0; x < CW; x++) { const c = crag.S.get(x, y); if (c) still.set(x, y, c); }
   for (let y = -60; y < DOWN; y++) for (let x = 0; x < SW; x++) { const c = main.get(x, y); if (c) still.set(x, y, c); }
   for (const th of [...things].sort((a, b) => (a.z || a.y) - (b.z || b.y))) {
     if (th.tree) for (const p of th.tree.parts) { const pb = p.bm; for (let j = 0; j < pb.h; j++) for (let i = 0; i < pb.w; i++) { const c = pb.d[j * pb.w + i]; if (c) still.set(th.x + p.x + i, th.y + p.y + j, c); } }
@@ -394,38 +561,37 @@ function buildForest() {
   // water is stored relative to the trail line of each column, so redraw it into absolute rows
   const waterAbs = new Strip(SW, 20, 120);
   for (let x = 0; x < SW; x++) { const gy = g(x); for (let y = 0; y < 90; y++) { const c = water.get(x, y); if (c) waterAbs.set(x, y + gy, c); } }
+  // The pool at the fall's foot and its channel to the creek, two pixels wider than the gap in the bank so the
+  // water's wobble never opens a seam. White where the fall lands.
+  for (let x = FALL - 33; x <= FALL + 41; x++) for (let r = -6; r < farBank(x) + 2; r++) if (chanD(x, r) < 2) { const near = Math.hypot(x - FALL - 5, (r + 6) * 1.6);
+    waterAbs.set(x, g(x) + r, near < 9 && hash(x, r, 4041) < 0.75 - near * 0.06 ? R.white[1] : pick('pool', 0.62 - (r + 6) * 0.012 + 0.2 * (vnoise(x / 4, r / 2, 4042) - 0.5) + (near < 16 ? 0.2 : 0), x, r, 0.9)); }
   for (const s of stones) { waterAbs.stamp(s.bm, s.x, s.y); for (let dx = -s.bm.ox - 1; dx <= s.bm.ox + 1; dx++) if (hash(dx, s.x, 5) < 0.6) waterAbs.set(s.x + dx, s.y + 1, R.pool[6]); for (let dx = -2; dx <= 2; dx++) waterAbs.set(s.x + dx, s.y - s.bm.oy + 1, R.moss[5]); }
 
   const run = makeRunner('trail');
   const sit = [0, 1].map(f => sideFig('trail', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: f ? [[4, -2], [2, 3]] : [[3, 3], [2, 3]] }));
-  const elkBM = { up: elk('up'), ear: elk('up', 0, 1), graze: elk('graze'), bite: elk('graze', 0, 1) }, bearBM = [bear(false), bear(true)], sas = [sasquatch(0), sasquatch(1)];
-  const jayBM = { sit: jay('steller', 'sit'), up: jay('steller', 'up'), down: jay('steller', 'down') }, gray = { sit: jay('gray', 'sit'), up: jay('gray', 'up'), down: jay('gray', 'down') };
+  const elkBM = { up: elk('up'), ear: elk('up', 0, 1), graze: elk('graze'), bite: elk('graze', 0, 1) }, sas = [sasquatch(0), sasquatch(1)];
+  const gray = { sit: jay('gray', 'sit'), up: jay('gray', 'up'), down: jay('gray', 'down') };
   const slugBM = [slug(0), slug(1)], slugX = X0 - D_SLUG;
   const elkX = X0 - D_ELK, elkY = g(elkX) - 13;
 
   const st = {}, focus = { x: 0, y: 0 };
   let cam = 0, last = { camX: 0, base: 0 }, wells = new Float32Array(0);
   const list = [];
-  const xOf = q => X0 - q * LEN;
   // The animals act on their own clock once he crosses their point, so they carry on when he stops and
-  // do not play backwards when the timeline is scrubbed. jayGo, bearGo, sasGo: when each began (null if
-  // not yet). The jay flies once a visit to the scene; the bear can lean out again on a later pass.
-  const JAY_AT = D_JAY - 46, BEAR_AT = D_BEAR + 26, SAS_AT = 0.66;
-  let jayGo = null, bearGo = null, bearArmed = true, sasGo = null, sasX = 0, sasOn = 0;
+  // do not play backwards when the timeline is scrubbed. sasGo: when he began (null if not yet).
+  const SAS_AT = 0.66;
+  let sasGo = null, sasX = 0, sasOn = 0;
   // The deer's eyes at Dusk: 8 s in every 26, or when the debug button says.
   const EYES = { slot: 26, dur: 8 }; let eyeGo = null;
 
   return {
     ...META,
-    enter(scr, arg, q) { cam = xOf(q); st.y = null; const d = q * LEN; jayGo = d >= JAY_AT ? -1e9 : null; bearGo = null; bearArmed = d < BEAR_AT; sasGo = null; },
+    enter(scr, arg, q) { cam = along(q * TOTAL)[0]; st.y = null; sasGo = null; },
     focus: () => focus,
-    // The debug panel's start buttons (E5f): the jay takes off from its stump, the bear leans out from
-    // its trunk, or Sasquatch steps out at the far edge of the view, even if he has been seen this visit.
+    // The debug panel's start button (E5f): Sasquatch steps out at the far edge of the view, even if he has been seen this visit.
     trigger(name, t) {
-      if (name === 'jay') { jayGo = t; return true; }
-      if (name === 'bear') { bearGo = t; bearArmed = false; return true; }
       if (name === 'eyeshine') { eyeGo = t; return true; }
-      if (name === 'sasquatch') { sasquatchSeen = false; sasGo = t; sasX = last.camX - 12; sasOn = 0; return true; }
+      if (name === 'sasquatch') { sasquatchSeen = false; sasGo = t; sasX = Math.max(last.camX - 12, giant ? giant.x : 0); sasOn = 0; return true; }
       return false;
     },
     pick(sx, sy) {
@@ -436,11 +602,12 @@ function buildForest() {
     },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t, tq } = env;
-      const mx = xOf(q), d = q * LEN, my = g(mx);
+      const d = q * TOTAL, [mx, my, face, leg] = along(d);
       // He stands right of the middle: clear of the card, and with more of the way ahead in view.
       const anchor = scr.narrow ? 0.5 : 0.6;
       cam += (mx - cam) * (env.calm ? 1 : Math.min(1, env.dt * 8));
-      const camX = Math.round(cam - VW * anchor + env.look.x * 0.5), base = baseline(scr, env.shown, st) - Math.round(my * 0.5);
+      // The view stops at the strip's west edge, so the rock band never wraps round.
+      const camX = Math.max(0, Math.round(cam - VW * anchor + env.look.x * 0.5)), base = baseline(scr, env.shown, st) - Math.round(my * 0.5);
       last = { camX, base };
 
       // The light behind the trees: pale mist, dimmer up under the canopy, and brightest in the wide
@@ -457,13 +624,15 @@ function buildForest() {
       drawStrip(scr, mid, camX * 0.6 + 200, base - 1, true, R.mist[1]);
       // Near the lake the far trees give way to open light, in clumps, and the lake shows low down.
       lakeLight(scr, camX, base, t);
+      drawCrag(scr, crag.S, camX, base);
       drawStrip(scr, waterAbs, camX, base, false, 0, r => Math.round(Math.sin(t * 1.6 + r * 0.7)));
       drawStrip(scr, main, camX, base, false, R.moss[1]);
+      fallWater(scr, camX, base, t, crag.F);
       // Sasquatch strides through the undergrowth behind the trail, in front of the far trees and
       // behind every trunk, log and fern that stands nearer. Once a visit.
       // He steps out at the far edge of the view ahead and walks the other way at his own pace, so the
       // two pass each other, and if the runner stops Sasquatch still crosses the whole view and is gone.
-      if (!sasquatchSeen && sasGo === null && q >= SAS_AT && q < 0.9) { sasGo = t; sasX = camX - 12; sasOn = 0; }
+      if (!sasquatchSeen && sasGo === null && d >= SAS_AT * LEN && d < 0.9 * LEN) { sasGo = t; sasX = Math.max(camX - 12, giant ? giant.x : 0); sasOn = 0; }
       if (!sasquatchSeen && sasGo !== null) {
         const wx = sasX + (t - sasGo) * 26, bm = sas[Math.floor((t - sasGo) * 2.6) & 1];
         // He stands a little up the bank, shin-deep in the ferns, so the low growth by the trail cannot hide him.
@@ -481,18 +650,8 @@ function buildForest() {
 
       list.length = 0;
       for (const th of things) { const w = th.tree ? 30 : th.bm.w; if (th.x + w > camX && th.x - w < camX + VW) list.push(th); }
-      // The elk lifts his head while he passes; the bear leans out from behind its trunk once he has gone by.
+      // The elk lifts his head while he passes.
       { const up = Math.abs(d - D_ELK + 20) < 90 || frac(t / 7) >= 0.7; list.push({ bm: up ? elkBM[frac(t / 2.9) < 0.07 ? 'ear' : 'up'] : elkBM[Math.floor(t * 2.2) & 1 ? 'bite' : 'graze'], x: elkX, y: elkY, flip: false }); }
-      // Once he has gone by, the bear leans out, has a good look for about four seconds and ducks back.
-      if (d < BEAR_AT && bearGo === null) bearArmed = true;
-      if (bearArmed && d >= BEAR_AT) { bearArmed = false; bearGo = t; }
-      if (bearGo !== null && t - bearGo > 6.4) bearGo = null;
-      if (bearTrunk && bearGo !== null) { const a = t - bearGo, lean = smooth(0, 1.2, a) * smooth(6.4, 5.4, a); if (lean > 0) list.push({ bm: bearBM[frac(t / 3.1) > 0.94 ? 1 : 0], x: bearTrunk.x + Math.round(bearTrunk.w * 0.2 + lean * (bearTrunk.w * 0.5 + 5)), y: bearTrunk.y - 1, z: bearTrunk.y - 0.5, flip: true }); }
-      // The jay sits on the stump until he comes close, then takes off ahead of him.
-      if (jayGo === null && d >= JAY_AT) jayGo = t;
-      const ju = jayGo === null ? -1 : (t - jayGo) / 1.9;
-      if (ju < 0) list.push({ bm: jayBM.sit, x: stumpX + 2, y: g(stumpX) - 27, z: 999, flip: frac(t / 2.3) < 0.5 });
-      else if (ju < 1.5) list.push({ bm: Math.floor(t * 9) & 1 ? jayBM.up : jayBM.down, x: stumpX + 2 - ju * 150, y: g(stumpX) - 27 - Math.sin(Math.min(1, ju) * 1.4) * 150, z: 999, flip: true });
       list.push({ bm: slugBM[Math.floor(t * 1.2) & 1], x: slugX, y: g(slugX) + 1, flip: true });
       // The owl turns its head to follow him: looking right as he comes, at you as he passes under, then left.
       if (perch) { const rel = mx - perch.x, f = rel > 26 ? 'r' : rel < -26 ? 'l' : 'f'; list.push({ bm: owlBM[frac(t / 4.3) < 0.04 ? f + 'b' : f], x: perch.x, y: perch.y, z: perch.z }); }
@@ -500,7 +659,8 @@ function buildForest() {
       const ds = d - D_SLUG, hop = Math.abs(ds) < 12 ? Math.round(9 * Math.cos(ds / 12 * Math.PI / 2)) : 0;
       const snack = !env.running && env.still > 60;
       if (snack) env.found('snack');
-      const me = { me: true, x: mx, y: my + 0.5 };
+      // On the legs he is behind everything that stands on the bank, and in front of the rock.
+      const me = { me: true, x: mx, y: my + 0.5, z: leg ? -50 : 0 };
       list.push(me);
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
       for (const th of list) {
@@ -509,7 +669,7 @@ function buildForest() {
           const bm = snack ? sit[Math.floor(t * 1.5) & 1] : env.moving ? (hop ? run.side[3] : run.side[Math.floor(d / 4.2) % 6]) : run.sideIdle[0];
           focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
           scr.shadow(Math.round(sx), Math.round(base + my), 5, 1);
-          scr.put(bm, sx, base + my - hop + (snack ? 2 : 0), true);
+          scr.put(bm, sx, base + my - hop + (snack ? 2 : 0), face < 0);
           if (snack) { const u = clamp((env.still - 63) / 1.2, 0, 1); scr.put(u < 1 ? (Math.floor(t * 9) & 1 ? gray.up : gray.down) : gray.sit, sx - 16 - (1 - u) * 60, base + my - (1 - u) * 50, false); }
         } else if (th.tree) {
           for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
