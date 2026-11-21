@@ -191,7 +191,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 **A. The repo**
 
-- [ ] A1. Open the draft PR from `round6`. Copy the art rules to `design/TRAILHEAD-ART.md` unchanged and point `CLAUDE.md` at them in one line. Fix the code-scanning alert in `web/src/render.ts` with a test. Create the round's artifact from the current game.
+- [x] A1. Open the draft PR from `round6`. Copy the art rules to `design/TRAILHEAD-ART.md` unchanged and point `CLAUDE.md` at them in one line. Fix the code-scanning alert in `web/src/render.ts` with a test. Create the round's artifact from the current game.
 - [ ] A2. Move the game into `web/` (served by the `web` image in place of the 3D-era home page and plain page) and the tools into `tools/pixel/`. Delete the 3D-era code in `web/` and anywhere else. Point CI (lint, Prototype Smoke, e2e, Dockerfile tests) at the new paths. The game reads live stars from `api` with the baked numbers as fallback. Rewrite sections 2 and 9 with the new paths. Every check green.
 - [ ] A3. The docs purge (note 34). Delete `ROUND4.md`, `ROUND5.md`, `PROGRESS.md`, the old `plan/` folder and every doc that describes something no longer true. Keep the decision records that still hold, delete the rest, renumber from 0001. Rewrite the PRD and `ARCHITECTURE.md` short and current. Move `IDEAS.md` to `docs/`. Bring the README and every `CLAUDE.md` up to date in TJ's voice. Every check green.
 - [ ] A4. Issue #34: the words in `content/`, one file per place, built into the game's data; `content.js` keeps no copy. Browser tests still pass; the page of text still shows every card.
@@ -279,7 +279,9 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **2026-11-21, before any work.** `round6` was cut from `main` at `5604ea6` (round 5 merged). It holds only this plan. The game is exactly round 5's final build (`archive/pixel-r5-final`).
 - Round 5's artifact, the floor: https://claude.ai/artifact/1VdS5Q3uSMTpEuGEm39SZr (version 76).
 - The round's PR: https://github.com/zimmertr/trailhead/pull/54 (draft).
-- Next: A1.
+- The round's artifact: https://claude.ai/artifact/Sxbh3R3GpV75ZQ7d63iRVD (created at A1 from `round6`, exported to the scratchpad's `r6-working/`; republish from that folder only).
+- **A1 done.** The draft PR is open. trailhead-19's art rules are in `design/TRAILHEAD-ART.md`, copied unchanged, and the repo's `CLAUDE.md` points at them in its documentation table. The page's description no longer keeps a tag that is split round another (the code-scanning alert): tags are stripped until none are left, then any stray angle bracket goes, with a test. The page title names round 6. Artifact version 1, the game exactly as round 5 left it.
+- Next: A2.
 
 ## 11. Calls made in round 6
 
@@ -296,3 +298,7 @@ Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Deskto
 - Note 12: the forest scene's end: a grey mossy cliff across the picture with wooden ramps zig-zagging up its face, the waterfall in the middle, the lake visible above, and the cliff's right edge fading into the trunks of the big tree.
 - Note 22: the end of the rappel: the three on a ledge at the foot of the granite columns, TJ (green cap, yellow jacket) already crouched in the traverse pose off the end of the ledge, in the air short of the snow slope beyond.
 - Note 31: the Trailhead sign: the intro card above three planks; the first two start at one left edge, the third further right.
+- A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
+- A1, a call: TJ's notes artifact for round 6 was not made. Only two of his screenshots survive (section 12), and the words in section 12 carry the rest.
+- A1, a call: the reply to trailhead-19 could not be sent; its session had ended (its socket was gone). H1 tries again through `ListAgents`.
+
