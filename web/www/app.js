@@ -2,7 +2,7 @@
 // sheets that open over it (trail map, kiosk, register, keys, plain page).
 import { mount } from './pixel.js';
 import { makeAudio } from './audio.js';
-import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, UI, NAMES, DEST_NAMES, ago } from './content.js';
+import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, UI, NAMES, DEST_NAMES, TRACK_NAMES, SET_NAMES, ago } from './content.js';
 import { OX, OY, BAKE } from './land.js';
 import { DEBUG } from './core.js';
 import { TRICKS } from './cats.js';
@@ -367,10 +367,48 @@ function nextTrack() { audio.start(); if (audio.muted()) audio.setMuted(false); 
 // The time of day (T76): AUTO (the default on every visit) follows the world clock, DAY and DUSK hold that light.
 const CLOCK_MODES = ['auto', 'day', 'dusk'];
 function toggleDusk() { const m = api.clock().mode; api.setClock({ mode: CLOCK_MODES[(CLOCK_MODES.indexOf(m) + 1) % 3] }); syncTop(); audio.sfx('select'); }
+// The music button (round 6, note 29). Before the browser lets anything play it asks for the click that does;
+// after that it shows the track, or Sound off, and opens a menu of the tracks, the music styles and Sound off.
+const music = $('music');
+let soundAsked = false;   // the visitor has clicked for sound, whether or not the browser has started it yet
+function musicMenu(open) {
+  const b = $('b-track');
+  if (!open) { if (!music.hidden) { music.hidden = true; b.setAttribute('aria-expanded', 'false'); } return; }
+  const k = audio.track(), off = audio.muted(), set = audio.set().index;
+  const item = (text, on, act) => el('button', { class: 'plank', role: 'menuitemradio', 'aria-checked': String(!!on), onclick: () => { act(); musicMenu(false); syncTop(); b.focus(); } }, el('span', { text }));
+  const play = i => () => { audio.start(); if (audio.muted()) audio.setMuted(false); audio.pick(i); };
+  music.replaceChildren(
+    el('p', { class: 'from', text: UI.map.music }),
+    item(UI.auto(audio.autoTrack()), !off && k.auto, play(-1)),
+    ...TRACK_NAMES.map((n, i) => item(n, !off && !k.auto && k.index === i, play(i))),
+    el('p', { class: 'from', text: UI.map.musicStyle }),
+    ...SET_NAMES.map((n, i) => item(n, set === i, () => { audio.start(); audio.setSet(i); audio.sfx('flag'); })),
+    el('div', { class: 'rule' }),
+    item(UI.soundOff, off, () => audio.setMuted(true)));
+  const r = b.getBoundingClientRect();
+  music.hidden = false; music.style.cssText = 'top:' + Math.round(r.bottom + 4) + 'px;left:' + Math.round(Math.max(8, Math.min(r.left, innerWidth - 8 - music.offsetWidth))) + 'px';
+  music.hidden = false; b.setAttribute('aria-expanded', 'true');
+  (music.querySelector('[aria-checked="true"]') || music.querySelector('button')).focus();
+  audio.sfx('open');
+}
+music.addEventListener('keydown', e => {
+  const items = [...music.querySelectorAll('button')], at = items.indexOf(document.activeElement);
+  if (e.code === 'ArrowDown' || e.code === 'ArrowUp') { items[(at + (e.code === 'ArrowDown' ? 1 : items.length - 1)) % items.length].focus(); e.preventDefault(); e.stopPropagation(); }
+  else if (e.code === 'Escape' || e.code === 'Tab') { musicMenu(false); $('b-track').focus(); e.preventDefault(); e.stopPropagation(); }
+});
+addEventListener('pointerdown', e => { if (!music.hidden && !music.contains(e.target) && !$('b-track').contains(e.target)) musicMenu(false); }, true);
 const coarse = window.matchMedia ? matchMedia('(pointer: coarse)') : { matches: false };
 // The music button's spoken name carries the track it shows, so what is read matches what is seen.
 const trackLabel = $('b-track').getAttribute('aria-label');
-function syncTop() { document.documentElement.dataset.theme = api.theme(); $('b-track').querySelector('span').textContent = trackName(); $('b-track').setAttribute('aria-label', trackLabel + ': ' + trackName()); $('b-track').style.opacity = audio.muted() ? .6 : 1; $('b-sound').textContent = audio.muted() ? UI.sound[1] : audio.live() ? UI.sound[0] : UI.soundWaits[coarse.matches ? 1 : 0]; $('b-sound').setAttribute('aria-pressed', String(!audio.muted())); $('b-dusk').textContent = UI.theme[api.clock().mode]; }
+function syncTop() {
+  document.documentElement.dataset.theme = api.theme();
+  const said = audio.muted() ? UI.soundOff : audio.live() || soundAsked ? trackName() : UI.soundWaits[coarse.matches ? 1 : 0];
+  $('b-track').querySelector('span').textContent = said; $('b-track').setAttribute('aria-label', trackLabel + ': ' + said);
+  $('b-track').dataset.state = audio.muted() ? 'off' : audio.live() || soundAsked ? 'playing' : 'waits';
+  // The sun or the moon before the clock's word: what the sky is now, so AUTO says what it is for (note 30).
+  const mode = api.clock().mode, dark = mode === 'dusk' || (mode === 'auto' && api.theme() === 'dark');
+  $('b-dusk').querySelector('.sky').className = 'sky ' + (dark ? 'moon' : 'sun'); $('b-dusk').querySelector('span').textContent = UI.theme[mode]; $('b-dusk').setAttribute('aria-label', UI.map.dusk + ': ' + UI.theme[mode]);
+}
 
 
 // ------------------------------------------------------------------ start
@@ -468,8 +506,7 @@ tab.addEventListener('click', e => { e.currentTarget.blur(); if (shown && cardSh
 $('home').addEventListener('click', e => { e.currentTarget.blur(); if (api.route().startsWith('spire:')) toCamp(); else home(); audio.sfx('select'); });
 $('card-go').addEventListener('click', () => { const c = CARDS[shown]; audio.sfx('select'); if (c && c.home) home(); else api.start(); });
 $('b-map').addEventListener('click', e => { e.currentTarget.blur(); openSheet('map'); });
-$('b-sound').addEventListener('click', e => { e.currentTarget.blur(); toggleSound(); });
-$('b-track').addEventListener('click', e => { e.currentTarget.blur(); nextTrack(); });
+$('b-track').addEventListener('click', () => { if (!soundAsked && !audio.live() && !audio.muted()) { soundAsked = true; audio.start(); audio.sfx('select'); syncTop(); return; } soundAsked = true; musicMenu(music.hidden); });
 $('b-dusk').addEventListener('click', e => { e.currentTarget.blur(); toggleDusk(); });
 $('b-help').addEventListener('click', e => { e.currentTarget.blur(); openSheet('keys'); });
 $('b-page').addEventListener('click', () => navigate('#page'));

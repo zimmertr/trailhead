@@ -509,10 +509,7 @@ export const W = {
    "Trailhead",
    "Camp"
   ],
-  "sound": [
-   "Sound on",
-   "Sound off"
-  ],
+  "soundOff": "Sound off",
   "theme": {
    "auto": "Auto",
    "day": "Day",

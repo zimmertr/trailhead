@@ -103,14 +103,45 @@ test('the page shows the picture of the map and every card', async ({ page }) =>
 })
 
 // A visitor who asked for reduced motion: AUTO holds Day even at an hour that would be Dusk (round 5, K1).
+// 330 s into the 390 s cycle is Dusk since round 6 (note 32), when the day became three quarters of it.
 test('reduced motion holds AUTO at Day', async ({ browser }) => {
   const page = await browser.newPage({ reducedMotion: 'reduce' })
-  const problems = await open(page, '/?time=250')
+  const problems = await open(page, '/?time=330')
   await watch(page)
   const clock = await page.evaluate(() => (window as unknown as { __api: { clock: () => { mode: string; mix: number } } }).__api.clock())
   expect(clock).toMatchObject({ mode: 'auto', mix: 0 })
   expect(problems).toEqual([])
   await page.close()
+})
+
+// The clock's button shows the sky it is now: the sun by day, the moon at Dusk (round 6, note 30).
+test('AUTO shows the sun by day and the moon at Dusk', async ({ page }) => {
+  const problems = await open(page, '/?time=100')
+  await expect(page.locator('#b-dusk .sky')).toHaveClass(/sun/)
+  await page.goto(`${origin}/?time=330`)
+  await page.waitForFunction(() => window.__ready === true, null, { timeout: 30_000 })
+  await expect(page.locator('#b-dusk .sky')).toHaveClass(/moon/, { timeout: 10_000 })
+  await expect(page.locator('#b-dusk')).toContainText('Auto')
+  expect(problems).toEqual([])
+})
+
+// One button for the music and the sound (round 6, note 29): the first click turns sound on if the
+// browser has not, and after that it opens the menu, where Sound off is.
+test('the music button opens its menu, and Sound off turns the sound off', async ({ page }) => {
+  const problems = await open(page, '/')
+  const button = page.locator('#b-track'), menu = page.locator('#music')
+  await button.click()
+  if (await menu.isHidden()) await button.click()
+  await expect(menu).toBeVisible()
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(12)
+  await page.keyboard.press('Escape')
+  await expect(menu).toBeHidden()
+  await button.click()
+  await menu.getByRole('menuitemradio', { name: 'Sound off' }).click()
+  await expect(menu).toBeHidden()
+  await expect(button).toContainText('Sound off')
+  expect(await axe(page).then(found)).toEqual([])
+  expect(problems).toEqual([])
 })
 
 // Round 4's address for it, which links may still carry.

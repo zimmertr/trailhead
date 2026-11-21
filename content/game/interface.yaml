@@ -10,9 +10,8 @@ UI:
   home:
     - Trailhead
     - Camp
-  sound:
-    - Sound on
-    - Sound off
+  # The last entry of the music menu, and what the music button says while the sound is off.
+  soundOff: Sound off
   theme:
     auto: Auto
     day: Day

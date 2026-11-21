@@ -269,6 +269,10 @@ export function makeAudio() {
     place(name) { if (!PLACES[name] || name === place) return; place = name; turn = 0; if (auto) fadeTo(PLACES[name][0]); },
     // The track button: Auto, then each track in turn, then Auto again. A track picked here stays until Auto comes round.
     cycle() { const at = swap == null ? cur : swap; if (auto) { auto = false; fadeTo(0, true); } else if (at + 1 >= TRACKS.length) { auto = true; fadeTo(PLACES[place][0], true); } else fadeTo(at + 1, true); try { if (auto) localStorage.removeItem('trailhead.track'); else localStorage.setItem('trailhead.track', String(swap == null ? cur : swap)); } catch { /* private window */ } },
+    // The music menu: one track by its number, kept until Auto is picked again; -1 is Auto, which follows the place.
+    pick(k) { if (k < 0) { auto = true; fadeTo(PLACES[place][0], true); } else { auto = false; if (k !== (swap == null ? cur : swap)) fadeTo(k, true); } try { if (auto) localStorage.removeItem('trailhead.track'); else localStorage.setItem('trailhead.track', String(k)); } catch { /* private window */ } },
+    // The track that Auto plays in the place he is in now.
+    autoTrack: () => TRACKS[PLACES[place][0]].name,
     set: () => ({ index: set, name: SETS[set].name, count: SETS.length }),
     // The debug menu's sound test (P3): every effect by its name here, every tune's two parts on their own,
     // and every place's background sound.

@@ -204,7 +204,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 - [x] B1. Remove the first-visit hint (note 6).
 - [x] B2. The opening view: TJ a little below-right of centre (note 7).
 - [x] B3. The sign's planks flush left (note 31).
-- [ ] B4. The top bar: sound merged into the music button, the sun or moon on AUTO, AUTO about 75% day (notes 29, 30, 32).
+- [x] B4. The top bar: sound merged into the music button, the sun or moon on AUTO, AUTO about 75% day (notes 29, 30, 32).
 - [ ] B5. Fewer menus and hotkeys (note 23, #33). Log the design and why in section 11.
 - [ ] B6. Debug: the bold camera-bounds outline, "On the map" moving the camera, the split buttons (notes 24, 26, 27).
 - [ ] B7. The off-route page: the 404 readable at a glance, and a way back into the game from "Break this scene" (note 28).
@@ -292,7 +292,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **B1 done.** The first-visit hint ("Click a sign or a trail to start walking.") is gone: its element, its placing code in `app.js`, its styles and its two lines of words. The space bar still waits until a destination is picked, as before. Side by side with round 5 at the opening, desktop and phone, the only change is the missing plank. Frame time 10.5 ms zoomed out at Dusk; nothing moved.
 - **B2 done.** At the opening TJ now stands a little below and right of the middle of what shows above the timeline bar (above the junction sign on an upright phone): measured at 66% across and 63% down on a 1440 by 900 screen (round 5: 94% and 83%), 66% and 64% at 1920 by 1080, and 55% across, 69% down the uncovered part on a 390 by 844 phone (round 5: 13%, at the sign's edge). `openFrame()` in `world.js` keeps him inside that window and, within it, still picks the frame that shows the most of the three destinations. The zoom is unchanged. The cost, side by side with round 5: the destinations show less at the opening. On a desktop Reflection Lake is cut to its east end and the two peaks to their names along the top; on a phone the granite and the glacier are out of frame. The idle tour still visits each. Frame time 9.9 ms; nothing moved; the lake route walks clean.
 - **B3 done.** The three planks on the Trailhead sign start at one left edge: the first no longer sticks out 2 pixels and the third no longer sits 3 in. Their arrows and words line up, on a desktop, a phone and a phone at three times density, Day and Dusk. Nothing else on the sign changed. Nothing moved.
-- Next: B4.
+- **B4 done.** The Sound button is gone. The music button reads "Click for sound" until the browser can play, then the track; its menu lists Auto, the seven tracks, the three music styles and Sound off, with the current ones marked, and while the sound is off the button says so. It opens on a click and closes on a pick, Escape, Tab or a click elsewhere; the arrow keys move through it. On a phone, where the music button used to be hidden and the Sound button showed, the music button now shows: its words until sound is on, then only its note, at least 24 px wide. The clock's button carries a pixel sun or moon before its word, whatever the sky is now, so AUTO shows the sun by day and the moon at Dusk. The world clock is still 390 s a cycle, now 285 s of day, a 20 s sunset, 65 s of dusk and a 20 s sunrise (it was 165, 30, 165, 30), so about three quarters is day. Two new browser tests: the menu and Sound off, and the sun and moon; the reduced-motion test now opens at 330 s, which is Dusk again. 21 browser tests and axe pass. Frame time 10.3 ms; nothing moved.
+- Next: B5.
 
 ## 11. Calls made in round 6
 
@@ -310,6 +311,10 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - B1: `__api.touring()` and `__api.me()` stay, though the hint was their only use in the game: the test scripts and section 2 use them.
 - B2: TJ's note asks to "center him, or at least center-bottomright him"; the window is 52 to 66% across and 56 to 72% down, and the search puts him at its upper-left edge, nearest the destinations. A first try at 50 to 62% and 54 to 70% hid the lake on a desktop altogether. TJ can move the window in `OPEN_X` and `OPEN_Y` at the top of `world.js`.
 - B2: the hand-off from the opening frame to following him is the same eased code as before and now travels less; not filmed. Dusk frames the opening the same way, so it was not rendered separately.
+- B4: the menu holds both the tracks and the three instrument sets, since note 29's decision says "music styles" and the old button cycled tracks; the trail map's Settings rows for sound, music and style stay until B5 decides the menus.
+- B4: the first click on the music button only turns the sound on (the browser needs it); every later click opens the menu. Picking a track while the sound is off turns it back on; Sound off does nothing when it is already off.
+- B4: no new words. `UI.sound` (Sound on, Sound off) became `UI.soundOff`, since "Sound on" was no longer shown; the menu's headings reuse "Music" and "Music style".
+- B4: the day is 285 of 390 s (73%); with half of each fade counted as light it is 78%, inside "about 75%".
 
 ## 12. TJ's pictures for this round
 

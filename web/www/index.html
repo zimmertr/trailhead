@@ -10,9 +10,8 @@
 <header id="top" hidden>
   <button class="plank" id="b-map" aria-haspopup="dialog">Trail map</button>
   <span class="gap"></span>
-  <button class="plank" id="b-track" aria-label="Next music track"><i class="note"></i><span></span></button>
-  <button class="plank" id="b-sound" aria-pressed="false">Sound off</button>
-  <button class="plank" id="b-dusk">Dusk</button>
+  <button class="plank" id="b-track" aria-label="Music" aria-haspopup="menu" aria-expanded="false"><i class="note"></i><span></span></button>
+  <button class="plank" id="b-dusk" aria-label="Time of day"><i class="sky"></i><span></span></button>
   <button class="plank" id="b-help" aria-label="Keys">Keys</button>
   <button class="plank" id="b-debug" aria-haspopup="dialog">Debug</button>
   <button class="plank" id="b-page">Page</button>
@@ -49,6 +48,7 @@
 <div id="names"></div>
 <div id="tip" class="name" hidden></div>
 <div id="toast" role="status" hidden></div>
+<div id="music" class="placard" role="menu" aria-label="Music" hidden></div>
 
 <nav id="bar" aria-label="Route" hidden>
   <button id="run" class="plank">Start</button>

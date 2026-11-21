@@ -110,14 +110,15 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
 
   let route = 'lake', legs = [], stops = [], cues = [], total = 1;
   let p = 0, running = false, shown = null, mix = theme === 'dark' ? 1 : 0;
-  // One world clock for day and dusk (T76), on the map and in every scene. A cycle is 390 s: 165 of day, a 30 s
-  // sunset, 165 of dusk, a 30 s sunrise; a visit starts at the beginning of day. AUTO follows it; DAY or DUSK
+  // One world clock for day and dusk (T76), on the map and in every scene. A cycle is 390 s: 285 of day, a 20 s
+  // sunset, 65 of dusk, a 20 s sunrise, so about three quarters of it is day (round 6, note 32); a visit starts
+  // at the beginning of day. AUTO follows it; DAY or DUSK
   // hold that light until switched back. The palettes blend through the sunset and the sunrise (the LUT in
   // core.js is rebuilt in 65 steps, so the blend costs nothing per pixel). time=<seconds into the cycle> in the
   // address sets the clock, for screenshots.
-  const CYCLE = 390, SUNSET = 165, DUSK_AT = 195, SUNRISE = 360;
+  const CYCLE = 390, FADE = 20, SUNSET = 285, DUSK_AT = SUNSET + FADE, SUNRISE = CYCLE - FADE;
   const clock = { mode: theme === 'dark' ? 'dusk' : 'auto', t: (typeof location !== 'undefined' && +(/[?&]time=([\d.]+)/.exec(location.search) || [])[1]) || 0, speed: 1 };
-  const cycleMix = s => { s = ((s % CYCLE) + CYCLE) % CYCLE; const e = v => v * v * (3 - 2 * v); return s < SUNSET ? 0 : s < DUSK_AT ? e((s - SUNSET) / 30) : s < SUNRISE ? 1 : 1 - e((s - SUNRISE) / 30); };
+  const cycleMix = s => { s = ((s % CYCLE) + CYCLE) % CYCLE; const e = v => v * v * (3 - 2 * v); return s < SUNSET ? 0 : s < DUSK_AT ? e((s - SUNSET) / FADE) : s < SUNRISE ? 1 : 1 - e((s - SUNRISE) / FADE); };
   // A visitor who asked for reduced motion gets no day going by on its own (K1): AUTO holds Day until they
   // choose Dusk or Day themselves.
   const stillQ = typeof window !== 'undefined' && window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null, still = () => !!stillQ && stillQ.matches;
