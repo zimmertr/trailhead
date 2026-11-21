@@ -267,8 +267,6 @@ export function makeAudio() {
     track: () => ({ index: swap == null ? cur : swap, name: TRACKS[swap == null ? cur : swap].name, count: TRACKS.length, auto }),
     // The scene has changed: in Auto the music changes with it.
     place(name) { if (!PLACES[name] || name === place) return; place = name; turn = 0; if (auto) fadeTo(PLACES[name][0]); },
-    // The track button: Auto, then each track in turn, then Auto again. A track picked here stays until Auto comes round.
-    cycle() { const at = swap == null ? cur : swap; if (auto) { auto = false; fadeTo(0, true); } else if (at + 1 >= TRACKS.length) { auto = true; fadeTo(PLACES[place][0], true); } else fadeTo(at + 1, true); try { if (auto) localStorage.removeItem('trailhead.track'); else localStorage.setItem('trailhead.track', String(swap == null ? cur : swap)); } catch { /* private window */ } },
     // The music menu: one track by its number, kept until Auto is picked again; -1 is Auto, which follows the place.
     pick(k) { if (k < 0) { auto = true; fadeTo(PLACES[place][0], true); } else { auto = false; if (k !== (swap == null ? cur : swap)) fadeTo(k, true); } try { if (auto) localStorage.removeItem('trailhead.track'); else localStorage.setItem('trailhead.track', String(k)); } catch { /* private window */ } },
     // The track that Auto plays in the place he is in now.

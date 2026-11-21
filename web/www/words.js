@@ -732,7 +732,6 @@ export const W = {
    "onMap": "On this map",
    "plain": "Read as a page",
    "settings": "Settings",
-   "sound": "Sound",
    "onOff": [
     "on",
     "off"
@@ -841,6 +840,30 @@ export const W = {
   [
    "T",
    "day and dusk"
+  ],
+  [
+   "N",
+   "the music"
+  ],
+  [
+   "C",
+   "trail conditions"
+  ],
+  [
+   "R",
+   "the trail register"
+  ],
+  [
+   "P",
+   "the page of text"
+  ],
+  [
+   "K",
+   "these keys"
+  ],
+  [
+   "`",
+   "the debug menu"
   ],
   [
    "Drag",

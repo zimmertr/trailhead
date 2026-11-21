@@ -144,6 +144,23 @@ test('the music button opens its menu, and Sound off turns the sound off', async
   expect(problems).toEqual([])
 })
 
+// The trail conditions and the trail register are one place (round 6, note 23): C opens the board over the
+// register box, Escape puts the board away, and the notice on the box's back wall brings it back.
+test('C opens the trail conditions over the register, and its notice opens them again', async ({ page }) => {
+  const problems = await open(page, '/')
+  await page.keyboard.press('KeyC')
+  await expect(page.locator('#sheet .board')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#sheet')).toBeHidden()
+  const notice = page.locator('#book .notice')
+  await expect(notice).toBeVisible({ timeout: 10_000 })
+  await notice.click()
+  await expect(page.locator('#sheet .board')).toBeVisible()
+  await page.waitForTimeout(1000)
+  expect(await axe(page).then(found)).toEqual([])
+  expect(problems).toEqual([])
+})
+
 // Round 4's address for it, which links may still carry.
 test('the old address still opens the page', async ({ page }) => {
   const problems = await open(page, '/#plain')

@@ -123,6 +123,12 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #book .field::placeholder { color: #a8a094; }
 #book .field:focus-visible { box-shadow: 0 0 0 2px rgba(34, 64, 154, .35); }
 #book .sign { position: absolute; min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
+/* The trail conditions notice pinned on the register box's back wall (note 23): a click opens the whole board. */
+#book .notice { position: absolute; pointer-events: auto; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 2px 8px; overflow: hidden; text-align: left; background: var(--paper); color: var(--paper-ink); border: var(--px) solid var(--ink); box-shadow: inset 0 0 0 var(--px) var(--paper-2), var(--px) var(--px) 0 var(--shade); font-family: var(--small); font-size: 12px; line-height: 1.1; cursor: pointer; }
+#book .notice b { font-family: var(--sign); font-size: 12px; font-weight: 400; color: var(--blaze-ink); }
+#book .notice span { overflow-wrap: anywhere; }
+@media (max-width: 760px) { #book .notice { font-size: 11px; padding: 2px 5px; gap: 1px; } #book .notice b { font-size: 10px; } }
+#book .notice:hover, #book .notice:focus-visible { background: var(--paper-2); }
 #book .legend { position: absolute; margin: 0; font-family: var(--small); font-size: 12px; color: #8a5a4a; }
 #book .sig { text-align: right; padding-right: 1.5em; }
 #book .pending { font-family: var(--small); font-size: 12px; margin-left: .6em; color: #b0502c; white-space: nowrap; }
@@ -265,7 +271,8 @@ button.name:hover, .name.done { background: var(--moss); }
 .board { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: calc(var(--px) * 4); }
 .board > div { padding: calc(var(--px) * 3) calc(var(--px) * 4); background: var(--paper-2); border: var(--px) solid var(--paper-ink); transform: rotate(-.6deg); }
 .board > div:nth-child(even) { transform: rotate(.7deg); }
-.board dt { font-family: var(--small); font-size: 15px; color: var(--dim); }
+/* The labels on the board's darker cards are a shade nearer the ink than --dim, for 4.5:1 contrast. */
+.board dt { font-family: var(--small); font-size: 15px; color: color-mix(in srgb, var(--dim) 75%, var(--paper-ink)); }
 .board dd { font-family: var(--title); font-size: 30px; line-height: 1; }
 .board > .wide { grid-column: 1 / -1; transform: rotate(-.25deg); }
 .board > .wide dd { font-family: var(--read); font-size: 22px; line-height: 1.35; }

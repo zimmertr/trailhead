@@ -214,7 +214,6 @@ UI:
     onMap: On this map
     plain: Read as a page
     settings: Settings
-    sound: Sound
     onOff:
       - on
       - off
@@ -309,6 +308,18 @@ HELP:
     - the trail map
   - - T
     - day and dusk
+  - - N
+    - the music
+  - - C
+    - trail conditions
+  - - R
+    - the trail register
+  - - P
+    - the page of text
+  - - K
+    - these keys
+  - - '`'
+    - the debug menu
   - - Drag
     - look around
   - - + and -, wheel, pinch

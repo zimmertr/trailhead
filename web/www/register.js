@@ -47,6 +47,12 @@ function paintBox(fb, L) {
   for (let y = rim; y < yH; y++) { fb[y * VW + rim] = INK; fb[y * VW + VW - 1 - rim] = INK; }
 }
 
+// Where the trail conditions notice is pinned (round 6, note 23): on the back wall right of the map, as tall
+// as the wall allows. The page lays the notice itself over this box, and it opens the whole board.
+function boardAt(L) {
+  const { back, n } = L, x = back.x0 + (n ? 10 : 22) + (n ? 70 : 54) + (n ? 8 : 14), y = back.y0 + 3;
+  return { x, y, w: Math.max(0, Math.min(back.x1 - (n ? 8 : 22) - x, n ? 120 : 140)), h: Math.max(0, back.y1 - back.y0 - 6) };
+}
 // The map behind glass on the back wall: the three trails from the Trailhead, the lake, the peak.
 function paintMap(fb, L) {
   const { VW, back, n } = L, w = n ? 70 : 54, h = Math.min(back.y1 - back.y0 - 6, n ? 46 : 22), x0 = back.x0 + (n ? 10 : 22), y0 = back.y0 + 3;
@@ -159,7 +165,7 @@ export function makeRegisterScene() {
     enter(scr) { build(scr); },
     focus: () => focus,
     // The pages, in screen pixels of this scene, for the words laid over them.
-    pages: () => L && { left: L.left, right: L.right, pitch: L.pitch, top: Math.round(L.pitch * 1.6) },
+    pages: () => L && { left: L.left, right: L.right, pitch: L.pitch, top: Math.round(L.pitch * 1.6), board: boardAt(L) },
     draw(scr, env, arg, q) {
       build(scr);
       scr.fb.set(pic);
