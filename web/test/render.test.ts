@@ -68,6 +68,12 @@ group('describe', () => {
     expect(describe(content())).toBe('TJ Zimmerman is a test.')
     expect(describe(content({ places: [] }))).toBe('TJ Zimmerman')
   })
+
+  it('leaves no tag behind when one is split round another', () => {
+    const html = '<p>is <scr<b>ipt>alert(1)</scr</b>ipt> a test.</p>'
+    const places = content().places.map((place, i) => (i === 0 ? { ...place, html } : place))
+    expect(describe(content({ places }))).not.toMatch(/&lt;|&gt;/)
+  })
 })
 
 group('contentPages', () => {

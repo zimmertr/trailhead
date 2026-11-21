@@ -19,6 +19,7 @@ TJ's site, tjzimmerman.com, as one pixel-art mountain world that a visitor runs 
 | [`docs/TRAFFIC.md`](docs/TRAFFIC.md) | Routes in, client identity, headers, and every outbound call |
 | [`docs/USAGE.md`](docs/USAGE.md) | What a visitor and TJ see, and what to do when it breaks |
 | [`prototype/pixel/`](prototype/pixel/ROUND4.md) | The pixel-art prototype (plain JS in `www/`): `ROUND4.md` is the last round's plan and log, `IDEAS.md` the backlog, `PROGRESS.md` the history. `shot.sh`, `sheet.sh`, `frames.sh` and `bake.sh` render and bake it in Docker (their image installs from `lab/`). It is plain browser JS with no build and no types, so `make lint` holds it to ESLint's own recommended rules and none of the site's, and `make prototype-smoke` (`e2e/prototype/`) opens every route in a browser and fails on anything written to the console, a stale `ground.png` included |
+| [`design/TRAILHEAD-ART.md`](design/TRAILHEAD-ART.md) | How the game uses generated pictures: when to use one, the two ways to use it, and the style model. Read it before making or changing art |
 | [`NOTICES.md`](NOTICES.md) | The bundled software and data, with their licenses |
 | [`content/CLAUDE.md`](content/CLAUDE.md), [`common/CLAUDE.md`](common/CLAUDE.md), [`web/CLAUDE.md`](web/CLAUDE.md), [`api/CLAUDE.md`](api/CLAUDE.md), [`admin/CLAUDE.md`](admin/CLAUDE.md), [`fetcher/CLAUDE.md`](fetcher/CLAUDE.md) | Each workspace's modules and what each owns |
 

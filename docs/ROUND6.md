@@ -288,7 +288,7 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 
 ## 12. TJ's pictures for this round
 
-TJ's screenshots of 2026-11-21 are on the round's notes artifact once A1 creates it (never in the repo). What each shows:
+Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:
 
 - Note 4: the map round Reflection Lake. A red outline round the lake marks the bigger size (about twice the old one; build 1.5 times, inside it). A blue outline marks the parkland that needs flowers: from the forest edge on the left, along the foot of the volcano's glaciers, across to the Spires sign, and down to the lake; the left part, a green slope under the volcano's west glacier, has no flowers at all.
 - Note 8: the forest between the beach and the Trailhead, with a blue circle round a dark, empty patch among the trees, south-west of the two signs.
