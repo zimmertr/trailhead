@@ -171,7 +171,7 @@ export function makeCritters(W, opts = {}) {
   // Where it may stop is its country (o.ok); what it may walk across on the way is any ground a land animal
   // may stand on that is not a tree's foot (pass), so it can go behind a tree, through the sage or over a trail to the next open patch.
   const pass = (x, y) => col.canBe('land', x, y, 0) && !bole[Math.floor(y / CELL) * GW + Math.floor(x / CELL)];
-  const walker = (kind, f, x0, y0, o) => { const own = o.ok; o = { ...o, ok: (x, y) => own(x, y) && col.canBe('land', x, y, 0) }; const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, walker: true, f, bm: f.graze, x, y, hx: x, hy: y, h0: [x, y], st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
+  const walker = (kind, f, x0, y0, o) => { const own = o.ok; o = { ...o, ok: (x, y) => own(x, y) && col.canBe('land', x, y, 0) }; const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, col: 'land', walker: true, f, bm: f.graze, x, y, hx: x, hy: y, h0: [x, y], st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
   // The herd keeps together: each elk strays only a little from its own place in it.
   spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look' }));
   spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null }));
@@ -193,7 +193,7 @@ export function makeCritters(W, opts = {}) {
   const TRUNKS = W.things.filter(th => th.tree && !th.tree.low && th.tree.h >= 18).map(th => ({ x: th.x, y: th.y, w: th.tree.w, h: th.tree.h }));
   // The nearest trunk a cub may climb: close to it and to her (the start button reaches twice as far), with no other tree standing in front of its foot.
   const trunkFor = (a, reach = 22) => { let top = null, bd = reach; for (const T of TRUNKS) { const d = Math.hypot(T.x - a.fx, (T.y - a.fy) / 0.6); if (d >= bd || Math.hypot(T.x - a.mum.fx, (T.y - a.mum.fy) / 0.6) > reach + 8) continue; if (TRUNKS.some(Q => Q !== T && Q.y > T.y && Q.y - T.y < Math.min(Q.h, 30) && Math.abs(Q.x - T.x) < Q.w / 2 + 2)) continue; top = T; bd = d; } return top; };
-  const cubOf = (sow, n, twin) => { const [ax, ay] = besideHer({ mum: sow, n, sib: twin }, 22, 3 + n), x = Math.round(sow.x + ax), y = Math.round(sow.y + ay); return { critter: 'bear', cub: true, mum: sow, n, f: cubF, bm: cubF.look, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'idle', pose: 'look', until: 1 + rand() * 4, flip: rand() < 0.5, hop: 0, lift: 0 }; };
+  const cubOf = (sow, n, twin) => { const [ax, ay] = besideHer({ mum: sow, n, sib: twin }, 22, 3 + n), x = Math.round(sow.x + ax), y = Math.round(sow.y + ay); return { critter: 'bear', col: 'land', cub: true, mum: sow, n, f: cubF, bm: cubF.look, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'idle', pose: 'look', until: 1 + rand() * 4, flip: rand() < 0.5, hop: 0, lift: 0 }; };
   // A family needs room: she is put on the nearest ground to her spot, up to 90 away, that has a clear place for a cub on each side of her.
   const family = (x, y, o, roamer) => { const g = (px, py) => o.ok(px, py) && land(px, py), room = (px, py) => g(px, py) && way(g, px, py, px - 22, py + 3) && way(g, px, py, px + 22, py + 4) && land(px - 27, py + 3) && land(px + 27, py + 4);
     if (!room(x, y)) search: for (let r = 4; r <= 90; r += 4) for (let k = 0; k < 20; k++) { const px = Math.round(x + Math.cos(k / 20 * TAU) * r), py = Math.round(y + Math.sin(k / 20 * TAU) * r * 0.6); if (room(px, py)) { x = px; y = py; break search; } }
@@ -291,7 +291,7 @@ export function makeCritters(W, opts = {}) {
 
   // ---- squirrels and chipmunks: sit, then dart ----------------------------------------------
   const sq = [0, 1].map(chip => ({ sit: W.make.squirrel(!!chip), run: W.make.squirrel(!!chip, true) }));
-  for (const [x, y, chip] of spots.squirrels) items.push({ h0: [x, y], critter: 'squirrel', dart: true, f: sq[chip ? 1 : 0], bm: sq[chip ? 1 : 0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: 3 + rand() * 12, flip: rand() < 0.5 });
+  for (const [x, y, chip] of spots.squirrels) items.push({ h0: [x, y], critter: 'squirrel', col: 'land', dart: true, f: sq[chip ? 1 : 0], bm: sq[chip ? 1 : 0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: 3 + rand() * 12, flip: rand() < 0.5 });
   function dart(a, dt, t, here) {
     if (a.st === 'run') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
@@ -308,7 +308,8 @@ export function makeCritters(W, opts = {}) {
     for (let k = 0; k < 6; k++) {
       const an = near ? Math.atan2(a.fy - here.y, a.fx - here.x) + (rand() - 0.5) * 1.6 : rand() * TAU, rr = near ? 26 + rand() * 12 : 6 + rand() * 22;
       const tx = (near ? a.fx : a.hx) + Math.cos(an) * rr, ty = (near ? a.fy : a.hy) + Math.sin(an) * rr * 0.6;
-      if (clear(tx, ty) && Math.hypot(tx - a.fx, ty - a.fy) > 4) { a.tx = tx; a.ty = ty; a.st = 'run'; return; }
+      // It darts only along ground a land animal may cross (collide.js), so never over a creek or into a rock.
+      if (clear(tx, ty) && Math.hypot(tx - a.fx, ty - a.fy) > 4 && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'run'; return; }
     }
     a.until = t + 3;
   }
@@ -321,7 +322,7 @@ export function makeCritters(W, opts = {}) {
   // top stands) and keep to it. Every 26 s, and when he comes near, a marmot sits up and whistles, then drops
   // down again; the whistle sounds if the marmot is on screen. None sets foot on ice or snow.
   const MAR = { cycle: 26, up: 2.6 }, sounds = [];
-  spots.marmots.forEach(([x, y0, perch = 0], n) => { const y = y0 + (perch ? 1 : 0); items.push({ critter: 'marmot', bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: perch ? 0 : 16, perch, lift: perch, st: 'sun', until: 4 + rand() * 10 }); });
+  spots.marmots.forEach(([x, y0, perch = 0], n) => { const y = y0 + (perch ? 1 : 0); items.push({ critter: 'marmot', col: 'land', f: mar, bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: perch ? 0 : 16, perch, lift: perch, st: 'sun', until: 4 + rand() * 10 }); });
   const offIce = (x, y) => { const k = RAMP_OF[g[Math.round(y) * NW + Math.round(x)]]; return k !== 'glac' && k !== 'snow' && k !== 'farsnow'; };
   function scurry(a, dt, t, here) {
     const up = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / MAR.cycle + a.n * 0.37) < MAR.up / MAR.cycle || (a.call != null && t - a.call < MAR.up);
@@ -335,7 +336,7 @@ export function makeCritters(W, opts = {}) {
     }
     a.bm = up ? mar.up : mar.sun;
     if (up || t < a.until) return;
-    for (let k = 0; k < 6; k++) { const an = rand() * TAU, rr = a.r * (0.3 + 0.7 * rand()), tx = a.hx + Math.cos(an) * rr, ty = a.hy + Math.sin(an) * rr * 0.6; if (W.open(tx, ty) && offIce(tx, ty) && way((x, y) => W.open(x, y) && offIce(x, y), a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'run'; return; } }
+    for (let k = 0; k < 6; k++) { const an = rand() * TAU, rr = a.r * (0.3 + 0.7 * rand()), tx = a.hx + Math.cos(an) * rr, ty = a.hy + Math.sin(an) * rr * 0.6; if (col.canBe('land', tx, ty, 0) && offIce(tx, ty) && way((x, y) => col.canBe('land', x, y, 0) && offIce(x, y), a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'run'; return; } }
     a.until = t + 5;
   }
 
@@ -355,7 +356,7 @@ export function makeCritters(W, opts = {}) {
   const flukes = [0, 0.33, 0.66, 1].map(f => W.make.whale({ fluke: f }));
   const SLOT = 50, starts = n => 10 * hash(n, 5, 63), T0 = starts(0) + 1.55;
   const back = (() => { const b = new BM(20, 6); b.ox = 10; b.oy = 5; ell(b, 10, 6, 8.5, 4.2, (nx, ny) => R.navy[ny < -0.55 ? 2 : 1]); b.set(13, 1, R.navy[0]); b.set(14, 1, R.navy[0]); outline(b, INK); return b; })();
-  items.push({ critter: 'whale', bm: whales[0], x: spots.whale[0], y: spots.whale[1] });
+  items.push({ critter: 'whale', col: 'whale', f: { whales, flukes }, bm: whales[0], x: spots.whale[0], y: spots.whale[1] });
   // A drawing sunk some way into the water, with broken foam where it meets the surface.
   function sunk(scr, bm, x, y, sink, t) {
     for (let j = 0; j + sink <= bm.oy && j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (c) scr.set(x - bm.ox + i, y - bm.oy + sink + j, c); }
@@ -636,7 +637,7 @@ export function makeCritters(W, opts = {}) {
     return eagles[eagleAt] = { p, C, RX, RY, A, fish, flight }; };
   // The eagle as a thing on the map, so it is drawn with its stack and the fog covers both: on its perch it
   // looks about, and for a while after a catch it eats. In the air this thing is empty and over() draws it.
-  const eagleItem = TOPS.length ? { critter: 'eagle', bm: EAGLE_BM.sit, x: 0, y: 0, hop: 0, lift: 0, flip: false } : null;
+  const eagleItem = TOPS.length ? { critter: 'eagle', col: 'flyer', f: EAGLE_BM, bm: EAGLE_BM.sit, x: 0, y: 0, hop: 0, lift: 0, flip: false } : null;
   if (eagleItem) items.push(eagleItem);
   let nowT = 0;
   function eagleSits(t) {

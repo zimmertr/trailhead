@@ -36,6 +36,7 @@ The chart is in [zimmertr/trailhead-helm](https://github.com/zimmertr/trailhead-
 - **Migrations are plain SQL in `db/`, run by the fetcher image's `node migrate.js`**; a migration that has run is never edited. Record: [0008](docs/architectural-decision-records/0008-migrations-are-plain-sql-run-from-the-fetcher-image.md)
 - **ESLint has its own package on TypeScript 6** (`tools/eslint/`), and each custom rule has a fixture its self-test checks. Record: [0010](docs/architectural-decision-records/0010-eslint-runs-on-typescript-6-in-its-own-package.md)
 - **The API counts clients by `CF-Connecting-IP` alone**, through `clientBucket`; nothing reads or logs a socket address. Record: [0011](docs/architectural-decision-records/0011-client-identity-comes-from-cf-connecting-ip-alone.md)
+- **The engine rules** ([`web/ENGINE.md`](web/ENGINE.md)): every animal lives in `critters.js`, moves and asks `collide.js`, every plant sways, and every solid thing is known to `collide.js`. The browser suite checks them.
 - **The game's colours** come from the palette in `web/www/core.js` (254 at most, `ramp()`), and the page round the canvas takes its colours from the tokens at the top of `web/www/style.css`.
 - **No inline style, inline script or `data:` image in the game**: the site's policy refuses them, and the browser suite fails on any violation.
 - **A new runtime dependency** is an exact pin, gets its row in `NOTICES.md`, and ships with its lock.

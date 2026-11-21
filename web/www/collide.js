@@ -5,7 +5,9 @@
 // The sea is read from the sea's own grid (SEA.cs: how far out from the high-water line each spot lies) and
 // the tide's height at the time asked, so nothing is redrawn per tide step: depth is a subtraction. The sea
 // stacks are a distance field, worked out once: how far each spot of sea lies from the nearest stack's foot.
-// Land is the land's own rule for firm open ground (W.open) and a clearance round the buildings.
+// Land is the land's own rule for firm open ground (W.open), a clearance round the buildings, and the feet of
+// every solid thing that stands on it (round 6, I1): the rocks, snags and logs land.js marks solid, the
+// signs, the journal's post and the tents.
 //
 // canBe(kind, x, y, t, r): may a mover of that kind and radius r stand there at time t ({ ebb } in place of t
 //   asks about a given height of the tide, for example the lowest).
@@ -44,6 +46,15 @@ export function makeCollide(W, { ebbAt, stacks }) {
   const sdAt = (x, y) => { x = Math.round(x); y = Math.round(y) - Y0; return x < 0 || x >= SW || y < 0 || y >= SH ? 1e4 : sd[y * SW + x]; };
   // The buildings land animals keep clear of, with the room each needs.
   const S = W.spots, built = [[S.kiosk, 20], [S.register, 12], [S.lookout, 14]].filter(([p]) => p);
+  // The feet of the solid things, one byte a pixel of the map: an oval as wide as the drawing at its foot.
+  const feet = new Uint8Array(NW * NH);
+  const foot = (cx, cy, half) => { const rx = Math.max(1, half), ry = Math.max(1.5, half * 0.4);
+    for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) if (x >= 0 && y >= 0 && x < NW && y < NH && ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1) feet[y * NW + x] = 1; };
+  for (const th of W.things) if (th.bm && th.bm.solid) foot(th.x, th.y - 1, th.bm.w / 2 - 1);
+  for (const s of S.signs || []) foot(s[0], s[1] - 1, 2);
+  if (S.journal) foot(S.journal[0], S.journal[1] - 1, 2);
+  for (const tn of S.tents || []) foot(tn[0], tn[1] - 2, 7);
+  const onFoot = (x, y) => feet[Math.round(y) * NW + Math.round(x)] === 1;
 
   // How much room a mover has there, in pixels: below 0 it may not be there. For the sea kinds, the lesser of
   // the water's depth to spare and the room from the nearest stack.
@@ -51,7 +62,7 @@ export function makeCollide(W, { ebbAt, stacks }) {
     const K = KINDS[kind];
     if (K.free) return 1e4;
     if (K.sea) { const c = csAt(x, y); if (!c) return -1e4; return Math.min(c - 4 - (typeof t === 'number' ? ebbAt(t) : t.ebb) - K.depth - r, sdAt(x, y) - K.stack - r); }
-    if (x < 4 || y < 4 || x >= NW - 4 || y >= NH - 4 || !W.open(x, y)) return -1;
+    if (x < 4 || y < 4 || x >= NW - 4 || y >= NH - 4 || !W.open(x, y) || onFoot(x, y)) return -1;
     let m = 1e4; for (const [p, need] of built) m = Math.min(m, Math.hypot(x - p[0], (y - p[1]) * 1.6) - need - r);
     return m;
   }
@@ -82,7 +93,7 @@ export function makeCollide(W, { ebbAt, stacks }) {
     const { VW, VH } = scr, sea = KINDS[kind].sea;
     for (let y = 0; y < VH; y += 1) for (let x = (y & 1); x < VW; x += 2) if ((!sea || csAt(x + ox, y + oy)) && !canBe(kind, x + ox, y + oy, t)) scr.set(x, y, c);
   }
-  return { canBe, steer, clear, room, overlay, kinds: COLLIDE_KINDS };
+  return { canBe, steer, clear, room, overlay, kinds: COLLIDE_KINDS, solid: onFoot };
 }
 
 // A two-pass distance transform: each cell gets roughly its distance in pixels from the nearest zero.

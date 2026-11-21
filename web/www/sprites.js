@@ -132,6 +132,14 @@ function makeFlowers(kind, seed) {
   }
   return { parts: [{ bm: stems, x: -4, y: -6, sway: 0 }, { bm: blooms, x: -4, y: -6, sway: 1, lx: 0 }], h: 7, w: 9, low: true };
 }
+// Fireweed (round 6, I1): two to four tall stalks, green at the foot and magenta above, the tip of each
+// paler, as the burn's ground used to have them painted in. The top sways.
+function makeFireweed(seed) {
+  const rand = rng(seed), b = new BM(7, 10), n = 2 + (rand() * 3 | 0); b.ox = 3; b.oy = 9;
+  for (let k = 0; k < n; k++) { const x = clamp(Math.round(k * 5 / Math.max(1, n - 1) + rand()), 0, 6), tall = 6 + (rand() * 4 | 0);
+    for (let j = 0; j < tall; j++) b.set(x, 9 - j, j < 2 ? R.grass[1] : j === tall - 1 ? R.fireweed[1] : R.fireweed[0]); }
+  return swaying(b, 6);
+}
 // A still drawing made to sway like a tree: its top rows are a part that leans, its foot stays put.
 function swaying(bm, cut = Math.round(bm.h * 0.55)) {
   const top = new BM(bm.w, cut), foot = new BM(bm.w, bm.h - cut);
@@ -584,4 +592,4 @@ function makeFlag(f, ramp = R.red) {
 }
 
 export { makeRegister, makeMoose };
-export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, makeFireweed, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };

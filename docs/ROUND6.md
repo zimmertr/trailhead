@@ -212,7 +212,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 **I. The engine rules** (runs here, before C)
 
-- [ ] I1. Issue #38: write the rules into the repo (where the issue says) and bring the animals, plants and objects into line with them.
+- [x] I1. Issue #38: write the rules into the repo (where the issue says) and bring the animals, plants and objects into line with them.
 
 **C. The map**
 
@@ -298,7 +298,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **B7 done.** The off-route page's 404 now reads at a glance: three big, clearly greyer digits in the cloud left of him, still soft-edged and drifting, sized to fill the sky between the top bar and the far hills (round 5's sat faint and partly cut off by the top of the picture, and its digits were garbled). It reads at Day, at Dusk and on a phone. When the world itself cannot be drawn, the page of text that is left opens with "Back to the Trailhead", which loads the game again from the start. One new browser test; 24 pass. Frame time 10.0 ms; nothing moved.
 - **B8 done.** "Glissade to camp" now works from inside the binoculars: the round view starts closing the moment it is pressed and he sets off at once, and the burst of snow as he pushes off covers the last of the closing (round 5 kept him on the summit until the view was closed with space or BACK). The engine tells the scene when a run starts, through a new optional `go()` beside `hold()`. One new browser test, which fails on round 5's code; 25 pass. `shot.sh` gained a `hit=` step that clicks where the scene draws a thing. Frame time 10.1 ms; nothing moved.
 - **Section B done.**
-- Next: I1.
+- **I1 done.** The engine rules are written in `web/ENGINE.md`, and `web/www/rules.js` checks the built map against them in a new browser test (it caught the footbridge rails on its first run). Every map animal now says which kind of mover it is and carries its drawings; the squirrels dart only along ground a land animal may cross, and the marmots ask the same rule. Rocks, snags, logs, signs, the journal's post and the tents are now solid for every land animal (before, only the kiosk, the register and the lookout were). The burn's fireweed, painted into the ground as stalks that never moved, now stands as swaying clumps of the same look, spaced so they never run together; the bigleaf maples, one still drawing each, now sway like every other tree. 26 browser tests pass. Frame time 11.2 ms zoomed out at Dusk (10.1 before), nothing moved.
+- Next: C1.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -352,6 +353,12 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 
 - B8, a call: the binoculars close with their own closing picture rather than vanishing, since the glissade's burst of snow 0.5 s later covers the end of it and a sudden cut would show him jump from the eyepieces to the push-off.
 - B8, a call: the scene is told through a general `go(env)` hook in the engine's `start()`, not a check for the binoculars in `app.js`, so any later scene that holds him for something of its own lets go the same way. Space and the arrow keys still belong to the binoculars while they are open.
+- I1, a call: the rules file is `web/ENGINE.md`, beside the game, since the folder the issue named (`prototype/pixel/`) became `web/` at A2.
+- I1, a call: a pixel or a 2 by 2 speck of colour in the baked ground is the turf's colour, not a plant, so the grass tufts, the sage specks between the sage bushes and the single blooms in Mount Monolith's meadow stay painted. Making the 30,000 tufts things that sway would cost several milliseconds a frame zoomed out for no visible change; anything with a shape (the burn's fireweed stalks) moved off the ground. TJ can say otherwise.
+- I1, a call: trees stay out of `collide.js`: walkers already go round trunks by their own rule, and a cub climbs one, which a solid trunk would forbid.
+- I1, a call: the footbridge rails stand still and are not solid (the water under them already stops a land animal).
+- I1, a call: side-scene animals stay drawn by their own scenes (each already has two or more drawings and changes between them); only the map's animals live in `critters.js`, as the issue's framework is the map's.
+- I1, frame time: 11.2 ms zoomed out at Dusk, up from 10.1, almost all of it the fireweed clumps.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:

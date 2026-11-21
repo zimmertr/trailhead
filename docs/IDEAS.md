@@ -432,3 +432,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Follow the Event** (round 6, B6). After the view moves to a map event, it could keep following a moving one (the ferry, the orcas, the tumbleweed) until it ends, then ease back to him.
 - **The 404 Clears as You Leave** (round 6, B7). The fog digits could thin and drift apart once he turns back along his tracks, so the page answers the click on "Back to the Trailhead" before the world changes.
 - **The Cats Look Up** (round 6, B8). When the glissade starts with the binoculars up, the cats in the round view of the Trailhead could look up at the mountain once before the view closes.
+- **The Rules Overlay** (round 6, I1). A debug toggle could tint every still drawing by what it is (rock, snag, log, driftwood, stack, fern, rail) and outline every solid foot, so a new piece that breaks a rule shows where it stands before the test says so.
+- **Fireweed Seed Fluff** (round 6, I1). Late in a long visit, a few white tufts could drift off the burn's fireweed on the wind, the way the real plant goes to seed.

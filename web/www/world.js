@@ -5,6 +5,7 @@ import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal
 import { SIGNS, NAMES, DEST_NAMES, UI } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
+import { checkRules } from './rules.js';
 import { makeEvents, drawLens, startLens } from './events.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, NW as WW, NH as WH, T } from './land.js';
@@ -490,6 +491,8 @@ export function makeWorld() {
   }
   // The animals look after themselves: see critters.js. Where each one lives comes from land.js.
   const crit = makeCritters(W); window.__crit = crit;
+  // For the browser suite: every engine rule the map breaks (rules.js).
+  window.__rules = () => checkRules(W.things, crit.items, crit.collide);
   const ev = makeEvents(W, crit.collide);
   for (const it of crit.items) things.push(it);
   const birds = [makeBird(0), makeBird(1)];

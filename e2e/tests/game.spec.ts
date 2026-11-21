@@ -16,6 +16,7 @@ declare global {
     __ready?: boolean
     __info?: Info
     __api: { hitAt: (act: string) => [number, number] | null }
+    __rules?: () => string[]
   }
 }
 
@@ -238,6 +239,14 @@ test('a broken world leaves the page of text with a way back to the Trailhead', 
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 30_000 })
   expect(new URL(page.url()).search).toBe('')
   await expect(page.locator('#plain')).toBeHidden()
+})
+
+// web/ENGINE.md: every plant sways, only rocks, snags, logs, driftwood, sea stacks and ferns stand still,
+// every solid thing is known to collide.js, and every animal has two drawings and asks collide.js.
+test('the map keeps the engine rules', async ({ page }) => {
+  const problems = await open(page, '/')
+  expect(await page.evaluate(() => window.__rules?.() ?? ['the map did not report its rules'])).toEqual([])
+  expect(problems).toEqual([])
 })
 
 test('an address that is off route still draws', async ({ page }) => {

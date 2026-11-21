@@ -6,7 +6,9 @@ import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, T
 import { paintMonolith, monolithSky, moraineLakes, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
-import { makeDriftwood, makeFlowers, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
+import { makeDriftwood, makeFlowers, makeFireweed, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
+// What a drawing that stands still is, and whether it is solid (ENGINE.md; collide.js reads solid).
+const tag = (bms, what, solid = false) => { for (const b of bms) { b.what = what; if (solid) b.solid = true; } }, tagged = (b, what, solid) => { tag([b], what, solid); return b; };
 
 const NW = 1920, SH = 1080, VD = 740, SY = SH + 52;
 const rdg = n => 1 - Math.abs(2 * n - 1);
@@ -694,7 +696,8 @@ function colour(u, v, hh, x, y) {
   if (fa > 0.5 + 0.2 * n1) { const shaft = fbm(u / 34 + v / 70, v / 26, 21, 3); return pick('moss', 0.16 + 0.3 * fbm(u / 18, v / 18, 22, 3) + smooth(0.56, 0.7, shaft) * 0.4 + sh * 0.4, x, y); }
   const bu = burnAmt(u, v), da = dryAmt(u, v);
   if (larchAmt(u, v) > blot(181) && bu < 0.5) { const slab = fbm(u / 22, v / 11, 96, 3); return slab > 0.58 ? pick('rock', 0.85 + 0.2 * n1, x, y, 0.7) : hash(u, v, 98) < 0.06 ? R.red[1] : hash(u, v, 99) < 0.05 ? R.larch[3] : pick('grass', 0.42 + sh + 0.2 * n1, x, y, 0.4); }
-  if (bu > blot(182)) { for (let k = 0; k < 9; k++) { const tall = 6 + Math.floor(hash(u, v - k, 132) * 3.99); if (k < tall && hash(u, v - k, 101) < 0.008 + 0.09 * smooth(0.5, 0.66, fbm(u / 30, (v - k) / 15, 131, 3))) return k < 2 ? R.grass[1] : k === tall - 1 ? R.fireweed[1] : R.fireweed[0]; } return fbm(u / 24, v / 16, 100, 3) > 0.56 ? pick('grass', 0.3, x, y, 0.5) : pick('ash', 0.4 + 0.5 * fbm(u / 14, v / 9, 102, 3), x, y); }
+  // The burn's ground: grass and ash. Its fireweed stands on it as things that sway (I1), not painted here.
+  if (bu > blot(182)) { return fbm(u / 24, v / 16, 100, 3) > 0.56 ? pick('grass', 0.3, x, y, 0.5) : pick('ash', 0.4 + 0.5 * fbm(u / 14, v / 9, 102, 3), x, y); }
   if (da > blot(183) && palAmt(u, v) > blot(184)) return pick('dry', 0.22 + 0.95 * L + 0.18 * (fbm(u / 60, v / 40, 185, 2) - 0.5), x, y, 0.5);
   if (da > blot(183)) { const sg = sageAmt(u, v); return hash(u >> 1, v >> 1, 103) < 0.04 + sg * 0.3 ? R.sage[1 + (hash(u, v, 104) < 0.5 ? 0 : 1)] : pick('dry', 0.5 + 0.5 * (fbm(u / 24, v / 14, 105, 3) - 0.5) + sh + sg * 0.1, x, y); }
   // High ground with no forest on it goes from meadow to bare rock and then snow.
@@ -1099,7 +1102,8 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   // Glades: the near rainforest opens into clearings here and there, so it reads as stands of trees.
   const glade = (u, v) => fogAmt(u, v) < 0.3 && fbm(u / 40, v / 30, 78, 3) < 0.34;
   const maples = Array.from({ length: 6 }, (_, i) => makeMaple(100 + i)), spruces = Array.from({ length: 6 }, (_, i) => makeSpruce(200 + i)), firs = Array.from({ length: 8 }, (_, i) => makeFir(300 + i));
-  const bigleaf = Array.from({ length: 4 }, (_, i) => blobTree(800 + i, i & 1 ? 'larch' : 'sun', 36 + i * 2, 'bark', 5, 5.5));
+  // The bigleaf maples stood still as one drawing until round 6 (I1): now their crowns sway as every tree's does.
+  const bigleaf = Array.from({ length: 4 }, (_, i) => ({ ...swaying(blobTree(800 + i, i & 1 ? 'larch' : 'sun', 36 + i * 2, 'bark', 5, 5.5)), low: false }));
   const larches = Array.from({ length: 6 }, (_, i) => { const r = rng(900 + i); return makeConifer(900 + i, 24 + (r() * 14 | 0), 10 + (r() * 4 | 0), 'larch', 6); });
   const pines = Array.from({ length: 5 }, (_, i) => makePonderosa(820 + i)), aspens = Array.from({ length: 7 }, (_, i) => makeAspen(600 + i)), snags = Array.from({ length: 5 }, (_, i) => makeSnag(730 + i));
   // The rainforest (E5b2, after the Olympic Peninsula): below the ranks on the hills, a mix picked by how
@@ -1116,7 +1120,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     if (ridgeRow(u, v) || glade(u, v) || riverFront(u, v)) continue;
     const w = wetAt(u, v), pm = 0.05 + 0.36 * w, pg = pm + (w > 0.55 ? 0.04 : 0), ps = pg + 0.05 + 0.26 * w, pc = ps + 0.12 + 0.06 * w;
     if (r < pm) { plant(sized(w > 0.85 && hash(u | 0, v | 0, 5911) < 0.06 ? twisted[(hash(u | 0, v | 0, 5912) * twisted.length) | 0] : any(maples), u, v), u, v); continue; }
-    if (r < pg) { if (shrinkAt(u, v) >= 0.12) plant(sized({ h: 40 }, u, v), u, v); else put(any(bigleaf), u, v, 0, true); continue; }
+    if (r < pg) { if (shrinkAt(u, v) >= 0.12) plant(sized({ h: 40 }, u, v), u, v); else plant(any(bigleaf), u, v); continue; }
     plant(sized(any(NWT[r < ps ? 'spruce' : r < pc ? 'cedar' : r < pc + 0.24 + 0.2 * (1 - w) ? 'douglas' : 'hemlock']), u, v), u, v);
   }
   // Firs in clumps over the parkland, the meadows and the lower slopes of the crest.
@@ -1194,6 +1198,13 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     const toWater = (u, v) => { let d = 30; for (let dv = -30; dv <= 30; dv += 2) for (let du = -30; du <= 30; du += 2) { const uu = Math.round(u + du), vv = Math.round(v + dv); if (uu >= 0 && vv >= 0 && uu < NW && vv < VD && water[at(uu, vv)]) d = Math.min(d, Math.hypot(du, dv)); } return d; };
     const gr = rng(6114);
     for (let n = 0; n < 1600; n++) { const u = 1440 + gr() * 330, v = 400 + gr() * 200; if (burnAmt(u, v) < 0.3 || !open(u, v) || !land(u, v)) continue; const w = toWater(u, v); if (gr() > 0.85 * smooth(28, 6, w) + 0.03) continue; plant(SHR.get(shrubs[w < 14 && gr() < 0.7 ? (gr() * 3) | 0 : 3 + ((gr() * 2) | 0)]), u, v); } }
+  // Fireweed (round 6, I1): it was painted into the burn's ground as stalks that never moved. Now each clump
+  // stands and sways, more where the old field had more (the same field), on the burn's open ground, and
+  // each clump a few pixels from the next, so they stay stalks and never run together into a patch.
+  { const fw = Array.from({ length: 6 }, (_, i) => makeFireweed(1030 + i)), fr = rng(6115), took = new Set();
+    for (let n = 0; n < 9000; n++) { const u = 1440 + fr() * 330, v = 400 + fr() * 200, bu = burnAmt(u, v); if (bu < 0.5 + 0.85 * (fbm(u / 32, v / 21, 182, 3) - 0.5) || !open(u, v) || !land(u, v)) continue;
+      const cell = ((u / 6) | 0) * 1000 + ((v / 4) | 0); if (took.has(cell) || fr() > 0.02 + 0.3 * smooth(0.5, 0.66, fbm(u / 30, v / 15, 131, 3))) continue;
+      took.add(cell); plant(fw[(fr() * fw.length) | 0], u, v); } }
   // Round 3's furniture of the ground: boulders and bushes in the open, granite slabs among the larches,
   // sage in the dry corner, ferns and logs on the forest floor, sea stacks off the beach, a fir on the island.
   const boulders = Array.from({ length: 6 }, (_, i) => makeBoulder(500 + i, 3 + i * 0.8));
@@ -1203,6 +1214,9 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   const SWAY = new Map(bushes.map(b => [b, swaying(b)]));
   const sages = [0, 1, 2].map(i => sageBush(850 + i)), burnt = Array.from({ length: 4 }, (_, i) => charred(740 + i)), young = Array.from({ length: 4 }, (_, i) => makeConifer(940 + i, 9 + i * 2, 6, 'kit', 3));
   const ferns = Array.from({ length: 6 }, (_, i) => makeFern(400 + i)), logs = Array.from({ length: 6 }, (_, i) => makeLog(i));
+  // What each drawing that stands still is (ENGINE.md): only these may stand still, and the solid ones are
+  // kept clear by every land animal (collide.js).
+  tag([...boulders, ...slabs], 'rock', true); tag([...snags, ...burnt], 'snag', true); tag(logs, 'log', true); tag(ferns, 'fern');
   const meadowy = (u, v) => forestAmt(u, v) < 0.3 && burnAmt(u, v) < 0.3 && dryAmt(u, v) < 0.3 && Math.hypot(u - TU, (v - TV) * 1.4) > 40;
   rand = rng(6108);
   for (let n = 0; n < 700; n++) { const u = 420 + rand() * 1200, v = rand() * 640; if (!open(u, v) || !meadowy(u, v)) continue; const m = MATS[mg[at(Math.round(u), Math.round(v))]]; if ((m !== 'land' && m !== 'moraine') || isleAt(u, v) < 1.4) continue; const rock = m === 'moraine' || rand() < 0.3; if (rock) put(any(boulders), u, v); else plant(SWAY.get(any(bushes)), u, v); }
@@ -1246,7 +1260,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && hills(u, v) < 3 && open(u, v, 0.8) && wooded(u, v)) put(any(logs), u, v); }
   // Driftwood above the high-water line (round 5, T8): eight logs' worth of drawings, each at its own angle.
   // The dice are rolled as they were, so every log lies where its blob lay.
-  { const dr = rng(4730), drift = Array.from({ length: 8 }, (_, i) => makeDriftwood(i));
+  { const dr = rng(4730), drift = Array.from({ length: 8 }, (_, i) => makeDriftwood(i)); tag(drift, 'drift');
     for (let n = 0; n < 2600; n++) { const u = dr() * 700, v = dr() * VD, k = (dr() * 8) | 0, c = coast(u, v); if (c > -20 && c < -9 && dr() < 0.2 && !water[at(Math.round(u), Math.round(v))]) put(drift[k], u, v); }
     // More of it, on dice of their own: a Pacific beach is lined with driftwood. Each lies 26 px or more from
     // the next, on dry sand in the same band above the high-water line.
@@ -1256,7 +1270,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   // small groups along the coast as on the Olympic coast: a tall one and one or two lower beside it.
   rand = rng(6114);
   { const groups = []; for (let n = 0; n < 6000 && groups.length < 4; n++) { const u = rand() * 700, v = rand() * VD, c = coast(u, v); if (c < 44 || c > 96 || groups.some(([a, b]) => Math.hypot(a - u, b - v) < 130)) continue; groups.push([u, v]);
-    for (let j = 0, m = 0, k = 2 + (rand() < 0.5 ? 1 : 0); j < 60 && m < k; j++) { const su = m ? u + (rand() - 0.5) * 80 : u, sv = m ? v + (rand() - 0.5) * 50 : v; if (coast(su, sv) < 30 || coast(su, sv) > 104 || STACKS.some(([a, b]) => Math.hypot(a - su, (b - sv) * 1.5) < 18)) continue; m++; STACKS.push([su, sv]); const H = (m === 1 ? 32 : 14) + (rand() * 20 | 0); put(seaStack(STACKS.length, H, Math.round(H * 0.45)), su, sv); } } }
+    for (let j = 0, m = 0, k = 2 + (rand() < 0.5 ? 1 : 0); j < 60 && m < k; j++) { const su = m ? u + (rand() - 0.5) * 80 : u, sv = m ? v + (rand() - 0.5) * 50 : v; if (coast(su, sv) < 30 || coast(su, sv) > 104 || STACKS.some(([a, b]) => Math.hypot(a - su, (b - sv) * 1.5) < 18)) continue; m++; STACKS.push([su, sv]); const H = (m === 1 ? 32 : 14) + (rand() * 20 | 0); put(tagged(seaStack(STACKS.length, H, Math.round(H * 0.45)), 'stack'), su, sv); } } }
   plant(any(firs), ISLE[0], ISLE[1]);
 }
 // Surf breaks white round the foot of each sea stack, broken into dashes (D11).
@@ -1306,7 +1320,7 @@ for (const br of BRIDGES) {
     const b = new BM(bw, bh), qx = t => ax + ux * t + nx * side * 3 - X0, qy = t => ay + uy * t + ny * side * 3 - Y0; b.ox = 0; b.oy = sortY - Y0;
     for (const t of [1, len / 2, len - 1]) for (let h = 0; h < 4; h++) b.set(qx(t), Math.round(qy(t)) - h, R.wood[2]);
     for (let t = 0; t <= len; t += 0.5) b.set(qx(t), Math.round(qy(t)) - 4, R.wood[4]);
-    outline(b, INK); live.push({ bm: b, x: X0, y: sortY, v });
+    outline(b, INK); live.push({ bm: tagged(b, 'bridge'), x: X0, y: sortY, v });
   };
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
@@ -1623,7 +1637,7 @@ export function buildTerrain() {
   }
   // A boulder under each parkland marmot (T43), with the flowers or heather that grew on the spot taken away.
   // The marmot's third number becomes how high the boulder's top stands, so that it lies on it.
-  { const rock = makeBoulder(531, 5.5);
+  { const rock = tagged(makeBoulder(531, 5.5), 'rock', true);
     for (const mm of spots.marmots) if (mm[2]) {
       for (let i = LAND.things.length - 1; i >= 0; i--) { const th = LAND.things[i]; if (!(th.tree ? th.tree.low : th.bm.h < 14)) continue; const w = th.tree ? th.tree.w : th.bm.w; if (Math.abs(th.y - mm[1]) < 7 && Math.abs(th.x - mm[0]) < (w + rock.w) / 2) LAND.things.splice(i, 1); }
       LAND.things.push({ bm: rock, x: mm[0], y: mm[1], v: mm[3] }); mm[2] = rock.h - 5;
