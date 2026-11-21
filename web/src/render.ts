@@ -13,8 +13,17 @@ export const PLAIN_PAGE = '/page/'
 
 const intro = (content: Content): Place | undefined => content.places[0]
 
-// Strips tags, then any angle bracket left over, so a tag split round another ("<scr<b>ipt>") cannot survive.
-const stripTags = (html: string): string => html.replace(/<[^>]*>/g, '').replace(/[<>]/g, '')
+// Strips tags until none are left, then any angle bracket left over, so a tag split round another
+// ("<scr<b>ipt>") cannot survive.
+function stripTags(html: string): string {
+  let text = html
+  let before
+  do {
+    before = text
+    text = text.replace(/<[^>]*>/g, '')
+  } while (text !== before)
+  return text.replace(/[<>]/g, '')
+}
 
 // For the description meta tag: the heading and the intro as one sentence.
 export function describe(content: Content): string {
