@@ -203,7 +203,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 - [x] B1. Remove the first-visit hint (note 6).
 - [x] B2. The opening view: TJ a little below-right of centre (note 7).
-- [ ] B3. The sign's planks flush left (note 31).
+- [x] B3. The sign's planks flush left (note 31).
 - [ ] B4. The top bar: sound merged into the music button, the sun or moon on AUTO, AUTO about 75% day (notes 29, 30, 32).
 - [ ] B5. Fewer menus and hotkeys (note 23, #33). Log the design and why in section 11.
 - [ ] B6. Debug: the bold camera-bounds outline, "On the map" moving the camera, the split buttons (notes 24, 26, 27).
@@ -291,7 +291,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **A5 done.** Two issues filed with the `create-issue` skill: https://github.com/zimmertr/trailhead/issues/55 (whether to keep each card's own style, note 20; three options, the planner recommends one shared placard with a small icon of each card's source) and https://github.com/zimmertr/trailhead/issues/56 (the trail register service for round 7: a table, `api` routes, the queue in `admin`, the game posting entries; it carries over what #3 settled). The PR body closes #14, #15, #16, #17, #33, #34, #36 and #38 and names the two new issues. The PRD and the register's code comment point at them. Artifact version 4 (the comment only).
 - **B1 done.** The first-visit hint ("Click a sign or a trail to start walking.") is gone: its element, its placing code in `app.js`, its styles and its two lines of words. The space bar still waits until a destination is picked, as before. Side by side with round 5 at the opening, desktop and phone, the only change is the missing plank. Frame time 10.5 ms zoomed out at Dusk; nothing moved.
 - **B2 done.** At the opening TJ now stands a little below and right of the middle of what shows above the timeline bar (above the junction sign on an upright phone): measured at 66% across and 63% down on a 1440 by 900 screen (round 5: 94% and 83%), 66% and 64% at 1920 by 1080, and 55% across, 69% down the uncovered part on a 390 by 844 phone (round 5: 13%, at the sign's edge). `openFrame()` in `world.js` keeps him inside that window and, within it, still picks the frame that shows the most of the three destinations. The zoom is unchanged. The cost, side by side with round 5: the destinations show less at the opening. On a desktop Reflection Lake is cut to its east end and the two peaks to their names along the top; on a phone the granite and the glacier are out of frame. The idle tour still visits each. Frame time 9.9 ms; nothing moved; the lake route walks clean.
-- Next: B3.
+- **B3 done.** The three planks on the Trailhead sign start at one left edge: the first no longer sticks out 2 pixels and the third no longer sits 3 in. Their arrows and words line up, on a desktop, a phone and a phone at three times density, Day and Dusk. Nothing else on the sign changed. Nothing moved.
+- Next: B4.
 
 ## 11. Calls made in round 6
 
