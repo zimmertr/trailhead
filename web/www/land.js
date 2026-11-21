@@ -206,8 +206,12 @@ for (const [cu, cv, ru, rv, H] of [[500, 478, 96, 44, 42], [770, 474, 84, 40, 38
 // Round 5 (T30, TJ: "increase the size of reflection lake"): the lake is about 1.6 times as wide and a
 // little deeper than round 4's (46 by 14), its south shore where it was so the lakeshore trail still runs
 // along it, and the bench it sits on is widened to hold it.
-plateau('land', 640, 438, 136, 38, 30, 0.1); C.bench = F[F.length - 1];
-C.lakes.push([640, 444, 74, 18, 'lake']);
+// Round 6 (C1, note 4): about 1.6 times its area again (200 by 42), inside TJ's outline: it grows east towards
+// the stream and a little north towards the moraine boulders, its west end and south shore where they were,
+// so the lakeshore trail and the boardwalk still run along it. North of about 468 the volcano's foot stands
+// above the bench, so the lake goes no further that way. The bench grows with it.
+plateau('land', 655, 440, 152, 40, 30, 0.1); C.bench = F[F.length - 1];
+C.lakes.push([666, 446, 100, 21, 'lake']);
 // Its west end rises gently from behind Little Tahoma, so no peak of it stands alone beside the tooth.
 range('crest', 800, NW + 60, 716, u => (112 + 20 * vnoise(u / 70, 1, 64)) * lerp(0.35, 1, smooth(820, 930, u)), 64, { front: 40, back: 18 });
 range('crest', 800, 930, 660, crestH(1070, 120, 60), 61);
@@ -1461,7 +1465,9 @@ function habitat() {
   // that is meant to look small and far away).
   const iceBehind = (u, v) => { const x = Math.round(u), y = S.toY(u, v); for (let k = -2; k <= 16; k += 2) for (const a of [-10, 0, 10]) { const r = RAMP_OF[S.g[clamp(y - k, 0, SH - 1) * NW + clamp(x + a, 0, NW - 1)]]; if (r === 'glac' || r === 'snow' || r === 'farsnow') return true; } return false; };
   const lakeM = C.lakes[0], streamNear = (u, v) => { for (let b = -12; b <= 12; b += 4) for (let a = -12; a <= 12; a += 4) if (S.water[at(u + a, v + b)]) return true; return false; };
-  const parkMarmots = find(2, (u, v) => S.parkAmt(u, v) > 0.5 && (S.matAt(u, v) === 'land' || S.matAt(u, v) === 'volc') && v > lakeM[1] + lakeM[3] + 20 && v < lakeM[1] + lakeM[3] + 50 && Math.abs(u - lakeM[0]) < lakeM[2] + 20 && trailFar(u, v) > 14 && !streamNear(u, v) && firm(u, v, 2) && shows(u, v, 16) && !iceBehind(u, v), 60);
+  // The tarns' streams start as a short lead that is not yet in the water grid (C1 put a boulder on one).
+  const headNear = (u, v) => C.src.some(s => s.toLake && s.lead.some(([a, b]) => Math.hypot(a - u, (b - v) * 1.5) < 18));
+  const parkMarmots = find(2, (u, v) => S.parkAmt(u, v) > 0.5 && (S.matAt(u, v) === 'land' || S.matAt(u, v) === 'volc') && v > lakeM[1] + lakeM[3] + 20 && v < lakeM[1] + lakeM[3] + 50 && Math.abs(u - lakeM[0]) < lakeM[2] + 20 && trailFar(u, v) > 14 && !streamNear(u, v) && !headNear(u, v) && firm(u, v, 2) && shows(u, v, 16) && !iceBehind(u, v), 60);
   // The third keeps to the moraine's rocks, or failing that the parkland's.
   const onRocks = mor => (u, v) => (mor ? S.matAt(u, v) === 'moraine' : S.parkAmt(u, v) > 0.3) && firm(u, v, 1.2) && shows(u, v, 8) && rocky(u, v) && !iceBehind(u, v) && apartFrom(parkMarmots, u, v, 140);
   const rockMarmot = find(1, onRocks(true)), marmots = [...parkMarmots, ...(rockMarmot.length ? rockMarmot : find(1, onRocks(false)))];

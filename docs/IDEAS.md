@@ -434,3 +434,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Cats Look Up** (round 6, B8). When the glissade starts with the binoculars up, the cats in the round view of the Trailhead could look up at the mountain once before the view closes.
 - **The Rules Overlay** (round 6, I1). A debug toggle could tint every still drawing by what it is (rock, snag, log, driftwood, stack, fern, rail) and outline every solid foot, so a new piece that breaks a rule shows where it stands before the test says so.
 - **Fireweed Seed Fluff** (round 6, I1). Late in a long visit, a few white tufts could drift off the burn's fireweed on the wind, the way the real plant goes to seed.
+- **Their Own Dice** (round 6, C1). Each placement in `habitat()` could draw from dice of its own, seeded by its name, so growing a lake no longer moves the whale out at sea.
+- **The Lake Holds the Sky** (round 6, C1). With more open water, the lake could mirror the clouds that pass over it, a pale shape drifting across its surface a few pixels at a time.
