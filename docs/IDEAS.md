@@ -436,3 +436,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Fireweed Seed Fluff** (round 6, I1). Late in a long visit, a few white tufts could drift off the burn's fireweed on the wind, the way the real plant goes to seed.
 - **Their Own Dice** (round 6, C1). Each placement in `habitat()` could draw from dice of its own, seeded by its name, so growing a lake no longer moves the whale out at sea.
 - **The Lake Holds the Sky** (round 6, C1). With more open water, the lake could mirror the clouds that pass over it, a pale shape drifting across its surface a few pixels at a time.
+- **Meltwater Through the Gravel** (round 6, C2). Below each glacier snout the moraine band could carry a few braided threads of meltwater, sparkling now and then, that sink into the gravel before they reach the meadow.
+- **Marmots on the Moraine** (round 6, C2). The moraine band's boulders are where marmots really live: one or two of the band's stones could get a marmot that sits up and whistles as the parkland's do.

@@ -167,7 +167,7 @@ const offVolc = (u, v) => VOLC ? smooth(0.8, 1.02, Math.hypot((u - VOLC.cu) / VO
 const hillUp = (u, v) => { let best = 0; for (const { cu, cv, ru, rv, back } of hillList()) { const d2 = sq((u - cu) / ru) + sq((v - cv) / (v > cv ? rv * back : rv)); if (d2 < 1) best = Math.max(best, sq(1 - d2)); } return best; };
 // The Trailhead (E5h): in the open meadow below the old spot, TJ's orange box of 2026-11-16 traced
 // into map coordinates the same way as his coast line and his border.
-Object.assign(C, { T: [1098, 186], PK: [660, 440, 210, 110], PK2: [985, 482, 78, 52], LB: [1610, 566, 330, 110], camp: [1022, 526] });
+Object.assign(C, { T: [1098, 186], PK: [660, 440, 210, 110], PK3: [488, 532, 78, 58], PK2: [985, 482, 78, 52], LB: [1610, 566, 330, 110], camp: [1022, 526] });
 // The Trailhead stands on a low, broad rise: the divide between the water that runs west to the sea
 // and the water that runs east into the dry country. The whole land tilts gently toward the camera.
 const divU = v => 1075 + (310 - v) * 0.22;
@@ -577,7 +577,7 @@ const flowerAmt = (u, v) => { const most = flowerMost(u, v); if (most >= 1) retu
 // The drifts where the flowers grow thickest: a slow field picks lupine, paintbrush, white, or heather and
 // plain turf. null elsewhere, where the flowers are scattered by the dice.
 const DRIFT = (u, v) => { if (flowerMost(u, v) < 0.45) return null; const k = vnoise(u / 58, v / 34, 470) + 0.08 * (vnoise(u / 9, v / 6, 471) - 0.5); return k < 0.36 ? 'lupine' : k < 0.5 ? 'heather' : k < 0.68 ? 'red' : 'white'; };
-const forestAmt = (u, v) => { const e = forestEdge(v); return smooth(e + 40, e - 24, u + 30 * (fbm(u / 30, v / 30, 8, 2) - 0.5)) * smooth(-6, -30, coast(u, v)) * (1 - 0.9 * smooth(1.1, 0.7, ell(C.PK, u, v))); };
+const forestAmt = (u, v) => { const e = forestEdge(v); return smooth(e + 40, e - 24, u + 30 * (fbm(u / 30, v / 30, 8, 2) - 0.5)) * smooth(-6, -30, coast(u, v)) * (1 - 0.9 * smooth(1.1, 0.7, ell(C.PK, u, v))) * (1 - 0.95 * smooth(1.15, 0.75, ell(C.PK3, u, v) + wob(u, v, 209, 0.3))); };
 // Larches are trees of the high country: none below the second granite step.
 const larchAmt = (u, v) => smooth(1.2, 0.85, ell(C.LB, u, v) + wob(u, v, 204, 0.35)) * smooth(62, 74, hAt(u, v));
 // The old burn lies on the bench at the foot of the Enchantment plateau's cliff (E5g, TJ's red box), at
@@ -927,6 +927,24 @@ for (let y = 1; y < SH - 1; y++) for (let x = 1; x < NW - 1; x++) {
   if (zb[i - NW] > zb[i] + 14 || zb[i - 1] > zb[i] + 14 || zb[i + 1] > zb[i] + 14) g[i] = INK;
 }
 }
+// The moraine band (round 6, C2, note 4): gravel and stones all along Mount Monolith's base, where its painted
+// snow and ridges meet the meadow. It is wider below a glacier's snout (where the painting's lowest pixel is
+// ice or snow) and below each tarn, and grass breaks through it towards its lower edge. MORAINE marks it, so
+// the flowers and the heather start below it and its boulders lie in it. It is found from the painting (a
+// bake holds that too), so it is the same baked or not; only the ground's picture is painted here, unbaked.
+const MORAINE = new Uint8Array(NW * SH), BANDPX = [];
+{ const VI = MATS.indexOf('volc'), LI = MATS.indexOf('land'), x0 = Math.max(2, VOLC.cu - VOLC.ru), x1 = Math.min(NW - 3, VOLC.cu + VOLC.ru), foot = new Int16Array(NW).fill(-1), icy = new Float32Array(NW);
+  // The painting's lowest row in each column, where it is more than a thread wide (a tarn's melt water is not).
+  for (let x = x0; x <= x1; x++) for (let y = SH - 2; y > 0; y--) { const i = px(x, y); if (painted[i] && painted[i - 2] && painted[i + 2]) { foot[x] = y; break; } }
+  for (let x = x0; x <= x1; x++) if (foot[x] >= 0) { const k = RAMP_OF[g[px(x, foot[x])]]; icy[x] = k === 'snow' || k === 'glac' || k === 'serac' || k === 'tarn' || k === 'milk' ? 1 : 0; }
+  const tarnX = TARNS.map(t => MONO_OX + t.end.mid);
+  for (let x = x0; x <= x1; x++) { if (foot[x] < 0) continue;
+    let ice = 0; for (let d = -8; d <= 8; d++) ice = Math.max(ice, (icy[x + d] || 0) * (1 - Math.abs(d) / 9));
+    const nearTarn = Math.max(0, ...tarnX.map(t => smooth(34, 14, Math.abs(x - t)))), w = Math.round(7 + 3 * vnoise(x / 9, 1, 930) + 7 * ice + 8 * nearTarn), top = px(x, Math.min(SH - 1, foot[x] + 1));
+    for (let y = foot[x] + 1; y <= foot[x] + w && y < SH; y++) { const i = px(x, y), v = zb[i];
+      if (painted[i] || v >= VD || (mb[i] !== VI && mb[i] !== LI) || Math.abs(v - zb[top]) > 10 || water[at(x, Math.round(v))] || lakeAt(x, v)) continue;
+      MORAINE[i] = 1; BANDPX.push(i);
+      if (!B) { const t = (y - foot[x]) / (w + 1); if (bayer(x, y) < 1.15 - smooth(0.45, 1, t)) g[i] = hash(x, y, 932) < 0.1 ? R.rock[1] : pick('rock', 0.55 + 0.35 * vnoise(x / 3, y / 2, 931) - 0.25 * t, x, y, 0.7); } } } }
 // Mount Monolith's icefalls and the snow that covers each until its avalanche (E5c; all of them since round
 // 5, T11). The ground keeps the bare blue seracs; the scene draws the cover over them. The painting is worked
 // out again here, since a bake holds only the finished picture, and lined up with the picture by where its
@@ -1227,12 +1245,14 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   // The parkland's heather grows in clumps where the drifts leave room for it, and a few boulders lie
   // about (D5). Their own dice, so nothing planted before them moves, and the boulders have theirs (round 5, T21).
   const soil = (u, v) => { const m = MATS[mg[at(Math.round(u), Math.round(v))]]; return m === 'land' || m === 'volc'; };
+  // Inside the moraine band at the volcano's foot (C2), where the flowers do not grow.
+  const inBand = (u, v) => { const x = Math.round(u), y = Math.round(SY - v - hAt(u, v)); return x >= 0 && y >= 0 && x < NW && y < SH && MORAINE[px(x, y)] === 1; };
   { const hr = rng(4711), br = rng(4712), heath = bushes.slice(3, 6), anyH = a => a[(hr() * a.length) | 0], anyB = a => a[(br() * a.length) | 0];
-    for (let n = 0; n < 3400; n++) { const u = 400 + hr() * 720, v = 340 + hr() * 300; if (DRIFT(u, v) !== 'heather' || hr() > 0.55 || !open(u, v) || !meadowy(u, v) || !soil(u, v)) continue; plant(SWAY.get(anyH(heath)), u, v); }
+    for (let n = 0; n < 3400; n++) { const u = 400 + hr() * 720, v = 340 + hr() * 300; if (DRIFT(u, v) !== 'heather' || hr() > 0.55 || !open(u, v) || !meadowy(u, v) || !soil(u, v) || inBand(u, v)) continue; plant(SWAY.get(anyH(heath)), u, v); }
     // Wildflowers in clumps (D5a): thick in the parkland's drifts, scattered through the other meadows,
     // each clump a little drawing of stems whose blooms sway on their own.
     // Flowers grow on slopes a tree could not stand on, so they keep to their own rule.
-    const bloomy = (u, v) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && coast(u, v) < -32 && !lakeAt(u, v) && !water[at(Math.round(u), Math.round(v))] && slope(u, v) < 2.4 && !nearTrail(u, v, 5);
+    const bloomy = (u, v) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && coast(u, v) < -32 && !lakeAt(u, v) && !water[at(Math.round(u), Math.round(v))] && slope(u, v) < 2.4 && !nearTrail(u, v, 5) && !inBand(u, v);
     const fr = rng(11), FL = {}; for (const k of ['lupine', 'red', 'white', 'yellow']) FL[k] = Array.from({ length: 4 }, (_, i) => makeFlowers(k, 1300 + i * 7 + k.length));
     for (let n = 0; n < 9000; n++) {
       const cu = fr() * NW, cv = fr() * VD, type = fr(), dw = DRIFT(cu, cv), count = (dw ? 3 : 2) + (fr() * (dw ? 6 : 4) | 0), m = MATS[mg[at(Math.round(cu), Math.round(cv))]];
@@ -1246,6 +1266,28 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
         plant(FL[kind][(fr() * 4) | 0], u, v);
       }
     }
+    // Many more across the parkland TJ outlined (C2, note 4): from the forest's edge on the volcano's west
+    // flank, along its foot below the moraine band (all the volcano's lower slopes, however high), across to
+    // the Spires' sign and down to the lake. Their
+    // own dice, so nothing planted before them moves.
+    const fp = rng(4741), onGrass = (u, v) => { const x = Math.round(u), y = Math.round(SY - v - hAt(u, v)); return x >= 0 && y >= 0 && x < NW && y < SH && RAMP_OF[g[px(x, y)]] === 'grass' && !painted[px(x, y)]; };
+    // On the grass of the ground's picture only, never on its rock, and on slopes a little steeper than the first pass allows.
+    const lush = (u, v) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && !lakeAt(u, v) && !water[at(Math.round(u), Math.round(v))] && slope(u, v) < 3.2 && !nearTrail(u, v, 5) && !inBand(u, v) && onGrass(u, v);
+    for (let n = 0; n < 6000; n++) {
+      const cu = 420 + fp() * 600, cv = 455 + fp() * 170, m = MATS[mg[at(Math.round(cu), Math.round(cv))]];
+      if ((m !== 'land' && m !== 'volc') || (flowerMost(cu, cv) < 0.45 && ell([VOLC.cu, VOLC.cv, VOLC.ru, VOLC.rv], cu, cv) > 1.25) || !lush(cu, cv) || forestAmt(cu, cv) > 0.25 || fp() > 0.16) continue;
+      const type = fp(), count = 2 + (fp() * 3 | 0);
+      for (let k = 0; k < count; k++) {
+        const u = cu + (fp() - 0.5) * 18, v = cv + (fp() - 0.5) * 10; if (!lush(u, v)) continue;
+        const kind = DRIFT(u, v) || (type < 0.5 ? 'lupine' : type < 0.75 ? 'red' : type < 0.9 ? 'white' : 'yellow'); if (kind === 'heather') continue;
+        plant(FL[kind][(fp() * 4) | 0], u, v);
+      }
+    }
+    // Stones in the moraine band, each a few pixels from the next, and clear of the painting (a tarn's rim and
+    // the melt water out of it are painted, not in the water grid).
+    const nearPaint = (x, y) => { for (let j = -4; j <= 2; j++) for (let k = -5; k <= 5; k++) { const yy = y + j, xx = x + k; if (yy >= 0 && yy < SH && xx >= 0 && xx < NW && painted[px(xx, yy)]) return true; } return false; };
+    { const sr = rng(4742), BAND_STONES = Array.from({ length: 5 }, (_, i) => makeBoulder(540 + i, 2 + i * 0.6)), took = new Set(); tag(BAND_STONES, 'rock', true);
+      for (const i of BANDPX) { if (sr() > 0.012) continue; const x = i % NW, y = (i / NW) | 0, v = zb[i], cell = (x / 7 | 0) * 4096 + (y / 5 | 0); if (took.has(cell) || v >= VD || nearPaint(x, y)) continue; took.add(cell); put(BAND_STONES[(sr() * BAND_STONES.length) | 0], x, v); } }
     for (let n = 0; n < 400; n++) { const u = C.PK[0] + (br() * 2 - 1) * C.PK[2], v = C.PK[1] + (br() * 2 - 1) * C.PK[3]; if (parkAmt(u, v) < 0.6 || br() > 0.12 || !open(u, v, 1) || !meadowy(u, v)) continue; put(anyB(boulders), u, v); } }
   rand = rng(6109);
   for (let n = 0; n < 300; n++) { const u = 1240 + rand() * 680, v = 380 + rand() * 320; if (MATS[mg[at(Math.round(u), Math.round(v))]] === 'gran' && open(u, v, 0.7) && rand() < 0.5) put(any(slabs), u, v); }

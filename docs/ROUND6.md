@@ -217,7 +217,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 **C. The map**
 
 - [x] C1. Reflection Lake about 1.5 times bigger, inside TJ's outline (note 4).
-- [ ] C2. Flowers across the parkland, above all its left flank; the moraine band round the volcano's base (note 4).
+- [x] C2. Flowers across the parkland, above all its left flank; the moraine band round the volcano's base (note 4).
 - [ ] C3. The forest gap filled; a mossy bog with skunk cabbage and one or two old-growth groves elsewhere in the forest (note 8).
 - [ ] C4. Tumbleweeds bigger, rolling across the empty Palouse (note 5).
 - [ ] C5. Segfault Scree on real scree (note 14).
@@ -300,7 +300,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **Section B done.**
 - **I1 done.** The engine rules are written in `web/ENGINE.md`, and `web/www/rules.js` checks the built map against them in a new browser test (it caught the footbridge rails on its first run). Every map animal now says which kind of mover it is and carries its drawings; the squirrels dart only along ground a land animal may cross, and the marmots ask the same rule. Rocks, snags, logs, signs, the journal's post and the tents are now solid for every land animal (before, only the kiosk, the register and the lookout were). The burn's fireweed, painted into the ground as stalks that never moved, now stands as swaying clumps of the same look, spaced so they never run together; the bigleaf maples, one still drawing each, now sway like every other tree. 26 browser tests pass. Frame time 11.2 ms zoomed out at Dusk (10.1 before), nothing moved.
 - **C1 done.** Reflection Lake is 200 by 42 (round 5: 148 by 36), about 1.6 times its area, inside TJ's outline: it grows east towards the stream and a few pixels north, its west end, the boardwalk, the outlet's fall and the south shore with its trail where round 5 had them. The bench under it is wider. The north stream from the moraine tarn still falls into it; the island sits in its middle. Things placed by rule followed the shore: the journal and the lakeshore flag (52 px east), the osprey, the two parkland marmots and their boulders (north of the new shore, near TJ's outline), the elk (9 px); the whale moved 117 px within its own band of sea (see section 11). The lake loop reads 12.5 km (12.2). Frame time 10.5 ms; the lake loop walks clean.
-- Next: C2.
+- **C2 done.** The parkland TJ outlined has many more flowers: a second planting on dice of its own covers it from the volcano's west flank, along its foot, across to the Spires' sign and down to the lake, on grass only, never on rock, about a third as thick as the drifts so grass still shows between. The west flank, a dark forest-floor slope with no trees and no flowers, is parkland now (a third parkland oval holds the forest back there) and flowers like the rest. A band of moraine gravel runs along Mount Monolith's whole base, below its painted snow and ridges: about 7 to 10 px deep, up to 17 below a glacier's snout and 25 below a tarn, grass breaking through towards its lower edge, with small solid stones in it a few pixels apart and clear of each tarn's rim and melt water. The flowers and the heather start below it. 7,640 things on the map (6,511 before). Frame time 10.6 ms; nothing moved.
+- Next: C3.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -365,6 +366,10 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - C1, a call: the parkland marmots keep clear of the head of each tarn stream as well as of the water (their boulder had landed on the stream's first pixels, which are not yet in the water grid).
 - C1, a call: the whale moved 117 px because its spot's tie-break draws from the same dice as every placement before it, and the lake changed how many draws come first. It stays within its band of open sea, so it was left.
 - C1, frame time: 10.5 ms zoomed out at Dusk.
+- C2, a call: the moraine band is found from the volcano painting's lowest row in each column, so it follows the painting wherever it changes; it is wider where that row is snow or ice (a glacier's snout) and near each tarn.
+- C2, a call: the first try at "many more flowers" carpeted the parkland solid; it was cut to about a third, in smaller clumps, so the meadow still reads as grass with flowers in it.
+- C2, a call: the extra flowers grow only where the ground's picture is grass, so none stand on the rock below the Spires or on the volcano's ribs, and they reach slopes a little steeper than the first planting allows (the slope under the east glacier).
+- C2, frame time: 10.6 ms zoomed out at Dusk.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:
