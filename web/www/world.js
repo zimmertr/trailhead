@@ -14,17 +14,23 @@ import { faceSnow } from './monolith.js';
 // let rows past the map's foot show above it). Read again only when the page is resized or the bar comes or goes.
 let barAt = -1, barH = 0;
 const barCss = () => { const el = document.getElementById('bar'), up = !!el && !el.hidden && el.offsetHeight > 0, key = (innerWidth * 1e4 + innerHeight) * 2 + (up ? 1 : 0); if (barAt !== key) { barAt = key; barH = up ? innerHeight - el.offsetTop : 32 * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--px')) || 2); } return barH; };
-// The opening frame (F5a). At twice one-to-one the Trailhead and the three destinations rarely all fit, so
-// the frame is the one that shows the most destination names, then the largest share of each destination's
-// country (each counts the same, however big), with the Trailhead and its name in view above the timeline bar. Ground under the junction
-// sign (sign: its box in map pixels from the view's corner) does not count. Ties go to the frame nearest
-// the Trailhead's own, so a screen that fits everything still centres on it.
+// The opening frame (F5a). He stands a little below and right of the middle of what shows above the timeline
+// bar (or above the junction sign on an upright phone), so the eye finds him at once (round 6, note 7). Within
+// that, the frame is the one that shows the most destination names, then the largest share of each
+// destination's country (each counts the same, however big). Ground under the junction sign (sign: its box
+// in map pixels from the view's corner) does not count. Ties go to the frame that puts him nearest the
+// middle of his window.
+const OPEN_X = [0.52, 0.66], OPEN_Y = [0.56, 0.72];
 function openFrame(T, boxes, names, VW, VH, WW, WH, bar, sign) {
-  const x0 = Math.max(VW / 2, T.x - VW / 2 + 40), x1 = Math.min(WW - VW / 2, T.x + VW / 2 - 40);
-  // Down as far as his feet clear the bar by 14; up as far as his name stays 50 inside the top.
-  const y0 = Math.max(VH / 2, T.y + 14 + bar - VH / 2), y1 = Math.max(y0, Math.min(WH - VH / 2 + bar, T.y - 50 + VH / 2));
+  // Where the view's centre may be for him to stand in his window: x and y on screen are OPEN_X of the
+  // width and OPEN_Y of the height left above the bar. The map's edges come first if they disagree.
+  const H = VH - bar, inX = [VW / 2, WW - VW / 2], inY = [VH / 2, Math.max(VH / 2, WH - VH / 2 + bar)];
+  const cxs = [T.x + VW / 2 - OPEN_X[1] * VW, T.x + VW / 2 - OPEN_X[0] * VW], cys = [T.y + VH / 2 - OPEN_Y[1] * H, T.y + VH / 2 - OPEN_Y[0] * H];
+  const clampTo = (v, r) => Math.min(r[1], Math.max(r[0], v));
+  const x0 = clampTo(cxs[0], inX), x1 = Math.max(x0, clampTo(cxs[1], inX)), y0 = clampTo(cys[0], inY), y1 = Math.max(y0, clampTo(cys[1], inY));
+  const mx = T.x + VW / 2 - (OPEN_X[0] + OPEN_X[1]) / 2 * VW, my = T.y + VH / 2 - (OPEN_Y[0] + OPEN_Y[1]) / 2 * H;
   let best = -1, bx = T.x, by = T.y;
-  for (let cy = y0; cy <= y1; cy += 6) for (let cx = x0; cx <= x1; cx += 6) {
+  for (let cy = y0; cy <= y1; cy += 3) for (let cx = x0; cx <= x1; cx += 3) {
     const ox = cx - VW / 2, oy = cy - VH / 2; let s = 0;
     for (const b of boxes) {
       if (b.x1 < b.x0) continue;
@@ -34,7 +40,7 @@ function openFrame(T, boxes, names, VW, VH, WW, WH, bar, sign) {
       s += a / ((b.x1 - b.x0 + 1) * (b.y1 - b.y0 + 1));
     }
     for (const n of names) { const x = n.x - ox, y = n.y - oy; if (x > 30 && x < VW - 30 && y > 12 && y < VH - bar - 8 && !(sign && x > sign.x0 - 30 && x < sign.x1 + 30 && y > sign.y0 - 8 && y < sign.y1 + 8)) s += 4; }
-    s -= Math.hypot(cx - T.x, cy - T.y) * 1e-5;
+    s -= Math.hypot(cx - mx, cy - my) * 1e-5;
     if (s > best) { best = s; bx = cx; by = cy; }
   }
   return { x: bx, y: by };
