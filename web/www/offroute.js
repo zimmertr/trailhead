@@ -6,14 +6,14 @@ import { makeRunner, frontFig } from './tj.js';
 import { makeSmallSign } from './sprites.js';
 import { NAMES } from './content.js';
 
-// A 404 in the cloud (round 5, T78: TJ asked for one painted subtly into the fog): the three digits
-// from a 3 by 5 font, blurred between cells, so they read as patches of slightly thicker, greyer cloud
+// A 404 in the cloud (round 5, T78; round 6, note 28 asked for it to read at a glance): the three digits
+// from a 3 by 5 font, blurred between cells, so they read as big patches of clearly thicker, greyer cloud
 // (greyer, not whiter: the cloud is often already as white as the palette goes). GLYPH
 // is the font padded by one empty cell all round; fog404 says how far inside a digit a point is (0 to 1),
 // in cells of the font.
 const GLYPH = (() => {
   const rows = ['101 111 101', '101 101 101', '111 101 111', '001 101 001', '001 111 001'].map(r => r.replace(/ /g, '0'));
-  const g = []; for (let y = -1; y <= 5; y++) { const row = []; for (let x = -1; x <= 11; x++) row.push(y >= 0 && y < 5 && x >= 0 && x < 9 + 2 && rows[y][x - Math.floor(x / 4)] === '1' && x % 4 !== 3 ? 1 : 0); g.push(row); }
+  const g = []; for (let y = -1; y <= 5; y++) { const row = []; for (let x = -1; x <= 11; x++) row.push(y >= 0 && y < 5 && x >= 0 && x < 11 && rows[y][x] === '1' ? 1 : 0); g.push(row); }
   return g;
 })();
 function fog404(u, w) {
@@ -44,7 +44,7 @@ function paintFog(scr, t, base, M, gx0, gy0) {
       let v = y < base ? 0.62 + 0.3 * n : 0.9 - 0.3 * clamp(d, 0, 1) + 0.14 * (n - 0.5);
       if (y < base) { const ridge = base - 60 - 50 * fbm(x / 90, 3, 403, 3), show = fbm(x / 140 + t * 0.03, 7, 404, 2); if (y > ridge && show > 0.5) v -= 0.16 * Math.min(1, (show - 0.5) * 6) * (1 - (y - ridge) / (base - ridge)); }
       if (y >= base && fbm(x / 14, y / 2.5, 401, 2) > 0.62) v -= 0.12;
-      if (inRows) { const mx = x - gx0 + M.gc; if (mx >= 0 && mx < M.w) { const g = M.d[my * M.w + mx]; if (g > 0) v -= 0.075 * g * (0.6 + 0.8 * n); } }
+      if (inRows) { const mx = x - gx0 + M.gc; if (mx >= 0 && mx < M.w) { const g = M.d[my * M.w + mx]; if (g > 0) v -= 0.26 * g * (0.85 + 0.3 * n); } }
       const f = clamp(v, 0, 0.999) * 4, i = Math.floor(f);
       fb[y * VW + x] = snow[Math.min(4, i + (bayer(x, y) < f - i ? 1 : 0))];
     }
@@ -66,9 +66,10 @@ export function makeOffroute() {
     pick(sx, sy) { return Math.abs(sx - focus.x - 26) < 8 && Math.abs(sy - focus.y) < 22 ? { label: NAMES.offroute.wand, x: focus.x + 26, y: focus.y - 16 } : null; },
     draw(scr, env, arg, q) {
       const { VW, VH } = scr, { t } = env, base = baseline(scr, env.shown, st), cx = Math.round(scr.narrow ? VW * 0.5 : VW * 0.62);
-      // Where the 404 sits: in the cloud left of him and above the ghost ridge, a quarter of the picture
-      // high and never wider than four fifths of it, drifting a few pixels.
-      const gc = Math.max(6, Math.min(22, Math.round(base * 0.12), Math.floor(VW * 0.8 / 11))), gx0 = Math.round((scr.narrow ? VW * 0.5 : VW * 0.36) - 5.5 * gc + 6 * Math.sin(t * 0.09)), gy0 = Math.round(base * 0.36 - 2.5 * gc + 3 * Math.sin(t * 0.07 + 1));
+      // Where the 404 sits: in the cloud left of him, as big as fits between the top bar and the ghost ridge
+      // and never wider than four fifths of the picture, drifting a few pixels.
+      const top = 18, low = base - 70, gc = Math.max(6, Math.min(30, Math.floor((low - top) / 5.6), Math.floor(VW * 0.8 / 11)));
+      const gx0 = Math.round((scr.narrow ? VW * 0.5 : VW * 0.36) - 5.5 * gc + 6 * Math.sin(t * 0.09)), gy0 = Math.round(Math.max(top + 4, (top + low) / 2 - 2.5 * gc) + 3 * Math.sin(t * 0.07 + 1));
       paintFog(scr, t, base, maskFor(gc), gx0, gy0);
       // His own tracks, coming in from the left and stopping.
       const mx = cx - Math.round((1 - q) * 70), my = base + 6;

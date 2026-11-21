@@ -430,3 +430,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Stop Labels That Read at a Glance** (round 6, B5; #33's last step). The timeline's stop labels are small tags above the bar; they could grow on hover, or show only the next stop's name in full, so the route reads at a glance without crowding a phone.
 - **The Board Read in Place** (round 6, B5). The notice on the register box's back wall could carry the whole board when the screen is tall enough, as TJ's second idea in note 23 has it, and open the sheet only on a phone.
 - **Follow the Event** (round 6, B6). After the view moves to a map event, it could keep following a moving one (the ferry, the orcas, the tumbleweed) until it ends, then ease back to him.
+- **The 404 Clears as You Leave** (round 6, B7). The fog digits could thin and drift apart once he turns back along his tracks, so the page answers the click on "Back to the Trailhead" before the world changes.

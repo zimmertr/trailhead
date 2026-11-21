@@ -211,6 +211,19 @@ test('the world and the page of text pass axe', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
+// The renderer is broken on purpose, so the console error it logs is expected and not collected.
+test('a broken world leaves the page of text with a way back to the Trailhead', async ({ page }) => {
+  await page.route(`${origin}/api/v1/projects`, (route) => route.fulfill({ json: LIVE }))
+  await page.goto(origin + '/?break=renderer')
+  const back = page.locator('#plain .band button')
+  await expect(back).toBeVisible({ timeout: 30_000 })
+  await expect(back).toHaveText('Back to the Trailhead')
+  await back.click()
+  await page.waitForFunction(() => window.__ready === true, null, { timeout: 30_000 })
+  expect(new URL(page.url()).search).toBe('')
+  await expect(page.locator('#plain')).toBeHidden()
+})
+
 test('an address that is off route still draws', async ({ page }) => {
   const problems = await open(page, '/#no-such-trail')
   await watch(page)
