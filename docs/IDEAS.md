@@ -438,3 +438,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Lake Holds the Sky** (round 6, C1). With more open water, the lake could mirror the clouds that pass over it, a pale shape drifting across its surface a few pixels at a time.
 - **Meltwater Through the Gravel** (round 6, C2). Below each glacier snout the moraine band could carry a few braided threads of meltwater, sparkling now and then, that sink into the gravel before they reach the meadow.
 - **Marmots on the Moraine** (round 6, C2). The moraine band's boulders are where marmots really live: one or two of the band's stones could get a marmot that sits up and whistles as the parkland's do.
+- **Mist Over the Bog** (round 6, C3). At Dusk a low white mist could gather over the bog's pools and drift off between the trees, the way it does over real Olympic bogs.
+- **A Banana Slug on the Cabbage** (round 6, C3). A tiny yellow slug could cross a skunk cabbage leaf now and then, as the forest scene's slug does at its own pace.

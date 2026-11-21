@@ -132,6 +132,14 @@ function makeFlowers(kind, seed) {
   }
   return { parts: [{ bm: stems, x: -4, y: -6, sway: 0 }, { bm: blooms, x: -4, y: -6, sway: 1, lx: 0 }], h: 7, w: 9, low: true };
 }
+// Skunk cabbage (round 6, C3): three big upright leaves, bright green, with a yellow hooded flower among
+// them, as it grows in the rainforest's bogs. Its leaves sway.
+function makeSkunkCabbage(seed) {
+  const rand = rng(seed), b = new BM(9, 7), G = R.grass; b.ox = 4; b.oy = 6;
+  for (const [cx, lean] of [[2, -1], [6, 1], [4, 0]]) { const h = 4 + (rand() * 2 | 0); for (let j = 0; j < h; j++) { const w = j < h - 1 ? 1 : 0; for (let i = -w; i <= w; i++) b.set(cx + i + Math.round(lean * j / 3), 6 - j, j < 1 ? G[1] : i === -w ? G[4] : G[3]); } }
+  const fx = 3 + (rand() * 3 | 0); b.set(fx, 4, R.yellow[0]); b.set(fx, 3, R.yellow[1]); b.set(fx + 1, 3, R.yellow[0]); b.set(fx, 2, R.yellow[1]);
+  return swaying(b, 4);
+}
 // Fireweed (round 6, I1): two to four tall stalks, green at the foot and magenta above, the tip of each
 // paler, as the burn's ground used to have them painted in. The top sways.
 function makeFireweed(seed) {
@@ -592,4 +600,4 @@ function makeFlag(f, ramp = R.red) {
 }
 
 export { makeRegister, makeMoose };
-export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, makeFireweed, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };

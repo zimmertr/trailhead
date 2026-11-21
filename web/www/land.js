@@ -6,7 +6,7 @@ import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, T
 import { paintMonolith, monolithSky, moraineLakes, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
-import { makeDriftwood, makeFlowers, makeFireweed, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
+import { makeDriftwood, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
 // What a drawing that stands still is, and whether it is solid (ENGINE.md; collide.js reads solid).
 const tag = (bms, what, solid = false) => { for (const b of bms) { b.what = what; if (solid) b.solid = true; } }, tagged = (b, what, solid) => { tag([b], what, solid); return b; };
 
@@ -578,6 +578,19 @@ const flowerAmt = (u, v) => { const most = flowerMost(u, v); if (most >= 1) retu
 // plain turf. null elsewhere, where the flowers are scattered by the dice.
 const DRIFT = (u, v) => { if (flowerMost(u, v) < 0.45) return null; const k = vnoise(u / 58, v / 34, 470) + 0.08 * (vnoise(u / 9, v / 6, 471) - 0.5); return k < 0.36 ? 'lupine' : k < 0.5 ? 'heather' : k < 0.68 ? 'red' : 'white'; };
 const forestAmt = (u, v) => { const e = forestEdge(v); return smooth(e + 40, e - 24, u + 30 * (fbm(u / 30, v / 30, 8, 2) - 0.5)) * smooth(-6, -30, coast(u, v)) * (1 - 0.9 * smooth(1.1, 0.7, ell(C.PK, u, v))) * (1 - 0.95 * smooth(1.15, 0.75, ell(C.PK3, u, v) + wob(u, v, 209, 0.3))); };
+// The rainforest's bog and its old-growth groves (round 6, C3, note 8), each found by rule so they follow the
+// land: deep in the forest, off the hills and the beach, away from the trails, on flat ground. The bog wants
+// a stream some way off and lies as near the Trailhead as that allows, so the map shows it; the groves are
+// two of the flattest wet spots well away from it and from each other. Each is an oval [u, v, ru, rv].
+const flatAt = (u, v, r) => Math.abs(hAt(u + r, v) - hAt(u - r, v)) + Math.abs(hAt(u, v + r) - hAt(u, v - r));
+const deepWood = (u, v) => forestAmt(u, v) > 0.85 && hills(u, v) < 1 && coast(u, v) < -70 && !nearTrail(u, v, 26) && !lakeAt(u, v) && !water[at(u, v)];
+const BOG = (() => { let best = null; for (let v = 30; v < VD - 30; v += 6) for (let u = 30; u < 720; u += 6) { if (!deepWood(u, v)) continue; const d = RIVD(u, v); if (d < 12) continue;
+  const s = -3 * flatAt(u, v, 10) - 0.15 * Math.abs(d - 24) - 0.012 * Math.hypot(u - TU, v - TV); if (!best || s > best.s) best = { u, v, s }; } return best ? [best.u, best.v, 16, 9] : null; })();
+const GROVES = (() => { const out = []; for (let k = 0; k < 2; k++) { let best = null; for (let v = 30; v < VD - 30; v += 6) for (let u = 30; u < 720; u += 6) { if (!deepWood(u, v) || (BOG && Math.hypot(u - BOG[0], v - BOG[1]) < 110) || out.some(g => Math.hypot(u - g[0], v - g[1]) < 110)) continue;
+  const s = -flatAt(u, v, 12) - 0.02 * Math.abs(coast(u, v) + 150) - 0.004 * Math.hypot(u - TU, v - TV); if (!best || s > best.s) best = { u, v, s }; } if (best) out.push([best.u, best.v, 22, 12]); } return out; })();
+const bogAt = (u, v) => BOG ? ell(BOG, u, v) + 0.25 * (fbm(u / 9, v / 6, 470, 2) - 0.5) : 9;
+const bogFront = (u, v) => BOG ? ell([BOG[0], BOG[1] - 26, BOG[2] * 1.5, BOG[3] + 26], u, v) + 0.2 * (fbm(u / 12, v / 9, 474, 2) - 0.5) : 9;
+const groveAt = (u, v) => GROVES.reduce((m, g) => Math.min(m, ell(g, u, v)), 9);
 // Larches are trees of the high country: none below the second granite step.
 const larchAmt = (u, v) => smooth(1.2, 0.85, ell(C.LB, u, v) + wob(u, v, 204, 0.35)) * smooth(62, 74, hAt(u, v));
 // The old burn lies on the bench at the foot of the Enchantment plateau's cliff (E5g, TJ's red box), at
@@ -697,6 +710,8 @@ function colour(u, v, hh, x, y) {
   if (steep > 1.05 && palAmt(u, v) > 0.3) return pick('dry', 0.12 + 0.95 * L, x, y, 0.5);
   if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)]) : u > 1190 ? pick('rock', 0.36 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.15 * L, x, y, 0.7) : ((ld, ck) => ld < 0.22 && hash(x, y, 100) < 0.75 ? pick('moss', 0.3 + 0.35 * L, x, y) : ck > 0.74 ? R.rock[0] : pick('rock', 0.14 + 0.5 * vnoise(x / 3, hh / 5, 97) + 0.25 * L, x, y, 0.7))(frac(hh / 4.5 + 0.7 * vnoise(x / 9, 3, 98)), vnoise(x / 2.2, hh / 9, 99));
   const sh = (L - 0.5) * 0.5, blot = s => 0.5 + 0.85 * (fbm(u / 32, v / 21, s, 3) - 0.5) + 0.2 * n1;
+  // The bog: bright sphagnum moss with dark peaty pools in it, the moss darker towards its edge.
+  { const e = bogAt(u, v); if (e < 1) return fbm(u / 6, v / 4, 471, 2) > 0.52 && e < 0.85 ? (hash(u, v, 472) < 0.07 ? R.water[1] : R.moss[0]) : pick('moss', 0.62 + 0.3 * fbm(u / 5, v / 4, 473, 2) - 0.3 * e, x, y, 0.4); }
   if (fa > 0.5 + 0.2 * n1) { const shaft = fbm(u / 34 + v / 70, v / 26, 21, 3); return pick('moss', 0.16 + 0.3 * fbm(u / 18, v / 18, 22, 3) + smooth(0.56, 0.7, shaft) * 0.4 + sh * 0.4, x, y); }
   const bu = burnAmt(u, v), da = dryAmt(u, v);
   if (larchAmt(u, v) > blot(181) && bu < 0.5) { const slab = fbm(u / 22, v / 11, 96, 3); return slab > 0.58 ? pick('rock', 0.85 + 0.2 * n1, x, y, 0.7) : hash(u, v, 98) < 0.06 ? R.red[1] : hash(u, v, 99) < 0.05 ? R.larch[3] : pick('grass', 0.42 + sh + 0.2 * n1, x, y, 0.4); }
@@ -1138,6 +1153,9 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
     const u = clamp(gu + rand() * 9, 3, NW - 4), v = clamp(gv + rand() * 9, 2, VD - 3), fa = forestAmt(u, v), r = rand();
     // A hill's flank is steep where it falls to the forest's edge, and trees stand on it anyway.
     if (rand() > fa * 0.78 || !open(u, v, u < 760 && hills(u, v) > 2 ? 2.6 : 1.3) || !wooded(u, v)) continue;
+    // The bog is a clearing, open on its near side so the trees in front do not hide it, and a grove's
+    // giants stand with room round them (C3).
+    if (bogAt(u, v) < 1.4 || bogFront(u, v) < 1 || groveAt(u, v) < 1) continue;
     // The ranks hold the hills' upper slopes.
     if (ridgeRow(u, v) || glade(u, v) || riverFront(u, v)) continue;
     const w = wetAt(u, v), pm = 0.05 + 0.36 * w, pg = pm + (w > 0.55 ? 0.04 : 0), ps = pg + 0.05 + 0.26 * w, pc = ps + 0.12 + 0.06 * w;
@@ -1301,9 +1319,19 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   rand = rng(6111);
   for (let n = 0; n < 400; n++) { const u = 1440 + rand() * 330, v = 400 + rand() * 200; if (rand() < burnAmt(u, v) && open(u, v) && land(u, v)) { if (rand() < 0.5) put(any(burnt), u, v, 0, true); else plant(any(young), u, v); } }
   rand = rng(6112);
-  for (let n = 0; n < 4000; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.6 && fogAmt(u, v) < 0.25 && hills(u, v) < 3 && open(u, v, 1.1) && wooded(u, v)) things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); }
+  for (let n = 0; n < 4000; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.6 && fogAmt(u, v) < 0.25 && hills(u, v) < 3 && open(u, v, 1.1) && wooded(u, v) && bogAt(u, v) >= 1) things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); }
   rand = rng(6113);
-  for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && hills(u, v) < 3 && open(u, v, 0.8) && wooded(u, v)) put(any(logs), u, v); }
+  for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && hills(u, v) < 3 && open(u, v, 0.8) && wooded(u, v) && bogAt(u, v) >= 1.2) put(any(logs), u, v); }
+  // Skunk cabbage round the bog's pools, on the moss, never in the water (C3). Their own dice.
+  if (BOG) { const sc = rng(6121), cab = Array.from({ length: 4 }, (_, i) => makeSkunkCabbage(1050 + i)), took = new Set();
+    for (let n = 0; n < 400; n++) { const u = BOG[0] + (sc() * 2 - 1) * BOG[2], v = BOG[1] + (sc() * 2 - 1) * BOG[3], e = bogAt(u, v), cell = ((u / 5) | 0) * 1000 + ((v / 3) | 0);
+      if (e > 0.95 || (fbm(u / 6, v / 4, 471, 2) > 0.5 && e < 0.87) || took.has(cell) || sc() > 0.22) continue; took.add(cell); plant(cab[(sc() * cab.length) | 0], u, v); } }
+  // The old-growth groves: three or four redcedars half as tall again as the forest round them, a little apart,
+  // with sword ferns thick on the ground below (C3). Their own dice.
+  { const gr = rng(6122), giants = [0, 1, 2].map(i => KINDS_NW.cedar(1080 + i * 7, 84 + i * 4));
+    for (const [gu, gv, ru, rv] of GROVES) { const stood = [];
+      for (let n = 0; n < 60 && stood.length < 4; n++) { const u = gu + (gr() * 2 - 1) * ru * 0.7, v = gv + (gr() * 2 - 1) * rv * 0.7; if (!open(u, v, 1.3) || !wooded(u, v) || stood.some(([a, b]) => Math.hypot(a - u, (b - v) * 1.6) < 16)) continue; stood.push([u, v]); plant(giants[(gr() * giants.length) | 0], u, v); }
+      for (let n = 0; n < 40; n++) { const u = gu + (gr() * 2 - 1) * ru, v = gv + (gr() * 2 - 1) * rv; if (ell([gu, gv, ru, rv], u, v) > 1 || !open(u, v, 1.1)) continue; things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); } } }
   // Driftwood above the high-water line (round 5, T8): eight logs' worth of drawings, each at its own angle.
   // The dice are rolled as they were, so every log lies where its blob lay.
   { const dr = rng(4730), drift = Array.from({ length: 8 }, (_, i) => makeDriftwood(i)); tag(drift, 'drift');
@@ -1349,6 +1377,22 @@ for (const th of things) {
 // The ranks' trees are handed to the scene whole where enough of each shows, clipped by nearer ground.
 for (const F of RANKTREES) { let n = 0, seen = 0; for (const p of F.t.parts) for (let j = 0; j < p.bm.h; j++) for (let i = 0; i < p.bm.w; i++) { if (!p.bm.d[j * p.bm.w + i]) continue; const x = F.x + p.x + i, y = F.y + p.y + j; n++; if (x >= 0 && y >= 0 && x < NW && y < SH && zb[px(x, y)] >= F.v - 3) seen++; }
   if (seen >= n * 0.12) live.push({ tree: F.t, x: F.x, y: F.y, v: F.v, clip: true }); }
+// Holes in the hills' forest (round 6, C3, note 8): where a hill's ground is painted as canopy but no tree
+// stands within a few pixels (the ranks skipped it, or too little of their trees showed), it read as a dark
+// empty patch among the trees. Each hole gets a tree of the same wet-or-dry mix, kept back from the ground in
+// front of a river as the ranks are, and handed to the scene the way the ranks' trees are.
+{ const CELL = 8, GW = Math.ceil(NW / CELL), GV = Math.ceil(VD / CELL) + 8, has = new Uint8Array(GW * GV), fr = rng(6120), lib = {};
+  const mark = (u, v) => { const gu = Math.floor(u / CELL), gv = Math.floor(v / CELL) + 4; if (gu >= 0 && gu < GW && gv >= 0 && gv < GV) has[gv * GW + gu] = 1; };
+  const near = (u, v) => { const gu = Math.floor(u / CELL), gv = Math.floor(v / CELL) + 4; for (let b = -1; b <= 1; b++) for (let a = -1; a <= 1; a++) { const k = (gv + b) * GW + gu + a; if (gu + a >= 0 && gu + a < GW && gv + b >= 0 && gv + b < GV && has[k]) return true; } return false; };
+  for (const th of live) if (th.tree && !th.tree.low) mark(th.x, th.v);
+  for (let gv = 0; gv < VD; gv += 6) for (let gu = 4; gu < 760; gu += 6) {
+    const u = gu + fr() * 6, v = gv + fr() * 6, r = fr(); if (forestAmt(u, v) < 0.45 || hills(u, v) < 4 || coast(u, v) > -18 || near(u, v) || riverFront(u, v) || !open(u, v, 2.6)) continue;
+    const w = wetAt(u, v), kind = r < 0.08 + 0.3 * w ? 'spruce' : r < 0.5 ? 'douglas' : r < 0.86 ? 'hemlock' : 'cedar', H = [44, 50, 57][(fr() * 3) | 0];
+    const t = (lib[kind + H] || (lib[kind + H] = [0, 1].map(i => KINDS_NW[kind](1700 + H + i * 3 + kind.length * 31, H))))[(fr() * 2) | 0], fy = Math.round(SY - v - hAt(u, v));
+    let n = 0, seen = 0; for (const p of t.parts) for (let j = 0; j < p.bm.h; j++) for (let i = 0; i < p.bm.w; i++) { if (!p.bm.d[j * p.bm.w + i]) continue; const x = Math.round(u) + p.x + i, y = fy + p.y + j; n++; if (x >= 0 && y >= 0 && x < NW && y < SH && zb[px(x, y)] >= v - 3) seen++; }
+    if (seen < n * 0.12) continue;
+    live.push({ tree: t, x: Math.round(u), y: fy, v, clip: true }); mark(u, v);
+  } }
 
 if (!B) for (const th of live) {
   if (!th.tree && !th.isTree) continue;
