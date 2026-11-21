@@ -105,12 +105,12 @@ The Helm chart is in zimmertr/trailhead-helm. Every check runs in Docker as a `m
 
 1. **Rounds 3 to 5 (done).** The world was built round by round as an artifact TJ reviewed: low-poly 3D first, then pixel art from 2026-11-14. Round 5 merged into `main` on 2026-11-21.
 2. **Round 6 (under way).** TJ's 38 notes on round 5, issues #33, #34, #36 and #38, the first generated picture, and the repo made ready for a public release ([`ROUND6.md`](ROUND6.md)).
-3. **Round 7.** The trail register saved for everyone: entries through `api`, approved in `admin`, kept in Postgres.
+3. **Round 7.** The trail register saved for everyone: entries through `api`, approved in `admin`, kept in Postgres ([#56](https://github.com/zimmertr/trailhead/issues/56)).
 4. **MVP.** The site live on TJ's cluster through the chart.
 
 ## 7. Open items
 
 - **Analytics and error reporting.** Not built. The first plan measured visits, errors and frame rate before launch; the game sends nothing today.
 - **TypeScript.** The game is untyped JavaScript. A port, or type checking through `// @ts-check`, is deferred by TJ.
-- **The card styles.** Each card looks like the thing it comes from; whether to keep that is TJ's call, filed as an issue in round 6.
+- **The card styles.** Each card looks like the thing it comes from; whether to keep that is TJ's call ([#55](https://github.com/zimmertr/trailhead/issues/55)).
 - **Hostnames.** Which hosts the site, the API and the panel answer on is deferred.

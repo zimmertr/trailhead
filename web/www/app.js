@@ -108,7 +108,7 @@ function fillBook() {
   const row = n => top + n * pitch, drop = '--tilt:0deg;--drop:' + (pitch * 0.14).toFixed(1) + 'px;';
   if (done.lake && done.stack && done.spires) {
     // Signing (L5): once all three are done the visitor writes on the left-hand page, in pencil, in a hand
-    // of their own. The entry is kept in this browser only and waits for TJ (the real register is issue 3).
+    // of their own. The entry is kept in this browser only and waits for TJ (the real register is issue 56).
     const pen = "font-family:'Patrick Hand',cursive;font-size:" + (pitch * 0.9 * 0.92).toFixed(1) + 'px;line-height:' + pitch + 'px;color:#5f5f6a;left:' + 14 * k + 'px;right:' + 6 * k + 'px;' + drop;
     if (mine.length) {
       const st = "font-family:'Caveat',cursive;font-size:" + (pitch * 0.95).toFixed(1) + 'px;line-height:' + pitch + 'px;color:#1c1a24;left:' + 14 * k + 'px;right:' + 6 * k + 'px;' + drop;
