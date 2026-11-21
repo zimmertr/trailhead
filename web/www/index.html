@@ -1,0 +1,64 @@
+<title>Trailhead Pixel Round 6</title>
+<link rel="preload" href="fonts/jersey-10.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/jersey-15.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/tiny5.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/silkscreen.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<canvas id="c" aria-label="A pixel-art mountain world: a runner at a trail junction in a wildflower meadow, with a lake, a granite wall and a glaciated massif beyond"></canvas>
+<div id="status" role="status">Drawing the world</div>
+
+<header id="top" hidden>
+  <button class="plank" id="b-map" aria-haspopup="dialog">Trail map</button>
+  <span class="gap"></span>
+  <button class="plank" id="b-track" aria-label="Next music track"><i class="note"></i><span></span></button>
+  <button class="plank" id="b-sound" aria-pressed="false">Sound off</button>
+  <button class="plank" id="b-dusk">Dusk</button>
+  <button class="plank" id="b-help" aria-label="Keys">Keys</button>
+  <button class="plank" id="b-debug" aria-haspopup="dialog">Debug</button>
+  <button class="plank" id="b-page">Page</button>
+</header>
+
+<section id="fork" hidden>
+  <div class="placard">
+    <button class="x" id="fork-x" aria-label="Close"><svg viewBox="0 0 5 5" aria-hidden="true"><path d="M0 0h1v1H0zM4 0h1v1H4zM1 1h1v1H1zM3 1h1v1H3zM2 2h1v1H2zM1 3h1v1H1zM3 3h1v1H3zM0 4h1v1H0zM4 4h1v1H4z"/></svg></button>
+    <h1>TJ Zimmerman</h1>
+    <p id="intro"></p>
+  </div>
+  <ul class="post" id="signs"></ul>
+</section>
+
+<section id="card" class="placard" hidden aria-live="polite">
+  <button class="x" id="card-x" aria-label="Close"><svg viewBox="0 0 5 5" aria-hidden="true"><path d="M0 0h1v1H0zM4 0h1v1H4zM1 1h1v1H1zM3 1h1v1H3zM2 2h1v1H2zM1 3h1v1H1zM3 3h1v1H3zM0 4h1v1H0zM4 4h1v1H4z"/></svg></button>
+  <p class="from" id="card-from"></p>
+  <h2 id="card-title"></h2>
+  <div class="rule"></div>
+  <div id="card-body"></div>
+  <dl class="facts" id="card-facts"></dl>
+  <div class="gauges" id="card-gauges"></div>
+  <ul class="tools" id="card-tools"></ul>
+  <ul class="links" id="card-links"></ul>
+  <ul class="post" id="card-menu"></ul>
+  <p class="egg" id="card-egg"></p>
+  <p class="draft" id="card-draft">Draft copy for TJ to rewrite</p>
+  <button id="card-go" class="plank go"><i class="arrow go"></i><span></span></button>
+</section>
+
+<div id="book" hidden></div>
+<button id="book-x" class="plank" hidden><span>Close the book</span></button>
+<button id="tab" class="plank" hidden><i class="arrow up"></i><span></span></button>
+<div id="names"></div>
+<div id="tip" class="name" hidden></div>
+<div id="toast" role="status" hidden></div>
+<div id="hint" class="plank" hidden></div>
+
+<nav id="bar" aria-label="Route" hidden>
+  <button id="run" class="plank">Start</button>
+  <div id="line"><canvas id="prof"></canvas><div id="marks"></div><div id="thumb" role="slider" tabindex="0" aria-label="Place along the route" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></div></div>
+  <button id="home" class="plank">Trailhead</button>
+</nav>
+
+<aside id="debug" class="placard" aria-label="Debug" hidden></aside>
+<div id="sheet" role="dialog" aria-modal="true" hidden><section class="placard"><button id="close" class="plank">Close</button><div id="sheet-body"></div></section></div>
+<main id="plain" tabindex="-1" hidden></main>
+
+<script type="module" src="./app.js"></script>

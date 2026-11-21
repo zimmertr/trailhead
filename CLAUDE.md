@@ -15,10 +15,9 @@ TJ's site, tjzimmerman.com, as one pixel-art mountain world that a visitor runs 
 | [`docs/DATA.md`](docs/DATA.md) | GitHub's API: what the fetcher reads, its quirks and its terms |
 | [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) | The `make` targets, the workspaces, and how to write tests |
 | [`docs/LIMITS.md`](docs/LIMITS.md) | Every cap and timeout, and why |
-| [`docs/STYLES.md`](docs/STYLES.md) | The plain page's look, its tokens, and what the tests hold |
 | [`docs/TRAFFIC.md`](docs/TRAFFIC.md) | Routes in, client identity, headers, and every outbound call |
 | [`docs/USAGE.md`](docs/USAGE.md) | What a visitor and TJ see, and what to do when it breaks |
-| [`prototype/pixel/`](prototype/pixel/ROUND4.md) | The pixel-art prototype (plain JS in `www/`): `ROUND4.md` is the last round's plan and log, `IDEAS.md` the backlog, `PROGRESS.md` the history. `shot.sh`, `sheet.sh`, `frames.sh` and `bake.sh` render and bake it in Docker (their image installs from `lab/`). It is plain browser JS with no build and no types, so `make lint` holds it to ESLint's own recommended rules and none of the site's, and `make prototype-smoke` (`e2e/prototype/`) opens every route in a browser and fails on anything written to the console, a stale `ground.png` included |
+| [`web/www/`](web/CLAUDE.md), [`tools/pixel/`](tools/pixel/check.sh) | The pixel world (plain JS, served by `web` as it is) and the Docker tools that render, film, bake and check it (`shot.sh`, `sheet.sh`, `frames.sh`, `walk.sh`, `bake.sh`, `check.sh`; their image installs from `lab/`). `make lint` holds the game to ESLint's own recommended rules and none of the site's, and `make browser` opens every route against the built web image and fails on anything written to the console, a stale `ground.png` included. [`docs/ROUND6.md`](docs/ROUND6.md) is this round's plan and log, [`docs/IDEAS.md`](docs/IDEAS.md) the backlog |
 | [`design/TRAILHEAD-ART.md`](design/TRAILHEAD-ART.md) | How the game uses generated pictures: when to use one, the two ways to use it, and the style model. Read it before making or changing art |
 | [`NOTICES.md`](NOTICES.md) | The bundled software and data, with their licenses |
 | [`content/CLAUDE.md`](content/CLAUDE.md), [`common/CLAUDE.md`](common/CLAUDE.md), [`web/CLAUDE.md`](web/CLAUDE.md), [`api/CLAUDE.md`](api/CLAUDE.md), [`admin/CLAUDE.md`](admin/CLAUDE.md), [`fetcher/CLAUDE.md`](fetcher/CLAUDE.md) | Each workspace's modules and what each owns |
@@ -39,7 +38,7 @@ The chart is in [zimmertr/trailhead-helm](https://github.com/zimmertr/trailhead-
 - **The API counts clients by `CF-Connecting-IP` alone**, through `clientBucket`; nothing reads or logs a socket address. Record: [0013](docs/architectural-decision-records/0013-client-identity-comes-from-cf-connecting-ip-alone.md)
 - **Every colour has one owner**: `web/src/styles/tokens.css` for the pages, `web/src/world/palette.ts` for the canvas. The tests and the linter refuse one anywhere else.
 - **A new runtime dependency** is an exact pin, gets its row in `NOTICES.md`, and ships with its lock.
-- **Pixel art throughout.** The world is pixel art on a 2D canvas, built in `prototype/pixel/` as plain JavaScript that `web` will serve as it is. Places differ by colour and environment, never by rendering style. Record: [0015](docs/architectural-decision-records/0015-the-world-is-pixel-art-served-as-plain-javascript.md)
+- **Pixel art throughout.** The world is pixel art on a 2D canvas, written as plain JavaScript in `web/www/`, which `web` serves as it is. Places differ by colour and environment, never by rendering style. Record: [0015](docs/architectural-decision-records/0015-the-world-is-pixel-art-served-as-plain-javascript.md)
 - **A merge is a release.** Prefer fewer, larger PRs.
 - The README is TJ's: keep it accurate and in his voice, and never restructure it.
 

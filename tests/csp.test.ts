@@ -7,8 +7,13 @@ import { files, read } from './repo.ts'
 // the policy doesn't govern. A new host fails this test until it's classified
 // here and, when the code reaches it, added to web/security-headers.conf.
 const HOSTS: Record<string, 'navigation' | 'connect-src' | 'script-src' | 'img-src'> = {
-  // Each project card links its repo.
+  // Each project card links its repo, and the cards link TJ's profiles and Bluebird's site.
   'github.com': 'navigation',
+  'www.linkedin.com': 'navigation',
+  'www.strava.com': 'navigation',
+  'www.peakbagger.com': 'navigation',
+  'www.mountainproject.com': 'navigation',
+  'bluebirdforecast.com': 'navigation',
 }
 
 export function hostsIn(source: string): string[] {
@@ -19,11 +24,11 @@ const policy = read('web/security-headers.conf').match(/Content-Security-Policy 
 const directive = (name: string) => policy.split(';').map((d) => d.trim()).find((d) => d.startsWith(`${name} `)) ?? ''
 
 describe('the content security policy', () => {
-  const sources = [...files(/^web\/src\/.*\.ts$/), ...files(/^web\/(index|page\/index)\.html$/)]
+  const sources = files(/^web\/www\/[^/]+\.(js|html)$/)
 
   it('finds hosts where they are written', () => {
     expect(hostsIn(`fetch('https://cloud.umami.is/api/send'); a.href = "//example.com"; x = 'https://github.com/' + repo`)).toEqual(['cloud.umami.is', 'example.com', 'github.com'])
-    expect(hostsIn('no hosts here, only /api/v1/projects and ./world/placeholder.ts')).toEqual([])
+    expect(hostsIn('no hosts here, only /api/v1/projects and ./world.js')).toEqual([])
   })
 
   it('classifies every host the browser code names', () => {

@@ -5,7 +5,7 @@ set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 
 check "the site answers" "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/)" "200"
-check "the plain page answers" "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/page/)" "200"
+check "the game's modules answer" "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/app.js)" "200"
 check "the api is ready, so it reached the database" "$(curl -fsS http://127.0.0.1:8081/readyz | jq -r .status)" "ok"
 check "the api lists the six projects" "$(curl -fsS http://127.0.0.1:8081/api/v1/projects | jq '.projects | length')" "6"
 check "with no numbers before the first fetch" "$(curl -fsS http://127.0.0.1:8081/api/v1/projects | jq '[.projects[].stars] | unique')" "[

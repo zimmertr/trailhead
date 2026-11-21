@@ -26,7 +26,6 @@ Each job of the repo's own runs a `make` target, so a red check reruns locally i
 | `Database Tests` | `pr.yml` | `make test-db` against a throwaway Postgres, with its coverage as a sticky comment |
 | `Image (web)`, `Image (api)`, `Image (admin)`, `Image (fetcher)` | `pr.yml` | hadolint, `make image`, `make smoke`, the image's size, a sticky Trivy comment, and a failure on any fixable Critical or High (record [0009](architectural-decision-records/0009-the-pr-builds-the-images-in-its-own-job.md)) |
 | `Browser Smoke & Axe` | `pr.yml` | `make browser-run` against the web image the image job built |
-| `Prototype Smoke` | `pr.yml` | `make prototype-smoke`: the pixel world prototype opens and draws on every route, with nothing on the console |
 | `Lighthouse Budgets` | `pr.yml` | `make lighthouse-run` against the same image, with the budgets in `.github/lighthouserc.json` |
 | `Compose` | `pr.yml` | `make compose-smoke`: `docker-compose.yml` up, checked from outside |
 

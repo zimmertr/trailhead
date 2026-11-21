@@ -1,7 +1,7 @@
 import { defineConfig } from '@playwright/test'
 
 // The browser suite runs against a built web image (`make browser`), never a
-// dev server, so it checks what ships: nginx's headers included.
+// dev server, so it checks what ships: nginx's headers and policy included.
 export default defineConfig({
   testDir: 'tests',
   forbidOnly: true,
@@ -15,12 +15,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: {
-        browserName: 'chromium',
-        // Software WebGL, since CI runners have no GPU. Chromium no longer
-        // falls back to it by itself.
-        launchOptions: { args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] },
-      },
+      use: { browserName: 'chromium', viewport: { width: 1440, height: 900 } },
     },
   ],
 })

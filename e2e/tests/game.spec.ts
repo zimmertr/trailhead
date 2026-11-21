@@ -1,0 +1,157 @@
+import AxeBuilder from '@axe-core/playwright'
+import { type Page, expect, test } from '@playwright/test'
+
+// The suite runs against the built web image (`make browser`), on localhost, because only there
+// does the page warn that ground.png is older than the map it was baked from. That warning fails
+// a test like any other.
+const origin = process.env.BASE_URL ?? 'http://localhost:8080'
+
+// What the API answers for the projects, as the game reads it. The image has no API beside it in
+// the suite, so the page's request is answered here.
+const LIVE = { projects: [{ slug: 'bluebird', name: 'Bluebird Forecast', repo: 'zimmertr/bluebird', url: 'https://github.com/zimmertr/bluebird', stars: 4242, language: 'TypeScript', license: 'NOASSERTION', release: { tag: 'v9.9.9', publishedAt: '2026-11-20T00:00:00Z' }, fetchedAt: '2026-11-21T00:00:00Z' }] }
+
+type Info = { p: number; route: string | null; scene: string; baked: boolean; bakeNote: string }
+declare global {
+  interface Window {
+    __ready?: boolean
+    __info?: Info
+  }
+}
+
+// Opens an address of the game and returns everything the page complained
+// about: a thrown error, a console error or warning, a file that isn't there.
+async function open(page: Page, address: string): Promise<string[]> {
+  const problems: string[] = []
+  page.on('console', (message) => {
+    if (message.type() === 'error' || message.type() === 'warning') problems.push(`console ${message.type()}: ${message.text()}`)
+  })
+  page.on('pageerror', (error) => problems.push(`page: ${error.message}`))
+  // The page loads nothing from anywhere else (round 5, J3): its fonts are its own files.
+  page.on('request', (request) => {
+    if (!request.url().startsWith(origin) && !/^(data|blob):/.test(request.url())) problems.push(`elsewhere: ${request.url()}`)
+  })
+  await page.route(`${origin}/api/v1/projects`, (route) => route.fulfill({ json: LIVE }))
+  page.on('response', (response) => {
+    if (response.status() >= 400) problems.push(`${response.status()}: ${new URL(response.url()).pathname}`)
+  })
+  await page.goto(origin + address)
+  await page.waitForFunction(() => window.__ready === true, null, { timeout: 30_000 })
+  return problems
+}
+
+const info = (page: Page) => page.evaluate(() => window.__info)
+
+const axe = (page: Page) => new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']).analyze()
+// Each violation with the elements it was found on, so a red run says where.
+const found = (results: Awaited<ReturnType<typeof axe>>) => results.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`)
+
+// Puts him at a point along the route the way a visitor does: a click on the timeline.
+async function scrub(page: Page, p: number) {
+  const box = await page.locator('#line').boundingBox()
+  if (!box) throw new Error('the timeline is not on the page')
+  await page.mouse.click(box.x + box.width * p, box.y + box.height / 2)
+  await expect.poll(async () => Math.abs(((await info(page))?.p ?? -1) - p), { timeout: 15_000 }).toBeLessThan(0.03)
+}
+
+// A second of frames, so a scene that throws while it draws is caught.
+const watch = (page: Page) => page.waitForTimeout(1000)
+
+test('the Trailhead draws the map', async ({ page }) => {
+  const problems = await open(page, '/')
+  await watch(page)
+  const { scene, baked, bakeNote } = (await info(page)) ?? {}
+  expect(scene).toBe('world')
+  // The map came from ground.png, not from a second of working it out. The note says why when it did not.
+  expect({ baked, bakeNote }).toEqual({ baked: true, bakeNote: '' })
+  expect(problems).toEqual([])
+})
+
+for (const route of ['lake', 'stack', 'spires']) {
+  for (const p of [0.05, 0.5, 0.95]) {
+    test(`the ${route} route draws at ${p * 100}% of the way`, async ({ page }) => {
+      const problems = await open(page, `/?route=${route}`)
+      await scrub(page, p)
+      await watch(page)
+      expect((await info(page))?.route).toBe(route)
+      expect(problems).toEqual([])
+    })
+  }
+}
+
+test('a spire of its own draws half way up', async ({ page }) => {
+  const problems = await open(page, '/?route=spire:bluebird')
+  await scrub(page, 0.5)
+  await watch(page)
+  expect((await info(page))?.route).toBe('spire:bluebird')
+  expect(problems).toEqual([])
+})
+
+test('the trail register opens from its address', async ({ page }) => {
+  const problems = await open(page, '/#register')
+  await watch(page)
+  await expect(page.locator('#book')).toBeVisible()
+  expect(problems).toEqual([])
+})
+
+test('the page shows the picture of the map and every card', async ({ page }) => {
+  const problems = await open(page, '/#page')
+  await watch(page)
+  await expect(page.locator('#plain canvas[role="img"]')).toBeVisible()
+  for (const heading of ['Who TJ is', 'A personal note', 'Platform Engineering', 'Bluebird Forecast', 'Kubernetes-Manifests'])
+    await expect(page.locator('#plain h4', { hasText: heading })).toBeVisible()
+  expect(problems).toEqual([])
+})
+
+// A visitor who asked for reduced motion: AUTO holds Day even at an hour that would be Dusk (round 5, K1).
+test('reduced motion holds AUTO at Day', async ({ browser }) => {
+  const page = await browser.newPage({ reducedMotion: 'reduce' })
+  const problems = await open(page, '/?time=250')
+  await watch(page)
+  const clock = await page.evaluate(() => (window as unknown as { __api: { clock: () => { mode: string; mix: number } } }).__api.clock())
+  expect(clock).toMatchObject({ mode: 'auto', mix: 0 })
+  expect(problems).toEqual([])
+  await page.close()
+})
+
+// Round 4's address for it, which links may still carry.
+test('the old address still opens the page', async ({ page }) => {
+  const problems = await open(page, '/#plain')
+  await expect(page.locator('#plain')).toBeVisible()
+  expect(problems).toEqual([])
+})
+
+test('the Page button opens it by keyboard and Escape closes it', async ({ page }) => {
+  const problems = await open(page, '/')
+  await page.locator('#b-page').focus()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#plain')).toBeVisible()
+  await expect(page.locator('#plain .band button')).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#plain')).toBeHidden()
+  await expect(page.locator('#b-page')).toBeFocused()
+  expect(problems).toEqual([])
+})
+
+test('a project card shows the stars and release the API answers', async ({ page }) => {
+  const problems = await open(page, '/#sideproject-spires/bluebird')
+  await expect(page.locator('#card-facts')).toContainText('4242')
+  await expect(page.locator('#card-facts')).toContainText('v9.9.9')
+  expect(problems).toEqual([])
+})
+
+test('the world and the page of text pass axe', async ({ page }) => {
+  const problems = await open(page, '/')
+  await watch(page)
+  expect(found(await axe(page))).toEqual([])
+  await page.locator('#b-page').click()
+  await expect(page.locator('#plain')).toBeVisible()
+  expect(found(await axe(page))).toEqual([])
+  expect(problems).toEqual([])
+})
+
+test('an address that is off route still draws', async ({ page }) => {
+  const problems = await open(page, '/#no-such-trail')
+  await watch(page)
+  expect((await info(page))?.route).toBe('off-route')
+  expect(problems).toEqual([])
+})

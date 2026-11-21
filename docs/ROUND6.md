@@ -15,7 +15,7 @@ Round 5 was merged as https://github.com/zimmertr/trailhead/pull/32 (squash comm
 - **Read CI after every push** (`gh pr checks <n>`), and fix a failure before the next item. In round 5 a failing test went unseen for seven items because CI was read only at the end.
 - **One artifact for the whole round, republished after every item.** Create it at the first publish and add its link to section 10. Never publish over round 5's artifact (https://claude.ai/artifact/1VdS5Q3uSMTpEuGEm39SZr), which is the floor to compare with.
 - Frozen: `main`, every `archive/*` tag, and every earlier artifact.
-- **Paths move in this round.** Until A2 the game is in `prototype/pixel/` (`www/` for the game, the tools beside it). A2 moves the game into `web/` and the tools into `tools/pixel/`, and rewrites this section and section 9 with the new paths in the same commit. Until A3, `IDEAS.md`, `PROGRESS.md`, `ROUND4.md` and `ROUND5.md` sit in `prototype/pixel/`.
+- **Where the game and its tools are (since A2).** The game is `web/www/` (served by the `web` image through `web/build.mjs`). The tools are in `tools/pixel/`; run them from there (`cd tools/pixel && ./shot.sh ...`), and they serve `web/www` unless `WWW=<folder>` names another build. Their pictures go to `tools/pixel/out/` (ignored by git). `IDEAS.md` is `docs/IDEAS.md`. Round 5's build for comparison: `git archive archive/pixel-r5-final prototype/pixel/www | tar -x -C <folder>` (that tag still has the old layout).
 - History: git keeps everything A3 deletes. `git show archive/pixel-r5-final:prototype/pixel/ROUND5.md` is round 5's full plan and log, if a reason is ever needed.
 - Art rules: `design/TRAILHEAD-ART.md` (added at A1). Read it before any item that makes or changes art.
 
@@ -30,7 +30,8 @@ Round 5 was merged as https://github.com/zimmertr/trailhead/pull/32 (squash comm
 - Side scenes: `forest.js` and `lakeside.js` (the lake loop, on `side.js`), `larches.js`, `ridge.js` (the West Ridge of Proficiency Peak), `approach.js` (the walk to Spires base camp), `camp.js`, `climb.js` (the six Spires climbs), `register.js`, `offroute.js` (the 404).
 - Drawings: `fauna.js`, `sprites.js`, `people.js`, `tj.js`, `cats.js`.
 - `pixel.js`: the scene manager: `ROUTES` (lists of legs), stops and cards, the round-window cut, zoom, pace, input, the world clock.
-- `app.js`, `index.html`, `content.js`: the page round the canvas (signs, cards, timeline, trail map sheet, debug panel `openDebug`) and every word shown (until A4 moves the words to `content/`). `audio.js`: synthesised tunes and effects.
+- `app.js`, `index.html`, `style.css`, `content.js`: the page round the canvas (signs, cards, timeline, trail map sheet, debug panel `openDebug`), its styles, and every word shown (until A4 moves the words to `content/`). `audio.js`: synthesised tunes and effects.
+- **The site's policy allows no inline style, no inline script and no `data:` image.** Styles go in `style.css` or through `element.style` (the `el()` helper's `style` attribute does this); images are files. The browser suite fails on any policy violation.
 
 **How to run and look** (everything in Docker; nothing is installed or run on the workstation)
 
@@ -40,12 +41,13 @@ Round 5 was merged as https://github.com/zimmertr/trailhead/pull/32 (squash comm
 - `./sheet.sh <out.png> <columns> <cell width> <files>` lays pictures side by side (`CROP=x,y,w,h` crops them).
 - `./frames.sh` films on a fixed page clock (steps `wait`, `key`, `click`, `wheel`, `eval`, `film=NxMS`, `time=N`; `SLOWFONT=<ms>` holds fonts back). Use it for anything that moves.
 - `./walk.sh <tag> <w> <h> <auto|day|dusk> <route>...` walks routes through every stop at 8x and prints what went wrong (`clicks` tests click to move; `CALM=1` tests reduced motion).
-- `./check.sh <item> <prev>`: the per-item check (browser tests, bake, frame times, what moved on the map).
+- `./check.sh <item> <prev>`: the per-item check (every module parses, `make browser` against the built web image, frame time, what moved on the map).
+- The repo's checks run in Docker from the repo root: `make lint`, `make typecheck`, `make test`, `make image SERVICE=web && make smoke SERVICE=web`, `make browser-run`, `make lighthouse-run`. CI runs them all; run one locally only when a change needs it.
 - `./refs.sh`: the 72 standard views. To render round 5 for comparison, export the tag into its own folder (`git archive archive/pixel-r5-final prototype/pixel/www | tar -x -C <folder>`) and mount that folder as `/www` in the same container.
 - Edits to many places at once: a node script under `out/splice/` with an `ed(anchor, replacement)` helper that asserts each anchor matches once, run in the lab image.
 - Lint: the repo's ESLint covers the game; run it in Docker as CI does.
 - Frame time: every view in section 7 stays under 16.7 ms.
-- Publishing: commit, push, export with `git archive HEAD <game folder> | tar -x -C <export folder>`, and publish `index.html` from the export folder with `root` set to it. `files` lists every game `.js`, `ground.png`, the `fonts/` files (eight `.woff2` and `LICENSE.txt`), and from A4 on the generated words file, from H1 on the register picture.
+- Publishing: commit, push, export with `git archive HEAD web/www | tar -x -C ../r6-working` (from the clone root), and publish `../r6-working/web/www/index.html` with `root` set to that `www` folder. `files` lists every game `.js` (app, approach, audio, camp, cats, climb, collide, content, core, critters, events, fauna, forest, lakeside, land, larches, mapfauna, monolith, offroute, people, pixel, register, ridge, scenery, side, sprites, tj, world, plus any new module), `style.css`, `cursor.png`, `cursor-press.png`, `ground.png`, the `fonts/` files (eight `.woff2` and `LICENSE.txt`), from A4 on the generated words file, and from H1 on the register picture.
 
 **The bar**
 
@@ -192,7 +194,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 **A. The repo**
 
 - [x] A1. Open the draft PR from `round6`. Copy the art rules to `design/TRAILHEAD-ART.md` unchanged and point `CLAUDE.md` at them in one line. Fix the code-scanning alert in `web/src/render.ts` with a test. Create the round's artifact from the current game.
-- [ ] A2. Move the game into `web/` (served by the `web` image in place of the 3D-era home page and plain page) and the tools into `tools/pixel/`. Delete the 3D-era code in `web/` and anywhere else. Point CI (lint, Prototype Smoke, e2e, Dockerfile tests) at the new paths. The game reads live stars from `api` with the baked numbers as fallback. Rewrite sections 2 and 9 with the new paths. Every check green.
+- [x] A2. Move the game into `web/` (served by the `web` image in place of the 3D-era home page and plain page) and the tools into `tools/pixel/`. Delete the 3D-era code in `web/` and anywhere else. Point CI (lint, Prototype Smoke, e2e, Dockerfile tests) at the new paths. The game reads live stars from `api` with the baked numbers as fallback. Rewrite sections 2 and 9 with the new paths. Every check green.
 - [ ] A3. The docs purge (note 34). Delete `ROUND4.md`, `ROUND5.md`, `PROGRESS.md`, the old `plan/` folder and every doc that describes something no longer true. Keep the decision records that still hold, delete the rest, renumber from 0001. Rewrite the PRD and `ARCHITECTURE.md` short and current. Move `IDEAS.md` to `docs/`. Bring the README and every `CLAUDE.md` up to date in TJ's voice. Every check green.
 - [ ] A4. Issue #34: the words in `content/`, one file per place, built into the game's data; `content.js` keeps no copy. Browser tests still pass; the page of text still shows every card.
 - [ ] A5. Issues: file one for the card styles (note 20) and one for the register service (round 7: `api` routes, approval in `admin`, a `db` table, the game posting entries), both with the `create-issue` skill. The PR body says it closes #14, #15, #16, #17, #33, #34, #36 and #38.
@@ -261,7 +263,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 1. Fetch. Make sure `round6` is pushed and current. Read sections 2, 3, 5 (the part for this item) and 10.
 2. Render round 5's picture of the view, or film it if it moves.
-3. Make the change. Run `./bake.sh` if the land changed. Run `./check.sh <item>`. If the land changed, read what `check.sh` says moved: trails are routed afresh and every sign and animal is placed by rule, so a land change can move any of them.
+3. Make the change. Run `tools/pixel/bake.sh` if the land changed. Run `tools/pixel/check.sh <item>`. If the land changed, read what `check.sh` says moved: trails are routed afresh and every sign and animal is placed by rule, so a land change can move any of them.
 4. Render the new view the same way, lay it beside round 5's and look. Film anything that moves. Day and Dusk, desktop and phone.
 5. If anything is worse than round 5, fix it before going on.
 6. Measure frame time for any view the change touches; for map items log the zoomed-out Dusk number in section 11.
@@ -281,7 +283,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - The round's PR: https://github.com/zimmertr/trailhead/pull/54 (draft).
 - The round's artifact: https://claude.ai/artifact/Sxbh3R3GpV75ZQ7d63iRVD (created at A1 from `round6`, exported to the scratchpad's `r6-working/`; republish from that folder only).
 - **A1 done.** The draft PR is open. trailhead-19's art rules are in `design/TRAILHEAD-ART.md`, copied unchanged, and the repo's `CLAUDE.md` points at them in its documentation table. The page's description no longer keeps a tag that is split round another (the code-scanning alert): tags are stripped until none are left, then any stray angle bracket goes, with a test. The page title names round 6. Artifact version 1, the game exactly as round 5 left it.
-- Next: A2.
+- **A2 done.** The game lives in `web/www/` and is what the `web` image serves: `web/build.mjs` copies it to `dist/` as it is, gives the page its document head (charset, viewport, a description, the icon, and a meta tag naming `/api/v1/projects`) and writes `third-party-licenses.txt` from the fonts' licences. The game reads live stars and releases from `api` the first time a project card opens, and keeps the numbers in `content.js` when the API is not there (the artifact, the tools, the API down). The render tools are in `tools/pixel/`, `IDEAS.md` in `docs/`. Gone: the 3D-era home page, plain page, analytics module and their tests and styles doc, `three` and its typeface, the prototype folder with `ROUND4.md`, `ROUND5.md`, `PROGRESS.md` and `plan/`, round 3's wall scene behind `?wall`, and three unused developer pages. To run under the site's strict policy, the page's CSS moved to `style.css`, inline styles are set through `element.style`, and the custom pointer is two small PNG files instead of a generated `data:` image. The browser suite (19 tests, axe included) runs against the built image, the separate Prototype Smoke job is gone, and Lighthouse holds the game at 1.0 for accessibility, best practices and SEO with byte budgets measured from it. The services stay. Every view looks as round 5's, except the clickable map tags on a phone (24 px tall, from 14, for tapping) and the page of text's orange headings (darker, for contrast). Frame time 9.8 ms zoomed out at Dusk.
+- Next: A3.
 
 ## 11. Calls made in round 6
 
@@ -301,4 +304,15 @@ Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Deskto
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
 - A1, a call: TJ's notes artifact for round 6 was not made. Only two of his screenshots survive (section 12), and the words in section 12 carry the rest.
 - A1, a call: the reply to trailhead-19 could not be sent; its session had ended (its socket was gone). H1 tries again through `ListAgents`.
+- A2, a call: the game lives at `web/www/`, not `web/game/`, so the tools and every note that says `www` still read true.
+- A2, a call: `web/build.mjs` wraps the page in a full document head only for the served site. `web/www/index.html` stays headless, because the artifact adds its own head and would get two.
+- A2, a call: the served page's title is "TJ Zimmerman"; the artifact's names the round.
+- A2, a call: the old round files (`ROUND4.md`, `ROUND5.md`, `PROGRESS.md`, `plan/`) were deleted here rather than in A3, because the folder they sat in went away; A3 still owns the docs and the decision records. Round 5's tag keeps them.
+- A2, a call: round 3's wall scene (`wall.js`, behind `?wall`) and the developer pages `sheet.html`, `monolith.html` and `destmask.html` were deleted: nothing used them (TJ: anything without an explicit purpose goes). `relief.html` and `bake.html` stay for the tools and are left out of the served site.
+- A2, a call: live stars are asked for when a project card first opens, not on load, so a visit that never reaches the Spires sends no request and a page without the API logs no 404 (Lighthouse counted that as an error).
+- A2, a call: the e2e suite answers `/api/v1/projects` itself with a made-up project (4242 stars), and a test checks the card shows it.
+- A2, a call: the browser job keeps its name "Browser Smoke & Axe" (branch protection requires it), so axe now runs on the world and on the page of text. It found the music button's spoken name missing its visible track (now "Next music track: <track>") and the page of text's orange headings at 3.3 to 1 (now `--blaze-ink`, 5.6 to 1).
+- A2, a call: Lighthouse's target-size audit flagged the top-bar buttons and the clickable map tags on a phone. The buttons got a 24 px minimum height (no change on a desktop, where they are 27). The tags on a phone grow from 14 to 24 px: a small visible change, for TJ to see.
+- A2, a call: the Lighthouse byte budgets were replaced with the game's own numbers plus about 15% (total 2.4 MB, of which `ground.png` is 1.5 MB; script 520 KB; fonts 58 KB; CSS 12.5 KB), and `docs/LIMITS.md` says why. Performance is not held, as before: the world draws every frame on a throttled runner.
+- A2, a call: `tools/pixel/` is kept out of the images' build context, and the lab image gets its own `.dockerignore`, because `out/` holds about 1 GB of pictures.
 

@@ -1,0 +1,4 @@
+# The tools build their image from this folder; only the Dockerfile and lab/ go in.
+*
+!Dockerfile
+!lab/

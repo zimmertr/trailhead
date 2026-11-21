@@ -1,12 +1,11 @@
-# The web image (ghcr.io/zimmertr/trailhead-web): the 3D site and the plain
-# page, served by nginx. Built from the repo root, which holds the one
-# lockfile and the content the pages are written from:
+# The web image (ghcr.io/zimmertr/trailhead-web): the pixel world, served by
+# nginx. Built from the repo root, which holds the one lockfile:
 #   docker build -f web/Dockerfile .
 # The four Dockerfiles share one shape, and tests/dockerfiles.test.ts holds
 # them to it. Records 0008, 0009 and 0011.
 
-# The build stage writes both pages from the content and bundles them with
-# Vite, along with the license text of every package in the bundle.
+# The build stage writes dist/ from the game in web/www (web/build.mjs): the
+# files as they are, the page's head, and the fonts' licences.
 FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5 AS build
 WORKDIR /repo
 COPY package.json package-lock.json .npmrc tsconfig.base.json ./
@@ -20,18 +19,16 @@ COPY admin/package.json admin/
 COPY fetcher/package.json fetcher/
 COPY e2e/package.json e2e/
 # --ignore-scripts, and the same in .npmrc: nothing here needs an install
-# script, and Vite's native tools find their binaries without one.
-RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts -w content -w web
-COPY tools/ tools/
-COPY content/ content/
+# script.
+RUN --mount=type=cache,target=/root/.npm npm ci --ignore-scripts -w web
 COPY web/ web/
-RUN npm run build -w content && npm run build -w web
+RUN npm run build -w web
 
 # The unprivileged nginx build, which listens on 8080 and needs no root.
 # Alpine, by measured findings (record 0008).
 FROM nginxinc/nginx-unprivileged:1.31-alpine@sha256:b5047b9b76845eac124358373c6852377c52e4b05834a47647e955dd91cb8f1e
 LABEL org.opencontainers.image.title="trailhead-web" \
-      org.opencontainers.image.description="The 3D site and the plain page of tjzimmerman.com" \
+      org.opencontainers.image.description="The pixel world of tjzimmerman.com" \
       org.opencontainers.image.source="https://github.com/zimmertr/trailhead" \
       org.opencontainers.image.licenses="PolyForm-Noncommercial-1.0.0"
 COPY web/nginx.conf /etc/nginx/nginx.conf

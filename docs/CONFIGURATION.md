@@ -33,7 +33,7 @@ Read in [`fetcher/src/config.ts`](../fetcher/src/config.ts).
 
 ## web
 
-Nothing at run time: nginx serves files built into the image, configured by [`web/nginx.conf`](../web/nginx.conf) and [`web/security-headers.conf`](../web/security-headers.conf). `/version.json` is written from the `APP_VERSION` and `APP_COMMIT` build arguments. The analytics module ([`web/src/analytics.ts`](../web/src/analytics.ts)) sends nothing until Umami's script is on the page.
+Nothing at run time: nginx serves files built into the image, configured by [`web/nginx.conf`](../web/nginx.conf) and [`web/security-headers.conf`](../web/security-headers.conf). `/version.json` is written from the `APP_VERSION` and `APP_COMMIT` build arguments.
 
 ## Build arguments
 

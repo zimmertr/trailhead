@@ -26,7 +26,6 @@ Each target is what one CI job runs ([CICD.md](CICD.md)).
 | `make scan SERVICE=api` | Trivy over the built image, failing on a fixable Critical or High |
 | `make hadolint` | hadolint over the four Dockerfiles |
 | `make browser` | Builds the web image, then the Playwright suite and axe against it |
-| `make prototype-smoke` | Opens the pixel world prototype on every route in a real browser, and fails on anything it writes to the console |
 | `make lighthouse` | Builds the web image, then Lighthouse's budgets against it |
 | `make compose-smoke` | `docker-compose.yml` up, checked from outside, then down |
 | `make check-unused` | Knip over the workspaces. Not in CI: run it before a refactor lands |
