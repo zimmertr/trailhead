@@ -37,7 +37,7 @@ The game is in `web/www/` and runs in the browser as it is ([`web/CLAUDE.md`](..
 
 | Script | Does |
 |---|---|
-| `shot.sh` | One screenshot of any address, with steps (keys, clicks, waits) |
+| `shot.sh` | One screenshot of any address, with steps (keys, clicks, waits, and `hit=` to click whatever the scene draws for an act, such as `hit=egg`) |
 | `frames.sh` | Films anything that moves, frame by frame, on a fixed page clock |
 | `sheet.sh` | Lays pictures side by side |
 | `walk.sh` | Walks routes through every stop at 8x and reports what went wrong |

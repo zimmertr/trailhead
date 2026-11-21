@@ -488,7 +488,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // The world clock (T76): its mode ('auto', 'day', 'dusk'), where it is in the cycle and how fast it runs.
     clock: () => ({ mode: clock.mode, t: clock.t, speed: clock.speed, mix, cycle: CYCLE, sunset: SUNSET, sunrise: SUNRISE }),
     setClock({ mode, t, speed } = {}) { if (mode) clock.mode = mode; if (t != null) clock.t = ((t % CYCLE) + CYCLE) % CYCLE; if (speed) clock.speed = speed; },
-    start() { if (route === 'walk' && p >= 1) return; if (p >= 1) p = 0; leave(); running = true; },
+    // A scene holding him for something of its own (the binoculars) is told he is setting off, so it lets go.
+    start() { if (route === 'walk' && p >= 1) return; if (p >= 1) p = 0; leave(); if (!tr && drawn.scene.go) drawn.scene.go(env); running = true; },
     walkTo,
     stop() { running = false; pace = 1; },
     boost(on) { fast = !!on; },

@@ -829,7 +829,7 @@ export function makeClimb() {
   const VIEW = { x0: -110, x1: 110, y0: -80, y1: 46, speed: 80, open: 1.35, shut: 1.2 };
   const shutView = t => { if (bino && bino.close == null && t - egg > VIEW.open) bino.close = t; };
   const busyFor = kind => kind === 'wands' ? CAIRN[st.did] || 0 : BUSY[kind] || 0;
-  const busy = t => last.ph === 'up' && ROUTES[last.id] && (!!bino || t - egg < busyFor(ROUTES[last.id].kind));
+  const busy = t => last.ph === 'up' && ROUTES[last.id] && ((!!bino && !bino.going) || t - egg < busyFor(ROUTES[last.id].kind));
 
   return {
     name: 'climb',
@@ -857,6 +857,9 @@ export function makeClimb() {
     enter(scr, arg, q) { const w = where(arg.id, q * plan(arg.id).dur); cam.x = w.x; cam.y = w.y; st.y = null; st.lift = null; egg = -99; bino = null; st.fixed = false; st.banged = -99; st.cairn = cairnGet(); st.did = null; st.left = false; st.clack = -99; },
     focus: () => focus,
     hold: env => busy(env.t),
+    // Glissade to camp with the binoculars up (note 18): they start closing now and no longer hold him, and
+    // the burst of snow as he pushes off covers the rest of the closing.
+    go(env) { if (!bino) return; if (bino.close == null) bino.close = env.t; bino.going = true; },
     // While the binoculars are open the keys are theirs: the arrows and WASD move the view, space closes it.
     key(code, down) {
       if (!bino) return false;

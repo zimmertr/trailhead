@@ -15,6 +15,7 @@ declare global {
   interface Window {
     __ready?: boolean
     __info?: Info
+    __api: { hitAt: (act: string) => [number, number] | null }
   }
 }
 
@@ -176,6 +177,21 @@ test('the debug panel shows a map event where it happens, from a split button', 
 })
 
 // Round 4's address for it, which links may still carry.
+test('Glissade to camp sets off at once from inside the binoculars', async ({ page }) => {
+  const problems = await open(page, '/#sideproject-spires/trailhead')
+  await expect(page.locator('#card-go')).toBeVisible()
+  await expect.poll(() => page.evaluate(() => window.__api.hitAt('egg')), { timeout: 15_000 }).not.toBeNull()
+  const spot = await page.evaluate(() => window.__api.hitAt('egg'))
+  if (!spot) throw new Error('the binoculars are not on the page')
+  await page.mouse.click(spot[0], spot[1])
+  // The view is up once only its BACK button answers a click.
+  await expect.poll(() => page.evaluate(() => window.__api.hitAt('back')), { timeout: 5_000 }).not.toBeNull()
+  const before = (await info(page))?.p ?? 0
+  await page.locator('#card-go').click()
+  await expect.poll(async () => ((await info(page))?.p ?? 0) - before, { timeout: 1_500 }).toBeGreaterThan(0.01)
+  expect(problems).toEqual([])
+})
+
 test('the old address still opens the page', async ({ page }) => {
   const problems = await open(page, '/#plain')
   await expect(page.locator('#plain')).toBeVisible()
