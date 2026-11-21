@@ -278,12 +278,13 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 
 - **2026-11-21, before any work.** `round6` was cut from `main` at `5604ea6` (round 5 merged). It holds only this plan. The game is exactly round 5's final build (`archive/pixel-r5-final`).
 - Round 5's artifact, the floor: https://claude.ai/artifact/1VdS5Q3uSMTpEuGEm39SZr (version 76).
+- The round's PR: https://github.com/zimmertr/trailhead/pull/54 (draft).
 - Next: A1.
 
 ## 11. Calls made in round 6
 
 - Q&A, 2026-11-21: TJ's answers are in section 5. He first chose a static site with the services deleted, then asked whether that was a mistake given he wants a fetcher, an admin console and a database in the end; on the planner's advice he chose to keep the services, wire live stars this round, and build the register in round 7.
-- Before the loop: #42 changed only the image, and the repo's test that holds the image and the package to one version failed on it. The planner added a commit to #42 moving the lab's package to 1.65.1 (lock regenerated in Docker, pinned exactly), merged it once green, and closed #43 and #44 as superseded.
+- Before the loop: #42 changed only the image, and the repo's test that holds the image and the package to one version failed on it. The planner added a commit to #42 moving the lab's package to 1.65.1 (lock regenerated in Docker, pinned exactly), and it merged once green; #43 and #44 were closed as superseded. The Dependabot alert shows as fixed.
 
 ## 12. TJ's pictures for this round
 
