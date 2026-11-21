@@ -1,0 +1,297 @@
+# Round 6 of the pixel world
+
+TJ's 38 notes on round 5 (2026-11-21), his answers to the Q&A that followed, and the checklist an unattended loop works through. This file stands alone: an agent with no memory of the conversation reads it on every firing. It lives until round 6 merges; the last item folds its lasting rules into a permanent doc and deletes it.
+
+## 1. Why this round exists
+
+Round 5 was merged as https://github.com/zimmertr/trailhead/pull/32 (squash commit `5604ea6`, tag `archive/pixel-r5-final`). TJ played it and sent 38 notes: fixes to scenes, a bigger lake, clickable animals, fewer menus, and a cleanup of the repo so it is ready for a public MVP. He also asked for issues #33, #34, #36 and #38 to be built in this round, and for the first generated picture in the game (the trail register).
+
+## 2. Ground rules for whoever does the work
+
+**Where things are**
+
+- Repo: https://github.com/zimmertr/trailhead. Work only in a clone inside the session's scratchpad directory (under `~/.claude/tmp`), never in `~/git`, never in `/tmp`.
+- Branch: `round6`, cut from `main` at `5604ea6`. **One draft PR for the whole round**, opened at the first push, from `round6` into `main`. Never merge it: TJ reviews and merges. Never push to `main`.
+- **Read CI after every push** (`gh pr checks <n>`), and fix a failure before the next item. In round 5 a failing test went unseen for seven items because CI was read only at the end.
+- **One artifact for the whole round, republished after every item.** Create it at the first publish and add its link to section 10. Never publish over round 5's artifact (https://claude.ai/artifact/1VdS5Q3uSMTpEuGEm39SZr), which is the floor to compare with.
+- Frozen: `main`, every `archive/*` tag, and every earlier artifact.
+- **Paths move in this round.** Until A2 the game is in `prototype/pixel/` (`www/` for the game, the tools beside it). A2 moves the game into `web/` and the tools into `tools/pixel/`, and rewrites this section and section 9 with the new paths in the same commit. Until A3, `IDEAS.md`, `PROGRESS.md`, `ROUND4.md` and `ROUND5.md` sit in `prototype/pixel/`.
+- History: git keeps everything A3 deletes. `git show archive/pixel-r5-final:prototype/pixel/ROUND5.md` is round 5's full plan and log, if a reason is ever needed.
+- Art rules: `design/TRAILHEAD-ART.md` (added at A1). Read it before any item that makes or changes art.
+
+**How the code is laid out** (plain ES modules, no dependencies)
+
+- `core.js`: the indexed-colour renderer. `ramp(name, [day...], [dusk...])` adds palette entries (`R.<name>[i]`), plus `BM` bitmaps, `pick()` with dither, `Screen` (`put`, `blit`, `iris`, `night`, `present`), the `DEBUG` flags, `breeze()`, `windAt()` and `veilTable`. New ramps go just before `const INK`.
+- `land.js`: the map: heights and materials, rivers and lakes (`C.lakes`, `LIP`, `FALLS`), trails (routed by least cost from the Trailhead `C.T`), footbridges (`BRIDGES`), the coast (`SHORE`, `SHV`), the dry edge (`BORDER`), the glacier (`GL`), every planted thing (`things`, `STACKS`), the fire lookout (`LOOK`), flower drifts (`DRIFT`, `parkAmt`), animal homes (`habitat()`) and `buildTerrain()`.
+- `bake.html`, `bake.sh`, `ground.png`: the ground worked out ahead of time. **Run `./bake.sh` after any change to `land.js`, `core.js` or anything `land.js` imports.** On localhost the page prints "ground.png is missing or no longer matches the map" when the bake is stale; treat that as a failed check.
+- `monolith.js`: Mount Monolith, painted glacier by glacier, with the snow over each ice fall (`cover`, `faceSnow`).
+- `world.js`: the map scene: drawing order, taps (`pick`), name tags, camera and opening (`lookRound`), night sky, Dusk.
+- `critters.js`: everything on the map that moves (herds, `walker`s, moose, bears, squirrels, whale, orcas, ferry, sea and tide, jellyfish, eagle, osprey, surf, mist, birds). `mapfauna.js` and `scenery.js` hold map drawings. `events.js` holds timed map events. `collide.js` holds the no-go areas.
+- Side scenes: `forest.js` and `lakeside.js` (the lake loop, on `side.js`), `larches.js`, `ridge.js` (the West Ridge of Proficiency Peak), `approach.js` (the walk to Spires base camp), `camp.js`, `climb.js` (the six Spires climbs), `register.js`, `offroute.js` (the 404).
+- Drawings: `fauna.js`, `sprites.js`, `people.js`, `tj.js`, `cats.js`.
+- `pixel.js`: the scene manager: `ROUTES` (lists of legs), stops and cards, the round-window cut, zoom, pace, input, the world clock.
+- `app.js`, `index.html`, `content.js`: the page round the canvas (signs, cards, timeline, trail map sheet, debug panel `openDebug`) and every word shown (until A4 moves the words to `content/`). `audio.js`: synthesised tunes and effects.
+
+**How to run and look** (everything in Docker; nothing is installed or run on the workstation)
+
+- `./shot.sh <out> '<query or #hash>' <w> <h> '<steps>' [dpr]` saves a picture under `out/`. Steps are separated by semicolons: `wait=600;key=Space;wheel=x,y,dy;drag=x0,y0,x1,y1;click=<css>;shot=<name.png>;down=Space;up=Space;eval=<js>`. An `eval` step cannot contain a semicolon.
+- Queries: `route=lake|stack|spires|spire:<id>`, `p=0..1`, `dusk=1`, `time=<0..>`, `debug=roam,-trees,-mist`, `done=lake,stack,spires`, `speed=0|0.5|1|2|4|8`, `start=<event,...>`, `break=<scene>|load:<scene>|renderer|mount`.
+- `window.__api` (`trigger`, `setSpeed`, `hitAt`, `find`, `forget`, `trailAt`, `trailMarks`, `walkTo`, `progress`, `running`, `clock`, `touring`, `me`) and `window.__info` (`{p, route, running, scene, VW, VH, S, o}`). `window.__dbg(x, y)` says what is drawn at a screen pixel.
+- `./sheet.sh <out.png> <columns> <cell width> <files>` lays pictures side by side (`CROP=x,y,w,h` crops them).
+- `./frames.sh` films on a fixed page clock (steps `wait`, `key`, `click`, `wheel`, `eval`, `film=NxMS`, `time=N`; `SLOWFONT=<ms>` holds fonts back). Use it for anything that moves.
+- `./walk.sh <tag> <w> <h> <auto|day|dusk> <route>...` walks routes through every stop at 8x and prints what went wrong (`clicks` tests click to move; `CALM=1` tests reduced motion).
+- `./check.sh <item> <prev>`: the per-item check (browser tests, bake, frame times, what moved on the map).
+- `./refs.sh`: the 72 standard views. To render round 5 for comparison, export the tag into its own folder (`git archive archive/pixel-r5-final prototype/pixel/www | tar -x -C <folder>`) and mount that folder as `/www` in the same container.
+- Edits to many places at once: a node script under `out/splice/` with an `ed(anchor, replacement)` helper that asserts each anchor matches once, run in the lab image.
+- Lint: the repo's ESLint covers the game; run it in Docker as CI does.
+- Frame time: every view in section 7 stays under 16.7 ms.
+- Publishing: commit, push, export with `git archive HEAD <game folder> | tar -x -C <export folder>`, and publish `index.html` from the export folder with `root` set to it. `files` lists every game `.js`, `ground.png`, the `fonts/` files (eight `.woff2` and `LICENSE.txt`), and from A4 on the generated words file, from H1 on the register picture.
+
+**The bar**
+
+- Round 5's final build is the floor. Before ticking an item, render the same view from `archive/pixel-r5-final` and from the new build, lay them side by side with `sheet.sh`, and look. Film what moves, at the zoom a visitor sees by default. Check Day and Dusk, desktop (1440) and phone (390).
+- Anything worse than round 5 is fixed before the item is ticked, and is never described as "rough".
+- Ask of every picture: "would TJ wince?"
+
+**Rules that must not be broken**
+
+- Never push to `main`. Never merge a pull request. Commit small and often to `round6` and push after every commit.
+- Nothing is attributed to an AI: no co-author trailers, no "generated with" lines.
+- No em dash (U+2014) or en dash in anything committed or published. Check with `grep` before every commit.
+- Never coin a name for a mechanism or a bug and use it as if TJ knows it. Say what happens in plain words. In the UI, name things in the words the UI already shows.
+- New user-facing words are drafts for TJ to approve. They live with the other words (`content.js`, then `content/` after A4) and are listed in the final report.
+- No references to alcohol anywhere. Three of TJ's private rules (about email, about job seeking, and this one) are never written into anything committed.
+- **Never switch off or remove an existing feature** unless section 5 says TJ asked for it. This round he asked to remove: the first-visit hint, the watch on hevy-garmin-sync's climb (and its trail run), the separate sound button (merged into the music button), the switchback ramps on the forest's cliff, and the 3D-era code and docs (A2, A3).
+- **Finds** (things a visitor can discover for a flag) are TJ's choice. Never invent one. Clicking an animal is not a find.
+- **Place new things by rule, not by written positions** (forest density, height, water, trails), so they survive the next change to the map.
+- **Colours.** 251 of 254 are used. New art reuses existing ramps and the free slots. If a piece truly needs more, widen the palette to two bytes a pixel then: check every scene against its last picture, log the frame time, carry on. Never halt for it.
+- **Every new timed event gets a start button in the debug menu**, and every placed animal appears in the spawn menu.
+- **Frame time stays under 16.7 ms.** Put every new per-pixel loop in its own small function outside the map's `draw()`.
+- One stream of work, in order, by one agent. No forks, no parallel subagents.
+- **Keep `IDEAS.md` growing.** Write every idea down as it comes and commit it with the item. Ideas are written down, never built unless an item says so.
+- READMEs are TJ's: keep them true in the same commit as the change, in his voice (first person, full sentences, `-` bullets, Title Case headings), and never restyle his wording.
+
+**When TJ is present**
+
+- When he gives feedback, report findings and ask questions with AskUserQuestion before changing anything.
+- When a question cannot wait and he is away, make the call, log it in section 11 in one line, and carry on. Never halt the loop for a question, except where an item says it waits for TJ.
+
+## 3. The law of this world
+
+- It is its own world, not a map of Washington. **Every feature is a real Washington feature, and every neighbour is a believable neighbour.** It runs wet in the west to dry in the east, because the crest blocks the rain.
+- West to east: open ocean and fog, a coast with sea stacks, rainforest, the volcano with its lake and flower parkland, the meadow at the Trailhead under the snowy crest, larches and granite just east of the crest, pines and aspen, then sage, scabland and Palouse hills at the far edge.
+- **Four kinds of mountain, one per country, and nothing else on the skyline.** (1) The snowy crest (North Cascades): dark rock, snow, glaciers. Sideproject Spires is its most dramatic massif; the far Legacy Range is the same family seen from a distance. (2) One volcano, Mount Monolith, after Rainier: wide, lopsided, flat-topped, never Fuji. (3) Enchantments granite: Proficiency Peak (after Prusik Peak) and unnamed granite peaks behind it. (4) The dry side: basalt benches and yellow Palouse hills.
+- Seasons are mixed on purpose: gold larches, full wildflowers and fireweed at once. Each place at its best.
+- The ground is tiered, and water takes the lowest ground. Rivers wander downhill. Lakes have an outflow, and water is continuous everywhere: every stream visibly joins what it flows into.
+- **Solid things are solid.** Nothing that moves passes through anything solid. One shared rule decides this for every moving thing (`collide.js`).
+- **Animals belong where they live**, in the country their real counterparts would.
+- **One clock for the whole world.** Day and dusk follow one world clock, the same on the map and in every scene.
+- **Object permanence across scenes.** What a scene shows matches the map, and the direction a scene walks matches the map's trail.
+- **New: things are where they could really be, at the size they would really be.** No tree grows out of a glacier, no label names scree that is not there, and a thing far away is drawn smaller than the same thing near. C8 audits the world for this; the fixes wait for TJ.
+- The people: TJ (orange cap, beard, yellow jacket on the map; green cap and jacket in the Spires scenes), Kayti (long brown hair, purple puffy; she paints at base camp and shares TJ's tent), and the two climbing friends on Proficiency Peak: the black-haired man, who leads every pitch, and the red-haired woman, who climbs second. TJ climbs last. TJ is never shown on routes he has not climbed.
+
+## 4. Decided with TJ before round 6 that still holds
+
+- **The map:** 1920 by 1080 world units, seen at an angle, with heights. `u` runs west to east, `v` away from the camera, `h` is height, and a spot draws at screen (`u`, `1080 - v - h`). The sea is in the bottom-left corner. Fog swallows the rainforest's west edge. The dry country is one slanted corner at the bottom right with a wandering edge. No country is an even band or a rectangle.
+- **Names:** Reflection Lake (about TJ), Proficiency Peak (his skills), Sideproject Spires (his projects), Mount Monolith, the Legacy Range, and the joke names in the words file.
+- **Zoom** is smooth and continuous, never stepped. TJ: "I want zooming in and out to be seamless and perfect, not stepped."
+- **The six Spires climbs** are each about 30 seconds and each their own kind of mountaineering, chosen to echo the project. None reuses another's set piece. Section 5 changes three of them.
+- **The West Ridge** (5.7, Proficiency Peak) is the route TJ really climbed. Protection is drawn, the rope behaves like a rope, every belay is a multi-piece anchor, there is wind and cold, and the background is far below. The order is the leader, the woman, then TJ, with two ropes. The descent is a rappel onto a ledge, a stuck rope, and a traverse down steep snow with two ice axes, which TJ led in real life.
+- **The register** at the Trailhead: anyone can read it; signing is earned by finishing the lake, the peak and one Spires summit. New entries stay in the visitor's browser, marked as waiting for TJ's approval. Saving them for everyone is round 7 (A5 files the issue).
+- **Timed events** make the world feel lived in. Each gets a debug start button.
+- **People don't have to finish anything.** TJ: "the website is just supposed to be impressive an informative in the end. Not an actual video game people need to 100%."
+- **Round 5's systems stay:** no-go areas for every mover, the idle tour after two minutes, the world clock with Auto, Day and Dusk, the public DEBUG menu with its sound test and spawn menu, click or tap to walk, the page of text at `#page`, fonts served from the site's own files, reduced motion holding AUTO at Day.
+
+## 5. Decided with TJ for round 6 (2026-11-21)
+
+Each note in TJ's words where it matters, with what he chose in the Q&A. The checklist item that builds it is in brackets.
+
+**The repo and releases**
+
+- **Note 1, 2 (done before the loop).** Round 5 merged (#32). #42 moved the lab's Playwright image and, with a commit added, its package to 1.65.1 together; #43 and #44 were closed as superseded.
+- **Note 34, the cleanup [A2, A3].** TJ: "I want to trim the fat on the repo and prepare for MVP... Lets prune everything that doesn't represent the current state at minor cost of info loss on older decisions, including ADRS. Lets keep IDEAS.md and keep adding to it though." And: "I want to do a full purge of anything that isn't necessary for the future of this project. Anything that doesn't have an exlicit purpose should be deleted. Clean the repo and prepare for public release."
+  - The game moves into `web/`, which serves it. The tools move to `tools/pixel/`.
+  - **The services stay**: `api`, `fetcher`, `admin`, `db` and `common`. TJ wants a fetcher, an admin console to approve register entries and a database for them in the end. Purge only their 3D-era leftovers. The game reads live GitHub stars from `api` and falls back to the numbers baked in when `api` cannot be reached. The register service is round 7.
+  - Docs: delete `ROUND4.md`, `ROUND5.md`, `PROGRESS.md` and `prototype/pixel/plan/`. Delete every decision record that no longer holds, keep those that do, renumber from 0001. Rewrite the PRD and `ARCHITECTURE.md` as short descriptions of the pixel game as it is. Keep `IDEAS.md` (it moves to `docs/IDEAS.md`).
+  - The chart in zimmertr/trailhead-helm is not touched this round.
+- **Note 35, security [A1].** The Dependabot alert is cleared by #42. The code-scanning alert (https://github.com/zimmertr/trailhead/security/code-scanning/1, incomplete multi-character sanitization in `web/src/render.ts`) is fixed so the tag stripping cannot be slipped past.
+- **Note 36, issues [A4, B5, D4, I1].** Build #33 (menus and hotkeys), #34 (words out of the source), #36 (forest light beams) and #38 (engine rules).
+- **Note 37, issues #14 to #17.** They were the plan for `web` to serve each part of the game. Round 6's PR closes all four once `web` serves the whole game; anything left goes into `IDEAS.md`.
+- **Words [A4], issue #34.** Plain text files in `content/`, one readable file per place, turned into the game's data at build time. No CMS. Draft marks stay.
+- **Art rules [A1].** trailhead-19's rules page is copied unchanged into `design/TRAILHEAD-ART.md`, with one line in the repo's `CLAUDE.md` pointing at it. Its source: `/Users/tj/.claude/tmp/claude-501/-Users-tj-git-personal-trailhead/bc571b3f-c723-4fb0-ac4f-26209a8eec68/scratchpad/design/TRAILHEAD-ART.md`.
+- **Note 20, the card styles [A5].** Each card is styled as the thing it comes from (sign, map, journal, rack, watch, guidebook). TJ: skip this round, file an issue.
+
+**The opening and the page round the world**
+
+- **Note 6 [B1].** Remove the "Click a sign or a trail to start walking." message.
+- **Note 7 [B2].** At the opening zoom TJ sits a little below and right of the centre of the screen, close enough that the eye finds him at once, with the three destinations still in view. The zoom level stays.
+- **Note 31 [B3].** The three planks on the Trailhead sign start at the same left edge, with arrows and text lined up.
+- **Note 29 [B4].** The Sound button goes. One top-bar button shows the music track. Its menu lists the music styles and a "Sound off" entry. Before the first click it reads "Click for sound".
+- **Note 30 [B4].** The AUTO button gets a small pixel sun or moon before the word, whichever it is now: sun with "Auto", sun with "Day", moon with "Dusk". The icon follows the clock.
+- **Note 32 [B4].** AUTO spends about 75% of the cycle in day, with a short sunset, dusk and sunrise.
+- **Note 23 and #33 [B5].** TJ: "I think there are too many menus. Trail Map, Trailhead, Trail Conditions, Trail Register, etc... Trail Conditions and Trail Register could be a joint interface where you're looking at the sign board and register box? And then you click on one or the other? Or maybe when you're in that view you can just read the sign board stuff clicking just lets you zoom into it?" The loop decides the design itself, builds it, and logs why. Hotkeys come with it (#33).
+- **Note 24 [B6].** The debug menu's camera-bounds outline is too faint. Draw it bold, like the roam areas.
+- **Note 25 (answered).** Snap to Pixels settles a wheel zoom onto the nearest whole level so every map pixel is the same size. Nothing to build.
+- **Note 26 [B6].** A debug "On the map" event moves the camera to centre on where it happens, then starts it.
+- **Note 27 [B6].** Related debug events become one split button each ("Humpback", "Bear cubs", "Avalanche" and any other family): the main part starts a random one, a small arrow beside it opens a menu of the specific ones.
+- **Note 28 [B7].** The off-route page's 404 is readable at a glance: big, clearly darker fog digits anyone notices within a second or two, still drifting and soft-edged. It was built in round 5 (J1) but too faint.
+- **Note 28, second [B7].** "Break the Scene" needs a way back into the game: the off-route page it leads to gets a clear button back to the Trailhead.
+- **Note 18 [B8].** Clicking "Glissade to camp" while the binoculars are open closes them at once and starts the glissade. Today it waits until the binoculars are closed.
+
+**The map**
+
+- **Note 4 [C1].** Reflection Lake about 1.5 times its size, inside TJ's red outline (north towards the moraine boulders, east towards the stream), keeping the boulders and trees near the outline. The trails and the boardwalk follow the new shore. TJ's picture: section 12.
+- **Note 4 [C2].** Many more flowers across the parkland TJ outlined in blue (the meadow between the forest, the volcano and the Spires), above all on the left flank where there are none. A band of moraine gravel and boulders all along the volcano's base, where snow or ridge meets meadow, wider below each glacier snout and tarn; the flowers start below it.
+- **Note 8 [C3].** The empty patch in the forest between the beach and the Trailhead (TJ's circle, section 12) is filled with trees like the rest of that area. Elsewhere in the forest: one deliberate clearing with a mossy bog and skunk cabbage, and one or two old-growth groves (a few giant cedars, bigger than the trees round them, ferns below).
+- **Note 5 [C4].** The tumbleweeds are too subtle. Make them bigger and easier to see, and roll them across the empty Palouse hills instead of the sagebrush.
+- **Note 14 [C5].** "Segfault Scree" names a grassy meadow. Its name tag goes on real scree.
+- **Note 10 [C6].** Every animal, on the map and in the scenes, is clickable, with one or two reactions true to how it lives (a marmot whistles and dives, an elk bugles, an orca spyhops, a goat bounds off, a slug pulls in its eyestalks). The loop writes the list in section 11 and builds them all. Not finds; just for fun. Doot Doot and Peevers are the model.
+- **Note 38 [C8].** TJ: "look for 'logical' errors in geography, asset placement, etc. Like trees growing out of glaciers. Or trees being as tall in the background as in the foreground with the same asset. And propose to me how we will fix these." **Propose everything first**: a report with pictures and a fix for each, published as an artifact. Nothing is built until TJ chooses.
+
+**The lake loop**
+
+- **Note 12 [D1].** The forest scene's climb to the lake: the zig-zag ramps on the cliff look off, and the cliff's right side fades into the forest. Replace it with a trail up beside the falls: no ramps on the cliff, the trail climbs a forested slope beside the waterfall on stone and root steps, the cliff tucked behind the trees, and at the top it comes out through the trees onto the lakeshore. TJ's picture: section 12.
+- **Note 13 [D2].** When the marine layer is on (on the map when he walks the forest, or started while he is in it), the forest scene has rain and thick fog that hides much of the view.
+- **Note 11 [D3].** The banana slug: about twice the size, banana yellow with dark spots, two long eyestalks that wave, and a shiny slime trail behind it.
+- **#36 [D4].** More light beams and particles in the forest scene, per the issue.
+
+**Sideproject Spires**
+
+- **Note 15 [E1].** Bluebird Forecast keeps its start (waiting for the weather to clear). After it: boulder hopping across talus, then a 3rd to 4th class scramble up a gully and rib with hands on rock, with one exposed step across a gap or ledge near the top, to the weather station.
+- **Note 16 [E2].** hevy-garmin-sync becomes a steep snow couloir between the spires, climbed with crampons and an ice axe, kicking steps. No watch on the climb (TJ: "we can drop the watch gimmick entirely. It doesn't make sense to count laps and sets for climbing a couloir"). The weight bench stays on the summit as its find; a click gives a set, and the sync shows as a small Hevy-to-Garmin notice over his head.
+- **Note 17 [E3].** The trailhead climb runs at about twice today's speed, with quick, springy crevasse jumps and the a cheval and tiptoeing on the ridge cut to a few moves. The binoculars keep their zoom and open on the cats, but can pan across the whole world map.
+- **Note 19 [E4].** On yggdrasil he floats up the ladders. Give him a real ladder-climbing animation (hand over hand, foot over foot), as careful as the ice climbing.
+
+**Proficiency Peak**
+
+- **Note 21 [F1].** The climbing is 1.5 times faster than round 5's.
+- **Note 21 [F2].** After TJ's whipper it is not obvious he is being hauled; it looks like he jumps up. And it is not obvious the rope is stuck and they are pulling it. Make both read at once (the haul: the leader leaning back and pulling hand over hand, the rope taut, TJ rising in jerks; the stuck rope: a taut line, heaves, a look up).
+- **Note 22 [F3].** On the snow traverse after the rappel, each climber changes to the traverse pose before reaching the snow, so they traverse in the air. Change pose only on the snow. It takes far too long: they traverse a couple of steps, then the scene moves on.
+
+**Everywhere**
+
+- **Note 3 [G1].** Scrubbed to the moment he pushes off into a glissade, the screen stays half white until he moves. Fix it: the burst is drawn only while he runs.
+- **Note 9 [H1].** The trail register's kiosk and the book's paper become a generated pixel-art picture (issue #37), with the handwriting and the signing form laid over it, still live. Make it both ways trailhead-19 asked for: the game draws the picture's pixels, and the picture is only a reference for code-drawn art. Publish both side by side, ship the better one, log why; TJ can overturn it in review. Use the `generate-image` skill (`~/.claude/skills/generate-image/SKILL.md`) and the rules in `design/TRAILHEAD-ART.md`. Start prompts for the style model `z-image-turbo-trailhead` with "pixel art, side view scene,", leave out the trigger word, and never ask for an "overhead map". trailhead-19's trial of the first way on the Spires is in `/Users/tj/.claude/tmp/claude-501/-Users-tj-git-personal-trailhead/bc571b3f-c723-4fb0-ac4f-26209a8eec68/scratchpad/mock-sp/` (`?spai=v1`, `?spai=v2`), its pictures and prompts in that scratchpad's `jobs/spires/`.
+- **#38 [I1].** The engine rules: written down, and applied (animals use the critter framework, plants react to wind and are assets not painted blobs, animals move and have textures, objects have collision boundaries), per the issue.
+
+## 6. Settled by the planner
+
+- The order: the repo first (A), so every later item is built in its final place; the engine rules (I1) before clickable animals (C6), so the reactions are built once on the shared framework. I1 therefore runs right after section B.
+- A4 builds the words file before section B so new copy goes straight into `content/`.
+- The two trailhead-19 tasks are folded into A1 (the rules) and H1 (the comparison), not their own PRs, at TJ's word.
+- trailhead-19 is told when H1 is done (SendMessage to `trailhead-19`), with what worked and any rule that turned out wrong in practice.
+
+## 7. Starting numbers (round 5 final, measured 2026-11-17)
+
+Frame times in ms: map with events 3.4, zoomed out 8.7, at Dusk zoomed out with events 11.4 to 12.7, phone 2.5; forest 5.1, shore 4.9, larch basin 1.8, West Ridge 4.0, summit 5.4, haul 7.1, snow traverse 7.2, walk to camp 2.0, camp 1.6, climbs 2.3 to 2.8 (Kubernetes-Manifests 13.7), register 0.9, off-route 12.0. Ready in 0.78 to 0.82 s. 251 of 254 colours. 17 browser tests.
+
+## 8. Checklist
+
+Work top to bottom. Each item is finished by the steps in section 9.
+
+**A. The repo**
+
+- [ ] A1. Open the draft PR from `round6`. Copy the art rules to `design/TRAILHEAD-ART.md` unchanged and point `CLAUDE.md` at them in one line. Fix the code-scanning alert in `web/src/render.ts` with a test. Create the round's artifact from the current game.
+- [ ] A2. Move the game into `web/` (served by the `web` image in place of the 3D-era home page and plain page) and the tools into `tools/pixel/`. Delete the 3D-era code in `web/` and anywhere else. Point CI (lint, Prototype Smoke, e2e, Dockerfile tests) at the new paths. The game reads live stars from `api` with the baked numbers as fallback. Rewrite sections 2 and 9 with the new paths. Every check green.
+- [ ] A3. The docs purge (note 34). Delete `ROUND4.md`, `ROUND5.md`, `PROGRESS.md`, the old `plan/` folder and every doc that describes something no longer true. Keep the decision records that still hold, delete the rest, renumber from 0001. Rewrite the PRD and `ARCHITECTURE.md` short and current. Move `IDEAS.md` to `docs/`. Bring the README and every `CLAUDE.md` up to date in TJ's voice. Every check green.
+- [ ] A4. Issue #34: the words in `content/`, one file per place, built into the game's data; `content.js` keeps no copy. Browser tests still pass; the page of text still shows every card.
+- [ ] A5. Issues: file one for the card styles (note 20) and one for the register service (round 7: `api` routes, approval in `admin`, a `db` table, the game posting entries), both with the `create-issue` skill. The PR body says it closes #14, #15, #16, #17, #33, #34, #36 and #38.
+
+**B. The page round the world**
+
+- [ ] B1. Remove the first-visit hint (note 6).
+- [ ] B2. The opening view: TJ a little below-right of centre (note 7).
+- [ ] B3. The sign's planks flush left (note 31).
+- [ ] B4. The top bar: sound merged into the music button, the sun or moon on AUTO, AUTO about 75% day (notes 29, 30, 32).
+- [ ] B5. Fewer menus and hotkeys (note 23, #33). Log the design and why in section 11.
+- [ ] B6. Debug: the bold camera-bounds outline, "On the map" moving the camera, the split buttons (notes 24, 26, 27).
+- [ ] B7. The off-route page: the 404 readable at a glance, and a way back into the game from "Break this scene" (note 28).
+- [ ] B8. "Glissade to camp" works from inside the binoculars (note 18).
+
+**I. The engine rules** (runs here, before C)
+
+- [ ] I1. Issue #38: write the rules into the repo (where the issue says) and bring the animals, plants and objects into line with them.
+
+**C. The map**
+
+- [ ] C1. Reflection Lake about 1.5 times bigger, inside TJ's outline (note 4).
+- [ ] C2. Flowers across the parkland, above all its left flank; the moraine band round the volcano's base (note 4).
+- [ ] C3. The forest gap filled; a mossy bog with skunk cabbage and one or two old-growth groves elsewhere in the forest (note 8).
+- [ ] C4. Tumbleweeds bigger, rolling across the empty Palouse (note 5).
+- [ ] C5. Segfault Scree on real scree (note 14).
+- [ ] C6. Every animal clickable, map and scenes (note 10). The list goes in section 11.
+- [ ] C7. Everything placed by rule still stands where it should after C1 to C6 (trails, signs, animal homes, no-go areas); `walk.sh` on every route.
+- [ ] C8. The logic audit (note 38): a report artifact with a picture and a proposed fix for every error found. Nothing is built. Its link goes in section 10 and the final report.
+
+**D. The lake loop**
+
+- [ ] D1. The trail up beside the falls to the lake (note 12).
+- [ ] D2. Rain and thick fog in the forest under the marine layer (note 13).
+- [ ] D3. The banana slug (note 11).
+- [ ] D4. Issue #36: light beams and particles in the forest.
+
+**E. Sideproject Spires**
+
+- [ ] E1. Bluebird Forecast: talus, scramble, one exposed step (note 15).
+- [ ] E2. hevy-garmin-sync: the snow couloir, no watch, the bench and its sync notice (note 16).
+- [ ] E3. trailhead: twice the pace, the ridge cut short, binoculars across the whole map (note 17).
+- [ ] E4. yggdrasil: real ladder climbing (note 19).
+
+**F. Proficiency Peak**
+
+- [ ] F1. Climbing 1.5 times faster (note 21).
+- [ ] F2. The haul and the stuck rope read at once (note 21).
+- [ ] F3. The snow traverse: on the snow before the pose changes, and short (note 22).
+
+**G and H**
+
+- [ ] G1. The glissade burst only while he runs (note 3).
+- [ ] H1. The register as a generated picture, both ways, the better one shipped (note 9, #37). Tell trailhead-19 how it went.
+
+**K. Whole-site checks and the report**
+
+- [ ] K1. Every route through every stop in Auto, Day and Dusk, desktop and phone (`walk.sh`), clean console, no request to another site (`api` answers on the same site under `/api`).
+- [ ] K2. Round 5's 72 standard views beside round 6's. A list for TJ of anything worse, and what fixing it would mean.
+- [ ] K3. Frame time on every view in section 7, load time, colours.
+- [ ] K4. Every way it can go wrong behaves at least as well as round 5 (`break=`, a missing scene, an address that goes nowhere, `api` down).
+- [ ] K5. `IDEAS.md` has every idea from the round and none that was built. The lasting rules of this file (sections 2 to 4) are folded into a permanent doc (`docs/DEVELOPMENT.md` or the game's `CLAUDE.md`), and this file is deleted.
+- [ ] K6. The report in chat and in the PR body: what was done, what is still below round 5 and why, every new line of copy for TJ, what was removed, sounds nobody has heard, the C8 audit link, and the links. Mark the PR ready only once every check passes, send a PushNotification, end the loop. Never merge it.
+
+## 9. Steps (how one item goes)
+
+1. Fetch. Make sure `round6` is pushed and current. Read sections 2, 3, 5 (the part for this item) and 10.
+2. Render round 5's picture of the view, or film it if it moves.
+3. Make the change. Run `./bake.sh` if the land changed. Run `./check.sh <item>`. If the land changed, read what `check.sh` says moved: trails are routed afresh and every sign and animal is placed by rule, so a land change can move any of them.
+4. Render the new view the same way, lay it beside round 5's and look. Film anything that moves. Day and Dusk, desktop and phone.
+5. If anything is worse than round 5, fix it before going on.
+6. Measure frame time for any view the change touches; for map items log the zoomed-out Dusk number in section 11.
+7. Tick the item. Log each call in one line in section 11. Update section 10. Add ideas to `IDEAS.md`. Check for em dashes.
+8. Commit with a message that says what changed, push, and **read `gh pr checks`**; fix any failure before going on.
+9. Export and republish the round's artifact with a short label (for example "C1 bigger lake").
+10. At the end of each lettered section, one PushNotification to TJ: the artifact's version and three lines on what changed and what to look at first. Do not wait for an answer.
+
+The loop prompt TJ starts round 6 with (paste it after `/loop`):
+
+> Round 6 of trailhead, unattended, end to end. Every firing: work in the scratchpad clone of https://github.com/zimmertr/trailhead (clone it into the session scratchpad if it is gone, never /tmp, never ~/git). Fetch first. Read docs/ROUND6.md on branch round6: sections 2, 3, 9 and 10, and the part of section 5 for the item. Take the first unticked item in section 8 and finish it by the steps in section 9. Round 5's final build is the floor: compare every change with it side by side and fix anything worse before ticking. After each item: tick it, log every call in section 11, keep section 10 current, add every idea to IDEAS.md, commit, push, read CI and fix it before moving on, and republish the round's one artifact with a short label. Follow every rule in section 2. Never push to main and never merge a pull request: TJ reviews round 6 and merges it himself. Do not ask questions: make the call, log it and carry on. After K6, mark the PR ready for review, send a PushNotification and end the loop.
+
+## 10. Where the build stands
+
+- **2026-11-21, before any work.** `round6` was cut from `main` at `5604ea6` (round 5 merged). It holds only this plan. The game is exactly round 5's final build (`archive/pixel-r5-final`).
+- Round 5's artifact, the floor: https://claude.ai/artifact/1VdS5Q3uSMTpEuGEm39SZr (version 76).
+- Next: A1.
+
+## 11. Calls made in round 6
+
+- Q&A, 2026-11-21: TJ's answers are in section 5. He first chose a static site with the services deleted, then asked whether that was a mistake given he wants a fetcher, an admin console and a database in the end; on the planner's advice he chose to keep the services, wire live stars this round, and build the register in round 7.
+- Before the loop: #42 changed only the image, and the repo's test that holds the image and the package to one version failed on it. The planner added a commit to #42 moving the lab's package to 1.65.1 (lock regenerated in Docker, pinned exactly), merged it once green, and closed #43 and #44 as superseded.
+
+## 12. TJ's pictures for this round
+
+TJ's screenshots of 2026-11-21 are on the round's notes artifact once A1 creates it (never in the repo). What each shows:
+
+- Note 4: the map round Reflection Lake. A red outline round the lake marks the bigger size (about twice the old one; build 1.5 times, inside it). A blue outline marks the parkland that needs flowers: from the forest edge on the left, along the foot of the volcano's glaciers, across to the Spires sign, and down to the lake; the left part, a green slope under the volcano's west glacier, has no flowers at all.
+- Note 8: the forest between the beach and the Trailhead, with a blue circle round a dark, empty patch among the trees, south-west of the two signs.
+- Note 9: the register close-up today: the kiosk's wood walls, the pinned map, the pencil cup, the open book with the checklist on the left page and entries on the right, the pencil on the shelf.
+- Note 12: the forest scene's end: a grey mossy cliff across the picture with wooden ramps zig-zagging up its face, the waterfall in the middle, the lake visible above, and the cliff's right edge fading into the trunks of the big tree.
+- Note 22: the end of the rappel: the three on a ledge at the foot of the granite columns, TJ (green cap, yellow jacket) already crouched in the traverse pose off the end of the ledge, in the air short of the snow slope beyond.
+- Note 31: the Trailhead sign: the intro card above three planks; the first two start at one left edge, the third further right.
