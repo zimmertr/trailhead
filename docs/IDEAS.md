@@ -454,3 +454,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Drips After the Rain** (round 6, D2). When the drizzle stops and the fog lingers, drops could fall from the moss on the limbs onto the trail, as they do on the map's rainforest crowns.
 - **The Slug Moves On** (round 6, D3). Between visits the slug could have crawled a few pixels further along, with its slime trail longer by as much, so a return trip shows it went somewhere.
 - **A Second Slug After Rain** (round 6, D3). Under the marine layer more slugs could come out onto the trail, as they do on wet days, and go again as it dries.
+- **A Beam on the Runner** (round 6, D4). When he runs through a shaft, he could light up a step for the moment he is in it, so the light reads as in the air between you and him.
+- **Morning Mist in the Shafts** (round 6, D4). Right after sunrise the shafts could be thicker and the dust denser, thinning as the day goes on.

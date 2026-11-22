@@ -25,6 +25,11 @@ const farBank = x => 17 + Math.round(2.5 * Math.sin(x / 23) + 2 * vnoise(x / 9, 
 const nearBank = x => 60 + Math.round(5 * Math.sin(x / 31 + 1) + 4 * vnoise(x / 13, 2, 82));
 // Shafts of light slant down from the upper left and land on the ground in bands.
 const beamAt = c => { const k = Math.floor(c / 118), o = hash(k, 3, 83) * 60, w = 12 + hash(k, 4, 83) * 22, d = Math.abs(c - k * 118 - 30 - o); return hash(k, 5, 83) < 0.2 ? 0 : d < w * 0.5 ? 2 : d < w ? 1 : 0; };
+// The same shafts in the air (issue #36): 3 at the core, 2 at the edge, 1 in the soft glow round each, and 0
+// outside. Each one brightens and dims on its own slow clock as the crowns move in the wind far overhead.
+const shaftAt = (c, t) => { const k = Math.floor(c / 118); if (hash(k, 5, 83) < 0.2) return 0;
+  const o = hash(k, 3, 83) * 60, w = 12 + hash(k, 4, 83) * 22, d = Math.abs(c - k * 118 - 30 - o), dim = Math.sin(t * 0.35 + k * 2.3) < -0.55 ? 1 : 0;
+  return Math.max(0, (d < w * 0.5 ? 3 : d < w ? 2 : d < w * 1.8 ? 1 : 0) - dim); };
 
 // The climb at the forest's end (round 6, note 12). The trail runs on along the foot of the lake's bench,
 // crosses the channel of the lake's outflow fall on a log footbridge, and stops at FOOT, just west of the fall.
@@ -411,6 +416,64 @@ function rainfall(scr, camX, base, t, k, S) {
     for (const dx of r ? [-r, r] : [0]) { const X = sx + dx; if (X >= 0 && X < VW && sy >= 0 && sy < VH) fb[sy * VW + X] = LIGHT[fb[sy * VW + X]]; }
   }
 }
+// The shafts of light over everything (issue #36): each colour under a shaft turned toward the light (T, three
+// tables from faint to strong; at sunset W, toward the low sun's gold): the core strongest on every other pixel
+// and strong between, the edge on every other pixel, the glow round it faintly on one pixel in four. They fade
+// out through a dither as the light goes at Dusk or the marine layer closes over (gone). The shafts' strength at
+// each slanted column is worked out once a frame (lut), not at every pixel.
+const lut = { a: new Uint8Array(0) };
+function shafts(scr, camX, base, t, T, W, warm, gone) {
+  const { VW, VH, fb } = scr, off = Math.floor(camX - 0.6 * 16) - 2, n = VW + Math.ceil(0.6 * VH) + 24;
+  if (lut.a.length < n) lut.a = new Uint8Array(n);
+  const L = lut.a; for (let i = 0; i < n; i++) L[i] = shaftAt(off + i, t);
+  for (let y = 0; y < VH; y++) {
+    const r = y - base; if (r > 16) break;
+    const row = y * VW, sh = camX - 0.6 * r - off;
+    for (let x = 0; x < VW; x++) { const m = L[Math.floor(sh + x)]; if (!m) continue;
+      const by = bayer(x, y); if (gone > 0 && by < gone) continue;
+      const odd = ((x + y) & 1) === 1, k = m === 3 ? (odd ? 2 : 1) : m === 2 ? (odd ? 1 : -1) : by < 0.25 ? 0 : -1; if (k < 0) continue;
+      fb[row + x] = (warm > by ? W : T)[k][fb[row + x]];
+    }
+  }
+}
+// A table that turns each colour by amount toward one colour of the palette, matched in the Day palette only:
+// the shafts are gone by Dusk, and matched in both they came out lavender at sunset instead of gold.
+function tintTable(to, amount) {
+  const out = new Uint8Array(256), PS = [DAY];
+  for (let i = 1; i < DAY.length; i++) { let best = i, bd = Infinity; const want = [];
+    for (const P of PS) for (let k = 0; k < 3; k++) want.push(P[i][k] + (P[to][k] - P[i][k]) * amount);
+    for (let j = 1; j < DAY.length; j++) { let dd = 0, m = 0; for (const P of PS) for (let k = 0; k < 3; k++, m++) { const e = want[m] - P[j][k]; dd += e * e; } if (dd < bd) { bd = dd; best = j; } }
+    out[i] = best; }
+  return out;
+}
+// What drifts in the light (issue #36): dust that wanders and twinkles, spores that sink slowly on a slant,
+// both seen only inside a shaft; drops falling from the moss on the limbs, with a splash where they land;
+// and at Dusk a few moths fluttering in loops. light: how much daylight is left (0 at Dusk).
+function airborne(scr, camX, base, t, light, drips, dusk) {
+  const { VW, VH, fb } = scr, set = (x, y, c) => { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < VW && y < VH) fb[y * VW + x] = c; };
+  if (light > 0.05) {
+    for (let k = 0; k < 150; k++) {
+      const wx = Math.floor(camX / 300) * 300 + hash(k, 1, 4090) * 900 - 150 + 7 * Math.sin(t * 0.37 + k) + 3 * Math.sin(t * 1.3 + k * 3), r = -10 - hash(k, 2, 4090) * 230 + 6 * Math.sin(t * 0.23 + k * 2);
+      if (hash(k, 6, 4090) > light || !shaftAt(wx - 0.6 * r, t)) continue;
+      set(wx - camX, base + r, frac(t * 0.7 + hash(k, 3, 4090)) < 0.15 ? R.white[0] : R.white[1]);
+    }
+    for (let k = 0; k < 40; k++) {
+      const fall = frac(t * (0.03 + 0.02 * hash(k, 4, 4091)) + hash(k, 1, 4091)), r = -240 + fall * 250, wx = Math.floor(camX / 300) * 300 + hash(k, 2, 4091) * 900 - 150 + fall * 40 + 4 * Math.sin(t * 0.9 + k);
+      if (hash(k, 6, 4091) > light || !shaftAt(wx - 0.6 * r, t)) continue;
+      const sx = wx - camX, sy = base + r; set(sx, sy, R.glow[0]); set(sx + 1, sy, R.moss[6]);
+    }
+  }
+  for (const [x, y0, gy, ph] of drips) { const sx = x - camX; if (sx < -2 || sx > VW + 2) continue;
+    const cyc = 3.2 + ph * 3, u = frac(t / cyc + ph), fallT = Math.sqrt(2 * (gy - y0) / 260), age = u * cyc;
+    if (age < fallT) { const y = y0 + 130 * age * age; set(sx, base + y, R.white[1]); set(sx, base + y - 1, R.water[4]); }
+    else if (age < fallT + 0.18) { set(sx - 1, base + gy - 1, R.white[1]); set(sx + 1, base + gy - 1, R.white[1]); set(sx, base + gy - 2, R.water[4]); }
+  }
+  if (dusk > 0.5) for (let k = 0; k < 6; k++) {
+    const cx = Math.floor(camX / 400) * 400 + hash(k, 1, 4092) * 800, cy = -40 - hash(k, 2, 4092) * 120, a = t * (1.1 + hash(k, 3, 4092)) + k;
+    const sx = cx - camX + 22 * Math.sin(a) + 9 * Math.sin(a * 2.7), sy = base + cy + 12 * Math.sin(a * 1.6), up = Math.floor(t * 14 + k) & 1;
+    set(sx, sy, R.white[0]); set(sx - 1, sy - up, R.white[1]); set(sx + 1, sy - up, R.white[1]);
+  }
+}
 // One thing that stands in the scene: a tree part by part in the wind, a tall trunk, a swaying fern, or a still drawing.
 function drawThing(scr, th, camX, base, tq) {
   const sx = th.x - camX, sy = base + th.y;
@@ -543,6 +606,8 @@ function buildForest() {
   // Everything that stands on the ground, sorted by its foot each frame.
   const things = [];
   const trunks = [];
+  // Where drops fall from the moss hanging off each limb (issue #36): x, the drop's start and the ground, a phase.
+  const drips = [];
   const reserve = [[X0 - D_SIGN - 34, X0 - D_SIGN + 10], [X0 - D_ELK - 34, X0 - D_ELK + 34]];
   // One giant always stands at D_GIANT. The bear leaned out from behind it until round 5 (T41); it stays so the
   // rest of the forest, the owl's tree among it, stands where it always did.
@@ -556,7 +621,7 @@ function buildForest() {
     const t = { bm: gone ? null : makeTrunk(1000 + (tx | 0), w, UP + by + 20), x: Math.round(tx), y: g(tx) + by, tall: true, w };
     if (tx === X0 - D_GIANT) giant = t;
     trunks.push(t); if (!gone) things.push(t);
-    for (let k = 0; k < 3; k++) { const dir = rand() < 0.5 ? -1 : 1, len = 30 + (rand() * 46 | 0), up = 96 + rand() * 300; if (!gone) things.push({ bm: makeLimb(2000 + tx + k, len, dir), x: t.x + dir * (w / 2 - 2), y: t.y - up, z: t.y + 0.1, sway: 0.5 }); }
+    for (let k = 0; k < 3; k++) { const dir = rand() < 0.5 ? -1 : 1, len = 30 + (rand() * 46 | 0), up = 96 + rand() * 300; if (!gone) { things.push({ bm: makeLimb(2000 + tx + k, len, dir), x: t.x + dir * (w / 2 - 2), y: t.y - up, z: t.y + 0.1, sway: 0.5 }); const dx = Math.round(t.x + dir * (w / 2 + len * 0.6)); drips.push([dx, t.y - up + 10, g(dx) - 4, hash(tx, k, 4093)]); } }
   }
   const maples = Array.from({ length: 6 }, (_, i) => makeMaple(120 + i)), spruces = Array.from({ length: 4 }, (_, i) => makeSpruce(220 + i));
   const free = (x, r) => !trunks.some(t => Math.abs(t.x - x) < t.w * 0.8 + r) && !reserve.some(([a, b]) => x > a - r && x < b + r);
@@ -678,6 +743,7 @@ function buildForest() {
   // the forest and fog closes in, in three veils (thickest on the far trees, thinner on the bench and the
   // bank, faint on what stands nearest), and the light beams and motes go with the sun.
   const FOGV = [0.22, 0.42, 0.6, 0.75, 0.87].map(veilTable);
+  const BEAM = [0.12, 0.26, 0.4].map(a => tintTable(R.white[1], a)), WARM = [0.18, 0.32, 0.46].map(a => tintTable(R.sun[2], a));
   const STREAK = new Uint8Array(256).map((_, c) => { const p = DAY[c] || [0, 0, 0]; return 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2] > 150 ? R.nebel[1] : R.fog[1]; });
 
   return {
@@ -804,18 +870,15 @@ function buildForest() {
         if (s < EYES.dur && frac(s / 2.7) > 0.05) { const turn = Math.round(1.5 * Math.sin(s * 0.9)), ex = eyeX - camX + turn, ey = base + g(eyeX) - 42; eyesAt = [ex, ey];
           for (const dx of [0, 4]) { scr.set(ex + dx, ey, R.lamp[1]); scr.set(ex + dx - 1, ey, R.lamp[0]); scr.set(ex + dx + 1, ey, R.lamp[0]); } } }
       fogVeil(scr, fogK * 0.35, FOGV);
-      // Shafts of light: every other pixel a step lighter, the middle of each shaft two steps. Under the marine
-      // layer they fade out through a dither as the deck closes over.
-      for (let y = 0; y < VH; y++) {
-        const r = y - base; if (r > 16) break;
-        const row = y * VW;
-        for (let x = (y + camX) & 1; x < VW; x += 2) { const m = beamAt(camX + x - 0.6 * r); if (m && (fogK <= 0 || bayer(x, y) >= fogK)) fb[row + x] = m === 2 ? LIGHT[LIGHT[fb[row + x]]] : LIGHT[fb[row + x]]; }
-      }
-      // Motes drifting in the light, and fireflies once it goes.
+      // Shafts of light (issue #36), warm at sunset and gone at Dusk or under the marine layer; then what drifts
+      // in them, the drops off the moss, and the fireflies and moths once the light has gone.
+      const light = 1 - smooth(0.55, 0.9, env.mix), warm = smooth(0.15, 0.55, env.mix) * light;
+      shafts(scr, camX, base, t, BEAM, WARM, warm, Math.max(fogK, 1 - light));
+      airborne(scr, camX, base, t, light * (1 - Math.max(fogK, rainK)), drips, env.mix);
       for (let k = 0; k < 46; k++) {
         const wx = Math.floor(camX / 300) * 300 + hash(k, 1, 104) * 600 + 10 * Math.sin(t * 0.3 + k), r = -20 - hash(k, 2, 104) * 190 + 8 * Math.sin(t * 0.21 + k * 2);
-        if (hash(k, 9, 104) < Math.max(fogK, rainK) || (env.mix < 0.5 ? !beamAt(wx - 0.6 * r) : frac(t * 0.4 + hash(k, 3, 104)) > 0.5)) continue;
-        scr.set(Math.round(wx - camX), Math.round(base + r), env.mix < 0.5 ? R.white[1] : R.yellow[1]);
+        if (env.mix < 0.5 || hash(k, 9, 104) < rainK || frac(t * 0.4 + hash(k, 3, 104)) > 0.5) continue;
+        scr.set(Math.round(wx - camX), Math.round(base + r), R.yellow[1]);
       }
       if (rainK > 0.02) rainfall(scr, camX, base, t, rainK, STREAK);
     }
