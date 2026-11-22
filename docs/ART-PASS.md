@@ -83,7 +83,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 
 ### The Rest of the Scenes
 
-- [ ] **E01 The Rainforest** - the giant trunks, ferns, moss and stream. `forest.js`.
+- [x] **E01 The Rainforest** - the giant trunks, ferns, moss and stream. `forest.js`.
 - [ ] **E02 The Walk to Camp's Flower Slope** - `approach.js` (`paintFar`, `paintFloor`, `paintMain`).
 - [ ] **E03 The Scenes' Animals** - elk, owl, jay, slug, pika, goats and the bluebird. `fauna.js`.
 - [ ] **E04 The Off-Route Page** - the whiteout, the wand and the sign. `offroute.js`.
@@ -324,3 +324,9 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - D12, a call: the birds were kept: at 7 by 4 they are distant silhouettes, and dark wing strokes already read as birds.
 - D12, a call: `ground.png` was rebaked and committed; its pixels are identical.
 - D12: frame time 12.2 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- E01, the before: the forest scene was already near the bar: misty far layers with mossy limbs and old man's beard, shafts of light, sword ferns, a nurse log, a dark stream mirroring the bank. Its weakest part was the giants (`makeTrunk`): their moss lay in big flat blotches of two greens, like camouflage, and the bark's furrows barely showed.
+- E01, the pictures: 7 in all. The style model's seed 2 was picked: furrowed red-brown trunks with moss draped over the buttresses and climbing the bark in vertical strips lit on their upper left. Qwen's three came out almost black. The prompts are in `design/art/E01/log.jsonl`.
+- E01, a call: `makeTrunk` keeps every trunk's place, width and seed. The moss field is now stretched up the trunk (noise eight times longer than it is wide), drawn to the bark's furrows and thicker toward the base, so it climbs in strips. Once laid, each moss pixel is shaded as a cushion: lit along its top (and its left edge on the lit side), dark along its foot and right, with the trunk's own light across it. The bark's ridges are a third stronger.
+- E01, a call: a first pass lit every strip's left edge and read as thin neon lines, and the base lost its lushness; the left edges are lit only on the lit side, the strips are broken into lumps, and the base's moss reaches higher.
+- E01, a call: the stream, the ferns, the moss floor and the far layers were kept: the stream already mirrors what stands on its bank and is dark as in the picture, and the ferns already have fronds and leaflets.
+- E01: frame time 11.9 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours; the forest is not in the bake.

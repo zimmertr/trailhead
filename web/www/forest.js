@@ -190,12 +190,22 @@ function makeTrunk(seed, w, H) {
       const u = dx / hw; if (Math.abs(u) > 1) continue;
       const x = Math.round(x0 + dx);
       const ridge = vnoise((dx + 5 * vnoise(y / 44, seed, 5)) / (cedar ? 1.5 : 2.3), y / (cedar ? 70 : 28), seed + 7);
-      const v = 0.58 - 0.4 * u - 0.2 * u * u + 0.36 * (ridge - 0.5);
-      const m = fbm(x / 12 + seed, y / 22, 31, 3) + 0.34 * Math.exp(-up / 40) - 0.16 * u;
-      if (m > 0.6) b.set(x, y, pick('moss', v * 0.75 + 0.14 + (m > 0.7 ? 0.12 : 0) + 0.12 * (hash(x, y, 9) - 0.5), x, y, 0.8));
-      else b.set(x, y, pick(cedar ? 'wood' : 'bark', v * (cedar ? 0.8 : 1) + (m > 0.56 ? -0.22 : 0), x, y, 0.8));
+      const v = 0.58 - 0.4 * u - 0.2 * u * u + 0.48 * (ridge - 0.5);
+      // Moss (art pass E01): thick on the buttresses, and up the trunk in long strips that follow the
+      // bark's furrows (the ridge's low places), more of it on the lit side, so it climbs in streaks
+      // rather than lying in blotches. Its shading is done below, once every pixel is known.
+      const m = fbm(x / 5 + seed, y / 46, 31, 3) + 0.14 * (vnoise(x / 3, y / 4, seed + 11) - 0.5) + 0.24 * (0.5 - ridge) + 0.5 * Math.exp(-up / 48) - 0.12 * u;
+      if (m > 0.6) b.set(x, y, R.moss[3]);
+      else b.set(x, y, pick(cedar ? 'wood' : 'bark', v * (cedar ? 0.8 : 1) + (m > 0.55 ? -0.22 : 0), x, y, 0.8));
     }
   }
+  // Each moss cushion lit along its upper left edge, dark along its foot and right side, mid between,
+  // and the trunk's own light across it, so the strips stand off the bark.
+  { const o = b.d.slice(), M = new Set([R.moss[3]]), isM = (x, y) => M.has(o[y * W + x]);
+    for (let y = 1; y < H + 2; y++) for (let x = 1; x < W - 1; x++) { if (!isM(x, y)) continue;
+      const u = (x - cx - lean * (H - y)) / (w / 2), top = !isM(x, y - 1) || (u < -0.2 && !isM(x - 1, y)), foot = !isM(x, y + 1) || !isM(x + 1, y);
+      const v = 0.48 - 0.3 * u + (top ? 0.26 : 0) - (foot && !top ? 0.24 : 0) + 0.12 * (hash(x, y, 9) - 0.5);
+      b.set(x, y, R.moss[clamp(Math.round(v * 6.4), 1, 6)]); } }
   for (const s of [-1, 1]) for (let k = 0; k < 2; k++) {
     const len = w * (0.45 + rand() * 0.6) + 8, y0 = H - 5 - k * 6 - rand() * 3;
     for (let i = 0; i <= len; i++) {
