@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # The checks every Node service image shares: run as the unprivileged user,
 # carry the LICENSE and a license file naming each direct dependency.
 node_image_checks() { # image, service

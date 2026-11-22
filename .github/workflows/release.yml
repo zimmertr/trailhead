@@ -3,8 +3,8 @@ name: Release
 # Every merge to main releases through yggdrasil's release module. GitVersion
 # reads the bump from the squash commit's title; the four images are built for
 # linux/amd64 (the cluster's only platform), pushed to ghcr.io/zimmertr under
-# that version and scanned; the commit is tagged and released only when every
-# scan passes.
+# that version with signed provenance, and scanned; the commit is tagged and
+# released only when every scan passes.
 #
 # No `deploys` and no `charts` yet: deploying waits until TJ picks the
 # hostnames, and the chart releases from zimmertr/trailhead-helm. docs/CICD.md.
@@ -23,10 +23,12 @@ permissions: {}
 jobs:
   release:
     name: Release
-    uses: zimmertr/yggdrasil/.github/workflows/release.yml@c71af5523eef7252d901774a217fe532fdb3209c # v2.7.0
+    uses: zimmertr/yggdrasil/.github/workflows/release.yml@571dc1db86efcdaf2d5289b5e8d34f98b8816a18 # v3.0.1
     permissions:
       contents: write # the tag and release
       packages: write # the four images, pushed to ghcr.io/zimmertr
+      attestations: write # their signed build provenance
+      id-token: write # the token Sigstore signs it with
     with:
       # Each builds from the repo root, which holds the lockfile and the
       # content, with its Dockerfile in its own folder (record 0009).

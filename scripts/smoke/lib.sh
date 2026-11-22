@@ -1,3 +1,4 @@
+# shellcheck shell=bash
 # Shared by the smoke tests: a check that prints ok or FAIL and keeps going,
 # so one run shows every failure, and a wait for a port to answer.
 fail=0

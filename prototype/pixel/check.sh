@@ -29,4 +29,4 @@ esac
 
 docker run --rm --ipc=host -v "$D/www:/www:ro" -v "$D/out:/out" -v "$D/check.mjs:/lab/check.mjs:ro" --entrypoint node trailhead-pixel-lab /lab/check.mjs "$@" || FAILED="$FAILED places"
 
-if [ -z "$FAILED" ]; then echo "check $ITEM: passed"; else echo "check $ITEM: FAILED ($(echo $FAILED | sed 's/ /, /g'))"; exit 1; fi
+if [ -z "$FAILED" ]; then echo "check $ITEM: passed"; else echo "check $ITEM: FAILED ($(echo "$FAILED" | sed 's/ /, /g'))"; exit 1; fi

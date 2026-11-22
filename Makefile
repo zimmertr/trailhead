@@ -126,7 +126,7 @@ lighthouse-run:
 	trap 'docker stop $$name >/dev/null 2>&1' EXIT; \
 	docker run -d --rm --name $$name --read-only --tmpfs /tmp trailhead-web:pr-scan >/dev/null; \
 	docker run --rm --user root --network container:$$name -v "$(CURDIR)":/repo -w /repo -e CHROME_PATH=/usr/bin/chromium-browser --entrypoint sh zenika/alpine-chrome:with-node \
-		-c "npx -y @lhci/cli@0.15.1 autorun --config=.github/lighthouserc.json --collect.url=http://localhost:8080/ --collect.url=http://localhost:8080/page/"
+		-c "npx -y @lhci/cli@0.15.1 autorun --config=.github/lighthouserc.json"
 
 # The whole thing, from docker-compose.yml, checked from outside. The
 # fetcher stays down: it would call GitHub.
