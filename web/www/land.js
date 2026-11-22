@@ -702,6 +702,31 @@ function basaltWall(u, v, hh, x, y, L) {
   if (p === 0) return lit > 0.3 ? B[3] : B[2];
   return B[clamp(Math.round(0.6 + 2.2 * shade + 1.2 * (lit - 0.5) - 0.9 * p / w), 1, 3)];
 }
+// A09, after a picture of a meadow stream falling off a granite step: where the water drops far it falls
+// in vertical strands of white with blue between them, its west edge lit and its east edge in shade, and
+// lands in spray. Where it only runs down a slope it shows white riffles across a blue stream. Flat water
+// is a clear blue with short pale ripples and glints; its west bank throws a shadow on it and its east
+// edge catches the light, the sun being in the west.
+function streamColour(u, v, hh, x, y, i, fall) {
+  const W = R.water, WH = R.white[1], wet = (a, b) => water[at(clamp(a, 0, NW - 1), clamp(b, 0, VD - 1))] > 0;
+  if (fall > 1.1) {
+    if (!wet(u - 1, v)) return WH;
+    if (!wet(u + 1, v)) return W[2];
+    const st = hash(x, 0, 1301), br = vnoise(x * 1.7, hh / 5, 1302);
+    return st < 0.65 && br > 0.25 ? WH : st < 0.88 ? W[4] : W[3];
+  }
+  if (fall > 0.55) {
+    if (!wet(u - 1, v) && wet(u + 1, v)) return W[4];
+    const seg = Math.floor(x / 3), ph = (y + Math.floor(5 * hash(seg, 0, 1303))) % 5;
+    return ph === 0 || (ph === 1 && hash(seg, y, 1304) < 0.5) ? WH : vnoise(x / 3, hh / 4, 1305) > 0.55 ? W[4] : W[3];
+  }
+  // Spray where a fall lands: the water just below it, nearer the eye.
+  for (let k = 1; k <= 4; k++) if (wet(u, v + k) && hg[at(u, Math.min(VD - 1, v + k))] - hg[i] > 2.5) return hash(x, y, 1306) < 0.6 - 0.12 * k ? WH : W[4];
+  if (water[i] === 1) return !wet(u - 1, v) || !wet(u, v - 1) ? W[1] : W[2];
+  if (hash(x, y, 9) < 0.05) return R.glint[(x + y) & 3];
+  const rip = hash(Math.floor((x + 3 * hash(y, 0, 1307)) / 3), y, 1308) < 0.14;
+  return rip ? W[4] : !wet(u - 2, v) ? W[2] : W[3];
+}
 function colour(u, v, hh, x, y) {
   const i = at(u, v), mat = MATS[mg[i]], n1 = hash(u, v, 31) - 0.5, uu = clamp(u, 1, NW - 2), vv = clamp(v, 1, VD - 2);
   const du = hg[at(uu + 1, vv)] - hg[at(uu - 1, vv)], dv = hg[at(uu, vv + 1)] - hg[at(uu, vv - 1)], steep = Math.hypot(du, dv) / 2;
@@ -719,7 +744,7 @@ function colour(u, v, hh, x, y) {
   // White water where the stream itself falls, read from the water's own surface, not from its banks,
   // so a low river between high banks near the sea stays blue (D11).
   const wh = (a, b) => water[at(a, b)] ? hg[at(a, b)] : hg[at(uu, vv)], fall = water[i] ? Math.hypot(wh(uu + 1, vv) - wh(uu - 1, vv), wh(uu, vv + 1) - wh(uu, vv - 1)) / 2 : 0;
-  if (water[i]) return fall > 0.55 ? (hash(x, y >> 1, 5) < 0.72 ? R.white[1] : R.water[4]) : water[i] === 2 ? (hash(x, y, 9) < 0.08 ? R.glint[(x + y) & 3] : R.water[y & 1 ? 3 : 4]) : R.water[1];
+  if (water[i]) return streamColour(u, v, hh, x, y, i, fall);
   const rim = lakeRim(u, v); if (rim) return rim === 'lake' ? R.dirt[hash(x, y, 3) < 0.3 ? 3 : 4] : R.rock[hash(x >> 1, y >> 1, 3) < 0.5 ? 2 : 3];
   // The boot track up the ice: a trench with its floor in shade; where it crosses rock, a worn line.
   if (track[i] && !trail[i] && !printGap(i)) return mat === 'ice' ? (track[i] === 1 ? R.glac[3] : hash(x, y, 16) < 0.3 ? R.glac[2] : R.glac[1]) : track[i] === 1 ? R.rock[1] : R.rock[hash(x, y, 6) < 0.3 ? 4 : 3];
