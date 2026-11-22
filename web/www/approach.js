@@ -94,15 +94,22 @@ function paintFar(S) {
 }
 // The far wall of the valley: forest up its lower slopes, rock and meadow above, all a little hazy.
 const wallTop = x => -38 - 24 * fbm(x / 60, 3.1, 707, 3) - 5 * Math.sin(x / 23);
+// The wall's spurs (art pass E02, design/art/E02): ridges running down and to the right from the skyline, so
+// each spur's west face takes the light and its east face is in shade. The light comes from the slope of the
+// spurs at each spot, with the skyline's own slope only along its top, where it once lit whole columns and
+// broke the wall into tall slabs.
+const spur = (x, y) => vnoise((x - (y - wallTop(x)) * 0.9) / 30, 4.2, 739) + 0.4 * vnoise((x - (y - wallTop(x)) * 1.3) / 11, 5.1, 740);
 function paintWall(S, haze) {
   for (let x = 0; x < S.w; x++) {
-    const top = Math.round(wallTop(x)), sl = wallTop(x + 2) - wallTop(x - 2);
+    const top = Math.round(wallTop(x)), sk = wallTop(x + 2) - wallTop(x - 2);
     for (let y = top; y < 0; y++) {
+      const face = spur(x + 2, y) - spur(x - 2, y), nearTop = smooth(10, 0, y - top), sl = (1 - nearTop) * face * -4 + nearTop * sk;
       const tree = y > -30 + 12 * vnoise(x / 13, 1, 708) && fbm(x / 5, y / 3, 709, 2) > 0.3;
       const cliff = frac(y / 9 + 0.5 * vnoise(x / 20, 2, 731)) < 0.18 && vnoise(x / 15, y / 12, 732) > 0.55;
-      let c = tree ? pick('conifer', 0.15 + 0.3 * hash(x, y, 710) + (sl < 0 ? 0.15 : -0.05), x, y)
-        : pick(y - top < 8 || cliff ? 'rock' : 'moss', (cliff ? 0.3 : 0.32) + (sl < 0 ? 0.15 : -0.12) + 0.12 * (vnoise(x / 5, y / 4, 711) - 0.5), x, y);
-      if (y - top < 3 && top < -52) c = R.snow[sl < 0 ? 3 : 2];
+      const lit = clamp(-sl * 0.6, -1, 1);
+      let c = tree ? pick('conifer', 0.2 + 0.3 * hash(x, y, 710) + 0.14 * lit, x, y)
+        : pick(y - top < 8 || cliff ? 'rock' : 'moss', (cliff ? 0.3 : 0.32) + 0.15 * lit + 0.12 * (vnoise(x / 5, y / 4, 711) - 0.5), x, y);
+      if (y - top < 3 && top < -52) c = R.snow[sk < 0 ? 3 : 2];
       if (Math.abs(x - 410 - 2 * Math.sin(y / 4)) < 0.7 && y > top + 4) c = R.white[1];
       S.set(x, y, haze[c]);
     }
@@ -144,6 +151,17 @@ function paintFloor(S, haze, th, foot) {
 const DROP = 12;
 const lipAt = x => -7 - Math.round(3 * vnoise(x / 9, 5, 735) + 1.5 * Math.sin(x / 17));
 const drift = (x, y) => { const k = vnoise(x / 60, y / 22, 714); return k < 0.33 ? 'lupine' : k < 0.4 ? 'heather' : k > 0.76 ? 'red' : k > 0.66 ? 'white' : null; };
+// Rock on the near slope: outcrops and the runnels of scree below them.
+const screeAt = (x, y) => fbm(x / 16, y / 30, 722, 2) + 0.06 * (vnoise(x / 4, y / 4, 727) - 0.5) > 0.76;
+// Flowers in a drift (art pass E02): not single pixels but plants, densest in the drift's heart. Lupine and
+// paintbrush stand as spikes two or three pixels tall, lit at the tip; heather in small pink clumps; white
+// flowers as single pixels. Between plants the grass shows. 0 where nothing grows here.
+function bloom(x, y, kind) {
+  const heart = smooth(0, 0.5, Math.abs(vnoise(x / 60, y / 22, 714) - 0.5) * 2), cell = hash(x, Math.floor(y / 3), 728), row = ((y % 3) + 3) % 3;
+  if (kind === 'lupine' || kind === 'red') { if (cell > 0.2 + 0.25 * heart || hash(x - 1, Math.floor(y / 3), 728) < 0.2 + 0.25 * heart) return 0; const r = kind === 'lupine' ? R.lupine : R.red; return row === 0 ? r[2] : row === 1 ? r[1] : hash(x, y, 729) < 0.5 ? r[0] : 0; }
+  if (kind === 'heather') { const k = hash(x >> 1, y >> 1, 728); return k < 0.32 ? R.pink[(x + y) & 1 ? 2 : 1] : 0; }
+  return hash(x, y, 728) < 0.14 ? R.white[1] : 0;
+}
 function paintMain(S) {
   for (let x = 0; x < S.w; x++) {
     const gy = g(x), ic = ice(x);
@@ -191,17 +209,23 @@ function paintMain(S) {
         if (inSnow(x, r)) c = (x + r) % 4 === 0 ? R.snow[1] : snowC(x, r);
       } else {
         // In front: the cut bank under the trail, then the meadow.
-        const bank = r < 5, fl = drift(x, y), h = hash(x, y, 721), scree = fbm(x / 16, y / 30, 722, 2) > 0.76;
+        const bank = r < 5, fl = drift(x, y), scr = screeAt(x, y);
         c = bank ? pick('dirt', 0.35, x, y, 0.5) : pick(fbm(x / 26, y / 10, 723, 2) > 0.55 ? 'moss' : 'grass', 0.56 + 0.3 * (fbm(x / 22, y / 12, 724, 3) - 0.5) - smooth(40, 220, r) * 0.2, x, y, 0.35);
-        if (scree && !bank) c = pick('rock', 0.55 + 0.35 * hash(x >> 1, y >> 1, 725), x, y);
-        else if (!bank && fl && h < 0.16) c = fl === 'lupine' ? R.lupine[h < 0.12 ? 2 : 1] : fl === 'red' ? R.red[h < 0.12 ? 2 : 1] : fl === 'white' ? R.white[h < 0.15 ? 1 : 0] : R.pink[h < 0.12 ? 2 : 1];
+        // Rock: outcrops and scree runnels with a lit top and west edge, a dark foot and cracks between blocks.
+        if (scr && !bank) { const up = !screeAt(x, y - 1), west = !screeAt(x - 1, y), foot = !screeAt(x, y + 1) || !screeAt(x, y + 2), east = !screeAt(x + 1, y), crack = vnoise(x / 3, y / 2, 725) > 0.68;
+          c = up ? R.rock[4] : foot ? R.rock[0] : east ? R.rock[1] : west ? R.rock[3] : crack ? R.rock[1] : pick('rock', 0.62 + 0.18 * (vnoise(x / 4, y / 3, 726) - 0.5), x, y, 0.5); }
+        else if (!bank && fl) { const f = bloom(x, y, fl); if (f) c = f; }
+        else if (!bank && hash(x, y, 721) < 0.025) c = R.white[1];
         if (inSnow(x, r)) c = snowC(x, r);
       }
       S.set(x, y, c);
     }
   }
   // The stream: it comes down the near slope, runs over stones across the trail, and drops away behind.
-  for (let y = 3; y < S.h - S.up; y++) for (let i = -1; i <= 1; i++) { const x = Math.round(STREAM + i + 2 * Math.sin(y / 7)); S.set(x, g(STREAM) + y, i === 0 ? R.white[1] : R.water[3]); }
+  // It wanders down its gully, wider toward the foot, white where it tumbles over steps and dark at its banks.
+  for (let y = 3; y < S.h - S.up; y++) { const hw = 1 + (y > 60 ? 1 : 0), xc = STREAM + 2 * Math.sin(y / 7) + 3 * Math.sin(y / 23 + 1);
+    for (let i = -hw - 1; i <= hw + 1; i++) { const x = Math.round(xc + i), edge = Math.abs(i) > hw, step = frac(y / 17 + 0.3 * Math.sin(y / 5)) < 0.12 && hash(i, Math.floor(y / 17), 742) < 0.7;
+      S.set(x, g(STREAM) + y, edge ? R.moss[1] : step || (i === -hw && hash(x, y >> 1, 741) < 0.35) ? R.white[1] : i < 0 ? R.water[4] : R.water[2]); } }
   for (const dx of [-3, 0, 3]) { S.set(STREAM + dx, g(STREAM) + 1, R.rock[3]); S.set(STREAM + dx + 1, g(STREAM) + 1, R.rock[2]); }
   // A boot track across the snow: dimples where people have stepped.
   for (const p of PATCHES) for (let x = p.x - p.w; x < p.x + p.w; x += 3) if (inSnow(x, 0)) S.set(x, g(x) + 1, R.snow[1]);

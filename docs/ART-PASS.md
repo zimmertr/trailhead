@@ -84,7 +84,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 ### The Rest of the Scenes
 
 - [x] **E01 The Rainforest** - the giant trunks, ferns, moss and stream. `forest.js`.
-- [ ] **E02 The Walk to Camp's Flower Slope** - `approach.js` (`paintFar`, `paintFloor`, `paintMain`).
+- [x] **E02 The Walk to Camp's Flower Slope** - `approach.js` (`paintFar`, `paintFloor`, `paintMain`).
 - [ ] **E03 The Scenes' Animals** - elk, owl, jay, slug, pika, goats and the bluebird. `fauna.js`.
 - [ ] **E04 The Off-Route Page** - the whiteout, the wand and the sign. `offroute.js`.
 - [ ] **E05 TJ and the Other People** - `tj.js`, `people.js`. Last, and only if the rest is done: the figures carry every animation.
@@ -330,3 +330,10 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - E01, a call: a first pass lit every strip's left edge and read as thin neon lines, and the base lost its lushness; the left edges are lit only on the lit side, the strips are broken into lumps, and the base's moss reaches higher.
 - E01, a call: the stream, the ferns, the moss floor and the far layers were kept: the stream already mirrors what stands on its bank and is dark as in the picture, and the ferns already have fronds and leaflets.
 - E01: frame time 11.9 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours; the forest is not in the bake.
+- E02, the before: in part one of the walk to camp the valley's far wall (`paintWall`) was lit or shaded a whole column at a time by whether its skyline rose or fell there, so it broke into tall slabs with hard vertical edges, the worst fault in the view, with the mist on or off. On the near slope (`paintMain`) the flowers were single scattered pixels, the scree grey smears, and the stream a straight thin line.
+- E02, the pictures: 13 in two rounds. Round 1 looked down the trail; its style model seed 2 showed flowers in drifts along the slope and grey outcrops with lit faces. Round 2 asked for the game's side view; the style model's seed 6 was picked for the far wall: forested spurs running down at a slant, lit yellow-green on their west faces and blue-green in shade. Qwen's came out as rows of noise. The prompts are in `design/art/E02/log.jsonl`.
+- E02, a call: the far wall's light now comes from spurs (`spur`), ridges of noise sheared down and to the right from the skyline, lit where they face west; the skyline's own slope lights only its top ten rows. The slabs are gone.
+- E02, a call: flowers grow as plants (`bloom`): lupine and paintbrush as spikes two or three pixels tall, lit at the tip, densest in a drift's heart; heather in two-by-two pink clumps; white flowers as single pixels, and a few white ones between drifts. Rock (`screeAt`) is lit along its top and west edge, dark at its foot and east edge, with cracks between blocks. The stream wanders down its gully, wider toward the foot, between dark banks, white along one edge and where it tumbles over a step.
+- E02, a call: a first pass put a white step across the stream every nine rows and read as a ladder; the steps are now rarer and broken.
+- E02, a call: the valley floor, the snow patches, the far peaks and the Spires were kept; the far peaks belong to the background mountains, already done.
+- E02: frame time 13.3 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours; the walk to camp is not in the bake.
