@@ -72,7 +72,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **D02 The Sea, Beach and Sea Stacks** - the water, the surf and the stacks. `critters.js` (the swells and wash), `scenery.js` (`seaStack`).
 - [x] **D03 Broadleaf Trees** - maples, aspens, the twisted and whitebark pines, ponderosas and junipers. `sprites.js`.
 - [x] **D04 Meadows and Flowers** - the parkland's flowers and the grass. `sprites.js` (`makeFlowers`), `land.js`.
-- [ ] **D05 The Trailhead** - the junction sign, the kiosk, the register box and the small signs. `sprites.js` (`makeSignpost`, `makeKiosk`, `makeRegister`, `makeSmallSign`).
+- [x] **D05 The Trailhead** - the junction sign, the kiosk, the register box and the small signs. `sprites.js` (`makeSignpost`, `makeKiosk`, `makeRegister`, `makeSmallSign`).
 - [ ] **D06 The Map's Big Animals** - elk, moose, black bears, mountain goats and the bighorn ram. `sprites.js`, `mapfauna.js`.
 - [ ] **D07 The Whale and the Ferry** - `mapfauna.js` (`whale`, `ferry`).
 - [ ] **D08 Boulders, Logs and Shrubs** - `sprites.js` (`makeBoulder`, `makeLog`, `makeShrub`, `makeBush`, `makeHuckleberry`, `makeFern`).
@@ -269,3 +269,9 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - D04, a call: `makeFlowers` draws a low mound of leaves under each clump, lit on the left and dark only at its lower right, and stems in a middle green instead of the darkest two. A first pass gave lupine a four-pixel spike and the white flowers flat heads three wide: in the drifts the spikes merged into purple blocks and the heads into dashes. Lupine is now two or three pixels, dark at its foot and pale at its tip, the white and yellow heads single pixels with a darker one beside now and then, and neighbouring stems alternate short and tall.
 - D04, a call: `ground.png` was rebaked; 184,424 pixels changed, all of them the meadow's grass and its tufts.
 - D04: frame time 12.3 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- D05, the before: the kiosk was a flat red triangle of a roof over a flat brown board with four blank white papers, on one-pixel posts. The register box, the junction sign and the small signs were clean but flat planks.
+- D05, the pictures: 7 in all. Qwen's seed 1 was picked: a red roof of shingles in rows, lit on its left slope and dark on its right, a dark eave over a framed board, pinned notes with lines of writing and a small trail map, square posts lit on the left with rocks at their feet. The style model's seed 3 has the register box and signpost the small sprites follow. The prompts are in `design/art/D05/log.jsonl`.
+- D05, a call: `makeKiosk` keeps its 26 by 26 size and its foot. The roof is seven courses widening from the ridge, each lit on its west third and dark on its east third with the lower course a step darker; a dark eave runs under it and a band of shade across the board's top. The posts are two pixels, lit on the west. A first pass gave the map half the board and shrank the notes to pins, so the board has four notes again with a small map among them.
+- D05, a call: the junction sign, the small signs and the register box keep their sizes and feet and gain grain, lit sides and rocks at their feet. The register's pennants and its open desk are as they were.
+- D05, a call: `ground.png` was rebaked because its fingerprint covers `sprites.js`; its pixels are identical.
+- D05: frame time 12.6 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.

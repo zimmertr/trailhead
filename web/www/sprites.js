@@ -420,36 +420,58 @@ function makeCloud(seed) {
 }
 
 // Signs and small built things.
+// The junction sign (art pass D05): a square post lit on the west and two planks, each lit along its top,
+// with a line of grain and an arrow-shaped tip, and a dot of colour for the trail it points to.
 function makeSignpost() {
   const b = new BM(19, 22); b.ox = 9; b.oy = 21;
-  for (let y = 5; y < 22; y++) { b.set(8, y, R.wood[2]); b.set(9, y, R.wood[1]); }
+  for (let y = 5; y < 22; y++) { b.set(8, y, R.wood[3]); b.set(9, y, R.wood[1]); }
   const plank = (x0, x1, y, dir, dot) => {
-    for (let x = x0; x <= x1; x++) { b.set(x, y, R.wood[4]); b.set(x, y + 1, R.wood[3]); b.set(x, y + 2, R.wood[2]); }
-    const tip = dir < 0 ? x0 - 1 : x1 + 1; b.set(tip, y + 1, R.wood[3]);
+    for (let x = x0; x <= x1; x++) { b.set(x, y, R.wood[4]); b.set(x, y + 1, (x * 7) % 5 === 1 ? R.wood[2] : R.wood[3]); b.set(x, y + 2, R.wood[1]); }
+    const tip = dir < 0 ? x0 - 1 : x1 + 1; b.set(tip, y, R.wood[4]); b.set(tip, y + 1, R.wood[3]); b.set(tip + dir, y + 1, R.wood[3]); b.set(tip, y + 2, R.wood[1]);
     b.set(dir < 0 ? x1 - 1 : x0 + 1, y + 1, dot);
   };
-  plank(1, 8, 6, -1, R.water[3]);
-  plank(10, 17, 10, 1, R.snow[4]);
-  for (let y = 1; y < 5; y++) { b.set(8, y, R.wood[4]); b.set(9, y, R.wood[3]); }
+  plank(2, 8, 6, -1, R.water[3]);
+  plank(10, 16, 10, 1, R.snow[4]);
+  for (let y = 1; y < 5; y++) { b.set(8, y, R.wood[4]); b.set(9, y, R.wood[2]); }
   b.set(8, 0, R.wood[4]); b.set(9, 2, R.gold[5]);
+  for (const [x, y, c] of [[6, 21, 2], [7, 20, 3], [7, 21, 1], [10, 21, 2], [11, 21, 1], [10, 20, 3]]) b.set(x, y, R.rock[c]);
   outline(b, INK);
   return b;
 }
+// A small trail sign (art pass D05): a plank framed lit on its top and west, dots of lettering, on a post
+// lit on the west with a rock at its foot.
 function makeSmallSign() {
   const b = new BM(13, 16); b.ox = 6; b.oy = 15;
-  for (let y = 6; y < 16; y++) { b.set(6, y, R.wood[2]); }
-  for (let y = 2; y < 7; y++) for (let x = 1; x < 12; x++) b.set(x, y, y === 6 ? R.wood[2] : R.wood[4]);
+  for (let y = 6; y < 16; y++) { b.set(6, y, R.wood[3]); b.set(7, y, R.wood[1]); }
+  for (let y = 2; y < 7; y++) for (let x = 1; x < 12; x++) b.set(x, y, y === 2 || x === 1 ? R.wood[4] : y === 6 || x === 11 ? R.wood[1] : R.wood[3]);
   for (let x = 3; x < 10; x += 2) b.set(x, 4, R.wood[1]);
+  for (let x = 3; x < 8; x += 2) b.set(x, 5, R.wood[2]);
+  b.set(5, 15, R.rock[3]); b.set(8, 15, R.rock[2]);
   outline(b, INK);
   return b;
 }
+// The Trailhead's kiosk (art pass D05, after a kiosk painted for the game): a red roof shingled in rows,
+// lit on its west slope and dark on its east, over a dark eave that shades the top of the board; a framed
+// board with four pinned notes lined with writing and a small trail map; square posts lit on the west,
+// with rocks at their feet. The same size and foot as before.
 function makeKiosk() {
   const b = new BM(26, 26); b.ox = 13; b.oy = 25;
-  for (let y = 8; y < 26; y++) { b.set(4, y, R.wood[1]); b.set(21, y, R.wood[1]); }
-  for (let y = 9; y < 20; y++) for (let x = 5; x < 21; x++) b.set(x, y, R.wood[2]);
-  for (const [x0, y0, w, h] of [[6, 10, 5, 4], [12, 10, 7, 3], [7, 15, 4, 3], [13, 14, 6, 4]]) for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) b.set(x, y, x === x0 + w - 1 ? R.white[0] : R.white[1]);
-  b.set(15, 15, R.red[1]); b.set(16, 15, R.red[1]);
-  for (let j = 0; j < 7; j++) for (let x = 12 - j * 2; x <= 13 + j * 2; x++) b.set(x, j + 1, j > 4 ? R.wood[0] : R.red[j < 2 ? 2 : 1]);
+  for (const x0 of [3, 21]) for (let y = 9; y < 26; y++) { b.set(x0, y, R.wood[3]); b.set(x0 + 1, y, y % 5 === 2 ? R.wood[0] : R.wood[1]); }
+  // The board: a frame lit on its top and west, dark inside.
+  for (let y = 10; y < 21; y++) for (let x = 6; x < 20; x++) b.set(x, y, y === 10 || x === 6 ? R.wood[3] : y === 20 || x === 19 ? R.wood[1] : y === 11 ? R.wood[0] : R.wood[1]);
+  for (let x = 7; x < 19; x++) if (x % 3 === 0) b.set(x, 15, R.wood[0]);
+  const note = (x0, y0, w, h) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) b.set(x, y, x === x0 + w - 1 ? R.white[0] : (y - y0) % 2 === 1 && x > x0 && x < x0 + w - 1 ? R.rock[3] : R.white[1]); b.set(x0 + 1, y0, R.yellow[1]); };
+  note(7, 12, 4, 4); note(7, 17, 4, 3); note(16, 12, 3, 4); note(13, 17, 5, 3);
+  // The trail map: green ground, a tan trail across it and a red mark where you stand.
+  for (let y = 12; y < 16; y++) for (let x = 12; x < 15; x++) b.set(x, y, x === 14 || y === 15 ? R.grass[2] : R.grass[3]);
+  for (const [x, y] of [[12, 14], [13, 13], [14, 12]]) b.set(x, y, R.dirt[4]);
+  b.set(13, 14, R.red[1]);
+  // The roof: courses of shingles widening down from the ridge, the lower edge of each course darker.
+  for (let j = 0; j < 7; j++) { const x0 = 7 - j, x1 = 18 + j, w = x1 - x0;
+    for (let x = x0; x <= x1; x++) { const t = (x - x0) / w, lit = t < 0.34 ? 2 : t < 0.7 ? 1 : 0; b.set(x, j + 1, R.red[clamp(lit - (j % 2), 0, 2)]); }
+    b.set(x0, j + 1, R.red[2]); }
+  for (let x = 1; x <= 24; x++) { b.set(x, 8, R.wood[0]); if (x > 4 && x < 21) b.set(x, 9, R.wood[0]); }
+  for (const [x, y, c] of [[1, 25, 2], [2, 24, 3], [2, 25, 1], [5, 25, 2], [6, 25, 1], [20, 25, 3], [23, 25, 2], [24, 24, 3], [24, 25, 1]]) b.set(x, y, R.rock[c]);
   outline(b, INK);
   return b;
 }
@@ -673,7 +695,8 @@ function makeRegister(mask, open = false) {
   for (let x = 2; x <= 12; x++) b.set(x, 2, x < 5 ? R.wood[4] : R.wood[3]);
   for (let x = 1; x <= 13; x++) b.set(x, 3, R.wood[1]);
   // The front (x 2 to 9) and its side in shade (x 10 to 12).
-  for (let y = 4; y <= 12; y++) for (let x = 2; x <= 12; x++) b.set(x, y, x > 9 ? (y === 12 ? R.wood[0] : R.wood[1]) : y === 12 ? R.wood[1] : x === 2 ? R.wood[3] : R.wood[2]);
+  // Planks with a dark seam between them (art pass D05) and a band of shade under the lid.
+  for (let y = 4; y <= 12; y++) for (let x = 2; x <= 12; x++) b.set(x, y, x > 9 ? (y === 12 || y === 4 ? R.wood[0] : R.wood[1]) : y === 12 || y === 4 ? R.wood[1] : x === 2 ? R.wood[3] : x === 6 ? R.wood[1] : R.wood[2]);
   // The plaque, lettered, and the hinge where the front folds down into a desk.
   for (let x = 3; x <= 8; x++) { b.set(x, 5, R.white[1]); b.set(x, 6, x % 2 ? R.wood[1] : R.white[0]); b.set(x, 7, R.white[0]); }
   for (let x = 2; x <= 9; x++) b.set(x, 10, R.wood[0]);
@@ -685,7 +708,7 @@ function makeRegister(mask, open = false) {
     b.set(1, 7, R.rock[3]); b.set(10, 7, R.rock[3]);
   }
   // The post and the rocks piled round its foot.
-  for (let y = 13; y <= 22; y++) { b.set(5, y, R.wood[3]); b.set(6, y, R.wood[1]); }
+  for (let y = 13; y <= 22; y++) { b.set(5, y, R.wood[3]); b.set(6, y, y % 4 === 1 ? R.wood[0] : R.wood[1]); }
   for (const [x, y, c] of [[2, 22, 2], [3, 21, 3], [3, 22, 1], [4, 22, 2], [7, 22, 2], [8, 22, 1], [8, 21, 3]]) b.set(x, y, R.rock[c]);
   outline(b, INK);
   // The pennants, after the outline so they stand clear of the post.
