@@ -467,3 +467,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Back View on the Ladders** (round 6, E4). The icefall's ladder could be climbed with his back to us, as on the ice, if the ladder were drawn face-on and wide enough for him.
 - **A Grunt on Each Heave** (round 6, F2). The haul and the stuck rope could have a small effort sound from the two hauling on each heave, as the summit has its cheer.
 - **The Camera Pulls Back for the Haul** (round 6, F2). The camera could ease out to hold TJ and the two hauling in one frame while he is hauled, then close in again at the anchor.
+- **Snow Off the Axes** (round 6, F3). Each swing of an axe on the walk-off could throw a puff of snow, as the ice chips fly on the icefall.

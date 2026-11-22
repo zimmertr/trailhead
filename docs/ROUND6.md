@@ -244,7 +244,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 - [x] F1. Climbing 1.5 times faster (note 21).
 - [x] F2. The haul and the stuck rope read at once (note 21).
-- [ ] F3. The snow traverse: on the snow before the pose changes, and short (note 22).
+- [x] F3. The snow traverse: on the snow before the pose changes, and short (note 22).
 
 **G and H** (G2 added by TJ mid-round)
 
@@ -323,7 +323,9 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - Section E is done.
 - **F1 done.** On Proficiency Peak's wall all three climb half as fast again as in round 5, and the short stops on a pitch (placing and clipping gear, swapping the ropes, taking gear out, building and taking apart an anchor, shaking out an arm) take two thirds of the time. Their hands and feet still step with the distance climbed, so the moves quicken with them. The falls, the hangs and the haul keep their round 5 timing, so they still read (the haul is F2).
 - **F2 done.** The haul after TJ's whipper now reads as a haul. He hangs with both hands on the rope over his head, and on each yank he is snatched up in a jerk with his knees jerked up, then settles and bounces on the rope (round 5: one stiff hanging frame, lifted evenly). The two above bend forward reaching down the rope toward him, then sit right back on it with a foot braced, taking it in hand over hand, and the flecks on the haul ropes run through the pulley and through their hands as he comes up. Under the cloud, on each of the three heaves the rope comes off the foot of the face and runs straight and tight from their hands up it, the jammed end twitches toward the slot, and the rope goes slack again between heaves; each heave has the sound of a rope coming tight. Then all three look up at the flake, the leader with a hand over his eyes, before they look at each other and shrug (0.6 s longer than round 5).
-- Next: F3.
+- **F3 done.** On the walk-off after the last rappel each of them walks to the end of the ledge, crouches and steps down off it, and only then, with his feet on the snow, turns in to the slope with the axes and traverses (round 5: in the traverse pose already on the step down, in the air). It is short now: they set off a second apart, take a few clear steps each across the snow, and the scene goes to the map once the last is 140 px out, about 8 s from the first setting off (round 5: 21 s, most of it watching them cross 330 px at a slow pace).
+- Section F is done.
+- Next: G1.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -477,6 +479,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - F2, a call: the look up at the flake is added between the heaves and the look at each other (`UNDER.gaze`), pushing the shrug and the walk-off 0.6 s later.
 - F1, CI: Lighthouse Budgets failed once with a largest contentful paint of 12.5 s (budget 3 s) on a change to `ridge.js` alone, which is not on the first screen; it passed on a rerun. A slow runner, logged with the earlier flakes.
 - F2, frame time: check.sh's map gate measured 33.2 ms with the load average at 19 to 43; F2 changes only `ridge.js`.
+- F3, a call: "far too long" read as the whole walk-off; they now traverse at 30 px a second (round 5: 22) for 140 px (330), a second apart (2.2), so each still makes several steps on the snow before the map.
+- F3, frame time: with the workstation quiet (load average 5.6) check.sh's map gate passed at 14.6 ms, which settles the failures at E4 to F2 as the machine's load.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:

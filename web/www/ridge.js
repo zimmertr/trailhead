@@ -705,10 +705,11 @@ DESC.under = DESC.turn.tj + 1.5 + 0.8 * ZIP;
 const UNDER = { out: 1.2, land: 3.0, unclip: 3.6, snag: 6.2, heave: [6.4, 9.4], gaze: [9.5, 10.7], look: 10.8, shrug: [11.6, 12.8], walk: 13.2 };
 // The walk-off (round 5, T75, TJ: they rappelled onto a steep snow slope and traversed off it, four
 // points on, with ice axes, TJ leading): after the shrug each in turn (TJ, the leader, the woman, `gap`
-// seconds apart) walks to the ledge's outer end (`ledge` s), steps down onto the snow (`step` s), faces
-// in and traverses down and across it at `v` px a second, in TJ's steps, until `off` px out, off the
-// picture on a laptop screen. The scene ends when the last of them is there.
-const SN = { gap: 2.2, ledge: 1.4, step: 0.5, v: 22, off: 330, order: { tj: 0, lead: 1, red: 2 } };
+// seconds apart) walks to the ledge's outer end (`ledge` s), steps down onto the snow (`step` s), and
+// only once on it faces in and traverses down and across it at `v` px a second, in TJ's steps, until
+// `off` px out. The scene ends when the last of them is there: a few clear steps each, then the map
+// (round 6, note 22: round 5's took 21 s, most of it watching them cross).
+const SN = { gap: 1.0, ledge: 1.0, step: 0.5, v: 30, off: 140, order: { tj: 0, lead: 1, red: 2 } };
 const DESC_LEN = DESC.under + UNDER.walk + 2 * SN.gap + SN.ledge + SN.step + SN.off / SN.v + 0.5;
 function makeScript() {
   const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [], anc = [];
@@ -1195,7 +1196,8 @@ function buildRidge() {
     if (a >= s0) {
       const b = a - s0;
       if (b < SN.ledge) return { x: lerp(L.x, XE, smooth(0, SN.ledge, b)), h: L.h, dp: 'walk', left: false };
-      if (b < SN.ledge + SN.step) { const u = (b - SN.ledge) / SN.step; return { x: lerp(XE, XE + 6, u), h: lerp(LH, LH - 6, u), dp: 'snow', sp: 0, left: false }; }
+      // Stepping down off the end of the ledge, still side-on; he turns in to the slope once he is on it.
+      if (b < SN.ledge + SN.step) { const u = (b - SN.ledge) / SN.step; return { x: lerp(XE, XE + 6, u), h: lerp(LH, LH - 6, smooth(0.2, 1, u)), dp: 'step', left: false }; }
       const sp = (b - SN.ledge - SN.step) * SN.v, q = snowAt(sp);
       return { x: q.x, h: q.h, dp: 'snow', sp, left: false };
     }
@@ -1425,6 +1427,7 @@ function buildRidge() {
           if (s.dp === 'heave') { put(fr.yank, sx, sy, true); return; }
           if (s.dp === 'gaze') { put(fr.gaze, sx, sy, true); return; }
           if (s.dp === 'shrug') { put(fr.shrug, sx, sy, false); return; }
+          if (s.dp === 'step') { put(fr.crouch, sx, sy, s.left); return; }
           if (s.dp === 'snow') { put(SNOWF[w][Math.floor(s.sp / 3) % 4], sx, sy - 12, false); return; }
           // Waiting their turn, they watch the edge.
           put(fr.idle, sx, sy, s.left); return;
