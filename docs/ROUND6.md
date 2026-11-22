@@ -442,6 +442,7 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - D4, a call: the shafts keep round 5's slant and places, so they still meet the patches of light baked into the ground; "long at sunset" became gold at sunset, since a longer slant would leave the shafts and the ground's patches apart.
 - D4, a call: the shafts' tints are matched in the Day palette only; matched in both palettes (as the fog's are) they came out lavender at sunset.
 - D4, frame time: the forest at 1920 by 1080 by Day 5.6 ms before, 6.3 after; on a phone 6.4 before, 5.6 after (the shafts are worked out once a frame per slanted column, not at every pixel). The zoomed-out map at Dusk measured 13.4 ms.
+- D4, CI: Lighthouse failed once on Largest Contentful Paint (12.5 s against 3 s, all three runs) and passed when the job was run again. Locally the same build measures 1.5 to 2.9 s with about 6 s of main-thread blocking while the world is built, so the budget is close and a slow runner can miss it. Left as it is; an idea in IDEAS.md.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:

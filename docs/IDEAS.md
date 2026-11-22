@@ -456,3 +456,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Second Slug After Rain** (round 6, D3). Under the marine layer more slugs could come out onto the trail, as they do on wet days, and go again as it dries.
 - **A Beam on the Runner** (round 6, D4). When he runs through a shaft, he could light up a step for the moment he is in it, so the light reads as in the air between you and him.
 - **Morning Mist in the Shafts** (round 6, D4). Right after sunrise the shafts could be thicker and the dust denser, thinning as the day goes on.
+- **Build the World Off the Main Thread** (round 6, D4 CI). The world's build blocks the page for about 6 s under Lighthouse's throttling, and Largest Contentful Paint sits near its 3 s budget. Building the land in a worker, or in slices between frames, would give the page room and stop the flaky runs.
