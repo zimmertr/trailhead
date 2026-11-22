@@ -190,14 +190,23 @@ function makeTwisted(seed) {
 }
 // A clump of wildflowers for the map (D5a): a few stems with a bloom on each, the blooms a part of their
 // own so they sway on still stems. kind: 'lupine' (a blue spike), 'red' (paintbrush), 'white', 'yellow'.
+// Each clump stands on a low mound of its own leaves, lit on the left and dark only at its lower right
+// (art pass D04, after a meadow painted for the game), and each kind has its own head: lupine a short spike
+// dark at its foot and pale at its tip, paintbrush a tuft lit on top and shaded right, white and yellow dots.
 function makeFlowers(kind, seed) {
-  const rand = rng(seed), stems = new BM(9, 7), blooms = new BM(9, 7), n = 3 + (rand() * 3 | 0);
-  const top = { lupine: [R.lupine[1], R.lupine[2]], red: [R.red[1], R.red[2]], white: [R.white[0], R.white[1]], yellow: [R.yellow[0], R.yellow[1]] }[kind];
+  const rand = rng(seed), stems = new BM(9, 7), blooms = new BM(9, 7), n = 3 + (rand() * 3 | 0), G = R.grass;
+  for (let x = 1; x < 8; x++) {
+    const tall = x > 1 && x < 7 ? 1 + (hash(x, 1, seed) < 0.55 ? 1 : 0) : hash(x, 2, seed) < 0.5 ? 1 : 0;
+    for (let j = 0; j < tall; j++) stems.set(x, 6 - j, j === 0 && x > 4 ? G[1] : x < 4 && j === tall - 1 && hash(x, 3, seed) < 0.6 ? G[4] : x < 5 ? G[3] : G[2]);
+  }
   for (let k = 0; k < n; k++) {
-    const x = 1 + Math.round(k * 7 / n + rand()), hgt = 2 + (rand() * 3 | 0);
-    for (let y = 6; y > 6 - hgt; y--) stems.set(x, y, R.grass[y === 6 ? 0 : 1]);
-    const y0 = 6 - hgt; blooms.set(x, y0, top[0]); if (kind === 'lupine' || kind === 'red' || rand() < 0.4) blooms.set(x, y0 - 1, top[1]);
-    if (kind === 'white' && rand() < 0.5) blooms.set(x + 1, y0, top[1]);
+    // Neighbouring stems alternate short and tall, so their heads never join into a dash.
+    const x = 1 + Math.round(k * 7 / n + rand()), hgt = 2 + (k & 1) + (rand() * 2 | 0) + (k & 1 && kind !== 'lupine' ? 1 : 0), y0 = 6 - hgt;
+    for (let y = 5; y > y0; y--) stems.set(x, y, G[2]);
+    if (kind === 'lupine') { blooms.set(x, y0, R.lupine[0]); blooms.set(x, y0 - 1, R.lupine[1]); if (rand() < 0.5) blooms.set(x, y0 - 2, R.lupine[2]); }
+    else if (kind === 'red') { blooms.set(x, y0, R.red[1]); blooms.set(x, y0 - 1, R.red[2]); if (rand() < 0.6) blooms.set(x + 1, y0, R.red[0]); }
+    else if (kind === 'white') { blooms.set(x, y0, R.white[1]); if (rand() < 0.5) blooms.set(x + 1, y0 + 1, R.white[0]); }
+    else { blooms.set(x, y0, R.yellow[1]); if (rand() < 0.4) blooms.set(x + 1, y0, R.yellow[0]); }
   }
   return { parts: [{ bm: stems, x: -4, y: -6, sway: 0 }, { bm: blooms, x: -4, y: -6, sway: 1, lx: 0 }], h: 7, w: 9, low: true };
 }

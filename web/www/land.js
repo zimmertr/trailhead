@@ -944,7 +944,10 @@ function colour(u, v, hh, x, y) {
   if (da > blot(183)) { const sg = sageAmt(u, v); return hash(u >> 1, v >> 1, 103) < 0.04 + sg * 0.3 ? R.sage[1 + (hash(u, v, 104) < 0.5 ? 0 : 1)] : pick('dry', 0.5 + 0.5 * (fbm(u / 24, v / 14, 105, 3) - 0.5) + sh + sg * 0.1, x, y); }
   // High ground with no forest on it goes from meadow to bare rock and then snow.
   if (hh > 96 + 30 * vnoise(u / 30, v / 30, 828)) return hh > 150 ? R.snow[L > 0.5 ? 4 : 3] : pick('rock', 0.3 + 0.5 * L, x, y);
-  return pick('grass', 0.56 + 0.55 * (fbm(u / 26, v / 26, 31, 3) - 0.5) + 0.14 * (hash(x >> 1, y >> 1, 32) - 0.5) + sh - fa * 0.45 + da * 0.2, x, y, 0.3);
+  // The turf lies in soft patches (art pass D04, after a meadow painted for the game): sunlit drifts of
+  // lighter grass and darker hollows with a crisp edge, over the slow swell, instead of an even speckle.
+  const pt = vnoise(u / 13, v / 8, 34) + 0.2 * (vnoise(u / 4, v / 3, 35) - 0.5), patch = pt > 0.63 ? 0.17 : pt < 0.3 ? -0.13 : 0;
+  return pick('grass', 0.56 + 0.5 * (fbm(u / 26, v / 26, 31, 3) - 0.5) + patch + 0.06 * (hash(x >> 1, y >> 1, 32) - 0.5) + sh - fa * 0.45 + da * 0.2, x, y, 0.3);
 }
 function b2(x, y) { return bayer(x, y); }
 
@@ -1140,13 +1143,16 @@ for (const br of BRIDGES) {
     g[i] = k === 'snow' || k === 'farsnow' || k === 'glac' ? R.water[4] : k === 'conifer' || k === 'moss' || k === 'grass' || k === 'mist' ? R.water[1] : R.water[2];
   }
 }
-// Tufts of grass: a small arch with a dark root.
+// Tufts of grass (D04, after the meadow painted for the game): a V of two blades from a dark root, the
+// left tip lit, the right a step darker. Placed by the same dice as the arches they replace.
 {
   const r0 = rng(5);
   for (let n = 0; n < 30000; n++) {
     const x = 2 + (r0() * (NW - 4)) | 0, y = 300 + (r0() * (SH - 302)) | 0, i = px(x, y), k = KIND[g[i]]; if ((k !== 1 && k !== 2) || mb[i] !== 0) continue;
     if (KIND[g[i - NW]] !== k || KIND[g[i - 2 * NW]] !== k || !sameGround(i, i - 2 * NW)) continue;
-    const r = R[k === 1 ? 'grass' : 'moss']; g[i - 2 * NW] = r[r.length - 1]; g[i - NW - 1] = r[r.length - 2]; g[i - NW + 1] = r[r.length - 2]; g[i] = r[1];
+    const r = R[k === 1 ? 'grass' : 'moss'], L = r.length - 1;
+    if (KIND[g[i - 2 * NW - 1]] !== k || KIND[g[i - 2 * NW + 1]] !== k) continue;
+    g[i] = r[1]; g[i - NW] = r[L - 2]; g[i - 2 * NW - 1] = r[L]; g[i - 2 * NW + 1] = r[L - 1];
   }
 }
 // Wildflowers are not painted into the ground any more: they are things that stand up and sway (D5a,
