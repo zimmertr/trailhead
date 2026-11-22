@@ -308,5 +308,5 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - D10, a call: `makeCloud` keeps its 56 by 20 size and its seeds. Five to seven puffs sit along a flat base, biggest in the middle. Each pixel belongs to the topmost puff over it: white where that puff faces the upper left, sky blue on its lower right, a pale blue line wherever a higher puff's edge lies over a lower one, and two rows of pale blue at the foot. There is no outline, as before.
 - D10, a call: a first pass used the warm white middle step for the body; it read as dirty stripes against the sky, so the body is white and pale blue only, and the middle puffs were heaped higher.
 - D10, a call: the lenticular cloud over Mount Monolith (`events.js`) is drawn separately and still dithers; it was left alone, since it fades in and out through the dither.
-- D10, a call: `ground.png` was rebaked; its pixels are identical, so the committed file was kept.
+- D10, a call: `ground.png` was rebaked; its pixels are identical. A first push kept the old file, and CI failed every browser test because the bake carries a hash of the source it was made from; the rebaked file is committed now.
 - D10: frame time 13.3 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
