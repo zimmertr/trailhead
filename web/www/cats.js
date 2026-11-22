@@ -11,58 +11,88 @@ const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= 
 // One cat in one pose, facing right. Tail first, then far legs, body, near legs, ruff and head.
 // The poses are laid out on a 28 by 21 grid and drawn a little smaller than that (K), with the
 // head left nearly full size, which is what makes a small sprite read as a cat.
+// A18, after a picture of the two of them: Doot Doot is mostly black and dark brown with big ginger
+// patches, a ginger ruff, a ginger blaze on the cheek behind her eye (on the dark, so the amber eye
+// still shows) and a banded tail. Peevers is blue-grey with a pale silver ruff and face, darker legs
+// and a darker tail, and silver tips sprinkled on her back. Both are long-haired: tufts of fur stand off the
+// top and back of the outline, and the tails are full plumes.
 const K = 0.84, kx = x => 14 + (x - 14) * K, ky = y => 18 + (y - 18) * K;
 function build(name, src) {
   const b = new BM(28, 21); b.ox = 14; b.oy = 18;
   const pt = q => q.map((v, i) => i < 2 ? (i ? ky(v) : kx(v)) : i < 4 ? v * K : v), line = q => [kx(q[0]), ky(q[1]), kx(q[2]), ky(q[3])];
   const o = { ...src, body: src.body.map(pt), tail: src.tail && src.tail.map(q => [kx(q[0]), ky(q[1])]), far: (src.far || []).map(line), near: (src.near || []).map(line), head: src.head && [kx(src.head[0]), ky(src.head[1]) + 0.4] };
-  const r = R[name], [bx, by] = o.body[0];
-  const col = (v, x, y) => {
+  const r = R[name], [bx, by] = o.body[0], tortie = name === 'tortie';
+  const col = (v, x, y, part = 'body') => {
     x -= bx; y -= by;
-    if (name === 'tortie') { const n = vnoise(x / 2.1 + 20, y / 2.1 + 20, 3); return n > 0.7 ? r[3] : n > 0.57 ? r[2] : r[v > 0.62 ? 1 : 0]; }
-    return r[clamp(Math.round(v * 3 + (hash(x + 40, y + 40, 12) - 0.5) * 0.9), 0, 3)];
+    if (tortie) {
+      if (part === 'ruff' || part === 'blaze') return v > 0.95 && part === 'ruff' ? r[3] : r[2];
+      const n = vnoise(x / 3.4 + 6, y / 2.8 + 16, 3) + (part === 'tail' ? 0.3 * Math.sin(x * 1.4 + y * 0.9) : 0);
+      return n > 0.74 ? r[v > 0.68 ? 3 : 2] : r[v > 0.6 ? 1 : 0];
+    }
+    const tip = hash(x + 40, y + 40, 12);
+    if (part === 'ruff') return tip < 0.2 ? r[2] : r[3];
+    if (part === 'tail') return r[clamp(Math.round(v * 2.2 - 0.5 + (tip - 0.5) * 0.9), 0, 2)];
+    if (part === 'leg') return r[v > 0.45 ? 1 : 0];
+    return v > 0.62 && tip < 0.3 ? r[3] : r[clamp(Math.round(v * 3 + (tip - 0.5) * 0.7), 0, 3)];
   };
-  const E = (cx, cy, rx, ry, lit = 0.6) => ell(b, cx, cy, rx, ry, (nx, ny, x, y) => col(lit - ny * 0.3 - nx * 0.08, x, y));
+  const E = (cx, cy, rx, ry, lit = 0.6, part = 'body') => ell(b, cx, cy, rx, ry, (nx, ny, x, y) => col(lit - ny * 0.3 - nx * 0.08, x, y, part));
   // A plumed tail: thin at the root, full toward the tip.
-  const tail = () => { const p = o.tail; if (!p) return; for (let i = 0; i < p.length - 1; i++) for (let k = 0; k <= 6; k++) { const u = (i + k / 6) / (p.length - 1), x = lerp(p[i][0], p[i + 1][0], k / 6), y = lerp(p[i][1], p[i + 1][1], k / 6), rad = 0.7 + 1.0 * Math.sin(Math.min(1, u * 1.1) * Math.PI * 0.78); E(x, y, rad, rad, 0.5); } };
+  const tail = () => { const p = o.tail; if (!p) return; for (let i = 0; i < p.length - 1; i++) for (let k = 0; k <= 6; k++) { const u = (i + k / 6) / (p.length - 1), x = lerp(p[i][0], p[i + 1][0], k / 6), y = lerp(p[i][1], p[i + 1][1], k / 6), rad = 0.8 + 1.15 * Math.sin(Math.min(1, u * 1.1) * Math.PI * 0.78); E(x, y, rad, rad, 0.5, 'tail'); } };
   if (!o.tailFront) tail();
-  for (const [x0, y0, x1, y1] of o.far || []) thick(b, x0, y0, x1, y1, 1, col(0.2, x0, y0));
+  for (const [x0, y0, x1, y1] of o.far || []) thick(b, x0, y0, x1, y1, 1, col(0.2, x0, y0, 'leg'));
   for (const [cx, cy, rx, ry, lit] of o.body) E(cx, cy, rx, ry, lit);
-  for (const [x0, y0, x1, y1] of o.near || []) thick(b, x0, y0, x1, y1, 1.4, t => col(0.62 - t * 0.2, Math.round(lerp(x0, x1, t)), Math.round(lerp(y0, y1, t))));
+  for (const [x0, y0, x1, y1] of o.near || []) thick(b, x0, y0, x1, y1, 1.4, t => col(0.62 - t * 0.2, Math.round(lerp(x0, x1, t)), Math.round(lerp(y0, y1, t)), 'leg'));
   if (o.tailFront) tail();
+  // Long fur: a tuft stands off the top and the back here and there.
+  const lo = Math.max(...o.body.map(q => q[1] + q[3] * 0.4)), was = b.d.slice();
+  for (let y = 1; y < b.h - 1; y++) for (let x = 1; x < b.w - 1; x++) {
+    if (was[y * b.w + x] || y > lo || hash(x, y, tortie ? 17 : 18) > 0.3) continue;
+    const below = was[(y + 1) * b.w + x], right = was[y * b.w + x + 1];
+    if (below) b.d[y * b.w + x] = below; else if (right && x < bx) b.d[y * b.w + x] = right;
+  }
   if (o.head) {
     const [hx, hy] = o.head, front = o.face === 'front';
-    if (o.ruff !== false) E(hx - (front ? 0 : 1.2), hy + 2.5, 2.3, 1.7, 0.9);
-    E(hx, hy, 2.9, 2.4, 0.72);
-    const ear = o.ears === 'back' ? 0 : 1, dark = name === 'tortie' ? r[0] : r[1], lite = name === 'tortie' ? r[2] : r[2];
+    if (o.ruff !== false) ell(b, hx - (front ? 0 : 1.2), hy + 2.5, 2.4, 1.8, (nx, ny, x, y) => col(0.9 - ny * 0.3, x, y, !tortie || ny < 0.1 ? 'ruff' : 'body'));
+    // The head: Peevers's face is pale silver; Doot Doot's has the ginger blaze, on her cheek in profile
+    // and over one half of her face when she looks out.
+    ell(b, hx, hy, 2.9, 2.4, (nx, ny, x, y) => {
+      const v = 0.72 - ny * 0.3 - nx * 0.08;
+      if (tortie) return (front ? x < hx - 0.4 && ny > -0.7 : nx < 0.15 && nx > -0.7 && ny > -0.1) ? col(v, x, y, 'blaze') : col(v, x, y, 'face');
+      return front || nx > -0.1 ? col(v, x, y, 'ruff') : col(v, x, y);
+    });
+    const ear = o.ears === 'back' ? 0 : 1, dark = tortie ? r[0] : r[1], lite = tortie ? r[2] : r[2];
     b.set(hx - 2, hy - 3, dark); b.set(hx - 3, hy - 3 + (1 - ear), dark); b.set(hx + 2, hy - 3, lite); b.set(hx + 1, hy - 3, lite);
     if (ear) { b.set(hx - 2.6, hy - 4, dark); b.set(hx + 2, hy - 4, lite); }
-    const eye = name === 'tortie' ? R.yellow[1] : R.kit[2];
+    const eye = tortie ? R.yellow[1] : R.kit[1];
     if (front) { for (const dx of [-1.4, 1.4]) b.set(hx + dx, hy - 0.4, o.eyes === 'shut' ? r[0] : eye); b.set(hx, hy + 0.9, o.mouth ? R.pink[1] : R.pink[0]); if (o.mouth) b.set(hx, hy + 1.8, R.red[0]); }
-    else { b.set(hx + 1.2, hy - 0.5, o.eyes === 'shut' ? r[0] : eye); b.set(hx + 2.8, hy + 0.5, R.pink[1]); if (name === 'tortie') b.set(hx + 2, hy + 1.3, r[3]); else b.set(hx + 2, hy + 1.3, r[3]); }
+    else { b.set(hx + 1.2, hy - 0.5, o.eyes === 'shut' ? r[0] : eye); b.set(hx + 2.8, hy + 0.5, R.pink[1]); b.set(hx + 2, hy + 1.3, tortie ? r[2] : r[3]); }
   }
   outline(b, name === 'nebel' ? (x, y) => (hash(x, y, 13) < 0.22 ? R.nebel[0] : INK) : INK);
   return b;
 }
 
-const SIT = { body: [[11.5, 14.4, 3.7, 3.7], [13.6, 12.2, 2.7, 3.3]], near: [[15.4, 13.5, 15.4, 17.6]], head: [14.6, 7.6] };
+// Sitting is a pear: the haunch low and wide at the back, the chest tall under the head, and the tail
+// wrapped round the front feet (sit1 and meow flick its tip).
+const SIT = { body: [[11.2, 15, 4, 3], [13.8, 11.8, 2.6, 3.6]], near: [[15.4, 13.5, 15.4, 17.6]], head: [14.8, 7.2] };
+const WRAP = [[8.4, 17.2], [11, 18.2], [14.6, 18.2], [17.4, 17.2]], FLICK = [[8.4, 17.2], [11, 18.2], [14.6, 18.2], [17.6, 15.8]];
 const WALK = f => ({
   body: [[13, 12.4, 6.2, 3]], head: [20.2, 9.4], tail: [[7.5, 12], [5.4, 9], [4.8, 6], [6 + (f & 1), 3.6]],
   far: [[16 + [-1, 0, 1, 0][f], 14, 16 + [-2, 0, 2, 0][f], 17.6], [10 + [1, 0, -1, 0][f], 14, 10 + [2, 0, -2, 0][f], 17.6]],
   near: [[17.4 + [1, 0, -1, 0][f], 14, 17.4 + [2, 0, -2, 0][f], f === 1 ? 16.8 : 17.6], [8.6 + [-1, 0, 1, 0][f], 14, 8.6 + [-2, 0, 2, 0][f], f === 3 ? 16.8 : 17.6]]
 });
 const POSES = {
-  sit0: { ...SIT, tail: [[9, 17], [6, 17.6], [4, 16.2], [4.4, 14]] },
-  sit1: { ...SIT, tail: [[9, 17], [6, 17.6], [3.4, 16.8], [2.6, 14.8]] },
-  blink: { ...SIT, tail: [[9, 17], [6, 17.6], [4, 16.2], [4.4, 14]], eyes: 'shut' },
-  look: { ...SIT, head: [14.2, 7.2], face: 'front', tail: [[9, 17], [6, 17.6], [4, 16.2], [4.4, 14]] },
-  meow: { ...SIT, head: [14.2, 6.8], face: 'front', mouth: true, tail: [[9, 17], [6, 17.6], [3.4, 16.8], [2.6, 14.4]] },
-  groom0: { ...SIT, head: [14.4, 9.6], eyes: 'shut', near: [[15.4, 14, 16.6, 10.6]], tail: [[9, 17], [6, 17.6], [4, 16.2], [4.4, 14]] },
-  groom1: { ...SIT, head: [14.8, 10.4], eyes: 'shut', near: [[15.4, 14, 17, 11.6]], tail: [[9, 17], [6, 17.6], [4, 16.2], [4.4, 14]] },
+  sit0: { ...SIT, tail: WRAP, tailFront: true },
+  sit1: { ...SIT, tail: FLICK, tailFront: true },
+  blink: { ...SIT, tail: WRAP, tailFront: true, eyes: 'shut' },
+  look: { ...SIT, head: [14.2, 7.2], face: 'front', tail: WRAP, tailFront: true },
+  meow: { ...SIT, head: [14.2, 6.8], face: 'front', mouth: true, tail: FLICK, tailFront: true },
+  groom0: { ...SIT, head: [14.4, 9.6], eyes: 'shut', near: [[15.4, 14, 16.6, 10.6]], tail: WRAP, tailFront: true },
+  groom1: { ...SIT, head: [14.8, 10.4], eyes: 'shut', near: [[15.4, 14, 17, 11.6]], tail: WRAP, tailFront: true },
   bat0: { ...SIT, near: [[15.4, 13, 19, 9.4]], tail: [[9, 17], [6, 17.6], [3.4, 16.8], [2.6, 14.8]] },
   bat1: { ...SIT, near: [[15.4, 13, 20, 12]], tail: [[9, 17], [6, 17.6], [4, 16.2], [4.4, 14]] },
-  loaf: { body: [[12.6, 15, 6.2, 3.2]], head: [18.4, 12.2], tail: [[7.6, 17], [5.6, 17.6], [4.6, 16.6]] },
-  loafBlink: { body: [[12.6, 15, 6.2, 3.2]], head: [18.4, 12.2], eyes: 'shut', tail: [[7.6, 17], [5.6, 17.6], [4.6, 16.6]] },
+  // A loaf is round, paws tucked, with the tail laid along the front.
+  loaf: { body: [[11.8, 14.8, 5.6, 3.7]], head: [19.2, 11.4], tail: [[7, 17.2], [10, 18.3], [15, 18.3], [18.6, 17.6]], tailFront: true },
+  loafBlink: { body: [[11.8, 14.8, 5.6, 3.7]], head: [19.2, 11.4], eyes: 'shut', tail: [[7, 17.2], [10, 18.3], [15, 18.3], [18.6, 17.6]], tailFront: true },
   sleep0: { body: [[12.6, 15.2, 5.8, 3]], head: [17.4, 14.6], eyes: 'shut', ruff: false, tail: [[7.6, 16], [9.6, 18], [14.6, 18.2], [18.4, 17.4]], tailFront: true },
   sleep1: { body: [[12.6, 14.8, 5.8, 3.4]], head: [17.4, 14.6], eyes: 'shut', ruff: false, tail: [[7.6, 16], [9.6, 18], [14.6, 18.2], [18.4, 17.4]], tailFront: true },
   walk0: WALK(0), walk1: WALK(1), walk2: WALK(2), walk3: WALK(3),
