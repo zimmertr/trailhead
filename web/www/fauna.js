@@ -74,15 +74,38 @@ function owl(face, blink) {
   return b;
 }
 
-// A banana slug, big enough to see: yellow, a few dark spots, two eye stalks. shy: touched, it has drawn its
-// stalks in and bunched up shorter (round 6, note 10).
+// The banana slug (round 6, note 11): banana yellow with dark spots, the mantle humped over its front third
+// with the breathing pore low on it, a keel down its back to the pointed tail, a frilled foot, the two short
+// feelers at its mouth, and two long eyestalks with a dark eye at each tip that wave as it goes (f, 0 to 3, is
+// how far each leans). shy: touched, it has drawn its stalks in and bunched up shorter (note 10).
 function slug(f, shy = false) {
-  const b = new BM(12, 6); b.ox = 6; b.oy = 5;
-  const len = shy ? 7 : f ? 9 : 8;
-  for (let x = 1; x <= len; x++) { b.set(x, 4, R.yellow[0]); b.set(x, 3, R.yellow[1]); if (x > 2 && x < len - 1) b.set(x, 2, R.yellow[1]); }
-  b.set(4, 3, R.mustard[0]); b.set(6, 2, R.mustard[0]);
-  if (shy) b.set(1, 2, R.yellow[0]); else { b.set(0, 2, R.yellow[1]); b.set(1, 1, R.yellow[0]); b.set(0, 0, R.mustard[0]); b.set(2, 0, R.mustard[0]); }
+  const b = new BM(26, 16); b.ox = 12; b.oy = 15;
+  const F = 15, x0 = shy ? 5 : 4, x1 = shy ? 18 : 22;
+  const h = x => shy ? (x < 7 ? 4 + (x - 5) : x < 12 ? 7 : Math.max(2, Math.round(7 - (x - 12) * 5 / 6))) : x < 7 ? x - 1 : x < 13 ? (x > 7 && x < 12 ? 7 : 6) : Math.max(1, Math.round(6 - (x - 13) * 5 / 9));
+  const mantleEnd = shy ? 12 : 13;
+  for (let x = x0; x <= x1; x++) { const top = F - h(x);
+    for (let y = top; y <= F; y++) {
+      let c = y === F ? ((x & 1) ? R.mustard[1] : R.yellow[0]) : y === F - 1 ? R.yellow[0] : y === top ? R.sun[2] : R.yellow[1];
+      if (y > top && y < F - 1 && hash(x, y, 7101) < 0.13) c = R.bark[hash(x, y, 7102) < 0.5 ? 0 : 1];
+      if (x === mantleEnd && y > top && y < F - 1) c = R.yellow[0];
+      b.set(x, y, c);
+    }
+    if (hash(x, 1, 7103) < 0.25 && x > x0 + 1) b.set(x, top, R.white[1]);
+  }
+  b.set(mantleEnd - 2, F - 3, R.bark[0]);
+  if (shy) b.set(x0 - 1, F - 2, R.mustard[2]);
+  else {
+    b.set(x0 - 1, F - 1, R.mustard[2]); b.set(x0 - 2, F - 1, R.mustard[2]); b.set(x0 - 1, F - 2, R.mustard[2]);
+  }
   outline(b, INK);
+  // The eyestalks, drawn over the outline so each stays one pixel thin: the far one darker, each leaning
+  // forward by its own amount for the frame, with a dark eye at its tip.
+  if (!shy) for (const [k, lean, col] of [[2, -0.1 + 0.3 * Math.cos(f * Math.PI / 2), R.mustard[1]], [0, -0.6 + 0.3 * Math.sin(f * Math.PI / 2), R.yellow[1]]]) {
+    const bx = x0 + 1 + k, by = F - h(x0 + 1 + k) - 1;
+    let ex = bx, ey = by;
+    for (let j = 0; j <= 7; j++) { ex = Math.round(bx + Math.sin(lean) * j); ey = Math.round(by - Math.cos(lean) * j); b.set(ex, ey, col); }
+    b.set(ex, ey, INK); b.set(ex, ey - 1, R.bark[1]);
+  }
   return b;
 }
 

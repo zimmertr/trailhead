@@ -2,7 +2,7 @@
 // stand on the bank behind the trail, a dark stream mirrors them in front of it, and the light
 // comes down through the canopy in slanting shafts. He runs right to left, the way the map sends him
 // in: west, away from the Trailhead.
-import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, disc, windAt, veilTable } from './core.js';
+import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, SHADE, pick, BM, outline, disc, windAt, veilTable } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell, puffs } from './side.js';
 import { makeMaple, makeSpruce, makeFir, makeConifer, makeBoulder } from './sprites.js';
 import { elk, sasquatch, jay, slug, owl } from './fauna.js';
@@ -419,6 +419,17 @@ function drawThing(scr, th, camX, base, tq) {
   else if (th.sway) { const [wx] = windAt(th.x, th.y, tq, th.sway); scr.put(th.bm, sx + wx, sy, false); }
   else scr.put(th.bm, sx, sy, th.flip);
 }
+// The slug's slime trail (note 11): a wet line along the trail behind it (west, as it crawls east), darker
+// than the dry dirt with a silver sheen down its middle and glints that come and go as the light catches it,
+// drying patchy the older it is. sx: the slug on the screen.
+function slime(scr, sx, base, camX, t) {
+  const { VW, VH, fb } = scr;
+  for (let k = 9; k < 64; k++) { const X = sx - k, wx = X + camX, Y = base + g(wx); if (X < 0 || X >= VW || Y < 0 || Y + 1 >= VH) continue;
+    if (hash(wx, 1, 4080) < (k - 9) / 64) continue;
+    const q = Y * VW + X, glint = hash(wx, Math.floor(t * 2.5), 4081) < 0.12;
+    fb[q] = SHADE[fb[q]];
+    fb[q + VW] = glint ? R.white[1] : (wx % 3 ? LIGHT[LIGHT[fb[q + VW]]] : R.white[0]); }
+}
 function lakeLight(scr, camX, base, t) {
   const { VW, VH, fb } = scr, T = R.tarn;
   for (let x = 0; x < VW; x++) {
@@ -645,7 +656,7 @@ function buildForest() {
   const sit = [0, 1].map(f => sideFig('trail', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: f ? [[4, -2], [2, 3]] : [[3, 3], [2, 3]] }));
   const elkBM = { up: elk('up'), ear: elk('up', 0, 1), graze: elk('graze'), bite: elk('graze', 0, 1) }, sas = [sasquatch(0), sasquatch(1)];
   const gray = { sit: jay('gray', 'sit'), up: jay('gray', 'up'), down: jay('gray', 'down') };
-  const slugBM = [slug(0), slug(1), slug(0, true)], slugX = X0 - D_SLUG;
+  const slugBM = [0, 1, 2, 3].map(f => slug(f)).concat([slug(0, true)]), slugX = X0 - D_SLUG;
   const elkX = X0 - D_ELK, elkY = g(elkX) - 13;
 
   const st = {}, focus = { x: 0, y: 0 };
@@ -687,7 +698,7 @@ function buildForest() {
       if (jayAt && Math.abs(sx - jayAt[0]) < 7 && sy > jayAt[1] - 10 && sy < jayAt[1] + 2) return { label: NAMES.forest.jay, x: jayAt[0], y: jayAt[1] - 12, act: 'jay' };
       if (perch && box(owlBM.f, perch.x, perch.y)) return { label: NAMES.forest.owl, x: perch.x - last.camX, y: last.base + perch.y - owlBM.f.oy - 4, act: 'owl' };
       if (box(elkBM.up, elkX, elkY)) return { label: NAMES.forest.elk, x: elkX - last.camX, y: last.base + elkY - elkBM.up.oy - 4, act: 'elk' };
-      if (box(slugBM[0], slugX, g(slugX) + 1, 4)) return { label: NAMES.forest.slug, x: slugX - last.camX, y: last.base + g(slugX) - 8, act: 'slug' };
+      if (box(slugBM[0], slugX, g(slugX) + 1, 4)) return { label: NAMES.forest.slug, x: slugX - last.camX, y: last.base + g(slugX) - 17, act: 'slug' };
       if (wy > g(wx) + farBank(wx) && wy < g(wx) + nearBank(wx)) return { label: NAMES.forest.creek, x: sx, y: sy - 8 };
       return null;
     },
@@ -756,12 +767,13 @@ function buildForest() {
       // The elk lifts his head while he passes.
       const bugle = t - poked.elk < 2.6;
       { const up = bugle || Math.abs(d - D_ELK + 20) < 90 || frac(t / 7) >= 0.7; list.push({ bm: up ? elkBM[!bugle && frac(t / 2.9) < 0.07 ? 'ear' : 'up'] : elkBM[Math.floor(t * 2.2) & 1 ? 'bite' : 'graze'], x: elkX, y: elkY, flip: false }); }
-      list.push({ bm: slugBM[t - poked.slug < 3.5 ? 2 : Math.floor(t * 1.2) & 1], x: slugX, y: g(slugX) + 1, flip: true });
+      list.push({ bm: slugBM[t - poked.slug < 3.5 ? 4 : Math.floor(t * 2.2) & 3], x: slugX, y: g(slugX) + 1, flip: true });
+      slime(scr, slugX - camX, base, camX, t);
       // The owl turns its head to follow him: looking right as he comes, at you as he passes under, then left.
       // Clicked, it turns its head to face you, blinks twice slowly and hoots.
       if (perch) { const rel = mx - perch.x, o = t - poked.owl, f = o < 2.6 ? 'f' : rel > 26 ? 'r' : rel < -26 ? 'l' : 'f', blink = o < 2.6 ? (o > 0.5 && o < 0.75) || (o > 1.3 && o < 1.55) : frac(t / 4.3) < 0.04; list.push({ bm: owlBM[blink ? f + 'b' : f], x: perch.x, y: perch.y, z: perch.z }); }
       // He hops the slug.
-      const ds = d - D_SLUG, hop = Math.abs(ds) < 12 ? Math.round(9 * Math.cos(ds / 12 * Math.PI / 2)) : 0;
+      const ds = d - D_SLUG, hop = Math.abs(ds) < 16 ? Math.round(15 * Math.cos(ds / 16 * Math.PI / 2)) : 0;
       const snack = !env.running && env.still > 60;
       if (snack) env.found('snack');
       // On the climb he is behind everything that stands lower on the slope and in front of all that stands higher.

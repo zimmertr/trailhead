@@ -229,7 +229,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 - [x] D1. The trail up beside the falls to the lake (note 12).
 - [x] D2. Rain and thick fog in the forest under the marine layer (note 13).
-- [ ] D3. The banana slug (note 11).
+- [x] D3. The banana slug (note 11).
 - [ ] D4. Issue #36: light beams and particles in the forest.
 
 **E. Sideproject Spires**
@@ -310,7 +310,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **Section C done.**
 - **D1 done.** The ramps and the bare cliff are gone. The trail leaves the forest floor just past the low footbridge and climbs a forested slope beside the fall in three short legs of steps, each a flat stone or a root across the path, with his feet on each step. Rock shows only in the narrow gorge the fall has cut and in a few outcrops. Ferns and trees stand on the slope by rule (smaller higher up, none where a leg passes through them), firs and spruce frame the gorge, and at the top he walks east along the rim behind a line of trees and over the outflow's lip onto the lakeshore. The bench's east end falls away into the forest under trees instead of fading out into the big trunk. Day, Dusk and phone checked against round 5.
 - **D2 done.** While the marine layer is in (the map's own weather clock, so it is the same deck you see over the rainforest, and its Marine layer button now works from inside the forest too), rain falls through the forest: steep streaks leaning a little east, pale over the dark trunks and grey over the fog, with rings opening on the stream. Fog closes in at three depths: the far trees go almost white, the bench with its slope, trees and fall is half hidden, and the trail, the bank and what stands nearest are veiled lightly, so he stays clear. The light beams and motes fade out as the deck closes over and come back as it lifts; in the white fog that lingers after the drizzle the far trees stay hidden while the light returns. Day and Dusk checked; with the weather off the forest is as it was.
-- Next: D3.
+- **D3 done.** The banana slug is about twice its old size (19 px long, 7 tall, round 5: 9 by 4): banana yellow with dark spots, the mantle humped over its front third with its breathing pore, a keel down to a pointed tail, a frilled foot and two short feelers. Its two long eyestalks, each one pixel thin with a dark eye at the tip, wave through four frames, and it draws them in and bunches up when clicked. A wet line of slime with a silver sheen and glints that come and go runs back along the trail behind it, drying patchy further back. He hops it higher (15 px) to clear the stalks. Day and Dusk checked.
+- Next: D4.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -432,6 +433,9 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - D2, a call: what stands on the lake's bench (its ferns and trees and the firs on its rim) is now drawn with the bench, before the bank, so the fog veils them as one; drawn with everything else they stood out sharp against a fogged slope.
 - D2, a call: no rain sound yet. There is no rain in the sound set, and a new sound is TJ's to hear first, so it is an idea in IDEAS.md.
 - D2, frame time: the forest takes 6.0 ms a frame at 1920 by 1080 in the rain (5.1 clear). The zoomed-out map at Dusk measured 13.4 ms (D1: 11.0). The map's drawing is unchanged, and the gap stays even when the forest is never drawn: D2's build with D1's forest file measures 11.1, and the number moves with which marine layer events are on screen at the measured moment (without the shower started, D1 measures 12.6 and D2 13.6). Left as it is, 3 ms under the limit.
+- D3, a call: the slug stays where it was and does not crawl, so his hop still lands on it; the slime trail runs behind its tail, west, as it faces east.
+- D3, a call: the eyestalks are drawn over the slug's dark outline, one pixel thin, since outlined they read as one thick stalk.
+- D3, frame time: 13.9 ms zoomed out at Dusk. The slug is only in the forest; the map's drawing is unchanged (see D2's note on how this number moves).
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:

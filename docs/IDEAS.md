@@ -452,3 +452,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Rest on the Landing** (round 6, D1). If he stands still on a landing of the climb, he could sit on its stone and look at the fall, as he sits on the forest log.
 - **Rain on the Canopy** (round 6, D2). A soft rain sound in the forest while the marine layer is in, heavier drops off the moss after it stops, and the stream a little louder.
 - **Drips After the Rain** (round 6, D2). When the drizzle stops and the fog lingers, drops could fall from the moss on the limbs onto the trail, as they do on the map's rainforest crowns.
+- **The Slug Moves On** (round 6, D3). Between visits the slug could have crawled a few pixels further along, with its slime trail longer by as much, so a return trip shows it went somewhere.
+- **A Second Slug After Rain** (round 6, D3). Under the marine layer more slugs could come out onto the trail, as they do on wet days, and go again as it dries.
