@@ -173,6 +173,7 @@ Each note in TJ's words where it matters, with what he chose in the Q&A. The che
 **Everywhere**
 
 - **Note 3 [G1].** Scrubbed to the moment he pushes off into a glissade, the screen stays half white until he moves. Fix it: the burst is drawn only while he runs.
+- **Added by TJ mid-round (2026-11-21) [G2].** Setting off from the Trailhead toward Sideproject Spires (or a place on the way), stopping somewhere on the path, then clicking Sideproject Spires to carry on: he turns and walks back toward the Trailhead instead of resuming the trip. Troubleshoot it, find the cause, fix it, and add a browser test that stops part way and resumes.
 - **Note 9 [H1].** The trail register's kiosk and the book's paper become a generated pixel-art picture (issue #37), with the handwriting and the signing form laid over it, still live. Make it both ways trailhead-19 asked for: the game draws the picture's pixels, and the picture is only a reference for code-drawn art. Publish both side by side, ship the better one, log why; TJ can overturn it in review. Use the `generate-image` skill (`~/.claude/skills/generate-image/SKILL.md`) and the rules in `design/TRAILHEAD-ART.md`. Start prompts for the style model `z-image-turbo-trailhead` with "pixel art, side view scene,", leave out the trigger word, and never ask for an "overhead map". trailhead-19's trial of the first way on the Spires is in `/Users/tj/.claude/tmp/claude-501/-Users-tj-git-personal-trailhead/bc571b3f-c723-4fb0-ac4f-26209a8eec68/scratchpad/mock-sp/` (`?spai=v1`, `?spai=v2`), its pictures and prompts in that scratchpad's `jobs/spires/`.
 - **#38 [I1].** The engine rules: written down, and applied (animals use the critter framework, plants react to wind and are assets not painted blobs, animals move and have textures, objects have collision boundaries), per the issue.
 
@@ -236,7 +237,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 - [x] E1. Bluebird Forecast: talus, scramble, one exposed step (note 15).
 - [x] E2. hevy-garmin-sync: the snow couloir, no watch, the bench and its sync notice (note 16).
-- [ ] E3. trailhead: twice the pace, the ridge cut short, binoculars across the whole map (note 17).
+- [x] E3. trailhead: twice the pace, the ridge cut short, binoculars across the whole map (note 17).
 - [ ] E4. yggdrasil: real ladder climbing (note 19).
 
 **F. Proficiency Peak**
@@ -245,9 +246,10 @@ Work top to bottom. Each item is finished by the steps in section 9.
 - [ ] F2. The haul and the stuck rope read at once (note 21).
 - [ ] F3. The snow traverse: on the snow before the pose changes, and short (note 22).
 
-**G and H**
+**G and H** (G2 added by TJ mid-round)
 
 - [ ] G1. The glissade burst only while he runs (note 3).
+- [ ] G2. Resuming a trip toward Sideproject Spires after stopping on the way turns him back toward the Trailhead; find the cause and fix it, with a browser test (TJ, mid-round).
 - [ ] H1. The register as a generated picture, both ways, the better one shipped (note 9, #37). Tell trailhead-19 how it went.
 
 **K. Whole-site checks and the report**
@@ -315,7 +317,9 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **Section D done.**
 - **E1 done.** Bluebird Forecast keeps its start: drizzle, the boulder and the forecast on his phone until it clears. Then he hops from block to block across a talus field of granite blocks lying on and against one another, scrambles hands on rock up a gully (its back wall a dark slot above him, with a lit lip) and out along the rib beside it, and near the top takes one long step across a cleft that opens to the sky below, onto the summit block and the weather station. Day, Dusk and phone checked against round 5.
 - **E2 done.** hevy-garmin-sync is a steep couloir of snow between two spires now: their wall of rock towers stands behind the snow along its length, and he climbs in his climbing kit with the ice axe, the axe planted above him and one boot and then the other kicked in, his breath puffing in the cold, a step sound at each kick, the axe now and then, and his steps left in the snow behind him. The watch, the trail run, the switchbacks and the running kit are gone, with the watch's words and its two sounds. On top the weight bench is still the find: a click gets a set on it, and then a small notice over his head shows the Hevy dumbbell, dots running across to a watch while it syncs, and a tick on the watch with a chime. Day, Dusk and phone checked against round 5.
-- Next: E3.
+- **E3 done.** The trailhead climb takes 13 s (round 5: 26). The jump over the notch is springy: he crouches to take off, goes higher, and sinks into the landing. On the knife-edge he goes on his toes only for a few steps either side of where it is thinnest and astride it for a few moves there (round 5: astride for 120 px and on his toes the whole crest). The binoculars still open on the cats at the same zoom, and the arrows, WASD or a drag now move the round view anywhere over the map, at about three times the old speed, from the sky over the Spires to the far Palouse. Day, Dusk and phone checked against round 5.
+- **G2 added** by TJ mid-round: resuming a trip toward Sideproject Spires after stopping on the way turns him back toward the Trailhead (section 5, section 8).
+- Next: E4.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -454,6 +458,10 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - E2, a call: crampons are too small to see at the scene's size, so the climb shows them by what he does (kicking steps, the axe); no pixels were added for them.
 - E2, a call: the summit is 312 px up (round 5's run: 220), since a couloir climbs steeply; the climb takes 16 s (15).
 - E2, frame time: the climb at 1920 by 1080 2.5 ms before, 2.1 after. The zoomed-out map at Dusk 12.8 ms.
+- E3, a call: the knife-edge's fin is drawn as long as before; only the time he spends on his toes (34 px either side) and astride (28 px, round 5: 120) is cut, and on the rest of the crest he walks.
+- E3, a call: the binoculars' box is worked out each frame from the map's size and the view's radius, so the view's middle reaches every edge of the map; at the top edge that is sky, since the map's top rows are sky over the Spires.
+- E3, frame time: the climb at 1920 by 1080 2.4 ms before, 2.3 after. The zoomed-out map at Dusk 14.7 ms; measured again side by side, E2's build 13.6 to 15.0 and E3's 14.2 to 14.6 with the workstation under load (4.8), so the number moves with the machine, not the change.
+- G2, added by TJ mid-round (2026-11-21): the bug where resuming a trip to Sideproject Spires turns him round; placed after G1 as the other item about walking the map.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:

@@ -271,6 +271,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   const env = { t: 0, tq: 0, dt: 0, mix: 0, moving: false, running: false, home: false, idle: 0, look, lookBox: FREE, done, shown: null, sfx: name => emit({ type: 'sfx', name }), emit, found: find };
   // For a scene that shows the map from afar: paints the map over the whole frame, its top left corner at this spot of the world.
   env.mapStill = (x, y) => world.still(scr, x, y, env);
+  env.mapSize = [world.WW, world.WH];
 
   // The forest's and the lake's pictures are made once the map has been on the screen for a frame,
   // one scene to a turn so a click in between is not kept waiting for both.

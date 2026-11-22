@@ -461,3 +461,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Pika in the Talus** (round 6, E1). A pika could call from between the blocks as he crosses, and dart into a gap; held for TJ, since a pika is already a find at the lake.
 - **Spindrift Down the Couloir** (round 6, E2). Now and then a small slough of loose snow could pour down the couloir past him, and he would lean into the axe until it passes.
 - **A Rep Count** (round 6, E2). The set on the bench could count its reps in tiny pixels over his head before the sync notice, in place of the watch's old lap count.
+- **Places in the Binoculars** (round 6, E3). Panned over a named place, the binoculars could show its name under the round view, as the map does on hover.
+- **A Coin Clink** (round 6, E3). The coin-operated binoculars could clink as he drops the coin in, and tick down with a little timer while they are open.

@@ -37,10 +37,11 @@ const ROUTES = {
   // kicking steps. On top stands a weight bench, and a click on it gets a set, with the workout going over from
   // Hevy to Garmin in a small notice over his head.
   'hevy-garmin-sync': { kind: 'couloir', secs: 16, sx: 520, w: 1200, couloir: [64, 470], pts: [[0, 0], [40, -6], [70, -14], [110, -50], [150, -88], [190, -128], [230, -166], [270, -204], [310, -238], [350, -266], [390, -288], [430, -302], [470, -310], [520, -312], [562, -312], [588, -274], [658, -174], [758, -54], [858, 66]] },
-  // trailhead, the knife-edge (K5, redrawn in round 5 for T58): over the notch (round 3's jump), up onto a
-  // crest that is a thin fin of rock with hazy air under it (`knife`), astride it where it is thinnest
-  // (`astride`), and on to the binoculars.
-  trailhead: { kind: 'bridge', secs: 26, sx: 560, w: 1200, gap: [70, 96], knife: [150, 530], astride: [300, 420], pts: [[0, 0], [40, -14], [70, -30], [96, -34], [150, -80], [220, -96], [300, -104], [420, -116], [480, -128], [530, -140], [560, -150], [602, -150], [628, -112], [698, -12], [798, 108]] },
+  // trailhead, the knife-edge (K5, redrawn in round 5 for T58, quickened in round 6 for note 17): a springy jump
+  // over the notch (round 3's jump), up onto a crest that is a thin fin of rock with hazy air under it (`knife`),
+  // a few steps on his toes and a few moves astride it where it is thinnest (`astride`; `tiptoe` is how far
+  // either side of that he goes on his toes), and on to the binoculars.
+  trailhead: { kind: 'bridge', secs: 13, sx: 560, w: 1200, gap: [70, 96], knife: [150, 530], astride: [330, 358], tiptoe: 34, pts: [[0, 0], [40, -14], [70, -30], [96, -34], [150, -80], [220, -96], [300, -104], [420, -116], [480, -128], [530, -140], [560, -150], [602, -150], [628, -112], [698, -12], [798, 108]] },
   // yggdrasil, the via ferrata (K6): dry rock all the way (`dry`), a steel cable from the start to `cable`,
   // anchored every `anchor` of the way; iron rungs up the first wall and a fixed ladder up the second
   // (`walls`), then unclipped over bare rock to the world tree.
@@ -687,6 +688,8 @@ export function makeClimb() {
     walk: [0, 1, 2, 3, 4, 5].map(f => sideFig('alpine', { feet: [WALK[f], WALK[(f + 3) % 6]], hands: [[4, 4 - (f % 3 === 0 ? 1 : 0)], [-2, 6]], bob: f % 3 === 1 ? -1 : 0, lean: 2, held: axe })),
     wind: [0, 1, 2, 3, 4, 5].map(f => sideFig('alpine', { feet: [WALK[f], WALK[(f + 3) % 6]], hands: [[4, 4], [3, 0]], bob: f % 3 === 1 ? -1 : 0, lean: 4, look: 'down', held: axe })),
     jump: sideFig('alpine', { feet: [[5, 5], [-4, 6]], hands: [[5, -5], [-4, -3]], lean: 3 }),
+    // Crouched to spring, or sunk into a landing: knees bent, arms back.
+    spring: sideFig('alpine', { feet: [[3, 8.5], [-2, 8.5]], hands: [[-3, 5], [-5, 4]], lean: 5, crouch: 4, look: 'up' }),
     crawl: [0, 1].map(f => sideFig('alpine', { feet: f ? [[1, 6], [-4, 6]] : [[-1, 6], [-2, 6]], crouch: 3, hands: f ? [[7, 5], [4, 6]] : [[5, 6], [6, 5]], lean: 6, look: 'down' })),
     sit: [0, 1].map(f => sideFig('alpine', { feet: [[8, 3], [7, 4 + f]], crouch: 6, lean: -2, hands: [[2, 4], [-4, 2 - f]], held: (b, sh) => { for (let k = 0; k < 7; k++) b.set(sh[0] - 4 - k, sh[1] + 2 - f + k, R.rock[3]); } })),
     stand: frontFig('alpine'), cheer: frontFig('alpine', { swing: -9 }),
@@ -801,13 +804,15 @@ export function makeClimb() {
         else if (x >= B[B.length - 1][0]) { const b = B[B.length - 1]; y = lerp(b[2], hOf(pts, cfg.talus[1]), clamp((x - b[0]) / (cfg.talus[1] - b[0]), 0, 1)); } }
       if (cfg.couloir && x > cfg.couloir[0] - 10 && x < cfg.couloir[1]) mode = 'kick';
       if (wallAt(cfg, x)) mode = 'climb';
-      if (cfg.knife && knifeK(cfg, x) > 0.5) mode = cfg.astride && x > cfg.astride[0] && x < cfg.astride[1] ? 'astride' : 'edge';
+      if (cfg.knife && knifeK(cfg, x) > 0.5) mode = cfg.astride && x > cfg.astride[0] && x < cfg.astride[1] ? 'astride' : !cfg.tiptoe || (x > cfg.astride[0] - cfg.tiptoe && x < cfg.astride[1] + cfg.tiptoe) ? 'edge' : 'walk';
       const xg = xingAt(cfg, x, 3);
       if (xg && xg[2] === 'jump') { const v = clamp((x - xg[0] + 3) / (xg[1] - xg[0] + 6), 0, 1); y = lerp(hOf(pts, xg[0] - 3), hOf(pts, xg[1] + 3), v) - Math.sin(v * Math.PI) * 12; mode = 'jump'; }
       else if (xg) { y = lerp(hOf(pts, xg[0]), hOf(pts, xg[1]), clamp((x - xg[0]) / (xg[1] - xg[0]), 0, 1)) + sagAt(xg, x, x) - (xg[2] === 'snow' || xg[2] === 'sag' ? 0 : 1); if (xg[2] !== 'snow') mode = 'wind'; }
+      // A spring at each end of the jump: he crouches to take off and sinks into the landing.
+      if (cfg.kind === 'bridge' && cfg.gap && ((x > cfg.gap[0] - 11 && x <= cfg.gap[0] - 4) || (x >= cfg.gap[1] + 2 && x < cfg.gap[1] + 9))) mode = 'spring';
       if (cfg.gap && x > cfg.gap[0] - 4 && x < cfg.gap[1] + 2) {
         const u = (x - cfg.gap[0] + 4) / (cfg.gap[1] - cfg.gap[0] + 6);
-        if (cfg.kind === 'bridge') { mode = 'jump'; y = lerp(hOf(pts, cfg.gap[0] - 4), hOf(pts, cfg.gap[1] + 2), u) - Math.sin(u * Math.PI) * 16; }
+        if (cfg.kind === 'bridge') { mode = 'jump'; y = lerp(hOf(pts, cfg.gap[0] - 4), hOf(pts, cfg.gap[1] + 2), u) - Math.sin(u * Math.PI) * 20; }
         // On Bluebird Forecast's exposed step he strides across the gap, one hand on the rock ahead.
         else if (cfg.kind === 'ridge') { mode = 'stride'; y = lerp(hOf(pts, cfg.gap[0] - 4), hOf(pts, cfg.gap[1] + 2), clamp(u, 0, 1)); }
         else { mode = 'crawl'; y = lerp(hOf(pts, cfg.gap[0]), hOf(pts, cfg.gap[1]), clamp((x - cfg.gap[0]) / (cfg.gap[1] - cfg.gap[0]), 0, 1)) - 2; }
@@ -824,7 +829,9 @@ export function makeClimb() {
   // about, until it is closed with space or its BACK button. `close` is when that was asked for, `keys`
   // the direction keys held down.
   let bino = null;
-  const VIEW = { x0: -110, x1: 110, y0: -80, y1: 46, speed: 80, open: 1.35, shut: 1.2 };
+  // The view can be moved anywhere over the map (round 6, note 17): its box is worked out each frame from the
+  // map's size and the view's radius, so the round view's middle reaches every edge.
+  const VIEW = { x0: -110, x1: 110, y0: -80, y1: 46, speed: 260, open: 1.35, shut: 1.2 };
   const shutView = t => { if (bino && bino.close == null && t - egg > VIEW.open) bino.close = t; };
   const busyFor = kind => kind === 'wands' ? CAIRN[st.did] || 0 : BUSY[kind] || 0;
   const busy = t => last.ph === 'up' && ROUTES[last.id] && ((!!bino && !bino.going) || t - egg < busyFor(ROUTES[last.id].kind));
@@ -1094,6 +1101,7 @@ export function makeClimb() {
       else if (me.mode === 'wait') bm = me.u < 0.06 || me.u > 0.95 ? fig.shelter : fig.phone;
       else if (me.mode === 'scramble' || me.mode === 'ledge') bm = fig[me.mode][env.moving ? Math.floor(Math.abs(d) / 3) & 3 : 0];
       else if (me.mode === 'jump') bm = fig.jump;
+      else if (me.mode === 'spring') { bm = fig.spring; dy = 1; }
       else if (me.mode === 'crawl') bm = fig.crawl[Math.floor(d / 4) & 1];
       else if (me.mode === 'stride') bm = fig.stride;
       else if (me.mode === 'kick') { bm = fig.kick[env.moving ? Math.floor(Math.abs(d) / 3) & 3 : 0]; breath(scr, sx + 7, sy - 16, t, 0.7); }
@@ -1153,12 +1161,13 @@ export function makeClimb() {
       if (puff > 0) for (let y = 0; y < VH; y++) { const row = y * VW; for (let x = 0; x < VW; x++) if (bayer(x, y) < puff * 1.3) fb[row + x] = R.snow[4]; }
       // Through the binoculars: the picture closes on the eyepiece and opens on the Trailhead far below as a
       // round view centred on the cats. It stays until he is done looking: the arrows, WASD or a drag move
-      // it within a box round the cats, and space or the BACK button under it closes it again.
+      // it anywhere over the map, and space or the BACK button under it closes it again.
       if (bino && u > 0.7 && shut < 0.65) {
         const ex = X(tx - 8), ey = Y(ty - 23), all = Math.hypot(VW, VH);
         if (u < 1.05) scr.iris(ex, ey, all * (1 - smooth(0.7, 1.05, u)) - 4);
         else if (shut < 0.3) {
           const vx = Math.round(scr.narrow ? VW * 0.5 : VW * 0.64), vy = Math.round(scr.narrow ? VH * 0.24 : VH * 0.42), r = scr.narrow ? Math.min(VW * 0.42, VH * 0.2) : Math.min(VH * 0.34, VW * 0.2);
+          if (env.mapSize) { const [MW, MH] = env.mapSize; VIEW.x0 = r - JUNCTION.x - 12; VIEW.x1 = MW - r - JUNCTION.x - 12; VIEW.y0 = r - JUNCTION.y + 10; VIEW.y1 = MH - r - JUNCTION.y + 10; }
           const K = bino.keys, L = env.look; L.x = clamp(L.x + ((K.r ? 1 : 0) - (K.l ? 1 : 0)) * VIEW.speed * env.dt, VIEW.x0, VIEW.x1); L.y = clamp(L.y + ((K.d ? 1 : 0) - (K.u ? 1 : 0)) * VIEW.speed * env.dt, VIEW.y0, VIEW.y1);
           env.lookBox = VIEW;
           if (env.mapStill) env.mapStill(Math.round(JUNCTION.x + 12 - vx + clamp(L.x, VIEW.x0, VIEW.x1) + 2 * Math.sin(u * 0.9)), Math.round(JUNCTION.y - 10 - vy + clamp(L.y, VIEW.y0, VIEW.y1) + Math.cos(u * 0.7))); else fb.fill(R.navy[0]);
