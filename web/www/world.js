@@ -814,7 +814,9 @@ export function makeWorld() {
       standing(still, moves, mov, list, ox, oy, VW, VH, env.done);
       // A tree that nearer ground partly hides is drawn only where the land under each pixel is no
       // nearer than the tree itself (D6a), so it can sway and still stand behind the slope in front.
-      const OY = oy, DEP = W.depth, clipBlit = (bm, sx, sy, v, dy = 0) => { sx = Math.round(sx); sy = Math.round(sy); const lim = v - 3; for (let j = 0; j < bm.h; j++) { const y = sy + j, vy = y - oy - dy; if (vy < 0 || vy >= VH || y < 0 || y >= WH) continue; for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (!c) continue; const x = sx + i, vx = x - ox; if (vx < 0 || vx >= VW || x < 0 || x >= WW || DEP[y * WW + x] < lim) continue; fb[vy * VW + vx] = c; } } };
+      // It visits only the bitmap's solid runs, as blitRuns does (round 6, K3: C3's trees in the hills' empty
+      // patches all come this way, and visiting their clear pixels too cost about 1 ms a frame zoomed out).
+      const OY = oy, DEP = W.depth, clipBlit = (bm, sx, sy, v, dy = 0) => { sx = Math.round(sx); sy = Math.round(sy); const lim = v - 3, RN = bm.runs || runsOf(bm), d = bm.d, w = bm.w; for (let r = 0; r < RN.length; r += 3) { const j = RN[r], y = sy + j, vy = y - oy - dy; if (vy < 0 || vy >= VH || y < 0 || y >= WH) continue; for (let i = RN[r + 1], e = i + RN[r + 2]; i < e; i++) { const x = sx + i, vx = x - ox; if (vx < 0 || vx >= VW || x < 0 || x >= WW || DEP[y * WW + x] < lim) continue; fb[vy * VW + vx] = d[j * w + i]; } } };
       for (const th of list) {
         const dl = liftAt(th.x, th.y), oy = OY + dl;
         if (th.me) {

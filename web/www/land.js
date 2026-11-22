@@ -531,7 +531,11 @@ for (const t of C.trails) {
   P.forEach(([u, v], n) => { const i = at(Math.round(u), Math.round(v)); if (water[i] && !lakeAt(u, v)) { if (!run) run = [n, n]; run[1] = n; } else if (run && n - run[1] > 30) end(); });
   end();
 }
-const nearTrail = (u, v, r) => { for (let i = 0; i < trailPts.length; i += 3) { const p = trailPts[i]; if (Math.abs(p[0] - u) < r && Math.abs(p[1] - v) < r) return true; } return false; };
+// Whether a trail passes within r of a spot (every third point of the trails, as before), looking only in the
+// 32 px cells round it: the searches that ask it across the whole forest took about 110 ms of every start (K3).
+const nearTrail = (() => { const C = 32, GW = Math.ceil(NW / C) + 16, cells = new Map();
+  for (let i = 0; i < trailPts.length; i += 3) { const p = trailPts[i], k = (Math.floor(p[1] / C) + 8) * GW + Math.floor(p[0] / C) + 8; let c = cells.get(k); if (!c) cells.set(k, c = []); c.push(p); }
+  return (u, v, r) => { for (let gy = Math.floor((v - r) / C); gy <= Math.floor((v + r) / C); gy++) for (let gx = Math.floor((u - r) / C); gx <= Math.floor((u + r) / C); gx++) { const c = cells.get((gy + 8) * GW + gx + 8); if (c) for (const p of c) if (Math.abs(p[0] - u) < r && Math.abs(p[1] - v) < r) return true; } return false; }; })();
 // The fire lookout (E5j, TJ: on a summit cleared of trees; round 5, T10: on Off By One Peak): the top of the
 // highest foothill, where no trail crosses. The top is the hill's crest as the picture shows it, the spot
 // that stands highest on the picture, not its highest ground: the big hill runs back into the Legacy Range,
@@ -583,7 +587,9 @@ const forestAmt = (u, v) => { const e = forestEdge(v); return smooth(e + 40, e -
 // a stream some way off and lies as near the Trailhead as that allows, so the map shows it; the groves are
 // two of the flattest wet spots well away from it and from each other. Each is an oval [u, v, ru, rv].
 const flatAt = (u, v, r) => Math.abs(hAt(u + r, v) - hAt(u - r, v)) + Math.abs(hAt(u, v + r) - hAt(u, v - r));
-const deepWood = (u, v) => forestAmt(u, v) > 0.85 && hills(u, v) < 1 && coast(u, v) < -70 && !nearTrail(u, v, 26) && !lakeAt(u, v) && !water[at(u, v)];
+// Asked at the same spots of a 6 px grid by the bog's search and both groves', so each spot is worked out once (K3).
+const deepSeen = new Map(), deepWood = (u, v) => { const k = v * NW + u; let d = deepSeen.get(k); if (d === undefined) deepSeen.set(k, d = deepWood0(u, v)); return d; };
+const deepWood0 = (u, v) => forestAmt(u, v) > 0.85 && hills(u, v) < 1 && coast(u, v) < -70 && !nearTrail(u, v, 26) && !lakeAt(u, v) && !water[at(u, v)];
 const BOG = (() => { let best = null; for (let v = 30; v < VD - 30; v += 6) for (let u = 30; u < 720; u += 6) { if (!deepWood(u, v)) continue; const d = RIVD(u, v); if (d < 12) continue;
   const s = -3 * flatAt(u, v, 10) - 0.15 * Math.abs(d - 24) - 0.012 * Math.hypot(u - TU, v - TV); if (!best || s > best.s) best = { u, v, s }; } return best ? [best.u, best.v, 16, 9] : null; })();
 const GROVES = (() => { const out = []; for (let k = 0; k < 2; k++) { let best = null; for (let v = 30; v < VD - 30; v += 6) for (let u = 30; u < 720; u += 6) { if (!deepWood(u, v) || (BOG && Math.hypot(u - BOG[0], v - BOG[1]) < 110) || out.some(g => Math.hypot(u - g[0], v - g[1]) < 110)) continue;
