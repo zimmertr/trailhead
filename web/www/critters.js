@@ -206,8 +206,10 @@ export function makeCritters(W, opts = {}) {
   // landWay is a straight line clear of all that.
   const land = (x, y) => col.canBe('land', x, y, 0), landWay = (x0, y0, x1, y1) => way(land, x0, y0, x1, y1);
   const besideHer = (a, d, dy) => { const M = a.mum, B = a.sib, sd = a.n ? 1 : -1, tw = !B ? null : B.st === 'walk' && B.goal === 'mum' ? [M.fx + B.off[0], M.fy + B.off[1]] : [B.fx, B.fy];
-    for (const o of [[sd * d, dy], [-sd * d, dy + 1], [sd * d, -1], [-sd * d, -2], [sd * d, dy + 7], [-sd * d, dy + 8], [sd * 13, 7], [-sd * 13, 8]]) { const x = M.fx + o[0], y = M.fy + o[1]; if (tw && Math.hypot(x - tw[0], y - tw[1]) < 10) continue; if (M.ok(x, y) && land(x - 5, y) && land(x + 5, y) && way(M.ok, M.fx, M.fy, x, y)) return o; }
-    return [sd * 8, 7]; };
+    for (const o of [[sd * d, dy], [-sd * d, dy + 1], [sd * d, -1], [-sd * d, -2], [sd * d, dy + 7], [-sd * d, dy + 8], [sd * 13, 7], [-sd * 13, 8]]) { const x = M.fx + o[0], y = M.fy + o[1]; if (tw && Math.hypot(x - tw[0], y - tw[1]) < 10) continue; if (M.ok(x, y) && land(x, y) && land(x - 5, y) && land(x + 5, y) && way(M.ok, M.fx, M.fy, x, y)) return o; }
+    // Nothing at her side: the nearest ground a cub may stand on, so a cramped spot never puts one in the water or a rock.
+    for (let r = 4; r <= 26; r += 2) for (let k = 0; k < 12; k++) { const o = [Math.round(Math.cos(k / 12 * TAU) * r), Math.round(Math.sin(k / 12 * TAU) * r * 0.6)]; if (land(M.fx + o[0], M.fy + o[1]) && way(land, M.fx, M.fy, M.fx + o[0], M.fy + o[1])) return o; }
+    return [0, 1]; };
   const toSide = a => { a.st = 'walk'; a.goal = 'mum'; a.hop = a.lift = 0; a.off = besideHer(a, 21 + rand() * 5, 3 + rand() * 4); };
   function cubStep(a, dt, t) {
     const M = a.mum, B = a.sib, side = a.n ? 1 : -1, dM = Math.hypot(a.fx - M.fx, (a.fy - M.fy) / 0.6);

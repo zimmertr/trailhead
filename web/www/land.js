@@ -72,10 +72,14 @@ const GULLY = [[-80, 0.46, 1], [-40, 0.7, 0], [-9, 0.6, 2], [60, 0.56, 1]];
 const SUMMITS = [[-94, 0.66, 26, 30, 8], [-60, 0.84, 24, 20, 5], [-24, 0.92, 26, 22, 9], [10, 1.14, 18, 20, 5], [42, 0.88, 22, 26, 8], [82, 0.7, 24, 34, 10]];
 function spires(cu, cv, base, H, thin = 1, wide = 1) {
   SP = { cu, cv, base, H, wide, top: cu + SUMMITS[3][0] * wide, west: SUMMITS[0][0] };
+  // Each summit is a blunt tower (art pass A01, after the generated picture logged in design/art/A01/):
+  // a rounded top that breaks over into steep sides, each top tilted a little one way or the other, and
+  // a deep, narrow notch between neighbours where a snow gully runs up. s is 0 in a tower's middle and 1
+  // at its shoulder.
   const high = dx => {
     let best = H * (0.28 + 0.2 * smooth(160, 90, Math.abs(dx)));
-    SUMMITS.forEach(([o, hh, wl, wr, cap], k) => { const u = Math.max(0, Math.abs(dx - o) - cap / 2) / (dx < o ? wl : wr), v = H * hh * (1 - 0.3 * Math.pow(u, 1.05)) - (dx - o) * (k & 1 ? 0.12 : -0.1) * (u === 0 ? 1 : 0); if (u < 2 && v > best) best = v; });
-    return (best + (5 * sq(rdg(vnoise(dx / 4, 6, 811))) - 2.5 - 9 * smooth(0.74, 0.92, vnoise(dx / 6, 7, 812))) * smooth(0.3, 0.5, best / H)) * smooth(165, 120, Math.abs(dx));
+    SUMMITS.forEach(([o, hh, wl, wr], k) => { const nb = SUMMITS[k + (dx < o ? -1 : 1)], hw = nb ? Math.abs(nb[0] - o) / 2 : (dx < o ? wl : wr) * 0.7, s = Math.abs(dx - o) / hw, v = H * hh * (1 - 0.1 * s * s - 3.5 * Math.pow(Math.max(0, s - 0.8), 1.4) + (dx - o) / hw * (k & 1 ? -0.05 : 0.05)); if (v > best) best = v; });
+    return (best + (3 * sq(rdg(vnoise(dx / 3, 6, 811))) - 1.5) * smooth(0.3, 0.5, best / H)) * smooth(165, 120, Math.abs(dx));
   };
   add('wall', cu - 170 * wide, cu + 170 * wide, cv - 70, cv + 50, (u, v) => {
     const dx = (u - cu) / wide, vv = v + 9 * (vnoise(u / 10, 3, 830) - 0.5) + 7 * Math.max(...SUMMITS.map(([o]) => Math.max(0, 1 - Math.abs(dx - o) / 14)));
@@ -180,8 +184,11 @@ const mesa = (u, v) => { const k = fbm(u / 64, v / 34, 36, 3) + 0.04 * (vnoise(u
 const plate = (u, v) => { const raw = 34 * smooth(0.02, 0.4, dryS0(u, v)) + 10 * fbm(u / 80, v / 60, 33, 2) * dryAmt0(u, v), b = raw + mesa(u, v); return b; };
 // The glacier: where its middle runs, how wide it is and how high its surface stands, by depth. It
 // starts under the Spires' wall, breaks over a rock step (the icefall) and ends in a broad snout in its
-// lake (E8c), not a point.
-const GL = { top: 616, toe: 503, fall: [556, 578], cu: v => 1072 + 7 * Math.sin((v - 500) / 24), w: v => lerp(30, 112, smooth(522, 592, v)) * smooth(498, 506, v), h: v => 28 + 0.3 * (v - 500) + 10 * smooth(556, 576, v) };
+// lake (E8c), not a point. Its shape is the generated picture's (art pass A01): a broad snow field under
+// the whole wall, narrowing through the icefall to a tongue about two fifths as wide, which spreads into
+// a rounded lobe at the snout. w is the half width.
+const glW = v => { const t = v > 584 ? 116 : v > 556 ? lerp(48, 116, smooth(556, 584, v)) : 46 + 2 * Math.sin((v - 520) / 9); return t * (1 + 0.08 * smooth(524, 510, v)) * Math.sqrt(clamp((v - 502) / 9, 0, 1)); };
+const GL = { top: 616, toe: 503, fall: [556, 578], cu: v => 1072 + 7 * Math.sin((v - 500) / 24), w: glW, h: v => 28 + 0.3 * (v - 500) + 10 * smooth(556, 576, v) };
 // Base camp's rock island (round 5, T48, TJ: "suddenly camp is surrounded by nunataks, situated on teh
 // glacier"): a low island of rock in the middle of the tongue, ten below the foot of the icefall, so the
 // map's camp is where the camp scene shows it: on the ice, the icefall behind it, rock either side.
@@ -234,7 +241,7 @@ plateau('moraine', 1020, 526, 22, 8, 44, 0.35);
 lift = null;
 // The Spires' glacier ends in its lake (E8c, after TJ's photograph): the snout runs into milky water, and
 // the terminal moraine is the low rim that holds the lake on the near side. Ice, water, moraine.
-const PRO = (() => { const rv = 8, ru = 32; return { cu: Math.round(GL.cu(GL.toe)), cv: GL.toe - rv + 4, ru, rv }; })(); // its far edge runs a little under the snout, so no rim shows between
+const PRO = (() => { const rv = 9, ru = 66; return { cu: Math.round(GL.cu(GL.toe)), cv: GL.toe - rv + 4, ru, rv }; })(); // its far edge runs a little under the snout, so no rim shows between
 C.lakes.push([PRO.cu, PRO.cv, PRO.ru, PRO.rv, 'silt']);
 // The granite country: three steps. Larches from the second step up, Proficiency Peak on the second.
 plateau('gran', 1745, 598, 150, 42, 110, 0.08); plateau('gran', 1471, 574, 205, 50, 84, 0.08); C.step2 = F[F.length - 1];
@@ -649,13 +656,36 @@ function colour(u, v, hh, x, y) {
   if (trail[i] === 2 && !rungs) return R.glac[1];
   if (trail[i] === 1 && !rungs) return R.glac[3];
   if (mat === 'ice') {
-    // Under the wall the ice gapes away from the rock. Above the icefall it is snow with a few long
-    // crevasses, the icefall is broken blocks, and the tongue below is bare blue ice crevassed across.
-    if (MATS[mg[at(u, Math.min(VD - 1, v + 3))]] === 'wall' && hash(u >> 3, 1, 852) < 0.85) return R.glac[0];
-    if (v > GL.fall[1]) return frac((v + 0.2 * u) / 11 + 0.5 * vnoise(u / 12, v / 12, 853)) < 0.08 && vnoise(u / 30, v / 8, 854) > 0.5 ? R.glac[3] : R.snow[L > 0.45 ? 4 : 3];
-    if (v >= GL.fall[0]) { const row = Math.floor((v * 2 + hh) / 4), k = hash((u + row * 5) >> 2, row, 855); return k < 0.24 ? R.glac[1] : k < 0.5 ? R.glac[3] : k < 0.8 ? R.glac[4] : R.snow[4]; }
+    // After the generated picture (art pass A01). Under the wall the snow meets the rock with only a
+    // broken crack between. Above the icefall it is a smooth snow field with a few faint long crevasses.
+    // The icefall is rows of blue ice cliffs, each capped with snow, lit on the left of each block and dark
+    // at its foot. The tongue below is pale blue ice with thin dark crevasses that run with the flow and
+    // fan out toward the snout, and a stripe of dark rock debris along each edge.
+    if (MATS[mg[at(u, Math.min(VD - 1, v + 3))]] === 'wall' && hash(u >> 2, 1, 852) < 0.3) return R.glac[1];
+    const q = (u - GL.cu(v)) / Math.max(1, GL.w(v));
+    if (v > GL.fall[1]) return frac((v + 0.15 * u) / 11 + 0.5 * vnoise(u / 12, v / 12, 853)) < 0.07 && vnoise(u / 30, v / 8, 854) > 0.52 ? R.snow[2] : bayer(x, y) < 0.55 * smooth(GL.fall[1] + 16, GL.fall[1] + 2, v) + 0.25 * (0.45 - L) ? R.snow[3] : R.snow[4];
+    if (v > GL.fall[1] - 1 && v < GL.fall[1] + 4 && bayer(x, y) < smooth(GL.fall[1] + 4, GL.fall[1], v) * 0.6) return R.snow[2];   // the field's edge darkens as it breaks over
+    if (v >= GL.fall[0]) {
+      // Seracs: columns of ice blocks, each column stacked at its own height so no row lines up (lined up
+      // they read as brickwork), each block's top slanted, capped with snow, lit on its left face, shaded
+      // on its right and dark at its foot. One in five has slumped to snow.
+      const j = u + 2 * Math.sin(v / 5), col = Math.floor(j / 7), bx = frac(j / 7), rr = (v * 2 + hh) / 9 + hash(col, 2, 856) + 0.25 * bx, row = Math.floor(rr), f = frac(rr), cap = 0.74 - 0.14 * hash(col, row, 863);
+      if (hash(col, row, 855) < 0.2) return f > 0.5 ? R.snow[4] : R.snow[3];
+      if (f > cap) return bx > 0.8 ? R.snow[3] : R.snow[4];
+      if (f < 0.14 + 0.1 * hash(col, row, 866)) return R.serac[0];
+      return bx < 0.3 ? R.serac[4] : bx < 0.65 ? R.serac[3] : bx < 0.88 ? R.serac[2] : R.serac[1];
+    }
+    if (Math.abs(q) > 0.84 + 0.06 * vnoise(u / 5, v / 4, 857)) return hash(x, y, 858) < 0.45 ? R.rock[0] : hash(x, y, 859) < 0.5 ? R.rock[1] : R.glac[2];
+    // Crevasses across the tongue, bowed downstream in its middle as the ice flows fastest there, long and
+    // broken here and there, each a dark crack with a lit lip on its far side.
+    // Ogives under them: the pale and darker bands an icefall leaves on the tongue, bowed the same way.
+    const arc = v + 9 * (1 - q * q), cr = frac(arc / 7 + 0.25 * vnoise(u / 11, v / 9, 860)), on = vnoise(u / 14, Math.floor(arc / 7), 861) > 0.34 && Math.abs(q) < 0.8;
+    if (on && cr < 0.08) return R.glac[2];
+    if (on && cr < 0.17) return R.glac[0];
+    if (on && cr < 0.27) return R.glac[5];
+    const ogive = frac(arc / 13 + 0.15 * vnoise(u / 20, v / 20, 867)) < 0.45 ? -0.2 : 0;
+    return pick('glac', 0.62 + ogive + 0.3 * L + 0.1 * vnoise(u / 7, v / 5, 818), x, y, 0.6);
   }
-  if (mat === 'ice') return frac((v * 0.9 + 0.3 * u) / 7 + 0.4 * vnoise(u / 8, v / 8, 817)) < 0.14 ? R.glac[2] : pick('glac', 0.45 + 0.4 * L + 0.2 * vnoise(u / 6, v / 4, 818), x, y, 0.6);
   // Base camp's island: bare rock, its top in the light and its face in shade, a dark line where it meets the ice.
   if (mat === 'moraine' && isleAt(u, v) < 1.4) { const e = isleAt(u, v); return hg[i] - hh > 0.8 ? R.rock[hash(x >> 1, y, 14) < 0.35 ? 1 : 0] : e > 0.62 && v < NUN[1] - 1 ? R.rock[hash(x >> 1, y, 14) < 0.3 ? 2 : 1] : R.rock[hash(x >> 1, y >> 1, 13) < 0.3 ? 3 : 4]; }
   if (mat === 'moraine') return steep > 0.7 ? pick('rock', 0.12 + 0.4 * vnoise(x / 3, hh / 10, 97), x, y, 0.7) : hash(u >> 1, v >> 1, 12) < 0.25 && isleAt(u, v) > 1.4 ? pick('grass', 0.4, x, y) : pick('rock', 0.2 + 0.7 * hash(u >> 1, v >> 1, 13), x, y);
@@ -670,7 +700,12 @@ function colour(u, v, hh, x, y) {
     // Snow gullies run up the wall from the ice to the notches between its summits.
     { const dx = (u - SP.cu) / SP.wide, up = hh - SP.base - under(SP.cu, SP.cv - 34) - 4; for (const [o, top, k] of GULLY) { const t = up / (top * SP.H); if (t > 0 && t < 1 && Math.abs(dx - o - 3 * Math.sin(hh / 9 + k)) < 1 + k * 0.5 + (3 + 2 * k) * sq(1 - t)) return R.snow[L > 0.4 ? 4 : 3]; } }
     if (steep < 0.9) return R.snow[L > 0.5 ? 4 : 3];
-    return frac(row) < 0.15 && hash(band, Math.floor(row), 815) < 0.26 ? R.snow[L > 0.4 ? 4 : 3] : rock;
+    // The towers (art pass A01): long vertical cracks, broken here and there, and snow on a few ledges only
+    // in the top quarter of the wall. The white dashes that used to cover the whole face read as rain.
+    { const dx = (u - SP.cu) / SP.wide, up = (hh - SP.base - under(SP.cu, SP.cv - 34)) / SP.H, c = (dx + 1.2 * Math.sin(hh / 13 + dx / 9)) / 3.3;
+      if (Math.abs(frac(c) - 0.5) < 0.12 && vnoise(c * 1.7, hh / 12, 862) > 0.36) return R.rock[Math.max(0, R.rock.indexOf(rock) - 1)];
+      if (up > 0.75 && frac(row) < 0.12 && hash(band, Math.floor(row), 815) < 0.22) return R.snow[L > 0.4 ? 4 : 3]; }
+    return rock;
   }
   if (mat === 'volc') {
     // Lit from the west; the east flank turns away into blue shadow.

@@ -30,9 +30,11 @@ TJ's must-haves come first. Within them, and then among the rest, each item is p
 
 ## The List
 
+The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1qg1btAjHwYw
+
 ### TJ's Must-Haves, on the Map
 
-- [ ] **A01 Sideproject Spires and Their Glacier** - the granite wall of six towers in the middle of the map and the glacier below it, with its icefall and the camp's island. `land.js` (`spires`, the `GL` glacier). The biggest gap for the most screen: the glacier is a flat white fan.
+- [x] **A01 Sideproject Spires and Their Glacier** - the granite wall of six towers in the middle of the map and the glacier below it, with its icefall and the camp's island. `land.js` (`spires`, the `GL` glacier). The biggest gap for the most screen: the glacier is a flat white fan.
 - [ ] **A02 The Background Mountains** - the far ranges along the top of the map, east of Monolith. `land.js` (`range`, `farRow`). A wide band seen on every visit; the ridges repeat.
 - [ ] **A03 Mount Monolith** - the volcano, after Mt Rainier. `monolith.js` (`paintMonolith`). The largest landmark; painted already, so the gap is smaller, but nothing is seen more.
 - [ ] **A04 Proficiency Peak** - the granite peak and its bench, the talus fan under its prow. `land.js` (`proficiency`, `talusAt`).
@@ -90,3 +92,11 @@ TJ's must-haves come first. Within them, and then among the rest, each item is p
 <hr>
 
 ## Log
+
+- Setup: v0.4.0 is the fixed before for every item, exported to the scratchpad's `art-before/`; `check.sh` compares against `out/check/v040.json`, made from it.
+- A01, the pictures: 8 drafts. `z-image-turbo-trailhead` drew a row of matching pyramids (the evenly spaced pattern the art rules warn of), so the style model was dropped for this item. `qwen-image-2.1` got the composition at once; round 2 added crevasses and the rock island. Seed 6 of round 2 was picked and repainted as pixel art (seed 11) as the reference. The prompts are in `design/art/A01/log.jsonl`.
+- A01, a call: drawn in code after the picture, not from its pixels (the art rules found the picture way soft on the Spires). The towers keep their order of height and their places; only their shape changed: each is as wide as the gap to its neighbours allows, with a rounded top and a deep notch between. The first try, at about half that width, made needles.
+- A01, a call: the tongue's crevasses run across it, bowed downstream. Run along the flow, as the picture's look, they read as a waterfall at the map's angle. The icefall's seracs stand in columns at their own heights; in straight rows they read as brickwork.
+- A01, a call: the snout lake is 132 wide (64 before), to take the broader tongue. One sign by it moved 31 px west, one of the eight serac falls was lost, the tower tops moved up to 14 px, and the elk, a bear's home and the whale moved through the placement dice. All stand where their rules want them.
+- A01, a fix outside the item: a bear cub with no room at its mother's side was put by a fallback that never checked the ground, and the new bear home put one where no land animal may stand (the engine rules test caught it). The fallback now looks for the nearest ground a cub may stand on.
+- A01: frame time 11.6 ms zoomed out at Dusk; 35 browser tests pass; no new colours.
