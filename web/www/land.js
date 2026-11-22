@@ -673,6 +673,35 @@ function wallRock(x, y, hh, L, seed, green) {
   const lit = 0.8 + 0.5 * (L - 0.5) - (away ? 0.3 : 0.22 * pf * pf) + 0.12 * (vnoise(x / 4, hh / 12, seed + 989) - 0.5) + 0.12 * (hash(a, seed, 990) - 0.5);
   return R.rock[clamp(Math.round(4.4 * lit + (bayer(x, y) - 0.5) * 0.4), 0, 4)];
 }
+// A08, after a picture of a scabland coulee: a basalt cliff is one or two lava flows stacked. Each flow
+// is a band of short, broken columns over a colonnade of tall ones, every column lit on its west edge
+// and parted from the next by a dark seam. The columns' pale caps make a rim along the top, and a fan of
+// lighter broken rock lies against the foot. Where on the cliff a spot is comes from the ground just
+// behind it (the top) and just in front of it (the foot).
+function basaltWall(u, v, hh, x, y, L) {
+  // Walk up the slope behind and down the slope in front until the ground goes flat.
+  let top = hg[at(u, v)], foot = top;
+  for (let k = v + 1, n = 0; k < Math.min(VD, v + 60) && n < 3; k++) { const h = hg[at(u, k)]; if (h > top + 0.5) { top = h; n = 0; } else n++; }
+  for (let k = v - 1, n = 0; k > Math.max(0, v - 60) && n < 3; k--) { const h = hg[at(u, k)]; if (h < foot - 0.5) { foot = h; n = 0; } else n++; }
+  top = Math.max(top, hh); foot = Math.min(foot, hh);
+  const H = Math.max(4, top - foot), d = top - hh, t = d / H, B = R.basalt, A = R.ash;
+  if (d < 1) return hash(x >> 1, 0, 1201) < 0.5 ? A[3] : B[3];
+  // The talus: its top is ragged and rises into fans here and there.
+  const tal = 0.88 - 0.12 * sq(vnoise(x / 9, 0, 1202)) - 0.03 * hash(x, 0, 1203);
+  if (t > tal) { const r = hash(x >> 1, Math.floor(hh / 1.5), 1204); return r < 0.3 ? B[1] : r < 0.65 ? B[2] : r < 0.9 ? B[3] : A[2]; }
+  // Two flows on a tall cliff, one on a low one; the upper third of each is the broken band.
+  const flows = H > 17 ? 2 : 1, f = Math.min(flows - 1, Math.floor(t * flows / tal)), ft = t * flows / tal - f, fd = d - f * H * tal / flows;
+  if (f > 0 && fd < 1) return A[2];
+  const broken = ft < 0.26, cell = 2, seed = 1210 + 7 * f + (broken ? 3 : 0), c = x + (broken ? 0 : Math.floor(2 * hash(f, 0, 1205)));
+  const k = Math.floor(c / cell), edge = j => hash(j, seed, 1206) < (broken ? 0.6 : 0.5);
+  let a = k; while (a > k - 3 && !edge(a)) a--; let b = k + 1; while (b < k + 4 && !edge(b)) b++;
+  const p = c - a * cell, w = (b - a) * cell, shade = hash(a, seed, 1207), lit = 0.5 + 0.7 * (L - 0.5);
+  if (p === w - 1) return B[0];
+  // A broken column is cut into blocks, each joint a dark line under a lit one.
+  if (broken && w > 2) { const j = frac((fd + 5 * hash(a, seed, 1208)) / (4 + 3 * hash(a, seed, 1209))); if (j < 1 / (4 + 3 * hash(a, seed, 1209))) return B[0]; }
+  if (p === 0) return lit > 0.3 ? B[3] : B[2];
+  return B[clamp(Math.round(0.6 + 2.2 * shade + 1.2 * (lit - 0.5) - 0.9 * p / w), 1, 3)];
+}
 function colour(u, v, hh, x, y) {
   const i = at(u, v), mat = MATS[mg[i]], n1 = hash(u, v, 31) - 0.5, uu = clamp(u, 1, NW - 2), vv = clamp(v, 1, VD - 2);
   const du = hg[at(uu + 1, vv)] - hg[at(uu - 1, vv)], dv = hg[at(uu, vv + 1)] - hg[at(uu, vv - 1)], steep = Math.hypot(du, dv) / 2;
@@ -846,7 +875,7 @@ function colour(u, v, hh, x, y) {
   // Land. A step in it shows the rock of its own country.
   // The golden hills' swells are grass to their crests, lit and shaded, never rock.
   if (steep > 1.05 && palAmt(u, v) > 0.3) return palouse(u, v, hh, x, y, L, steep);
-  if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)])  : wallRock(x, y, hh, L, 2, u > 1190 ? null : R.moss[1]);
+  if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? basaltWall(u, v, hh, x, y, L) : wallRock(x, y, hh, L, 2, u > 1190 ? null : R.moss[1]);
   const sh = (L - 0.5) * 0.5, blot = s => 0.5 + 0.85 * (fbm(u / 32, v / 21, s, 3) - 0.5) + 0.2 * n1;
   // The bog: bright sphagnum moss with dark peaty pools in it, the moss darker towards its edge.
   { const e = bogAt(u, v); if (e < 1) return fbm(u / 6, v / 4, 471, 2) > 0.52 && e < 0.85 ? (hash(u, v, 472) < 0.07 ? R.water[1] : R.moss[0]) : pick('moss', 0.62 + 0.3 * fbm(u / 5, v / 4, 473, 2) - 0.3 * e, x, y, 0.4); }
