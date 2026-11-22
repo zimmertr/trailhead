@@ -50,7 +50,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A14 The Orca Pod** - the orcas in the sea. `critters.js` (`orcas`, `orcaBack`).
 - [x] **A15 Tide Pools** - the pools left on the beach at low tide. `critters.js` (`tidePools`).
 - [x] **A16 Driftwood** - the logs along the beach. `sprites.js` (`makeDriftwood`).
-- [ ] **A17 Marmots** - the hoary marmots on the map and in the scenes. `critters.js`, `fauna.js` (`marmot`).
+- [x] **A17 Marmots** - the hoary marmots on the map and in the scenes. `critters.js`, `fauna.js` (`marmot`).
 - [ ] **A18 Doot Doot and Peevers** - the cats at the Trailhead: Doot Doot a long-haired tortie, Peevers a long-haired Nebelung. `sprites.js` (`makeCat`), `cats.js`.
 
 ### The Register
@@ -185,3 +185,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A16, the pictures: 8 in all. The style model's seed 4 was picked: a silver log with a warm brown underside, long cracks along the grain, a brown root ball and a crisp dark shadow on the sand. Qwen drew a scatter of thin white sticks from high up on every seed and was set aside. The prompts are in `design/art/A16/log.jsonl`.
 - A16, a call: the log's top stays the palest silver, its lower half a step or two darker, its two lowest rows a warm brown-grey from the ochre ramp; dark cracks run along the grain on its upper half; the root wad has a brown core. Its shadow is three pixels deep, dark under the log and paler beyond, and is drawn after the log is mirrored, so it always falls to the east.
 - A16: frame time 11.2 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours. The ground was rebaked, since logs that are partly hidden are stamped into it.
+- A17, the before: the marmot was one brown all over, a warm ramp from the dirt colours with an ink outline, so on the grey rock below Mount Monolith it read as a brown lump, a pika or a log as much as a marmot. Nothing of the hoary marmot's silver cape or black-and-white face was there.
+- A17, the pictures: 8 in all. Qwen's seed 2 was picked: two marmots on a boulder, one lying out and one sitting up, with the silver cape over the shoulders, the black face band and white muzzle, and the brown rump and tail clearly apart. The style model's pictures were good scenes, but its cape was a faint grey that would vanish at 18 by 14 pixels. The prompts are in `design/art/A17/log.jsonl`.
+- A17, a call: the cape is a grizzle hashed from the pale rock greys, white and a little dirt brown, lit on the upper side, and stops at the hips, where the rump turns to the warm dirt ramp; that brown is what keeps it from reading as part of the rock. The face is three steps from the nose back: a white muzzle, a black band, then the cape. The tail is the bark's darkest brown, the feet ink.
+- A17: frame time 11.6 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours. The ground was rebaked, since the shot tool said it no longer matched the map after the sprite changed.

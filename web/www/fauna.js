@@ -112,15 +112,24 @@ function slug(f, shy = false) {
 // A hoary marmot. pose: 'sun' stretched flat on a rock, 'up' sitting to whistle.
 function marmot(pose) {
   const b = new BM(18, 14); b.ox = 9; b.oy = 13;
-  // Brown, with the pale grizzled cape over the shoulders that the hoary marmot is named for. Grey fur
-  // made it read as part of the rock it lies on.
-  const coat = cape => (nx, ny, x, y) => cape(nx, ny) && hash(x, y, 2) < 0.6 ? R.dirt[hash(x, y, 3) < 0.45 ? 4 : 3] : pick('dirt', 0.34 - ny * 0.28 + 0.2 * (hash(x, y, 2) - 0.5), x, y, 0.5);
+  // A17, after a picture of hoary marmots on granite: a warm brown rump and dark tail, and over the
+  // shoulders and back the pale grizzled cape it is named for, lit from the upper left; a white muzzle
+  // with a black band across the face behind it, dark ears and black feet. The brown rump, the black band
+  // and the outline keep it from reading as part of the grey rock it lies on.
+  const grizzle = (x, y, lit) => { const h = hash(x, y, 2); return h < 0.28 ? R.dirt[lit ? 4 : 3] : h < 0.6 ? (lit ? R.white[0] : R.rock[4]) : lit ? R.rock[4] : R.rock[3]; };
+  const rump = (ny, x, y) => pick('dirt', 0.42 - ny * 0.3 + 0.18 * (hash(x, y, 3) - 0.5), x, y, 0.5);
   if (pose === 'sun') {
-    ell(b, 8, 10.5, 6.5, 2.6, coat((nx, ny) => nx > 0.12 && ny < 0.5)); ell(b, 14, 10, 2.6, 2.2, (nx, ny) => R.bark[ny < 0 ? 2 : 1]); b.set(16, 10, INK); b.set(15, 9, INK); b.set(13, 8, R.bark[1]);
-    thick(b, 2, 11, 0, 12, 2, R.bark[1]); b.set(5, 13, R.bark[0]); b.set(11, 13, R.bark[0]);
+    // Lying flat along the rock, head to the right.
+    ell(b, 8, 10.5, 6.5, 2.6, (nx, ny, x, y) => nx > -0.25 && ny < 0.15 ? grizzle(x, y, ny < -0.45) : rump(ny, x, y));
+    ell(b, 14, 10, 2.6, 2.2, (nx, ny, x, y) => nx > 0.62 ? R.white[1] : nx > -0.05 && ny > -0.55 ? INK : grizzle(x, y, ny < -0.3));
+    b.set(13, 8, INK); b.set(17, 10, INK);
+    thick(b, 2, 11, 0, 12, 2, R.bark[0]); b.set(1, 11, R.bark[1]); b.set(5, 13, INK); b.set(11, 13, INK); b.set(12, 13, INK);
   } else {
-    ell(b, 8, 9, 3.6, 4.4, coat((nx, ny) => ny < -0.05)); ell(b, 9, 3.5, 2.6, 2.3, (nx, ny) => R.bark[ny < 0 ? 2 : 1]); b.set(11, 3, INK); b.set(11, 4, R.white[0]); b.set(8, 1, R.bark[1]);
-    thick(b, 10, 8, 12, 9, 1, R.bark[1]); thick(b, 4, 12, 1, 13, 2, R.bark[1]);
+    // Up on its haunches, paws at its chest, head up to whistle.
+    ell(b, 8, 9, 3.6, 4.4, (nx, ny, x, y) => ny < -0.05 - 0.2 * nx ? grizzle(x, y, nx < 0.1 && ny < -0.45) : rump(ny, x, y));
+    ell(b, 9, 3.5, 2.6, 2.3, (nx, ny, x, y) => nx > 0.62 ? R.white[1] : nx > -0.05 && ny > -0.55 ? INK : grizzle(x, y, ny < -0.3));
+    b.set(8, 1, INK); b.set(12, 3, INK);
+    thick(b, 10, 8, 12, 9, 1, INK); thick(b, 4, 12, 1, 13, 2, R.bark[0]); b.set(7, 13, INK); b.set(10, 13, INK);
   }
   outline(b, INK);
   return b;
