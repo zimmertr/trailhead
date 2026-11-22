@@ -2,20 +2,34 @@
 // devils spinning up on the dry flats and a shooting star on the Dusk sky. (The float plane left in round 5,
 // T12.) Where each happens comes from land.js (habitat); each runs on the
 // scenes' clock, so the speed buttons work on it, and each can be started now from the debug panel.
-import { TAU, smooth, hash, bayer, R, BM, thick, outline } from './core.js';
+import { TAU, smooth, hash, bayer, R, BM, outline } from './core.js';
 import { NW } from './land.js';
 
-// A tumbleweed, four turns of it: a tangle of dry stems round a hollow middle, in browns darker than the
-// dry ground and the sage it rolls over, with a few sunlit stems.
-// A tumbleweed, 15 across (note 5: the 9 of round 5 was lost on the hills): a ball of dead stems round
-// a dark core, the stems pale where the light catches them and an outline of the darkest wood, so it
-// reads against the gold grass at Day and Dusk. f turns it, one sixteenth of a turn a drawing.
+// A tumbleweed, 15 across (note 5: the 9 of round 5 was lost on the hills), redrawn after a picture
+// (art pass D11, design/art/D11): a ball of thin dead stems wound round it like a ball of string, so you
+// can see through it to a dark hollow middle, with a few stray twigs sticking out. The stems are straw
+// where the light from the upper left catches them and brown where they curve away or behind, and the
+// rim is outlined in the darkest wood so it reads against the gold grass at Day and Dusk. f turns it,
+// one sixteenth of a turn a drawing.
 function weed(f) {
   const b = new BM(15, 15); b.ox = 7; b.oy = 14;
-  for (let k = 0; k < 13; k++) { const a = k / 13 * TAU + f * TAU / 16, r = 4.6 + 2 * hash(k, 1, 7101); thick(b, 7 + Math.cos(a) * 1.6, 7 + Math.sin(a) * 1.6, 7 + Math.cos(a + 0.9) * r, 7 + Math.sin(a + 0.9) * r, 1, k % 3 ? R.wood[2] : R.wood[1]); }
-  for (let k = 0; k < 28; k++) { const a = k / 28 * TAU - f * TAU / 16; if (hash(k, 2, 7102) < 0.75) b.set(7 + Math.cos(a) * 6, 7 + Math.sin(a) * 5.8, k & 1 ? R.wood[3] : R.wood[4]); }
-  for (let j = 5; j <= 9; j++) for (let i = 5; i <= 9; i++) if ((i - 7) ** 2 + (j - 7) ** 2 <= 4 && hash(i, j, 7103 + f) < 0.6) b.set(i, j, R.wood[0]);
-  outline(b, R.wood[0]);
+  const rot = f * TAU / 16, put = (x, y, c) => { const X = Math.round(x), Y = Math.round(y); if (X >= 0 && Y >= 0 && X < 15 && Y < 15) b.set(X, Y, c); };
+  // The dark hollow inside, seen through the gaps, deepest on the side away from the light.
+  for (let j = 3; j <= 12; j++) for (let i = 3; i <= 12; i++) { const r = Math.hypot(i - 8, j - 8.2); if (r <= 3.4 && hash(i, j, 7103 + f) < 0.75 - r * 0.1) b.set(i, j, R.wood[r < 1.6 ? 0 : 1]); }
+  // Stems: great circles round the ball at a few tilts. Two behind, broken, in shade; four in front over
+  // them, lit by how they face the light. What lies between is see-through.
+  const ring = (az, tl, front, k) => { for (let s = 0; s < 72; s++) {
+    const t = s / 72 * TAU, x0 = Math.cos(t), y0 = Math.sin(t) * Math.cos(tl), z = Math.sin(t) * Math.sin(tl);
+    if ((z > 0) !== front || (!front && hash(s >> 2, k, 7104) < 0.4)) continue;
+    const a = az + rot, x = x0 * Math.cos(a) - y0 * Math.sin(a), y = x0 * Math.sin(a) + y0 * Math.cos(a), r = 5.9;
+    const lit = -0.6 * x - 0.6 * y + 0.5 * z;
+    put(7 + x * r, 7.2 + y * r * 0.97, !front ? R.wood[1] : lit > 0.78 ? R.wood[4] : lit > 0.2 ? R.wood[3] : R.wood[2]);
+  } };
+  for (let k = 0; k < 2; k++) ring(k * 1.7 + 0.9, 1.1, false, k);
+  for (let k = 0; k < 4; k++) ring(k / 4 * Math.PI + 0.5 * hash(k, 1, 7101), 0.75 + 0.7 * hash(k, 2, 7101), true, k);
+  outline(b, (x, y) => Math.hypot(x - 7, y - 7.2) > 5.4 ? R.wood[0] : 0);
+  // Stray twigs sticking out past the rim, thin and dark, so its edge is spiky rather than round.
+  for (let k = 0; k < 9; k++) { const a = (k + 0.6 * hash(k, 3, 7102)) / 9 * TAU + rot, x = Math.cos(a), y = Math.sin(a), n = 1 + (hash(k, 4, 7102) < 0.5 ? 1 : 0); for (let d = 0; d < n; d++) put(7 + x * (7 + d), 7.2 + y * (7 + d), R.wood[d ? 1 : 0]); }
   return b;
 }
 // A sprite seen only in part: each pixel shows where the dither is under a, so it can fade in and out.

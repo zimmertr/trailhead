@@ -78,7 +78,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **D08 Boulders, Logs and Shrubs** - `sprites.js` (`makeBoulder`, `makeLog`, `makeShrub`, `makeBush`, `makeHuckleberry`, `makeFern`).
 - [x] **D09 The Lookout, the Tent and the Journal** - `sprites.js` (`makeLookout`, `makeTent`, `makeJournal`).
 - [x] **D10 Clouds** - `sprites.js` (`makeCloud`).
-- [ ] **D11 Sage, Tumbleweeds and the Dry Country's Plants** - `scenery.js` (`sageBush`), `events.js`.
+- [x] **D11 Sage, Tumbleweeds and the Dry Country's Plants** - `scenery.js` (`sageBush`), `events.js`.
 - [ ] **D12 The Small Animals** - squirrels, chipmunks, birds, the slug. `mapfauna.js`, `sprites.js`.
 
 ### The Rest of the Scenes
@@ -310,3 +310,10 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - D10, a call: the lenticular cloud over Mount Monolith (`events.js`) is drawn separately and still dithers; it was left alone, since it fades in and out through the dither.
 - D10, a call: `ground.png` was rebaked; its pixels are identical. A first push kept the old file, and CI failed every browser test because the bake carries a hash of the source it was made from; the rebaked file is committed now.
 - D10: frame time 13.3 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- D11, the before: the sage bushes (`sageBush`, three drawings planted thousands of times over the dry side) were smooth grey-green ovals outlined all round, so the flats read as a field of stones. The tumbleweed (`weed` in `events.js`) was a dense brown ball of strokes with a dark outline: it read, but as a burr. The sage-coloured flecks in the dry ground itself (`land.js`) were left alone.
+- D11, the pictures: 13 in two rounds. The style model drew agave fans for sage and wagon wheels for tumbleweeds in round 1. Qwen's round 1 drew a good tumbleweed (seed 1) but sage like frosted little trees; round 2 asked for low domes twice as wide as tall, and Qwen's seed 5 was picked: ragged domes pale on the upper left, dark olive on the lower right, dark gaps, grey stems at the foot. The prompts are in `design/art/D11/log.jsonl`.
+- D11, a call: `sageBush` keeps its 11 by 7 size, foot and seeds. Four lobes heap a dome; each pixel takes its topmost lobe's shading (pale on the lobe's upper left) plus the whole bush's, darker to the lower right and the foot. Some rim pixels above the foot are left out for the broken edge, a few inside are dark gaps, and two warm grey stems show under the crown. Only the lower right edge is outlined, so the lit side stays soft against the grass. A first pass left out too much of each lobe's rim and shrank the bush to a lump; a second was too dark to show its lit side.
+- D11, a call: `weed` keeps its 15 by 15 size and its four turns. Six great circles wind round the ball (two behind, broken and in shade; four in front, lit by how each point faces the upper left), over a sparse dark hollow set to the lower right, with the rim outlined in the darkest wood and nine thin twigs drawn past it after the outline. A first pass with eleven circles filled the ball solid; a solid dark core read as a hole, like a doughnut; without the twigs its edge was round, so on the pale Palouse it read as a pale ball, not a tumbleweed.
+- D11, a call: the new tumbleweed is lighter than the old, so it stands out a little less against the Palouse on a phone; its dark rim and twigs keep it visible, and it reads as a tumbleweed where the old one read as a burr.
+- D11, a call: `ground.png` was rebaked and committed; its pixels are identical.
+- D11: frame time 11.9 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.

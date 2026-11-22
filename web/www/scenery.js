@@ -1,6 +1,6 @@
 // Scenery drawings shared by the world map: sea stacks, sagebrush, charred snags and the gold big-leaf
 // maples along the forest trail. They came out of round 3's terrain.js unchanged.
-import { clamp, sq, frac, rng, hash, vnoise, R, pick, BM, outline, INK } from './core.js';
+import { sq, frac, rng, hash, vnoise, R, pick, BM, outline, INK } from './core.js';
 import { clump, makeSnag } from './sprites.js';
 
 function blobTree(seed, name, H, trunk, n, r0) {
@@ -49,10 +49,29 @@ function seaStack(seed, H, W) {
   return b;
 }
 
+// A sagebrush (art pass D11, design/art/D11): a low ragged dome a little wider than tall, heaped from
+// a few lobes of small leaf clumps with a broken, twiggy edge. Each lobe is pale on its upper left, the
+// whole bush darkens to the lower right and toward its foot, with dark gaps between the clumps, and two
+// or three grey woody stems show under the crown. Only its lower right edge is outlined, so the lit side
+// stays soft against the dry grass.
 function sageBush(seed) {
   const b = new BM(11, 7); b.ox = 5; b.oy = 6;
-  for (let y = 0; y < 6; y++) for (let x = 0; x < 11; x++) { const nx = (x - 5) / 5, ny = (y - 4) / 3.4; if (nx * nx + ny * ny > 1 + 0.4 * (hash(x, y, seed) - 0.5)) continue; b.set(x, y, R.sage[clamp(Math.round(2.2 - nx * 1.2 - ny * 1.4 + (hash(x, y, seed + 1) - 0.5)), 1, 3)]); }
-  outline(b, R.sage[0]);
+  const lobes = [[5, 2.8, 3.1], [2.4 + hash(seed, 1, 851), 3.4, 2.5], [7.7 - hash(seed, 2, 851), 3.3, 2.6], [3.8 + 2.4 * hash(seed, 3, 851), 1.6, 2]];
+  for (let y = 0; y < 6; y++) for (let x = 0; x < 11; x++) {
+    let best = null; for (const L of lobes) { const d = Math.hypot(x - L[0], (y - L[1]) * 1.15) / L[2]; if (d <= 1 && (!best || L[1] < best[0][1] - 0.01 || d < best[1])) best = [L, d]; }
+    if (!best) continue;
+    const [L, d] = best, edge = d > 0.86;
+    // The broken edge: some of a lobe's rim is gaps between twigs.
+    if (edge && y < 4 && hash(x, y, seed + 7) < 0.22) continue;
+    const lx = (x - L[0]) / L[2], ly = (y - L[1]) / L[2], gx = (x - 5) / 5, gy = (y - 2.5) / 3.5;
+    const v = 0.74 - 0.32 * lx - 0.3 * ly - 0.26 * gx - 0.3 * gy + 0.22 * (hash(x, y, seed + 1) - 0.5);
+    const gap = !edge && v < 0.62 && hash(x, y, seed + 3) < 0.1;
+    b.set(x, y, gap ? R.sage[0] : R.sage[v > 0.78 ? 3 : v > 0.5 ? 2 : v > 0.24 ? 1 : 0]);
+  }
+  // The woody stems under the crown, and its dark lower right edge.
+  for (const sx of [4, 6 + (hash(seed, 4, 851) < 0.5 ? 0 : 1)]) for (let y = 4; y < 7; y++) if (!b.get(sx, y) || y > 4) b.set(sx, y, R.gold[y === 6 ? 1 : 2]);
+  if (hash(seed, 5, 851) < 0.6) b.set(5, 6, R.gold[1]);
+  outline(b, (x, y) => (x > 5 || y > 3) && y < 6 ? R.sage[0] : 0);
   return b;
 }
 // The burn's darker dead trees (A13): charred black, one in three still in its bark.
