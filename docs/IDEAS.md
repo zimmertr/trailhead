@@ -457,3 +457,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Beam on the Runner** (round 6, D4). When he runs through a shaft, he could light up a step for the moment he is in it, so the light reads as in the air between you and him.
 - **Morning Mist in the Shafts** (round 6, D4). Right after sunrise the shafts could be thicker and the dust denser, thinning as the day goes on.
 - **Build the World Off the Main Thread** (round 6, D4 CI). The world's build blocks the page for about 6 s under Lighthouse's throttling, and Largest Contentful Paint sits near its 3 s budget. Building the land in a worker, or in slices between frames, would give the page room and stop the flaky runs.
+- **A Rock Rolls in the Talus** (round 6, E1). Now and then a block he hops onto could rock under his foot with a clack, as loose talus does.
+- **Pika in the Talus** (round 6, E1). A pika could call from between the blocks as he crosses, and dart into a gap; held for TJ, since a pika is already a find at the lake.

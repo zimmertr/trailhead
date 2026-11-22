@@ -20,11 +20,13 @@ const T_UP = 0.5, T_STAND = 0.5, T_SLIDE = 2.4, T_OUT = 0.7;
 // what kind of ground it is, and how many seconds of walking it holds. `ice` lists the walls of ice
 // by the x of their foot and their top; `slip` names the wall and the move on which a foot will not stick.
 const ROUTES = {
-  // Bluebird Forecast, the weather window (K2, redone in round 5 for T50): drizzle and low cloud at the
-  // foot. He sits it out under a boulder (`wait`: where he sits, and for how many seconds) with the
-  // forecast open on his phone. The rain stops and the cloud lifts as it said, and he scrambles up dry
-  // rock on hands and feet, slab after slab with a ledge between, to a clear and sunny summit.
-  bluebird: { kind: 'ridge', secs: 13, sx: 600, w: 1300, dry: true, wait: [54, 7.5], pts: [[0, 0], [40, -4], [76, -10], [98, -30], [116, -32], [142, -54], [154, -57], [176, -78], [196, -80], [218, -102], [232, -104], [258, -124], [278, -127], [300, -150], [314, -152], [338, -170], [356, -173], [378, -196], [394, -198], [420, -218], [434, -221], [456, -244], [474, -246], [498, -266], [514, -269], [540, -288], [566, -294], [600, -300], [642, -300], [670, -262], [740, -160], [840, -20], [940, 120]] },
+  // Bluebird Forecast, the weather window (K2, redone in round 5 for T50, and in round 6 for note 15): drizzle
+  // and low cloud at the foot. He sits it out under a boulder (`wait`: where he sits, and for how many seconds)
+  // with the forecast open on his phone. The rain stops and the cloud lifts as it said. Then he hops from block
+  // to block across a talus field (`talus`), scrambles up a gully (`gully`) and out onto the rib beside it
+  // (`rib`) with his hands on the rock, and near the top steps across a gap with air under it (`gap`), to the
+  // weather station on a clear and sunny summit.
+  bluebird: { kind: 'ridge', secs: 16, sx: 600, w: 1300, dry: true, wait: [54, 7.5], talus: [96, 252], gully: [252, 394], rib: [394, 526], gap: [526, 540], pts: [[0, 0], [40, -4], [76, -10], [96, -14], [130, -24], [170, -36], [210, -50], [252, -62], [270, -82], [288, -104], [304, -112], [322, -138], [338, -148], [356, -176], [372, -184], [394, -212], [410, -222], [428, -246], [446, -252], [466, -270], [486, -276], [506, -292], [526, -296], [540, -297], [566, -304], [600, -306], [642, -306], [670, -266], [740, -160], [840, -20], [940, 120]] },
   // TJs-Kubernetes-Service, the icefall (K3): among leaning seracs, over a snow bridge, across a ladder laid
   // over a crevasse, up one tall wall of ice with tools (two shorter steps until round 5, T53), and over two
   // ladders lashed end to end. `xings` lists
@@ -65,6 +67,13 @@ function sagAt(g, x, mx) {
 // How much of the knife-edge there is at x: none off it, all of it along it.
 const knifeK = (cfg, x) => cfg.knife ? smooth(cfg.knife[0] - 30, cfg.knife[0] + 20, x) * (1 - smooth(cfg.knife[1] - 20, cfg.knife[1] + 30, x)) : 0;
 const wallAt = (cfg, x) => (cfg.walls || []).find(w => x > w[0] - 0.5 && x < w[1] + 0.5);
+// The talus field's blocks (round 6, note 15), each [centre, half width, top], laid by rule along the field, so
+// the painter draws them and he hops from top to top on the same ones.
+const talusOf = cfg => cfg.talusBlocks || (cfg.talusBlocks = (() => { const out = [];
+  for (let x = cfg.talus[0] + 8, i = 0; x < cfg.talus[1] - 6; i++) { const hw = 5 + Math.round(hash(i, 1, 851) * 8); out.push([x, hw, Math.round(hOf(cfg.pts, x) - 3 - hash(i, 2, 851) * 10)]); x += hw + 2 + Math.round(hash(i, 3, 851) * 7); }
+  return out; })());
+// The back wall of the gully at x: how far it stands above the line he climbs, tapering in at both ends.
+const gullyWall = (cfg, x) => !cfg.gully || x <= cfg.gully[0] || x >= cfg.gully[1] ? 0 : Math.round((22 + 8 * vnoise(x / 13, 4, 852)) * Math.sin(Math.PI * (x - cfg.gully[0]) / (cfg.gully[1] - cfg.gully[0])) ** 0.5);
 const hOf = (pts, x) => { if (x <= 0) return 0; for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i]; return lerp(y0, y1, (x - x0) / (x1 - x0)); } return pts[pts.length - 1][1]; };
 
 // One column of a crevasse seen from the side, cut into the ground already painted there: a slot whose
@@ -106,6 +115,31 @@ function shelter(S, cfg, seed) {
       const d = y - top, e = under - y;
       S.set(x + OFF, y, d === 0 || x === x1 || x === x0 || (roof != null && e === 0) ? INK : roof != null && e < 6 ? R.granite[e < 3 ? 0 : 1] : d < 2 ? R.granite[4] : crag(x, y, x + OFF, seed + 131, 0.78 - 0.5 * d / (under - top + 1), true));
     }
+  }
+}
+
+// The talus field (round 6, note 15): granite blocks fallen from the face, each lit on its top and its upslope
+// side and shaded on the other, with a dark outline, lying on and against one another.
+function talusField(S, cfg, seed) {
+  // A row of blocks further back first, darker and a little higher up the slope, so the field reads as a
+  // jumble, then the blocks he hops on in front of them.
+  const back = []; for (let x = cfg.talus[0] + 2, i = 0; x < cfg.talus[1] + 6; i++) { const hw = 4 + Math.round(hash(i, 4, 859) * 7); back.push([x, hw, Math.round(hOf(cfg.pts, x) - 6 - hash(i, 5, 859) * 12), true]); x += hw + 1 + Math.round(hash(i, 6, 859) * 6); }
+  for (const [cx, hw, top, far] of [...back, ...talusOf(cfg)]) {
+    const tilt = (hash(cx, far ? 2 : 1, seed + 854) - 0.5) * 0.9, lean = (hash(cx, 3, seed + 854) - 0.5) * 3;
+    for (let dx = -hw; dx <= hw; dx++) {
+      const x = cx + dx, sx = x + OFF, edge = Math.max(0, Math.abs(dx) - (hw - 3)), t0 = Math.round(top + tilt * dx + edge * (1.2 + lean * Math.sign(dx) * 0.3) * edge * 0.6), bot = Math.round(hOf(cfg.pts, x)) + 4;
+      for (let y = t0; y <= bot; y++) { const e = Math.abs(dx) === hw, k = 0.03 * (y - t0) + (far ? 0.2 : 0);
+        S.set(sx, y, y === t0 || e ? INK : y === t0 + 1 ? R.granite[far ? 3 : 4] : dx > hw - 3 ? R.granite[0] : pick('granite', 0.66 - 0.28 * (dx / hw) - k + 0.16 * (vnoise(x / 3, y / 3, seed + 855) - 0.5), sx, y, 0.8)); }
+    }
+  }
+}
+// The gully (round 6, note 15): its back wall stands above the line he climbs, deep in shade and darker toward
+// its foot, split by cracks that run down it, with a lit lip along its top. In the face's own tones it read as
+// more ground, with him climbing inside the rock.
+function gullyRock(S, cfg, seed) {
+  for (let x = cfg.gully[0]; x <= cfg.gully[1]; x++) { const h = gullyWall(cfg, x); if (!h) continue; const y0 = Math.round(hOf(cfg.pts, x)), sx = x + OFF;
+    for (let y = y0 - h; y < y0 - 1; y++) { const d = y - (y0 - h), crack = Math.abs(frac(x / 11 + 0.6 * vnoise(y / 9, x / 30, seed + 856)) - 0.5) < 0.05;
+      S.set(sx, y, d === 0 ? INK : d < 2 ? R.granite[3] : d < 4 ? R.granite[1] : crack || bayer(sx, y) < 0.25 + 0.2 * (y - (y0 - h)) / h ? INK : R.granite[0]); }
   }
 }
 
@@ -167,12 +201,15 @@ function paint(cfg, seed) {
       const d = y - y0; let c;
       // The knife-edge is a thin fin: its face fades into the haze of the air under it.
       if (d > kd || (kw > 0 && d > kd - 30 && bayer(sx, y) > (kd - d) / 30)) { S.set(sx, y, hazeAt(x, y, sx, seed)); continue; }
-      if (inGap && d < 80) { const e = Math.min(x - gap[0], gap[1] - x); if (e > 3 + d * 0.06 + 2 * vnoise(y / 5, x, seed + 1)) continue; c = pick('glac', 0.42 - d * 0.006 + (x - gap[0] < 6 ? 0.2 : -0.1), sx, y); }
+      if (inGap && d < (cfg.dry ? 150 : 80)) { const e = Math.min(x - gap[0], gap[1] - x); if (e > 3 + d * 0.06 + 2 * vnoise(y / 5, x, seed + 1)) continue; c = pick('glac', 0.42 - d * 0.006 + (x - gap[0] < 6 ? 0.2 : -0.1), sx, y); }
       else if (far && d > 3 + 5 * vnoise(sx / 5, y / 9, seed + 5) && vnoise(sx / 7, y / 26, seed + 10) > 0.3) c = Math.abs(frac(sx / 9 + vnoise(sx / 30, y / 30, seed + 11)) - 0.5) < 0.05 ? R.granite[0] : pick('granite', 0.34 + 0.3 * (vnoise(sx / 2.4, y / 14, seed + 6) - 0.5) - d * 0.0015, sx, y, 0.8);
       else if (!far && d > 9 && kind !== 'wands' && fbm((sx + y * 1.6) / 46, (y - sx * 0.25) / 9, seed + 5, 3) > 0.63) c = pick('granite', 0.62 - 0.5 * frac((y - sx * 0.25) / 9) + 0.2 * (vnoise(sx / 3, y / 3, seed + 6) - 0.5), sx, y, 0.8);
       else c = d < 1 ? R.snow[far ? 3 : 4] : far ? pick('glac', 0.72 - d * 0.004 + 0.12 * (vnoise(sx / 9, y / 4, seed + 7) - 0.5), sx, y, 0.6) : (Math.abs(frac((y + sx * 0.3) / 13 + 0.4 * vnoise(sx / 20, y / 20, seed + 8)) - 0.5) < 0.03 && d > 4 ? R.snow[2] : pick('snow', 0.86 + Math.max(-3, slope) * 0.02 - Math.max(0, y - soft) * 0.002 + 0.14 * (vnoise(sx / 8, y / 5, seed + 9) - 0.5), sx, y, 0.5));
       // Dry rock: big slabs paler and darker by turns, lit along the top, with lichen here and there.
       if (cfg.dry) c = d < 1 ? R.granite[3] : d < 2 ? R.granite[2] : vnoise(x / 2.2, y / 2.2, seed + 82) > 0.86 && vnoise(x / 20, y / 20, seed + 83) > 0.55 ? R.ochre[1] : crag(x, y, sx, seed + 80, 0.32 + 0.4 * fbm(x / 46, y / 30, seed + 81, 2) + (d < 10 ? 0.12 : 0), true);
+      // In the gully the rock lies in shade with loose stones on its floor; along the rib it catches the light.
+      if (cfg.gully && x > cfg.gully[0] && x < cfg.gully[1] && d >= 1 && d < 26 + 10 * vnoise(x / 9, 6, seed + 858) && bayer(sx, y) > (d - 16) / 14) c = d < 3 && hash(sx, y, seed + 853) < 0.3 ? R.granite[2] : crag(x, y, sx, seed + 80, 0.16 + 0.3 * fbm(x / 46, y / 30, seed + 81, 2), true);
+      if (cfg.rib && x > cfg.rib[0] && x < cfg.rib[1] && d >= 1 && d < 5) c = d < 2 ? R.granite[4] : R.granite[3];
       if (cfg.zig) c = turf(x, y, sx, d, seed);
       // Its face is fluted: ribs that catch the light and dark runnels between them, straight down.
       if (kn > 0.3 && d >= 2) { const fl = vnoise(x / 3.2 + 0.6 * vnoise(y / 24, x / 9, seed + 71), y / 70, seed + 72); c = d < 3 && vnoise(x / 4, 9, seed + 63) > 0.5 ? R.snow[3] : fl > 0.74 ? R.granite[4] : fl < 0.24 ? R.granite[0] : pick('granite', 0.56 + 0.4 * (fl - 0.5) - 0.2 * d / kd, sx, y, 0.8); }
@@ -221,6 +258,8 @@ function paint(cfg, seed) {
     }
   }
   if (cfg.wait) shelter(S, cfg, seed);
+  if (cfg.talus) talusField(S, cfg, seed);
+  if (cfg.gully) gullyRock(S, cfg, seed);
   if (cfg.zig) switchbacks(S, cfg, seed);
   // Tufts of grass in the cracks along the top of the dry rock, never on the walls.
   if (cfg.dry || cfg.zig) for (let x = 4; x < sxOf(cfg) + 40; x++) if (!wallAt(cfg, x) && !wallAt(cfg, x + 2) && hash(x, 1, seed + 84) > 0.88) { const y0 = Math.round(hOf(pts, x)) - 1; for (let k = 0; k < 3; k++) { const hgt = 1 + Math.round(hash(x, k + 2, seed + 84) * 2); for (let j = 0; j < hgt; j++) S.set(x + OFF + k - 1, y0 - j, j === hgt - 1 ? R.grass[3] : R.grass[1]); } }
@@ -730,6 +769,8 @@ export function makeClimb() {
   fig.scramble = [[[5, 4], [-1, 8.5], [5, -1], [3, 1]], [[4, 5.5], [1, 8], [3, 1], [5, -1]], [[6, 3.5], [-2, 8.5], [5, 0], [4, -1]], [[3, 6.5], [0, 8.5], [4, 0], [5, 0]]].map(([f0, f1, h0, h1]) => sideFig('alpine', { feet: [f0, f1], hands: [h0, h1], lean: 7, crouch: 3, look: 'up' }));
   // Crossing a ledge between two slabs: half upright, a hand already out for the next hold.
   fig.ledge = [[[3, 8.5], [-2, 8.5], [5, 1], [2, 4]], [[1, 8.5], [-3, 7.5], [5, 2], [3, 3]], [[-1, 8.5], [2, 7.5], [4, 1], [2, 4]], [[2, 8.5], [-1, 8.5], [5, 2], [3, 3]]].map(([f0, f1, h0, h1]) => sideFig('alpine', { feet: [f0, f1], hands: [h0, h1], lean: 4, crouch: 2, look: 'up' }));
+  // The exposed step: legs wide across the gap, the front hand on the rock ahead, looking down at his feet.
+  fig.stride = sideFig('alpine', { feet: [[8, 6], [-7, 8]], hands: [[7, 0], [-3, 3]], lean: 3, crouch: 1, look: 'down' });
   fig.shelter = sideFig('alpine', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: [[3, 3], [2, 3]] });
   fig.phone = sideFig('alpine', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: [[4, 1], [2, 3]], look: 'down', elbowFwd: true, held: phone });
   const tent = makeTent('tent'), flag = [makeFlag(0), makeFlag(1)], bb = [0, 1, 2, 3].map(bluebird), bbSit = [bluebird('sit'), bluebird('call')];
@@ -804,6 +845,10 @@ export function makeClimb() {
       const a = arc(id), x = xAt(a, lerp(arcAt(a, leg.x0), arcAt(a, leg.x1), clamp((tau - leg.t0) / Math.max(1e-6, leg.t1 - leg.t0), 0, 1))); let y = hOf(pts, x), mode = 'walk';
       // On Bluebird Forecast's dry rock he walks the ledges and goes up the slabs on hands and feet.
       if (cfg.kind === 'ridge') mode = !cfg.wait ? 'wind' : x < cfg.wait[0] + 20 || x > cfg.sx - 36 ? 'hike' : hOf(pts, x + 3) - hOf(pts, x - 3) < -3 ? 'scramble' : 'ledge';
+      // Across the talus he hops from the top of one block to the next.
+      if (cfg.talus && x > cfg.talus[0] && x < cfg.talus[1]) { const B = talusOf(cfg), i = B.findIndex((b, k) => k < B.length - 1 && x >= b[0] && x < B[k + 1][0]);
+        if (i >= 0) { const b0 = B[i], b1 = B[i + 1], v = (x - b0[0]) / (b1[0] - b0[0]); y = lerp(b0[2], b1[2], v) - Math.sin(v * Math.PI) * 5; mode = v > 0.2 && v < 0.8 ? 'jump' : 'ledge'; }
+        else if (x >= B[B.length - 1][0]) { const b = B[B.length - 1]; y = lerp(b[2], hOf(pts, cfg.talus[1]), clamp((x - b[0]) / (cfg.talus[1] - b[0]), 0, 1)); } }
       if (wallAt(cfg, x)) mode = 'climb';
       if (cfg.knife && knifeK(cfg, x) > 0.5) mode = cfg.astride && x > cfg.astride[0] && x < cfg.astride[1] ? 'astride' : 'edge';
       const xg = xingAt(cfg, x, 3);
@@ -812,6 +857,8 @@ export function makeClimb() {
       if (cfg.gap && x > cfg.gap[0] - 4 && x < cfg.gap[1] + 2) {
         const u = (x - cfg.gap[0] + 4) / (cfg.gap[1] - cfg.gap[0] + 6);
         if (cfg.kind === 'bridge') { mode = 'jump'; y = lerp(hOf(pts, cfg.gap[0] - 4), hOf(pts, cfg.gap[1] + 2), u) - Math.sin(u * Math.PI) * 16; }
+        // On Bluebird Forecast's exposed step he strides across the gap, one hand on the rock ahead.
+        else if (cfg.kind === 'ridge') { mode = 'stride'; y = lerp(hOf(pts, cfg.gap[0] - 4), hOf(pts, cfg.gap[1] + 2), clamp(u, 0, 1)); }
         else { mode = 'crawl'; y = lerp(hOf(pts, cfg.gap[0]), hOf(pts, cfg.gap[1]), clamp((x - cfg.gap[0]) / (cfg.gap[1] - cfg.gap[0]), 0, 1)) - 2; }
       }
       return { ph: 'up', x, y, mode };
@@ -1100,6 +1147,7 @@ export function makeClimb() {
       else if (me.mode === 'scramble' || me.mode === 'ledge') bm = fig[me.mode][env.moving ? Math.floor(Math.abs(d) / 3) & 3 : 0];
       else if (me.mode === 'jump') bm = fig.jump;
       else if (me.mode === 'crawl') bm = fig.crawl[Math.floor(d / 4) & 1];
+      else if (me.mode === 'stride') bm = fig.stride;
       else if (T) {
         // Running, in his running kit: a puff of dust behind his heel at each stride.
         const run = me.d != null ? me.d : Math.abs(d); bm = env.moving ? T.run[Math.floor(run / 4.5) % 6] : T.idle; flip = !!me.back;

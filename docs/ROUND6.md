@@ -234,7 +234,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 **E. Sideproject Spires**
 
-- [ ] E1. Bluebird Forecast: talus, scramble, one exposed step (note 15).
+- [x] E1. Bluebird Forecast: talus, scramble, one exposed step (note 15).
 - [ ] E2. hevy-garmin-sync: the snow couloir, no watch, the bench and its sync notice (note 16).
 - [ ] E3. trailhead: twice the pace, the ridge cut short, binoculars across the whole map (note 17).
 - [ ] E4. yggdrasil: real ladder climbing (note 19).
@@ -313,7 +313,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **D3 done.** The banana slug is about twice its old size (19 px long, 7 tall, round 5: 9 by 4): banana yellow with dark spots, the mantle humped over its front third with its breathing pore, a keel down to a pointed tail, a frilled foot and two short feelers. Its two long eyestalks, each one pixel thin with a dark eye at the tip, wave through four frames, and it draws them in and bunches up when clicked. A wet line of slime with a silver sheen and glints that come and go runs back along the trail behind it, drying patchy further back. He hops it higher (15 px) to clear the stalks. Day and Dusk checked.
 - **D4 done (issue #36).** The forest's shafts of light now show: each turns what it crosses toward a warm white (round 5 lightened every other pixel a step, which hardly showed on the pale mist), strongest at its core, softer at its edge, with a faint glow round it, and each brightens and dims on its own slow clock as if the crowns were moving far overhead. They still land on the ground where round 5's bands of light are. At sunset they turn gold, and they fade out as the light goes, so at Dusk the forest is dark with its fireflies, foxfire and the deer's eyes. Dust wanders and twinkles inside the light and spores sink slowly through it, drops fall from the moss on the limbs with a splash where they land, and a few pale moths flutter in loops at Dusk. Under the marine layer the shafts and the dust go with the sun. Day, sunset, Dusk and phone checked against round 5.
 - **Section D done.**
-- Next: E1.
+- **E1 done.** Bluebird Forecast keeps its start: drizzle, the boulder and the forecast on his phone until it clears. Then he hops from block to block across a talus field of granite blocks lying on and against one another, scrambles hands on rock up a gully (its back wall a dark slot above him, with a lit lip) and out along the rib beside it, and near the top takes one long step across a cleft that opens to the sky below, onto the summit block and the weather station. Day, Dusk and phone checked against round 5.
+- Next: E2.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -443,6 +444,10 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - D4, a call: the shafts' tints are matched in the Day palette only; matched in both palettes (as the fog's are) they came out lavender at sunset.
 - D4, frame time: the forest at 1920 by 1080 by Day 5.6 ms before, 6.3 after; on a phone 6.4 before, 5.6 after (the shafts are worked out once a frame per slanted column, not at every pixel). The zoomed-out map at Dusk measured 13.4 ms.
 - D4, CI: Lighthouse failed once on Largest Contentful Paint (12.5 s against 3 s, all three runs) and passed when the job was run again. Locally the same build measures 1.5 to 2.9 s with about 6 s of main-thread blocking while the world is built, so the budget is close and a slow runner can miss it. Left as it is; an idea in IDEAS.md.
+- E1, a call: the route takes 16 s of climbing (round 5: 13), since it now crosses the talus before the scramble starts.
+- E1, a call: the gully is drawn as its back wall in deep shade standing above his line; in the face's own tones it read as more ground, with him climbing inside the rock.
+- E1, a call: the exposed step is the existing gap mechanism (the one trailhead's notch uses), drawn as a cleft open to the sky 150 px down, with a wide-legged stride pose and the climbs' step sound.
+- E1, frame time: the climb at 1920 by 1080 5.3 ms before, 5.0 after. The zoomed-out map at Dusk 13.5 ms.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:
