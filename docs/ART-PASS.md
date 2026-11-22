@@ -47,7 +47,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A11 Moraine Textures** - the moraine band round Monolith, the glacier's moraines and the Spires' shelf. `land.js` (`colour`, the moraine material).
 - [x] **A12 Moraine Tarns** - the tarns at the foot of Monolith's glaciers and on the larch benches. `monolith.js` (`moraineLakes`), `land.js` (the tarns).
 - [x] **A13 The Burned Trees** - Postmortem Burn's charred snags. `sprites.js` (`makeSnag`), `scenery.js`.
-- [ ] **A14 The Orca Pod** - the orcas in the sea. `critters.js` (`orcas`, `orcaBack`).
+- [x] **A14 The Orca Pod** - the orcas in the sea. `critters.js` (`orcas`, `orcaBack`).
 - [ ] **A15 Tide Pools** - the pools left on the beach at low tide. `critters.js` (`tidePools`).
 - [ ] **A16 Driftwood** - the logs along the beach. `sprites.js` (`makeDriftwood`).
 - [ ] **A17 Marmots** - the hoary marmots on the map and in the scenes. `critters.js`, `fauna.js` (`marmot`).
@@ -171,3 +171,8 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A13, a call: a dead tree is a trunk two pixels wide below and one above, lit on its left and dark on its right; silver ones have paler streaks, charred ones a few patches of bronze bark, bark ones are brown. The top is a fine spike, a snapped jagged end or a crown of stubs, with a few short stubs angled up lower down. The black edge is drawn only on the shaded right, so close trunks read one by one. The trees stand exactly where they did.
 - A13, a call: two of the five snag shapes the land places are charred, the rest silver, and one in three of the burn's darker trees keeps its bark, so the burn reads as burned and not as a grey wood.
 - A13: frame time 11.5 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
+- A14, the before: each orca's back was a flat dark navy arc with a black top row and a two-pixel grey mark, and every fin was solid black, so a surfacing orca read as a dark blot with a stick in it.
+- A14, the pictures: 12 in all. The style model drew whole orcas leaping, and Qwen's first round a crowd of them in the dark, so round 2 asked Qwen for exactly four with only backs and fins above the water. Seed 6 was picked: the bull's tall straight fin, the cows' smaller curved ones, the white eye patch at the head end, the grey saddle behind each fin, a glossy highlight along each back and white water at the bow. The prompts are in `design/art/A14/log.jsonl`.
+- A14, a call: the back is lit along its top on the sun's side and dark on the other, with a second lit row behind the fin, the grey saddle drawn as a sloping patch behind the fin, and the white eye patch at the head end once it is well up. Each fin is lit on its left edge. A little white water breaks at the bow and a thin, broken wake trails behind. The spyhop already shows the eye patch and chin, so it is left as it is.
+- A14, a call: the pod's lane, worked out from the sea's depth, runs along the map's west edge, so the camera, which stops at the edge, only ever shows the orcas there and half cut off. Moving the lane is not an art change, so it is logged as an idea. To find the pod for the before and after, a throwaway copy of the game was told where the pod was; that copy is not in the repo.
+- A14: frame time 11.3 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.

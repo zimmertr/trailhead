@@ -734,15 +734,26 @@ export function makeCritters(W, opts = {}) {
       if (q < 0.45 && hash(Math.floor(s / 4.2), i, 6302) < 0.35) { const k = q / 0.45, hgt = Math.round(3 + 4 * k); for (let j = 0; j < hgt; j++) { if (k > 0.6 && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 3 ? 1 : 0; scr.set(x + 3 - sp, y - 3 - j, R.white[1]); if (sp) scr.set(x + 3 + sp, y - 3 - j, R.white[1]); } }
     });
   }
-  // The back above the water by h (0 to 1): a black arc with the grey saddle behind the fin, the fin on
-  // top, and white water where it cuts the surface.
+  // The back above the water by h (0 to 1). A14, after a picture of four orcas surfacing: a glossy black arc
+  // lit along its top on the sun's side (upper left) and dark on the other, the grey saddle just behind the
+  // fin, the white eye patch at the head end as it comes up, the fin lit on its left edge (the bull's tall
+  // and straight, the cows' smaller and curved back), white water at the bow and a thin wake behind.
   function orcaBack(scr, x, y, h, bull, t, i) {
-    for (let dx = -8; dx <= 8; dx++) { const top = Math.round(h * 3.6 * (1 - (dx / 8.6) ** 2)); for (let j = 1; j <= top; j++) scr.set(x + dx, y - j, j === top ? INK : (dx === -3 || dx === -4) && j >= top - 2 && j < top && h > 0.6 ? R.rock[4] : R.navy[0]); }
-    const fh = Math.round((bull ? 11 : 6) * h), base = y - Math.round(h * 3.6);
-    for (let j = 1; j <= fh; j++) { const lean = bull ? 0 : -Math.round(1.5 * (j / fh) ** 1.5), w = j < fh * 0.55 ? 2 : 1; for (let k = 0; k < w; k++) scr.set(x + 1 + lean - k, base - j, INK); }
-    if (h > 0.5) for (let dx = 4; dx <= 5; dx++) scr.set(x + dx, y - 1, R.white[1]);
+    const N = R.navy, top = dx => Math.round(h * 3.6 * (1 - (dx / 8.6) ** 2));
+    for (let dx = -8; dx <= 8; dx++) { const tp = top(dx); for (let j = 1; j <= tp; j++) {
+      let c = N[0];
+      if (j === tp) c = dx < 2 ? N[2] : INK;
+      else if (j === tp - 1 && dx < -1 && dx > -7) c = N[1];
+      if (h > 0.55 && dx >= -5 && dx <= -2 && j >= tp - 2 && j < tp && dx + (tp - j) > -6) c = j === tp - 1 ? R.rock[4] : R.rock[3];
+      if (h > 0.6 && (dx === 5 || dx === 6) && j === 1) c = R.white[1];
+      scr.set(x + dx, y - j, c); } }
+    const fh = Math.round((bull ? 11 : 6) * h), base = y - top(1);
+    for (let j = 1; j <= fh; j++) { const lean = bull ? 0 : -Math.round(1.6 * (j / fh) ** 1.5), w = j < fh * 0.55 ? 2 : 1;
+      for (let k = 0; k < w; k++) scr.set(x + 1 + lean - k, base - j, w === 2 && k === 1 ? N[2] : w === 1 && j < fh ? N[1] : INK); }
     const beat = Math.floor(t * 6);
+    if (h > 0.4) for (let dx = 7; dx <= 9; dx++) if (hash(dx, beat + i * 9, 6305) < 0.7) scr.set(x + dx, y - (dx === 7 ? 1 : 0), R.white[1]);
     for (let dx = -11; dx <= 11; dx++) if (Math.abs(dx) > 7 - h * 3 && hash(dx, beat + i * 9, 6303) < 0.55) scr.set(x + dx, y, R.white[1]);
+    for (let dx = -16; dx < -9; dx++) if (hash(dx, beat + i * 5, 6306) < 0.35 * h) scr.set(x + dx, y + (dx & 1), R.white[0]);
   }
   // A spyhop: the head rises straight up out of the water, holds and slides back down.
   function spyhop(scr, x, y, v, t) {
