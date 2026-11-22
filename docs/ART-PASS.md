@@ -48,7 +48,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A12 Moraine Tarns** - the tarns at the foot of Monolith's glaciers and on the larch benches. `monolith.js` (`moraineLakes`), `land.js` (the tarns).
 - [x] **A13 The Burned Trees** - Postmortem Burn's charred snags. `sprites.js` (`makeSnag`), `scenery.js`.
 - [x] **A14 The Orca Pod** - the orcas in the sea. `critters.js` (`orcas`, `orcaBack`).
-- [ ] **A15 Tide Pools** - the pools left on the beach at low tide. `critters.js` (`tidePools`).
+- [x] **A15 Tide Pools** - the pools left on the beach at low tide. `critters.js` (`tidePools`).
 - [ ] **A16 Driftwood** - the logs along the beach. `sprites.js` (`makeDriftwood`).
 - [ ] **A17 Marmots** - the hoary marmots on the map and in the scenes. `critters.js`, `fauna.js` (`marmot`).
 - [ ] **A18 Doot Doot and Peevers** - the cats at the Trailhead: Doot Doot a long-haired tortie, Peevers a long-haired Nebelung. `sprites.js` (`makeCat`), `cats.js`.
@@ -176,3 +176,8 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A14, a call: the back is lit along its top on the sun's side and dark on the other, with a second lit row behind the fin, the grey saddle drawn as a sloping patch behind the fin, and the white eye patch at the head end once it is well up. Each fin is lit on its left edge. A little white water breaks at the bow and a thin, broken wake trails behind. The spyhop already shows the eye patch and chin, so it is left as it is.
 - A14, a call: the pod's lane, worked out from the sea's depth, runs along the map's west edge, so the camera, which stops at the edge, only ever shows the orcas there and half cut off. Moving the lane is not an art change, so it is logged as an idea. To find the pod for the before and after, a throwaway copy of the game was told where the pod was; that copy is not in the repo.
 - A14: frame time 11.3 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
+- A15, the before: the pools round the sea stacks at low water (round 5's basins) were clean ovals of pale grey rock round pale, checkered water, so they read as dishes set on the sand.
+- A15, the pictures: 8 in all. The style model's seed 3 was picked: dark rims crusted with barnacles, olive weed hanging off their near sides onto the sand, clear turquoise water deeper in the middle, with sea stars, urchins and pink coralline. Qwen drew a whole field of tiny pools from high up on every seed and was set aside. The prompts are in `design/art/A15/log.jsonl`.
+- A15, a call: the rim's lit far side is grey rock crusted with white barnacles and dark mussels, its sides and shaded near side darker with a few barnacles, and olive weed hangs off the near side over the sand in uneven strands. The water is the sea's darker teal through the middle and paler toward the edge, with the dark line under the far rim kept, and a few pink coralline pixels round the edge. The life in the pools and the crab are as they were.
+- A15, a call: to see the pools without the shower the renders turn the mist and clouds off (`debug=-mist,-clouds`) and start the low tide (`start=tide`).
+- A15: frame time 11.6 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.

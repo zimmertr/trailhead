@@ -778,11 +778,14 @@ export function makeCritters(W, opts = {}) {
     const px = [];
     for (let dy = -ry - 4; dy <= ry + 4; dy++) for (let dx = -rx - 4; dx <= rx + 4; dx++) {
       if (wet(dx, dy)) { const r = rr(dx, dy), edge = !wet(dx - 1, dy) || !wet(dx + 1, dy) || !wet(dx, dy + 1), under = !wet(dx, dy - 1);
-        px.push([dx, dy, under ? R.sea[1] : edge ? R.sea[4] : r < 0.5 && ((dx + dy) & 1) ? R.sea[2] : R.sea[3]]); at.set(key(dx, dy), 1); continue; }
+        px.push([dx, dy, under ? R.sea[1] : edge ? (hash(x + dx, y + dy, 6116) < 0.12 ? R.pink[1] : R.sea[4]) : r < 0.42 ? R.sea[2] : r < 0.62 && ((dx + dy) & 1) ? R.sea[2] : R.sea[3]]); at.set(key(dx, dy), 1); continue; }
       let near = false; for (let b = -2; b <= 2 && !near; b++) for (let a = -2; a <= 2; a++) if (Math.abs(a) + Math.abs(b) <= 3 && wet(dx + a, dy + b)) { near = true; break; }
-      if (!near) { if (wet(dx, dy - 3) || wet(dx - 1, dy - 3) || wet(dx + 1, dy - 3)) px.push([dx, dy, R.sand[0]]); continue; }
+      // A15, after a picture of tide pools on the Olympic coast: the rim is dark wet rock, its far side lit on top
+      // and crusted with white barnacles and black mussels, its near side in shade with olive weed hanging over
+      // the sand below it.
+      if (!near) { const hang = wet(dx, dy - 3) || wet(dx - 1, dy - 3) || wet(dx + 1, dy - 3); if (hang) px.push([dx, dy, hash(x + dx, 7, 6117) < 0.45 ? R.moss[hash(x + dx, y + dy, 6118) < 0.5 ? 2 : 3] : R.sand[0]]); else if ((wet(dx, dy - 4) || wet(dx, dy - 5)) && hash(x + dx, 7, 6117) < 0.2) px.push([dx, dy, R.moss[2]]); continue; }
       const far = wet(dx, dy + 1) || wet(dx, dy + 2), front = wet(dx, dy - 1) || wet(dx, dy - 2), k = hash(x + dx, y + dy, 6115);
-      px.push([dx, dy, far ? (k < 0.12 ? R.white[0] : wet(dx, dy + 1) ? R.rock[3] : R.rock[4]) : front ? (k < 0.07 ? R.white[0] : wet(dx, dy - 1) ? R.rock[1] : R.rock[0]) : R.rock[k < 0.5 ? 2 : 1]]); }
+      px.push([dx, dy, far ? (k < 0.16 ? R.white[1] : k < 0.26 ? R.jay[0] : wet(dx, dy + 1) ? R.rock[2] : R.rock[3]) : front ? (k < 0.08 ? R.white[0] : k < 0.2 ? R.jay[0] : wet(dx, dy - 1) ? R.rock[1] : R.rock[0]) : k < 0.1 ? R.white[0] : R.rock[k < 0.5 ? 1 : 0]]); }
     return { x, y, rx, ry, life, px, wet }; };
   const bared = (x, y) => { const c = csAt(x, y); return c >= 6 && c - 4 <= EBB - 8; };
   // The pool to find (E7, and round 5's T33: "about twice the size"): one big basin, 27 by 13, beside the
