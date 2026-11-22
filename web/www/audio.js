@@ -192,8 +192,6 @@ export function makeAudio() {
     drizzle: t => { noise(fx, t, 3.2, 0.06, 5200, 0.7, 'bandpass'); for (let i = 0; i < 9; i++) noise(fx, t + 0.2 + i * 0.33 + Math.random() * 0.2, 0.03, 0.05, 2600 + Math.random() * 1800, 5, 'bandpass'); },
     // A bluebird's song: three soft, slurred notes.
     warble: t => [[2300, 1900], [2000, 2500], [2400, 2050]].forEach(([a, b], i) => tone(fx, 'sine', a, t + i * 0.09, 0.08, 0.1, b)),
-    // His watch marking a lap: one short blip.
-    lap: t => tone(fx, 'square', 1760, t, 0.06, 0.07),
     // A phone's notice: two soft rising notes.
     chime: t => { tone(fx, 'sine', 880, t, 0.12, 0.16); tone(fx, 'sine', 1319, t + 0.11, 0.22, 0.16); },
     fall: t => { tone(fx, 'square', 900, t, 0.3, 0.2, 140); noise(fx, t, 0.1, 0.12, 2400, 1, 'bandpass'); },
@@ -222,8 +220,6 @@ export function makeAudio() {
     // An ice tool biting: a short bright tick. And the server rack being hit: a low thump, a crunch and a ring of sheet metal.
     // Two hands meeting.
     slap: t => { noise(fx, t, 0.035, 0.26, 2200, 1.1, 'bandpass'); noise(fx, t, 0.02, 0.1, 5200, 2, 'bandpass'); },
-    // A sports watch: two short high beeps.
-    beep: t => { tone(fx, 'square', 2100, t, 0.07, 0.04, 2100); tone(fx, 'square', 2100, t + 0.14, 0.07, 0.04, 2100); },
     // One stone set down on another: a short dry knock and its echo.
     clack: t => { noise(fx, t, 0.03, 0.2, 1700, 2.5, 'bandpass'); tone(fx, 'triangle', 420, t, 0.04, 0.12, 300); noise(fx, t + 0.06, 0.02, 0.06, 2400, 2.5, 'bandpass'); },
     tink: t => { noise(fx, t, 0.02, 0.09, 6200, 3, 'bandpass'); tone(fx, 'square', 2400, t, 0.03, 0.05, 1900); },

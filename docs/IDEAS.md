@@ -459,3 +459,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Build the World Off the Main Thread** (round 6, D4 CI). The world's build blocks the page for about 6 s under Lighthouse's throttling, and Largest Contentful Paint sits near its 3 s budget. Building the land in a worker, or in slices between frames, would give the page room and stop the flaky runs.
 - **A Rock Rolls in the Talus** (round 6, E1). Now and then a block he hops onto could rock under his foot with a clack, as loose talus does.
 - **Pika in the Talus** (round 6, E1). A pika could call from between the blocks as he crosses, and dart into a gap; held for TJ, since a pika is already a find at the lake.
+- **Spindrift Down the Couloir** (round 6, E2). Now and then a small slough of loose snow could pour down the couloir past him, and he would lean into the axe until it passes.
+- **A Rep Count** (round 6, E2). The set on the bench could count its reps in tiny pixels over his head before the sync notice, in place of the watch's old lap count.

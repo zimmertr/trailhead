@@ -235,7 +235,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 **E. Sideproject Spires**
 
 - [x] E1. Bluebird Forecast: talus, scramble, one exposed step (note 15).
-- [ ] E2. hevy-garmin-sync: the snow couloir, no watch, the bench and its sync notice (note 16).
+- [x] E2. hevy-garmin-sync: the snow couloir, no watch, the bench and its sync notice (note 16).
 - [ ] E3. trailhead: twice the pace, the ridge cut short, binoculars across the whole map (note 17).
 - [ ] E4. yggdrasil: real ladder climbing (note 19).
 
@@ -314,7 +314,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **D4 done (issue #36).** The forest's shafts of light now show: each turns what it crosses toward a warm white (round 5 lightened every other pixel a step, which hardly showed on the pale mist), strongest at its core, softer at its edge, with a faint glow round it, and each brightens and dims on its own slow clock as if the crowns were moving far overhead. They still land on the ground where round 5's bands of light are. At sunset they turn gold, and they fade out as the light goes, so at Dusk the forest is dark with its fireflies, foxfire and the deer's eyes. Dust wanders and twinkles inside the light and spores sink slowly through it, drops fall from the moss on the limbs with a splash where they land, and a few pale moths flutter in loops at Dusk. Under the marine layer the shafts and the dust go with the sun. Day, sunset, Dusk and phone checked against round 5.
 - **Section D done.**
 - **E1 done.** Bluebird Forecast keeps its start: drizzle, the boulder and the forecast on his phone until it clears. Then he hops from block to block across a talus field of granite blocks lying on and against one another, scrambles hands on rock up a gully (its back wall a dark slot above him, with a lit lip) and out along the rib beside it, and near the top takes one long step across a cleft that opens to the sky below, onto the summit block and the weather station. Day, Dusk and phone checked against round 5.
-- Next: E2.
+- **E2 done.** hevy-garmin-sync is a steep couloir of snow between two spires now: their wall of rock towers stands behind the snow along its length, and he climbs in his climbing kit with the ice axe, the axe planted above him and one boot and then the other kicked in, his breath puffing in the cold, a step sound at each kick, the axe now and then, and his steps left in the snow behind him. The watch, the trail run, the switchbacks and the running kit are gone, with the watch's words and its two sounds. On top the weight bench is still the find: a click gets a set on it, and then a small notice over his head shows the Hevy dumbbell, dots running across to a watch while it syncs, and a tick on the watch with a chime. Day, Dusk and phone checked against round 5.
+- Next: E3.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -448,6 +449,11 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - E1, a call: the gully is drawn as its back wall in deep shade standing above his line; in the face's own tones it read as more ground, with him climbing inside the rock.
 - E1, a call: the exposed step is the existing gap mechanism (the one trailhead's notch uses), drawn as a cleft open to the sky 150 px down, with a wide-legged stride pose and the climbs' step sound.
 - E1, frame time: the climb at 1920 by 1080 5.3 ms before, 5.0 after. The zoomed-out map at Dusk 13.5 ms.
+- E2, a call: only the couloir's back wall is drawn (the spires' rock towers behind the snow); its near wall would stand in front of him and hide him, so it is left out.
+- E2, a call: the sync notice has no words, only the dumbbell, the dots and the watch with its tick, so nothing new needs TJ's copy, and it reads at every size; the watch's words (LAP, WORKOUT SYNCED FROM HEVY) went with the watch.
+- E2, a call: crampons are too small to see at the scene's size, so the climb shows them by what he does (kicking steps, the axe); no pixels were added for them.
+- E2, a call: the summit is 312 px up (round 5's run: 220), since a couloir climbs steeply; the climb takes 16 s (15).
+- E2, frame time: the climb at 1920 by 1080 2.5 ms before, 2.1 after. The zoomed-out map at Dusk 12.8 ms.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:

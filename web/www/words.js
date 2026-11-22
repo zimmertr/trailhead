@@ -571,14 +571,6 @@ export const W = {
     "DRAG TO LOOK"
    ]
   },
-  "watch": {
-   "lap": "LAP",
-   "synced": [
-    "WORKOUT",
-    "SYNCED",
-    "FROM HEVY"
-   ]
-  },
   "found": "Found: {name}. {n} of {of} on the kiosk checklist.",
   "allDone": "All three done. The trail register at the Trailhead is yours to sign.",
   "fail": "The world could not be drawn here. The trail map has everything as text.",
