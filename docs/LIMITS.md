@@ -23,3 +23,5 @@ Measured 2026-11-13 on the image https://github.com/zimmertr/trailhead/pull/20 b
 | `/page/` | 40,784 B | 1,979 B | 32,632 B | 1,879 B | 3,420 B | 1,201 to 1,207 ms | 1,201 to 1,207 ms | 0.019 |
 
 The plain page scored 1.0 in every category. The home page scored 1.0 in all but performance (0.68), whose blocking time (6.3 s) is the placeholder's software-rendered WebGL drawing every frame on a throttled runner with no GPU. So the performance score is held on the plain page alone, and the 3D is measured by frame rate and load time instead (PRD section 8). Each byte budget is today's number plus room for a change that pays for itself; the timings are looser, since the runner's CPU is part of them. Re-measure and move a number when a change earns it; never widen one to turn a red run green.
+
+Since 2026-11-21 the PR runs the budgets through yggdrasil's `lighthouse` module, which runs Lighthouse CI on the runner's own Chrome ([record 0016](architectural-decision-records/0016-the-pr-builds-the-images-through-yggdrasils-docker-build-module.md)). `make lighthouse` still runs `@lhci/cli` 0.15.1 in a container, against the same config.

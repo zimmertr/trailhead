@@ -1,6 +1,6 @@
 # 0009. The PR checks build the four images in a job of the repo's own
 
-- Status: Accepted
+- Status: Superseded by [0016](0016-the-pr-builds-the-images-through-yggdrasils-docker-build-module.md)
 - Date: 2026-11-12
 - Decider: git is the source: the author of https://github.com/zimmertr/trailhead/pull/20, under the brief's "Copy their conventions and CI wiring".
 - Issues and PRs: https://github.com/zimmertr/trailhead/pull/20
