@@ -446,3 +446,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Herd Answers the Bull** (round 6, C6). When the bull elk bugles, another bull far off across the parkland could answer a moment later, quieter, and the first could turn his head toward it.
 - **Ravens Play With Anything** (round 6, C6). A raven could drop a twig in the updraft and catch it again, as real ravens do, now and then without a click.
 - **A Marmot Census** (round 6, C6). The kiosk's checklist could count how many different animals you have made answer, not as finds but as a quiet tally in the corner of the board.
+- **A Place Check in CI** (round 6, C7). `check.sh`'s list of where everything stands could be kept in the repo, so a pull request that moves a sign or an animal's home shows the move in its diff.

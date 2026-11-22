@@ -1556,7 +1556,10 @@ function habitat() {
   const lakeM = C.lakes[0], streamNear = (u, v) => { for (let b = -12; b <= 12; b += 4) for (let a = -12; a <= 12; a += 4) if (S.water[at(u + a, v + b)]) return true; return false; };
   // The tarns' streams start as a short lead that is not yet in the water grid (C1 put a boulder on one).
   const headNear = (u, v) => C.src.some(s => s.toLake && s.lead.some(([a, b]) => Math.hypot(a - u, (b - v) * 1.5) < 18));
-  const parkMarmots = find(2, (u, v) => S.parkAmt(u, v) > 0.5 && (S.matAt(u, v) === 'land' || S.matAt(u, v) === 'volc') && v > lakeM[1] + lakeM[3] + 20 && v < lakeM[1] + lakeM[3] + 50 && Math.abs(u - lakeM[0]) < lakeM[2] + 20 && trailFar(u, v) > 14 && !streamNear(u, v) && !headNear(u, v) && firm(u, v, 2) && shows(u, v, 16) && !iceBehind(u, v), 60);
+  // Water the picture shows within 14 across and 6 up or down of the boulder's foot: a thin stream is a pixel or
+  // two wide, and the ground's own water grid, read every 4, can step over it (C7: one marmot's tail touched one).
+  const WET = new Set(['water', 'glint', 'tarn']), wetBeside = (u, v) => { const x0 = Math.round(u), y0 = S.toY(u, v); for (let y = y0 - 6; y <= y0 + 6; y++) for (let x = x0 - 14; x <= x0 + 14; x++) if (y >= 0 && y < SH && x >= 0 && x < NW && WET.has(RAMP_OF[S.g[y * NW + x]])) return true; return false; };
+  const parkMarmots = find(2, (u, v) => S.parkAmt(u, v) > 0.5 && (S.matAt(u, v) === 'land' || S.matAt(u, v) === 'volc') && v > lakeM[1] + lakeM[3] + 20 && v < lakeM[1] + lakeM[3] + 50 && Math.abs(u - lakeM[0]) < lakeM[2] + 20 && trailFar(u, v) > 14 && !streamNear(u, v) && !headNear(u, v) && !wetBeside(u, v) && firm(u, v, 2) && shows(u, v, 16) && !iceBehind(u, v), 60);
   // The third keeps to the moraine's rocks, or failing that the parkland's.
   const onRocks = mor => (u, v) => (mor ? S.matAt(u, v) === 'moraine' : S.parkAmt(u, v) > 0.3) && firm(u, v, 1.2) && shows(u, v, 8) && rocky(u, v) && !iceBehind(u, v) && apartFrom(parkMarmots, u, v, 140);
   const rockMarmot = find(1, onRocks(true)), marmots = [...parkMarmots, ...(rockMarmot.length ? rockMarmot : find(1, onRocks(false)))];
