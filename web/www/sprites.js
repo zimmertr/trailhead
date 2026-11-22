@@ -296,7 +296,10 @@ function makeDriftwood(seed = 0) {
     for (let y = y0; y <= y1; y++) {
       if (splinter && hash(t, y, seed + 71) < 0.5 * splinter) continue;
       const j = y - Math.round(c), grain = vnoise(t / 7 + j * 2.7, j * 5.3, seed + 72), knot = hash(t >> 1, j, seed + 73) < 0.04;
-      b.set(x0 + t, y, y === y1 ? G[2] : y === y0 ? G[6] : y === y1 - 1 && r > 1.8 ? G[3] : knot ? G[2] : grain > 0.62 ? G[4] : grain < 0.3 ? G[6] : G[5]);
+      // A16, after a picture of Olympic coast driftwood: silver where the sun catches its top, a warm brown-grey
+      // underneath, long dark cracks along the grain.
+      const crack = j < 0 && hash(Math.floor((t + 9 * hash(j, 1, seed + 74)) / 9), j, seed + 75) < 0.3 && t % 9 > 1;
+      b.set(x0 + t, y, y === y1 ? R.ochre[1] : y === y0 ? G[6] : y === y1 - 1 && r > 1.8 ? R.ochre[2] : crack ? G[2] : knot ? G[2] : j > 0 ? (grain > 0.5 ? G[3] : G[4]) : grain > 0.62 ? G[4] : grain < 0.3 ? G[6] : G[5]);
     }
   }
   // The crack: a dark line in from the broken end, along the grain.
@@ -310,17 +313,18 @@ function makeDriftwood(seed = 0) {
     // A root wad: the torn roots fan out from the butt, pale at their tips, with the dark of the hollow between.
     const c = cy(0);
     for (let k = 0, n = 5; k < n; k++) { const a = Math.PI + (k - (n - 1) / 2) * 0.52 + (rand() - 0.5) * 0.2, L = 3 + rand() * 2.5; for (let q = 0; q <= L; q++) b.set(x0 - 1 + Math.cos(a) * q, c + Math.sin(a) * q * 1.15, q < 1 ? G[2] : q > L - 1 ? G[6] : G[4]); }
-    b.set(x0 - 1, c, G[1]); b.set(x0, c, G[2]);
+    for (const [dx, dy] of [[-1, 0], [0, 0], [-1, -1], [0, 1], [-2, 0]]) b.set(x0 + dx, c + dy, dx === -1 && dy === 0 ? R.wood[0] : R.wood[2]);
   } else {
     // A snapped butt: the end grain a step darker, with its heart darker still.
     const c = cy(0), r = Math.round(rAt(0)); for (let dy = -r; dy <= r; dy++) b.set(x0 - 1, c + dy, dy === 0 ? G[2] : G[3]);
   }
   // Outlined in the wood's own dark, not in ink: ink round a log this thin is most of what shows.
   outline(b, G[1]);
-  // Its shadow, on the sand below and to the east of it.
-  { const solid = b.d.slice(); for (let x = 0; x < W - 1; x++) for (let y = H - 2; y >= 0; y--) if (solid[y * W + x]) { for (const dx of [0, 1]) if (!solid[(y + 1) * W + x + dx]) b.d[(y + 1) * W + x + dx] = R.sand[0]; break; } }
   b.ox = W >> 1; b.oy = Math.min(H - 1, Math.round(H / 2 + rad + 2));
   if (rand() < 0.5) { const d = b.d.slice(); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) b.d[y * W + x] = d[y * W + W - 1 - x]; b.ox = W - 1 - b.ox; }
+  // Its shadow, on the sand below and to the east of it, drawn after any flip so it always falls away from
+  // the sun: a dark band under the log and a lighter one beyond it.
+  { const solid = b.d.slice(); for (let x = 0; x < W - 3; x++) for (let y = H - 4; y >= 0; y--) if (solid[y * W + x]) { for (const [dx, dy, c] of [[0, 1, R.ochre[0]], [1, 1, R.ochre[0]], [2, 1, R.ochre[1]], [1, 2, R.ochre[1]], [2, 2, R.ochre[1]], [3, 2, R.sand[0]], [2, 3, R.sand[0]]]) { const i = (y + dy) * W + x + dx; if (!solid[i] && !b.d[i]) b.d[i] = c; } break; } }
   return b;
 }
 function makeCloud(seed) {

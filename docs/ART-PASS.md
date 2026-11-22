@@ -49,7 +49,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A13 The Burned Trees** - Postmortem Burn's charred snags. `sprites.js` (`makeSnag`), `scenery.js`.
 - [x] **A14 The Orca Pod** - the orcas in the sea. `critters.js` (`orcas`, `orcaBack`).
 - [x] **A15 Tide Pools** - the pools left on the beach at low tide. `critters.js` (`tidePools`).
-- [ ] **A16 Driftwood** - the logs along the beach. `sprites.js` (`makeDriftwood`).
+- [x] **A16 Driftwood** - the logs along the beach. `sprites.js` (`makeDriftwood`).
 - [ ] **A17 Marmots** - the hoary marmots on the map and in the scenes. `critters.js`, `fauna.js` (`marmot`).
 - [ ] **A18 Doot Doot and Peevers** - the cats at the Trailhead: Doot Doot a long-haired tortie, Peevers a long-haired Nebelung. `sprites.js` (`makeCat`), `cats.js`.
 
@@ -181,3 +181,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A15, a call: the rim's lit far side is grey rock crusted with white barnacles and dark mussels, its sides and shaded near side darker with a few barnacles, and olive weed hangs off the near side over the sand in uneven strands. The water is the sea's darker teal through the middle and paler toward the edge, with the dark line under the far rim kept, and a few pink coralline pixels round the edge. The life in the pools and the crab are as they were.
 - A15, a call: to see the pools without the shower the renders turn the mist and clouds off (`debug=-mist,-clouds`) and start the low tide (`start=tide`).
 - A15: frame time 11.6 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
+- A16, the before: the logs along the beach were drawn in the pale end of the gold ramp, whose middle step is the sand's own colour, with a one-pixel shadow, so they floated pale on pale. The shadow of a log drawn mirrored fell to the west, toward the sun.
+- A16, the pictures: 8 in all. The style model's seed 4 was picked: a silver log with a warm brown underside, long cracks along the grain, a brown root ball and a crisp dark shadow on the sand. Qwen drew a scatter of thin white sticks from high up on every seed and was set aside. The prompts are in `design/art/A16/log.jsonl`.
+- A16, a call: the log's top stays the palest silver, its lower half a step or two darker, its two lowest rows a warm brown-grey from the ochre ramp; dark cracks run along the grain on its upper half; the root wad has a brown core. Its shadow is three pixels deep, dark under the log and paler beyond, and is drawn after the log is mirrored, so it always falls to the east.
+- A16: frame time 11.2 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours. The ground was rebaked, since logs that are partly hidden are stamped into it.
