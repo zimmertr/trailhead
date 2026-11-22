@@ -37,7 +37,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A01 Sideproject Spires and Their Glacier** - the granite wall of six towers in the middle of the map and the glacier below it, with its icefall and the camp's island. `land.js` (`spires`, the `GL` glacier). The biggest gap for the most screen: the glacier is a flat white fan.
 - [x] **A02 The Background Mountains** - the far ranges along the top of the map, east of Monolith. `land.js` (`range`, `farRow`). A wide band seen on every visit; the ridges repeat.
 - [x] **A03 Mount Monolith** - the volcano, after Mt Rainier. `monolith.js` (`paintMonolith`). The largest landmark; painted already, so the gap is smaller, but nothing is seen more.
-- [ ] **A04 Proficiency Peak** - the granite peak and its bench, the talus fan under its prow. `land.js` (`proficiency`, `talusAt`).
+- [x] **A04 Proficiency Peak** - the granite peak and its bench, the talus fan under its prow. `land.js` (`proficiency`, `talusAt`).
 - [ ] **A05 The Larch Basin** - the granite benches with gold larches and tarns east of the Spires, after the Enchantments. `land.js` (`plateau`, `larchAmt`, the tarns).
 - [ ] **A06 Cliff Textures** - the faces of the granite benches and walls on the map. `land.js` (`colour`, `coverFaces`).
 - [ ] **A07 The Golden Palouse Hills** - the rolling gold hills in the far east corner. `land.js` (`palAmt`, `colour`).
@@ -114,3 +114,10 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A03, a call: the crevasses are short cracks in the snow's own shade, only in fields below the dome and around the icefalls. In the glac blue they read as cyan lines, rows spaced by noise curled into contour lines, and fields everywhere read as rain. The picture's blue icefall stays under snow until an avalanche bares it: every icefall starting under snow is TJ's call from round 5 (T11).
 - A03, a call: the crater's far wall and the crack round the dome are the snow's shade now, not cyan and blue; the cyan made the crater read as a pool.
 - A03: frame time 11.8 ms zoomed out at Dusk; 35 browser tests pass; no new colours. Five of the eight serac falls on the volcano and one marmot moved through the placement dice (the broader cleavers reach under some of the spots a serac may fall from); the lakes, rivers, trails and signs did not move. The lake scene draws the same painting and gained the same light.
+- A04, the before: a pale grey point, streaked like the walls and crest behind it, so it was lost against them; no lit or shaded side.
+- A04, the pictures: 12 compositions and 3 repaints. The style model drew the towers as buildings, so it was dropped. Qwen drew the fin at once; "a granite bench" came back as a stone bench to sit on twice, so the word went. Round 3 seed 11 was picked (the tower, the summit block, the teeth, the talus, the tarn) and repainted onto the granite ramp (seed 12). The prompts are in `design/art/A04/log.jsonl`.
+- A04, a call: the fin is drawn on the warm granite ramp, not the walls' grey rock ramp, so it stands out against the crest as the picture's does. The walls keep theirs until A06.
+- A04, a call: the face is five tall planes, 16 to 30 of the profile's units wide, each darkening toward its corner. Ten narrow planes, tried first, read as organ pipes or as the old streaks; corners that stopped partway read as stains.
+- A04, a call: the fin's narrow top is the ridge seen from above, a step darker east of the summit. Drawn as a dark edge, it read as a thick outline along the whole ridge.
+- A04, a call: the summit block is centred on the column the stack route's summit is read from. Off centre, as in the picture, it moved that place 12 px down onto the ridge beside it.
+- A04: frame time 12.0 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
