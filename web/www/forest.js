@@ -191,9 +191,7 @@ function makeTrunk(seed, w, H) {
       const x = Math.round(x0 + dx);
       const ridge = vnoise((dx + 5 * vnoise(y / 44, seed, 5)) / (cedar ? 1.5 : 2.3), y / (cedar ? 70 : 28), seed + 7);
       const v = 0.58 - 0.4 * u - 0.2 * u * u + 0.48 * (ridge - 0.5);
-      // Moss (art pass E01): thick on the buttresses, and up the trunk in long strips that follow the
-      // bark's furrows (the ridge's low places), more of it on the lit side, so it climbs in streaks
-      // rather than lying in blotches. Its shading is done below, once every pixel is known.
+      // Moss (art pass E01) climbs in strips along the bark's furrows; it is shaded below, once all is laid.
       const m = fbm(x / 5 + seed, y / 46, 31, 3) + 0.14 * (vnoise(x / 3, y / 4, seed + 11) - 0.5) + 0.24 * (0.5 - ridge) + 0.5 * Math.exp(-up / 48) - 0.12 * u;
       if (m > 0.6) b.set(x, y, R.moss[3]);
       else b.set(x, y, pick(cedar ? 'wood' : 'bark', v * (cedar ? 0.8 : 1) + (m > 0.55 ? -0.22 : 0), x, y, 0.8));

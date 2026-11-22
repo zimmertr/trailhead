@@ -12,13 +12,8 @@ function blobTree(seed, name, H, trunk, n, r0) {
   outline(b, INK);
   return b;
 }
-// A sea stack is drawn from its top down to the water. Its waterline curves, lowest in the middle,
-// the rock is dark and wet for the last rows above it, and the outline stops there: an outline
-// under the rock is what made a stack look set down on top of the sea.
-// After the picture it was redrawn from (art pass D02, design/art/D02): columns of basalt standing side
-// by side, each a few pixels wide with a dark joint between and its own breaks across, lit on its left
-// edge, the whole stack lit on the left and dark on the right; its sides step in at ledges as it rises,
-// each ledge's top catching the light; turf on the top, and on a tall one a small tree bent by the wind.
+// A sea stack, from its top down to the water: the outline stops at the waterline, since an outline under
+// the rock made a stack look set down on top of the sea. Columns of basalt, stepping in at lit ledges (art pass D02).
 function seaStack(seed, H, W) {
   const b = new BM(W + 8, H + 9); b.ox = (W >> 1) + 4; b.oy = H + 6;
   const foot = x => H - 3 + Math.round(3 * (1 - sq(x / (W / 2 + 1))));
@@ -49,11 +44,7 @@ function seaStack(seed, H, W) {
   return b;
 }
 
-// A sagebrush (art pass D11, design/art/D11): a low ragged dome a little wider than tall, heaped from
-// a few lobes of small leaf clumps with a broken, twiggy edge. Each lobe is pale on its upper left, the
-// whole bush darkens to the lower right and toward its foot, with dark gaps between the clumps, and two
-// or three grey woody stems show under the crown. Only its lower right edge is outlined, so the lit side
-// stays soft against the dry grass.
+// A sagebrush (art pass D11): a ragged dome of lobes. Only its lower right is outlined, so the lit side stays soft.
 function sageBush(seed) {
   const b = new BM(11, 7); b.ox = 5; b.oy = 6;
   const lobes = [[5, 2.8, 3.1], [2.4 + hash(seed, 1, 851), 3.4, 2.5], [7.7 - hash(seed, 2, 851), 3.3, 2.6], [3.8 + 2.4 * hash(seed, 3, 851), 1.6, 2]];

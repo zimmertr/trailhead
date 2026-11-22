@@ -5,12 +5,8 @@
 import { TAU, smooth, hash, bayer, R, BM, outline } from './core.js';
 import { NW } from './land.js';
 
-// A tumbleweed, 15 across (note 5: the 9 of round 5 was lost on the hills), redrawn after a picture
-// (art pass D11, design/art/D11): a ball of thin dead stems wound round it like a ball of string, so you
-// can see through it to a dark hollow middle, with a few stray twigs sticking out. The stems are straw
-// where the light from the upper left catches them and brown where they curve away or behind, and the
-// rim is outlined in the darkest wood so it reads against the gold grass at Day and Dusk. f turns it,
-// one sixteenth of a turn a drawing.
+// A tumbleweed, 15 across (note 5: the 9 of round 5 was lost on the hills): a see-through ball of stems
+// (art pass D11), its rim outlined in the darkest wood so it reads on the gold grass. f turns it a sixteenth.
 function weed(f) {
   const b = new BM(15, 15); b.ox = 7; b.oy = 14;
   const rot = f * TAU / 16, put = (x, y, c) => { const X = Math.round(x), Y = Math.round(y); if (X >= 0 && Y >= 0 && X < 15 && Y < 15) b.set(X, Y, c); };

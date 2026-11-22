@@ -2,8 +2,8 @@
 // and chipmunks that dart, marmots that sit up and whistle, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
 import { TAU, clamp, lerp, smooth, frac, hash, vnoise, bayer, rng, R, INK, SHADE, KIND, RAMP_OF, BM, outline, litBack, thick, pick, veilTable, DEBUG } from './core.js';
-import { makeElk, makeBird, makeMoose } from './sprites.js';
-import { ell, goat, marmot } from './fauna.js';
+import { makeElk, makeMoose } from './sprites.js';
+import { ell, goat, marmot, speck } from './fauna.js';
 import { NW, NH } from './land.js';
 import { makeCollide } from './collide.js';
 import { NAMES } from './content.js';
@@ -962,7 +962,7 @@ export function makeCritters(W, opts = {}) {
   }
 
   // ---- birds that circle, each with its shadow on the ground --------------------------------
-  const ink = [makeBird(0), makeBird(1)], gull = ink.map(b => tint(b, R.white[1]));
+  const ink = [speck(0), speck(1)], gull = ink.map(b => tint(b, R.white[1]));
   // Where each flock circles comes from the land (land.js, habitat).
   const FLOCKS = (W.flocks || []).map(F => ({ ...F, bm: F.gull ? gull : ink }));
 

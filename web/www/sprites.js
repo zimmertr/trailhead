@@ -5,12 +5,9 @@ import { TAU, clamp, lerp, sq, rng, hash, vnoise, bayer, R, INK, BM, outline, li
 // Trees. Each is a still trunk plus leaf clumps that move on their own, a pixel at a time, as in
 // the usual 2D wind technique: a wave runs along the wind, gusts widen it, and still air stops it.
 
-// A clump of leaves (art pass D03, after a bigleaf maple and an aspen grove painted for the game): many
-// small clusters of leaves inside the clump's outline, each lit on its upper left and shaded under, the
-// lower ones laid over the upper so each shows a lit top against the shade above, with dark pockets
-// between them and a broken edge. shape: 'pad' (a maple's flat sprays), 'tuft' (a pine's spiky needle
-// clumps), 'tall' (an aspen's upright clusters) or round (a juniper's). The clusters come from hash,
-// never rand, so the trees that share rand with their clumps draw the same trunks as before.
+// A clump of leaves (art pass D03): small clusters, each lit on its upper left, the lower laid over the upper.
+// shape: 'pad' (maple), 'tuft' (pine), 'tall' (aspen) or round (juniper). The clusters come from hash, never
+// rand, so the trees that share rand with their clumps draw the same trunks as before.
 function clump(r, name, rand, hang, shape = '') {
   const S = Math.ceil(r * 2.6) + 4, b = new BM(S, S + hang), c = S / 2;
   const blobs = [[0, 0, r]];
@@ -113,11 +110,8 @@ function makeConifer(seed, H, W, name, tiers, o = {}) {
   }
   return { parts, h: H, w: W };
 }
-// One layer of branches for the scenes' big conifers (art pass D01, after design/art/D01): not a plate but
-// two branches, each its own length, drooping from the trunk, hung with tufts of needles of uneven depth so
-// the underside is jagged, ragged at the tips, a needle or two hanging below; lit on the left and along the
-// top, dark underneath, in patches two pixels across. `open` (the larches) leaves the trunk showing and
-// keeps the sprays thin. The map's small trees keep the plates, which read right at their size.
+// One layer of branches for the scenes' big conifers (art pass D01): two drooping branches hung with uneven
+// tufts. `open` (the larches) shows the trunk. The map's small trees keep the plates, which read at their size.
 function tuftTier(seed, i, f, hw, th, droop, ramp, H, tiers, o, rand) {
   const hl = Math.max(1.5, hw * (0.72 + 0.56 * rand())), hr = Math.max(1.5, hw * (0.72 + 0.56 * rand())), hang = Math.ceil(2.5 * droop) + 6;
   // A larch is open: now and then a whole layer is missing and the trunk shows.
@@ -188,11 +182,8 @@ function makeTwisted(seed) {
   for (const [x, y, r] of cs) { const bm = clump(r, dark, rand, 5, 'pad'); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
   return { parts, h: H, w: W };
 }
-// A clump of wildflowers for the map (D5a): a few stems with a bloom on each, the blooms a part of their
-// own so they sway on still stems. kind: 'lupine' (a blue spike), 'red' (paintbrush), 'white', 'yellow'.
-// Each clump stands on a low mound of its own leaves, lit on the left and dark only at its lower right
-// (art pass D04, after a meadow painted for the game), and each kind has its own head: lupine a short spike
-// dark at its foot and pale at its tip, paintbrush a tuft lit on top and shaded right, white and yellow dots.
+// A clump of wildflowers for the map (D5a) on a mound of its own leaves (art pass D04), the blooms a part of
+// their own so they sway on still stems. kind: 'lupine', 'red' (paintbrush), 'white' or 'yellow'.
 function makeFlowers(kind, seed) {
   const rand = rng(seed), stems = new BM(9, 7), blooms = new BM(9, 7), n = 3 + (rand() * 3 | 0), G = R.grass;
   for (let x = 1; x < 8; x++) {
@@ -313,8 +304,7 @@ function makeShrub(seed, kind) {
 const makeSpruce = (seed, tufts = false) => { const r = rng(seed); return makeConifer(seed, 52 + (r() * 16 | 0), 26 + (r() * 8 | 0), 'conifer', 9, { tufts }); };
 const makeFir = (seed, tufts = false) => { const r = rng(seed); return makeConifer(seed, 22 + (r() * 12 | 0), 9 + (r() * 4 | 0), 'conifer', 6, { tufts }); };
 
-// A fern (art pass D08): five fronds arching out from the crown, the outer ones drooping at the tip, each
-// with leaflets on both sides, lit along its top.
+// A fern (art pass D08): five arching fronds, the outer ones drooping.
 function makeFern(seed) {
   const rand = rng(seed), b = new BM(11, 7); b.ox = 5; b.oy = 6;
   for (let k = 0; k < 5; k++) {
@@ -327,9 +317,7 @@ function makeFern(seed) {
   }
   return b;
 }
-// A granite boulder (art pass D08, after boulders painted for the game): squarer than an egg, with a broad
-// pale top, a lit west face and a dark east face meeting at edges, a crack down the west face and a spot
-// or two of lichen on top.
+// A granite boulder (art pass D08): a pale top, a lit west face and a dark east face, a crack and lichen.
 function makeBoulder(seed, r) {
   const rand = rng(seed), b = new BM(Math.ceil(r * 2.4) + 4, Math.ceil(r * 1.6) + 4); b.ox = b.w >> 1; b.oy = b.h - 2;
   const tilt = (hash(seed, 1, 71) - 0.5) * 0.5, ridge = (hash(seed, 2, 71) - 0.5) * 0.4;
@@ -408,10 +396,7 @@ function makeDriftwood(seed = 0) {
   { const solid = b.d.slice(); for (let x = 0; x < W - 3; x++) for (let y = H - 4; y >= 0; y--) if (solid[y * W + x]) { for (const [dx, dy, c] of [[0, 1, R.ochre[0]], [1, 1, R.ochre[0]], [2, 1, R.ochre[1]], [1, 2, R.ochre[1]], [2, 2, R.ochre[1]], [3, 2, R.sand[0]], [2, 3, R.sand[0]]]) { const i = (y + dy) * W + x + dx; if (!solid[i] && !b.d[i]) b.d[i] = c; } break; } }
   return b;
 }
-// A fair-weather cumulus (art pass D10, after clouds painted for the game): a flat base and a heap of
-// rounded puffs, biggest in the middle. Each puff is white where the light falls from the upper left and
-// pale blue in shade on its lower right; the lower puffs are laid over the higher, with a line of shade along
-// the top of each where it crosses the puff behind; the base is a band of blue-grey. No outline.
+// A fair-weather cumulus (art pass D10): rounded puffs on a flat blue-grey base, no outline.
 function makeCloud(seed) {
   const rand = rng(seed), b = new BM(56, 20); b.ox = 0; b.oy = 0;
   const n = 5 + (rand() * 3 | 0), base = 15, puffs = [];
@@ -432,8 +417,8 @@ function makeCloud(seed) {
 }
 
 // Signs and small built things.
-// The junction sign (art pass D05): a square post lit on the west and two planks, each lit along its top,
-// with a line of grain and an arrow-shaped tip, and a dot of colour for the trail it points to.
+// Signs and small built things.
+// The junction sign (art pass D05): a post and two planks lit on top and west, each with a coloured dot.
 function makeSignpost() {
   const b = new BM(19, 22); b.ox = 9; b.oy = 21;
   for (let y = 5; y < 22; y++) { b.set(8, y, R.wood[3]); b.set(9, y, R.wood[1]); }
@@ -450,8 +435,7 @@ function makeSignpost() {
   outline(b, INK);
   return b;
 }
-// A small trail sign (art pass D05): a plank framed lit on its top and west, dots of lettering, on a post
-// lit on the west with a rock at its foot.
+// A small trail sign (art pass D05): a framed plank on a post.
 function makeSmallSign() {
   const b = new BM(13, 16); b.ox = 6; b.oy = 15;
   for (let y = 6; y < 16; y++) { b.set(6, y, R.wood[3]); b.set(7, y, R.wood[1]); }
@@ -462,10 +446,7 @@ function makeSmallSign() {
   outline(b, INK);
   return b;
 }
-// The Trailhead's kiosk (art pass D05, after a kiosk painted for the game): a red roof shingled in rows,
-// lit on its west slope and dark on its east, over a dark eave that shades the top of the board; a framed
-// board with four pinned notes lined with writing and a small trail map; square posts lit on the west,
-// with rocks at their feet. The same size and foot as before.
+// The Trailhead's kiosk (art pass D05): a shingled roof over a board of notes and a map. Size and foot as before.
 function makeKiosk() {
   const b = new BM(26, 26); b.ox = 13; b.oy = 25;
   for (const x0 of [3, 21]) for (let y = 9; y < 26; y++) { b.set(x0, y, R.wood[3]); b.set(x0 + 1, y, y % 5 === 2 ? R.wood[0] : R.wood[1]); }
@@ -511,10 +492,7 @@ function makeLookout() {
   for (let x = c - 5; x <= c + 5; x++) b.set(x, deck + 1, R.wood[0]);
   return b;
 }
-// A mountaineering tent (art pass D09, after tents painted for the game): a low dome, its west panel lit
-// and its east in shade, two poles arching over it, the door on the east with its flap tied back on the
-// dark inside, and a guy line to a stake on each side. The lines and stakes are ink, so at Dusk only the
-// fabric glows.
+// A mountaineering tent (art pass D09): a low dome. The lines and stakes are ink, so at Dusk only the fabric glows.
 function makeTent(c) {
   const b = new BM(16, 11); b.ox = 8; b.oy = 10;
   const T = R[c], inDome = (x, y, rx) => sq((x - 8) / rx) + sq((y - 10.5) / 7.4) <= 1;
@@ -530,8 +508,7 @@ function makeTent(c) {
   for (const [x, y] of [[1, 7], [0, 8], [0, 9], [0, 10], [14, 7], [15, 8], [15, 9], [15, 10]]) b.set(x, y, INK);
   return b;
 }
-// The trail journal (art pass D09): a red notebook lying on a boulder, its cover lit along the top, its
-// spine dark on the west and the white edges of its pages showing along the east and the foot.
+// The trail journal (art pass D09): a red notebook on a boulder.
 function makeJournal() {
   const b = makeBoulder(81, 6);
   const x = b.ox - 2, y = b.oy - 9;
@@ -594,12 +571,6 @@ function makeMoose(calf, headDown, step = 0) {
   // The antlers go on after the outline, as the elk's do: a broad palm with points along its top, the far one a shade darker.
   const palm = [[3, -3], [4, -4], [2, -5], [3, -5], [4, -5], [5, -5], [6, -5], [7, -5], [8, -5], [3, -6], [4, -6], [5, -6], [6, -6], [7, -6], [8, -6], [9, -6], [3, -7], [5, -7], [7, -7], [9, -7], [10, -7], [1, -4], [0, -5]];
   for (const [dx, dy, c] of [[-4, 0, R.dirt[3]], [0, 0, R.white[0]]]) for (const [x, y] of palm) b.set(hx + x + dx, hy + y + dy, c);
-  return b;
-}
-function makeBird(f) {
-  const b = new BM(7, 4); b.ox = 3; b.oy = 2;
-  const ys = f ? [0, 1, 2, 2, 2, 1, 0] : [2, 2, 1, 2, 1, 2, 2];
-  ys.forEach((y, x) => b.set(x, y, INK));
   return b;
 }
 
@@ -724,4 +695,4 @@ function makeFlag(f, ramp = R.red) {
 }
 
 export { makeRegister, makeMoose };
-export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeBird };
+export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk };

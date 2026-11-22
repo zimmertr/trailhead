@@ -3,23 +3,40 @@ import { hash, frac, R, INK, BM, outline, litBack, disc, thick, pick } from './c
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
 
-// A bull elk, facing right. pose: 'up' looking about, 'graze' with his head in the grass. alt is the
-// second frame of each: an ear flicked back, or the head a pixel lower as he tears at the grass.
+// A bull elk, facing right: 'up' looking about or 'graze'; alt is an ear flicked back, or the head a pixel
+// lower as he tears at the grass. After a picture (art pass E03): his back sloping to a pale rump, a dark
+// mane, jointed legs, and antlers in two tined beams, pale at the tips. Lit from the upper left.
 function elk(pose, step = 0, alt = 0) {
-  const b = new BM(46, 40); b.ox = 20; b.oy = 38;
-  const tan = (nx, ny, x, y) => pick('dirt', 0.62 - ny * 0.3 - nx * 0.05, x, y, 0.5), dark = (nx, ny, x, y) => pick('bark', 0.55 - ny * 0.35, x, y, 0.5);
-  for (const [lx, far] of [[11, 1], [15, 0], [26, 1], [29, 0]]) { const sw = step && !far ? 1 : 0; thick(b, lx, 26, lx + sw, 32, 2, R.bark[far ? 0 : 1]); thick(b, lx + sw, 32, lx + sw, 37, 1.5, R.bark[far ? 0 : 1]); b.set(lx + sw, 38, INK); }
-  ell(b, 20, 22, 12, 6.2, tan);
-  ell(b, 9, 20, 3.5, 4, nx => nx < 0.2 ? R.dirt[4] : 0);
-  if (pose === 'graze') {
-    thick(b, 29, 21, 35, 30 + alt, 5, R.bark[1]); ell(b, 37, 33 + alt, 3.6, 2.4, dark); b.set(40, 34 + alt, R.bark[0]); b.set(36, 32 + alt, INK);
-    for (const s of [0, 1]) { thick(b, 34, 30, 30 - s * 3, 24 - s, 1, R.dirt[4]); thick(b, 31 - s * 3, 26, 27 - s * 4, 22, 1, R.dirt[4]); }
-  } else {
-    thick(b, 28, 20, 33, 11, 5, R.bark[1]); ell(b, 36, 9, 3.8, 2.6, dark); b.set(39, 10, R.bark[0]); b.set(36, 8, INK); if (alt) { b.set(32, 7, R.bark[2]); b.set(31, 8, R.bark[2]); } else b.set(33, 7, R.bark[2]);
-    for (const s of [0, 1]) { const ax = 33 - s * 2; thick(b, ax, 6, ax - 5, 1, 1, R.dirt[4]); thick(b, ax - 2, 4, ax - 1, 0, 1, R.dirt[4]); thick(b, ax - 4, 2, ax - 8, 3, 1, R.dirt[4]); b.set(ax + 1, 3, R.dirt[4]); }
-  }
-  ell(b, 27, 23, 4, 4.5, dark);
+  const b = new BM(46, 40), D = R.dirt, K = R.bark, graze = pose === 'graze', dy = alt && graze ? 1 : 0; b.ox = 20; b.oy = 38;
+  const tan = (nx, ny, x, y) => pick('dirt', 0.66 - ny * 0.32 - nx * 0.06, x, y, 0.5);
+  // Legs, the far pair darker: a front leg straight, a hind leg angled back at the hock.
+  for (const [x, far, h] of [[12, 1, 1], [27, 1, 0], [15, 0, 1], [29, 0, 0]]) { const c = K[far ? 0 : 1], s = step && !far ? 1 : 0, f = x + s - h;
+    thick(b, x, 25, x - 2 * h + s, 31, h ? 2.4 : 2, c); thick(b, x - 2 * h + s, 31, f, 36, 1.4, c); b.set(f, 37, R.fur[0]); b.set(f + 1, 37, R.fur[0]); }
+  ell(b, 13, 21.5, 5.6, 5.4, tan); ell(b, 19, 22, 8.5, 5.2, tan); ell(b, 26, 20.6, 5.6, 6.2, (nx, ny, x, y) => pick('bark', 0.62 - ny * 0.3 - nx * 0.1, x, y, 0.5));
+  // The pale rump and tail, the belly's shadow.
+  ell(b, 8.6, 20.4, 2.6, 4, (nx, ny) => nx < 0.5 ? ny < -0.2 ? R.white[0] : D[4] : 0);
+  b.set(7, 18, D[2]); b.set(6, 19, D[2]);
+  for (let x = 12; x <= 24; x++) if (b.get(x, 27)) b.set(x, 27, D[1]);
+  // The neck, its mane in a ragged fringe under it and its top lit.
+  const n = graze ? [[28, 19], [32, 25], [35, 30 + dy]] : [[28, 18], [31, 13], [33, 9]], at = (t, u, v) => [Math.round(n[0][0] + (n[2][0] - n[0][0]) * t + u), Math.round(n[0][1] + (n[2][1] - n[0][1]) * t + v)];
+  thick(b, ...n[0], ...n[1], 5.5, K[1]); thick(b, ...n[1], ...n[2], 4, K[1]);
+  for (let i = 0; i < 7; i++) { const [x, y] = at(i / 6, graze ? -2 : 2, graze ? 2 : 3); b.set(x, y, K[0]); if (i & 1) b.set(x, y + 1, K[0]); }
+  for (let i = 0; i < 6; i++) b.set(...at(i / 5, graze ? 0 : -1, graze ? -2 : -1), K[2]);
+  // The head darkening to the muzzle, an eye, an ear laid back.
+  const [hx, hy] = graze ? [37, 32 + dy] : [36, 9], e = graze ? [-3, -3, -4, -4] : alt ? [-4, -2, -5, -2] : [-3, -3, -4, -3];
+  ell(b, hx, hy, 3.4, 2, (nx, ny, x, y) => pick('dirt', 0.5 - ny * 0.3 - nx * 0.25, x, y, 0.5));
+  ell(b, hx + 3.2, hy + (graze ? 1.4 : 0.8), 1.6, 1.4, () => K[1]); b.set(Math.round(hx + 4.4), Math.round(hy + (graze ? 2 : 1)), R.fur[0]);
+  b.set(hx - 1, hy - 1, INK); b.set(hx + e[0], hy + e[1], K[2]); b.set(hx + e[2], hy + e[3], K[1]);
   outline(b, INK);
+  // Antlers after the outline, one pixel wide: two beams, the far one darker and a step behind, sweeping back
+  // over the neck with tines rising, or standing up from the lowered head with tines forward.
+  const bm = graze ? [[-1, -3], [0, -7], [0, -11], [-1, -15], [-3, -18]] : [[-1, -3], [-4, -4], [-8, -5], [-12, -5], [-16, -4]], ti = graze ? [[1, 3, 0], [2, 3, -1], [3, 2, -2]] : [[1, 1, -4], [2, 0, -4], [3, -1, -3]];
+  for (const [ox, oy, far] of [[-2, 1, 1], [0, 0, 0]]) {
+    const c = D[far ? 2 : 3], tip = far ? D[3] : R.white[0], P = bm.map(([x, y]) => [hx + x + ox, hy + y + oy]), end = (p, q) => { thick(b, ...p, ...q, 1, c); b.set(...q, tip); };
+    for (let k = 1; k < 5; k++) thick(b, ...P[k - 1], ...P[k], 1, c);
+    b.set(...P[4], tip); end(P[0], [hx + 2 + ox, hy + (graze ? -4 : -5) + oy]);
+    for (const [k, u, v] of ti) end(P[k], [P[k][0] + u, P[k][1] + v]);
+  }
   return b;
 }
 
@@ -137,26 +154,28 @@ function marmot(pose) {
 
 // A pika with a mouthful of flowers for its haystack. pose 'up': sitting bolt upright to call;
 // 'peek': only its head, looking out of a gap in the rocks.
+// A pika (art pass E03): a grey-brown ball with big round ears edged pale.
 function pika(f, pose) {
+  const G = R.gold, ear = (b, x, y) => { b.set(x, y, G[2]); b.set(x + 1, y, G[3]); b.set(x, y - 1, G[4]); b.set(x + 1, y - 1, G[5]); };
   if (pose === 'up') {
     const u = new BM(9, 11); u.ox = 4; u.oy = 10;
-    ell(u, 4, 7, 2.5, 3.1, nx => R.dirt[nx > 0.15 ? 4 : nx > -0.5 ? 3 : 2]);
-    disc(u, 5, 3, 1.8, () => R.dirt[3]); u.set(4, 1, R.dirt[2]); u.set(5, 1, R.dirt[4]); u.set(6, 3, INK); u.set(7, 4, R.dirt[1]);
-    u.set(3, 10, R.dirt[1]); u.set(6, 10, R.dirt[1]);
+    ell(u, 4, 7, 2.5, 3.1, (nx, ny) => G[nx > 0.3 ? 4 : ny < -0.3 ? 3 : 2]);
+    disc(u, 5, 3, 1.9, (nx, ny) => G[ny < -0.3 || nx < -0.3 ? 4 : 3]); ear(u, 3, 2); u.set(6, 3, INK); u.set(7, 4, G[1]);
+    u.set(3, 10, G[1]); u.set(6, 10, G[1]);
     outline(u, INK);
     return u;
   }
   if (pose === 'peek') {
     const h = new BM(7, 6); h.ox = 3; h.oy = 5;
-    disc(h, 3, 3, 1.8, () => R.dirt[3]); h.set(2, 1, R.dirt[2]); h.set(3, 1, R.dirt[4]); h.set(4, 3, INK);
+    disc(h, 3, 3, 1.9, (nx, ny) => G[ny < -0.3 || nx < -0.3 ? 4 : 3]); ear(h, 1, 2); h.set(4, 3, INK);
     outline(h, INK);
     return h;
   }
   const b = new BM(11, 8); b.ox = 5; b.oy = 7;
-  ell(b, 5, 5, 3.6, 2.4, (nx, ny) => R.dirt[ny < -0.2 ? 3 : 2]);
-  disc(b, 8, 3.5, 1.8, () => R.dirt[3]); b.set(7, 1, R.dirt[2]); b.set(8, 1, R.dirt[4]); b.set(9, 3, INK);
+  ell(b, 5, 5, 3.6, 2.5, (nx, ny) => G[ny < -0.3 ? 4 : ny < 0.4 ? 3 : 2]);
+  disc(b, 8, 3.6, 1.9, (nx, ny) => G[ny < -0.3 || nx < -0.3 ? 4 : 3]); ear(b, 6, 2); b.set(9, 3, INK); b.set(10, 4, G[1]);
   if (f) { b.set(10, 4, R.moss[5]); b.set(10, 3, R.lupine[1]); b.set(10, 5, R.moss[4]); }
-  b.set(3, 7, R.dirt[1]); b.set(7, 7, R.dirt[1]);
+  b.set(3, 7, G[1]); b.set(7, 7, G[1]);
   outline(b, INK);
   return b;
 }

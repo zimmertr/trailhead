@@ -141,12 +141,7 @@ function sheep(grazing, step = 0) {
   outline(b, INK);
   return b;
 }
-// A Douglas squirrel or a chipmunk, redrawn after a picture (art pass D12, design/art/D12). Sitting, the
-// squirrel is up on its haunches with its paws held to a pale chest, a tufted ear, and its bushy tail up
-// its back and curled over at the top; running, it is stretched low with the tail streaming up behind.
-// The chipmunk is smaller and tan, its tail thinner and held straight, dark and pale stripes along its
-// back and a pale stripe over the eye. Each part's edges facing the upper left are a step lighter and
-// those facing the lower right a step darker, the tail a step darker than the body so the two part.
+// A Douglas squirrel or a chipmunk (art pass D12). The tail is a step darker than the body so the two part.
 function squirrel(chip, run) {
   const c = chip ? R.dirt : R.wood, W = chip ? 10 : 12, b = new BM(W, run ? 8 : chip ? 9 : 10); b.ox = W >> 1; b.oy = b.h - 1;
   const k = chip ? 0.82 : 1, BODY = c[3], TAIL = c[chip ? 1 : 2], PALE = R.white[0];

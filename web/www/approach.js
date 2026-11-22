@@ -94,10 +94,8 @@ function paintFar(S) {
 }
 // The far wall of the valley: forest up its lower slopes, rock and meadow above, all a little hazy.
 const wallTop = x => -38 - 24 * fbm(x / 60, 3.1, 707, 3) - 5 * Math.sin(x / 23);
-// The wall's spurs (art pass E02, design/art/E02): ridges running down and to the right from the skyline, so
-// each spur's west face takes the light and its east face is in shade. The light comes from the slope of the
-// spurs at each spot, with the skyline's own slope only along its top, where it once lit whole columns and
-// broke the wall into tall slabs.
+// The wall's spurs (art pass E02): its light follows them, and the skyline's own slope only along its top,
+// where it once lit whole columns and broke the wall into tall slabs.
 const spur = (x, y) => vnoise((x - (y - wallTop(x)) * 0.9) / 30, 4.2, 739) + 0.4 * vnoise((x - (y - wallTop(x)) * 1.3) / 11, 5.1, 740);
 function paintWall(S, haze) {
   for (let x = 0; x < S.w; x++) {
@@ -153,9 +151,7 @@ const lipAt = x => -7 - Math.round(3 * vnoise(x / 9, 5, 735) + 1.5 * Math.sin(x 
 const drift = (x, y) => { const k = vnoise(x / 60, y / 22, 714); return k < 0.33 ? 'lupine' : k < 0.4 ? 'heather' : k > 0.76 ? 'red' : k > 0.66 ? 'white' : null; };
 // Rock on the near slope: outcrops and the runnels of scree below them.
 const screeAt = (x, y) => fbm(x / 16, y / 30, 722, 2) + 0.06 * (vnoise(x / 4, y / 4, 727) - 0.5) > 0.76;
-// Flowers in a drift (art pass E02): not single pixels but plants, densest in the drift's heart. Lupine and
-// paintbrush stand as spikes two or three pixels tall, lit at the tip; heather in small pink clumps; white
-// flowers as single pixels. Between plants the grass shows. 0 where nothing grows here.
+// Flowers in a drift (art pass E02): spikes, clumps or dots, densest in its heart. 0 where nothing grows.
 function bloom(x, y, kind) {
   const heart = smooth(0, 0.5, Math.abs(vnoise(x / 60, y / 22, 714) - 0.5) * 2), cell = hash(x, Math.floor(y / 3), 728), row = ((y % 3) + 3) % 3;
   if (kind === 'lupine' || kind === 'red') { if (cell > 0.2 + 0.25 * heart || hash(x - 1, Math.floor(y / 3), 728) < 0.2 + 0.25 * heart) return 0; const r = kind === 'lupine' ? R.lupine : R.red; return row === 0 ? r[2] : row === 1 ? r[1] : hash(x, y, 729) < 0.5 ? r[0] : 0; }
