@@ -229,7 +229,7 @@ function buildLakeside() {
   }
   const things = [];
   const boulders = [3, 4, 5, 6, 8, 10, 12].map((r, i) => makeBoulder(150 + i, r));
-  const firs = Array.from({ length: 6 }, (_, i) => makeFir(310 + i)), spruces = Array.from({ length: 4 }, (_, i) => makeSpruce(230 + i));
+  const firs = Array.from({ length: 6 }, (_, i) => makeFir(310 + i, true)), spruces = Array.from({ length: 4 }, (_, i) => makeSpruce(230 + i, true));
   const bushes = [0, 1, 2].map(i => makeBush(740 + i, 'heather')).concat([0, 1].map(i => makeBush(750 + i, 'huck')));
   const xMap = X0 + D_MAP, xNote = X0 + D_NOTE, xMarmot = X0 + D_MARMOT;
   const keep = x => Math.abs(x - xMap) > 46 && Math.abs(x - xNote) > 40 && Math.abs(x - xMarmot) > 30;
@@ -238,7 +238,7 @@ function buildLakeside() {
   for (let n = 0; n < 12; n++) { const x = rand() * SW; if (Math.abs(x - (X0 + LEN / 2)) < 250 || !keep(x)) continue; const k = 1 + (rand() * 3 | 0); for (let j = 0; j < k; j++) things.push({ tree: firs[(rand() * 6) | 0], x: Math.round(x + j * 11 + rand() * 5), y: g(x) - 5 + Math.round(rand() * 2) }); }
   for (let n = 0; n < 150; n++) { const x = rand() * SW, y = 8 + sq(rand()) * 220, k = rand(); things.push(k < 0.45 ? { bm: boulders[Math.min(6, (rand() * 4 + y / 60) | 0)], x: Math.round(x), y: Math.round(y) } : { bm: bushes[(rand() * 5) | 0], x: Math.round(x), y: Math.round(y) }); }
   // Subalpine firs: narrow spires, the tree of the high parkland.
-  const spires = Array.from({ length: 8 }, (_, i) => { const r = rng(600 + i), H = i < 5 ? 30 + (r() * 24 | 0) : 13 + (r() * 9 | 0); return makeConifer(600 + i, H, Math.max(5, Math.round(H * 0.27)), 'conifer', Math.max(5, Math.round(H / 4.5)), { ragged: i & 1 }); });
+  const spires = Array.from({ length: 8 }, (_, i) => { const r = rng(600 + i), H = i < 5 ? 30 + (r() * 24 | 0) : 13 + (r() * 9 | 0); return makeConifer(600 + i, H, Math.max(5, Math.round(H * 0.27)), 'conifer', Math.max(5, Math.round(H / 4.5)), { ragged: i & 1, tufts: true }); });
   for (let n = 0; n < 34; n++) { const x = rand() * SW, y = 84 + rand() * 150, tr = rand() < 0.6 ? spruces[(rand() * 4) | 0] : firs[(rand() * 6) | 0]; things.push({ tree: woodAt(x) > 0.3 ? tr : spires[(hash(n, 1, 596) * 5) | 0], x: Math.round(x), y: Math.round(y) }); }
   {
     const cr = rng(593), stopsX = [X0, X0 + 40, xMap, xNote, xMarmot, X0 + LEN];

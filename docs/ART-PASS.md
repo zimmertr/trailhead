@@ -68,7 +68,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 
 ### The Rest of the Map
 
-- [ ] **D01 Conifers** - the firs, spruce, hemlock and redcedar that cover the map. `sprites.js` (`makeConifer`, `crown`).
+- [x] **D01 Conifers** - the firs, spruce, hemlock and redcedar that cover the map. `sprites.js` (`makeConifer`, `crown`).
 - [ ] **D02 The Sea, Beach and Sea Stacks** - the water, the surf and the stacks. `critters.js` (the swells and wash), `scenery.js` (`seaStack`).
 - [ ] **D03 Broadleaf Trees** - maples, aspens, the twisted and whitebark pines, ponderosas and junipers. `sprites.js`.
 - [ ] **D04 Meadows and Flowers** - the parkland's flowers and the grass. `sprites.js` (`makeFlowers`), `land.js`.
@@ -243,3 +243,9 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - C06, a call: the massif behind is nine broad, blunt towers of uneven heights and widths: a rounded top breaking over into sheer sides, lit on the west, laid in planes, cut by cracks, with snow on the top, on a few short ledges and in wavering runnels down the gullies. A first try put a ledge and a runnel at every turn and they crossed like window bars, and every tower was a dome, a row of thumbs; so the snow is sparse and most towers step down to a lower shoulder on one side.
 - C06, a call: the routes' own furniture (the icefall's seracs, the crevasses, the ladders and cables, the summit things) is unchanged.
 - C06: frame time 11.9 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- D01, the before: the map's small conifers already read as firs, ragged and lit on the left. The scenes' big ones (the forest's firs, spruces and pines, the lake's firs and spires, the walk to camp's spires) were tiers of smooth round plates with a dark rim round each, the same on both sides, and the larches in the larch basin and on the ridge were the same drawing in gold, stacked dishes.
+- D01, the pictures: 8 in all. The style model's seed 1 was picked for the firs: many small overlapping tufts with jagged edges, lit and dark in patches, uneven side to side. It drew the larches as broadleaf trees, so the larch follows Qwen's seed 1: a visible trunk with short drooping gold sprays. The prompts are in `design/art/D01/log.jsonl`.
+- D01, a call: `makeConifer` takes a `tufts` option (`tuftTier`), which only the scenes pass; `makeSpruce`, `makeFir` and `makeLodgepole` take it as a second argument, since the map uses them too. A layer is two branches of their own lengths drooping from the trunk, hung with tufts of uneven depth in pairs of columns, ragged at the tips with a needle hanging here and there, lit on the left and along the top in patches two pixels across. The dark edge goes only under and beside a layer, never along its top, so a layer runs into the one above instead of standing apart as a pill.
+- D01, a call: `open` (the larches) draws each spray as a thin twig drooping more steeply, gold needles a pixel or two deep along it and more at the tip, leaves the trunk showing, and drops about one layer in three.
+- D01, a call: the map's trees keep the plates, which read right at their size. `ground.png` was rebaked because its fingerprint covers `sprites.js`; its pixels are identical to before.
+- D01: frame time 11.9 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.

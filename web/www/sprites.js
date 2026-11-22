@@ -67,6 +67,7 @@ function makeConifer(seed, H, W, name, tiers, o = {}) {
   for (let i = 0; i < tiers; i++) {
     if (o.ragged && i > 1 && i < tiers - 1 && rand() < 0.22) continue;
     const f = (i + 1) / tiers, hw = Math.max(1.5, W / 2 * Math.pow(f, 0.9) + (rand() - 0.5) * 1.5 * (1 + 2.5 * (o.ragged || 0))), th = 4 + (f > 0.5 ? 1 : 0), hang = Math.ceil(2.5 * droop);
+    if (o.tufts) { parts.push(tuftTier(seed, i, f, hw, th, droop, ramp, H, tiers, o, rand)); continue; }
     const bm = new BM(Math.ceil(hw * 2) + 5, th + 5 + hang), cx = bm.w / 2;
     for (let dx = -Math.floor(hw); dx <= Math.ceil(hw); dx++) {
       const a = Math.abs(dx) / hw; if (a > 1) continue;
@@ -82,6 +83,45 @@ function makeConifer(seed, H, W, name, tiers, o = {}) {
     parts.push({ bm, x: Math.round(-cx + 0.5), y: Math.round(y - 1), sway: 1 - f * 0.6, lx: 0 });
   }
   return { parts, h: H, w: W };
+}
+// One layer of branches for the scenes' big conifers (art pass D01, after design/art/D01): not a plate but
+// two branches, each its own length, drooping from the trunk, hung with tufts of needles of uneven depth so
+// the underside is jagged, ragged at the tips, a needle or two hanging below; lit on the left and along the
+// top, dark underneath, in patches two pixels across. `open` (the larches) leaves the trunk showing and
+// keeps the sprays thin. The map's small trees keep the plates, which read right at their size.
+function tuftTier(seed, i, f, hw, th, droop, ramp, H, tiers, o, rand) {
+  const hl = Math.max(1.5, hw * (0.72 + 0.56 * rand())), hr = Math.max(1.5, hw * (0.72 + 0.56 * rand())), hang = Math.ceil(2.5 * droop) + 6;
+  // A larch is open: now and then a whole layer is missing and the trunk shows.
+  const skip = o.open && i > 0 && hash(i, 5, seed) < 0.3;
+  const bm = new BM(Math.ceil(Math.max(hl, hr) * 2) + 7, th + 8 + hang), cx = Math.floor(bm.w / 2), n = ramp.length - 1;
+  for (let dx = -Math.floor(hl); dx <= Math.ceil(hr); dx++) {
+    const hs = dx < 0 ? hl : hr, a = Math.abs(dx) / hs; if (skip || a > 1 || dx === 0 && o.open) continue;
+    if (a > 0.7 && hash(dx, i, seed + 1) < 0.35) continue;
+    const y0 = o.open ? 1 + Math.pow(a, 1.4) * 5 : 1 + a * a * 2.5 * droop;
+    if (o.open) {
+      // A larch's spray: a thin drooping twig, gold needles along it a pixel or two deep, more hanging at the tip.
+      const t = 1 + (hash(dx >> 1, i, seed) > 0.45 ? 1 : 0) + (a > 0.75 && hash(dx, i, seed + 4) < 0.5 ? 1 : 0);
+      for (let j = 0; j < t; j++) bm.set(cx + dx, Math.round(y0 + j + 1), ramp[clamp(Math.round((0.85 - j * 0.35 - dx / hs * 0.15 + 0.2 * (hash(dx, j + i, seed + 2) - 0.5)) * n), 1, n)]);
+      continue;
+    }
+    const t = Math.max(1, (th + 1.5) * (1 - a * 0.5) * (0.5 + 0.65 * hash(dx >> 1, i, seed)));
+    for (let j = 0; j < t; j++) {
+      const v = 0.82 - j / t * 0.65 - dx / hs * 0.18 + (j === 0 && dx <= 0 ? 0.12 : 0) + 0.26 * (hash(dx >> 1, (j + i * 7) >> 1, seed + 2) - 0.5);
+      bm.set(cx + dx, Math.round(y0 + j + 1), ramp[clamp(Math.round(v * n + (bayer(dx & 3, j) - 0.5) * 0.6), 1, n)]);
+    }
+    if (hash(dx, i, seed + 3) < 0.22) bm.set(cx + dx, Math.round(y0 + t + 1), ramp[1]);
+  }
+  if (i === 0) { bm.set(cx, 0, ramp[2]); bm.set(cx, 1, ramp[3]); }
+  // The dark edge only under and beside a layer, never along its top, so a layer runs into the one above
+  // instead of standing apart as a pill, and its underside is the shadow on the layer below.
+  const d = bm.d.slice();
+  for (let y = 0; y < bm.h; y++) for (let x = 0; x < bm.w; x++) {
+    if (d[y * bm.w + x]) continue;
+    const up = y > 0 && d[(y - 1) * bm.w + x], side = (x > 0 && d[y * bm.w + x - 1]) || (x < bm.w - 1 && d[y * bm.w + x + 1]);
+    if (up || (side && y > 1)) bm.d[y * bm.w + x] = ramp[0];
+  }
+  const y = -H + 2 + i * (H * 0.82 * (o.crown || 1)) / tiers;
+  return { bm, x: -cx, y: Math.round(y - 1), sway: 1 - f * 0.6, lx: 0 };
 }
 // The crown of a broadleaf or a pine: a dark copy of the canopy behind the clumps (so a lifted clump
 // shows shadowed leaves, not sky), then the clumps from the top down.
@@ -199,7 +239,7 @@ function makePonderosa(seed) {
 }
 // The dry side's trees (E5g). A lodgepole pine: tall, straight and thin, crowded in stands, its needles
 // only in the top half with the trunk bare below.
-const makeLodgepole = seed => { const r = rng(seed); return makeConifer(seed, 34 + (r() * 14 | 0), 8 + (r() * 3 | 0), 'pine', 6, { crown: 0.55 }); };
+const makeLodgepole = (seed, tufts = false) => { const r = rng(seed); return makeConifer(seed, 34 + (r() * 14 | 0), 8 + (r() * 3 | 0), 'pine', 6, { crown: 0.55, tufts }); };
 // A western juniper: low and gnarled, a twisting trunk of shaggy grey-brown bark under dense clumps of
 // blue-grey foliage. It grows where the pines give out to sage.
 function makeJuniper(seed) {
@@ -240,8 +280,9 @@ function makeShrub(seed, kind) {
   outline(b, kind === 'alder' ? R.moss[2] : R.conifer[0]);
   return b;
 }
-const makeSpruce = seed => { const r = rng(seed); return makeConifer(seed, 52 + (r() * 16 | 0), 26 + (r() * 8 | 0), 'conifer', 9); };
-const makeFir = seed => { const r = rng(seed); return makeConifer(seed, 22 + (r() * 12 | 0), 9 + (r() * 4 | 0), 'conifer', 6); };
+// The scenes pass tufts (D01); the map keeps the plates.
+const makeSpruce = (seed, tufts = false) => { const r = rng(seed); return makeConifer(seed, 52 + (r() * 16 | 0), 26 + (r() * 8 | 0), 'conifer', 9, { tufts }); };
+const makeFir = (seed, tufts = false) => { const r = rng(seed); return makeConifer(seed, 22 + (r() * 12 | 0), 9 + (r() * 4 | 0), 'conifer', 6, { tufts }); };
 
 function makeFern(seed) {
   const rand = rng(seed), b = new BM(11, 7); b.ox = 5; b.oy = 6;

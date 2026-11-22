@@ -371,7 +371,7 @@ function buildApproach() {
   // never on the snow or the stream; rocks and heather between. A marmot on a rock behind the trail
   // where a rib stands proud a little past the stream, and another below the trail near the snow.
   const things = [];
-  const spire = (seed, H) => makeConifer(seed, H, Math.max(5, Math.round(H * 0.28)), 'conifer', Math.max(5, Math.round(H / 4.5)), { ragged: seed & 1 });
+  const spire = (seed, H) => makeConifer(seed, H, Math.max(5, Math.round(H * 0.28)), 'conifer', Math.max(5, Math.round(H / 4.5)), { ragged: seed & 1, tufts: true });
   for (let x = 20; x < SW0 - 20; x += 12 + rand() * 36) {
     const back = rand() < 0.3, r = back ? -2 - Math.round(rand() * 3) : 12 + Math.round(rand() * 150);
     if (fbm(x / 80, back ? 2 : 3, 727, 2) < 0.45 || inSnow0(x, r) || Math.abs(x - STREAM) < 14 || mor(x) > 0.1 || (back && x > ICE0 - 20)) continue;

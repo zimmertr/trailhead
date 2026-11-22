@@ -252,7 +252,7 @@ function paintGround(S, things) {
     S.stamp(hucks[p.v][p.s + (p.y > 120 ? 1 : 0)], p.x, p.y, p.flip);
   // Dwarf pine in knee-high mats on the knob and in the cracks low on the ridge; larches below.
   for (let n = 0; n < 40; n++) { const x = 20 + rand() * 240, h = (x < 236 ? knob(x) : along(LOW, x)) - rand() * 6; things.push({ pine: 3 + rand() * 5, x: Math.round(x), h: Math.round(h) }); }
-  for (let n = 0; n < 22; n++) { const x = 250 + rand() * 900, f = foot(x) - 34 - rand() * 160, H = 14 + rand() * 26; things.push({ tree: makeConifer(740 + n, Math.round(H), Math.round(H / 2.6), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: 0.2, droop: 0.6 }), x: Math.round(x), h: Math.round(f) }); }
+  for (let n = 0; n < 22; n++) { const x = 250 + rand() * 900, f = foot(x) - 34 - rand() * 160, H = 14 + rand() * 26; things.push({ tree: makeConifer(740 + n, Math.round(H), Math.round(H / 2.6), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: 0.2, droop: 0.6, tufts: true, open: true }), x: Math.round(x), h: Math.round(f) }); }
   flagLarch(S, 223, Math.round(knob(223)) - 1, 24, 739);
   // A few small larches rooted in cracks on the face, and grass in tufts along the crest and its ledges.
   // These are wind-flagged: a crooked trunk leaning east with its gold tufts mostly on the downwind side,

@@ -231,7 +231,7 @@ function buildLarches() {
     if (fbm(x / 70, front ? 2 : 3, 640, 2) < 0.42) continue;
     const a = AGES[Math.min(3, Math.floor(rand() * 4 * (front ? 1 : 0.7) + (y > 60 ? 1 : 0)))], s = front ? 1 + y / 220 : 0.8;
     const H = Math.round(a[0] * s);
-    things.push({ tree: makeConifer(650 + things.length, H, Math.round(a[1] * s), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: a[0] > 40 && rand() < 0.5 ? 0.5 : 0.15, droop: 0.6 }), x: Math.round(x), y: g(x) + y });
+    things.push({ tree: makeConifer(650 + things.length, H, Math.round(a[1] * s), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: a[0] > 40 && rand() < 0.5 ? 0.5 : 0.15, droop: 0.6, tufts: true, open: true }), x: Math.round(x), y: g(x) + y });
   }
   // Nothing stands on the slab with the rungs, or in front of it.
   const offSlab = th => !(th.x > RUNG.top - RUNG.run - 22 && th.x < RUNG.top + 18 && th.y - g(th.x) < 76);
