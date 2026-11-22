@@ -17,7 +17,7 @@ The chart (zimmertr/trailhead-helm) owns the routes: `web` on every path of the 
 
 ### Client identity
 
-The API's rate limit counts each client by the `CF-Connecting-IP` header alone (`clientBucket` in [`api/src/client.ts`](../api/src/client.ts), record [0013](architectural-decision-records/0013-client-identity-comes-from-cf-connecting-ip-alone.md)): an IPv4 address as itself, an IPv6 address by its /64, and a request without a valid address in one shared bucket. The socket address is the gateway's and `X-Forwarded-For` is the caller's to write, so neither is read. The gateway must strip `CF-Connecting-IP` from any request that didn't come through Cloudflare. No service logs a client address.
+The API's rate limit counts each client by the `CF-Connecting-IP` header alone (`clientBucket` in [`api/src/client.ts`](../api/src/client.ts), record [0011](architectural-decision-records/0011-client-identity-comes-from-cf-connecting-ip-alone.md)): an IPv4 address as itself, an IPv6 address by its /64, and a request without a valid address in one shared bucket. The socket address is the gateway's and `X-Forwarded-For` is the caller's to write, so neither is read. The gateway must strip `CF-Connecting-IP` from any request that didn't come through Cloudflare. No service logs a client address.
 
 ### Headers
 

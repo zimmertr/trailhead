@@ -1,0 +1,95 @@
+# Sideproject Spires: base camp's card and the six projects.
+# Every line here is shown in the game. New lines are drafts for TJ until he approves them.
+# After an edit, npm run words (make words) writes web/www/words.js.
+
+# kind is the thing the card comes out of, which decides how it is drawn. A card marked draft shows a note that its words are draft copy.
+CARDS:
+  base-camp:
+    route: spires
+    slug: sideproject-spires
+    kind: camp
+    from: Base camp
+    title: Sideproject Spires
+    body:
+      - Six summits, one for each project. Pick one and he sets off. Every route ends with a glissade back to camp.
+    links: []
+    go: null
+# One per summit, in the order base camp lists them. clue is the last line of the card: a nudge toward what the thing on the summit does when it is clicked. The numbers were read from GitHub on 2026-11-14; the game shows them only when the API cannot be reached.
+PROJECTS:
+  bluebird:
+    name: Bluebird Forecast
+    top: A weather station
+    clue: The station's forecast says bluebird skies. Maybe ask it to prove it.
+    repo: zimmertr/bluebird
+    site: https://bluebirdforecast.com
+    stars: 2
+    release: v0.141.8
+    released: 2026-11-14
+    language: TypeScript
+    license: PolyForm Noncommercial 1.0.0
+    body:
+      - The weather window finder. It discovers hiking and mountaineering destinations and ranks them by wildfire activity, precipitation, temperature, wind and air quality, so you can find the bluebird day before it gets here.
+  tks:
+    name: TJs-Kubernetes-Service
+    top: A server rack
+    clue: The hardware seems to be malfunctioning, maybe try some percussive maintenance.
+    repo: zimmertr/TJs-Kubernetes-Service
+    stars: 557
+    release: v4.0.38
+    released: 2026-11-14
+    language: HCL
+    license: GPL-3.0
+    body:
+      - TKS is a collection of Terraform configurations that deploy Talos Linux Kubernetes clusters to Proxmox VE.
+      - 'This site runs at home on one of them: Proxmox, Terraform, Talos Linux, Kubernetes, Istio and MetalLB.'
+    extra:
+      - - The hardware
+        - https://github.com/zimmertr/TJs-Kubernetes-Service
+  hevy-garmin-sync:
+    name: hevy-garmin-sync
+    top: A weight bench
+    clue: Nobody leaves a bench this high without doing a set.
+    repo: zimmertr/hevy-garmin-sync
+    stars: 2
+    release: v0.13.0
+    released: 2026-11-14
+    language: Python
+    license: MIT
+    body:
+      - Turns Hevy routines (and Hevy Trainer workouts) into Garmin Connect strength workouts on your watch.
+  trailhead:
+    name: trailhead
+    top: A pair of coin-operated binoculars
+    clue: The binoculars are coin-operated. You look like you have a coin.
+    repo: zimmertr/trailhead
+    stars: 0
+    release: v0.1.5
+    released: 2026-11-14
+    language: TypeScript
+    license: PolyForm Noncommercial 1.0.0
+    body:
+      - This site. You are standing on it.
+  yggdrasil:
+    name: yggdrasil
+    top: The world tree
+    clue: The world tree's roots reach into every repo. Give it a closer look.
+    repo: zimmertr/yggdrasil
+    stars: 1
+    release: v2.0.0
+    released: 2026-11-14
+    language: HCL
+    license: GPL-3.0
+    body:
+      - Shared, versioned CI modules, and the Terraform that manages my GitHub repos and orgs. Every other project here hangs off it.
+  kubernetes-manifests:
+    name: Kubernetes-Manifests
+    top: A cairn
+    clue: Every visitor leaves a stone. It's tradition.
+    repo: zimmertr/Kubernetes-Manifests
+    stars: 120
+    release: null
+    released: null
+    language: Shell
+    license: GPL-3.0
+    body:
+      - A collection of my Kubernetes manifests, managed by Kustomize and Argo CD.

@@ -5,7 +5,7 @@ const dockerfile = (service: string) => read(`${service}/Dockerfile`)
 const froms = (text: string) => [...text.matchAll(/^FROM (\S+)/gm)].map(([, image]) => image ?? '')
 
 describe('the Dockerfiles', () => {
-  it('are one per service and one for the prototype\'s renders, and no more', () => {
+  it('are one per service and one for the render tools, and no more', () => {
     expect(files(/(^|\/)Dockerfile$/)).toEqual([...SERVICES, LAB].map((s) => `${s}/Dockerfile`).toSorted())
   })
 

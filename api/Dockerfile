@@ -2,7 +2,7 @@
 # holds the one lockfile and the content every image reads:
 #   docker build -f api/Dockerfile .
 # The four Dockerfiles share one shape, and tests/dockerfiles.test.ts holds
-# them to it. Records 0008 and 0009.
+# them to it. Records 0006 and 0007.
 
 # The build stage bundles the service with esbuild into one file and writes
 # the license text of every package in that bundle beside it.
@@ -28,7 +28,7 @@ COPY api/ api/
 RUN npm run build -w content && node tools/bundle.ts api api/src/main.ts
 
 # Alpine over Debian, and the bundle over node_modules, by measured findings
-# (record 0008).
+# (record 0006).
 FROM node:26-alpine@sha256:6bd9ab43c0ec0190ca7b2d193906cb8b7edf6e7f4afa43ddeccd6452710bffb5
 LABEL org.opencontainers.image.title="trailhead-api" \
       org.opencontainers.image.description="The public API behind tjzimmerman.com" \

@@ -1,0 +1,125 @@
+# Names: the stop labels on the timeline, where each route ends, the destinations, the joke place names on the map, the names of things in the scenes, and the music.
+# Every line here is shown in the game. New lines are drafts for TJ until he approves them.
+# After an edit, npm run words (make words) writes web/www/words.js.
+
+LABELS:
+  who: Who TJ is
+  mountains: In the mountains
+  note: A personal note
+  platform-engineering: Platform
+  site-reliability-engineering: Reliability
+  software-engineering: Software
+  summit: Summit
+  base-camp: Base camp
+  off-route: Off route
+ENDS:
+  lake: Trailhead
+  stack: Trailhead
+  spires: Base camp
+  spires-home: Trailhead
+# The four places he can be sent to. Their names are pinned on the map and head the trail map's lists.
+DEST_NAMES:
+  trailhead: Trailhead
+  lake: Reflection Lake
+  stack: Proficiency Peak
+  spires: Sideproject Spires
+# The joke place names that stand as signs on the world map. habitat() in web/www/land.js finds where each one stands.
+SIGNS:
+  scope-creep: Scope Creep Glacier
+  segfault: Segfault Scree
+  merge-conflict: Merge Conflict Col
+  yak-shave: Yak Shave Meadow
+  rollback: Rollback Basin
+  feature-flag: Feature Flag Tarns
+  hotfix: Hotfix Burn
+  postmortem: Postmortem Burn
+  cron-job: Cron Job Coulee
+  tech-debt: Tech Debt Badlands
+  off-by-one: Off By One Peak
+  dependency: Dependency Range
+  stack-trace: Stack Trace Thicket
+  monorepo: Monorepo Woods
+  cache-miss: Cache Miss Cove
+  latency: Latency Bay
+# The names of things you can point at inside a scene.
+NAMES:
+  kiosk: Trail conditions
+  register: Trail register
+  kayti: Kayti
+  lookout: Observability Lookout
+  tidepool: 'Tide pool: sea star, anemone, urchin'
+  cats:
+    tortie: Doot Doot
+    nebel: Peevers
+  forest:
+    sign: Legacy Grove
+    creek: Cache Miss Creek
+    elk: Roosevelt elk
+    owl: Barred owl
+    slug: Banana slug
+    deer: Black-tailed deer
+    jay: Canada jay
+  lakeside:
+    sign: Cold Start Cove
+    marmot: Hoary marmot
+    loon: Common loon
+    chick: Loon chick
+    swim: Go for a swim
+    back: Swim back
+  wall:
+    ledge: Deadlock Ledge
+    roof: Rollback Roof
+    scree: Segfault Scree
+  ridge:
+    raven: Common raven
+    goat: Mountain goat
+  climb:
+    crevasse: Tech Debt Crevasse
+    ridge: Race Condition Ridge
+  offroute:
+    wand: The only wand for miles
+    sign: Back the way you came
+  larches:
+    goats: Nanny and kid
+    billy: On-call billy goat
+    pika: Pika
+  camp:
+    goats: Mountain goats
+  approach:
+    marmot: Hoary marmot
+    pika: Pika
+  # The animals of the world map, each named when you point at it (round 6). Drafts for TJ.
+  map:
+    bull: Bull elk
+    elk: Roosevelt elk
+    goat: Mountain goat
+    kid: Mountain goat kid
+    sheep: Bighorn ram
+    moose: Bull moose
+    calf: Moose calf
+    bear: Black bear
+    cub: Black bear cub
+    squirrel: Douglas squirrel
+    chipmunk: Chipmunk
+    marmot: Hoary marmot
+    whale: Humpback whale
+    eagle: Bald eagle
+    osprey: Osprey
+    orca: Orca
+    jelly: Moon jelly
+    raven: Ravens
+    gull: Gulls
+# The music, in the order web/www/audio.js holds the tunes.
+TRACK_NAMES:
+  - Wildflower Meadow
+  - Hall of Mosses
+  - Granite Hours
+  - Above the Icefall
+  - Larch March
+  - Tarn at Noon
+  - Glissade
+# The three sets of instruments.
+SET_NAMES:
+  - Console
+  - Handheld
+  - Music box

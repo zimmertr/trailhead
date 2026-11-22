@@ -1,12 +1,27 @@
+import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { ContentError, buildContent, readContentFiles, splitFrontMatter } from '../src/build.ts'
-import { file, milestone, place, project, site, valid } from './fixtures.ts'
+import { parse, stringify } from 'yaml'
+import { ContentError, type SourceFile, buildContent, buildWords, readGameFiles, wordsModule } from '../src/build.ts'
 
-const problemsOf = (files: Parameters<typeof buildContent>[0]): string[] => {
+const root = join(dirname(fileURLToPath(import.meta.url)), '..')
+const real = (): SourceFile[] => readGameFiles(root)
+const extra = (data: unknown, path = 'content/game/extra.yaml'): SourceFile => ({ path, source: typeof data === 'string' ? data : stringify(data) })
+// One real file, changed the way a test needs.
+type Spires = { PROJECTS: Record<string, { repo: string }> }
+const edited = (name: string, change: (data: Spires) => void): SourceFile[] =>
+  real().map((file) => {
+    if (!file.path.endsWith(name)) return file
+    const data = parse(file.source) as Spires
+    change(data)
+    return { path: file.path, source: stringify(data) }
+  })
+const card = { route: 'lake', slug: 'reflection-lake/extra', kind: 'sign', from: 'A sign', title: 'Extra', body: ['He stops here.'] }
+
+const problemsOf = (files: SourceFile[]): string[] => {
   try {
-    buildContent(files)
+    buildWords(files)
   } catch (error) {
     if (error instanceof ContentError) return error.problems
     throw error
@@ -14,170 +29,109 @@ const problemsOf = (files: Parameters<typeof buildContent>[0]): string[] => {
   throw new Error('expected the build to refuse these files')
 }
 
-describe('buildContent', () => {
-  it('builds the smallest valid set, rendering prose to HTML', () => {
-    const content = buildContent(valid())
-    expect(content.site.name).toBe('TJ Zimmerman')
-    expect(content.places).toEqual([{ slug: 'meadow', title: 'Meadow', order: 0, signs: [], html: '' }])
-    expect(content.milestones[0]).toMatchObject({ slug: 'first', links: [], tools: [], html: '<p>He stops here.</p>' })
-    expect(content.projects[0]).toMatchObject({ repo: 'zimmertr/thing', html: '<p>It does one thing.</p>' })
+describe('the game words', () => {
+  it('build from content/game, and give the API the projects in base camp order', () => {
+    const words = buildWords(real())
+    expect(real().every((file) => file.path.startsWith('content/game/') && file.path.endsWith('.yaml'))).toBe(true)
+    const { projects } = buildContent(words)
+    expect(projects.map((p) => p.slug)).toEqual(Object.keys(words.PROJECTS))
+    expect(projects.map((p) => p.order)).toEqual(projects.map((_, i) => i))
+    expect(projects[0]).toEqual({ slug: 'bluebird', name: 'Bluebird Forecast', repo: 'zimmertr/bluebird', order: 0 })
   })
 
-  it('escapes raw HTML in prose instead of passing it through', () => {
-    const content = buildContent([site(), place(), milestone({}, '<script>alert(1)</script>'), project()])
-    expect(content.milestones[0]?.html).not.toContain('<script>')
-    expect(content.milestones[0]?.html).toContain('&lt;script&gt;')
+  it('are copied into web/www/words.js as they are now (run make words after an edit)', () => {
+    expect(readFileSync(join(root, '..', 'web', 'www', 'words.js'), 'utf8')).toBe(wordsModule(buildWords(real())))
   })
 
-  it('sorts places by order, milestones by place then order, and projects by order', () => {
-    const content = buildContent([
-      site(),
-      place({ slug: 'lake', title: 'Lake', order: 2 }),
-      place({ slug: 'meadow', order: 1 }),
-      milestone({ slug: 'b', place: 'lake', order: 1 }),
-      milestone({ slug: 'a', place: 'meadow', order: 2 }),
-      milestone({ slug: 'c', place: 'meadow', order: 1 }),
-      project({ slug: 'z', repo: 'zimmertr/z', order: 2 }),
-      project({ slug: 'y', repo: 'zimmertr/y', order: 1 }),
-    ])
-    expect(content.places.map((p) => p.slug)).toEqual(['meadow', 'lake'])
-    expect(content.milestones.map((m) => m.slug)).toEqual(['c', 'a', 'b'])
-    expect(content.projects.map((p) => p.slug)).toEqual(['y', 'z'])
-  })
-
-  it('refuses first-person words and email addresses', () => {
-    const problems = problemsOf([site(), place(), milestone({}, "I'm here and this is my note."), project({}, `Write to ${['tj', 'example.com'].join('@')}.`)])
-    expect(problems).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/milestones\/first\.md: "I'm" is first person/),
-        expect.stringMatching(/milestones\/first\.md: "my" is first person/),
-        'projects/thing.md: holds an email address',
-      ]),
-    )
-  })
-
-  it('refuses a misspelt field, a bad slug and a missing body', () => {
-    const problems = problemsOf([
-      site(),
-      place({ titel: 'Meadow' }),
-      milestone({ slug: 'Not A Slug' }),
-      milestone({ slug: 'empty', order: 2 }, ''),
-      project({}, ''),
-    ])
-    expect(problems).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/^places\/meadow\.md: .*titel/),
-        expect.stringMatching(/^milestones\/Not A Slug\.md: slug: lowercase words joined by hyphens/),
-        "milestones/empty.md: a milestone needs its card's words below the fields",
-        "projects/thing.md: a project needs its card's words below the fields",
-      ]),
-    )
-  })
-
-  it('refuses links, signs and places that point at nothing', () => {
-    const problems = problemsOf([
-      site(),
-      place({ signs: [{ text: 'Go to the moon', place: 'moon' }] }),
-      milestone({ links: ['myspace'], place: 'meadow' }),
-      milestone({ slug: 'lost', place: 'nowhere', order: 2 }),
-      project(),
-    ])
-    expect(problems).toEqual([
-      'place meadow: a sign points at moon, which is no place',
-      'milestone first: link myspace is no profile in site.md',
-      'milestone lost: place nowhere does not exist',
+  it('refuse an email address and a section the game does not read', () => {
+    expect(problemsOf([...real(), extra({ CONTACT: `Write to ${['tj', 'example.com'].join('@')}.` })])).toEqual([
+      'content/game/extra.yaml: CONTACT holds an email address',
+      'content/game/extra.yaml: CONTACT: the game reads no such name',
     ])
   })
 
-  it('refuses duplicates of every kind', () => {
-    const problems = problemsOf([
-      site({ profiles: [1, 2].map(() => ({ id: 'github', label: 'GitHub', url: 'https://github.com/zimmertr' })) }),
-      site(),
-      place(),
-      place(),
-      milestone(),
-      milestone(),
-      project(),
-      project({ repo: 'ZIMMERTR/thing' }),
-    ])
-    expect(problems).toEqual([
-      'site.md: a second site file',
-      'profile id github is used twice',
-      'place meadow is defined twice',
-      'two places share order 0',
-      'project thing is defined twice',
-      'repo zimmertr/thing is listed twice',
-      'two projects share order 1',
-      'milestone meadow/first is defined twice',
-      'two milestones share order meadow/1',
+  it('refuse a section in two files, and a card twice', () => {
+    expect(problemsOf([...real(), extra({ INTRO: 'Hello.', CARDS: { who: card } })])).toEqual([
+      'content/game/extra.yaml: INTRO is also in content/game/trailhead.yaml',
+      'content/game/extra.yaml: CARDS.who is also in content/game/reflection-lake.yaml',
     ])
   })
 
-  it('refuses a file without fields, an unknown kind, prose in the site file, and no site file', () => {
-    expect(problemsOf([file('loose.md', null, 'Just words.'), file('odd.md', { kind: 'trail' }), place(), milestone(), project()])).toEqual([
-      'loose.md: starts without a --- block of YAML fields',
-      'odd.md: kind must be site, place, milestone or project',
-      'no site file',
-    ])
-    expect(problemsOf([{ ...site(), source: `${site().source}Words.\n` }, place(), milestone(), project()])).toEqual([
-      'site.md: the site file holds fields only',
+  it('refuse a misspelt field, a field of the wrong kind and a missing section, naming the file', () => {
+    const files = edited('names.yaml', (data) => {
+      delete (data as unknown as Record<string, unknown>).SET_NAMES
+    })
+    expect(
+      problemsOf([...files, extra({ CARDS: { extra: { ...card, titel: 'Extra' }, more: { ...card, body: 'One line.' } } })]),
+    ).toEqual([
+      'content/game/extra.yaml: CARDS.extra.titel: the game reads no such name',
+      'content/game/extra.yaml: CARDS.more.body: Invalid input: expected array, received string',
+      'content/game: SET_NAMES: Invalid input: expected array, received undefined',
     ])
   })
 
-  it('refuses a profile link that is not https', () => {
-    const problems = problemsOf([site({ profiles: [{ id: 'old', label: 'Old', url: 'http://example.com' }] }), place(), milestone(), project()])
-    expect(problems).toEqual([expect.stringMatching(/^site\.md: profiles\.0\.url: /), 'no site file'])
+  it('refuse a link to no profile, and a repo listed twice', () => {
+    const files = edited('sideproject-spires.yaml', (data) => {
+      data.PROJECTS.copy = { ...data.PROJECTS.bluebird, repo: 'Zimmertr/Bluebird' }
+    })
+    expect(problemsOf([...files, extra({ CARDS: { extra: { ...card, links: ['myspace'] } } })])).toEqual([
+      'content/game/extra.yaml: CARDS.extra links to myspace, which is not in LINKS',
+      'content/game/sideproject-spires.yaml: repo zimmertr/bluebird is listed twice',
+    ])
   })
 
-  it('reports every problem in one message', () => {
-    expect(() => buildContent([])).toThrow(/The content has 1 problem\(s\):\n {2}no site file/)
+  it('refuse a file that is not YAML, and one that holds no sections', () => {
+    const problems = problemsOf([...real(), extra('INTRO: [', 'content/game/a.yaml'), extra('- one\n', 'content/game/b.yaml')])
+    expect(problems).toHaveLength(2)
+    expect(problems[0]).toMatch(/^content\/game\/a\.yaml: /)
+    expect(problems[1]).toBe('content/game/b.yaml: holds no sections')
   })
 })
 
-describe('splitFrontMatter', () => {
-  it('refuses a key given twice', () => {
-    expect(() => splitFrontMatter('x.md', '---\nkind: place\nkind: site\n---\n')).toThrow(/unique/)
-  })
-})
+// The parts of the game's content.js this test calls. It is untyped browser
+// JavaScript (record 0001), so the shape is written out here.
+type Say = (...values: (string | number)[]) => string
+type GameContent = {
+  ago: (iso: string, now: Date) => string
+  UI: {
+    auto: Say
+    found: Say
+    card: { summit: Say }
+    map: { lake: [string, Say]; stack: [string, Say]; spires: [string, Say]; plank: Record<'lake' | 'stack' | 'spires', Say>; takes: Say; legend: string }
+    kiosk: { up: Say; summits: Say; checklist: Say }
+    register: { todo: { spires: Say } }
+    plain: { facts: Say; released: Say }
+  }
+}
 
-describe('the real content', () => {
-  const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-  const content = buildContent(readContentFiles(root))
-
-  it('reads every file under the content folders and nothing beside them', () => {
-    const paths = readContentFiles(root).map((f) => f.path)
-    expect(paths).toContain('site.md')
-    expect(paths.filter((p) => p.startsWith('projects/'))).toHaveLength(6)
-    expect(paths).not.toContain('CLAUDE.md')
-  })
-
-  it('holds the four places, in the order a visitor meets them', () => {
-    expect(content.places.map((p) => p.slug)).toEqual(['trailhead', 'about-lake', 'the-stack', 'sideproject-spires'])
-  })
-
-  it('holds the PRD\u2019s Trailhead words', () => {
-    const trailhead = content.places[0]
-    expect(content.site.name).toBe('TJ Zimmerman')
-    expect(trailhead?.html).toContain('is a principal platform engineer based out of Seattle, WA.')
-    expect(trailhead?.signs.map((s) => s.text)).toEqual([
-      'Run to About Lake to learn more about TJ',
-      'Climb The Stack to learn more about his skills',
-      'Climb the Sideproject Spires to see some of his personal projects',
-    ])
-  })
-
-  it('holds the six projects with their repos', () => {
-    expect(content.projects.map((p) => p.repo)).toEqual([
-      'zimmertr/bluebird',
-      'zimmertr/TJs-Kubernetes-Service',
-      'zimmertr/hevy-garmin-sync',
-      'zimmertr/trailhead',
-      'zimmertr/yggdrasil',
-      'zimmertr/Kubernetes-Manifests',
-    ])
-  })
-
-  it('holds the five profiles', () => {
-    expect(content.site.profiles.map((p) => p.label)).toEqual(['LinkedIn', 'GitHub', 'Strava', 'Peakbagger', 'Mountain Project'])
+describe('web/www/content.js', () => {
+  it('fills every {brace} in the words it builds sentences from', async () => {
+    const path = join(root, '..', 'web', 'www', 'content.js')
+    const { UI, ago } = (await import(path)) as GameContent
+    const said = [
+      UI.auto('Day'),
+      UI.found('Doot Doot', 3, 12),
+      UI.card.summit('A cairn'),
+      UI.map.lake[1](4.2),
+      UI.map.stack[1](7),
+      UI.map.spires[1](3),
+      UI.map.plank.lake(4.2),
+      UI.map.plank.stack(7),
+      UI.map.plank.spires(3),
+      UI.map.takes(90),
+      UI.map.legend,
+      UI.kiosk.up(1),
+      UI.kiosk.up(30),
+      UI.kiosk.up(600),
+      UI.kiosk.summits(2),
+      UI.kiosk.checklist(1, 12),
+      UI.register.todo.spires('Sideproject Spires'),
+      UI.plain.facts(5, 'v1.0.0', 'Go', 'MIT'),
+      UI.plain.released('v1.0.0', 'today'),
+      ...['2026-11-21', '2026-11-20', '2026-10-01', '2025-01-01', '2020-01-01'].map((day) => ago(day, new Date('2026-11-21T12:00:00Z'))),
+    ]
+    for (const line of said) expect(line).not.toMatch(/[{}]|undefined|NaN/)
+    expect(said.at(-3)).toBe('51 days ago')
+    expect(UI.map.legend).toMatch(/: .+, .+ and .+\.$/)
   })
 })

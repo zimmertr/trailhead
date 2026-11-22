@@ -24,11 +24,10 @@ Each job of the repo's own runs a `make` target, so a red check reruns locally i
 | `Static Checks` | `pr.yml` | `make lint` (ESLint and its rules' self-test), `make typecheck`, `make check-openapi` |
 | `Unit Tests` | `pr.yml` | `make test`, with line and branch coverage as a sticky PR comment |
 | `Database Tests` | `pr.yml` | `make test-db` against a throwaway Postgres, with its coverage as a sticky comment |
-| `Docker Build / Docker Build (zimmertr/trailhead-<service>)`, one per image | `pr.yml` | yggdrasil's `docker-build` module over the release's four images: hadolint, the linux/amd64 build, a sticky Trivy comment, and a failure on any fixable Critical or High. Each image is saved for the jobs below (record [0016](architectural-decision-records/0016-the-pr-builds-the-images-through-yggdrasils-docker-build-module.md)) |
+| `Docker Build / Docker Build (zimmertr/trailhead-<service>)`, one per image | `pr.yml` | yggdrasil's `docker-build` module over the release's four images: hadolint, the linux/amd64 build, a sticky Trivy comment, and a failure on any fixable Critical or High. Each image is saved for the jobs below (record [0012](architectural-decision-records/0012-the-pr-builds-the-images-through-yggdrasils-docker-build-module.md)) |
 | `Smoke (web)`, `Smoke (api)`, `Smoke (admin)`, `Smoke (fetcher)` | `pr.yml` | `make smoke` against the image `Docker Build` saved |
 | `Dependency Review / Dependency Review` | `pr.yml` | yggdrasil's `dependency-review` module: fails a PR that adds a package version with a known High or Critical vulnerability |
 | `Browser Smoke & Axe` | `pr.yml` | `make browser-run` against the web image `Docker Build` saved |
-| `Prototype Smoke` | `pr.yml` | `make prototype-smoke`: the pixel world prototype opens and draws on every route, with nothing on the console |
 | `Lighthouse / Lighthouse` | `pr.yml` | yggdrasil's `lighthouse` module against the same image, with the URLs and budgets in `.github/lighthouserc.json`. `make lighthouse` runs the same config locally |
 | `Compose` | `pr.yml` | `make compose-smoke`: `docker-compose.yml` up, checked from outside |
 

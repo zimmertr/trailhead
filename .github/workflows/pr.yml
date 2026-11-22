@@ -79,7 +79,7 @@ jobs:
   # yggdrasil's docker-build module, one matrix job per image: hadolint, the
   # linux/amd64 build, a sticky Trivy comment, and a failure on any fixable
   # Critical or High. The list is the release's, so each builds from the repo
-  # root with its Dockerfile in its folder (record 0016). Each image is saved
+  # root with its Dockerfile in its folder (record 0012). Each image is saved
   # as the artifact `trailhead-<service>-image` for the jobs below.
   docker-build:
     name: Docker Build
@@ -102,7 +102,7 @@ jobs:
 
   # What only a running image shows, which container-structure-test can't
   # hold: scripts/smoke/<service>.sh starts the image docker-build saved and
-  # checks it from outside (record 0016).
+  # checks it from outside (record 0012).
   smoke:
     name: Smoke (${{ matrix.service }})
     needs: docker-build
@@ -158,26 +158,6 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: playwright-report
-          path: e2e/playwright-report
-          retention-days: 7
-
-  prototype:
-    name: Prototype Smoke
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read # the checkout
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      # The pixel world prototype opens and draws on every route, with
-      # nothing on the console (e2e/prototype). It needs no image.
-      - run: make prototype-smoke
-      - if: failure()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: prototype-playwright-report
           path: e2e/playwright-report
           retention-days: 7
 

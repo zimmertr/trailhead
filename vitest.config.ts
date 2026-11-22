@@ -24,11 +24,6 @@ export default defineConfig({
         'common/src/migrate.ts',
         'api/src/store.ts',
         'fetcher/src/store.ts',
-        // Browser entry points and the WebGL placeholder: they need a page
-        // and a GPU, so the browser suite (e2e/) covers them.
-        'web/src/home.ts',
-        'web/src/page.ts',
-        'web/src/world/**',
         // Types only.
         'content/src/schema.ts',
         'content/src/index.ts',

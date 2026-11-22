@@ -15,24 +15,23 @@ wait_for "$url/healthz"
 check "/healthz answers" "$(curl -fsS "$url/healthz")" "ok"
 check "the build argument reaches /version.json" "$(curl -fsS "$url/version.json" | jq -r .version)" "0.0.0-ci"
 check "/version.json carries the commit" "$(curl -fsS "$url/version.json" | jq -r '.commit | length > 0')" "true"
-check "the home page is written from the content" "$(curl -fsS "$url/" | grep -c '<p>is a principal platform engineer')" "1"
-check "the plain page answers at /page/" "$(curl -s -o /dev/null -w '%{http_code}' "$url/page/")" "200"
-check "/page redirects to /page/ without naming a host" "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$url/page")" "301 $url/page/"
+check "the home page is the pixel world" "$(curl -fsS "$url/" | grep -c '<canvas id="c"')" "1"
+check "the home page names the API for live stars" "$(curl -fsS "$url/" | grep -c '<meta name="trailhead:stars" content="/api/v1/projects">')" "1"
+check "the game's modules are served as JavaScript" "$(curl -s -o /dev/null -w '%{http_code} %{content_type}' "$url/app.js")" "200 application/javascript; charset=utf-8"
+check "the baked ground is served" "$(curl -s -o /dev/null -w '%{http_code} %{content_type}' "$url/ground.png")" "200 image/png"
+check "the render tools' own pages are not served" "$(curl -s -o /dev/null -w '%{http_code}' "$url/relief.html")" "404"
+check "/fonts redirects to /fonts/ without naming a host" "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$url/fonts")" "301 $url/fonts/"
 check "a missing page is a 404" "$(curl -s -o /dev/null -w '%{http_code}' "$url/nowhere")" "404"
-for path in / /page/ /healthz /nowhere /version.json; do
+for path in / /app.js /healthz /nowhere /version.json; do
   headers=$(curl -s -D - -o /dev/null "$url$path")
   check "$path carries the policy" "$(grep -ci "^content-security-policy: default-src 'none'" <<<"$headers")" "1"
   check "$path carries nosniff" "$(grep -ci '^x-content-type-options: nosniff' <<<"$headers")" "1"
 done
-asset=$(curl -fsS "$url/" | grep -o '/assets/[^"]*\.js' | head -1)
-check "assets are cached for good, with the headers" \
-  "$(curl -s -D - -o /dev/null "$url$asset" | grep -ciE '^(cache-control: public, max-age=31536000, immutable|x-frame-options: DENY)')" "2"
 check "the server does not name its version" "$(curl -s -D - -o /dev/null "$url/" | grep -ci '^server: nginx/')" "0"
 check "the third-party license file is served as text" \
   "$(curl -s -o /dev/null -w '%{http_code} %{content_type}' "$url/third-party-licenses.txt")" "200 text/plain; charset=utf-8"
 licenses=$(curl -fsS "$url/third-party-licenses.txt")
-check "it names three.js" "$(grep -cE '^three [0-9.]+$' <<<"$licenses")" "1"
-check "it names the typeface" "$(grep -cE '^@fontsource/national-park [0-9.]+$' <<<"$licenses")" "1"
+check "it carries the fonts' licence" "$(grep -c 'SIL OPEN FONT LICENSE' <<<"$licenses")" "1"
 check "the image carries the repository's LICENSE" "$(docker exec "$name" head -1 /usr/share/doc/trailhead/LICENSE)" "# PolyForm Noncommercial License 1.0.0"
 check "it runs as the chart's user" "$(docker exec "$name" id -u)" "10001"
 finish

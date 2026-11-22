@@ -1,0 +1,348 @@
+# The interface: buttons, headings, messages, the keys, the console's greeting and how long ago a date was. Text in {braces} is filled in by the game.
+# Every line here is shown in the game. New lines are drafts for TJ until he approves them.
+# After an edit, npm run words (make words) writes web/www/words.js.
+
+UI:
+  name: TJ Zimmerman
+  run:
+    - Start
+    - Stop
+  home:
+    - Trailhead
+    - Camp
+  # The last entry of the music menu, and what the music button says while the sound is off.
+  soundOff: Sound off
+  theme:
+    auto: Auto
+    day: Day
+    dusk: Dusk
+  # On the Sound button until the first click, tap or key, since a browser plays nothing before one. With a mouse, then with a finger.
+  soundWaits:
+    - Click for sound
+    - Tap for sound
+  auto: 'Auto: {name}'
+  # The word in the burst when the server rack on TJs-Kubernetes-Service is hit. Drawn in pixels, capitals only.
+  bang: BANG!
+  # On his phone on Bluebird Forecast: the app's name in two lines, and the one word under the weather, before and after it turns. Drawn in pixels, capitals only.
+  forecast:
+    app:
+      - BLUEBIRD
+      - FORECAST
+    wet: DRIZZLE
+    clear: CLEARING
+  # Under the binoculars' view on trailhead: the button that closes it, and how to look about and leave, with a keyboard and without. Drawn in pixels, capitals only.
+  viewer:
+    back: BACK
+    hint:
+      - 'ARROWS: LOOK   SPACE: BACK'
+      - DRAG TO LOOK
+  found: 'Found: {name}. {n} of {of} on the kiosk checklist.'
+  allDone: All three done. The trail register at the Trailhead is yours to sign.
+  fail: The world could not be drawn here. The trail map has everything as text.
+  # Said when a scene breaks and he is put on the off-route page instead.
+  broken: That stretch of trail has washed out. He is off route.
+  # Said while a scene holds him at a spot with no card. The key is what follows 'wait:' in the stop's id.
+  wait:
+    go: Press Space or Start to carry on.
+    belay: Press Space or Start to climb.
+  card:
+    summit: 'On the summit: {top}'
+    facts:
+      - Stars
+      - Latest release
+      - Language
+      - License
+    noRelease: none yet
+    pitches:
+      - - Pitch 1
+        - 100
+        - sent
+      - - Pitch 2
+        - 100
+        - sent
+      - - Pitch 3
+        - 100
+        - one fall, caught
+      - - Pitch 4
+        - 8
+        - next
+    github: GitHub
+    climbed: climbed
+    walkOut: Walk out to the Trailhead
+    glissade: Glissade to camp
+  marks:
+    camp: Base camp
+    trailhead: Trailhead
+  keys:
+    title: Keys
+    note: Everything also works by touch.
+  # The debug panel behind the backtick key and the small sign at the foot of the trail map.
+  debug:
+    ground:
+      - 'Ground: read from the bake'
+      - 'Ground: worked out on this page'
+    title: Debug
+    close: Close
+    layers: Layers
+    outlines: Outlines
+    time: Time of day
+    sunset: Jump to sunset
+    sunrise: Jump to sunrise
+    clockSpeeds:
+      - 1
+      - 10
+      - 60
+    # The animals' names on the roam areas and in the spawn menu.
+    animals:
+      elk: Elk
+      moose: Moose
+      goat: Mountain goats
+      sheep: Bighorn sheep
+      bear: Black bears
+      marmot: Marmots
+      squirrel: Squirrels
+      eagle: Bald eagle
+      osprey: Osprey
+      gulls: Gulls
+      birds: Crows
+    spawn: Spawn
+    spawnAll: everywhere it lives
+    near: near
+    scene: Jump to a scene
+    breakGroup: Break a scene
+    inScene: In this scene
+    mapEvents: On the map
+    scenes:
+      forest: Forest
+      lakeside: Reflection Lake
+      larches: Larch basin
+      wall: West Ridge
+      approach: Walk to base camp
+      camp: Base camp
+      climb: A Spires climb
+      register: Trail register
+      offroute: Off route
+    sounds: Sounds
+    effects: Effects
+    tunesH: Tunes, one part at a time
+    places: Background
+    backToAuto: Music back to Auto
+    # Where each kind of mover may not go (web/www/collide.js), one kind at a time.
+    noGo: No-go areas
+    noGoKinds:
+      '': off
+      boat: Ferry
+      whale: Whale
+      swimmer: Orcas
+      floater: Jellyfish
+      land: Land animals
+    zoom: Zoom
+    cats: Cats
+    set: Set
+    offRoute: Go to the off-route page
+    breakScene: Break this scene
+    toggles:
+      trees: Trees
+      clouds: Clouds
+      mist: Mist
+      labels: Labels
+      animals: Animals
+      roam: Roam areas
+      taps: Tap targets
+      trails: Trail lines
+      camera: Camera limits
+      snap: Snap to pixels
+    speed: Time
+    speeds:
+      - Pause
+      - 0.5×
+      - 1×
+      - 2×
+      - 4×
+      - 8×
+    startMap: Start now, on the map
+    startForest: Start now, in the forest run
+    startLarches: Start now, in the larch basin
+    startRidge: Start now, on the West Ridge
+    startLake: Start now, at Reflection Lake
+    events:
+      gust: Larch needle gust
+      ridgegust: Gust on the ridge
+      raven: Raven in the updraft
+      shower: Marine layer
+      breach: Humpback breach
+      blow: Humpback blow
+      ferry: Ferry sets out
+      tide: Low tide
+      orcas: Orca pod
+      eagle: Eagle fishes
+      osprey: Osprey dives
+      cubplay: Bear cubs play
+      cubclimb: Bear cub climbs a tree
+      marmot: Marmots whistle
+      serac: Serac fall
+      avalanche: Avalanche
+      ava0: Avalanche, west face
+      ava1: Avalanche, middle face
+      ava2: Avalanche, east face
+      squall: Summit squall
+      lens: Lenticular cloud
+      tumble: Tumbleweed
+      devil: Dust devil
+      star: Shooting star (Dusk)
+      sasquatch: Sasquatch
+      eyeshine: Deer eyeshine (Dusk)
+    # Related start buttons become one each (round 6, note 27): its name starts one of them at random, and the
+    # arrow beside it, named by pick, lists them.
+    families:
+      humpback: Humpback
+      cubs: Bear cubs
+      avalanche: Avalanche
+    pick: Pick one
+    # The names of the camera outlines on the map, drawn in capitals: where the middle of the view may go,
+    # where a drag starts to be pushed back, and the edge of the world.
+    cameraLines:
+      - View middle
+      - Push back
+      - World edge
+    note: Roam areas, trail lines and camera limits show on the map. Tap targets show in every scene. A start button works only in its own scene.
+  map:
+    sub: TJ Zimmerman, Seattle, Washington
+    # The dots on the trail map take a card's title or a project's name, except these.
+    dots:
+      summit: The summit
+      base-camp: Base camp
+    # Under each destination's name on the trail map.
+    lake: '{km} km loop, on foot'
+    stack: '{km} km in, five pitches up'
+    spires: '{km} km to base camp, six summits'
+    elsewhere: TJ elsewhere
+    onMap: On this map
+    plain: Read as a page
+    settings: Settings
+    onOff:
+      - on
+      - off
+    music: Music
+    musicStyle: Music style
+    dusk: Time of day
+    clear: Clear my flags
+    cleared: Flags and footprints cleared.
+    # What each plank of the junction sign says beside its name: the distance there, as a trail sign gives it. Longer words widen the column and wrap the Spires' plank.
+    plank:
+      lake: '{km} km'
+      stack: '{km} km'
+      spires: '{km} km'
+    takes: '{n} min'
+    # The game fills in {names} with every joke place name in the world, the last one after the word below.
+    legend: 'The small signs in the world carry names: {names}.'
+    and: and
+  kiosk:
+    title: Trail conditions
+    sub: Posted at the Trailhead kiosk
+    version: Running version
+    deployed: Deployed
+    uptime: Uptime
+    up:
+      second: '{n} second'
+      seconds: '{n} seconds'
+      minutes: '{n} minutes'
+    status:
+      - Status
+      - All trails open
+    open: Open
+    lakeDone: Run. Flag flying.
+    stackDone: Climbed. Flag flying.
+    summits: '{n} of 6 summits'
+    # What the board says lives here and happens here, kept to what the world really has.
+    wildlife:
+      - Wildlife
+      - Elk in the meadow, a bull moose and a calf in the riverside woods, squirrels and chipmunks by the trail. Mountain goats, bighorn sheep and marmots up high, and a pika in the larch talus. A humpback and an orca pod offshore, gulls and a bald eagle on the sea stacks. An osprey fishing at Reflection Lake. A black bear and her two cubs in the firs below the Spires waterfall, and some days a second family at the forest edge. An owl in the forest and two cats at this kiosk
+    seen:
+      - Also seen
+      - "Serac falls, an avalanche and a cap cloud on Mount Monolith, rain showers over the hills, the marine layer off the sea, low tide, the ferry, tumbleweeds and dust devils in the sage. At Dusk: shooting stars, the aurora, foxfire in the forest and headlamps on the Spires' glacier"
+    checklist: 'Field checklist: {n} of {of} found'
+    notFound: Not found yet
+    got: Found
+  # The trail register in the kiosk. The note and the thanks are in TJ's own voice.
+  register:
+    close: Close the book
+    # The printed headings of the book's right-hand page, as on a Forest Service register form.
+    book:
+      date: Date
+      who: Name, party and remarks
+    thanks: Thanks for signing! Your entry is on the right, waiting for me to read it before it shows to anyone else.
+    # TJ's note on the left-hand page until the visitor has done all three.
+    todo:
+      hi: Thanks for stopping by!
+      need: 'You can sign the register once you have finished all three:'
+      spires: One summit in {name}
+      after: Then come back, and this page is yours.
+      sig: TJ
+    # The trail map's link to the register: anyone may read it; signing waits for all three.
+    link: Trail register
+    canRead: read it
+    canSign: sign it
+    pending: waiting for TJ to approve it
+    signed: Signed. Your entry waits for TJ to approve it.
+    yourName: Your name
+    yourNote: A note for the register
+    notePh: A few words
+    sign: Sign the register
+    mock: This is a mock. Entries stay in this browser.
+  # The page of text.
+  plain:
+    # The top-bar button that opens it.
+    top: Page
+    back: Back to the world
+    # Shown at the top of the page of text when the world itself cannot be drawn.
+    down: The world could not be drawn here, so this is all of it as one page.
+    mapAlt: 'The map of the world: a lake in a forest, a granite wall and six glaciated summits around a trailhead'
+    facts: '{stars} stars, {release}, {language}, {license}'
+    released: '{version} released {when}'
+    noRelease: no release yet
+HELP:
+  - - Space
+    - start and stop
+  - - Hold Space
+    - go faster
+  - - Left / Right, A / D
+    - jump between milestones
+  - - Up / Down, W / S
+    - start, stop
+  - - M or Esc
+    - the trail map
+  - - T
+    - day and dusk
+  - - N
+    - the music
+  - - C
+    - trail conditions
+  - - R
+    - the trail register
+  - - P
+    - the page of text
+  - - K
+    - these keys
+  - - '`'
+    - the debug menu
+  - - Drag
+    - look around
+  - - + and -, wheel, pinch
+    - zoom the map
+  - - Click
+    - signs, animals, summits, the lake
+CONSOLE:
+  - |-
+    %c  /\      trailhead
+     /  \  /\   You found the trail register's back door.
+    /    \/  \  Everything here is drawn in code, a pixel at a time.
+              The source: https://github.com/zimmertr/trailhead
+  - 'font-family: monospace; color: #467a30'
+# How long ago a date was.
+AGO:
+  today: today
+  yesterday: yesterday
+  days: '{n} days ago'
+  months: '{n} months ago'
+  years: '{n} years ago'

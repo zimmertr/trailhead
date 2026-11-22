@@ -15,7 +15,8 @@
   ],
   "scripts": {
     "content": "npm run build -w content",
-    "typecheck": "tsc -p tsconfig.json && tsc -p web/tsconfig.json",
+    "words": "npm run words -w content",
+    "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
     "test:db": "vitest run --config vitest.db.config.ts --coverage",

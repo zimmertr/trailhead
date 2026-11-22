@@ -1,4 +1,4 @@
-// The only outbound call in trailhead (record 0002): two GitHub REST reads
+// The only outbound call in trailhead (record 0003): two GitHub REST reads
 // per project. docs/DATA.md has what GitHub returns and its terms;
 // docs/TRAFFIC.md has the timeout and why there's no retry here.
 

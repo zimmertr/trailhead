@@ -7,7 +7,7 @@ type Lock = { packages: Record<string, { version?: string; integrity?: string; l
 const LOCKS = [
   { lock: 'package-lock.json', manifests: ['.', ...WORKSPACES] },
   { lock: 'tools/eslint/package-lock.json', manifests: ['tools/eslint'] },
-  { lock: 'prototype/pixel/lab/package-lock.json', manifests: ['prototype/pixel/lab'] },
+  { lock: 'tools/pixel/lab/package-lock.json', manifests: ['tools/pixel/lab'] },
 ]
 
 describe.each(LOCKS)('$lock', ({ lock, manifests }) => {

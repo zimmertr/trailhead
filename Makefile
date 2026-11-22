@@ -23,14 +23,19 @@ IMAGE ?= trailhead-$(SERVICE):pr-scan
 # comes back, which proves the build argument reached the endpoint.
 BUILD_ARGS := --build-arg APP_VERSION=0.0.0-ci --build-arg APP_COMMIT=$(shell git rev-parse HEAD 2>/dev/null || echo dev) --build-arg APP_BUILT_AT=1970-01-01T00:00:00Z
 
-.PHONY: content lint typecheck test coverage test-db check-openapi openapi lock check-unused \
-	image images hadolint smoke scan browser browser-run prototype-smoke lighthouse lighthouse-run compose-smoke up down
+.PHONY: content words lint typecheck test coverage test-db check-openapi openapi lock check-unused \
+	image images hadolint smoke scan browser browser-run lighthouse lighthouse-run compose-smoke up down
 
-# Builds content/dist/content.json from the Markdown, and fails on a problem.
+# Builds content/dist/content.json from content/game, and fails on a problem.
 content:
 	$(NODE) "$(INSTALL)"
 
-# ESLint (its own package, record 0012), then its self-test.
+# The same, and rewrites the game's copy of its words (web/www/words.js).
+# Run it after editing content/game; a unit test fails until you do.
+words:
+	$(NODE) "npm ci --ignore-scripts && npm run words"
+
+# ESLint (its own package, record 0010), then its self-test.
 lint:
 	$(NODE) "npm ci --prefix tools/eslint --ignore-scripts && $(INSTALL) && tools/eslint/node_modules/.bin/eslint --config tools/eslint/eslint.config.js --max-warnings 0 . && node tools/eslint/selftest.js"
 
@@ -105,14 +110,7 @@ browser-run:
 	trap 'docker stop $$name >/dev/null 2>&1' EXIT; \
 	docker run -d --rm --name $$name --read-only --tmpfs /tmp trailhead-web:pr-scan >/dev/null; \
 	docker run --rm --network container:$$name --ipc=host -v "$(CURDIR)":/repo -w /repo -e BASE_URL=http://localhost:8080 $(PLAYWRIGHT_IMAGE) \
-		sh -c "npm ci --ignore-scripts -w content -w e2e && npm run content && cd e2e && npx playwright test"
-
-# The pixel world prototype in a real browser (e2e/prototype): every route
-# opens and draws with nothing on the console. No image and no server, since
-# the spec answers the page's requests from prototype/pixel/www itself.
-prototype-smoke:
-	docker run --rm --ipc=host -v "$(CURDIR)":/repo -w /repo $(PLAYWRIGHT_IMAGE) \
-		sh -c "npm ci --ignore-scripts -w e2e && cd e2e && npx playwright test --config prototype.config.ts"
+		sh -c "npm ci --ignore-scripts -w e2e && cd e2e && npx playwright test"
 
 # Lighthouse's budgets (.github/lighthouserc.json) against the built web image,
 # on localhost for the reason above. As root, so it can write its report into

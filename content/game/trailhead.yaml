@@ -1,0 +1,106 @@
+# The Trailhead: the intro, the three destinations, the profile links, the register's entries and the finds on the kiosk checklist.
+# Every line here is shown in the game. New lines are drafts for TJ until he approves them.
+# After an edit, npm run words (make words) writes web/www/words.js.
+
+INTRO: is a principal platform engineer based out of Seattle, WA. When he's not playing in the mountains, he's usually hacking on computers. Choose a destination to learn more!
+DESTINATIONS:
+  - route: lake
+    sign: Run to Reflection Lake
+    about: to learn more about TJ
+    dir: left
+    slug: reflection-lake
+  - route: stack
+    sign: Climb Proficiency Peak
+    about: to learn more about his skills
+    dir: right
+    slug: proficiency-peak
+  - route: spires
+    sign: Climb the Sideproject Spires
+    about: to see some of his personal projects
+    dir: up
+    slug: sideproject-spires
+LINKS:
+  github:
+    - GitHub
+    - https://github.com/zimmertr
+  linkedin:
+    - LinkedIn
+    - https://www.linkedin.com/in/zimmertr/
+  resume:
+    - Resume
+    - https://github.com/zimmertr/Resume
+  strava:
+    - Strava
+    - https://www.strava.com/athletes/zimmertr
+  peakbagger:
+    - Peakbagger
+    - https://www.peakbagger.com/climber/climber.aspx?cid=25279
+  mountainproject:
+    - Mountain Project
+    - https://www.mountainproject.com/user/200835619/tj-zimmerman
+REGISTER:
+  - name: Doot Doot
+    date: 2026-11-02
+    note: Supervised the whole build from the keyboard. Would sit on it again.
+  - name: Peevers
+    date: 2026-11-05
+    note: Chased a butterfly past the kiosk. Did not catch it. Great trail.
+  - name: A marmot
+    date: 2026-11-09
+    note: Somebody keeps jumping in my lake.
+  - name: Party of two, Tacoma
+    date: 2026-11-12
+    note: Came for the resume, stayed for the glissade.
+# Things to find, with the hint the kiosk gives until each is found.
+FINDS:
+  doot:
+    - Doot Doot
+    - She runs the Trailhead
+  peevers:
+    - Peevers
+    - Shy, grey, near the kiosk
+  kiosk:
+    - The kiosk
+    - You are reading it
+  sasquatch:
+    - Sasquatch
+    - Keep an eye on the far trees
+  marmot:
+    - The marmot's whistle
+    - On a rock above the lake
+  swim:
+    - The swim to the island
+    - The lake looks inviting
+  snack:
+    - A snack break
+    - Stand still for a minute by the lake or in the trees
+  pika:
+    - The pika
+    - In the talus among the larches
+  tidepool:
+    - The tide pool
+    - Wait for low water on the beach
+  dusk:
+    - The Dusk sky
+    - Look up after the light goes
+  offroute:
+    - Off route
+    - An address that goes nowhere
+  egg:bluebird:
+    - The weather station
+    - On top of Bluebird Forecast
+  egg:tks:
+    - The server rack
+    - On top of TJs-Kubernetes-Service
+  egg:hevy-garmin-sync:
+    - The weight bench
+    - On top of hevy-garmin-sync
+  egg:trailhead:
+    - The binoculars
+    - On top of trailhead
+  egg:yggdrasil:
+    - The world tree
+    - On top of yggdrasil
+  egg:kubernetes-manifests:
+    - The cairn
+    - On top of Kubernetes-Manifests

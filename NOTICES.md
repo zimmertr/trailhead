@@ -8,19 +8,15 @@ The direct dependencies the images ship. `tests/notices.test.ts` fails when this
 
 | Package | Shipped in | License |
 |---|---|---|
-| [three](https://github.com/mrdoob/three.js) | `web` | MIT |
-| [@fontsource/national-park](https://github.com/fontsource/font-files) | `web` | OFL-1.1 |
 | [fastify](https://github.com/fastify/fastify) | `api`, `admin` | MIT |
 | [@fastify/rate-limit](https://github.com/fastify/fastify-rate-limit) | `api` | MIT |
 | [prom-client](https://github.com/siimon/prom-client) | `api` | Apache-2.0 |
 | [pg](https://github.com/brianc/node-postgres) | `api`, `admin`, `fetcher` | MIT |
 | [pino](https://github.com/pinojs/pino) | `api`, `admin`, `fetcher` | MIT |
 
-The typeface is [National Park](https://nationalparktypeface.com), drawn by Jeremy Shellhorn, Jeffrey Schwab, Andrew Herzog and Miranda Schweitzer from the routed wooden signs of the US National Park Service, and released under the SIL Open Font License 1.1.
+## Fonts in the pixel world
 
-## Fonts in the pixel prototype
-
-The pixel prototype (`prototype/pixel/www`) serves eight font families from its own `fonts` folder, each the Latin set of the family from [Fontsource](https://fontsource.org) 5.3.0. All eight are under the SIL Open Font License 1.1, and `fonts/LICENSE.txt` beside them carries every copyright line and the full licence text.
+The pixel world (`web/www`) serves eight font families from its own `fonts` folder, each the Latin set of the family from [Fontsource](https://fontsource.org) 5.3.0. All eight are under the SIL Open Font License 1.1, and `fonts/LICENSE.txt` beside them carries every copyright line and the full licence text.
 
 | Font | Used for | Copyright |
 |---|---|---|
@@ -38,7 +34,7 @@ The pixel prototype (`prototype/pixel/www`) serves eight font families from its 
 | Image | Used by | License |
 |---|---|---|
 | [Node.js](https://nodejs.org) on Alpine Linux (`node:26-alpine`) | `api`, `admin`, `fetcher` | MIT (Node.js); each Alpine package under its own |
-| [nginx](https://nginx.org) on Alpine Linux (`nginxinc/nginx-unprivileged:1.30-alpine`) | `web` | BSD-2-Clause (nginx); each Alpine package under its own |
+| [nginx](https://nginx.org) on Alpine Linux (`nginxinc/nginx-unprivileged:1.31-alpine`) | `web` | BSD-2-Clause (nginx); each Alpine package under its own |
 
 Each release's images carry an SPDX SBOM per platform, which lists every package in them (`docker buildx imagetools inspect ghcr.io/zimmertr/trailhead-api:<version> --format '{{ json .SBOM }}'`).
 

@@ -8,10 +8,10 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "build": "node src/cli.ts"
+    "build": "node src/cli.ts",
+    "words": "node src/cli.ts --words"
   },
   "devDependencies": {
-    "micromark": "4.0.3",
     "yaml": "2.9.1",
     "zod": "4.6.7"
   }

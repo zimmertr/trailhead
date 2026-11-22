@@ -31,7 +31,7 @@ jobs:
       id-token: write # the token Sigstore signs it with
     with:
       # Each builds from the repo root, which holds the lockfile and the
-      # content, with its Dockerfile in its own folder (record 0009).
+      # content, with its Dockerfile in its own folder (record 0007).
       images: >-
         [{"image": "zimmertr/trailhead-web", "file": "web/Dockerfile"},
          {"image": "zimmertr/trailhead-api", "file": "api/Dockerfile"},

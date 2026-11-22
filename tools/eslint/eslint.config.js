@@ -6,7 +6,7 @@ import { trailhead } from './plugin.js'
 
 const root = new URL('../..', import.meta.url).pathname
 
-// For the prototype's block below: every rule the site adds, switched off, and Node's globals
+// For the pixel world's block below: every rule the site adds, switched off, and Node's globals
 // taken away again, because a browser module that reads `process` is a bug there.
 const siteOnlyOff = Object.fromEntries([
   ...Object.keys(tseslint.plugin.rules).map(name => `@typescript-eslint/${name}`),
@@ -17,7 +17,7 @@ const siteOnlyOff = Object.fromEntries([
 const noNode = Object.fromEntries(Object.keys(globals.node).map(name => [name, 'off']))
 
 export default tseslint.config(
-  { ignores: ['prototype/pixel/out/**', '**/node_modules/**', '**/dist/**', 'coverage/**', 'tools/eslint/fixtures/**', 'e2e/playwright-report/**', 'e2e/test-results/**'] },
+  { ignores: ['tools/pixel/out/**', '**/node_modules/**', '**/dist/**', 'coverage/**', 'tools/eslint/fixtures/**', 'e2e/playwright-report/**', 'e2e/test-results/**'] },
   js.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
   comments.recommended,
@@ -51,13 +51,13 @@ export default tseslint.config(
     rules: { '@typescript-eslint/no-unsafe-assignment': 'off', '@typescript-eslint/no-unsafe-member-access': 'off', '@typescript-eslint/no-unsafe-argument': 'off' },
   },
   { files: ['**/*.js'], ...tseslint.configs.disableTypeChecked },
-  // The pixel prototype is plain browser JS with no build step and no types (CLAUDE.md, the
-  // prototype's row), so it gets ESLint's own recommended rules and none of the site's.
+  // The pixel world is plain browser JS with no build step and no types (web/CLAUDE.md), so it
+  // and its tools get ESLint's own recommended rules and none of the site's.
   {
-    files: ['prototype/**/*.js', 'prototype/**/*.mjs'],
+    files: ['web/www/**/*.js', 'web/build.mjs', 'tools/pixel/**/*.mjs'],
     languageOptions: { globals: { ...noNode, ...globals.browser }, parserOptions: { projectService: false, project: false, program: null } },
     rules: { ...siteOnlyOff, ...js.configs.recommended.rules, 'no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', destructuredArrayIgnorePattern: '^_' }] },
   },
-  // Its Docker scripts run in Node and hand functions to the page, so they see both worlds.
-  { files: ['prototype/**/*.mjs'], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
+  // The tools run in Node and hand functions to the page, so they see both worlds; the build runs in Node.
+  { files: ['web/build.mjs', 'tools/pixel/**/*.mjs'], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
 )

@@ -1,0 +1,17 @@
+# Off route: the card on the 404 page.
+# Every line here is shown in the game. New lines are drafts for TJ until he approves them.
+# After an edit, npm run words (make words) writes web/www/words.js.
+
+# kind is the thing the card comes out of, which decides how it is drawn. A card marked draft shows a note that its words are draft copy.
+CARDS:
+  off-route:
+    route: off-route
+    slug: ''
+    kind: sign
+    from: A lone wand
+    title: Off route
+    body:
+      - There is no trail at this address. One wand, a lot of white, and a sign pointing back the way you came.
+    links: []
+    go: Back to the Trailhead
+    home: true

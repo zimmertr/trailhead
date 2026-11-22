@@ -14,5 +14,7 @@ e2e/*
 !e2e/package.json
 docs/
 tools/eslint/
+# The pixel world's render tools and their pictures, which build their own image (tools/pixel/Dockerfile).
+tools/pixel/
 **/.DS_Store
 **/*.tsbuildinfo
