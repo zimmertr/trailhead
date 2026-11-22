@@ -44,7 +44,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A08 Coulee Textures** - the basalt coulee and mesas of the dry corner. `land.js` (the coulee cut, `mesa`, `colour`).
 - [x] **A09 Rivers and Waterfalls** - the rivers across the map and the falls where they drop. `land.js` (the rivers), `world.js` (`whiteWater`).
 - [x] **A10 Reflection Lake** - the lake on the map, its shore, island and boardwalk. `land.js` (`lakeAt`, `lakeRim`).
-- [ ] **A11 Moraine Textures** - the moraine band round Monolith, the glacier's moraines and the Spires' shelf. `land.js` (`colour`, the moraine material).
+- [x] **A11 Moraine Textures** - the moraine band round Monolith, the glacier's moraines and the Spires' shelf. `land.js` (`colour`, the moraine material).
 - [ ] **A12 Moraine Tarns** - the tarns at the foot of Monolith's glaciers and on the larch benches. `monolith.js` (`moraineLakes`), `land.js` (the tarns).
 - [ ] **A13 The Burned Trees** - Postmortem Burn's charred snags. `sprites.js` (`makeSnag`), `scenery.js`.
 - [ ] **A14 The Orca Pod** - the orcas in the sea. `critters.js` (`orcas`, `orcaBack`).
@@ -156,3 +156,8 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A10, a call: the lake's own water is deep blue with slow lighter patches, pale where it is shallow along the shore. The reflection only paints water, so the footbridge and the island keep their colours. It is drawn into the ground, so it does not move with the time of day except through the palette, which turns the snow pink at Dusk as it should.
 - A10, a call: `veilTable` in `core.js` became `mixTable`, which mixes toward any colour and can keep to some ramps; `veilTable` calls it with the same sums, so its tables are what they were.
 - A10: frame time 11.4 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
+- A11, the before: the moraine's steep banks beside the Spires' glacier were grey dither with no form, and its flat till was a salt-and-pepper of greys in two-pixel cells.
+- A11, the pictures: 8 in all. Qwen drew lateral moraines on every seed; seed 3 was picked for its fine gullies down the inner banks, the lit bank facing west and the shaded one facing east, the sharp crests and the boulders piled at the foot. The style model's seed 3 was the runner-up for its gullied banks under grass. The prompts are in `design/art/A11/log.jsonl`.
+- A11, a call: a moraine's steep bank is drawn as gullies 2 to 8 wide that wander a little down it, each lit on its west edge and dark in its east seam, the whole bank darker where it faces away from the sun, with a pale crest row along its top. A first pass with gullies 3 to 12 wide and lighter bodies read as poured concrete.
+- A11, a call: the moraine's flat till is a calm grey gravel lit by its slope, with boulders of radius 1 to 2.6 lying on about a third of six by four cells, each lit on its upper left and dark underneath; the tufts of grass stay as they were. The rock island in the glacier, where the camp stands, is left as it is.
+- A11: frame time 11.4 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.

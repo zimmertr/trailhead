@@ -714,6 +714,30 @@ function lakeWater(u, v, x, y) {
   if (d < 0.14) return bayer(x, y) < smooth(0.14, 0.06, d) ? W[3] : W[2];
   return vnoise(u / 8, v / 3, 1403) > 0.62 && bayer(x, y) < 0.5 ? W[2] : W[1];
 }
+// A11, after a picture of the lateral moraines below the real volcano's glaciers: a moraine's steep bank is
+// loose till cut by fine gullies running down it, each lit on its west edge and dark in its east seam,
+// the whole bank darker where it faces away from the sun, with a pale crest along its top. On the flat the
+// till is a calm grey gravel with boulders of a few sizes lying on it, each lit on its upper left and dark
+// underneath, and here and there a tuft of grass, as before.
+function moraineRock(u, v, hh, x, y, L, steep, i) {
+  const K = R.rock;
+  if (steep > 0.7) {
+    if (hg[i] - hh < 1 && hg[at(u, Math.min(VD - 1, v + 2))] <= hg[i] + 0.3) return K[4];
+    const c = x + 1.4 * Math.sin(hh / 9 + x * 0.3), k = Math.floor(c / 2), edge = j => hash(j, 0, 1501) < 0.5;
+    let a = k; while (a > k - 3 && !edge(a)) a--; let b = k + 1; while (b < k + 4 && !edge(b)) b++;
+    const p = c - a * 2, w = (b - a) * 2, lit = clamp(0.5 + 1.1 * (L - 0.5), 0, 1);
+    if (p > w - 1) return K[lit > 0.5 ? 1 : 0];
+    if (p < 1) return K[lit > 0.55 ? 3 : 2];
+    return K[clamp(Math.round(0.7 + 2 * lit - 0.8 * p / w + 0.7 * (hash(a, 0, 1502) - 0.5) + 0.4 * (bayer(x, y) - 0.5)), 1, 3)];
+  }
+  // Boulders: one in a cell now and then, its middle a little off the cell's, of radius 1 to 2.6.
+  const cu = Math.floor(u / 6), cv = Math.floor(v / 4);
+  for (let du = -1; du <= 1; du++) for (let dv = -1; dv <= 1; dv++) { const a = cu + du, b = cv + dv; if (hash(a, b, 1503) > 0.32) continue;
+    const bu = (a + 0.2 + 0.6 * hash(a, b, 1504)) * 6, bv = (b + 0.2 + 0.6 * hash(a, b, 1505)) * 4, r = 1 + 1.6 * hash(a, b, 1506), ex = (u - bu) / r, ey = (v - bv) / (0.75 * r);
+    if (ex * ex + ey * ey < 1) return ey > 0.45 ? K[0] : ex + ey < -0.5 ? K[4] : K[3]; }
+  if (hash(u >> 1, v >> 1, 12) < 0.2 && isleAt(u, v) > 1.4) return pick('grass', 0.4, x, y);
+  return pick('rock', 0.42 + 0.3 * (vnoise(u / 7, v / 4, 1507) - 0.5) + 0.25 * (L - 0.5), x, y, 0.45);
+}
 function streamColour(u, v, hh, x, y, i, fall) {
   const W = R.water, WH = R.white[1], wet = (a, b) => water[at(clamp(a, 0, NW - 1), clamp(b, 0, VD - 1))] > 0;
   if (fall > 1.1) {
@@ -805,7 +829,7 @@ function colour(u, v, hh, x, y) {
   }
   // Base camp's island: bare rock, its top in the light and its face in shade, a dark line where it meets the ice.
   if (mat === 'moraine' && isleAt(u, v) < 1.4) { const e = isleAt(u, v); return hg[i] - hh > 0.8 ? R.rock[hash(x >> 1, y, 14) < 0.35 ? 1 : 0] : e > 0.62 && v < NUN[1] - 1 ? R.rock[hash(x >> 1, y, 14) < 0.3 ? 2 : 1] : R.rock[hash(x >> 1, y >> 1, 13) < 0.3 ? 3 : 4]; }
-  if (mat === 'moraine') return steep > 0.7 ? pick('rock', 0.12 + 0.4 * vnoise(x / 3, hh / 10, 97), x, y, 0.7) : hash(u >> 1, v >> 1, 12) < 0.25 && isleAt(u, v) > 1.4 ? pick('grass', 0.4, x, y) : pick('rock', 0.2 + 0.7 * hash(u >> 1, v >> 1, 13), x, y);
+  if (mat === 'moraine') return moraineRock(u, v, hh, x, y, L, steep, i);
   if (mat === 'wall' || mat === 'crest') {
     // Dark rock; snow lies where the slope lets it, and on the ledges of the walls. Toward the dry
     // east the same rock is a step paler and cleaner and holds less snow.
