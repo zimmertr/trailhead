@@ -64,7 +64,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **C03 Proficiency Peak's West Ridge** - the ridge, its blocks and the summit tower, and the basin below. `ridge.js` (`paintRidge`, `paintBasin`, `paintFar`).
 - [x] **C04 The Larch Basin Scene** - the benches, the larches, the far spires and glacier, the peak ahead. `larches.js` (`paintFar`, `paintMid`, `paintMain`, `makePeak`).
 - [x] **C05 The Peak over Reflection Lake** - the big peak and the water at the lake. `lakeside.js` (`paintPeak`, `lakeWater`).
-- [ ] **C06 The Spires' Climbs** - the six climbs' rock, snow, talus and gullies. `climb.js` (`paint`, `talusField`, `couloirWalls`, `crag`).
+- [x] **C06 The Spires' Climbs** - the six climbs' rock, snow, talus and gullies. `climb.js` (`paint`, `talusField`, `couloirWalls`, `crag`).
 
 ### The Rest of the Map
 
@@ -237,3 +237,9 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - C05, a call: the far shore's edge is the dark of its trees, with a pale gravel spit only here and there, instead of a pale stripe the whole way along.
 - C05, a call: the mountain was not changed. Shrinking it by taking the rarest colour among the pixels each one covers kept the thin lines but made its dithering speckle all over, which was worse, so the nearest pixel stays. Its look is the map's (M01).
 - C05: frame time 11.8 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- C06, the before: every climb's rock (the crags, the talus, the gully, the couloir walls, the shelter boulder, the knife-edge's flutes and the rocks in the snow) used the brown `granite` ramp, which reads as mud beside the grey towers camp and the walk in show since C01. Behind each route the rest of the massif was a row of pointed peaks coated in glassy ice with brown ridges.
+- C06, the pictures: 8 in all. Qwen washed everything blue on every seed. The style model's seed 2 was picked: cool grey granite in lit vertical planes split by dark cracks, a snow slope, and behind it blunt grey towers with snow on their tops, as camp now draws the Spires. The prompts are in `design/art/C06/log.jsonl`.
+- C06, a call: every rock colour in `climb.js` moved from the `granite` ramp to the `rock` ramp the Spires use, step for step (its lightest two steps both go to `rock`'s lightest). The shapes, the cracks, the ledges and the lichen are as they were; the ice, the snow and the storms keep their own colours.
+- C06, a call: the massif behind is nine broad, blunt towers of uneven heights and widths: a rounded top breaking over into sheer sides, lit on the west, laid in planes, cut by cracks, with snow on the top, on a few short ledges and in wavering runnels down the gullies. A first try put a ledge and a runnel at every turn and they crossed like window bars, and every tower was a dome, a row of thumbs; so the snow is sparse and most towers step down to a lower shoulder on one side.
+- C06, a call: the routes' own furniture (the icefall's seracs, the crevasses, the ladders and cables, the summit things) is unchanged.
+- C06: frame time 11.9 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
