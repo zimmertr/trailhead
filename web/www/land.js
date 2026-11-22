@@ -700,8 +700,6 @@ function colour(u, v, hh, x, y) {
     // east the same rock is a step paler and cleaner and holds less snow.
     const east = smooth(1240, 1600, u + 80 * (vnoise(u / 60, hh / 40, 840) - 0.5)), pale = bayer(x, y) < east * 0.9 ? 1 : 0;
     const flute = vnoise(x / 2.5, hh / 16, 813), rock = R.rock[clamp(Math.round(L * 2.6) + (flute > 0.64 ? 1 : flute < 0.34 ? -1 : 0), 0, 3) + pale], band = (x + (y >> 3) * 3) >> 2, row = hh / 7 + hash(band, 0, 814) * 7;
-    // Snow lies in streaks down the gullies and on the ledges, more of it on the faces the light reaches.
-    const streak = 0.62 * vnoise(x / 2.6, hh / 18, 815) + 0.38 * vnoise(x / 8, hh / 8, 819), lie = 0.5 + 0.2 * smooth(120, 60, hh) + 0.18 * east - 0.16 * (L - 0.5) - 0.12 * smooth(1.2, 0.6, steep);
     // The crests (art pass A02): each summit sends a main ridge down its face, wandering, with ribs off it
     // down both sides. Snow fills the high cirques between the ribs and runs far down the narrow couloirs;
     // none lies low on the open faces. The western light reaches the left of each ridge and rib.
