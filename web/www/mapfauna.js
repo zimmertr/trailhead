@@ -1,6 +1,6 @@
 // Drawings of the animals and the boat on the world map that came out of round 3's terrain.js: the
 // ferry, the humpback, the bighorn ram and the squirrel or chipmunk. critters.js moves them.
-import { clamp, smooth, frac, R, pick, BM, outline, litBack, thick, INK } from './core.js';
+import { clamp, smooth, frac, R, pick, BM, outline, litBack, thick, INK, LIGHT, SHADE } from './core.js';
 import { ell } from './fauna.js';
 
 // The ferry, seen from the shore and a little above, lying along its course: bow down to the right.
@@ -141,14 +141,43 @@ function sheep(grazing, step = 0) {
   outline(b, INK);
   return b;
 }
+// A Douglas squirrel or a chipmunk, redrawn after a picture (art pass D12, design/art/D12). Sitting, the
+// squirrel is up on its haunches with its paws held to a pale chest, a tufted ear, and its bushy tail up
+// its back and curled over at the top; running, it is stretched low with the tail streaming up behind.
+// The chipmunk is smaller and tan, its tail thinner and held straight, dark and pale stripes along its
+// back and a pale stripe over the eye. Each part's edges facing the upper left are a step lighter and
+// those facing the lower right a step darker, the tail a step darker than the body so the two part.
 function squirrel(chip, run) {
-  const b = new BM(10, 8), c = chip ? R.dirt : R.wood; b.ox = 5; b.oy = 7;
-  if (run) { ell(b, 5, 5.6, 2.6, 1.3, () => c[3]); ell(b, 8, 4.8, 1.2, 1.1, () => c[3]); ell(b, 1.6, 4.4, 1.8, 1.1, () => c[2]); if (chip) { b.set(4, 5, R.white[1]); b.set(5, 5, R.white[1]); } b.set(8, 4, INK); }
-  else {
-    ell(b, 5.5, 5, 2.2, 1.8, () => c[3]); ell(b, 7.5, 3.5, 1.3, 1.2, () => c[3]); ell(b, 2.5, 3, 1.6, 2.6, () => c[2]);
-    if (chip) { b.set(4, 4, R.white[1]); b.set(5, 4, R.white[1]); b.set(6, 4, R.white[1]); }
-    b.set(8, 3, INK);
+  const c = chip ? R.dirt : R.wood, W = chip ? 10 : 12, b = new BM(W, run ? 8 : chip ? 9 : 10); b.ox = W >> 1; b.oy = b.h - 1;
+  const k = chip ? 0.82 : 1, BODY = c[3], TAIL = c[chip ? 1 : 2], PALE = R.white[0];
+  const along = (pts, r0, r1, col) => { for (let n = 0; n <= 40; n++) { const t = n / 40, q = t * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(q)), u = q - i, x = pts[i][0] + (pts[i + 1][0] - pts[i][0]) * u, y = pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u; ell(b, x, y, r0 + (r1 - r0) * Math.sin(Math.PI * t), r0 + (r1 - r0) * Math.sin(Math.PI * t), () => col); } };
+  const X = x => x * k + (chip ? 0.4 : 0), Y = y => b.h - 1 - (b.h - 1 - y) * k;
+  // The tail first, behind the body.
+  if (chip) along(run ? [[3.4, 4.4], [2.2, 3], [1.2, 1.5], [0.8, 0.6]] : [[3.4, 7], [2.4, 5], [1.8, 3], [1.6, 1]], 0.5, 0.9, TAIL);
+  else along(run ? [[3.6, 4.6], [2.2, 3.6], [1.2, 2], [1.4, 0.9], [2.6, 0.7]] : [[4.6, 8.2], [3.4, 6.6], [3.3, 4.6], [4.1, 2.7], [3.6, 1.1], [2.3, 0.8], [1.3, 1.7], [1.2, 2.7]], 0.8, 1.5, TAIL);
+  if (run) { ell(b, X(6.2), Y(4.9), 3 * k, 1.4 * k, () => BODY); ell(b, X(9.2), Y(4), 1.5 * k, 1.25 * k, () => BODY); }
+  else { ell(b, X(6.4), Y(6.4), 1.9 * k, 2.3 * k, () => BODY); ell(b, X(6), Y(7.6), 2.2 * k, 1.2 * k, () => BODY); ell(b, X(8), Y(3.8), 1.6 * k, 1.45 * k, () => BODY); }
+  // Light from the upper left on every part, the tail kept apart from the body by its own darker ramp.
+  const o = b.d.slice(), at = (x, y) => x < 0 || y < 0 || x >= b.w || y >= b.h ? 0 : o[y * b.w + x];
+  for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) { const v = o[y * b.w + x]; if (!v) continue; const up = !at(x - 1, y) || !at(x, y - 1) || (v === BODY && at(x, y - 1) === TAIL), dn = !at(x + 1, y) || !at(x, y + 1); b.set(x, y, up && !dn ? LIGHT[v] : dn && !up ? SHADE[v] : v); }
+  const hx = Math.round(X(run ? 9.6 : 8.4)), hy = Math.round(Y(run ? 3.8 : 3.6));
+  if (run) {
+    // Legs reaching fore and aft, the belly pale.
+    for (let x = Math.round(X(4.6)); x <= Math.round(X(7.8)); x++) if (b.get(x, Math.round(Y(6))) === BODY || b.get(x, Math.round(Y(6)))) b.set(x, Math.round(Y(6)), PALE);
+    b.set(Math.round(X(8.6)), Math.round(Y(6.6)), c[2]); b.set(Math.round(X(3.6)), Math.round(Y(6.4)), c[2]);
+  } else {
+    // A pale chest and belly, paws held up to it, the haunch a step darker where the leg folds.
+    for (let y = Math.round(Y(5)); y <= Math.round(Y(7.6)); y++) { const x = Math.round(X(7.8)) - (y > Math.round(Y(7)) ? 1 : 0); if (b.get(x, y)) b.set(x, y, PALE); }
+    b.set(Math.round(X(8.6)), Math.round(Y(5.2)), c[2]); b.set(Math.round(X(5.4)), Math.round(Y(7.2)), c[2]);
   }
+  // The ear (a tuft on the squirrel), the eye, and the chipmunk's stripes.
+  b.set(hx - 1, hy - 2, c[2]); if (!chip) b.set(hx - 1, hy - 3, c[1]);
+  b.set(hx + 1, hy, INK);
+  if (chip) {
+    b.set(hx + 1, hy - 1, PALE); b.set(hx + 2, hy + 1, c[1]);
+    if (run) for (let x = Math.round(X(4.2)); x <= Math.round(X(8)); x++) { b.set(x, Math.round(Y(4)), c[0]); b.set(x, Math.round(Y(4.8)), R.white[1]); b.set(x, Math.round(Y(5.6)), c[0]); }
+    else for (let y = Math.round(Y(5)); y <= Math.round(Y(7.2)); y++) { b.set(Math.round(X(5.3)), y, c[0]); b.set(Math.round(X(6.3)), y, R.white[1]); }
+  } else b.set(hx + 2, hy + 1, c[1]);
   outline(b, INK);
   return b;
 }

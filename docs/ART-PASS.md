@@ -79,7 +79,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **D09 The Lookout, the Tent and the Journal** - `sprites.js` (`makeLookout`, `makeTent`, `makeJournal`).
 - [x] **D10 Clouds** - `sprites.js` (`makeCloud`).
 - [x] **D11 Sage, Tumbleweeds and the Dry Country's Plants** - `scenery.js` (`sageBush`), `events.js`.
-- [ ] **D12 The Small Animals** - squirrels, chipmunks, birds, the slug. `mapfauna.js`, `sprites.js`.
+- [x] **D12 The Small Animals** - squirrels, chipmunks, birds, the slug. `mapfauna.js`, `sprites.js`.
 
 ### The Rest of the Scenes
 
@@ -317,3 +317,10 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - D11, a call: the new tumbleweed is lighter than the old, so it stands out a little less against the Palouse on a phone; its dark rim and twigs keep it visible, and it reads as a tumbleweed where the old one read as a burr.
 - D11, a call: `ground.png` was rebaked and committed; its pixels are identical.
 - D11: frame time 11.9 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- D12, the before: the squirrel (`squirrel` in `mapfauna.js`) was three ellipses, body, head and tail, with an eye and no ear; the chipmunk was the same in tan with a white bar. The circling birds (`makeBird`) are dark wing strokes 7 by 4. `makeSlug` is exported but nothing draws it, so there is no slug in the game to redraw.
+- D12, the pictures: 7 in all. The style model's seed 3 was picked: a squirrel sitting up with an S-curled tail, a tufted ear, a white chest and its paws up, and a striped chipmunk running low. Qwen's seed 2 drew both near the game's size and confirmed the silhouettes. The prompts are in `design/art/D12/log.jsonl`.
+- D12, a call: `squirrel` keeps its two kinds and two poses and its feet. The sitting squirrel grew from 10 by 8 to 12 by 10 for its tail (the marmot is 18 by 14); the chipmunk is drawn at 0.82 of the squirrel's size. The tail is laid along a curve first, in a ramp step darker than the body, then the body and head; every edge facing the upper left takes the next lighter step and every edge facing the lower right the next darker. Then a pale chest or belly, paws or legs, the ear (a tuft on the squirrel) and the eye.
+- D12, a call: a first pass curled the tail over with a gap between it and the head, and the outline filled the gap as a black block; the tail now runs up to the back of the head and the two are told apart by colour. The chipmunk's first three stripes and dark face stripe were too busy at its size, so it has one dark and one pale stripe and a pale brow.
+- D12, a call: the birds were kept: at 7 by 4 they are distant silhouettes, and dark wing strokes already read as birds.
+- D12, a call: `ground.png` was rebaked and committed; its pixels are identical.
+- D12: frame time 12.2 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
