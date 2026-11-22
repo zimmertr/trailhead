@@ -1,9 +1,13 @@
-// The trail register up close (L2), after TJ's photographs: looking into the box on its post at the
+// The trail register up close (L2), after TJ's photographs. It opens on the box seen from a step back
+// (kiosk.js, B01); a click on the book zooms into this page view, and Close the book zooms back out.
+// The page view looks into the box on its post at the
 // Trailhead with its front folded down on two chains into a desk. The book lies open on the floor of the
 // box, held by a clip; a map of the trails hangs behind glass on the back wall; the pencil lies on the
 // desk on its string. The scene opens on the box shut and the front swinging down. The words on the
 // pages are the page's own (app.js lays them over the rectangles pages() reports).
 import { clamp, smooth, hash, fbm, bayer, R, INK } from './core.js';
+import { REGISTER, UI, DEST_NAMES } from './content.js';
+import { HANDS, kioskLayout, paintKiosk, boards, woodStep, shortDate } from './kiosk.js';
 
 const SWING = 0.75;   // seconds the front takes to fold down
 const DUR = 1.2;
@@ -52,33 +56,8 @@ function paintBox(fb, L) {
 // floor's planks. Light from the upper left, so a groove's right side catches it (lightBox shades the rest).
 function paintBoxCode(fb, L) {
   paintBox(fb, L);
-  const { VW, rim, yH, back } = L, W = R.wood, set = (x, y, c) => { fb[y * VW + x] = c; }, bh = back.y1 - back.y0;
-  for (let bx = back.x0; bx < back.x1;) {
-    const bw = 11 + ((hash(bx, 0, 891) * 6) | 0), pale = hash(bx, 1, 891) > 0.8;
-    // A knot in about one board in seven, where the wall is tall enough to hold one, off the board's middle.
-    const knot = bh >= 12 && bw >= 12 && hash(bx, 3, 897) > 0.86, kx = bx + 4 + ((hash(bx, 5, 897) * (bw - 8)) | 0), ky = back.y0 + 5 + ((hash(bx, 4, 897) * (bh - 10)) | 0);
-    for (let x = bx; x < Math.min(back.x1 + 1, bx + bw); x++) for (let y = back.y0; y <= back.y1; y++) {
-      let c = x === bx ? W[0] : x === bx + 1 ? W[2] : pale ? W[2] : W[1];
-      if (x > bx + 1) {
-        // The grain is read from a little to the side near a knot, so its streaks part round it.
-        let gx = x;
-        if (knot) { const dx = x - kx, dy = y - ky, push = Math.max(0, 1 - Math.abs(dx) / 7); gx = x - (dx < 0 ? 1 : -1) * Math.round(4 * Math.exp(-(dy * dy) / 30) * push); }
-        const r = hash(gx, ((y + ((hash(gx, 2, 893) * 9) | 0)) / 5) | 0, 895);
-        if (r > 0.9) c = pale ? W[1] : W[2]; else if (r < 0.06) c = W[0];
-      }
-      set(x, y, c);
-    }
-    if (knot) for (let dy = -5; dy <= 5; dy++) for (let dx = -4; dx <= 4; dx++) {
-      const d = Math.hypot(dx / 2.2, dy / 3.2), x = kx + dx, y = ky + dy;
-      if (y < back.y0 || y > back.y1 || x <= bx + 1 || x >= bx + bw) continue;
-      if (d < 0.35) set(x, y, W[0]);
-      else if (d < 0.75) set(x, y, dx < 0 && dy < 0 ? W[3] : W[2]);
-      else if (d < 1.05) set(x, y, W[0]);
-      else if (d > 1.45 && d < 1.75 && Math.abs(dy) > Math.abs(dx) && hash(x, y, 898) > 0.3) set(x, y, W[0]);
-    }
-    if (bx + 4 < back.x1) for (const ny of [back.y0 + 4, back.y1 - 2]) { set(bx + 3, ny, W[3]); set(bx + 4, ny + 1, W[0]); }
-    bx += bw;
-  }
+  const { VW, rim, yH, back } = L, W = R.wood, set = (x, y, c) => { fb[y * VW + x] = c; };
+  boards(fb, VW, back.x0, back.x1, back.y0, back.y1);
   // The lid: planks running back, their edges catching the light.
   for (let k = 1; k < 6; k++) {
     const x0 = VW * k / 6, x1 = back.x0 + (back.x1 - back.x0) * k / 6;
@@ -94,8 +73,6 @@ function paintBoxCode(fb, L) {
   for (let y = 0; y < yH; y++) for (let x = 1; x < rim; x++) if (hash(x, (y / 6) | 0, 899) > 0.82) set(x, y, W[3]);
 }
 
-// A wood colour a step or two lighter (k > 0) or darker; anything that is not wood is left alone.
-const woodStep = (c, k) => { const s = R.wood.indexOf(c); return s < 0 ? c : R.wood[clamp(s + k, 0, 4)]; };
 // The light inside the box, from the upper left, dithered between the wood's steps: the right-hand wall, which
 // faces the light, lit and the left-hand one in shade; a shadow under the lid along the top of the back wall,
 // which darkens toward the right; the floor darker toward the back. Then the side walls' seams.
@@ -248,7 +225,7 @@ function paintFront(fb, L, a, bounce) {
       fb[y * VW + x] = y >= yE - 1 ? (y === yE ? INK : R.wood[2]) : (y - yH) % 10 === 3 ? R.wood[2] : y - yH < 3 ? R.wood[4] : deskGrain(x, y);
     // The chains, from high on the box's sides to the desk's outer corners.
     if (a > 0.85) for (const s of [1, -1]) {
-      const x0 = s > 0 ? L.rim + 3 : VW - 1 - L.rim - 3, y0 = yH - Math.round((yH - L.back.y1) * 0.55), x1 = s > 0 ? 2 : VW - 3, y1 = Math.min(VH - 2, yE - 2);
+      const x0 = L.chain ? L.chain[s > 0 ? 0 : 1] : s > 0 ? L.rim + 3 : VW - 1 - L.rim - 3, y0 = yH - Math.round((yH - L.back.y1) * 0.55), x1 = s > 0 ? 2 : VW - 3, y1 = Math.min(VH - 2, yE - 2);
       for (let k = 0; k <= 1; k += 1 / 60) { const x = Math.round(x0 + (x1 - x0) * k), y = Math.round(y0 + (y1 - y0) * k); if (y >= 0 && y < VH && x >= 0 && x < VW) fb[y * VW + x] = ((k * 60) | 0) % 3 ? R.rock[3] : R.rock[1]; }
     }
   }
@@ -259,7 +236,7 @@ function paintFront(fb, L, a, bounce) {
 // the right, until the visitor may sign; then it lies on the left-hand page, ready to write with (L4).
 function paintPencil(fb, L, onPage) {
   const { VW, VH, yH, bx0, rim, left } = L, len = L.n ? 36 : 46;
-  const [x0, y0, ang] = onPage ? [left.x + Math.round(left.w * 0.72), left.y + Math.round(left.h * 0.66), Math.PI - 0.5] : [bx0 + (L.n ? 56 : 84), Math.min(VH - 6, yH + Math.round((VH - yH) * 0.55)), Math.PI + 0.3];
+  const [x0, y0, ang] = onPage ? [left.x + Math.round(left.w * 0.72), left.y + Math.round(left.h * 0.66), Math.PI - 0.5] : L.pen ? [L.pen[0], L.pen[1], Math.PI + 0.3] : [bx0 + (L.n ? 56 : 84), Math.min(VH - 6, yH + Math.round((VH - yH) * 0.55)), Math.PI + 0.3];
   const dx = Math.cos(ang), dy = Math.sin(ang);
   for (let s = 0; s < len; s++) {
     const x = Math.round(x0 + dx * s), y = Math.round(y0 + dy * s);
@@ -267,18 +244,58 @@ function paintPencil(fb, L, onPage) {
     fb[y * VW + x] = c; fb[(y + 1) * VW + x] = s < 2 ? INK : s < 6 ? R.wood[3] : s < len - 6 ? R.yellow[0] : s < len - 3 ? R.rock[2] : R.pink[0];
     fb[(y + 2) * VW + x] = INK;
   }
-  const ex = Math.round(x0 + dx * len), ey = Math.round(y0 + dy * len), sx = rim + 4, sy = yH - 3;
+  const ex = Math.round(x0 + dx * len), ey = Math.round(y0 + dy * len), [sx, sy] = L.eye || [rim + 4, yH - 3];
   fb[(sy - 1) * VW + sx] = R.rock[3]; fb[sy * VW + sx - 1] = R.rock[3]; fb[sy * VW + sx + 1] = R.rock[3]; fb[(sy + 1) * VW + sx] = R.rock[3];
   for (let k = 0; k <= 1; k += 1 / 120) { const x = Math.round(ex + (sx - ex) * k), y = Math.round(ey + (sy - ey) * k + Math.sin(k * Math.PI) * 4); if (y >= 0 && y < VH) fb[y * VW + x] = R.white[0]; }
 }
 
+// What the book says, for the kiosk view's pages: the page view's own words (app.js lays those).
+function bookContent(done) {
+  let mine; try { mine = JSON.parse(localStorage.getItem('trailhead.register') || '[]'); } catch { mine = []; }
+  const T = UI.register.todo, all = done.lake && done.stack && done.spires;
+  const left = all ? (mine.length ? [[UI.register.thanks]] : null) : [[T.hi], [T.need], [DEST_NAMES.lake, true, !!done.lake], [DEST_NAMES.stack, true, !!done.stack], [T.spires(DEST_NAMES.spires), true, !!done.spires], [null], [T.after]];
+  const right = [...REGISTER, ...mine.map(e => ({ ...e, pending: true }))].map(e => ({ name: e.name, note: e.note, date: shortDate(e.date), pending: !!e.pending }));
+  return { left, sig: left ? T.sig : null, right, head: [UI.register.book.date, UI.register.book.who] };
+}
+
+const ZOOM = 0.7;   // seconds the zoom between the two views takes
 export function makeRegisterScene() {
-  let pic = null, L = null, key = '';
+  let pic = null, L = null, key = '', K = null, KL = null, kpic = null, kfull = null, pfull = null, kkey = '', fontsOk = false;
+  // view: the one asked for; z runs from 0 (the kiosk) to 1 (the page) over ZOOM seconds.
+  let view = 'kiosk', zFrom = 0, zTo = 0, zt0 = 0;
+  const now = () => performance.now() / 1000, zNow = () => zFrom + (zTo - zFrom) * clamp((now() - zt0) / ZOOM, 0, 1);
   const focus = { x: 0, y: 0 };
-  const build = scr => {
-    const k = scr.VW + 'x' + scr.VH + 'x' + scr.S; if (k === key) return; key = k;
-    L = layout(scr.VW, scr.VH, scr.S); pic = new Uint8Array(scr.VW * scr.VH);
-    paintBoxCode(pic, L); lightBox(pic, L); paintMap(pic, L); paintTin(pic, L); paintBook(pic, L);
+  const build = (scr, env) => {
+    const k = scr.VW + 'x' + scr.VH + 'x' + scr.S;
+    if (k !== key) {
+      key = k; kkey = '';
+      L = layout(scr.VW, scr.VH, scr.S); pic = new Uint8Array(scr.VW * scr.VH);
+      paintBoxCode(pic, L); lightBox(pic, L); paintMap(pic, L); paintTin(pic, L); paintBook(pic, L);
+      K = kioskLayout(scr.VW, scr.VH);
+      KL = { VW: K.VW, VH: K.VH, n: K.n, yH: K.yH, rim: K.bt, back: K.back, chain: [K.pl + 3, K.pr - 3], pen: K.pen || [K.book.bx0 + 60, Math.min(K.VH - 6, K.yH + Math.round((K.VH - K.yH) * 0.55))], eye: [K.pl + 4, K.yH - 3] };
+    }
+    if (!env) return;
+    // The kiosk's pages carry the book's words, so they are drawn again when those change, and once the
+    // hands have loaded.
+    if (!fontsOk) fontsOk = typeof document === 'undefined' || !document.fonts || HANDS.every(([f]) => document.fonts.check('24px "' + f + '"'));
+    const d = env.done || {}, all = !!(d.lake && d.stack && d.spires);
+    let mine; try { mine = localStorage.getItem('trailhead.register') || ''; } catch { mine = ''; }
+    const ck = [k, !!d.lake, !!d.stack, !!d.spires, mine, fontsOk].join('|');
+    if (ck === kkey) return;
+    kkey = ck;
+    kpic = new Uint8Array(scr.VW * scr.VH); paintKiosk(kpic, K, bookContent(d));
+    kfull = kpic.slice(); paintFront(kfull, KL, 1, 0); paintPencil(kfull, KL, false);
+    pfull = pic.slice(); paintFront(pfull, L, 1, 0); paintPencil(pfull, L, all);
+  };
+  // Between the views: the kiosk grows round its book until the book is the size of the page view's, and the
+  // page view comes through it in a dither over the last part.
+  const zoomFrame = (fb, VW, VH, z) => {
+    const e = smooth(0, 1, z), b = K.book, kcx = (b.tx0 + b.tx1 + b.bx0 + b.bx1) / 4, kcy = (b.ty + b.by) / 2, kw = (b.tx1 - b.tx0 + b.bx1 - b.bx0) / 2, kh = b.by - b.ty;
+    const F = Math.sqrt((L.bx1 - L.bx0) / kw * (L.by1 - L.by0) / kh), sc = Math.pow(F, e), cx = kcx + ((L.bx0 + L.bx1) / 2 - kcx) * e, cy = kcy + ((L.by0 + L.by1) / 2 - kcy) * e, fade = clamp((e - 0.55) / 0.45, 0, 1);
+    for (let y = 0; y < VH; y++) {
+      const sy = clamp(Math.round(kcy + (y - cy) / sc), 0, VH - 1) * VW;
+      for (let x = 0; x < VW; x++) fb[y * VW + x] = fade > bayer(x, y) ? pfull[y * VW + x] : kfull[sy + clamp(Math.round(kcx + (x - cx) / sc), 0, VW - 1)];
+    }
   };
   return {
     name: 'register',
@@ -286,16 +303,26 @@ export function makeRegisterScene() {
     stops: () => [],
     elev: () => 0,
     cues: () => [{ at: 0.02, name: 'creak' }, { at: SWING / DUR, name: 'catch' }],
-    enter(scr) { build(scr); },
+    enter(scr) { build(scr); view = 'kiosk'; zFrom = zTo = 0; },
     focus: () => focus,
-    // The pages, in screen pixels of this scene, for the words laid over them.
-    pages: () => L && { left: L.left, right: L.right, pitch: L.pitch, top: Math.round(L.pitch * 1.6), board: boardAt(L) },
+    // Asks for the kiosk or the page view; the answer is how many milliseconds the zoom there takes.
+    view(v) { if (v === view) return 0; const z = zNow(); view = v; zFrom = z; zTo = v === 'page' ? 1 : 0; zt0 = now(); return Math.round(ZOOM * 1000); },
+    // In the page view, its pages in screen pixels of this scene, for the words laid over them. In the kiosk
+    // view, where the notice, the map and the book are, for the buttons laid over them. Between the two, null.
+    pages: () => {
+      if (!L) return null;
+      const z = zNow();
+      if (view === 'page' && z >= 1) return { left: L.left, right: L.right, pitch: L.pitch, top: Math.round(L.pitch * 1.6), board: boardAt(L) };
+      if (view === 'kiosk' && z <= 0 && K) { const b = K.book; return { kiosk: true, notice: K.notice, map: K.map, book: { x: b.bx0 - 1, y: b.ty - 1, w: b.bx1 - b.bx0 + 2, h: b.by - b.ty + 2, top: [b.tx0 - b.bx0 + 1, b.tx1 - b.bx0 + 1] } }; }
+      return null;
+    },
     draw(scr, env, arg, q) {
-      build(scr);
-      scr.fb.set(pic);
-      const s = q * DUR, a = smooth(0, 1, clamp(s / SWING, 0, 1)), bounce = s > SWING && s < SWING + 0.25 ? Math.round(2 * Math.sin((s - SWING) / 0.25 * Math.PI)) : 0;
-      paintFront(scr.fb, L, a, bounce);
-      if (a >= 1) paintPencil(scr.fb, L, env.done && env.done.lake && env.done.stack && env.done.spires);
+      build(scr, env);
+      const s = q * DUR, a = smooth(0, 1, clamp(s / SWING, 0, 1)), bounce = s > SWING && s < SWING + 0.25 ? Math.round(2 * Math.sin((s - SWING) / 0.25 * Math.PI)) : 0, z = zNow();
+      if (s < SWING + 0.25) { scr.fb.set(kpic); paintFront(scr.fb, KL, a, bounce); if (a >= 1) paintPencil(scr.fb, KL, false); }
+      else if (z <= 0) scr.fb.set(kfull);
+      else if (z >= 1) scr.fb.set(pfull);
+      else zoomFrame(scr.fb, scr.VW, scr.VH, z);
       focus.x = scr.VW >> 1; focus.y = scr.VH >> 1;
     }
   };

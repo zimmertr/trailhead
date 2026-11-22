@@ -95,6 +95,23 @@ test('the trail register opens from its address', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
+// The register opens on the box seen from a step back (B01): the book zooms into its pages, Close the book
+// zooms back out to the box, and the map on the back wall opens the trail map.
+test('the register book opens to its pages and closes back to the box, and its map opens the trail map', async ({ page }) => {
+  const problems = await open(page, '/#register')
+  const book = page.locator('#book .spot.open')
+  await expect(book).toBeVisible({ timeout: 10_000 })
+  await book.click()
+  await expect(page.locator('#book .page.right')).toBeVisible()
+  await page.locator('#book-x').click()
+  await expect(page.locator('#book .page')).toHaveCount(0)
+  await expect(book).toBeVisible()
+  expect(await axe(page).then(found)).toEqual([])
+  await page.locator('#book .spot.map').click()
+  await expect(page.locator('#sheet')).toBeVisible()
+  expect(problems).toEqual([])
+})
+
 test('the page shows the picture of the map and every card', async ({ page }) => {
   const problems = await open(page, '/#page')
   await watch(page)

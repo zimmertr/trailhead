@@ -553,6 +553,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     scale: () => scr.S0 / (window.devicePixelRatio || 1),
     // The register's pages in the close-up, in its pixels (L3), once it has been drawn.
     pages: () => drawn && drawn.s === 'register' && drawn.scene.pages ? drawn.scene.pages() : null,
+    // Moves the register between the box and the page view (B01); the answer is how long the zoom takes, in ms.
+    regView: v => (drawn && drawn.s === 'register' && drawn.scene.view ? drawn.scene.view(v) : 0),
     zoom: (d, at) => zoomBy(d, at),
     // For screenshot scripts: the pixel size the map is drawn at now.
     size: () => scr.S,
