@@ -38,7 +38,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A02 The Background Mountains** - the far ranges along the top of the map, east of Monolith. `land.js` (`range`, `farRow`). A wide band seen on every visit; the ridges repeat.
 - [x] **A03 Mount Monolith** - the volcano, after Mt Rainier. `monolith.js` (`paintMonolith`). The largest landmark; painted already, so the gap is smaller, but nothing is seen more.
 - [x] **A04 Proficiency Peak** - the granite peak and its bench, the talus fan under its prow. `land.js` (`proficiency`, `talusAt`).
-- [ ] **A05 The Larch Basin** - the granite benches with gold larches and tarns east of the Spires, after the Enchantments. `land.js` (`plateau`, `larchAmt`, the tarns).
+- [x] **A05 The Larch Basin** - the granite benches with gold larches and tarns east of the Spires, after the Enchantments. `land.js` (`plateau`, `larchAmt`, the tarns).
 - [ ] **A06 Cliff Textures** - the faces of the granite benches and walls on the map. `land.js` (`colour`, `coverFaces`).
 - [ ] **A07 The Golden Palouse Hills** - the rolling gold hills in the far east corner. `land.js` (`palAmt`, `colour`).
 - [ ] **A08 Coulee Textures** - the basalt coulee and mesas of the dry corner. `land.js` (the coulee cut, `mesa`, `colour`).
@@ -121,3 +121,9 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A04, a call: the fin's narrow top is the ridge seen from above, a step darker east of the summit. Drawn as a dark edge, it read as a thick outline along the whole ridge.
 - A04, a call: the summit block is centred on the column the stack route's summit is read from. Off centre, as in the picture, it moved that place 12 px down onto the ridge beside it.
 - A04: frame time 12.0 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
+- A05, the before: the benches' tops were a grey stipple that read as gravel, the milky tarns a flat dithered blue.
+- A05, the pictures: 12 compositions and 2 repaints. Asked for the basin from above, Qwen drew one giant blank slab (round 1) and then a field of slabs like tiles (round 2), the overhead view the art rules warn of. Seen slightly down across the basin toward a fin and mountains (round 3) it drew the Enchantments: seed 10 was picked, rounded cream slabs parted by cracks, turquoise tarns with pale rims, larch groves. Its repaint came out washed out, so the composition itself was the reference. The prompts are in `design/art/A05/log.jsonl`.
+- A05, a call: the benches' tops are slabs of the warm granite ramp, the fin's, in cells 26 wide: each lit on its upper left and a step darker toward its lower right, with a thin crack only on its shaded side. At 11 wide with cracks all round they read as cobblestones.
+- A05, a call: the heather keeps the noise it grew from before, so nothing planted on the benches moved; the larches are sprites (D01 and D03) and are left for their own items.
+- A05, a call: the tarns are pale where shallow and darker in the middle; the milky ones keep their milk and gain a pale rim. The bench walls are left for A06.
+- A05: frame time 12.3 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.

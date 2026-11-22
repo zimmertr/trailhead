@@ -345,6 +345,21 @@ if (!B) { const { cu, cv, ru, rv } = PRO, LV = hAt(cu, cv - rv - 14) + 4, MI = M
 const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypot((u - ISLE[0]) / 7, (v - ISLE[1]) / 3.2); C.lakeIsle = ISLE; C.glToe = [GL.cu(GL.toe), GL.toe];
 const lakeRim = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) { const d = Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); if (d >= 1 && d < 1 + 2.2 / Math.min(ru, 8 * rv)) return kind; } return null; };
 const lakeAt = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) if (Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5) < 1) return kind; return null; };
+// How far in from its shore a spot of a lake lies, 0 at the shore to 1 at its middle (A05: tarns are pale
+// where they are shallow and darker in the middle).
+const lakeIn = (u, v) => { for (const [cu, cv, ru, rv] of C.lakes) { const d = Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); if (d < 1) return 1 - d; } return 0; };
+// The benches' polished slabs (A05): cells of a jittered grid, squashed to the map's slant. Returns how
+// near the crack to the next slab a spot is (edge, in pixels) and where it lies on its slab toward the
+// lower right (lr, -1 on the upper left to 1 on the lower right).
+function slabAt(u, v) {
+  const S = 26, pv = v * 1.8, gi = Math.floor(u / S), gj = Math.floor(pv / S);
+  let f1 = 1e9, f2 = 1e9, cx = 0, cy = 0;
+  for (let j = gj - 1; j <= gj + 1; j++) for (let i = gi - 1; i <= gi + 1; i++) {
+    const px = (i + 0.15 + 0.7 * hash(i, j, 971)) * S, py = (j + 0.15 + 0.7 * hash(i, j, 972)) * S, d = Math.hypot(u - px, pv - py);
+    if (d < f1) { f2 = f1; f1 = d; cx = px; cy = py; } else if (d < f2) f2 = d;
+  }
+  return { edge: f2 - f1, lr: clamp(((u - cx) + (pv - cy)) / (1.41 * Math.max(4, (f1 + f2) / 2)), -1, 1) };
+}
 // The talus fan stands a little proud of the step, highest against the wall.
 if (!B && PF) for (let v = PF.cv - 45; v <= PF.cv; v++) for (let u = PF.cu - 110; u <= PF.cu + 110; u++) { const t = talusAt(u, v); if (t > 0 && MATS[mg[at(u, v)]] === 'gran') hg[at(u, v)] += 6 * t * t; }
 // Reflection Lake's bench tips down to the west, toward the forest's stream (E8b, TJ: its low end looks to
@@ -639,7 +654,8 @@ function colour(u, v, hh, x, y) {
   if (cs > -24 - 8 * vnoise(u / 20, v / 20, 87)) return water[i] ? (water[i] === 1 ? R.sand[0] : hash(x, y, 4733) < 0.07 ? R.glint[(x + y) & 3] : R.water[(x + 2 * y) % 5 < 2 ? 4 : 3]) : R.sand[cs > -4 ? 0 : hash(u, v, 88) < 0.25 ? 1 : 2];
   const lk = lakeAt(u, v);
   if (lk === 'lake' && isle(u, v) < 1) return pick('grass', 0.55 + 0.3 * n1, x, y);
-  if (lk) return lk === 'tarn' ? pick('tarn', 0.3 + 0.4 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
+  if (lk === 'tarn' || lk === 'milk') { const dep = lakeIn(u, v); if (dep < 0.13) return lk === 'tarn' ? R.tarn[5] : R.glac[4]; if (dep < 0.28 && lk === 'tarn') return R.tarn[4]; }
+  if (lk) return lk === 'tarn' ? pick('tarn', 0.62 - 0.5 * lakeIn(u, v) + 0.14 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
   // Where a trail crosses water there is a footbridge: a deck of planks with a dark edge.
   if (water[i] && trail[i] && mat !== 'ice') return trail[i] === 2 ? ((u + 2 * v) % 3 === 0 ? R.dirt[1] : R.dirt[2]) : R.dirt[0];
   // White water where the stream itself falls, read from the water's own surface, not from its banks,
@@ -776,8 +792,14 @@ function colour(u, v, hh, x, y) {
       return G[clamp(Math.round(1 + 4.2 * lit + (b2(x, y) - 0.5) * 0.6), 1, 5)];
     }
     if (steep > 0.75 || mat === 'fin') { const crack = vnoise(x / 2.2, hh / 26, 902), streak = vnoise(x / 5, hh / 40, 903); const k = clamp(Math.round(1.5 + 2.9 * L + (streak > 0.62 ? -1.1 : 0) + (crack > 0.74 ? -1.4 : crack < 0.2 ? 0.5 : 0) + (b2(x, y) - 0.5) * 0.9), 0, 5); return k === 5 ? R.gold[6] : R.rock[k]; }
+    // A05, after a picture of the Enchantments: the benches' tops are glacier-polished slabs of warm
+    // granite, rounded pillows of every size, each lit on its upper left and a step darker toward its
+    // lower right, parted by thin dark cracks. Heather fills the hollows where it grew before.
     const slab = fbm(u / 22, v / 11, 96, 3);
-    return slab > 0.4 ? pick('rock', 0.82 + 0.4 * (slab - 0.5) + 0.2 * n1, x, y, 0.7) : hash(u, v, 98) < 0.06 ? R.red[1] : pick('grass', 0.42 + 0.2 * n1, x, y, 0.4);
+    if (slab <= 0.4) return hash(u, v, 98) < 0.06 ? R.red[1] : pick('grass', 0.42 + 0.2 * n1, x, y, 0.4);
+    const sl = slabAt(u, v), G = R.granite;
+    if (sl.edge < 1.2 && sl.lr > -0.1) return G[sl.lr > 0.45 ? 2 : 3];
+    return G[clamp(Math.round(4.95 - 0.55 * sl.lr - 1.1 * Math.max(0, sl.lr) * smooth(8, 2, sl.edge) + 0.3 * (L - 0.5) + (b2(x, y) - 0.5) * 0.4 + 0.2 * n1), 3, 5)];
   }
   // The ground behind the crest, glimpsed between its peaks against the sky, is more mountain, not meadow.
   if (u > 760 && v > 684) return hh > 128 && vnoise(x / 3, hh / 12, 829) > 0.45 + 0.3 * smooth(1240, 1700, u) ? R.snow[L > 0.5 ? 4 : 3] : pick('rock', 0.3 + 0.45 * L + 0.15 * vnoise(x / 3, hh / 10, 97), x, y, 0.7);
