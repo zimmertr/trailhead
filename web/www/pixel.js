@@ -355,7 +355,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       }
     } else if (scr.S !== scr.S0) scr.setScale(scr.S0);
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
-    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix;
+    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix; env.sky = DEBUG.clouds ? world.sky(t) : null;
     env.walkMark = route === 'walk' && p < 1 ? walkMark : null;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
     env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
@@ -439,7 +439,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // For the debug panel (E5f): the scenes' clock, its speed, and starting a timed event now in the
     // scene he is in (false if that scene has no such event).
     now: () => simT, speeds: SPEEDS, speed: () => speed, setSpeed(k) { if (SPEEDS.includes(k)) speed = k; },
-    trigger(name) { const s = drawn.scene; return !!(s.trigger && !tr && s.trigger(name, simT)); },
+    // The marine layer is the world's weather, so its button works from a side scene too (round 6, note 13).
+    trigger(name) { const s = drawn.scene; if (tr) return false; if (s.trigger && s.trigger(name, simT)) return true; return name === 'shower' && s !== world && world.trigger(name, simT); },
     // The view eases to where a map event happens, so its start button shows it (note 26). Answers how many
     // milliseconds to wait before starting it: none when it has no place or the map is not on screen.
     showEvent(name) {

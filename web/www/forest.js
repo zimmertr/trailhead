@@ -2,7 +2,7 @@
 // stand on the bank behind the trail, a dark stream mirrors them in front of it, and the light
 // comes down through the canopy in slanting shafts. He runs right to left, the way the map sends him
 // in: west, away from the Trailhead.
-import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, disc, windAt } from './core.js';
+import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, disc, windAt, veilTable } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell, puffs } from './side.js';
 import { makeMaple, makeSpruce, makeFir, makeConifer, makeBoulder } from './sprites.js';
 import { elk, sasquatch, jay, slug, owl } from './fauna.js';
@@ -388,6 +388,37 @@ function farLayer(S, seed, o) {
 // low down in the gaps the lake's turquoise shows (I1), its far shore a dark line, glints on it that
 // grow thicker toward the end, and the band of water taller as the trees fall away. The lakeward
 // side only: behind him at the meadow end there is no lake.
+// The marine layer in the forest (round 6, note 13). A veil of fog over the whole view, k from 0 (none) to 1
+// (the thickest of the veils V), dithered between its steps.
+function fogVeil(scr, k, V) {
+  if (k <= 0.01) return;
+  const { VW, VH, fb } = scr, L = k * V.length;
+  for (let y = 0; y < VH; y++) { const row = y * VW; for (let x = 0; x < VW; x++) { const l = Math.min(V.length, Math.floor(L + bayer(x, y))); if (l > 0) fb[row + x] = V[l - 1][fb[row + x]]; } }
+}
+// The rain under the canopy: streaks falling steep and fast, leaning a little east, each one a colour of its
+// own over what it crosses (pale over dark, grey over pale: S), and rings opening where drops hit the stream.
+function rainfall(scr, camX, base, t, k, S) {
+  const { VW, VH, fb } = scr, n = Math.round(VW * VH / 520 * k), H = VH + 30, W = VW + 30;
+  for (let i = 0; i < n; i++) {
+    const sp = 300 + 120 * hash(i, 1, 4070), len = 4 + (hash(i, 2, 4070) * 5 | 0), y0 = frac(t * sp / H + hash(i, 3, 4070)) * H - 15;
+    const x0 = ((hash(i, 4, 4070) * W - camX * 1.25 + y0 * 0.16) % W + W) % W - 15;
+    for (let j = 0; j < len; j++) { const X = Math.round(x0 + j * 0.16), Y = Math.round(y0 + j); if (X >= 0 && Y >= 0 && X < VW && Y < VH) { const q = Y * VW + X; fb[q] = S[fb[q]]; } }
+  }
+  const m = Math.round(VW / 9 * k), beat = Math.floor(t * 3);
+  for (let i = 0; i < m; i++) {
+    const age = frac(t * 3 + hash(i, 5, 4071)), c = beat - (age > frac(t * 3) ? 1 : 0), wx = Math.floor(camX + hash(i, c, 4072) * VW), r = Math.round(age * 3);
+    const sy = base + g(wx) + Math.round(lerp(farBank(wx) + 3, nearBank(wx) - 3, hash(i, c, 4073))), sx = wx - camX;
+    for (const dx of r ? [-r, r] : [0]) { const X = sx + dx; if (X >= 0 && X < VW && sy >= 0 && sy < VH) fb[sy * VW + X] = LIGHT[fb[sy * VW + X]]; }
+  }
+}
+// One thing that stands in the scene: a tree part by part in the wind, a tall trunk, a swaying fern, or a still drawing.
+function drawThing(scr, th, camX, base, tq) {
+  const sx = th.x - camX, sy = base + th.y;
+  if (th.tree) for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
+  else if (th.tall) blitTall(scr, th.bm, sx - th.bm.ox, sy - th.bm.oy);
+  else if (th.sway) { const [wx] = windAt(th.x, th.y, tq, th.sway); scr.put(th.bm, sx + wx, sy, false); }
+  else scr.put(th.bm, sx, sy, th.flip);
+}
 function lakeLight(scr, camX, base, t) {
   const { VW, VH, fb } = scr, T = R.tarn;
   for (let x = 0; x < VW; x++) {
@@ -566,7 +597,7 @@ function buildForest() {
   // boulders fallen at its foot, firs along its rim behind where he walks it. All by rule, with no turns of the dice.
   const crag = buildCrag();
   // Ferns on the slope, each in front of what stands higher up it.
-  for (const [x, y, k] of crag.perches) things.push({ bm: ferns[k], x, y, sway: 0.6 });
+  for (const [x, y, k] of crag.perches) things.push({ bm: ferns[k], x, y, sway: 0.6, bench: true });
   // Trees on the slope (note 12), by rule: wherever the ground under the trunk is earth, out of the gorge, and
   // never where a leg passes through the tree (so none hides him), from foot to crown. Smaller the higher up the
   // slope they stand, as they are farther off, and each in front of everything that stands higher.
@@ -575,10 +606,10 @@ function buildForest() {
       if (top > -40) continue;
       const y = Math.round(lerp(top + 18, -12, Math.sqrt(hash(n, 2, 4061)))), k = clamp(Math.round(5 * (y - top) / (-12 - top) - hash(n, 3, 4061)), 0, 5), h = 30 + k * 6, hw = 7 + k * 1.5;
       if (crag.rockAt(xx, y + 1) || gorgeAt(xx, y) < hw || [-hw, 0, hw].some(dx => nearTread(xx + dx, y + 8, h + 8)) || (xx > RIM0 - hw - 4 && xx < TOP_X + hw && y - h - 4 < RIM(xx))) continue;
-      things.push({ tree: hash(n, 4, 4061) < 0.28 ? maples[n % 6] : pines[k], x: xx, y: y + 1 }); } }
+      things.push({ tree: hash(n, 4, 4061) < 0.28 ? maples[n % 6] : pines[k], x: xx, y: y + 1, bench: true }); } }
   for (let n = 0; n < 9; n++) { const x = 16 + Math.round(hash(n, 1, 4020) * 570); if (x > FOOT - 56 && x < FALL + 44) continue; things.push({ bm: boulders[n & 3], x, y: g(x) - 7 - Math.round(hash(n, 2, 4020) * 4), z: -60 }); }
   const firs = Array.from({ length: 5 }, (_, i) => makeFir(330 + i));
-  for (let x = 6, n = 0; x < 600; x += hash(n, 1, 4021) < 0.45 ? 9 + hash(n, 2, 4021) * 8 : 30 + hash(n, 2, 4021) * 44, n++) { const xx = Math.round(x); if (Math.abs(xx - FALL) < 18 || RIM(xx) > -100) continue; things.push({ tree: hash(n, 3, 4021) < 0.2 ? spruces[n & 3] : firs[n % 5], x: xx, y: RIM(xx) + 1, z: -310 - hash(n, 4, 4021) }); }
+  for (let x = 6, n = 0; x < 600; x += hash(n, 1, 4021) < 0.45 ? 9 + hash(n, 2, 4021) * 8 : 30 + hash(n, 2, 4021) * 44, n++) { const xx = Math.round(x); if (Math.abs(xx - FALL) < 18 || RIM(xx) > -100) continue; things.push({ tree: hash(n, 3, 4021) < 0.2 ? spruces[n & 3] : firs[n % 5], x: xx, y: RIM(xx) + 1, z: -310 - hash(n, 4, 4021), bench: true }); }
 
   // The stream mirrors what stands behind it: build the still picture once and reflect it.
   const still = new Strip(SW, UP, DOWN);
@@ -620,6 +651,8 @@ function buildForest() {
   const st = {}, focus = { x: 0, y: 0 };
   let cam = 0, last = { camX: 0, base: 0 }, wells = new Float32Array(0);
   const list = [];
+  // What stands on the lake's bench (drawn with it), and everything else; sorted out on the first frame.
+  let bench = null, front = null;
   // The animals act on their own clock once he crosses their point, so they carry on when he stops and
   // do not play backwards when the timeline is scrubbed. sasGo: when he began (null if not yet).
   const SAS_AT = 0.66;
@@ -630,6 +663,11 @@ function buildForest() {
   // the slug draws its eyestalks in, the deer's eyes blink out as it bounds off, the gray jay flutters up.
   const poked = { elk: -99, owl: -99, slug: -99, deer: -99, jay: -99 };
   let eyesAt = null, jayAt = null;   // where the deer's eyes and the jay were drawn this frame, for a click
+  // The marine layer (note 13): while its deck is in over the rainforest (world.js, weather), rain falls through
+  // the forest and fog closes in, in three veils (thickest on the far trees, thinner on the bench and the
+  // bank, faint on what stands nearest), and the light beams and motes go with the sun.
+  const FOGV = [0.22, 0.42, 0.6, 0.75, 0.87].map(veilTable);
+  const STREAK = new Uint8Array(256).map((_, c) => { const p = DAY[c] || [0, 0, 0]; return 0.3 * p[0] + 0.59 * p[1] + 0.11 * p[2] > 150 ? R.nebel[1] : R.fog[1]; });
 
   return {
     ...META,
@@ -661,6 +699,7 @@ function buildForest() {
     },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t, tq } = env;
+      if (!bench) { bench = things.filter(th => th.bench).sort((a, b) => (a.z || a.y) - (b.z || b.y)); front = things.filter(th => !th.bench); }
       const d = q * TOTAL, [mx, my, face, leg] = along(d);
       // He stands right of the middle: clear of the card, and with more of the way ahead in view.
       const anchor = scr.narrow ? 0.5 : 0.6;
@@ -683,10 +722,15 @@ function buildForest() {
       drawStrip(scr, mid, camX * 0.6 + 200, base - 1, true, R.mist[1]);
       // Near the lake the far trees give way to open light, in clumps, and the lake shows low down.
       lakeLight(scr, camX, base, t);
+      const sky = env.sky, fogK = sky ? Math.max(sky.deck, sky.fog * 0.8) : 0, rainK = sky ? sky.rain : 0;
+      fogVeil(scr, fogK, FOGV);
       drawCrag(scr, crag.S, camX, base);
+      fallWater(scr, camX, base, t, crag.F);
+      // What stands on the bench is drawn with it, before the bank, so the fog veils them alike.
+      for (const th of bench) { const w = th.tree ? 30 : th.bm.w; if (th.x + w > camX && th.x - w < camX + VW) drawThing(scr, th, camX, base, tq); }
+      fogVeil(scr, fogK * 0.5, FOGV);
       drawStrip(scr, waterAbs, camX, base, false, 0, r => Math.round(Math.sin(t * 1.6 + r * 0.7)));
       drawStrip(scr, main, camX, base, false, R.moss[1]);
-      fallWater(scr, camX, base, t, crag.F);
       // Sasquatch strides through the undergrowth behind the trail, in front of the far trees and
       // behind every trunk, log and fern that stands nearer. Once a visit.
       // He steps out at the far edge of the view ahead and walks the other way at his own pace, so the
@@ -708,7 +752,7 @@ function buildForest() {
       }
 
       list.length = 0;
-      for (const th of things) { const w = th.tree ? 30 : th.bm.w; if (th.x + w > camX && th.x - w < camX + VW) list.push(th); }
+      for (const th of front) { const w = th.tree ? 30 : th.bm.w; if (th.x + w > camX && th.x - w < camX + VW) list.push(th); }
       // The elk lifts his head while he passes.
       const bugle = t - poked.elk < 2.6;
       { const up = bugle || Math.abs(d - D_ELK + 20) < 90 || frac(t / 7) >= 0.7; list.push({ bm: up ? elkBM[!bugle && frac(t / 2.9) < 0.07 ? 'ear' : 'up'] : elkBM[Math.floor(t * 2.2) & 1 ? 'bite' : 'graze'], x: elkX, y: elkY, flip: false }); }
@@ -725,7 +769,7 @@ function buildForest() {
       list.push(me);
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
       for (const th of list) {
-        const sx = th.x - camX, sy = base + th.y;
+        const sx = th.x - camX;
         if (th.me) {
           const bm = snack ? sit[Math.floor(t * 1.5) & 1] : env.moving ? (hop ? run.side[3] : run.side[Math.floor(d / 4.2) % 6]) : run.sideIdle[0];
           focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
@@ -734,11 +778,7 @@ function buildForest() {
           jayAt = null;
           if (snack) { const u = clamp((env.still - 63) / 1.2, 0, 1), fl = t - poked.jay < 1.2 ? Math.sin(Math.PI * (t - poked.jay) / 1.2) : 0, jx = Math.round(sx - 16 - (1 - u) * 60), jy = Math.round(base + my - (1 - u) * 50 - 8 * fl);
             scr.put(u < 1 || fl > 0 ? (Math.floor(t * 9) & 1 ? gray.up : gray.down) : gray.sit, jx, jy, false); if (u >= 1) jayAt = [jx, jy]; }
-        } else if (th.tree) {
-          for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
-        } else if (th.tall) blitTall(scr, th.bm, sx - th.bm.ox, sy - th.bm.oy);
-        else if (th.sway) { const [wx] = windAt(th.x, th.y, tq, th.sway); scr.put(th.bm, sx + wx, sy, false); }
-        else scr.put(th.bm, sx, sy, th.flip);
+        } else drawThing(scr, th, camX, base, tq);
       }
 
       if (bugle) puffs(scr, elkX - camX + 14, base + elkY - Math.round(elkBM.up.oy * 0.76), 1, t - poked.elk);
@@ -751,18 +791,21 @@ function buildForest() {
       if (eyeX !== null && env.mix > 0.5 && t - poked.deer > EYES.dur) { const s = eyeGo !== null && t - eyeGo < EYES.dur ? t - eyeGo : frac(t / EYES.slot) * EYES.slot;
         if (s < EYES.dur && frac(s / 2.7) > 0.05) { const turn = Math.round(1.5 * Math.sin(s * 0.9)), ex = eyeX - camX + turn, ey = base + g(eyeX) - 42; eyesAt = [ex, ey];
           for (const dx of [0, 4]) { scr.set(ex + dx, ey, R.lamp[1]); scr.set(ex + dx - 1, ey, R.lamp[0]); scr.set(ex + dx + 1, ey, R.lamp[0]); } } }
-      // Shafts of light: every other pixel a step lighter, the middle of each shaft two steps.
+      fogVeil(scr, fogK * 0.35, FOGV);
+      // Shafts of light: every other pixel a step lighter, the middle of each shaft two steps. Under the marine
+      // layer they fade out through a dither as the deck closes over.
       for (let y = 0; y < VH; y++) {
         const r = y - base; if (r > 16) break;
         const row = y * VW;
-        for (let x = (y + camX) & 1; x < VW; x += 2) { const m = beamAt(camX + x - 0.6 * r); if (m) fb[row + x] = m === 2 ? LIGHT[LIGHT[fb[row + x]]] : LIGHT[fb[row + x]]; }
+        for (let x = (y + camX) & 1; x < VW; x += 2) { const m = beamAt(camX + x - 0.6 * r); if (m && (fogK <= 0 || bayer(x, y) >= fogK)) fb[row + x] = m === 2 ? LIGHT[LIGHT[fb[row + x]]] : LIGHT[fb[row + x]]; }
       }
       // Motes drifting in the light, and fireflies once it goes.
       for (let k = 0; k < 46; k++) {
         const wx = Math.floor(camX / 300) * 300 + hash(k, 1, 104) * 600 + 10 * Math.sin(t * 0.3 + k), r = -20 - hash(k, 2, 104) * 190 + 8 * Math.sin(t * 0.21 + k * 2);
-        if (env.mix < 0.5 ? !beamAt(wx - 0.6 * r) : frac(t * 0.4 + hash(k, 3, 104)) > 0.5) continue;
+        if (hash(k, 9, 104) < Math.max(fogK, rainK) || (env.mix < 0.5 ? !beamAt(wx - 0.6 * r) : frac(t * 0.4 + hash(k, 3, 104)) > 0.5)) continue;
         scr.set(Math.round(wx - camX), Math.round(base + r), env.mix < 0.5 ? R.white[1] : R.yellow[1]);
       }
+      if (rainK > 0.02) rainfall(scr, camX, base, t, rainK, STREAK);
     }
   };
 }

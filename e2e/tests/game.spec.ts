@@ -15,7 +15,7 @@ declare global {
   interface Window {
     __ready?: boolean
     __info?: Info
-    __api: { hitAt: (act: string) => [number, number] | null; showEvent: (name: string) => number }
+    __api: { hitAt: (act: string) => [number, number] | null; showEvent: (name: string) => number; trigger: (name: string) => boolean }
     __rules?: () => string[]
   }
 }
@@ -207,6 +207,15 @@ test('the animals on the map and in the forest answer a click without counting a
   await page.mouse.click(at[0], at[1])
   await page.waitForTimeout(500)
   expect(await finds()).toBe(before)
+  expect(problems).toEqual([])
+})
+
+test('the marine layer can be started from inside the forest, where it rains', async ({ page }) => {
+  const problems = await open(page, '/?route=lake&p=0.31')
+  await expect.poll(() => page.evaluate(() => window.__api.hitAt('elk')), { timeout: 10_000 }).not.toBeNull()
+  // Once the scene has come in (no button works while one scene gives way to the next).
+  await expect.poll(() => page.evaluate(() => window.__api.trigger('shower')), { timeout: 5_000 }).toBe(true)
+  await page.waitForTimeout(1500)
   expect(problems).toEqual([])
 })
 

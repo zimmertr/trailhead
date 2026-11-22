@@ -228,7 +228,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 **D. The lake loop**
 
 - [x] D1. The trail up beside the falls to the lake (note 12).
-- [ ] D2. Rain and thick fog in the forest under the marine layer (note 13).
+- [x] D2. Rain and thick fog in the forest under the marine layer (note 13).
 - [ ] D3. The banana slug (note 11).
 - [ ] D4. Issue #36: light beams and particles in the forest.
 
@@ -309,7 +309,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **C8 done.** The logic audit is a report artifact: https://claude.ai/artifact/NL787W4UYQ9YiSqpQkSuoC. Five findings, each with a picture, what was measured, the fixes and the one the planner would pick: (1) a tree is drawn the same size at the front and back of the map (TJ's example; the same 51 px fir at both edges); (2) animals at storybook size next to the trees (pick: leave it); (3) one fir on Mount Monolith's snowfield (no tree stands on a glacier); (4) 727 plants on sheer cliffs, 684 of them flower clumps, beside the Spires' glacier and under the Peak's bench; (5) Postmortem Burn's sign on bare granite, with burnt snags among living larches. Nothing is built; the fixes wait for TJ's choice.
 - **Section C done.**
 - **D1 done.** The ramps and the bare cliff are gone. The trail leaves the forest floor just past the low footbridge and climbs a forested slope beside the fall in three short legs of steps, each a flat stone or a root across the path, with his feet on each step. Rock shows only in the narrow gorge the fall has cut and in a few outcrops. Ferns and trees stand on the slope by rule (smaller higher up, none where a leg passes through them), firs and spruce frame the gorge, and at the top he walks east along the rim behind a line of trees and over the outflow's lip onto the lakeshore. The bench's east end falls away into the forest under trees instead of fading out into the big trunk. Day, Dusk and phone checked against round 5.
-- Next: D2.
+- **D2 done.** While the marine layer is in (the map's own weather clock, so it is the same deck you see over the rainforest, and its Marine layer button now works from inside the forest too), rain falls through the forest: steep streaks leaning a little east, pale over the dark trunks and grey over the fog, with rings opening on the stream. Fog closes in at three depths: the far trees go almost white, the bench with its slope, trees and fall is half hidden, and the trail, the bank and what stands nearest are veiled lightly, so he stays clear. The light beams and motes fade out as the deck closes over and come back as it lifts; in the white fog that lingers after the drizzle the far trees stay hidden while the light returns. Day and Dusk checked; with the weather off the forest is as it was.
+- Next: D3.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -427,6 +428,10 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - D1, a call: the slope's trees grow smaller the higher up they stand (30 to 60 px), as the side scenes do with distance, and about one in four is a bigleaf maple.
 - D1, a call: the forest's tall trunks and bank trees still stay out of the stretch in front of the climb (round 5's rule), except that bank trees may now stand east of the fall's channel, in front of the slope there.
 - D1, frame time: 11.0 ms zoomed out at Dusk; the forest scene is built once, so its new trees and slope add nothing a frame worth measuring.
+- D2, a call: the forest reads the world's weather (the deck, the drizzle and the fog after it) instead of a clock of its own, so walking into the forest under the deck brings the rain with it, and the debug panel's Marine layer button starts the same weather from either place.
+- D2, a call: what stands on the lake's bench (its ferns and trees and the firs on its rim) is now drawn with the bench, before the bank, so the fog veils them as one; drawn with everything else they stood out sharp against a fogged slope.
+- D2, a call: no rain sound yet. There is no rain in the sound set, and a new sound is TJ's to hear first, so it is an idea in IDEAS.md.
+- D2, frame time: the forest takes 6.0 ms a frame at 1920 by 1080 in the rain (5.1 clear). The zoomed-out map at Dusk measured 13.4 ms (D1: 11.0). The map's drawing is unchanged, and the gap stays even when the forest is never drawn: D2's build with D1's forest file measures 11.1, and the number moves with which marine layer events are on screen at the measured moment (without the shower started, D1 measures 12.6 and D2 13.6). Left as it is, 3 ms under the limit.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:

@@ -719,6 +719,8 @@ export function makeWorld() {
       if (name === 'shower') return [lx0 - 50, (ly0 + ly1) >> 1];
       return crit.where(name) || ev.where(name);
     },
+    // The weather at a moment, for the side scenes in the rainforest (the forest's rain and fog, note 13).
+    sky: t => weather(t),
     lookFor: (x, y) => [x - cam.x, y - cam.y],
     // The debug panel's start buttons (E5f): each moves its event's clock so the event begins now.
     trigger(name, t) {

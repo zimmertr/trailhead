@@ -254,7 +254,7 @@ function openDebug(on) {
   const fillPlaces = () => { const k = kinds[+animal.value]; place.replaceChildren(...k.homes.map((h, n) => el('option', { value: n, text: h })), el('option', { value: 'all', text: D.spawnAll })); };
   animal.addEventListener('change', fillPlaces); fillPlaces();
   // The timed events of the scene on screen (E5f): the map's, or the scene's own.
-  const SCENE_EVENTS = { world: ['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'squall', 'lens', 'tumble', 'devil', 'star'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
+  const SCENE_EVENTS = { world: ['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'squall', 'lens', 'tumble', 'devil', 'star'], forest: ['sasquatch', 'eyeshine', 'shower'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
   const here = api.scene(), events = SCENE_EVENTS[here] || [];
   // On the map a start button first eases the view to where its event happens, then starts it (note 26).
   const fire = id => { const ms = api.showEvent(id); setTimeout(() => audio.sfx(api.trigger(id) ? 'step' : 'close'), ms); };
