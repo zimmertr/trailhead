@@ -40,7 +40,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A04 Proficiency Peak** - the granite peak and its bench, the talus fan under its prow. `land.js` (`proficiency`, `talusAt`).
 - [x] **A05 The Larch Basin** - the granite benches with gold larches and tarns east of the Spires, after the Enchantments. `land.js` (`plateau`, `larchAmt`, the tarns).
 - [x] **A06 Cliff Textures** - the faces of the granite benches and walls on the map. `land.js` (`colour`, `coverFaces`).
-- [ ] **A07 The Golden Palouse Hills** - the rolling gold hills in the far east corner. `land.js` (`palAmt`, `colour`).
+- [x] **A07 The Golden Palouse Hills** - the rolling gold hills in the far east corner. `land.js` (`palAmt`, `colour`).
 - [ ] **A08 Coulee Textures** - the basalt coulee and mesas of the dry corner. `land.js` (the coulee cut, `mesa`, `colour`).
 - [ ] **A09 Rivers and Waterfalls** - the rivers across the map and the falls where they drop. `land.js` (the rivers), `world.js` (`whiteWater`).
 - [ ] **A10 Reflection Lake** - the lake on the map, its shore, island and boardwalk. `land.js` (`lakeAt`, `lakeRim`).
@@ -132,3 +132,9 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A06, a call: one wall function draws both the granite walls and the land's rock steps (not the basalt, which is A08's, nor the moraine, A11's): buttresses 9 to 36 wide, each lit at its west edge and darker toward the corner on its east, whose wall is in shade; about two in five face away and are darker all over; a few dark water streaks; now and then a ledge of grass on granite or moss on the land's wet steps. The walls stay on the grey rock ramp, under the benches' warm slabs.
 - A06, a call: the corner walls are up to almost half a buttress wide and the ledges rare. With narrow corners the walls read as paper slats, and with the ledges at first frequency as stitching.
 - A06: frame time 11.5 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
+- A07, the before: the golden hills were one pale tan with the slope's light dithered over it, so the swells showed only faintly and the land's facets read more than its roll.
+- A07, the pictures: 10 in all. The style model drew the best swells (seed 3: golden rolling hills, lit crests, contour bands, dark trees in the hollows); Qwen drew sand dunes on all four seeds and was set aside. Seed 3 was shrunk onto the game's colours and repainted as pixel art (Qwen edit, seeds 11 and 12; 12 picked). The prompts are in `design/art/A07/log.jsonl`.
+- A07, a call: each swell's colour comes from how high up the swell it stands as well as from its slope, so the crests are the lightest and the hollows a step darker; the dry ramp's darkest step only shows in the deep hollows turned east. The steep and the gentle parts of the hills share the one function.
+- A07, a call: the bands of the picture are drawn as strips of the same lightness, alternately the dry ramp's straw and the mustard ramp's gold, following the land's height contours, on gentle and moderate slopes only. They are texture of the existing hills, not new content: no farms, roads or fences. The picture's trees in the hollows are left out, since the hills' trees are placed things and moving them is not this item's job.
+- A07, a call: an even lighter pass (the hollows a step brighter) dithered the middle tones into dots and lost the swells, so it was dropped for the second pass's values.
+- A07: frame time 11.9 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours (mustard was already in the palette).

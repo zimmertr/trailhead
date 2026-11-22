@@ -191,6 +191,8 @@ const regional = (u, v) => (8 + 0.02 * v + 10 * Math.exp(-sq((u - divU(v)) / 250
 // (D10): flat-topped mesas of basalt in one or two steps, whose cliffs face the camera, since a rise that
 // climbs toward the camera hides its own riser. In the far corner they give way to low, rolling Palouse hills.
 const palAmt = (u, v) => { const e = eastOf(u, v); return smooth(50, 150, e) * northAmt(u, v); };
+// How far up its swell a point of the golden hills stands: 0 in the hollows, 1 on the crests.
+const palSwell = (u, v) => sq(clamp((fbm(u / 42, v / 16, 34, 2) - 0.38) / 0.3, 0, 1));
 const mesa = (u, v) => { const k = fbm(u / 64, v / 34, 36, 3) + 0.04 * (vnoise(u / 6, v / 4, 37) - 0.5); return 12 * (smooth(0.52, 0.545, k) + smooth(0.63, 0.655, k)) * smooth(0.12, 0.3, dryS0(u, v)) * (1 - palAmt(u, v)); };
 const plate = (u, v) => { const raw = 34 * smooth(0.02, 0.4, dryS0(u, v)) + 10 * fbm(u / 80, v / 60, 33, 2) * dryAmt0(u, v), b = raw + mesa(u, v); return b; };
 // The glacier: where its middle runs, how wide it is and how high its surface stands, by depth. It
@@ -310,7 +312,7 @@ for (const f of F) { const m = MATS.indexOf(f.mat); for (let v = Math.max(0, Mat
 }
 // The golden hills in the dry side's north-east (E5g): rounded swells rolling one behind another, laid on
 // after every piece so they roll over the east end of the bench as well as the low ground.
-if (!B) for (let v = 280; v < VD; v++) for (let u = 1300; u < NW; u++) { const i = at(u, v); if (MATS[mg[i]] !== 'land' || hg[i] <= 0) continue; const p = palAmt(u, v); if (p > 0.01) hg[i] += p * 22 * sq(clamp((fbm(u / 42, v / 16, 34, 2) - 0.38) / 0.3, 0, 1)); }
+if (!B) for (let v = 280; v < VD; v++) for (let u = 1300; u < NW; u++) { const i = at(u, v); if (MATS[mg[i]] !== 'land' || hg[i] <= 0) continue; const p = palAmt(u, v); if (p > 0.01) hg[i] += p * 22 * palSwell(u, v); }
 const hAt = (u, v) => hg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))];
 // A valley's line is bent as it goes, so no reach of it is ruled. Its two ends stay where they are.
 const wander = (all, amp, seed) => { let len = 0; const total = all.reduce((t, p, n) => t + (n ? Math.hypot(p[0] - all[n - 1][0], p[1] - all[n - 1][1]) : 0), 0); return all.map(([u, v], n) => { if (n) len += Math.hypot(u - all[n - 1][0], v - all[n - 1][1]); const a = all[Math.max(0, n - 4)], b = all[Math.min(all.length - 1, n + 4)], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, k = amp * (2 * vnoise(len / 70, seed, 77) - 1 + 0.5 * Math.sin(len / 26 + seed)) * smooth(0, 50, len) * smooth(total, total - 50, len); return [u - (b[1] - a[1]) / l * k, v + (b[0] - a[0]) / l * k * 0.6]; }); };
@@ -649,6 +651,16 @@ const HILLHAZE = veilTable(0.28);
 // little darker toward the corner on its east side, whose wall turns from the sun into shade; some planes
 // face away and are darker all over. Dark water streaks run down from a few places, and here and there a
 // narrow ledge holds a line of green (moss on the wet steps of the land, grass on the granite).
+// A07, after a picture of the Palouse: each swell is gold to its crest. Its top catches the most light
+// and its foot in the hollow is a step darker; the slopes turned west are lit and those turned east are
+// shaded. Broad strips of the same lightness but a little more or less golden follow the slope round, as
+// the wheat does, and there is little dither, so a swell reads as a few flat bands of colour.
+function palouse(u, v, hh, x, y, L, steep) {
+  const b = palSwell(u, v), strip = steep > 0.12 && steep < 1.4 && (Math.floor(hh / 3.2 + 0.8 * vnoise(u / 50, v / 30, 186)) & 1) === 1;
+  const lv = 0.36 + 0.3 * b + 1.4 * (L - 0.5) + 0.08 * (fbm(u / 60, v / 40, 185, 2) - 0.5);
+  const k = clamp(Math.round(lv * 3 + (bayer(x, y) - 0.5) * 0.5), 0, 3);
+  return k === 2 && strip ? R.mustard[2] : R.dry[k];
+}
 function wallRock(x, y, hh, L, seed, green) {
   const c = x + 1.2 * Math.sin(hh / 17 + seed), k = Math.floor(c / 9), edge = j => hash(j, seed, 981) < 0.42;
   let a = k; while (a > k - 4 && !edge(a)) a--; let b = k + 1; while (b < k + 5 && !edge(b)) b++;
@@ -833,7 +845,7 @@ function colour(u, v, hh, x, y) {
     return bayer(x + 1, y) < 0.45 * smooth(470, 740, v) ? HILLHAZE[c] : c; }
   // Land. A step in it shows the rock of its own country.
   // The golden hills' swells are grass to their crests, lit and shaded, never rock.
-  if (steep > 1.05 && palAmt(u, v) > 0.3) return pick('dry', 0.12 + 0.95 * L, x, y, 0.5);
+  if (steep > 1.05 && palAmt(u, v) > 0.3) return palouse(u, v, hh, x, y, L, steep);
   if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)])  : wallRock(x, y, hh, L, 2, u > 1190 ? null : R.moss[1]);
   const sh = (L - 0.5) * 0.5, blot = s => 0.5 + 0.85 * (fbm(u / 32, v / 21, s, 3) - 0.5) + 0.2 * n1;
   // The bog: bright sphagnum moss with dark peaty pools in it, the moss darker towards its edge.
@@ -843,7 +855,7 @@ function colour(u, v, hh, x, y) {
   if (larchAmt(u, v) > blot(181) && bu < 0.5) { const slab = fbm(u / 22, v / 11, 96, 3); return slab > 0.58 ? pick('rock', 0.85 + 0.2 * n1, x, y, 0.7) : hash(u, v, 98) < 0.06 ? R.red[1] : hash(u, v, 99) < 0.05 ? R.larch[3] : pick('grass', 0.42 + sh + 0.2 * n1, x, y, 0.4); }
   // The burn's ground: grass and ash. Its fireweed stands on it as things that sway (I1), not painted here.
   if (bu > blot(182)) { return fbm(u / 24, v / 16, 100, 3) > 0.56 ? pick('grass', 0.3, x, y, 0.5) : pick('ash', 0.4 + 0.5 * fbm(u / 14, v / 9, 102, 3), x, y); }
-  if (da > blot(183) && palAmt(u, v) > blot(184)) return pick('dry', 0.22 + 0.95 * L + 0.18 * (fbm(u / 60, v / 40, 185, 2) - 0.5), x, y, 0.5);
+  if (da > blot(183) && palAmt(u, v) > blot(184)) return palouse(u, v, hh, x, y, L, steep);
   if (da > blot(183)) { const sg = sageAmt(u, v); return hash(u >> 1, v >> 1, 103) < 0.04 + sg * 0.3 ? R.sage[1 + (hash(u, v, 104) < 0.5 ? 0 : 1)] : pick('dry', 0.5 + 0.5 * (fbm(u / 24, v / 14, 105, 3) - 0.5) + sh + sg * 0.1, x, y); }
   // High ground with no forest on it goes from meadow to bare rock and then snow.
   if (hh > 96 + 30 * vnoise(u / 30, v / 30, 828)) return hh > 150 ? R.snow[L > 0.5 ? 4 : 3] : pick('rock', 0.3 + 0.5 * L, x, y);
