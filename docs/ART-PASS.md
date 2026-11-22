@@ -39,7 +39,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A03 Mount Monolith** - the volcano, after Mt Rainier. `monolith.js` (`paintMonolith`). The largest landmark; painted already, so the gap is smaller, but nothing is seen more.
 - [x] **A04 Proficiency Peak** - the granite peak and its bench, the talus fan under its prow. `land.js` (`proficiency`, `talusAt`).
 - [x] **A05 The Larch Basin** - the granite benches with gold larches and tarns east of the Spires, after the Enchantments. `land.js` (`plateau`, `larchAmt`, the tarns).
-- [ ] **A06 Cliff Textures** - the faces of the granite benches and walls on the map. `land.js` (`colour`, `coverFaces`).
+- [x] **A06 Cliff Textures** - the faces of the granite benches and walls on the map. `land.js` (`colour`, `coverFaces`).
 - [ ] **A07 The Golden Palouse Hills** - the rolling gold hills in the far east corner. `land.js` (`palAmt`, `colour`).
 - [ ] **A08 Coulee Textures** - the basalt coulee and mesas of the dry corner. `land.js` (the coulee cut, `mesa`, `colour`).
 - [ ] **A09 Rivers and Waterfalls** - the rivers across the map and the falls where they drop. `land.js` (the rivers), `world.js` (`whiteWater`).
@@ -127,3 +127,8 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A05, a call: the heather keeps the noise it grew from before, so nothing planted on the benches moved; the larches are sprites (D01 and D03) and are left for their own items.
 - A05, a call: the tarns are pale where shallow and darker in the middle; the milky ones keep their milk and gain a pale rim. The bench walls are left for A06.
 - A05: frame time 12.3 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
+- A06, the before: the granite walls under the benches and the land's rock steps were grey streaks dithered over the whole face, with no buttress or corner to give them depth.
+- A06, the pictures: 8 compositions and a repaint. Qwen's first wall was white and smooth with evenly spaced lines, like a curtain; asked for weathered granite with buttresses (round 2) it drew deep corners, lit faces, grassy ledges and water streaks. Seed 5 was picked. The prompts are in `design/art/A06/log.jsonl`.
+- A06, a call: one wall function draws both the granite walls and the land's rock steps (not the basalt, which is A08's, nor the moraine, A11's): buttresses 9 to 36 wide, each lit at its west edge and darker toward the corner on its east, whose wall is in shade; about two in five face away and are darker all over; a few dark water streaks; now and then a ledge of grass on granite or moss on the land's wet steps. The walls stay on the grey rock ramp, under the benches' warm slabs.
+- A06, a call: the corner walls are up to almost half a buttress wide and the ledges rare. With narrow corners the walls read as paper slats, and with the ledges at first frequency as stitching.
+- A06: frame time 11.5 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.

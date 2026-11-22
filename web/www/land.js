@@ -644,6 +644,23 @@ const seaFog = (u, v) => smooth(300, 30, u + wob(u, v, 201, 110)) * (0.75 + 0.5 
 const HILLHAZE = veilTable(0.28);
 // The colour of one spot of ground. hh is the height of the bit being drawn, which on a cliff runs
 // from the cliff's foot to its lip.
+// A cliff face of rock (art pass A06, after a picture of a granite wall under a plateau): buttresses and
+// tall planes of every width, parted by long vertical corners. Each plane is lit at its west edge and a
+// little darker toward the corner on its east side, whose wall turns from the sun into shade; some planes
+// face away and are darker all over. Dark water streaks run down from a few places, and here and there a
+// narrow ledge holds a line of green (moss on the wet steps of the land, grass on the granite).
+function wallRock(x, y, hh, L, seed, green) {
+  const c = x + 1.2 * Math.sin(hh / 17 + seed), k = Math.floor(c / 9), edge = j => hash(j, seed, 981) < 0.42;
+  let a = k; while (a > k - 4 && !edge(a)) a--; let b = k + 1; while (b < k + 5 && !edge(b)) b++;
+  const w = (b - a) * 9, pf = (c - a * 9) / w, away = hash(a, seed, 982) < 0.38, cw = (2 + 0.42 * w * hash(a, seed, 983)) / w;
+  const col = Math.floor(x / 2), wet = hash(col, seed, 984) < 0.035 && vnoise(col, hh / 34, seed + 985) > 0.4;
+  if (pf > 1 - cw) return R.rock[pf > 1 - 1.2 / w ? 0 : pf > 1 - 0.5 * cw ? 1 : 2];
+  if (wet) return R.rock[away ? 0 : 1];
+  if (green && !away && frac(hh / (31 + 9 * hash(a, seed, 986)) + hash(a, seed, 987)) < 0.035 && hash(x >> 2, Math.floor(hh / 31), seed + 988) < 0.3) return green;
+  if (pf < 1.1 / w && !away) return R.rock[4];
+  const lit = 0.8 + 0.5 * (L - 0.5) - (away ? 0.3 : 0.22 * pf * pf) + 0.12 * (vnoise(x / 4, hh / 12, seed + 989) - 0.5) + 0.12 * (hash(a, seed, 990) - 0.5);
+  return R.rock[clamp(Math.round(4.4 * lit + (bayer(x, y) - 0.5) * 0.4), 0, 4)];
+}
 function colour(u, v, hh, x, y) {
   const i = at(u, v), mat = MATS[mg[i]], n1 = hash(u, v, 31) - 0.5, uu = clamp(u, 1, NW - 2), vv = clamp(v, 1, VD - 2);
   const du = hg[at(uu + 1, vv)] - hg[at(uu - 1, vv)], dv = hg[at(uu, vv + 1)] - hg[at(uu, vv - 1)], steep = Math.hypot(du, dv) / 2;
@@ -791,7 +808,7 @@ function colour(u, v, hh, x, y) {
       const lit = 0.86 - 0.5 * east - 0.3 * foot + 0.16 * (vnoise(lx / 5, hh / 14, 966) - 0.5) - (tower ? 0.12 * smooth(-61, -47, fx) : 0.3 * pf * pf) + 0.2 * (hash(k, 7, 970) - 0.5) + 0.1 * smooth(60, 0, dt);
       return G[clamp(Math.round(1 + 4.2 * lit + (b2(x, y) - 0.5) * 0.6), 1, 5)];
     }
-    if (steep > 0.75 || mat === 'fin') { const crack = vnoise(x / 2.2, hh / 26, 902), streak = vnoise(x / 5, hh / 40, 903); const k = clamp(Math.round(1.5 + 2.9 * L + (streak > 0.62 ? -1.1 : 0) + (crack > 0.74 ? -1.4 : crack < 0.2 ? 0.5 : 0) + (b2(x, y) - 0.5) * 0.9), 0, 5); return k === 5 ? R.gold[6] : R.rock[k]; }
+    if (steep > 0.75 || mat === 'fin') return wallRock(x, y, hh, L, 1, R.grass[2]);
     // A05, after a picture of the Enchantments: the benches' tops are glacier-polished slabs of warm
     // granite, rounded pillows of every size, each lit on its upper left and a step darker toward its
     // lower right, parted by thin dark cracks. Heather fills the hollows where it grew before.
@@ -817,7 +834,7 @@ function colour(u, v, hh, x, y) {
   // Land. A step in it shows the rock of its own country.
   // The golden hills' swells are grass to their crests, lit and shaded, never rock.
   if (steep > 1.05 && palAmt(u, v) > 0.3) return pick('dry', 0.12 + 0.95 * L, x, y, 0.5);
-  if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)]) : u > 1190 ? pick('rock', 0.36 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.15 * L, x, y, 0.7) : ((ld, ck) => ld < 0.22 && hash(x, y, 100) < 0.75 ? pick('moss', 0.3 + 0.35 * L, x, y) : ck > 0.74 ? R.rock[0] : pick('rock', 0.14 + 0.5 * vnoise(x / 3, hh / 5, 97) + 0.25 * L, x, y, 0.7))(frac(hh / 4.5 + 0.7 * vnoise(x / 9, 3, 98)), vnoise(x / 2.2, hh / 9, 99));
+  if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)])  : wallRock(x, y, hh, L, 2, u > 1190 ? null : R.moss[1]);
   const sh = (L - 0.5) * 0.5, blot = s => 0.5 + 0.85 * (fbm(u / 32, v / 21, s, 3) - 0.5) + 0.2 * n1;
   // The bog: bright sphagnum moss with dark peaty pools in it, the moss darker towards its edge.
   { const e = bogAt(u, v); if (e < 1) return fbm(u / 6, v / 4, 471, 2) > 0.52 && e < 0.85 ? (hash(u, v, 472) < 0.07 ? R.water[1] : R.moss[0]) : pick('moss', 0.62 + 0.3 * fbm(u / 5, v / 4, 473, 2) - 0.3 * e, x, y, 0.4); }
