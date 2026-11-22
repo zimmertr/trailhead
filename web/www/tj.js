@@ -26,7 +26,8 @@ const W = 34, H = 40, OX = 16, OY = 36;
 // Seen from the side, facing right. feet are relative to the hip, hands to the shoulder; the
 // first of each pair is the near limb. Everything else is optional:
 //   bob lifts the body, lean tips the torso forward, crouch drops the hips, head moves the head,
-//   held is a function that draws whatever is in his hands, look turns the face ('up', 'down').
+//   held is a function that draws whatever is in his hands, look turns the face ('up', 'down'), and
+//   armOver draws the near arm across his face, reaching up past it to a hold.
 function sideFig(kitName, o = {}) {
   const k = typeof kitName === 'string' ? KITS[kitName] : kitName, b = new BM(W, H); b.ox = OX; b.oy = OY;
   const bob = o.bob || 0, lean = o.lean == null ? 1 : o.lean, drop = o.crouch || 0;
@@ -58,9 +59,10 @@ function sideFig(kitName, o = {}) {
   }
   if (k.flask) b.set(hip[0] + 2 + lean, sh[1] + 1, k.flask);
   if (k.rack) rackOn(b, hip[0], hip[1], [-2, -1, 0, 1, 2]);
-  leg(0, false); arm(0, false);
+  leg(0, false); if (!o.armOver) arm(0, false);
   const hd = o.head || [0, 0], cx = sh[0] + 1 + hd[0], cy = sh[1] - 6 + hd[1];
   head(b, k, cx, cy, 'side', o.look);
+  if (o.armOver) arm(0, false);
   if (o.held) o.held(b, sh, hands, hip);
   outline(b, INK);
   return b;

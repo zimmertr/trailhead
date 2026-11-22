@@ -45,7 +45,7 @@ const ROUTES = {
   // yggdrasil, the via ferrata (K6): dry rock all the way (`dry`), a steel cable from the start to `cable`,
   // anchored every `anchor` of the way; iron rungs up the first wall and a fixed ladder up the second
   // (`walls`), then unclipped over bare rock to the world tree.
-  yggdrasil: { kind: 'ladder', secs: 15, sx: 470, w: 1200, dry: true, cable: 430, anchor: 116, walls: [[200, 206, 'rungs'], [320, 326, 'ladder']], pts: [[0, 0], [50, -10], [120, -24], [200, -40], [206, -150], [260, -160], [320, -170], [326, -232], [380, -246], [430, -262], [470, -270], [512, -270], [538, -232], [608, -132], [708, -12]] },
+  yggdrasil: { kind: 'ladder', secs: 10, sx: 470, w: 1200, dry: true, cable: 430, anchor: 116, walls: [[200, 206, 'rungs'], [320, 326, 'ladder']], pts: [[0, 0], [50, -10], [120, -24], [200, -40], [206, -150], [260, -160], [320, -170], [326, -232], [380, -246], [430, -262], [470, -270], [512, -270], [538, -232], [608, -132], [708, -12]] },
   // Kubernetes-Manifests, the crevasse maze (K7): the storm comes in by stages over a broken glacier; in the
   // whiteout he follows the wands to a crevasse with no way over (`dead`: where he stops, the wand he goes
   // back to, and where the line picks up beyond it), jumps a narrow one, crosses a sagging snow bridge, and
@@ -67,6 +67,76 @@ function sagAt(g, x, mx) {
 // How much of the knife-edge there is at x: none off it, all of it along it.
 const knifeK = (cfg, x) => cfg.knife ? smooth(cfg.knife[0] - 30, cfg.knife[0] + 20, x) * (1 - smooth(cfg.knife[1] - 20, cfg.knife[1] + 30, x)) : 0;
 const wallAt = (cfg, x) => (cfg.walls || []).find(w => x > w[0] - 0.5 && x < w[1] + 0.5);
+// One wall of the via ferrata as holds: heights above its foot of the iron staples or the ladder's rungs,
+// the same ones ferrata() draws, and where a hand or a foot on one sits. The wall leans back a little as it
+// goes up, and the iron follows its face (`lean`); the ladder stands a few pixels above the lip, so his
+// hands find rungs over the top.
+function rungsOf(cfg, w) {
+  const [w0, w1, k] = w, bot = hOf(cfg.pts, w0 - 1), top = hOf(cfg.pts, w1), H = bot - top, ladder = k !== 'rungs', hs = [];
+  if (ladder) for (let j = 2; j < H + 6; j += 4) hs.push(j); else for (let j = 5; j < H - 2; j += 6) hs.push(j);
+  const lean = h => Math.round(clamp(h, 0, H) / H * (w1 - w0));
+  // His hips stand this far out from the wall, and a boot or a hand on a hold is this far in from his hips.
+  const hip = h => w0 + (ladder ? -7 : -6) + lean(h);
+  return { w0, w1, bot, top, H, ladder, hs, lean, hip, foot: h => w0 + (ladder ? -4 : -3) + lean(h), hand: h => w0 + (ladder ? -4 : -2) + lean(h) };
+}
+// Climbing it (round 6, note 19), as numbers. He goes up the way people climb a ladder: three points on the
+// iron at all times, and one limb moving. A round is: stand up on the higher foot (hips up one hold, the
+// lower foot comes free), step that foot up past the other, then move the lower hand up past the other
+// hand, the hand on the opposite side from the foot. A placed hand or foot stays where it is while the rest
+// of him moves. `q` counts rounds: 0 to 1 he steps in from the ground and takes hold, then one round per
+// hold, and the last two he pulls over the lip and stands up on the ledge. HC is how long a round takes.
+const HC = { rungs: 0.22, ladder: 0.16 }, REACH = { rungs: 3, ladder: 5 };
+function ladOf(cfg, w, pts) {
+  const g = rungsOf(cfg, w), F = [g.bot - hOf(pts, g.hip(0)), ...g.hs.filter(h => h < g.H - 1)].map(v => Math.round(Math.max(0, v))), S = F.length - 2;
+  return { ...g, F, S, Q: S + 3, c: REACH[w[2]] || 3, hc: HC[w[2]] || 0.2, xa: g.hip(0), xb: w[1] + 1, end: g.bot - hOf(pts, w[1] + 1) };
+}
+// A hand's hold: a staple or a rung, or past the top staple the cable where it runs up over the lip.
+const gripOf = (L, j) => j <= 0 ? 0 : j - 1 < L.hs.length ? L.hs[j - 1] : Math.min(L.H + 2, L.hs[L.hs.length - 1] + (j - L.hs.length) * 6);
+const gripX = (L, j) => j - 1 < L.hs.length ? L.hand(gripOf(L, j)) : L.w1 - 1;
+// Where his hips, feet and hands are at q, in metres above the wall's foot (well, pixels): hips on a whole
+// pixel so nothing he holds shimmers. Limbs come back as [x, height] pairs, near limb first.
+function ladPose(L, q) {
+  const { F, S, c } = L, fp = j => [L.foot(F[j]), F[j]], hp = j => [gripX(L, j), gripOf(L, j)];
+  let hip, hx, feet, hands, crouch = 0;
+  if (q < 1) {
+    // In from the ground: the far hand up to its rung, then the near one, then the near foot onto the first hold.
+    const a = smooth(0, 0.3, q), b = smooth(0.2, 0.5, q), f = smooth(0.5, 0.9, q);
+    hip = F[0] + 8; hx = L.hip(0);
+    const low = [hx + 2, F[0] + 8], rest = [hx, F[0] + 8];
+    hands = [mixPt(low, hp(c), b, 1.5, -1), mixPt(rest, hp(c + 1), a, 1.5, -1)];
+    feet = [mixPt([hx + 1, F[0]], fp(1), f, 2, -1.5), [hx - 1, F[0]]];
+  } else if (q < S + 1) {
+    const s = Math.floor(q - 1), u = q - 1 - s, even = !(s & 1);
+    // Stand up on the higher foot; the other comes free and hangs a moment.
+    const rise = smooth(0, 0.4, u), up = smooth(0.35, 0.7, u), reach = smooth(0.6, 0.95, u);
+    hip = F[s] + 8 + (F[s + 1] - F[s]) * rise; hx = L.hip(hip - 8);
+    const free = [L.foot(F[s]) - rise, F[s] + (F[s + 1] - F[s]) * rise];
+    const moved = mixPt(free, fp(Math.min(s + 2, F.length - 1)), up, 2, -2);
+    const hand = mixPt(hp(s + c), hp(s + c + 2), reach, 1.5, -1.5);
+    feet = even ? [fp(s + 1), up > 0 ? moved : free] : [up > 0 ? moved : free, fp(s + 1)];
+    hands = even ? [hand, hp(s + c + 1)] : [hp(s + c + 1), hand];
+  } else {
+    // Over the lip: pull up with the hands on the top and the higher foot pushing, lean in over the edge,
+    // then step up onto the ledge and stand.
+    const v = clamp((q - S - 1) / 2, 0, 1), a = smooth(0, 0.5, v), b = smooth(0.45, 1, v), even = !(S & 1);
+    const h0 = F[S] + 8, h1 = L.H + 3, x0 = L.hip(F[S]), x1 = L.hip(L.H) + 3;
+    hip = lerp(lerp(h0, h1, a), L.end + 8, b); hx = lerp(lerp(x0, x1, a), L.xb, b);
+    const top = fp(S + 1), hang = [hx - 1, hip - 9], lip = [[L.w1, L.H + 1], [L.w1 - 2, L.H + 1]];
+    const hA = (even ? [hp(S + c), hp(S + c + 1)] : [hp(S + c + 1), hp(S + c)]).map((p, i) => mixPt(p, lip[i], smooth(0, 0.6, a), 2, -1));
+    const lo = [hx - 1, hip - 8], hi = [hx + 1, hip - 8];
+    const fA = even ? [top, hang] : [hang, top];
+    feet = [mixPt(fA[0], hi, b, 3), mixPt(fA[1], lo, smooth(0.3, 1, b))];
+    hands = hA.map((p, i) => mixPt(p, [hx + (i ? -1 : 1), hip - 2], b));
+    crouch = Math.round(3 * Math.sin(b * Math.PI));
+  }
+  hip = Math.round(hip); hx = Math.round(hx);
+  return { x: hx, hip, crouch, feet: feet.map(([x, h]) => [x - hx, hip - h + 0.5]), hands: hands.map(([x, h]) => [x - hx - 1, hip + 6 - h]) };
+}
+// Part of the way from one point to another, lifted by `lift` and swung out from the wall by `out` (both
+// at their most halfway), the way a hand or a boot goes from one hold to the next.
+function mixPt(p0, p1, k, lift = 0, out = 0) { const s = Math.sin(clamp(k, 0, 1) * Math.PI); return [lerp(p0[0], p1[0], k) + out * s, lerp(p0[1], p1[1], k) + lift * s]; }
+// The wall he is on at x, counting the steps in from the ground and the pull over the top.
+const ladAt = (pl, x) => (pl.lads || []).find(L => x >= L.xa && x <= L.xb);
 // The talus field's blocks (round 6, note 15), each [centre, half width, top], laid by rule along the field, so
 // the painter draws them and he hops from top to top on the same ones.
 const talusOf = cfg => cfg.talusBlocks || (cfg.talusBlocks = (() => { const out = [];
@@ -499,15 +569,18 @@ function crossing(scr, X, Y, g, y0, y1, mx) {
 // face beside the rungs and the ladder.
 function cableAt(cfg, pts, a, xAt, s) {
   const x = xAt(a, s), w = wallAt(cfg, x);
-  return w ? [w[0] - 1, hOf(pts, x) - 6] : [x, hOf(pts, x) - 11];
+  return w ? [x - 1, hOf(pts, x) - 6] : [x, hOf(pts, x) - 11];
 }
 // The iron on the rock: rungs (staples sticking out of the first wall), a fixed ladder against the second,
 // the steel cable sagging a little between its anchors, and the anchors themselves.
 function ferrata(scr, X, Y, cfg, pts, pl, a, xAt, arcAt) {
-  for (const [w0, w1, k] of cfg.walls) {
-    const top = hOf(pts, w1), bot = hOf(pts, w0 - 1);
-    if (k === 'rungs') for (let y = bot - 5; y > top + 2; y -= 6) { for (let i = 1; i <= 4; i++) { scr.set(X(w0 - i), Y(y), R.rock[4]); scr.set(X(w0 - i), Y(y) + 1, R.rock[1]); } scr.set(X(w0 - 4), Y(y) - 1, R.rock[4]); }
-    else { for (let y = bot; y > top - 6; y--) { const lean = Math.round((bot - y) / (bot - top + 6) * 2); scr.set(X(w0 - 6 + lean), Y(y), R.rock[3]); scr.set(X(w0 - 2 + lean), Y(y), R.rock[2]); if (Math.round(bot - y) % 4 === 2) for (let i = -5; i <= -3; i++) scr.set(X(w0 + i + lean), Y(y), R.rock[4]); } }
+  for (const w of cfg.walls) {
+    const g = rungsOf(cfg, w), { w0, bot } = g;
+    if (!g.ladder) for (const j of g.hs) { const y = bot - j; for (let i = 1; i <= 4; i++) { scr.set(X(w0 - i), Y(y), R.rock[4]); scr.set(X(w0 - i), Y(y) + 1, R.rock[1]); } scr.set(X(w0 - 4), Y(y) - 1, R.rock[4]); }
+    else {
+      for (let j = 0; j < g.H + 6; j++) { const y = bot - j, l = g.lean(j); scr.set(X(w0 - 6 + l), Y(y), R.rock[3]); scr.set(X(w0 - 2 + l), Y(y), R.rock[2]); }
+      for (const j of g.hs) { const y = bot - j, l = g.lean(j); for (let i = -5; i <= -3; i++) scr.set(X(w0 + i + l), Y(y), R.rock[4]); }
+    }
   }
   const end = arcAt(a, cfg.cable);
   for (let s = 6; s < end; s += 0.5) {
@@ -708,8 +781,6 @@ export function makeClimb() {
     // Astride the crest: sat on top of it with his hips on the rock, the near leg hanging down the face in
     // front of it and the far leg out of sight behind, both hands on the crest ahead, shuffling forward.
     astride: [0, 1].map(f => sideFig('alpine', { feet: [[1 - f, 9], [1 - f, 9]], lean: 3 + f, hands: [[6 + 2 * f, 6], [4 + f, 6]], look: 'down' })),
-    // Up rungs or a ladder, side-on, facing the rock: hands and feet on the rungs, moving in turn.
-    climb: [0, 1].map(f => sideFig('alpine', { feet: f ? [[4, 3], [3, 8]] : [[3, 8], [4, 3]], hands: f ? [[4, -12], [4, -6]] : [[4, -6], [4, -12]], lean: 1, look: 'up' })),
     // Reaching up to the cable with one hand to move a lanyard past an anchor.
     reach: sideFig('alpine', { hands: [[5, -9], [2, 5]], lean: 1, look: 'up' }),
     // Stopped at the edge of a crevasse, looking down into it.
@@ -718,6 +789,10 @@ export function makeClimb() {
     peer: sideFig('alpine', { hands: [[5, -4], [4, -2]], lean: 2, head: [1, 1], elbowFwd: true }),
   };
   fig.walkR = fig.walk.map(rimeOn); fig.windR = fig.wind.map(rimeOn);
+  // Up the via ferrata's iron, side-on, facing the rock, drawn from where ladPose() puts his hands and feet;
+  // a pose comes round again every round, so each is drawn once and kept.
+  const ladFigs = new Map();
+  const ladFig = P => { const key = [P.crouch, ...P.feet.flat(), ...P.hands.flat()].map(v => Math.round(v * 2)).join(); let b = ladFigs.get(key); if (!b) { if (ladFigs.size > 600) ladFigs.clear(); b = sideFig('alpine', { feet: P.feet, hands: P.hands, crouch: P.crouch, lean: 1, look: 'up', armOver: true }); ladFigs.set(key, b); } return b; };
   // hevy-garmin-sync (round 6, note 16): on the bench at the top with the bar in his hands, in his climbing kit;
   // and kicking steps up the couloir, the axe planted above him and one boot and then the other driven in.
   const press = (top, hat) => [0, 1].map(f => { const b = new BM(34, 22); b.ox = 17; b.oy = 21; for (let x = 8; x < 22; x++) { b.set(x, 13, top[1]); b.set(x, 12, top[2]); b.set(x, 14, top[0]); } for (let x = 22; x < 28; x++) b.set(x, 13, R.rock[1]); thick(b, 26, 13, 29, 19, 2, R.rock[0]); b.set(30, 20, R.bark[1]); disc(b, 6, 11, 3, (nx, ny) => ny < -0.2 ? hat[1] : R.skin[2]); const by = f ? 4 : 9; thick(b, 12, 11, 12, by + 1, 2, top[1]); thick(b, 16, 11, 16, by + 1, 2, top[0]); barbell(b, by); outline(b, INK); return b; });
@@ -760,13 +835,30 @@ export function makeClimb() {
     if (plans[id]) return plans[id];
     const cfg = ROUTES[id], pts = cfg.pts, a = arc(id), legs = [];
     const walls = (cfg.ice || []).map(([xa, xb]) => ({ xa, xb, ya: hOf(pts, xa), x0: xa - 3, xc: xa + MID, top: hOf(pts, xa + MID) }));
-    let dist = 0, x = 0; for (const w of walls) { dist += arcAt(a, w.x0) - arcAt(a, x); x = w.xc; } dist += a[a.length - 1] - arcAt(a, x);
-    const speed = dist / cfg.secs; let t = T_UP; x = 0;
-    const walk = x1 => { const d = arcAt(a, x1) - arcAt(a, x); legs.push({ t0: t, t1: t + d / speed, x0: x, x1 }); t += d / speed; x = x1; };
-    walls.forEach((w, i) => { walk(w.x0); const leg = iceLeg(w, t, cfg.slip && cfg.slip[0] === i ? cfg.slip[1] : -1); legs.push(leg); t = leg.t1; x = w.xc; });
     // Stops on the way.
     const stops = [];
     const anchors = []; if (cfg.cable) { const end = arcAt(a, cfg.cable); for (let s = 14; s < end - 20; s += cfg.anchor) anchors.push(s); anchors.push(end); anchors.forEach((s, i) => stops.push({ sx: xAt(a, s - 2), d: 0.8, k: 'clip', i })); }
+    // The via ferrata's walls are climbed hold by hold, a round a hold, not walked. A stop on a wall to move
+    // the lanyards falls between two rounds, so he is never caught there with a hand or a foot in the air.
+    const lads = (cfg.walls || []).map(w => {
+      const L = ladOf(cfg, w, pts), s0 = arcAt(a, L.xa), s1 = arcAt(a, L.xb), nodes = [[s0, 0]];
+      for (const p of stops) { const s = arcAt(a, p.sx); if (s > s0 && s < s1) nodes.push([s, clamp(Math.round((s - s0) / (s1 - s0) * L.Q), Math.max(1, nodes[nodes.length - 1][1] + 1), L.S - 1)]); }
+      nodes.push([s1, L.Q]);
+      L.qOf = x => { const s = arcAt(a, x); let i = 1; while (i < nodes.length - 1 && s > nodes[i][0]) i++; const [sa, qa] = nodes[i - 1], [sb, qb] = nodes[i]; return lerp(qa, qb, clamp((s - sa) / Math.max(1e-6, sb - sa), 0, 1)); };
+      return L;
+    });
+    let dist = 0, x = 0; for (const w of walls) { dist += arcAt(a, w.x0) - arcAt(a, x); x = w.xc; } dist += a[a.length - 1] - arcAt(a, x);
+    for (const L of lads) dist -= arcAt(a, L.xb) - arcAt(a, L.xa);
+    const speed = dist / cfg.secs; let t = T_UP; x = 0;
+    const step = x1 => { const d = arcAt(a, x1) - arcAt(a, x); legs.push({ t0: t, t1: t + d / speed, x0: x, x1 }); t += d / speed; x = x1; };
+    const walk = x1 => {
+      for (const L of lads) if (x < L.xb && x1 > L.xa) {
+        if (x < L.xa) step(L.xa);
+        const e = Math.min(x1, L.xb), d = (L.qOf(e) - L.qOf(x)) * L.hc; legs.push({ t0: t, t1: t + d, x0: x, x1: e, lad: L }); t += d; x = e;
+      }
+      if (x1 > x) step(x1);
+    };
+    walls.forEach((w, i) => { walk(w.x0); const leg = iceLeg(w, t, cfg.slip && cfg.slip[0] === i ? cfg.slip[1] : -1); legs.push(leg); t = leg.t1; x = w.xc; });
     if (cfg.dead) stops.push({ sx: cfg.dead[0], k: 'dead' });
     if (cfg.wait) stops.push({ sx: cfg.wait[0], d: cfg.wait[1], k: 'wait' });
     for (const p of stops.sort((a, b) => a.sx - b.sx)) {
@@ -782,7 +874,7 @@ export function makeClimb() {
     // When each lanyard goes past each anchor: the first one in the first half of the stop, the second in the
     // second half, so one of them is always on the cable.
     const clips = legs.filter(l => l.clip).map(l => ({ s: anchors[l.i], t0: l.t0, a: l.t0 + 0.4 * (l.t1 - l.t0), b: l.t1 - 0.05, mid: l.t0 + 0.5 * (l.t1 - l.t0) }));
-    return plans[id] = { legs, walls, anchors, clips, tSum: t, tPush: t + T_STAND, tBot: t + T_STAND + T_SLIDE, dur: t + T_STAND + T_SLIDE + T_OUT };
+    return plans[id] = { legs, walls, lads, anchors, clips, tSum: t, tPush: t + T_STAND, tBot: t + T_STAND + T_SLIDE, dur: t + T_STAND + T_SLIDE + T_OUT };
   }
   function where(id, tau) {
     const cfg = ROUTES[id], pts = cfg.pts, pl = plan(id);
@@ -792,10 +884,16 @@ export function makeClimb() {
       if (leg.look) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: 'look', back: leg.away };
       if (leg.back) { const x = lerp(leg.x0, leg.x1, (tau - leg.t0) / (leg.t1 - leg.t0)); return { ph: 'up', x, y: hOf(pts, x), mode: 'walk', back: true }; }
       if (leg.cut) { const v = (tau - leg.t0) / (leg.t1 - leg.t0), x = v < 0.5 ? leg.x0 : leg.x1; return { ph: 'up', x, y: hOf(pts, x), mode: 'look', cut: v, back: v < 0.5 }; }
-      if (leg.clip) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: 'clip', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
+      if (leg.clip) {
+        const u = (tau - leg.t0) / (leg.t1 - leg.t0), L = ladAt(pl, leg.x0);
+        // On a wall he moves the lanyards with his near hand off the iron, the other three on it.
+        if (L) { const P = ladPose(L, L.qOf(leg.x0)); if (u > 0.03 && u < 0.95) P.hands[0] = [5, -8]; return { ph: 'up', x: leg.x0, y: L.bot - P.hip + 8, mode: 'clip', u, lad: P }; }
+        return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: 'clip', u };
+      }
       if (leg.wait) return { ph: 'up', x: leg.x0, y: hOf(pts, leg.x0), mode: 'wait', u: (tau - leg.t0) / (leg.t1 - leg.t0) };
       if (leg.ice) { const pose = icePose(leg, tau - leg.t0); return pose.walk ? { ph: 'up', x: pose.x, y: pose.y, mode: 'walk' } : { ph: 'up', x: pose.hx, y: leg.w.ya - pose.hh + STAND, mode: 'ice', pose, leg }; }
       const a = arc(id), x = xAt(a, lerp(arcAt(a, leg.x0), arcAt(a, leg.x1), clamp((tau - leg.t0) / Math.max(1e-6, leg.t1 - leg.t0), 0, 1))); let y = hOf(pts, x), mode = 'walk';
+      const L = ladAt(pl, x); if (L) { const P = ladPose(L, L.qOf(x)); return { ph: 'up', x, y: L.bot - P.hip + 8, mode: 'climb', lad: P }; }
       // On Bluebird Forecast's dry rock he walks the ledges and goes up the slabs on hands and feet.
       if (cfg.kind === 'ridge') mode = !cfg.wait ? 'wind' : x < cfg.wait[0] + 20 || x > cfg.sx - 36 ? 'hike' : hOf(pts, x + 3) - hOf(pts, x - 3) < -3 ? 'scramble' : 'ledge';
       // Across the talus he hops from the top of one block to the next.
@@ -803,7 +901,6 @@ export function makeClimb() {
         if (i >= 0) { const b0 = B[i], b1 = B[i + 1], v = (x - b0[0]) / (b1[0] - b0[0]); y = lerp(b0[2], b1[2], v) - Math.sin(v * Math.PI) * 5; mode = v > 0.2 && v < 0.8 ? 'jump' : 'ledge'; }
         else if (x >= B[B.length - 1][0]) { const b = B[B.length - 1]; y = lerp(b[2], hOf(pts, cfg.talus[1]), clamp((x - b[0]) / (cfg.talus[1] - b[0]), 0, 1)); } }
       if (cfg.couloir && x > cfg.couloir[0] - 10 && x < cfg.couloir[1]) mode = 'kick';
-      if (wallAt(cfg, x)) mode = 'climb';
       if (cfg.knife && knifeK(cfg, x) > 0.5) mode = cfg.astride && x > cfg.astride[0] && x < cfg.astride[1] ? 'astride' : !cfg.tiptoe || (x > cfg.astride[0] - cfg.tiptoe && x < cfg.astride[1] + cfg.tiptoe) ? 'edge' : 'walk';
       const xg = xingAt(cfg, x, 3);
       if (xg && xg[2] === 'jump') { const v = clamp((x - xg[0] + 3) / (xg[1] - xg[0] + 6), 0, 1); y = lerp(hOf(pts, xg[0] - 3), hOf(pts, xg[1] + 3), v) - Math.sin(v * Math.PI) * 12; mode = 'jump'; }
@@ -854,6 +951,8 @@ export function makeClimb() {
       if (cfg.couloir) { let n = 0; for (let tau = T_UP; tau < pl.tSum; tau += 0.05) { const w = where(arg.id, tau); if (w.mode === 'kick' && tau - (n || 0) > 0.42) { out.push({ at: tau / D, name: 'step' }); if (Math.round(tau / 0.42) % 3 === 0) out.push({ at: (tau + 0.1) / D, name: 'tink' }); n = tau; } } }
       for (const leg of pl.legs) {
         if (leg.clip) for (const a of [0.4, 0.95]) out.push({ at: (leg.t0 + a * (leg.t1 - leg.t0)) / D, name: 'tink' });
+        // A tink each time a hand closes on the iron.
+        if (leg.lad) { const L = leg.lad, q0 = L.qOf(leg.x0), q1 = L.qOf(leg.x1); for (let k = Math.floor(q0); k < q1; k++) for (const at of k < 1 ? [0.3, 0.5] : k <= L.S ? [0.95] : []) { const q = k + at; if (q > q0 && q <= q1) out.push({ at: (leg.t0 + (q - q0) / (q1 - q0) * (leg.t1 - leg.t0)) / D, name: 'tink' }); } }
       }
       for (const leg of pl.legs) if (leg.ice) for (const h of leg.hit) out.push({ at: h.t / D, name: h.tool ? 'tink' : 'step' });
       return out;
@@ -1088,7 +1187,7 @@ export function makeClimb() {
         if (u < 5) { if (kind === 'couloir' && u > 0.4 && u < 4.2) { bm = null; scr.put(fig.press[Math.floor((u - 0.4) * 1.6) & 1], X(SXr + 24), Y(hOf(pts, SXr + 24) - 4), false); } else if (kind === 'ridge' || kind === 'ladder') bm = u > 3 ? fig.cheer : fig.stand; }
       } else if (me.mode === 'sit') { bm = fig.sit[Math.floor(t * 8) & 1]; flip = true; dy = 2; for (let k = 0; k < 14; k++) { const a = frac(t * 2.4 + k / 14); scr.set(Math.round(sx + 6 + a * 30 + hash(k, 1, 251) * 6), Math.round(sy - 2 - a * (8 + hash(k, 2, 251) * 16) + a * a * 10), a < 0.6 ? R.white[1] : R.snow[3]); } }
       else if (me.mode === 'look') { bm = fig.peer2; flip = !!me.back; }
-      else if (me.mode === 'climb' || (me.mode === 'clip' && wallAt(cfg, me.x))) { const w = wallAt(cfg, me.x); bm = fig.climb[me.mode === 'clip' ? 0 : Math.floor(-me.y / 5) & 1]; dx = X(w[0] - 5) - sx; }
+      else if (me.lad) { bm = ladFig(me.lad); dx = X(me.lad.x) - sx; }
       else if (me.mode === 'clip') bm = fig.reach;
       else if (me.mode === 'edge') bm = fig.edge[env.moving ? Math.floor(Math.abs(d) / 3.6) % 6 : 1];
       else if (me.mode === 'astride') { bm = fig.astride[env.moving ? Math.floor(Math.abs(d) / 2.5) & 1 : 0]; dy = 7; }

@@ -463,3 +463,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Rep Count** (round 6, E2). The set on the bench could count its reps in tiny pixels over his head before the sync notice, in place of the watch's old lap count.
 - **Places in the Binoculars** (round 6, E3). Panned over a named place, the binoculars could show its name under the round view, as the map does on hover.
 - **A Coin Clink** (round 6, E3). The coin-operated binoculars could clink as he drops the coin in, and tick down with a little timer while they are open.
+- **Rust on the Staples** (round 6, E4). A few of yggdrasil's staples could be rusty orange and one could wobble and creak when he steps on it.
+- **A Back View on the Ladders** (round 6, E4). The icefall's ladder could be climbed with his back to us, as on the ice, if the ladder were drawn face-on and wide enough for him.

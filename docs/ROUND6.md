@@ -238,7 +238,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 - [x] E1. Bluebird Forecast: talus, scramble, one exposed step (note 15).
 - [x] E2. hevy-garmin-sync: the snow couloir, no watch, the bench and its sync notice (note 16).
 - [x] E3. trailhead: twice the pace, the ridge cut short, binoculars across the whole map (note 17).
-- [ ] E4. yggdrasil: real ladder climbing (note 19).
+- [x] E4. yggdrasil: real ladder climbing (note 19).
 
 **F. Proficiency Peak**
 
@@ -319,7 +319,9 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **E2 done.** hevy-garmin-sync is a steep couloir of snow between two spires now: their wall of rock towers stands behind the snow along its length, and he climbs in his climbing kit with the ice axe, the axe planted above him and one boot and then the other kicked in, his breath puffing in the cold, a step sound at each kick, the axe now and then, and his steps left in the snow behind him. The watch, the trail run, the switchbacks and the running kit are gone, with the watch's words and its two sounds. On top the weight bench is still the find: a click gets a set on it, and then a small notice over his head shows the Hevy dumbbell, dots running across to a watch while it syncs, and a tick on the watch with a chime. Day, Dusk and phone checked against round 5.
 - **E3 done.** The trailhead climb takes 13 s (round 5: 26). The jump over the notch is springy: he crouches to take off, goes higher, and sinks into the landing. On the knife-edge he goes on his toes only for a few steps either side of where it is thinnest and astride it for a few moves there (round 5: astride for 120 px and on his toes the whole crest). The binoculars still open on the cats at the same zoom, and the arrows, WASD or a drag now move the round view anywhere over the map, at about three times the old speed, from the sky over the Spires to the far Palouse. Day, Dusk and phone checked against round 5.
 - **G2 added** by TJ mid-round: resuming a trip toward Sideproject Spires after stopping on the way turns him back toward the Trailhead (section 5, section 8).
-- Next: E4.
+- **E4 done.** On yggdrasil he climbs the staples and the ladder hold by hold, the way people climb a ladder: he stands up on his higher foot, steps the other foot up past it, then moves his lower hand up past the other one, always the hand on the opposite side from the foot, so three of his hands and feet are on the iron all the time. A hand or a boot on a hold stays put while the rest of him moves, his near arm reaches up across his face, and each hand that closes on the iron tinks. He steps in from the ground and takes hold at the foot, pulls over the lip at the top and stands up on the ledge (round 5: two frames slid up the wall, then a moment standing in the air beside the edge). When he stops on a wall to move his lanyards it is between two moves, with his near hand off the iron. The staples, the ladder and the cable now follow the face as it leans back, where round 5's stood off the rock near the top. Day, Dusk and phone checked against round 5.
+- Section E is done.
+- Next: F1.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -462,6 +464,11 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - E3, a call: the binoculars' box is worked out each frame from the map's size and the view's radius, so the view's middle reaches every edge of the map; at the top edge that is sky, since the map's top rows are sky over the Spires.
 - E3, frame time: the climb at 1920 by 1080 2.4 ms before, 2.3 after. The zoomed-out map at Dusk 14.7 ms; measured again side by side, E2's build 13.6 to 15.0 and E3's 14.2 to 14.6 with the workstation under load (4.8), so the number moves with the machine, not the change.
 - G2, added by TJ mid-round (2026-11-21): the bug where resuming a trip to Sideproject Spires turns him round; placed after G1 as the other item about walking the map.
+- E4, a call: he climbs side-on, facing the rock, as in round 5, with his near arm drawn across his face (a new `armOver` option on `sideFig()`), because the walls are seen edge-on and a back view would not sit on them. A round is about a fifth of a second (0.22 on the staples, 0.16 on the ladder, whose rungs are closer).
+- E4, a call: the climb takes time of its own now, so yggdrasil's walking seconds went from 15 to 10; the route takes 26.8 s, round 5 about 24 (worked out from its plan: the same walking pace, and 7 s on the walls against round 5's 2.6).
+- E4, a call: a lanyard stop that falls on a wall is moved to fall between two moves, at least two holds below the lip, so he is never caught with a hand in the air or reaching over the top.
+- E4, a fix beyond the item: the iron did not follow the wall's face, which leans back 6 px from foot to lip, so round 5's top staples stood off the rock and he stood in the air at the top. `rungsOf()` is now the one place the holds come from, for the drawing and for him.
+- E4, frame time: the workstation's load average was 57 to 65 while this was measured, so the numbers swing with it. On the walls at 1920 by 1080, E3 and E4 measured together gave 11.1 and 11.1 ms, then 6.8 and 10.9. The zoomed-out map at Dusk gave E3 30.2 and 15.4, E4 29.4 and 26.4; E4 changes nothing drawn on the map, and check.sh's frame-time gate failed on that load alone. To be measured again at F1 on a quiet machine.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:
