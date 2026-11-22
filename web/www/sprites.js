@@ -510,18 +510,31 @@ function makeLookout() {
   for (let x = c - 5; x <= c + 5; x++) b.set(x, deck + 1, R.wood[0]);
   return b;
 }
+// A mountaineering tent (art pass D09, after tents painted for the game): a low dome, its west panel lit
+// and its east in shade, two poles arching over it, the door on the east with its flap tied back on the
+// dark inside, and a guy line to a stake on each side. The lines and stakes are ink, so at Dusk only the
+// fabric glows.
 function makeTent(c) {
   const b = new BM(16, 11); b.ox = 8; b.oy = 10;
-  for (let y = 0; y < 10; y++) for (let x = 8 - y * 0.75; x <= 8 + y * 0.75; x++) b.set(x, y + 1, x < 8 ? R[c][2] : R[c][1]);
-  for (let y = 6; y < 10; y++) b.set(8, y + 1, R.ink[0]);
+  const T = R[c], inDome = (x, y, rx) => sq((x - 8) / rx) + sq((y - 10.5) / 7.4) <= 1;
+  for (let y = 1; y <= 10; y++) for (let x = 0; x < 16; x++) {
+    if (!inDome(x, y, 5.6)) continue;
+    const pole = inDome(x, y, 3) !== inDome(x + (x < 8 ? -1 : 1), y, 3);
+    b.set(x, y, pole ? T[0] : x < 7 - (10 - y) * 0.15 ? T[2] : x > 11 ? T[0] : T[1]);
+  }
+  // The door, and its flap tied back on the west side of it.
+  for (let y = 6; y <= 10; y++) for (let x = 9; x <= 11; x++) if (y > 6 || x === 10) b.set(x, y, INK);
+  b.set(9, 7, T[2]); b.set(9, 8, T[2]);
   outline(b, INK);
+  for (const [x, y] of [[1, 7], [0, 8], [0, 9], [0, 10], [14, 7], [15, 8], [15, 9], [15, 10]]) b.set(x, y, INK);
   return b;
 }
+// The trail journal (art pass D09): a red notebook lying on a boulder, its cover lit along the top, its
+// spine dark on the west and the white edges of its pages showing along the east and the foot.
 function makeJournal() {
   const b = makeBoulder(81, 6);
-  const x = b.ox - 2, y = b.oy - 8;
-  for (let dx = 0; dx < 5; dx++) { b.set(x + dx, y, R.white[1]); b.set(x + dx, y + 1, R.red[1]); }
-  b.set(x + 2, y, R.white[0]);
+  const x = b.ox - 2, y = b.oy - 9;
+  for (let dx = 0; dx < 5; dx++) { b.set(x + dx, y, dx === 0 ? R.red[0] : R.red[2]); b.set(x + dx, y + 1, dx === 0 ? R.red[0] : dx === 4 ? R.white[1] : R.red[1]); b.set(x + dx, y + 2, dx === 0 ? R.red[0] : R.white[0]); }
   return b;
 }
 

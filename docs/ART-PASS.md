@@ -76,7 +76,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **D06 The Map's Big Animals** - elk, moose, black bears, mountain goats and the bighorn ram. `sprites.js`, `mapfauna.js`.
 - [x] **D07 The Whale and the Ferry** - `mapfauna.js` (`whale`, `ferry`).
 - [x] **D08 Boulders, Logs and Shrubs** - `sprites.js` (`makeBoulder`, `makeLog`, `makeShrub`, `makeBush`, `makeHuckleberry`, `makeFern`).
-- [ ] **D09 The Lookout, the Tent and the Journal** - `sprites.js` (`makeLookout`, `makeTent`, `makeJournal`).
+- [x] **D09 The Lookout, the Tent and the Journal** - `sprites.js` (`makeLookout`, `makeTent`, `makeJournal`).
 - [ ] **D10 Clouds** - `sprites.js` (`makeCloud`).
 - [ ] **D11 Sage, Tumbleweeds and the Dry Country's Plants** - `scenery.js` (`sageBush`), `events.js`.
 - [ ] **D12 The Small Animals** - squirrels, chipmunks, birds, the slug. `mapfauna.js`, `sprites.js`.
@@ -296,3 +296,10 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - D08, a call: `makeFern`'s outer fronds droop at their tips and each frond carries leaflets, lit on the middle frond and darker on the outer ones. The logs and the huckleberry are unchanged.
 - D08, a call: `ground.png` was rebaked; 642 pixels changed, the boulders the land draws into it.
 - D08: frame time 13.6 ms zoomed out at Dusk; the last commit measured 13.7 ms in the same sitting, so the rise from D07 is the machine, not the change. 36 browser tests pass; nothing on the map moved; no new colours.
+- D09, the before: the fire lookout already read well (a cab with windows on a braced tower). Base camp's tent was a plain orange triangle, lit on one half, with a dark line for a door; the trail journal was a five-pixel stripe of white over red on top of its boulder, which D08 had already made faceted.
+- D09, the pictures: 7 in all. Qwen's seed 2 was picked: low dome tents with a lit left panel, pole lines, the door flap tied back on a glowing inside, guy lines and stakes, and a red notebook lying on a boulder. The style model drew big ridge tents. The prompts are in `design/art/D09/log.jsonl`.
+- D09, a call: `makeTent` keeps its 16 by 11 size and foot. It is a low dome, the west panel the light ramp step, the east the middle and its edge the dark, two poles traced where a narrower dome meets the full one, the door three pixels wide on the east with its flap tied back on its west side, and a guy line and stake on each side. A first pass made the dome as tall as the old triangle, a beehive, with the guy lines lost in its outline, so it is lower and narrower.
+- D09, a call: the guy lines, stakes and door are ink, which world.js's tent glow leaves alone, so at Dusk only the fabric turns to lamplight and the door stays dark.
+- D09, a call: `makeJournal` keeps its boulder and draws the notebook three rows deep: the cover lit along the top, the spine dark on the west, the page edges white along the east and the foot. `makeLookout` is unchanged.
+- D09, a call: `ground.png` was rebaked; its pixels are identical.
+- D09: frame time 13.3 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
