@@ -1,6 +1,6 @@
 // Scenery drawings shared by the world map: sea stacks, sagebrush, charred snags and the gold big-leaf
 // maples along the forest trail. They came out of round 3's terrain.js unchanged.
-import { clamp, sq, rng, hash, vnoise, R, pick, BM, outline, INK } from './core.js';
+import { clamp, sq, frac, rng, hash, vnoise, R, pick, BM, outline, INK } from './core.js';
 import { clump, makeSnag } from './sprites.js';
 
 function blobTree(seed, name, H, trunk, n, r0) {
@@ -15,20 +15,37 @@ function blobTree(seed, name, H, trunk, n, r0) {
 // A sea stack is drawn from its top down to the water. Its waterline curves, lowest in the middle,
 // the rock is dark and wet for the last rows above it, and the outline stops there: an outline
 // under the rock is what made a stack look set down on top of the sea.
+// After the picture it was redrawn from (art pass D02, design/art/D02): columns of basalt standing side
+// by side, each a few pixels wide with a dark joint between and its own breaks across, lit on its left
+// edge, the whole stack lit on the left and dark on the right; its sides step in at ledges as it rises,
+// each ledge's top catching the light; turf on the top, and on a tall one a small tree bent by the wind.
 function seaStack(seed, H, W) {
-  const b = new BM(W + 4, H + 4); b.ox = (W >> 1) + 2; b.oy = H + 1;
+  const b = new BM(W + 8, H + 9); b.ox = (W >> 1) + 4; b.oy = H + 6;
   const foot = x => H - 3 + Math.round(3 * (1 - sq(x / (W / 2 + 1))));
+  const step = y => Math.floor(vnoise(y / 7, seed, 111) * 3) / 3;
+  const half = y => W / 2 * (0.42 + 0.58 * Math.pow(y / H, 0.7)) + 1.6 * step(y) - 0.6;
   for (let y = 0; y < H; y++) {
-    const hw = W / 2 * (0.45 + 0.55 * Math.pow(y / H, 0.6)) + 1.5 * (vnoise(y / 4, seed, 110) - 0.5);
+    const hw = half(y), ledge = half(y - 1) < hw - 0.6;
     for (let x = -Math.ceil(hw); x <= hw; x++) {
       const wet = foot(x) - y; if (wet <= 0) continue;
-      const v = 0.62 - x / hw * 0.4 + 0.3 * (vnoise(x / 2, y / 5, seed) - 0.5);
-      b.set(b.ox + x, y + 2, y < 3 ? R.conifer[x < 0 ? 3 : 1] : wet <= 2 ? R.basalt[0] : pick('basalt', wet <= 4 ? v - 0.3 : v, x, y));
+      const col = Math.floor((x + 40) / 3.5), cx = frac((x + 40) / 3.5), brk = frac((y + 7 * hash(col, 1, seed)) / (7 + 5 * hash(col, 2, seed))) < 0.1 && hash(col, y >> 2, seed + 5) < 0.6;
+      let v = 0.62 - x / hw * 0.5 + 0.12 * (hash(col, 3, seed) - 0.5);
+      if (cx < 0.3) v += x < 0 ? 0.3 : 0.14;
+      let c = cx > 0.78 || brk ? R.basalt[0] : pick('basalt', v, x, y, 0.5);
+      if (ledge && x < hw - 1) c = R.basalt[x < 0 ? 3 : 2];
+      if (y < 3) c = R.conifer[x < 0 ? 3 : y === 0 ? 2 : 1];
+      if (wet <= 2) c = R.basalt[0]; else if (wet <= 4 && c !== R.basalt[0]) c = pick('basalt', v - 0.3, x, y, 0.5);
+      b.set(b.ox + x, y + 7, c);
     }
   }
-  b.set(b.ox - 1, 1, R.conifer[2]); b.set(b.ox - 1, 0, R.conifer[3]); b.set(b.ox + 2, 1, R.conifer[1]);
+  if (H >= 26) {
+    // A small tree on the top, bent away from the sea wind: a crooked trunk and a flat crown of needles.
+    const lean = hash(seed, 4, 112) < 0.5 ? -1 : 1, tx = b.ox + Math.round(lean * W * 0.12);
+    for (let j = 0; j < 4; j++) b.set(tx + (j > 1 ? lean : 0), 6 - j, R.bark[j < 2 ? 1 : 0]);
+    for (let i = -3; i <= 3; i++) { b.set(tx + lean + i, 2, R.conifer[i < 0 ? 3 : 1]); if (Math.abs(i) < 3) b.set(tx + lean + i + lean, 1, R.conifer[i < 0 ? 4 : 2]); }
+  } else { b.set(b.ox - 1, 6, R.conifer[2]); b.set(b.ox - 1, 5, R.conifer[3]); b.set(b.ox + 2, 6, R.conifer[1]); }
   outline(b, INK);
-  for (let x = -(W >> 1) - 2; x <= (W >> 1) + 2; x++) for (let y = foot(x); y < H + 2; y++) if (b.get(b.ox + x, y + 2) === INK) b.set(b.ox + x, y + 2, 0);
+  for (let x = -(W >> 1) - 4; x <= (W >> 1) + 4; x++) for (let y = foot(x); y < H + 2; y++) if (b.get(b.ox + x, y + 7) === INK) b.set(b.ox + x, y + 7, 0);
   return b;
 }
 

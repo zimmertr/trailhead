@@ -69,7 +69,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 ### The Rest of the Map
 
 - [x] **D01 Conifers** - the firs, spruce, hemlock and redcedar that cover the map. `sprites.js` (`makeConifer`, `crown`).
-- [ ] **D02 The Sea, Beach and Sea Stacks** - the water, the surf and the stacks. `critters.js` (the swells and wash), `scenery.js` (`seaStack`).
+- [x] **D02 The Sea, Beach and Sea Stacks** - the water, the surf and the stacks. `critters.js` (the swells and wash), `scenery.js` (`seaStack`).
 - [ ] **D03 Broadleaf Trees** - maples, aspens, the twisted and whitebark pines, ponderosas and junipers. `sprites.js`.
 - [ ] **D04 Meadows and Flowers** - the parkland's flowers and the grass. `sprites.js` (`makeFlowers`), `land.js`.
 - [ ] **D05 The Trailhead** - the junction sign, the kiosk, the register box and the small signs. `sprites.js` (`makeSignpost`, `makeKiosk`, `makeRegister`, `makeSmallSign`).
@@ -249,3 +249,10 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - D01, a call: `open` (the larches) draws each spray as a thin twig drooping more steeply, gold needles a pixel or two deep along it and more at the tip, leaves the trunk showing, and drops about one layer in three.
 - D01, a call: the map's trees keep the plates, which read right at their size. `ground.png` was rebaked because its fingerprint covers `sprites.js`; its pixels are identical to before.
 - D01: frame time 11.9 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- D02, the before: the sea stacks were smooth dark grey tubes with a rounded top and a green cap, one shade all the way round. The sea's swell lines, the surf and the beach already read right.
+- D02, the pictures: 8 in all, four from the style model and four from Qwen. Qwen's seed 3 was picked: stacks of dark basalt columns, ledged and cracked, wider at the foot, lit on the left, with a wind-bent tree on the tallest. The style model drew round boulders. The prompts are in `design/art/D02/log.jsonl`.
+- D02, a call: `seaStack` builds each stack from columns three or four pixels wide with a dark joint between them and breaks across a column here and there; it steps in at a few ledges on the way up, is lit on its left side and on each column's left edge, has a pale ledge top, a turf top and a wet band at its foot. A first pass broke every column often and read as a brick wall, so the breaks are fewer.
+- D02, a call: stacks 26 pixels tall or more carry a small tree with a crooked trunk and a flat crown leaning one way, after the pick. The outline stops at the waterline so the foam ring stays clean.
+- D02, a call: the surf and the swell lines were left as they are. The picture's long breakers further out would need the shore band in `critters.js` widened, which costs every frame, and the present lines already read as surf.
+- D02, a call: `ground.png` was rebaked because its fingerprint covers `scenery.js`; 84 pixels changed, all of them one stack partly behind the trees.
+- D02: frame time 12.0 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
