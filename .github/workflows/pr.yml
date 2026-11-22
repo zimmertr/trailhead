@@ -76,91 +76,69 @@ jobs:
           header: coverage-db
           path: coverage.md
 
-  # The four images, each as yggdrasil's docker-build module would check it:
-  # hadolint, the linux/amd64 build, the smoke test, a Trivy table on the PR,
-  # and a failure on any fixable Critical or High. A job of the repo's own
-  # because the module builds only `<context>/Dockerfile`, and every image
-  # here builds from the repo root with its Dockerfile in its folder
-  # (record 0007).
-  image:
-    name: Image (${{ matrix.service }})
+  # yggdrasil's docker-build module, one matrix job per image: hadolint, the
+  # linux/amd64 build, a sticky Trivy comment, and a failure on any fixable
+  # Critical or High. The list is the release's, so each builds from the repo
+  # root with its Dockerfile in its folder (record 0012). Each image is saved
+  # as the artifact `trailhead-<service>-image` for the jobs below.
+  docker-build:
+    name: Docker Build
+    uses: zimmertr/yggdrasil/.github/workflows/docker-build.yml@571dc1db86efcdaf2d5289b5e8d34f98b8816a18 # v3.0.1
+    permissions:
+      contents: read
+      pull-requests: write # the sticky scan comments
+    with:
+      images: >-
+        [{"image": "zimmertr/trailhead-web", "file": "web/Dockerfile"},
+         {"image": "zimmertr/trailhead-api", "file": "api/Dockerfile"},
+         {"image": "zimmertr/trailhead-admin", "file": "admin/Dockerfile"},
+         {"image": "zimmertr/trailhead-fetcher", "file": "fetcher/Dockerfile"}]
+      # As `make image` passes them, so the smoke tests read the same values.
+      build-args: |
+        APP_VERSION=0.0.0-ci
+        APP_COMMIT=${{ github.event.pull_request.head.sha }}
+        APP_BUILT_AT=1970-01-01T00:00:00Z
+      upload-image: true
+
+  # What only a running image shows, which container-structure-test can't
+  # hold: scripts/smoke/<service>.sh starts the image docker-build saved and
+  # checks it from outside (record 0012).
+  smoke:
+    name: Smoke (${{ matrix.service }})
+    needs: docker-build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read # the checkout
-      pull-requests: write # the sticky scan comment
     strategy:
       fail-fast: false
       matrix:
         service: [web, api, admin, fetcher]
-    env:
-      SERVICE: ${{ matrix.service }}
-      IMAGE: trailhead-${{ matrix.service }}:pr-scan
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Lint Dockerfile
-        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387 # v3.5.0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          dockerfile: ${{ matrix.service }}/Dockerfile
-      - run: make image
-      - name: Smoke test the built image
-        run: make smoke
-      - name: Report the image size
-        run: |
-          size=$(docker image inspect "$IMAGE" --format '{{.Size}}')
-          echo "${IMAGE} is $(numfmt --to=iec "$size") (${size} bytes) uncompressed" | tee -a "$GITHUB_STEP_SUMMARY"
-      # Fixable only: distributions ship CVEs upstream hasn't patched, which
-      # nobody can act on. Every severity, for the comment.
-      - name: Scan image (Trivy)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: ${{ env.IMAGE }}
-          output: trivy.txt
-          ignore-unfixed: true
-      - name: Write the scan comment
+          name: trailhead-${{ matrix.service }}-image
+      - run: docker load -i "trailhead-${SERVICE}-image.tar"
         env:
-          PR_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          {
-            echo "### Image vulnerability scan: trailhead-${SERVICE}"
-            echo ""
-            echo "Trivy on this PR's image at \`${PR_SHA}\` (linux/amd64, fixable only). Critical and High fail this check, and the release would refuse them too."
-            echo ""
-            echo '```text'
-            cat trivy.txt
-            echo '```'
-          } > scan-comment.md
-          cat scan-comment.md >> "$GITHUB_STEP_SUMMARY"
-      - if: github.event.pull_request.user.login != 'dependabot[bot]'
-        uses: marocchino/sticky-pull-request-comment@5770ad5eb8f42dd2c4f34da00c94c5381e49af88 # v3.0.5
-        with:
-          header: image-scan-${{ matrix.service }}
-          path: scan-comment.md
-      - name: Fail on fixable Critical or High vulnerabilities (Trivy)
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          image-ref: ${{ env.IMAGE }}
-          severity: CRITICAL,HIGH
-          ignore-unfixed: true
-          exit-code: '1'
-          skip-setup-trivy: true
-      # The browser and Lighthouse jobs load this image rather than build it
-      # again.
-      - if: matrix.service == 'web'
-        run: docker save "$IMAGE" -o "$RUNNER_TEMP/web-image.tar"
-      - if: matrix.service == 'web'
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: web-image
-          path: ${{ runner.temp }}/web-image.tar
-          retention-days: 1
-          compression-level: 1
+          SERVICE: ${{ matrix.service }}
+      - run: make smoke SERVICE="$SERVICE"
+        env:
+          SERVICE: ${{ matrix.service }}
+
+  # yggdrasil's dependency-review module: fails a PR that adds a package
+  # version with a known High or Critical vulnerability.
+  dependency-review:
+    name: Dependency Review
+    uses: zimmertr/yggdrasil/.github/workflows/dependency-review.yml@571dc1db86efcdaf2d5289b5e8d34f98b8816a18 # v3.0.1
+    permissions:
+      contents: read
 
   browser:
     name: Browser Smoke & Axe
-    needs: image
+    needs: docker-build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -171,8 +149,8 @@ jobs:
           persist-credentials: false
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
-          name: web-image
-      - run: docker load -i web-image.tar
+          name: trailhead-web-image
+      - run: docker load -i trailhead-web-image.tar
       - run: make browser-run
       # A trace and a screenshot of every failed test, so a red run can be
       # read rather than guessed at.
@@ -183,32 +161,21 @@ jobs:
           path: e2e/playwright-report
           retention-days: 7
 
+  # yggdrasil's lighthouse module: the budgets in .github/lighthouserc.json,
+  # measured in docs/LIMITS.md, against the web image docker-build saved,
+  # served on 8080. Its reports land in the run's artifacts, pass or fail, so
+  # a budget can be moved on a measurement rather than guessed at.
   lighthouse:
-    name: Lighthouse Budgets
-    needs: image
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    name: Lighthouse
+    needs: docker-build
+    uses: zimmertr/yggdrasil/.github/workflows/lighthouse.yml@571dc1db86efcdaf2d5289b5e8d34f98b8816a18 # v3.0.1
     permissions:
-      contents: read # the checkout
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: web-image
-      - run: docker load -i web-image.tar
-      # The budgets and their measurements live in .github/lighthouserc.json
-      # and docs/LIMITS.md.
-      - run: make lighthouse-run
-      # Every run's report, pass or fail, so a budget can be read and moved
-      # on a measurement rather than guessed at. Nothing leaves GitHub.
-      - if: always()
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: lighthouse-reports
-          path: coverage/lighthouse
-          retention-days: 7
+      contents: read
+    with:
+      image: zimmertr/trailhead-web
+      config: .github/lighthouserc.json
+      port: 8080
+      health-path: /healthz
 
   compose:
     name: Compose

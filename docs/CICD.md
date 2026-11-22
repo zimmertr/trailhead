@@ -20,20 +20,22 @@ Each job of the repo's own runs a `make` target, so a red check reruns locally i
 | Check | Workflow | Runs |
 |---|---|---|
 | `PR Title / PR Title` | `pr-title.yml` | yggdrasil's title check: `type(scope): summary` |
-| `Lint / actionlint`, `Lint / zizmor`, `Lint / semgrep` | `lint.yml` | yggdrasil's workflow and Dockerfile lint |
+| `Lint / actionlint`, `Lint / zizmor`, `Lint / semgrep`, `Lint / shellcheck`, `Lint / docs` | `lint.yml` | yggdrasil's lint: the workflows, the Dockerfiles, the scripts, and the docs' links and em dashes |
 | `Static Checks` | `pr.yml` | `make lint` (ESLint and its rules' self-test), `make typecheck`, `make check-openapi` |
 | `Unit Tests` | `pr.yml` | `make test`, with line and branch coverage as a sticky PR comment |
 | `Database Tests` | `pr.yml` | `make test-db` against a throwaway Postgres, with its coverage as a sticky comment |
-| `Image (web)`, `Image (api)`, `Image (admin)`, `Image (fetcher)` | `pr.yml` | hadolint, `make image`, `make smoke`, the image's size, a sticky Trivy comment, and a failure on any fixable Critical or High (record [0007](architectural-decision-records/0007-the-pr-builds-the-images-in-its-own-job.md)) |
-| `Browser Smoke & Axe` | `pr.yml` | `make browser-run` against the web image the image job built |
-| `Lighthouse Budgets` | `pr.yml` | `make lighthouse-run` against the same image, with the budgets in `.github/lighthouserc.json` |
+| `Docker Build / Docker Build (zimmertr/trailhead-<service>)`, one per image | `pr.yml` | yggdrasil's `docker-build` module over the release's four images: hadolint, the linux/amd64 build, a sticky Trivy comment, and a failure on any fixable Critical or High. Each image is saved for the jobs below (record [0012](architectural-decision-records/0012-the-pr-builds-the-images-through-yggdrasils-docker-build-module.md)) |
+| `Smoke (web)`, `Smoke (api)`, `Smoke (admin)`, `Smoke (fetcher)` | `pr.yml` | `make smoke` against the image `Docker Build` saved |
+| `Dependency Review / Dependency Review` | `pr.yml` | yggdrasil's `dependency-review` module: fails a PR that adds a package version with a known High or Critical vulnerability |
+| `Browser Smoke & Axe` | `pr.yml` | `make browser-run` against the web image `Docker Build` saved |
+| `Lighthouse / Lighthouse` | `pr.yml` | yggdrasil's `lighthouse` module against the same image, with the URLs and budgets in `.github/lighthouserc.json`. `make lighthouse` runs the same config locally |
 | `Compose` | `pr.yml` | `make compose-smoke`: `docker-compose.yml` up, checked from outside |
 
 yggdrasil's `repos/zimmertr/trailhead.yml` lists the ones branch protection requires. Renaming a job strands PRs on a check that never reports.
 
 ## The release
 
-Every push to main runs `release.yml`, which calls yggdrasil's `release` module with the four images, each built from the repo root with its own Dockerfile, for linux/amd64. In order: GitVersion reads the bump from the squash commit's title; each image is built with `APP_VERSION`, `APP_COMMIT` and `APP_BUILT_AT`, an SBOM and provenance, and pushed to `ghcr.io/zimmertr/trailhead-<service>` under the version only; Trivy scans each; and only when every scan passes, the commit is tagged and an immutable GitHub release is published. The checks it reports are `Release / Version`, `Release / Build & Push (zimmertr/trailhead-<service>)`, `Release / Scan Pushed Image (zimmertr/trailhead-<service>, linux/amd64)` and `Release / Tag and Release`.
+Every push to main runs `release.yml`, which calls yggdrasil's `release` module with the four images, each built from the repo root with its own Dockerfile, for linux/amd64. In order: GitVersion reads the bump from the squash commit's title; each image is built with `APP_VERSION`, `APP_COMMIT` and `APP_BUILT_AT`, an SBOM and provenance, pushed to `ghcr.io/zimmertr/trailhead-<service>` under the version only, and attested with GitHub's signed build provenance, which `gh attestation verify oci://ghcr.io/zimmertr/trailhead-<service>:<version> --owner zimmertr --signer-workflow zimmertr/yggdrasil/.github/workflows/release.yml` checks; Trivy scans each; and only when every scan passes, the commit is tagged and an immutable GitHub release is published. The checks it reports are `Release / Version`, `Release / Build & Push (zimmertr/trailhead-<service>)`, `Release / Scan Pushed Image (zimmertr/trailhead-<service>, linux/amd64)` and `Release / Tag and Release`.
 
 Nothing deploys yet. The release passes no `deploys` and no `charts`: deploying waits until TJ picks the hostnames, and the chart releases from zimmertr/trailhead-helm. When it does, the release adds a deploy bump to Kubernetes-Manifests that pins each image by digest, as Bluebird's does.
 
@@ -42,6 +44,10 @@ A release that fails part way is finished with "Re-run failed jobs", or by relea
 ## The weekly scan
 
 `image-scan.yml` runs yggdrasil's `image-scan` module every Monday and on demand, over the latest release's four images. It sends the findings to the Security tab and fails only on a fixable Critical or High. It fails until the first release exists.
+
+## Scorecard
+
+`scorecard.yml` runs yggdrasil's `scorecard` module every Monday and on every push to main. OpenSSF Scorecard's findings go to the Security tab, and nothing fails a PR.
 
 ## Secrets
 
