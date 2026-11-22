@@ -327,7 +327,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - Section F is done.
 - **G1 done.** The burst of snow as he pushes off into a glissade is drawn only while he runs, so scrubbed to that moment and held there the picture is clear (round 5: half white until he moved). Playing through, it bursts and clears as before.
 - **G2 done.** The cause: once he had walked to a point on a trail (a click on the trail, or a click on a place along it), sending him to a place always walked him back to the Trailhead first and set off from there, even when the place's route starts up the very trail he was standing on. Now, standing on the trail a route sets off along, short of where it leaves the map, he carries on from where he stands. Stopped with the Stop button it already carried on, and still does. Two browser tests stop part way to the Sideproject Spires, one at a point on the trail and one with the Stop button, send him on to the Spires and check that he goes on up the trail and never back toward the Trailhead; the first failed before the fix (he went from 30% of the trail back to 29% and on down) and both pass now.
-- Next: H1.
+- **H1 deferred.** The image models on TJ's GPU could not be reached from this workstation's Docker (the connection to llama-swap's address timed out twice; the cluster itself answered kubectl, and llama-swap's pod was running with TJ's Qwen coding model loaded). H1 comes back after K4 and before K5, which deletes this file.
+- Next: K1.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -485,6 +486,7 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - F3, frame time: with the workstation quiet (load average 5.6) check.sh's map gate passed at 14.6 ms, which settles the failures at E4 to F2 as the machine's load.
 - G2, a call: the fix is in `api.go()`; it covers all three routes that start on the map (the lake, the peak, the Spires). Left as it was: standing on the stretch where the peak's trail and the Spires' trail run together from the Trailhead, on one of them, and sent to the other, he still walks back to the Trailhead before setting off, along the shared stretch he is on (in IDEAS.md).
 - G2: `__api.onTrail()` added for the tests (which trail he is on and how far along).
+- H1, a call: deferred to after K4 rather than ending the loop, since K1 to K4 need no GPU. Nothing on the cluster or the network was touched to get through; kubectl was only read.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:
