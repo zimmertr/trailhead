@@ -74,7 +74,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **D04 Meadows and Flowers** - the parkland's flowers and the grass. `sprites.js` (`makeFlowers`), `land.js`.
 - [x] **D05 The Trailhead** - the junction sign, the kiosk, the register box and the small signs. `sprites.js` (`makeSignpost`, `makeKiosk`, `makeRegister`, `makeSmallSign`).
 - [x] **D06 The Map's Big Animals** - elk, moose, black bears, mountain goats and the bighorn ram. `sprites.js`, `mapfauna.js`.
-- [ ] **D07 The Whale and the Ferry** - `mapfauna.js` (`whale`, `ferry`).
+- [x] **D07 The Whale and the Ferry** - `mapfauna.js` (`whale`, `ferry`).
 - [ ] **D08 Boulders, Logs and Shrubs** - `sprites.js` (`makeBoulder`, `makeLog`, `makeShrub`, `makeBush`, `makeHuckleberry`, `makeFern`).
 - [ ] **D09 The Lookout, the Tent and the Journal** - `sprites.js` (`makeLookout`, `makeTent`, `makeJournal`).
 - [ ] **D10 Clouds** - `sprites.js` (`makeCloud`).
@@ -282,3 +282,10 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - D06, a call: the elk's and moose's own drawings are unchanged beyond the lit back; they already read as the picture does.
 - D06, a call: `ground.png` was rebaked because its fingerprint covers `core.js`; its pixels are identical.
 - D06: frame time 11.6 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- D07, the before: the humpback already read well through its whole breach and its dive. The ferry read as a pale pill: the hull's ends were rounds six pixels across, every flat top was the darker cream and every wall the lighter, the windows were dots every third step along one row, and the wheelhouses were rounded lumps.
+- D07, the pictures: 7 in all. Qwen's seed 1 was picked: a double-ended ferry at the game's three-quarter angle, two white tiers each with a continuous dark band of windows, a green stripe along the hull, a pilothouse at each end, a funnel banded green, and the open car deck at both ends with cars. The style model drew it side on with a whale breaching behind. The prompts are in `design/art/D07/log.jsonl`.
+- D07, a call: `ferry` keeps its deck builder, size and foot. Tops are the light cream and walls a warm grey, so it is lit from above; the hull's and tiers' ends are squarer; two tiers each have a band of windows over a shaded foot; the upper tier is set back with a strip of shade on the deck before it; the car deck at each end has two cars.
+- D07, a call: a first pass kept one-row window bands with posts and gave the walls the near-white cream: on the slant the rows above and below land on the same pixels, so the bands broke into dashes, and the tiers and pilothouses vanished into the white. The bands are two rows deep and the walls warm grey.
+- D07, a call: the humpback is left as it was. Its breach is drawn as a lit 3D body frame by frame and already reads as the pictures' whales do; none of them was a better reference.
+- D07, a call: `ground.png` was rebaked because its fingerprint covers `mapfauna.js`; its pixels are identical.
+- D07: frame time 12.8 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.

@@ -15,14 +15,25 @@ function ferry() {
     for (const side of [1, -1]) for (let u = -U; u <= U; u += 0.25) for (let z = z0; z < z1; z++) dot(u0 + u, side * half(u), z, wall(u, z - z0));
     for (let u = -U; u <= U; u += 0.25) { const h = half(u); for (let v = -h; v <= h; v += 0.25) dot(u0 + u, v, z1, top(u, v)); }
   };
-  const W1 = R.white[1], W0 = R.white[0];
-  // The hull: green at the waterline, the car deck open and grey at both ends.
-  deck(0, 19, 5, 6, 0, 3, (u, z) => z < 1 ? R.kit[0] : W1, u => Math.abs(u) > 14.5 ? R.rock[3] : W0);
-  // The cabin: a green band, a row of windows, a pale roof.
-  deck(0, 14, 4, 3, 3, 8, (u, z) => z < 1 ? R.kit[1] : z === 2 && Math.round(u * 0.83 + 40) % 3 ? R.navy[1] : W1, () => W0);
-  // A wheelhouse toward each end and the funnel between them.
-  for (const u0 of [-10, 10]) deck(u0, 2, 2, 1, 8, 10, (u, z) => z === 1 ? R.navy[1] : W1, () => W1);
-  deck(0, 1.6, 1.2, 0.8, 8, 12, (u, z) => z > 2 ? R.kit[0] : R.kit[1], () => R.kit[0]);
+  // Lit from above (art pass D07, after a ferry painted for the game): every flat top a step lighter than
+  // the walls under it, the windows a dark band round each deck with thin white posts, and the open car
+  // deck showing at both ends with a car or two on it.
+  const W1 = R.white[1], W0 = R.white[0], WALL = R.gold[5], LOW = R.gold[4];
+  // The hull: green at the waterline and along the car deck's rail, white between.
+  const CARS = [[-17, 1.6, R.red[1]], [-16.5, -1.4, R.water[3]], [16.2, 1.4, R.yellow[1]], [17, -1.6, R.rock[1]]];
+  deck(0, 19, 5, 3.5, 0, 3, (u, z) => z < 1 || z === 2 ? R.kit[0] : W0, (u, v) => {
+    if (Math.abs(u) <= 14.5) return v < -4.2 + 0.6 ? LOW : W1;
+    for (const [cu, cv, c] of CARS) if (Math.abs(u - cu) < 1.1 && Math.abs(v - cv) < 0.8) return c;
+    return R.rock[3];
+  });
+  // Two tiers of passenger decks, each wall a band of windows two rows deep over a shaded foot (one row
+  // breaks into dashes on the slant, where the rows above and below land on the same pixels), the upper
+  // tier set back with a strip of shade on the deck in front of it.
+  deck(0, 15, 4.2, 1.6, 3, 6, (u, z) => z === 0 ? LOW : R.navy[1], (u, v) => v < -2.8 && Math.abs(u) < 12.5 ? LOW : W1);
+  deck(0, 12.5, 3.4, 1.4, 6, 9, (u, z) => z === 0 ? LOW : R.navy[1], () => W1);
+  // A pilothouse at each end, dark glass all round, and the funnel between them banded green.
+  for (const u0 of [-11, 11]) deck(u0, 1.8, 1.8, 0.8, 9, 11, (u, z) => z === 1 ? R.navy[1] : WALL, () => W1);
+  deck(0, 1.6, 1.2, 0.8, 9, 13, (u, z) => z === 2 ? R.kit[0] : z === 3 ? R.kit[1] : WALL, () => R.kit[0]);
   outline(b, INK);
   return b;
 }
