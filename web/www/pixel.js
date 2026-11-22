@@ -470,8 +470,16 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     async go(dest) {
       if (drawn.s !== 'world' || tr || !ROUTES[dest] && dest !== 'trailhead') return null;
       const l = legAt(p), a = l.arg, u = lerp(a.from, a.to, local(l, p));
-      // Stood or walking where a click sent him: back to the Trailhead the way he is (on the lake loop's way
-      // back, round its end), then off on the route.
+      // Stood or walking where a click sent him, on the trail the route sets off along and short of where it
+      // leaves the map: the route picks up from where he stands (round 6, G2: he used to walk back to the
+      // Trailhead first and set off again).
+      const first = route === 'walk' && dest !== 'trailhead' ? ROUTES[dest]()[0] : null, fa = first && first[0] === 'world' ? first[1] : null;
+      if (fa && fa.path === a.path && fa.from === 0 && u <= fa.to) {
+        await need(ROUTES[dest]().map(x => x[0])); leave(); plan(dest);
+        const f = legs[0]; p = f.t0 + clamp(u / fa.to, 0, 1) * (f.t1 - f.t0); next = null; running = true; return 'turn';
+      }
+      // Anywhere else a click sent him: back to the Trailhead the way he is (on the lake loop's way back,
+      // round its end), then off on the route.
       if (route === 'walk') { if (dest !== 'trailhead') await need(ROUTES[dest]().map(x => x[0])); leave(); detour = { path: a.path, from: u, to: a.path === 'lake' && u > world.lakeIn ? 1 : 0 }; plan('back'); p = 0; next = dest === 'trailhead' ? null : dest; running = true; return 'turn'; }
       if (l === legs[0] && a.from === 0 && p === 0) { if (dest === 'trailhead') { recentre = true; return 'home'; } return 'start'; }
       const inbound = a.to === 0 || (a.path === 'lake' && a.to === 1), mine = a.path === dest;
@@ -505,6 +513,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // fractions where the lake loop leaves for the forest and comes back, and where the Spires' trail hands over.
     trailAt: (path, s) => { const q = world.paths[path].at(s), o = world.at(0, 0), k = scr.S / (window.devicePixelRatio || 1); return [(q.x - o.x) * k, (q.y - o.y) * k]; },
     trailMarks: () => ({ lakeIn: world.lakeIn, lakeOut: world.lakeOut, spiresIn: world.spiresIn }),
+    // Which branch of the trails he is on (0 the lake's way out, 1 its way back, 2 the peak's, 3 the Spires') and how far along it (for test scripts).
+    onTrail: () => hereOnTrail(),
     progress: () => p,
     scrub(f) {
       p = clamp(f, 0, 1); running = false; scrubbing = 0.16;

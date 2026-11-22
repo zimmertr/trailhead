@@ -15,7 +15,7 @@ declare global {
   interface Window {
     __ready?: boolean
     __info?: Info
-    __api: { hitAt: (act: string) => [number, number] | null; showEvent: (name: string) => number; trigger: (name: string) => boolean }
+    __api: { hitAt: (act: string) => [number, number] | null; showEvent: (name: string) => number; trigger: (name: string) => boolean; trailAt: (path: string, s: number) => [number, number]; onTrail: () => { i: number; s: number } | null; running: () => boolean }
     __rules?: () => string[]
   }
 }
@@ -231,6 +231,53 @@ test('Glissade to camp sets off at once from inside the binoculars', async ({ pa
   const before = (await info(page))?.p ?? 0
   await page.locator('#card-go').click()
   await expect.poll(async () => ((await info(page))?.p ?? 0) - before, { timeout: 1_500 }).toBeGreaterThan(0.01)
+  expect(problems).toEqual([])
+})
+
+// Round 6, G2 (TJ): on the way toward Sideproject Spires, stopped part way and sent on to the Spires again,
+// he carries on up the Spires' trail. He used to turn round and walk back toward the Trailhead first. Two
+// ways of stopping: walking to a point on the trail and standing there, and the Stop button on the way.
+const SPIRES = 3
+async function sentOn(page: Page) {
+  const at = await page.evaluate(() => window.__api.onTrail())
+  if (!at || at.i !== SPIRES) throw new Error(`not stopped on the Spires' trail: ${JSON.stringify(at)}`)
+  await page.locator('#names button', { hasText: 'Sideproject Spires' }).click()
+  // For two seconds he never goes back toward the Trailhead, and by the end he has gone on up the trail.
+  let last = at
+  for (let k = 0; k < 20; k++) {
+    await page.waitForTimeout(100)
+    const now = await page.evaluate(() => window.__api.onTrail())
+    if (!now) break
+    expect(now.i, 'still on the Spires\' trail').toBe(SPIRES)
+    expect(now.s, 'never back toward the Trailhead').toBeGreaterThanOrEqual(at.s - 0.002)
+    last = now
+  }
+  expect(last.s - at.s, 'gone on up the trail').toBeGreaterThan(0.005)
+}
+
+test('stopped at a point on the way to the Spires, he carries on to them', async ({ page }) => {
+  const problems = await open(page, '/')
+  if (await page.locator('#fork').isVisible()) await page.locator('#fork-x').click()
+  // A point a little way up the trail, clear of the kiosk and well inside the window.
+  const size = page.viewportSize() ?? { width: 1280, height: 720 }
+  let spot: [number, number] | null = null
+  for (let k = 30; k >= 12 && !spot; k--) { const q = await page.evaluate((f) => window.__api.trailAt('spires', f), k / 100); if (q[0] > 80 && q[0] < size.width - 80 && q[1] > 100 && q[1] < size.height - 140) spot = q }
+  if (!spot) throw new Error('no point of the Spires\' trail is in the window')
+  await page.mouse.click(spot[0], spot[1])
+  await expect.poll(() => page.evaluate(() => window.__api.running()), { timeout: 2_000 }).toBe(true)
+  await expect.poll(() => page.evaluate(() => window.__api.running()), { timeout: 20_000 }).toBe(false)
+  await sentOn(page)
+  expect(problems).toEqual([])
+})
+
+test('stopped with the Stop button on the way to the Spires, he carries on to them', async ({ page }) => {
+  const problems = await open(page, '/')
+  if (await page.locator('#fork').isVisible()) await page.locator('#fork-x').click()
+  await page.locator('#names button', { hasText: 'Sideproject Spires' }).click()
+  await expect.poll(async () => (await page.evaluate(() => window.__api.onTrail()))?.s ?? 0, { timeout: 10_000 }).toBeGreaterThan(0.03)
+  await page.locator('#run').click()
+  await expect.poll(() => page.evaluate(() => window.__api.running()), { timeout: 2_000 }).toBe(false)
+  await sentOn(page)
   expect(problems).toEqual([])
 })
 

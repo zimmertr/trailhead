@@ -468,3 +468,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Grunt on Each Heave** (round 6, F2). The haul and the stuck rope could have a small effort sound from the two hauling on each heave, as the summit has its cheer.
 - **The Camera Pulls Back for the Haul** (round 6, F2). The camera could ease out to hold TJ and the two hauling in one frame while he is hauled, then close in again at the anchor.
 - **Snow Off the Axes** (round 6, F3). Each swing of an axe on the walk-off could throw a puff of snow, as the ice chips fly on the icefall.
+- **Straight On Where Trails Share** (round 6, G2). On the stretch where the peak's trail and the Spires' trail run together, sent from one to the other he could carry on to where they part instead of walking back to the Trailhead.
