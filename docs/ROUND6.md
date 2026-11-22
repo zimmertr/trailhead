@@ -242,7 +242,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 **F. Proficiency Peak**
 
-- [ ] F1. Climbing 1.5 times faster (note 21).
+- [x] F1. Climbing 1.5 times faster (note 21).
 - [ ] F2. The haul and the stuck rope read at once (note 21).
 - [ ] F3. The snow traverse: on the snow before the pose changes, and short (note 22).
 
@@ -321,7 +321,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **G2 added** by TJ mid-round: resuming a trip toward Sideproject Spires after stopping on the way turns him back toward the Trailhead (section 5, section 8).
 - **E4 done.** On yggdrasil he climbs the staples and the ladder hold by hold, the way people climb a ladder: he stands up on his higher foot, steps the other foot up past it, then moves his lower hand up past the other one, always the hand on the opposite side from the foot, so three of his hands and feet are on the iron all the time. A hand or a boot on a hold stays put while the rest of him moves, his near arm reaches up across his face, and each hand that closes on the iron tinks. He steps in from the ground and takes hold at the foot, pulls over the lip at the top and stands up on the ledge (round 5: two frames slid up the wall, then a moment standing in the air beside the edge). When he stops on a wall to move his lanyards it is between two moves, with his near hand off the iron. The staples, the ladder and the cable now follow the face as it leans back, where round 5's stood off the rock near the top. Day, Dusk and phone checked against round 5.
 - Section E is done.
-- Next: F1.
+- **F1 done.** On Proficiency Peak's wall all three climb half as fast again as in round 5, and the short stops on a pitch (placing and clipping gear, swapping the ropes, taking gear out, building and taking apart an anchor, shaking out an arm) take two thirds of the time. Their hands and feet still step with the distance climbed, so the moves quicken with them. The falls, the hangs and the haul keep their round 5 timing, so they still read (the haul is F2).
+- Next: F2.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -469,6 +470,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - E4, a call: a lanyard stop that falls on a wall is moved to fall between two moves, at least two holds below the lip, so he is never caught with a hand in the air or reaching over the top.
 - E4, a fix beyond the item: the iron did not follow the wall's face, which leans back 6 px from foot to lip, so round 5's top staples stood off the rock and he stood in the air at the top. `rungsOf()` is now the one place the holds come from, for the drawing and for him.
 - E4, frame time: the workstation's load average was 57 to 65 while this was measured, so the numbers swing with it. On the walls at 1920 by 1080, E3 and E4 measured together gave 11.1 and 11.1 ms, then 6.8 and 10.9. The zoomed-out map at Dusk gave E3 30.2 and 15.4, E4 29.4 and 26.4; E4 changes nothing drawn on the map, and check.sh's frame-time gate failed on that load alone. To be measured again at F1 on a quiet machine.
+- F1, a call: "1.5 times faster" covers the climbing and the stops on a pitch, which are part of it; left as they were: walking on the ground, the fall, the slip, the whipper, the hangs after them and the haul, which F2 reworks.
+- F1, frame time (measured again on a quieter machine, load 20 to 31, as promised at E4): the zoomed-out map at Dusk, round 5 11.1 ms, then E4 and F1 side by side 14.0 and 14.3, then 18.9 and 20.0 as the load rose again. F1 changes nothing on the map; round 6's map has measured 13.5 to 15 ms on a quiet machine since D2. check.sh's gate failed both times on the load.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:

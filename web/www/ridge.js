@@ -514,15 +514,17 @@ const below = d => { let k = 0; for (let i = 0; i < ANCHORS.length; i++) if (MAR
 // to rest; the woman slower and careful, wandering a little either side of it and stopping once a
 // pitch to shake out an arm.
 // On the ground they walk at the pace he came through the larch basin at (round 5, T68). On the rock
-// they climb at four times round 4's pace (round 5, T69: TJ watched the scene at 4x and liked it better).
-const SPEED = { walk: 78, lead: 44, tj: 68, red: 52 };
-// How long each stop on a pitch takes, in seconds, at about a third of round 4's: placing a cam or clipping
+// they climb at six times round 4's pace (round 5, T69: TJ watched the scene at 4x and liked it better;
+// round 6, note 21: half as fast again).
+const SPEED = { walk: 78, lead: 66, tj: 102, red: 78 };
+// How long each stop on a pitch takes, in seconds, at about a third of round 4's (and the climbing ones two
+// thirds of that again in round 6, with the pace): placing a cam or clipping
 // a fixed piece, swapping the ropes at one, taking one out or unclipping it, shaking out an arm, clipping
 // in at a belay, taking a belay apart; hanging after a fall and shaking out after it, hanging after a
 // slip; and the least any move takes. An anchor is `first` before its first piece goes in, `each` a
 // piece, then `tie` to bring the slings together and tie in.
-const BEAT = { place: 0.5, clip: 0.3, swap: 0.3, swapFixed: 0.2, clean: 0.4, unclip: 0.25, rest: 0.6, tieIn: 0.3, strip: 0.5, hang: 1.4, shake: 0.8, held: 1.0, least: 0.3 };
-const ANC = { first: 0.2, each: 0.25, tie: 0.35 };
+const BEAT = { place: 0.34, clip: 0.2, swap: 0.2, swapFixed: 0.14, clean: 0.27, unclip: 0.17, rest: 0.4, tieIn: 0.2, strip: 0.34, hang: 1.4, shake: 0.8, held: 1.0, least: 0.3 };
+const ANC = { first: 0.14, each: 0.17, tie: 0.24 };
 const WHO = ['tj', 'lead', 'red'];
 const dAtX = x => { for (let i = 1; i < ROUTE.length; i++) if (ROUTE[i][0] >= x) return lerp(DIST[i - 1], DIST[i], clamp((x - ROUTE[i - 1][0]) / (ROUTE[i][0] - ROUTE[i - 1][0]), 0, 1)); return LEN; };
 // Where each of them stands at an anchor: the leader on it, the woman a stride below, TJ a stride below
