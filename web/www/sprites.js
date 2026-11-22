@@ -325,24 +325,35 @@ function makeShrub(seed, kind) {
 const makeSpruce = (seed, tufts = false) => { const r = rng(seed); return makeConifer(seed, 52 + (r() * 16 | 0), 26 + (r() * 8 | 0), 'conifer', 9, { tufts }); };
 const makeFir = (seed, tufts = false) => { const r = rng(seed); return makeConifer(seed, 22 + (r() * 12 | 0), 9 + (r() * 4 | 0), 'conifer', 6, { tufts }); };
 
+// A fern (art pass D08): five fronds arching out from the crown, the outer ones drooping at the tip, each
+// with leaflets on both sides, lit along its top.
 function makeFern(seed) {
   const rand = rng(seed), b = new BM(11, 7); b.ox = 5; b.oy = 6;
   for (let k = 0; k < 5; k++) {
-    const a = -Math.PI / 2 + (k - 2) * 0.55 + (rand() - 0.5) * 0.2;
+    const a = -Math.PI / 2 + (k - 2) * 0.55 + (rand() - 0.5) * 0.2, out = Math.abs(k - 2);
     for (let j = 1; j <= 4 + (k === 2 ? 1 : 0); j++) {
-      const x = 5 + Math.cos(a) * j * 1.2, y = 6 + Math.sin(a) * j * 0.9 + (Math.abs(k - 2) > 1 ? j * 0.25 : 0);
+      const x = 5 + Math.cos(a) * j * 1.2, y = 6 + Math.sin(a) * j * 0.9 + (out > 1 ? j * 0.25 + j * j * 0.06 : out ? j * j * 0.05 : 0);
       b.set(x, y, j > 3 ? R.moss[5] : R.moss[4]);
+      if (j >= 2 && j < 4 + (k === 2 ? 1 : 0)) { const px = Math.round(x - Math.sin(a)), py = Math.round(y + Math.cos(a) * 0.6); if (!b.get(px, py)) b.set(px, py, out ? R.moss[3] : R.moss[5]); }
     }
   }
   return b;
 }
+// A granite boulder (art pass D08, after boulders painted for the game): squarer than an egg, with a broad
+// pale top, a lit west face and a dark east face meeting at edges, a crack down the west face and a spot
+// or two of lichen on top.
 function makeBoulder(seed, r) {
   const rand = rng(seed), b = new BM(Math.ceil(r * 2.4) + 4, Math.ceil(r * 1.6) + 4); b.ox = b.w >> 1; b.oy = b.h - 2;
+  const tilt = (hash(seed, 1, 71) - 0.5) * 0.5, ridge = (hash(seed, 2, 71) - 0.5) * 0.4;
   for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) {
     const nx = (x - b.ox) / (r * 1.15), ny = (y - (b.oy - r * 0.6)) / (r * 0.7);
-    if (nx * nx + ny * ny > 1 + 0.25 * (vnoise(x / 2, y / 2, seed) - 0.5) || y > b.oy) continue;
-    b.set(x, y, pick('rock', 0.6 - nx * 0.25 - ny * 0.3 + (rand() - 0.5) * 0.15, x, y));
+    if (Math.abs(nx) ** 2.6 + Math.abs(ny) ** 2.4 > 1 + 0.25 * (vnoise(x / 2, y / 2, seed) - 0.5) || y > b.oy) continue;
+    const top = ny < -0.28 + tilt * nx, west = nx < ridge, n = (rand() - 0.5) * 0.15;
+    b.set(x, y, top ? pick('rock', 0.92 + n, x, y, 0.5) : west ? pick('rock', 0.62 - ny * 0.12 + n, x, y, 0.5) : pick('rock', 0.3 - ny * 0.1 + n, x, y, 0.5));
   }
+  // The crack, from the top's edge down the west face.
+  if (r >= 3.5) { let cx = b.ox + Math.round((ridge - 0.35) * r); for (let y = Math.round(b.oy - r * 0.95); y < b.oy - 1; y++) { if (b.get(cx, y)) b.set(cx, y, R.rock[1]); if (hash(cx, y, seed) < 0.35) cx += hash(y, cx, seed) < 0.5 ? -1 : 1; } }
+  for (let k = 0; k < 1 + (r > 5 ? 2 : 0); k++) { const x = b.ox + Math.round((hash(k, 3, seed) - 0.6) * r * 1.4), y = Math.round(b.oy - r * 1.05 + hash(k, 4, seed) * 2); if (b.get(x, y) && b.get(x, y) !== R.rock[1]) b.set(x, y, R.moss[k ? 5 : 6]); }
   outline(b, INK);
   return b;
 }

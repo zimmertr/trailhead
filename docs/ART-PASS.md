@@ -75,7 +75,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **D05 The Trailhead** - the junction sign, the kiosk, the register box and the small signs. `sprites.js` (`makeSignpost`, `makeKiosk`, `makeRegister`, `makeSmallSign`).
 - [x] **D06 The Map's Big Animals** - elk, moose, black bears, mountain goats and the bighorn ram. `sprites.js`, `mapfauna.js`.
 - [x] **D07 The Whale and the Ferry** - `mapfauna.js` (`whale`, `ferry`).
-- [ ] **D08 Boulders, Logs and Shrubs** - `sprites.js` (`makeBoulder`, `makeLog`, `makeShrub`, `makeBush`, `makeHuckleberry`, `makeFern`).
+- [x] **D08 Boulders, Logs and Shrubs** - `sprites.js` (`makeBoulder`, `makeLog`, `makeShrub`, `makeBush`, `makeHuckleberry`, `makeFern`).
 - [ ] **D09 The Lookout, the Tent and the Journal** - `sprites.js` (`makeLookout`, `makeTent`, `makeJournal`).
 - [ ] **D10 Clouds** - `sprites.js` (`makeCloud`).
 - [ ] **D11 Sage, Tumbleweeds and the Dry Country's Plants** - `scenery.js` (`sageBush`), `events.js`.
@@ -289,3 +289,10 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - D07, a call: the humpback is left as it was. Its breach is drawn as a lit 3D body frame by frame and already reads as the pictures' whales do; none of them was a better reference.
 - D07, a call: `ground.png` was rebaked because its fingerprint covers `mapfauna.js`; its pixels are identical.
 - D07: frame time 12.8 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- D08, the before: the boulders were smooth ellipses shaded by a gradient and speckled with dither, so they read as grey eggs. The bushes and shrubs were round blobs with a rim, the ferns a few one-pixel strokes. The logs (round cut ends, furrowed bark, moss) and the red huckleberry already read.
+- D08, the pictures: 7 in all. Qwen's seed 2 was picked: a faceted granite boulder with a pale top, a lit left face, a dark right face, a crack and lichen, bushes of leaf clusters and arching ferns. The style model's seed 4 has the same faceted boulders in a meadow. The prompts are in `design/art/D08/log.jsonl`.
+- D08, a call: `makeBoulder` keeps its size and foot. Its outline is squarer, a top plane tilted a little by the seed is the pale grey, the west face the middle grey and the east face the dark, a crack runs down the west face on boulders of radius 3.5 and up, and one to three pixels of lichen sit on top.
+- D08, a call: the bushes and shrubs were tried built of two of the trees' leaf clumps (`clump`, D03) with berries and heather bells on the lit side. At 14 by 10 pixels the clumps came out squat and flat-topped, worse than the round blobs, even made larger and set higher, so `makeBush` and `makeShrub` are kept as they were.
+- D08, a call: `makeFern`'s outer fronds droop at their tips and each frond carries leaflets, lit on the middle frond and darker on the outer ones. The logs and the huckleberry are unchanged.
+- D08, a call: `ground.png` was rebaked; 642 pixels changed, the boulders the land draws into it.
+- D08: frame time 13.6 ms zoomed out at Dusk; the last commit measured 13.7 ms in the same sitting, so the rise from D07 is the machine, not the change. 36 browser tests pass; nothing on the map moved; no new colours.
