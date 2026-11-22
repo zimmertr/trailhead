@@ -63,7 +63,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **C02 The Glacier on the Walk to Camp** - the ice, the crevasses and the Spires ahead. `approach.js` (`paintIce`, `makeSpires`, `paintWall`).
 - [x] **C03 Proficiency Peak's West Ridge** - the ridge, its blocks and the summit tower, and the basin below. `ridge.js` (`paintRidge`, `paintBasin`, `paintFar`).
 - [x] **C04 The Larch Basin Scene** - the benches, the larches, the far spires and glacier, the peak ahead. `larches.js` (`paintFar`, `paintMid`, `paintMain`, `makePeak`).
-- [ ] **C05 The Peak over Reflection Lake** - the big peak and the water at the lake. `lakeside.js` (`paintPeak`, `lakeWater`).
+- [x] **C05 The Peak over Reflection Lake** - the big peak and the water at the lake. `lakeside.js` (`paintPeak`, `lakeWater`).
 - [ ] **C06 The Spires' Climbs** - the six climbs' rock, snow, talus and gullies. `climb.js` (`paint`, `talusField`, `couloirWalls`, `crag`).
 
 ### The Rest of the Map
@@ -231,3 +231,9 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - C04, a call: `makePeak` paints broad planes a few columns wide, each a shade lighter or darker, cut by long vertical cracks with a lit lip, with half the dithering and no per-pixel noise; the picture's peak is clean planes, not speckle. The glacier under the tallest far spire has two or three bowed, broken crevasses and a blue ice front instead of even stripes.
 - C04, a call: the larches are sprites with their own items (D01, D03), and the far range and spires are the background mountains' item, so both were left as they are. The cliff left of the rungs keeps its jointed grey rock.
 - C04: frame time 11.9 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- C05, the before: the lake's mirror and its own turquoise were dithered together in a checker, so the reflection of Monolith read as grain; a pale stripe two pixels deep ran the whole length of the far shore, like a rail between the trees and the water. The mountain is the map's own picture (M01) shrunk to three quarters by taking the nearest pixel.
+- C05, the pictures: 8 in all. Qwen drew the far shore as a black band and the water as flat cyan on every seed. The style model's seed 2 was picked for the water: the shore's trees reflected crisp and long, the mountain's reflection under them, and the mirror broken by long horizontal slivers of water rather than speckle. The prompts are in `design/art/C05/log.jsonl`.
+- C05, a call: `lakeWater` breaks the mirror where a slow noise, stretched long along the rows, falls under the mirror's share, so the lake's own water shows in horizontal slivers that drift, more of them nearer this shore. The checker is gone; the cat's paws, the swell and the swim's rings work as before.
+- C05, a call: the far shore's edge is the dark of its trees, with a pale gravel spit only here and there, instead of a pale stripe the whole way along.
+- C05, a call: the mountain was not changed. Shrinking it by taking the rarest colour among the pixels each one covers kept the thin lines but made its dithering speckle all over, which was worse, so the nearest pixel stays. Its look is the map's (M01).
+- C05: frame time 11.8 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.

@@ -134,7 +134,9 @@ function lakeWater(scr, hor, base, t, farS, farX, peak, peakX, sink, sw) {
       const src = f || peak.get(((peakX + x + r) % pw + pw) % pw, py0);
       let v = 0.62 - 0.3 * smooth(0.55, 0, depth) + 0.07 * Math.sin(x / 19 + dy);
       if (src) {
-        if (dy >= 2 && bayer(x, y) < k) { fb[row + x] = SHADE[src]; continue; }
+        // The mirror breaks in long horizontal slivers of the lake's own water, more of them nearer, as
+        // the picture shows, rather than in a checker of mirror and water.
+        if (dy >= 2 && vnoise((x + r * 3) / 44 - t * 0.4, dy / 1.15, 598) < k * (0.55 + 0.45 * (1 - depth))) { fb[row + x] = SHADE[src]; continue; }
         const lum = (0.3 * DAY[src][0] + 0.59 * DAY[src][1] + 0.11 * DAY[src][2]) / 255; v = lerp(v, 0.15 + lum * 0.75, f ? 0.6 : 0.45);
       }
       if (dy < 2) v = 0.05;
@@ -165,7 +167,7 @@ function buildLakeside() {
   const farS = new Strip(1400, 60, 4);
   for (let x = 0; x < 1400; x++) {
     const top = -9 - 9 * fbm(x / 36, 2, 136, 3) - 6 * Math.max(0, Math.sin(x / 57 + 1));
-    for (let y = Math.round(top); y < 2; y++) farS.set(x, y, y > -2 ? R.gold[5] : fbm(x / 14, y / 5, 137, 3) > 0.52 ? pick('rock', 0.62 + 0.3 * (hash(x >> 1, y >> 1, 138) - 0.5), x, y, 0.5) : pick('conifer', 0.3 + 0.3 * hash(x, y, 139), x, y));
+    for (let y = Math.round(top); y < 2; y++) farS.set(x, y, y > -2 ? (vnoise(x / 9, 1, 141) > 0.76 ? R.gold[3] : R.conifer[0]) : fbm(x / 14, y / 5, 137, 3) > 0.52 ? pick('rock', 0.62 + 0.3 * (hash(x >> 1, y >> 1, 138) - 0.5), x, y, 0.5) : pick('conifer', 0.3 + 0.3 * hash(x, y, 139), x, y));
   }
   for (let n = 0; n < 900; n++) { const x = rand() * 1400, cl = fbm(x / 80, 7, 140, 3); if (cl < 0.36) continue; const fx = Math.round(x), fy = Math.round(-3 - rand() * 12), fh = 8 + (rand() * 12 * cl | 0), fc = rand() < 0.5 ? 1 : 2; if (!INFLOW.some(c => Math.abs(fx - c) < 7)) miniFir(farS, fx, fy, fh, fc); }
   // Each inflow's bed (T30): a gap in the far trees, grey rock either side, the water widening as it comes
