@@ -46,7 +46,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A10 Reflection Lake** - the lake on the map, its shore, island and boardwalk. `land.js` (`lakeAt`, `lakeRim`).
 - [x] **A11 Moraine Textures** - the moraine band round Monolith, the glacier's moraines and the Spires' shelf. `land.js` (`colour`, the moraine material).
 - [x] **A12 Moraine Tarns** - the tarns at the foot of Monolith's glaciers and on the larch benches. `monolith.js` (`moraineLakes`), `land.js` (the tarns).
-- [ ] **A13 The Burned Trees** - Postmortem Burn's charred snags. `sprites.js` (`makeSnag`), `scenery.js`.
+- [x] **A13 The Burned Trees** - Postmortem Burn's charred snags. `sprites.js` (`makeSnag`), `scenery.js`.
 - [ ] **A14 The Orca Pod** - the orcas in the sea. `critters.js` (`orcas`, `orcaBack`).
 - [ ] **A15 Tide Pools** - the pools left on the beach at low tide. `critters.js` (`tidePools`).
 - [ ] **A16 Driftwood** - the logs along the beach. `sprites.js` (`makeDriftwood`).
@@ -166,3 +166,8 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A12, a call: each lake's water is drawn in bands from the ice to the shore: one dark row under the ice front and a broken one below it, pale silty water with faint plumes for the first third or so, a deeper turquoise in the middle with a few pale flecks, and pale shallows along the shore and round the ends. The ice, the rim, the notch and the stream are as they were. No floating ice was added, since that would be new.
 - A12, a call: the larch benches' tarns were redrawn in A05 (pale where shallow, darker in the middle, the milky ones with a pale rim), so they are left as they are.
 - A12: frame time 11.5 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
+- A13, the before: every dead tree of Postmortem Burn was a one-pixel grey stick with four limbs, wrapped in a black outline, and stood so close that the outlines ran together into a tangle like barbed wire.
+- A13, the pictures: 8 in all. The style model's seed 4 was picked: straight, tapering trunks of three kinds, weathered silver lit on the left, charred black with a few patches of bark, and bronze ones still in their bark, with short stub limbs angled up and fireweed beneath. Qwen drew a field of fine spikes in mist on every seed and was set aside. The prompts are in `design/art/A13/log.jsonl`.
+- A13, a call: a dead tree is a trunk two pixels wide below and one above, lit on its left and dark on its right; silver ones have paler streaks, charred ones a few patches of bronze bark, bark ones are brown. The top is a fine spike, a snapped jagged end or a crown of stubs, with a few short stubs angled up lower down. The black edge is drawn only on the shaded right, so close trunks read one by one. The trees stand exactly where they did.
+- A13, a call: two of the five snag shapes the land places are charred, the rest silver, and one in three of the burn's darker trees keeps its bark, so the burn reads as burned and not as a grey wood.
+- A13: frame time 11.5 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.

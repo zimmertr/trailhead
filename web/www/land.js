@@ -1369,7 +1369,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   // The bigleaf maples stood still as one drawing until round 6 (I1): now their crowns sway as every tree's does.
   const bigleaf = Array.from({ length: 4 }, (_, i) => ({ ...swaying(blobTree(800 + i, i & 1 ? 'larch' : 'sun', 36 + i * 2, 'bark', 5, 5.5)), low: false }));
   const larches = Array.from({ length: 6 }, (_, i) => { const r = rng(900 + i); return makeConifer(900 + i, 24 + (r() * 14 | 0), 10 + (r() * 4 | 0), 'larch', 6); });
-  const pines = Array.from({ length: 5 }, (_, i) => makePonderosa(820 + i)), aspens = Array.from({ length: 7 }, (_, i) => makeAspen(600 + i)), snags = Array.from({ length: 5 }, (_, i) => makeSnag(730 + i));
+  const pines = Array.from({ length: 5 }, (_, i) => makePonderosa(820 + i)), aspens = Array.from({ length: 7 }, (_, i) => makeAspen(600 + i)), snags = Array.from({ length: 5 }, (_, i) => makeSnag(730 + i, i % 2 ? 'char' : 'silver'));
   // The rainforest (E5b2, after the Olympic Peninsula): below the ranks on the hills, a mix picked by how
   // wet the spot is. Wet (by the sea, the valley floors, the trail): mostly mossy maples, Sitka spruce
   // and redcedar, with a gold bigleaf maple now and then. Drier (up the hills, the east edge): mostly

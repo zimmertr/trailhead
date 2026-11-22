@@ -499,12 +499,30 @@ function makeCat(name, pose, seed) {
 }
 
 
-// A silver snag: a dead tree bleached grey, a few broken limbs.
-function makeSnag(seed) {
+// A dead tree of Postmortem Burn (A13, after a picture of a burned Cascade forest a few years on): a
+// straight, tapering trunk, two pixels wide below and one above, lit on its left by the sun in the upper
+// left and dark on its right. Silver ones are weathered grey with paler streaks, charred ones black with a
+// few patches of bronze bark left, bark ones still in their brown bark. The top is a fine spike, a snapped
+// jagged end or a crown of short stubs angled up; a few more stubs stand lower down. The dark edge is only
+// on the shaded right, so trunks standing close read one by one instead of as a tangle.
+function makeSnag(seed, kind = 'silver') {
   const rand = rng(seed), H = 20 + (rand() * 12 | 0), b = new BM(13, H + 2); b.ox = 6; b.oy = H;
-  for (let y = 1; y <= H; y++) { b.set(6, y, R.rock[y & 3 ? 3 : 2]); if (y > H * 0.5) b.set(5, y, R.rock[4]); }
-  for (let k = 0; k < 4; k++) { const y = 3 + k * (H * 0.2) + rand() * 2, s = k & 1 ? 1 : -1, len = 2 + rand() * 3; thick(b, 6, y + 2, 6 + s * len, y, 1, R.rock[3]); }
-  outline(b, INK);
+  const C = kind === 'char' ? [R.basalt[0], R.basalt[1], R.basalt[2], R.basalt[3]] : kind === 'bark' ? [R.bark[0], R.bark[1], R.bark[2], R.bark[3]] : [R.rock[1], R.rock[2], R.rock[3], R.rock[4]];
+  const top = rand(), spike = top < 0.4, snapped = top >= 0.4 && top < 0.75, cut = snapped ? Math.round(H * (0.12 + 0.12 * rand())) : 1, thin = Math.round(H * (spike ? 0.4 : 0.22));
+  for (let y = cut; y <= H; y++) {
+    const streak = hash(seed, y >> 2, 21) < 0.3, patch = kind === 'char' && hash(seed, y >> 1, 22) < 0.1;
+    b.set(6, y, patch ? R.bark[2] : y < thin ? C[2] : streak && kind === 'silver' ? C[3] : C[2]);
+    if (y >= thin) b.set(7, y, patch ? R.bark[1] : C[1]);
+    if (y >= thin) b.set(6, y, patch ? R.bark[3] : streak ? C[3] : C[2]);
+  }
+  if (snapped) { b.set(7, cut, C[1]); b.set(6, cut - 1, C[2]); }
+  // Stubs: short limbs angled up, more at the top of a crowned snag.
+  const stubs = 2 + (rand() * 3 | 0) + (!spike && !snapped ? 2 : 0);
+  for (let k = 0; k < stubs; k++) { const y = Math.round(cut + 2 + rand() * (H * 0.55)), s = k & 1 ? 1 : -1, len = 1 + (rand() * 2.5 | 0), x0 = s > 0 ? 7 : 6;
+    for (let d = 1; d <= len; d++) b.set(x0 + s * d, y - Math.floor(d * 0.7), s < 0 ? C[3] : C[1]); }
+  // The dark edge on the shaded right only.
+  const o = b.d.slice(); for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w - 1; x++) if (b.d[y * b.w + x] && !b.d[y * b.w + x + 1]) o[y * b.w + x + 1] = INK;
+  b.d = o;
   return b;
 }
 // A low shrub. Huckleberry going red, or heather in flower.

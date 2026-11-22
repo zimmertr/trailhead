@@ -38,6 +38,7 @@ function sageBush(seed) {
   outline(b, R.sage[0]);
   return b;
 }
-const charred = seed => { const s = makeSnag(seed); for (let i = 0; i < s.d.length; i++) if (s.d[i] && s.d[i] !== INK) s.d[i] = hash(i, seed, 5) < 0.55 ? R.basalt[1] : R.rock[3]; return s; };
+// The burn's darker dead trees (A13): charred black, one in three still in its bark.
+const charred = seed => makeSnag(seed, seed % 3 === 0 ? 'bark' : 'char');
 
 export { blobTree, seaStack, sageBush, charred };
