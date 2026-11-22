@@ -15,7 +15,7 @@ declare global {
   interface Window {
     __ready?: boolean
     __info?: Info
-    __api: { hitAt: (act: string) => [number, number] | null }
+    __api: { hitAt: (act: string) => [number, number] | null; showEvent: (name: string) => number }
     __rules?: () => string[]
   }
 }
@@ -178,6 +178,17 @@ test('the debug panel shows a map event where it happens, from a split button', 
 })
 
 // Round 4's address for it, which links may still carry.
+test('every start button with a place on the map moves the view there and keeps it on the map', async ({ page }) => {
+  const problems = await open(page, '/')
+  for (const name of ['tumble', 'devil', 'avalanche', 'serac', 'lens']) {
+    await page.evaluate((n) => window.__api.showEvent(n), name)
+    await page.waitForTimeout(400)
+    const o = (await info(page))?.o
+    expect(Number.isFinite(o?.x) && Number.isFinite(o?.y), `the view after showing ${name}`).toBe(true)
+  }
+  expect(problems).toEqual([])
+})
+
 test('Glissade to camp sets off at once from inside the binoculars', async ({ page }) => {
   const problems = await open(page, '/#sideproject-spires/trailhead')
   await expect(page.locator('#card-go')).toBeVisible()

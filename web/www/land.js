@@ -1415,7 +1415,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { mesa, eastAmt, g, depth: zb, mat: mb, bare, fogField, mouthFog, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { mesa, eastAmt, g, depth: zb, mat: mb, bare, fogField, mouthFog, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, palAmt, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -1596,12 +1596,19 @@ function habitat() {
   // In the sea: jellyfish in open water beyond the surf (T26), the whale farther out, the ferry's course past both.
   const clearSea = new Set(R.sea), sea = (lo, hi) => (u, v) => { const c = S.coast(u, v); return c > lo && c < hi && S.toY(u, v) < SH - 50 && shows(u, v, 4) && clearSea.has(S.g[S.toY(u, v) * NW + Math.round(u)]) && clearSea.has(S.g[(S.toY(u, v) - 6) * NW + Math.round(u)]); };
   const jelly = find(8, sea(50, 110), 26), whale = best(sea(90, 150), (u, v) => -Math.abs(S.coast(u, v) - 115) + 6 * rnd());
-  // The timed events of E5k. Tumbleweeds start in open sage with 120 of firm ground east of them, the way
-  // the wind rolls them; dust devils spin up on bare dry flats, in the north and the middle of the dry
+  // The timed events of E5k. Tumbleweeds start on the Palouse with 150 of firm ground east of them, the
+  // way the wind rolls them; dust devils spin up on bare dry flats, in the north and the middle of the dry
   // corner (T13): its east and south edges lie under the menus, the timeline and the sign. The corner is
   // measured on the picture from its own dry ground, and a spot must leave its devil the room it wanders in
   // (18 west of where it starts, 54 east) on level dry ground in plain sight, clear of the creek and the elk.
-  const tumbles = find(3, (u, v) => S.sageAmt(u, v) > 0.6 && firm(u, v, 0.5) && shows(u, v, 6) && [30, 60, 90, 120].every(d => firm(u + d, v, 0.9)), 60);
+  // Tumbleweeds roll on the open Palouse (note 5): the golden hills north of the sage, with nothing
+  // standing within 10 of the line they roll along, so the whole roll is seen against bare grass.
+  const PAL = S.things.filter(t => S.palAmt(t.x, t.v) > 0.3), bareRoll = (u, v) => !PAL.some(t => t.x > u - 10 && t.x < u + 160 && Math.abs(t.v - v) < 10);
+  // Every 3 of the 120 it rolls is firm Palouse in plain sight (the ground at that depth is the ground the
+  // picture shows there): collide.js asks the same of every pixel, and a roll that runs behind a hill in
+  // front stopped dead after 30 (C4).
+  const seenRoll = (u, v) => { for (let d = 0; d <= 120; d += 3) { const x = Math.round(u + d), y = S.toY(u + d, v); if (y < 0 || y >= SH || Math.abs(S.depth[y * NW + x] - v) > 3 || !firm(u + d, v, 1) || S.palAmt(u + d, v) < 0.4) return false; } return true; };
+  const tumbles = find(3, (u, v) => S.palAmt(u, v) > 0.6 && S.sageAmt(u, v) < 0.4 && firm(u, v, 0.7) && shows(u, v, 10) && seenRoll(u, v) && bareRoll(u, v), 30);
   const dryFlat = (u, v) => S.dryAmt(u, v) > 0.6 && S.sageAmt(u, v) > 0.3 && firm(u, v, 0.4);
   const DRY = GRID.filter(([u, v]) => dryFlat(u, v) && S.toY(u, v) < SH), dxs = DRY.map(p => p[0]), dys = DRY.map(p => S.toY(...p));
   // The corner's extent, worked out once: the search below asks it for every point of the grid (K3).
@@ -1634,7 +1641,7 @@ function habitat() {
     jelly: jelly.map((p, n) => [...out(...p), n % 3 ? 0 : 1]),
     whale: whale ? out(...whale) : [0, 0],
     ferry,
-    tumbles: tumbles.map(([u, v]) => ({ x: Math.round(u), ys: Int16Array.from({ length: 141 }, (_, d) => S.toY(u + d, v)) })),
+    tumbles: tumbles.map(([u, v]) => ({ x: Math.round(u), ys: Int16Array.from({ length: 171 }, (_, d) => S.toY(u + d, v)) })),
     devils: devils.map(p => out(...p)),
     // Birds circle over the elk's parkland, the dry corner and the granite; gulls over the sea by the beach.
     flocks: [

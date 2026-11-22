@@ -2,15 +2,20 @@
 // devils spinning up on the dry flats and a shooting star on the Dusk sky. (The float plane left in round 5,
 // T12.) Where each happens comes from land.js (habitat); each runs on the
 // scenes' clock, so the speed buttons work on it, and each can be started now from the debug panel.
-import { TAU, smooth, hash, bayer, R, BM, thick } from './core.js';
+import { TAU, smooth, hash, bayer, R, BM, thick, outline } from './core.js';
 import { NW } from './land.js';
 
 // A tumbleweed, four turns of it: a tangle of dry stems round a hollow middle, in browns darker than the
 // dry ground and the sage it rolls over, with a few sunlit stems.
+// A tumbleweed, 15 across (note 5: the 9 of round 5 was lost on the hills): a ball of dead stems round
+// a dark core, the stems pale where the light catches them and an outline of the darkest wood, so it
+// reads against the gold grass at Day and Dusk. f turns it, one sixteenth of a turn a drawing.
 function weed(f) {
-  const b = new BM(9, 9); b.ox = 4; b.oy = 8;
-  for (let k = 0; k < 9; k++) { const a = k / 9 * TAU + f * TAU / 16, r = 2.6 + 1.4 * hash(k, 1, 7101); thick(b, 4 + Math.cos(a) * 1.2, 4 + Math.sin(a) * 1.2, 4 + Math.cos(a + 0.9) * r, 4 + Math.sin(a + 0.9) * r, 1, k % 3 ? R.wood[2] : R.wood[1]); }
-  for (let k = 0; k < 18; k++) { const a = k / 18 * TAU - f * TAU / 16; if (hash(k, 2, 7102) < 0.7) b.set(4 + Math.cos(a) * 3.6, 4 + Math.sin(a) * 3.4, k & 1 ? R.wood[3] : R.dry[3]); }
+  const b = new BM(15, 15); b.ox = 7; b.oy = 14;
+  for (let k = 0; k < 13; k++) { const a = k / 13 * TAU + f * TAU / 16, r = 4.6 + 2 * hash(k, 1, 7101); thick(b, 7 + Math.cos(a) * 1.6, 7 + Math.sin(a) * 1.6, 7 + Math.cos(a + 0.9) * r, 7 + Math.sin(a + 0.9) * r, 1, k % 3 ? R.wood[2] : R.wood[1]); }
+  for (let k = 0; k < 28; k++) { const a = k / 28 * TAU - f * TAU / 16; if (hash(k, 2, 7102) < 0.75) b.set(7 + Math.cos(a) * 6, 7 + Math.sin(a) * 5.8, k & 1 ? R.wood[3] : R.wood[4]); }
+  for (let j = 5; j <= 9; j++) for (let i = 5; i <= 9; i++) if ((i - 7) ** 2 + (j - 7) ** 2 <= 4 && hash(i, j, 7103 + f) < 0.6) b.set(i, j, R.wood[0]);
+  outline(b, R.wood[0]);
   return b;
 }
 // A sprite seen only in part: each pixel shows where the dither is under a, so it can fade in and out.
@@ -60,16 +65,18 @@ export function makeEvents(W, col) {
     return n > 0 && s >= 0 && s < e.dur ? [n, s] : null;
   };
 
-  // A tumbleweed rolls east about 140 pixels on a gust, bouncing, turning as it goes, and fades out.
+  // A tumbleweed rolls east about 170 pixels on a gust, bouncing, turning as it goes, and fades out.
   // How far each tumbleweed may roll before ground a land thing may not cross (collide.js) stops it.
-  const rollTo = spots.tumbles.map(T => { for (let d = 0; d <= 140; d++) if (T.ys[d] == null || !col.canBe('land', T.x + d, T.ys[d], 0)) return Math.max(0, d - 2); return 140; });
+  const rollTo = spots.tumbles.map(T => { for (let d = 0; d <= 170; d++) if (T.ys[d] == null || !col.canBe('land', T.x + d, T.ys[d], 0)) return Math.max(0, d - 2); return 170; });
   function tumble(scr, ox, oy, n, s) {
     const T = spots.tumbles[n % spots.tumbles.length], d = Math.min(rollTo[n % spots.tumbles.length], 19 * s + 3 * Math.sin(s * 1.7)), y = T.ys[Math.round(d)];
-    const hop = Math.abs(Math.sin(s * 2.7)) * 4 * (1 - s / 9), a = smooth(0, 0.6, s) * smooth(8, 6.8, s), bm = weeds[Math.floor(d / 2.2) & 3];
+    const hop = Math.abs(Math.sin(s * 2.7)) * 7 * (1 - s / 9), a = smooth(0, 0.6, s) * smooth(8, 6.8, s), bm = weeds[Math.floor(d / 3) & 3];
+    // Its shadow on the ground, shrinking as it bounces up, then the weed over it.
+    const sw = Math.round(5 - hop * 0.3); for (let i = -sw; i <= sw; i++) if (bayer(i, y) < a * 0.9) { scr.set(Math.round(T.x + d + i - ox), y - oy, R.wood[0]); if (Math.abs(i) < sw - 1) scr.set(Math.round(T.x + d + i - ox), y + 1 - oy, R.wood[1]); }
     blitA(scr, bm, Math.round(T.x + d - bm.ox - ox), Math.round(y - hop - bm.oy - oy), a);
-    // Its shadow on the ground, and a puff of dust where it lands.
-    for (let i = -2; i <= 2; i++) if (bayer(i, y) < a * 0.8) scr.set(Math.round(T.x + d + i - ox), y - oy, R.ochre[0]);
-    if (hop < 0.6) { scr.set(Math.round(T.x + d - 4 - ox), y - 1 - oy, R.sand[2]); scr.set(Math.round(T.x + d - 5 - ox), y - oy, R.sand[1]); }
+    // A puff of dust behind it each time it lands, spreading and thinning over a third of a second.
+    const land = (s * 2.7 / Math.PI) % 1, puff = land < 0.3 ? 1 - land / 0.3 : 0;
+    if (puff > 0) for (let k = 0; k < 7; k++) { const px = Math.round(T.x + d - 6 - k * (1.2 + 1.6 * (1 - puff)) - ox), py = y - (k & 1) - Math.round((1 - puff) * 2) - oy; if (hash(k, Math.floor(s * 10), 7104) < puff * a) scr.set(px, py, k & 2 ? R.sand[2] : R.sand[1]); }
   }
   // A dust devil spins up, wanders a little with the wind and leans with it, and falls apart. Its dust is
   // paler than the dry ground on the side toward the light and shaded on the other, so it reads as a column.
@@ -106,7 +113,8 @@ export function makeEvents(W, col) {
     },
     // Where a tumbleweed or a dust devil starts, for the debug panel to look there first. A shooting star
     // crosses whatever sky is in view, so it has no place.
-    where(name) { const s = name === 'tumble' ? spots.tumbles : name === 'devil' ? spots.devils : null; return s && s.length ? s[0] : null; },
+    // A tumbleweed's start is its roll (x and the ground's height along it), so the place is the middle of the roll.
+    where(name) { if (name === 'tumble') { const T = spots.tumbles[0]; return T ? [T.x + 60, T.ys[60]] : null; } return name === 'devil' && spots.devils.length ? spots.devils[0] : null; },
     // The debug panel's start buttons. The shooting star only shows at Dusk, so its button says no by Day.
     trigger(name, t) {
       if (!EV[name] || !EV[name].ok()) return false;
