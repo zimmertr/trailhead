@@ -207,7 +207,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Two Free Colours** (round 5, D10). The palette has two colours left. A hazed grey pair for far rock would let the distant ranges sit further back without the dithered haze.
 - **A Cloud Cap on the Tooth** (round 5, D11). Now and then a small banner cloud could trail east off Little Tahoma's tip while the summit wears its lens cloud.
 - **Hand Over Hand on the Rungs** (round 5, D12). On the map TJ could climb the rungs with his own climbing frames, slower than he walks, and a goat could watch from the lip.
-- **Rungs on the Lower Cliff** (round 5, D12). The trail's gap through the lower band of cliff could take a short run of rungs or a few cut steps, so both cliffs on the way are crossed on purpose.
 - **A Log Jam at the River's Mouth** (round 5, D13). Where the biggest river meets the sea, a dozen logs could pile against each other, the way they do at the mouth of a real coastal river.
 - **Walk the Logs** (round 5, D13). In a free explore mode TJ could balance along a driftwood log, arms out, and hop off its end.
 - **Logs That Float on a High Tide** (round 5, D13). On the highest tide one or two logs nearest the water could lift, drift a few pixels and settle somewhere new when the water goes out.
@@ -286,7 +285,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Beard That Sways** (round 5, F1). The old man's beard on the forest's middle ground moving a pixel or two with the wind, as the near limbs' moss curtains could too.
 - **Licorice Ferns on the Limbs** (round 5, F1). Small ferns growing out of the moss on top of the big limbs, as they do on bigleaf maples in the Hoh.
 - **A Bigleaf Maple** (round 5, F1). One broad, many-armed maple in the middle ground, every arm sleeved in moss, to break the row of straight conifer trunks.
-- **Devil's Club and Skunk Cabbage** (round 5, F1). Two more rainforest plants for the wet ground by the creek: big spiny leaves, and yellow hoods in spring.
+- **Devil's Club** (round 5, F1). A rainforest plant for the wet ground by the creek: big spiny leaves on tall canes. (Its partner, skunk cabbage, grows round the bog since round 6, C3.)
 - **Drip From the Beard** (round 5, F1). After the shower event, a drop falling now and then from the tips of the hanging lichen.
 - **Monolith Rises Over the Rim** (round 5, F2). As he climbs the legs, Mount Monolith's summit comes up over the rock band's rim, so the lakeshore's big view is promised before the scene changes.
 - **The Fall's Roar** (round 5, F2). A waterfall sound in the forest scene that grows as he nears the rock band, over the forest's own ambience.
@@ -413,7 +412,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Only the Letters Used** (round 5, J3). Subset Jersey 10, Tiny5 and Silkscreen to the characters the site's own words use, which could halve the 40 KB the first screen waits for.
 - **The Walk in CI** (round 5, K1). Run `walk.sh`'s walk of every route as a Playwright test in the browser job, at 8x on the page's clock, so a stop that never lets him go fails the PR; time the heaviest views against 16.7 ms there too, and attach the sheet of stops to the run. The smoke test round 5 added (S1b) covers the start, a few points of each route and a clean console.
 - **Views by Place, Not by Fraction** (round 5, K2). Give `refs.sh` views named by stop or scene (`stop=` or a scene's own start) instead of `p`, so two builds with different scene lengths still compare the same place.
-- **Bake the Places Too** (round 5, K3). `habitat()` and the trail routing run on every start; their results could go into the bake beside the ground, which would take most of the remaining 70 to 90 ms back.
+- **Bake the Places Too** (round 5, K3). `habitat()` and the trail routing run on every start; their results could go into the bake beside the ground, which would take most of the remaining 70 to 90 ms back. Since round 6 (K3) the forest field, `forestAmt`, read for every pixel of land at each start, is the largest part of that.
 - **Load Time in CI** (round 5, K3). The browser job could time the start three times and fail over 0.9 s, so a slow search like E8's is caught the day it lands.
 
 ## Round 6 (2026-11-21)
@@ -421,7 +420,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Lighter Ground** (round 6, A2). `ground.png` is 1.5 MB of the page's 2.1 MB. Saved as an indexed PNG (its pixels are palette indices already) or as WebP, it could be a third of that, and the first screen would come sooner on a phone.
 - **Cache the Game for Good** (round 6, A2). `build.mjs` could put a short content hash in each module's name and rewrite the imports, so nginx can mark every file immutable as it did for Vite's assets, and a return visit loads nothing but the page.
 - **Live Numbers on the Page of Text** (round 6, A2). The page of text could show each project's stars and release under its name, asked from `api` when the page opens, as the cards do.
-- **When the Numbers Were Read** (round 6, A2). A project card could say "as of" the API's `fetchedAt`, small under the stars, so a stale count reads as stale.
+- **When the Numbers Were Read** (round 6, A2). A project card could say "as of" the API's `fetchedAt`, small under the stars, so a stale count reads as stale. When the API can't be reached, the card shows the numbers baked into the game; it could say when those were read (the YAML says), so an old number never passes for a live one.
 - **Axe on Every Scene** (round 6, A2). The browser suite runs axe on the world and the page of text; it could also run it on an open card, the trail map, the register and the debug menu.
 - **Drafts Marked Line by Line** (round 6, A4). A card is a draft or not as a whole today, so a card with one line of TJ's and three of the planner's says "draft" over all of it. Now that the words are YAML, a `draft: true` beside one line (or a list of approved lines) could let the page of text and the card mark exactly the words TJ has not approved yet.
 - **Words That Fit** (round 6, A4). A test could set every card's words in the card's own width and font (the browser suite already opens each one) and fail when a line TJ writes runs past the placard or wraps a plank, so an edit in `content/game/` can't break the layout unseen.
@@ -473,5 +472,3 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Tin of Coloured Pencils** (round 6, H1). The tin on the back wall could hold the picture's mix of pencils (yellow, green, red, a pen) with a lit stripe down the tin, instead of three plain sticks.
 - **Pages That Curl at the Gutter** (round 6, H1). The open book could show its pages rising toward the spine, a shade lighter along the curve, as the picture's book does; the handwriting would have to follow the curve, so it waits.
 - **A Frame-Time Check per View** (round 6, K3). `check.sh` times only the zoomed-out map at Dusk. It could time each scene at its heaviest moment as well, beside the last item's numbers, so a slow scene shows up on the item that made it, not at the round's end.
-- **The Forest Field Baked** (round 6, K3). `forestAmt` is read for every pixel of land at each start. `bake.sh` could keep it in `ground.png` beside the ground, as it keeps the heights, and take most of a tenth of a second off the start.
-- **Say When the Numbers Are Old** (round 6, K4). When the API cannot be reached, a project card shows the stars and release baked into the game without saying so. It could add a small "as of" date (the YAML says when they were read), so an old number never passes for a live one.

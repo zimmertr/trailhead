@@ -1,6 +1,6 @@
 # Product requirements
 
-What tjzimmerman.com is and the rules it is built to, as of round 6 (2026-11-21). TJ decides every requirement here. A decision that changes one gets a record under [`architectural-decision-records/`](architectural-decision-records/README.md), and this page is corrected in the same PR. The round being built is planned in [`ROUND6.md`](ROUND6.md); ideas not yet built are in [`IDEAS.md`](IDEAS.md).
+What tjzimmerman.com is and the rules it is built to, as of round 6 (2026-11-21). TJ decides every requirement here. A decision that changes one gets a record under [`architectural-decision-records/`](architectural-decision-records/README.md), and this page is corrected in the same PR. Ideas not yet built are in [`IDEAS.md`](IDEAS.md).
 
 ## 1. What it is
 
@@ -31,6 +31,21 @@ A page of text carries every card's words for anyone who wants to skip the world
 11. **Nothing from elsewhere.** The page loads only from its own site: its fonts are its own files, and the site's policy allows no inline script, inline style or `data:` image.
 
 ## 3. The places
+
+### The land
+
+These come from TJ and hold for every round. Requirement 3 is the short form.
+
+- **Its own world.** It is not a map of Washington, but every feature in it is a real Washington feature with believable neighbours.
+- **West to east:** open ocean and fog, a coast with sea stacks, rainforest, the volcano with its lake and flower parkland, the meadow at the Trailhead under the snowy crest, larches and granite just east of the crest, pines and aspen, then sage, scabland and Palouse hills at the far edge.
+- **Four kinds of mountain, and nothing else on the skyline.** The snowy crest after the North Cascades (dark rock, snow and glaciers; Sideproject Spires is its most dramatic massif, and the far Legacy Range is the same family seen from a distance). One volcano, Mount Monolith, after Rainier: wide, lopsided and flat-topped, never Fuji. Enchantments granite: Proficiency Peak, after Prusik Peak, and unnamed granite peaks behind it. The dry side's basalt benches and yellow Palouse hills.
+- **Each place at its best.** The seasons are mixed on purpose: gold larches, full wildflowers and fireweed at once.
+- **Water.** The ground is tiered and water takes the lowest ground. Rivers wander downhill, every lake has an outflow, and every stream visibly joins what it flows into.
+- **Where and how big.** Things are where they could really be, at the size they would really be: no tree grows out of a glacier, no label names scree that is not there, and a thing far away is drawn smaller than the same thing near.
+- **The map.** 1920 by 1080 world units seen at an angle, with heights: `u` runs west to east, `v` away from the camera, `h` is height, and a spot draws at screen (`u`, `1080 - v - h`). The sea is in the bottom-left corner, fog swallows the rainforest's west edge, and the dry country is one slanted corner at the bottom right with a wandering edge. No country is an even band or a rectangle.
+- **Names.** Reflection Lake (about TJ), Proficiency Peak (his skills), Sideproject Spires (his projects), Mount Monolith and the Legacy Range, with the joke names in `content/game/`.
+- **The people.** TJ (orange cap, beard and yellow jacket on the map; green cap and jacket in the Spires), Kayti (long brown hair and a purple puffy; she paints at base camp and shares TJ's tent), and the two friends on Proficiency Peak. TJ is never shown on a route he has not climbed.
+- **Zoom** is smooth and continuous, never stepped.
 
 ### The Trailhead
 
@@ -63,9 +78,9 @@ A walk up the glacier to base camp, where the visitor picks a summit. Each climb
 
 | Summit | The climb | On top |
 | --- | --- | --- |
-| Bluebird Forecast | Waits out the drizzle under a boulder, then scrambles dry rock to a clear summit | A weather station |
+| Bluebird Forecast | Waits out the drizzle under a boulder, then crosses talus, scrambles a gully and its rib, and steps across a cleft to a clear summit | A weather station |
 | TJs-Kubernetes-Service | The icefall: seracs, a snow bridge, ladders over crevasses and one tall wall of ice | A server rack |
-| hevy-garmin-sync | A trail run up the spire's grassy flank (a snow couloir from round 6) | A weight bench |
+| hevy-garmin-sync | A steep snow couloir between two spires, kicked up with an ice axe | A weight bench |
 | trailhead | Over the notch and astride a thin fin of rock | Coin-operated binoculars |
 | yggdrasil | A via ferrata: a steel cable, iron rungs and a fixed ladder | The world tree |
 | Kubernetes-Manifests | The crevasse maze in a whiteout, out of the cloud at the top | A cairn that keeps a stone from each visit |
@@ -104,7 +119,7 @@ The Helm chart is in zimmertr/trailhead-helm. Every check runs in Docker as a `m
 ## 6. Plan
 
 1. **Rounds 3 to 5 (done).** The world was built round by round as an artifact TJ reviewed: low-poly 3D first, then pixel art from 2026-11-14. Round 5 merged into `main` on 2026-11-21.
-2. **Round 6 (under way).** TJ's 38 notes on round 5, issues #33, #34, #36 and #38, the first generated picture, and the repo made ready for a public release ([`ROUND6.md`](ROUND6.md)).
+2. **Round 6 (in review).** TJ's 38 notes on round 5, issues #33, #34, #36 and #38, the first generated picture, and the repo made ready for a public release ([#54](https://github.com/zimmertr/trailhead/pull/54)).
 3. **Round 7.** The trail register saved for everyone: entries through `api`, approved in `admin`, kept in Postgres ([#56](https://github.com/zimmertr/trailhead/issues/56)).
 4. **MVP.** The site live on TJ's cluster through the chart.
 

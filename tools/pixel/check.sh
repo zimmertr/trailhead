@@ -1,6 +1,6 @@
 #!/bin/sh
 # usage: check.sh <item> [earlier item]
-# One command for the checks every item gets before it is ticked (ROUND5.md section 9):
+# One command for the checks every change to the game gets (docs/DEVELOPMENT.md, The bar):
 #   1. every file in www/ parses,
 #   2. the game opens on every route with nothing on its console (make browser, against the built web image),
 #   3. the slowest view there is, the whole map zoomed out at Dusk with every event running, draws inside a frame,

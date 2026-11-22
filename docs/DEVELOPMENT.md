@@ -45,6 +45,36 @@ The game is in `web/www/` and runs in the browser as it is ([`web/CLAUDE.md`](..
 | `bake.sh` | Writes `web/www/ground.png`, the baked map. Run it after any change to `land.js` or the palette |
 | `check.sh` | One item's check: every module parses, `make browser`, frame time, and what moved on the map |
 
+### How the code is laid out
+
+Plain ES modules with no dependencies:
+
+- `core.js`: the indexed-colour renderer. `ramp(name, [day...], [dusk...])` adds palette entries (`R.<name>[i]`), beside `BM` bitmaps, `pick()` with dither, `Screen` (`put`, `blit`, `iris`, `night`, `present`), the `DEBUG` flags, `breeze()`, `windAt()` and `veilTable`. New ramps go just before `const INK`.
+- `land.js`: the map. Heights and materials, rivers and lakes, the trails (routed by least cost from the Trailhead), footbridges, the coast, the dry edge, the glacier, every planted thing, the fire lookout, the flower drifts, the animals' homes (`habitat()`) and `buildTerrain()`. `bake.sh` keeps its slow work in `ground.png`.
+- `world.js`: the map scene: drawing order, taps (`pick`), name tags, the camera and the opening, the night sky and Dusk. `monolith.js` paints Mount Monolith.
+- `critters.js`: everything on the map that moves. `mapfauna.js` and `scenery.js` hold map drawings, `events.js` the timed map events, `collide.js` the ground each mover may cross ([`web/ENGINE.md`](../web/ENGINE.md)).
+- The side scenes: `forest.js` and `lakeside.js` (on `side.js`), `larches.js`, `ridge.js` (the West Ridge), `approach.js`, `camp.js`, `climb.js` (the six Spires climbs), `register.js` and `offroute.js`. The drawings of people and animals are in `tj.js`, `people.js`, `cats.js`, `fauna.js` and `sprites.js`.
+- `pixel.js`: the scene manager: `ROUTES` (lists of legs), stops, the cut between scenes, zoom, pace, input and the world clock.
+- `app.js`, `index.html` and `style.css`: the page round the canvas (signs, cards, timeline, trail map, debug panel). `content.js` fills the numbers into the words, and `audio.js` synthesises the music and the effects.
+
+### Looking at it
+
+- Queries: `route=lake|stack|spires|spire:<id>`, `p=0..1`, `dusk=1`, `time=<s>`, `debug=roam,-trees,-mist`, `done=lake,stack,spires`, `speed=0|0.5|1|2|4|8`, `start=<event,...>` and `break=<scene>|load:<scene>|renderer|mount`.
+- `window.__api` drives the page from a test or a tool (`trigger`, `hitAt`, `trailAt`, `walkTo`, `scrub`, `jumpTo`, `running`, `clock` and more), and `window.__info` says where it is (`{p, route, running, scene, VW, VH, S, o}`).
+- Steps for `shot.sh` and `frames.sh` are separated by semicolons (`wait=600;key=Space;wheel=x,y,dy;click=<css>;eval=<js>`), so an `eval` step can't contain one.
+- `WWW=<folder>` points any tool at another build. To compare with what is merged, export it into its own folder (`git archive origin/main web/www | tar -x -C <folder>`) and render the same views from both.
+
+### The bar
+
+- Every change is compared with the last merged build, side by side (`sheet.sh`), by Day and at Dusk, at 1440 wide and on a phone (390). Anything that moves is filmed (`frames.sh`). Nothing ships worse than what it replaces.
+- Every view draws in under 16.7 ms a frame. A new loop over pixels goes in its own small function outside the map's `draw()`, which is too big for the browser to optimise.
+- The palette holds 254 colours at most. New art reuses the existing ramps; a new ramp needs its Dusk colours.
+- After a change to `land.js`, `core.js` or anything `land.js` imports, run `bake.sh` and commit `ground.png`. On localhost the page warns when the bake is stale, and the browser suite fails on that warning.
+- New things are placed by rule (forest, height, water, trails), never at written positions, so they move with the land.
+- Every new timed event gets a start button in the debug menu, and every placed animal appears in its spawn menu.
+- Finds are TJ's to choose, and an existing feature stays unless TJ asks for it to go.
+- Generated pictures follow [`design/TRAILHEAD-ART.md`](../design/TRAILHEAD-ART.md).
+
 ## The workspaces
 
 npm workspaces, one lockfile at the root, Node's major in `.node-version` alone. Every dependency is an exact pin, and every install passes `--ignore-scripts` (`tests/locks.test.ts`). A new runtime dependency also needs its row in [`NOTICES.md`](../NOTICES.md); `tests/notices.test.ts` fails until it has one.

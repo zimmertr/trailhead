@@ -12,3 +12,5 @@ The pixel world, served by nginx as it is: plain browser JavaScript with no buil
 The game reads live stars and releases from `/api/v1/projects` only when the page names it in its `trailhead:stars` meta tag, which `build.mjs` adds. The artifact and the tools don't, so they keep the numbers in `content/game/sideproject-spires.yaml`.
 
 The policy allows no inline style or script: styles live in `style.css` or are set through `element.style`. Any host the game names must be classified in `tests/csp.test.ts`, and any it reaches added to `security-headers.conf`. The render tools are in `tools/pixel/`.
+
+Before a change to the game, read [`docs/DEVELOPMENT.md`](../docs/DEVELOPMENT.md) (The pixel world: how the code is laid out, how to look at it, and the bar every change meets) and the world's law in [`docs/PRD.md`](../docs/PRD.md) (The land).
