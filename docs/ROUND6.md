@@ -248,7 +248,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 **G and H** (G2 added by TJ mid-round)
 
-- [ ] G1. The glissade burst only while he runs (note 3).
+- [x] G1. The glissade burst only while he runs (note 3).
 - [ ] G2. Resuming a trip toward Sideproject Spires after stopping on the way turns him back toward the Trailhead; find the cause and fix it, with a browser test (TJ, mid-round).
 - [ ] H1. The register as a generated picture, both ways, the better one shipped (note 9, #37). Tell trailhead-19 how it went.
 
@@ -325,7 +325,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **F2 done.** The haul after TJ's whipper now reads as a haul. He hangs with both hands on the rope over his head, and on each yank he is snatched up in a jerk with his knees jerked up, then settles and bounces on the rope (round 5: one stiff hanging frame, lifted evenly). The two above bend forward reaching down the rope toward him, then sit right back on it with a foot braced, taking it in hand over hand, and the flecks on the haul ropes run through the pulley and through their hands as he comes up. Under the cloud, on each of the three heaves the rope comes off the foot of the face and runs straight and tight from their hands up it, the jammed end twitches toward the slot, and the rope goes slack again between heaves; each heave has the sound of a rope coming tight. Then all three look up at the flake, the leader with a hand over his eyes, before they look at each other and shrug (0.6 s longer than round 5).
 - **F3 done.** On the walk-off after the last rappel each of them walks to the end of the ledge, crouches and steps down off it, and only then, with his feet on the snow, turns in to the slope with the axes and traverses (round 5: in the traverse pose already on the step down, in the air). It is short now: they set off a second apart, take a few clear steps each across the snow, and the scene goes to the map once the last is 140 px out, about 8 s from the first setting off (round 5: 21 s, most of it watching them cross 330 px at a slow pace).
 - Section F is done.
-- Next: G1.
+- **G1 done.** The burst of snow as he pushes off into a glissade is drawn only while he runs, so scrubbed to that moment and held there the picture is clear (round 5: half white until he moved). Playing through, it bursts and clears as before.
+- Next: G2.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.

@@ -1255,8 +1255,9 @@ export function makeClimb() {
         for (let y = -18; y <= 18; y++) for (let x = -30; x <= 30; x++) { const ang = Math.atan2(y / 14, x / 25), spike = 0.74 + 0.26 * Math.abs(frac(ang * 11 / 6.2832 + 0.25) * 2 - 1), dd = Math.hypot(x / Math.max(1, rx), y / Math.max(1, ry)) / spike; if (dd < 1) scr.set(bx + x, by + y, dd > 0.86 ? INK : dd > 0.7 ? R.blaze[1] : dd > 0.5 ? R.yellow[1] : R.white[1]); }
         if (grow > 0.9) { const x0 = bx - Math.floor(word.length * 3) + 1; [...word].forEach((ch, i) => (GLYPH[ch] || []).forEach((bits, j) => { for (let b = 0; b < 5; b++) if (bits & (16 >> b)) scr.set(x0 + i * 6 + b, by - 3 + j, INK); })); }
       }
-      // He pushes off in a burst of snow, and the glissade is under way.
-      const puff = 1 - Math.abs(tau - (pl.tPush + 0.02)) / 0.28;
+      // He pushes off in a burst of snow, and the glissade is under way. Only while he runs: scrubbed to this
+      // moment and held there, the burst would leave the screen half white (round 6, note 3).
+      const puff = env.running ? 1 - Math.abs(tau - (pl.tPush + 0.02)) / 0.28 : 0;
       if (puff > 0) for (let y = 0; y < VH; y++) { const row = y * VW; for (let x = 0; x < VW; x++) if (bayer(x, y) < puff * 1.3) fb[row + x] = R.snow[4]; }
       // Through the binoculars: the picture closes on the eyepiece and opens on the Trailhead far below as a
       // round view centred on the cats. It stays until he is done looking: the arrows, WASD or a drag move
