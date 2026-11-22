@@ -4,7 +4,7 @@
 // in: west, away from the Trailhead.
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, disc, windAt } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell, puffs } from './side.js';
-import { makeMaple, makeSpruce, makeFir, makeBoulder } from './sprites.js';
+import { makeMaple, makeSpruce, makeFir, makeConifer, makeBoulder } from './sprites.js';
 import { elk, sasquatch, jay, slug, owl } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
 import { NAMES } from './content.js';
@@ -26,23 +26,27 @@ const nearBank = x => 60 + Math.round(5 * Math.sin(x / 31 + 1) + 4 * vnoise(x / 
 // Shafts of light slant down from the upper left and land on the ground in bands.
 const beamAt = c => { const k = Math.floor(c / 118), o = hash(k, 3, 83) * 60, w = 12 + hash(k, 4, 83) * 22, d = Math.abs(c - k * 118 - 30 - o); return hash(k, 5, 83) < 0.2 ? 0 : d < w * 0.5 ? 2 : d < w ? 1 : 0; };
 
-// The climb at the forest's end (round 5, T40). The trail runs on along the foot of the rock band below the
-// lake's bench, crosses the channel of the lake's outflow fall on a log footbridge, and stops at FOOT, just
-// west of the fall. From there he zig-zags up four short legs cut into the face, tops out heading right and
-// walks the rim east over the outflow's lip on a second footbridge (the one the map shows at the lake's
-// outlet), which is the way the lakeshore is walked. FALL: the fall's column. ZIG: the corners. RIM: the top
-// of the rock at x. along(d): where he is d pixels into the scene, as
-// [x, y, facing (-1 left, 1 right), leg (0 the forest run, 1 to 4 the legs, 5 the rim)].
-const FOOT = X0 - 678, FALL = FOOT + 24, RUN = X0 - FOOT, RIM0 = FOOT + 6, CW = 700, LEDGE = -56, TOP_X = 560;
-const RIM = x => -114 - Math.round(2 * Math.sin(x / 23) + 1.5 * Math.sin(x / 9));
-const ZIG = [[FOOT, g(FOOT)], [FOOT - 84, -30], [FOOT, -58], [FOOT - 84, -86], [RIM0, RIM(RIM0)]];
+// The climb at the forest's end (round 6, note 12). The trail runs on along the foot of the lake's bench,
+// crosses the channel of the lake's outflow fall on a log footbridge, and stops at FOOT, just west of the fall.
+// From there it climbs the forested slope beside the fall in three legs of stone and root steps, tops out on the
+// bench heading west, and walks the rim east through the trees and over the outflow's lip on a second footbridge
+// (the one the map shows at the lake's outlet), which is the way the lakeshore is walked. Rock shows only in the
+// gorge the fall has cut and in a few outcrops; the bench's east end falls away into the forest.
+// FALL: the fall's column. RIM: the top of the bench at x. ZIG: the corners. STEP: how long each step is.
+// along(d): where he is d pixels into the scene, as
+// [x, y, facing (-1 left, 1 right), leg (0 the forest run, 1 to 3 the legs, 4 the rim)].
+const FOOT = X0 - 678, FALL = FOOT + 24, RUN = X0 - FOOT, CW = 700, LEDGE = -56, TOP_X = 560, STEP = 6;
+const RIM = x => -114 - Math.round(2 * Math.sin(x / 23) + 1.5 * Math.sin(x / 9)) + Math.round(86 * smooth(572, 690, x));
+const ZIG = [[FOOT, g(FOOT)], [FOOT - 72, -40], [FOOT - 12, -78], [FOOT - 90, RIM(FOOT - 90)]], RIM0 = ZIG[3][0];
 const ZLEN = ZIG.slice(1).map((b, i) => Math.hypot(b[0] - ZIG[i][0], b[1] - ZIG[i][1]));
 const TOTAL = RUN + ZLEN.reduce((a, b) => a + b, 0) + TOP_X - RIM0, DUR = 8.2 * TOTAL / LEN;
+// The tread of leg i at x: flat for each step, rising a step at a time, so his feet land on the stones.
+const stepY = (i, x) => { const a = ZIG[i], b = ZIG[i + 1], run = Math.abs(b[0] - a[0]), k = Math.min(Math.floor(Math.abs(x - a[0]) / STEP), Math.ceil(run / STEP) - 1); return Math.round(a[1] + (b[1] - a[1]) * Math.min(1, (k + 0.5) * STEP / run)); };
 function along(d) {
   if (d <= RUN) { const x = X0 - d; return [x, g(x), -1, 0]; }
   let r = d - RUN;
-  for (let i = 0; i < ZLEN.length; i++) { if (r <= ZLEN[i]) { const u = r / ZLEN[i], a = ZIG[i], b = ZIG[i + 1]; return [a[0] + (b[0] - a[0]) * u, a[1] + (b[1] - a[1]) * u, b[0] > a[0] ? 1 : -1, i + 1]; } r -= ZLEN[i]; }
-  const x = Math.min(TOP_X, RIM0 + r); return [x, RIM(Math.round(x)), 1, 5];
+  for (let i = 0; i < ZLEN.length; i++) { if (r <= ZLEN[i]) { const u = r / ZLEN[i], a = ZIG[i], b = ZIG[i + 1], x = a[0] + (b[0] - a[0]) * u; return [x, stepY(i, Math.round(x)), b[0] > a[0] ? 1 : -1, i + 1]; } r -= ZLEN[i]; }
+  const x = Math.min(TOP_X, RIM0 + r); return [x, RIM(Math.round(x)), 1, ZLEN.length + 1];
 }
 // The trail's tread seen from the side: three rows of dirt, lit on top, and the shadow of its cut edge under it.
 function paintTread(S, x, y) {
@@ -50,38 +54,67 @@ function paintTread(S, x, y) {
   S.set(x, y + 2, hash(x, 5, 4010) < 0.2 ? R.moss[3] : R.dirt[0]); S.set(x, y + 3, R.rock[0]); if (hash(x >> 1, 6, 4010) < 0.5) S.set(x, y + 4, R.rock[0]);
   if (hash(x, 7, 4010) < 0.07) S.set(x, y, R.rock[3]);
 }
-// The rock band, painted once: bedded, jointed rock with moss on its ledges and wet moss by the fall, turf
-// on the rim with moss hanging from it, the four legs with a log-walled landing at each turn and a few log
-// steps before it, and the fall, which lands on a ledge half way and falls again. Its right end shows in
-// clumps, as the far trees thin. Returns the strip, the fall's pixels (each column streams at its own length
-// p and phase o; e marks its edges), where the spray rises (foam), and ledges for ferns (perches).
+// One leg of the climb: a step every STEP pixels, each a flat stone set in the slope (lit on top, its face in
+// shade) or a root across the path holding back the dirt behind it, with the earth of the slope under each.
+// A landing at the leg's end: a few pixels of flat dirt past the corner, kept by a stone on its outer edge.
+function paintLeg(S, i, only = () => true) {
+  const a = ZIG[i], b = ZIG[i + 1], dir = b[0] > a[0] ? 1 : -1, run = Math.abs(b[0] - a[0]);
+  for (let s = 0; s <= run; s++) { const x = a[0] + dir * s; if (!only(x)) continue;
+    const y = stepY(i, x), k = Math.floor(s / STEP), e = s - k * STEP, stone = hash(k, i, 4016) < 0.6, prev = s >= STEP ? stepY(i, x - dir * STEP) : y;
+    for (let j = 0; j < 6; j++) S.set(x, y + j, j < 3 ? R.dirt[j === 0 ? 2 : 1] : pick('moss', 0.2, x, y + j, 0.8));
+    if (stone) { const face = e === 0 || e === STEP - 1; S.set(x, y, face ? R.rock[2] : R.rock[3]); S.set(x, y + 1, R.rock[face ? 1 : 2]); S.set(x, y + 2, R.rock[1]); S.set(x, y + 3, R.rock[0]); }
+    else if (e < 2) { S.set(x, y - 1, R.bark[2]); S.set(x, y, R.bark[e ? 1 : 2]); S.set(x, y + 1, R.bark[0]); }
+    // The riser down to the step before: the stone's or the root's shaded face.
+    if (e === 0 && prev > y) for (let j = y; j <= prev; j++) S.set(x - dir, j, stone ? R.rock[1] : R.bark[1]);
+  }
+  if (i < ZIG.length - 2) for (let s = 1; s <= 7; s++) { const x = b[0] + dir * s, y = stepY(i, b[0]); if (!only(x)) continue;
+    paintTread(S, x, y); if (s >= 6) { S.set(x, y - 1, R.rock[3]); S.set(x, y - 2, R.rock[2]); S.set(x, y, R.rock[2]); } }
+}
+// Whether x, y on the bench's face is the gorge the fall has cut (rock), a little wider at the top.
+const gorgeAt = (x, y) => Math.abs(x - FALL - 3 - 2 * Math.sin(y / 17)) - (20 + 7 * vnoise(y / 11, 1, 4050) + 6 * smooth(-30, -100, y) + (x > FALL ? 3 : 0));
+// Whether a spot is near the climb's tread (above it by up to above pixels, or just under it).
+const nearTread = (x, y, above = 30) => ZIG.slice(1).some((b, i) => { const a = ZIG[i], lo = Math.min(a[0], b[0]) - 12, hi = Math.max(a[0], b[0]) + 12; if (x < lo || x > hi) return false; const ty = stepY(i, clamp(x, lo + 12, hi - 12)); return y > ty - above && y < ty + 9; });
+// The bench's face, painted once. In the gorge: bedded, jointed rock with moss on its ledges and wet moss by the
+// fall, darker where the slope's edge shades it. Elsewhere: the forest floor on a steep slope (moss, needle duff,
+// bare dirt where it has slipped, roots across it and the odd stone), turf on the rim with moss hanging over, and a
+// few outcrops of the same rock. Then the three legs, the rim's tread and the fall, which lands on a ledge half
+// way and falls again. Returns the strip, the fall's pixels (each column streams at its own length p and phase o;
+// e marks its edges), where the spray rises (foam), and spots on the slope for ferns (perches).
 function buildCrag() {
   const S = new Strip(CW, 200, 24), bedOf = (x, y) => (y + 13 * vnoise(x / 64, 2, 4002) + 5 * vnoise(x / 17, y / 34, 4008)) / 15;
   const fallX = y => (y < LEDGE ? FALL : FALL + 5) + Math.round(2 * Math.sin(y / 13));
+  const rockAt = (x, y) => gorgeAt(x, y) < 0 || (fbm(x / 26, y / 16, 4051, 3) > 0.71 && y < -16 && !nearTread(x, y, 40));
   for (let x = 0; x < CW; x++) {
-    const shown = smooth(640, 560, x) * 1.15, rim = RIM(x) + (Math.abs(x - FALL) < 9 ? 3 : 0), hang = 3 + Math.round(hash(x, 1, 4006) * hash(x >> 1, 2, 4006) * 14);
+    const rim = RIM(x) + (Math.abs(x - FALL) < 9 ? 3 : 0), hang = 3 + Math.round(hash(x, 1, 4006) * hash(x >> 1, 2, 4006) * 14);
     for (let y = rim; y < 24; y++) {
-      if (shown < 1.15 && 0.3 * bayer(x, y) + 0.7 * vnoise(x / 12, y / 90, 4007) >= shown) continue;
-      // Beds of uneven thickness (one ledge line in three is missing, so some beds are twice as thick), each
-      // lit along its top and dark under the ledge above; joints at uneven gaps, leaning a little, one bed tall.
-      const d = y - rim, bo = bedOf(x, y), bi = Math.floor(bo), ledge = hash(bi, 1, 4009) > 0.34, bed = bo - bi, jx = x + (y * 0.3) * (hash(bi, 2, 4009) - 0.5);
-      const joint = hash(Math.floor(jx / 3), bi, 4003) < 0.085 && frac(jx / 3) < 0.34, wet = smooth(16, 5, Math.abs(x - fallX(y)));
-      const mossy = fbm(x / 16, y / 9, 4005, 3) + (ledge && bed < 0.2 ? 0.2 : 0) + wet * 0.22 + 0.14 * smooth(-34, 6, y) + 0.1 * smooth(14, 0, d);
-      let c;
+      const d = y - rim; let c;
       if (d < 2) c = R.moss[5 - d];
-      else if (d < hang && hash(x, 3, 4006) < 0.45) c = R.moss[d < 4 ? 4 : 3];
-      else if (mossy > 0.62) c = pick('moss', 0.22 + (mossy - 0.62) * 1.5 + (ledge && bed < 0.12 ? 0.16 : 0), x, y, 0.8);
-      else c = pick('rock', 0.31 + 0.3 * (fbm(x / 22, y / 11, 4004, 3) - 0.5) + 0.14 * (vnoise(x / 80, y / 44, 4015) - 0.5) + (ledge ? (bed < 0.08 ? 0.24 : bed > 0.8 ? -0.9 * (bed - 0.8) : 0) : 0) - (joint ? 0.2 : 0) - wet * 0.12 - 0.1 * smooth(-30, 14, y), x, y, 0.8);
+      else if (rockAt(x, y)) {
+        // Beds of uneven thickness (one ledge line in three is missing, so some beds are twice as thick), each
+        // lit along its top and dark under the ledge above; joints at uneven gaps, leaning a little, one bed tall.
+        const bo = bedOf(x, y), bi = Math.floor(bo), ledge = hash(bi, 1, 4009) > 0.34, bed = bo - bi, jx = x + (y * 0.3) * (hash(bi, 2, 4009) - 0.5);
+        const joint = hash(Math.floor(jx / 3), bi, 4003) < 0.085 && frac(jx / 3) < 0.34, wet = smooth(16, 5, Math.abs(x - fallX(y)));
+        const edge = smooth(-4, 0, gorgeAt(x, y)) * (gorgeAt(x, y) < 0.5 ? 1 : 0), mossy = fbm(x / 16, y / 9, 4005, 3) + (ledge && bed < 0.2 ? 0.2 : 0) + wet * 0.22 + 0.14 * smooth(-34, 6, y) + 0.1 * smooth(14, 0, d);
+        if (d < hang && hash(x, 3, 4006) < 0.45) c = R.moss[d < 4 ? 4 : 3];
+        else if (mossy > 0.62) c = pick('moss', 0.22 + (mossy - 0.62) * 1.5 + (ledge && bed < 0.12 ? 0.16 : 0) - edge * 0.2, x, y, 0.8);
+        else c = pick('rock', 0.31 + 0.3 * (fbm(x / 22, y / 11, 4004, 3) - 0.5) + 0.14 * (vnoise(x / 80, y / 44, 4015) - 0.5) + (ledge ? (bed < 0.08 ? 0.24 : bed > 0.8 ? -0.9 * (bed - 0.8) : 0) : 0) - (joint ? 0.2 : 0) - wet * 0.12 - 0.1 * smooth(-30, 14, y) - edge * 0.25, x, y, 0.8);
+      } else {
+        // The slope: moss in drifts with needle duff between, a slip of bare dirt here and there, a root
+        // snaking across, a stone. Darker low down, where the canopy closes over it.
+        const m = fbm(x / 11, y / 6, 4052, 3), slip = vnoise(x / 9, y / 5, 4053), ry = y + 4 * Math.sin(x / 13 + hash(x >> 6, 1, 4054) * 6), band = Math.round(ry / 11), root = Math.abs(ry - band * 11);
+        const shade = 0.12 * smooth(-60, 20, y) + 0.1 * smooth(3, -1, gorgeAt(x, y));
+        if (d < hang && hash(x, 3, 4006) < 0.3) c = R.moss[d < 4 ? 4 : 3];
+        else if (root < 0.6 && hash(Math.floor(x / 9), band, 4055) < 0.3) c = R.bark[hash(x, y, 4056) < 0.5 ? 1 : 2];
+        else if (slip > 0.77) c = pick('dirt', 0.2 + 0.2 * (m - 0.5) - shade, x, y, 0.7);
+        else if (hash(x, y, 4057) < 0.012) c = R.rock[2];
+        else if (m < 0.33) c = hash(x, y, 4058) < 0.25 ? R.bark[0] : R.moss[1];
+        else c = pick('moss', 0.34 + 0.5 * (m - 0.5) - shade, x, y, 0.8);
+      }
       S.set(x, y, c);
     }
   }
-  const legY = (i, x) => ZIG[i][1] + (ZIG[i + 1][1] - ZIG[i][1]) * (x - ZIG[i][0]) / (ZIG[i + 1][0] - ZIG[i][0]);
-  for (let i = 0; i < ZIG.length - 1; i++) { const a = ZIG[i], b = ZIG[i + 1], dir = b[0] > a[0] ? 1 : -1;
-    for (let x = a[0]; x !== b[0] + dir; x += dir) paintTread(S, x, Math.round(legY(i, x)));
-    for (let k = 0; k < 3; k++) { const x = b[0] - dir * (7 + k * 7), y = Math.round(legY(i, x)); for (let j = 0; j < 3; j++) { S.set(x - dir * j, y - 2, R.wood[2]); S.set(x - dir * j, y - 1, R.wood[1]); } }
-    if (i > 0) for (let k = -2; k < 9; k++) { const x = a[0] - dir * k, y = Math.round(a[1]); if (k > 0) paintTread(S, x, y); S.set(x, y + 2, R.wood[2]); S.set(x, y + 3, R.wood[1]); S.set(x, y + 4, hash(x, 1, 4011) < 0.3 ? R.wood[0] : R.wood[1]); S.set(x, y + 5, R.rock[0]); }
-  }
-  for (let x = RIM0; x < CW; x++) if (S.get(x, RIM(x) + 8)) paintTread(S, x, RIM(x));
+  for (let i = 0; i < ZIG.length - 1; i++) paintLeg(S, i);
+  for (let x = RIM0 - 6; x < CW; x++) if (S.get(x, RIM(x) + 8)) paintTread(S, x, RIM(x));
   // The footbridge over the outflow's lip: planks on two logs, a post at each end and a handrail.
   for (let x = FALL - 13; x <= FALL + 13; x++) { const y = RIM(x), end = Math.abs(x - FALL) === 13;
     for (let j = 3; j < 8; j++) S.set(x, y + j, 0);
@@ -90,11 +123,11 @@ function buildCrag() {
   const F = { x: [], y: [], o: [], p: [], e: [], foam: [[FALL + 2, LEDGE, 6], [FALL + 5, -7, 12]] };
   for (let y = RIM(FALL) + 3; y <= -6; y++) { const hw = (y < LEDGE ? 4 : 6) + (Math.abs(y - LEDGE) < 3 ? 3 : 0) - (y < RIM(FALL) + 7 ? 1 : 0), cx = fallX(y);
     for (let dx = -hw; dx <= hw; dx++) { const x = cx + dx; S.set(x, y, R.white[1]); F.x.push(x); F.y.push(y); F.o.push(hash(x, 0, 4012)); F.p.push(7 + hash(x, 1, 4013) * 6); F.e.push(Math.abs(dx) >= hw ? 1 : 0); } }
-  const nearTread = (x, y) => ZIG.slice(1).some((b, i) => { const a = ZIG[i], lo = Math.min(a[0], b[0]) - 12, hi = Math.max(a[0], b[0]) + 12; if (x < lo || x > hi) return false; const ty = legY(i, clamp(x, lo + 12, hi - 12)); return y > ty - 30 && y < ty + 9; });
+  // Ferns on the slope wherever the ground is earth, clear of the tread and the gorge.
   const perches = [];
-  for (let n = 0; n < 90 && perches.length < 14; n++) { const x = 14 + Math.round(hash(n, 1, 4014) * 600); let y = RIM(x) + 14 + Math.round(hash(n, 2, 4014) * 92); while (y < 0 && (frac(bedOf(x, y)) > 0.08 || hash(Math.floor(bedOf(x, y)), 1, 4009) <= 0.34)) y++;
-    if (y >= -8 || Math.abs(x - FALL - 2) < 16 || x > 556 || nearTread(x, y) || perches.some(q => Math.abs(q[0] - x) < 26 && Math.abs(q[1] - y) < 12)) continue; perches.push([x, y, n % 3]); }
-  return { S, F, perches };
+  for (let n = 0; n < 160 && perches.length < 34; n++) { const x = 8 + Math.round(hash(n, 1, 4014) * (CW - 20)), y = Math.round(lerp(RIM(x) + 10, -10, hash(n, 2, 4014)));
+    if (y >= -8 || rockAt(x, y) || rockAt(x, y + 3) || gorgeAt(x, y) < 6 || nearTread(x, y) || perches.some(q => Math.abs(q[0] - x) < 18 && Math.abs(q[1] - y) < 10)) continue; perches.push([x, y, n % 3]); }
+  return { S, F, perches, rockAt };
 }
 // The rock band on the screen. It does not wrap: it stands at the forest's west end only.
 function drawCrag(scr, S, camX, base) {
@@ -453,7 +486,7 @@ function buildForest() {
     }
   }
   // The first leg leaves the trail across the bank's low foot.
-  for (let x = FOOT + 2; x > FOOT - 60; x--) { const y = Math.round(ZIG[0][1] + (ZIG[1][1] - ZIG[0][1]) * (ZIG[0][0] - x) / (ZIG[0][0] - ZIG[1][0])); if (main.get(x, y + 1)) paintTread(main, x, y); }
+  paintLeg(main, 0, x => main.get(x, stepY(0, x) + 1));
   // Roots across the trail, wood sorrel, trillium and mushrooms on the banks.
   for (let n = 0; n < 60; n++) { const x = rand() * SW, gy = g(x); for (let i = 0; i < 9; i++) main.set(x + i * 0.5 + (rand() - 0.5), gy - 5 + i, i === 4 ? R.bark[3] : R.bark[2]); }
   for (let n = 0; n < 900; n++) {
@@ -485,7 +518,7 @@ function buildForest() {
   }
   const maples = Array.from({ length: 6 }, (_, i) => makeMaple(120 + i)), spruces = Array.from({ length: 4 }, (_, i) => makeSpruce(220 + i));
   const free = (x, r) => !trunks.some(t => Math.abs(t.x - x) < t.w * 0.8 + r) && !reserve.some(([a, b]) => x > a - r && x < b + r);
-  for (let n = 0; n < 70; n++) { const x = rand() * SW, by = -9 - rand() * 22; if (!free(x, 14)) continue; const th = { tree: rand() < 0.7 ? maples[(rand() * 6) | 0] : spruces[(rand() * 4) | 0], x: Math.round(x), y: g(x) + Math.round(by) }; if (x <= 300 || x >= 600) things.push(th); }
+  for (let n = 0; n < 70; n++) { const x = rand() * SW, by = -9 - rand() * 22; if (!free(x, 14)) continue; const th = { tree: rand() < 0.7 ? maples[(rand() * 6) | 0] : spruces[(rand() * 4) | 0], x: Math.round(x), y: g(x) + Math.round(by) }; if (x <= 300 || x >= FALL + 44) things.push(th); }
   const ferns = [5, 6, 7, 8, 10, 12, 15, 19, 23].map((r, i) => swordFern(300 + i, r));
   for (let n = 0; n < 330; n++) {
     const x = rand() * SW, zone = rand(), gy = g(x);
@@ -529,13 +562,23 @@ function buildForest() {
   const stones = [];
   for (let n = 0; n < 26; n++) { const x = Math.round(rand() * SW), y = g(x) + farBank(x) + 6 + Math.round(rand() * (nearBank(x) - farBank(x) - 10)), bm = boulders[(rand() * 4) | 0]; stones.push({ bm, x, y }); }
 
-  // The rock band at the forest's end (T40), and what stands on it: ferns on its ledges, boulders fallen at
-  // its foot, firs along its rim (none where he walks the rim). All by rule, with no turns of the dice.
+  // The lake's bench at the forest's end (note 12), and what stands on it: ferns and trees on its slope,
+  // boulders fallen at its foot, firs along its rim behind where he walks it. All by rule, with no turns of the dice.
   const crag = buildCrag();
-  for (const [x, y, k] of crag.perches) things.push({ bm: ferns[k], x, y, z: -300, sway: 0.6 });
+  // Ferns on the slope, each in front of what stands higher up it.
+  for (const [x, y, k] of crag.perches) things.push({ bm: ferns[k], x, y, sway: 0.6 });
+  // Trees on the slope (note 12), by rule: wherever the ground under the trunk is earth, out of the gorge, and
+  // never where a leg passes through the tree (so none hides him), from foot to crown. Smaller the higher up the
+  // slope they stand, as they are farther off, and each in front of everything that stands higher.
+  { const pines = Array.from({ length: 6 }, (_, i) => makeConifer(4060 + i, 30 + i * 6, 12 + i * 3, 'conifer', 6 + (i >> 1)));
+    for (let x = 4, n = 0; x < CW - 8; x += 19 + hash(n, 1, 4061) * 24, n++) { const xx = Math.round(x), top = RIM(xx);
+      if (top > -40) continue;
+      const y = Math.round(lerp(top + 18, -12, Math.sqrt(hash(n, 2, 4061)))), k = clamp(Math.round(5 * (y - top) / (-12 - top) - hash(n, 3, 4061)), 0, 5), h = 30 + k * 6, hw = 7 + k * 1.5;
+      if (crag.rockAt(xx, y + 1) || gorgeAt(xx, y) < hw || [-hw, 0, hw].some(dx => nearTread(xx + dx, y + 8, h + 8)) || (xx > RIM0 - hw - 4 && xx < TOP_X + hw && y - h - 4 < RIM(xx))) continue;
+      things.push({ tree: hash(n, 4, 4061) < 0.28 ? maples[n % 6] : pines[k], x: xx, y: y + 1 }); } }
   for (let n = 0; n < 9; n++) { const x = 16 + Math.round(hash(n, 1, 4020) * 570); if (x > FOOT - 56 && x < FALL + 44) continue; things.push({ bm: boulders[n & 3], x, y: g(x) - 7 - Math.round(hash(n, 2, 4020) * 4), z: -60 }); }
   const firs = Array.from({ length: 5 }, (_, i) => makeFir(330 + i));
-  for (let x = 6, n = 0; x < 600; x += hash(n, 1, 4021) < 0.45 ? 9 + hash(n, 2, 4021) * 8 : 30 + hash(n, 2, 4021) * 44, n++) { const xx = Math.round(x); if (xx > FOOT - 24 && xx < 588) continue; things.push({ tree: hash(n, 3, 4021) < 0.2 ? spruces[n & 3] : firs[n % 5], x: xx, y: RIM(xx) + 1, z: -310 - hash(n, 4, 4021) }); }
+  for (let x = 6, n = 0; x < 600; x += hash(n, 1, 4021) < 0.45 ? 9 + hash(n, 2, 4021) * 8 : 30 + hash(n, 2, 4021) * 44, n++) { const xx = Math.round(x); if (Math.abs(xx - FALL) < 18 || RIM(xx) > -100) continue; things.push({ tree: hash(n, 3, 4021) < 0.2 ? spruces[n & 3] : firs[n % 5], x: xx, y: RIM(xx) + 1, z: -310 - hash(n, 4, 4021) }); }
 
   // The stream mirrors what stands behind it: build the still picture once and reflect it.
   const still = new Strip(SW, UP, DOWN);
@@ -677,8 +720,8 @@ function buildForest() {
       const ds = d - D_SLUG, hop = Math.abs(ds) < 12 ? Math.round(9 * Math.cos(ds / 12 * Math.PI / 2)) : 0;
       const snack = !env.running && env.still > 60;
       if (snack) env.found('snack');
-      // On the legs he is behind everything that stands on the bank, and in front of the rock.
-      const me = { me: true, x: mx, y: my + 0.5, z: leg ? -50 : 0 };
+      // On the climb he is behind everything that stands lower on the slope and in front of all that stands higher.
+      const me = { me: true, x: mx, y: my + 0.5, z: leg ? my - 0.5 : 0 };
       list.push(me);
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
       for (const th of list) {

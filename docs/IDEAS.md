@@ -448,3 +448,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Marmot Census** (round 6, C6). The kiosk's checklist could count how many different animals you have made answer, not as finds but as a quiet tally in the corner of the board.
 - **A Place Check in CI** (round 6, C7). `check.sh`'s list of where everything stands could be kept in the repo, so a pull request that moves a sign or an animal's home shows the move in its diff.
 - **An Audit Test** (round 6, C8). The audit's measures (a plant on snow, ice or sheer rock; a sign on ground its name does not match) could become rules in `rules.js`, so the browser suite catches the next tree on a glacier on its pull request.
+- **Spray on the Steps** (round 6, D1). The steps nearest the fall could glisten wet, with a drip of spray drifting across the climb when the wind turns.
+- **A Rest on the Landing** (round 6, D1). If he stands still on a landing of the climb, he could sit on its stone and look at the fall, as he sits on the forest log.
