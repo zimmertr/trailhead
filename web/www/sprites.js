@@ -5,21 +5,50 @@ import { TAU, clamp, lerp, sq, rng, hash, vnoise, bayer, R, INK, BM, outline, di
 // Trees. Each is a still trunk plus leaf clumps that move on their own, a pixel at a time, as in
 // the usual 2D wind technique: a wave runs along the wind, gusts widen it, and still air stops it.
 
-function clump(r, name, rand, hang) {
+// A clump of leaves (art pass D03, after a bigleaf maple and an aspen grove painted for the game): many
+// small clusters of leaves inside the clump's outline, each lit on its upper left and shaded under, the
+// lower ones laid over the upper so each shows a lit top against the shade above, with dark pockets
+// between them and a broken edge. shape: 'pad' (a maple's flat sprays), 'tuft' (a pine's spiky needle
+// clumps), 'tall' (an aspen's upright clusters) or round (a juniper's). The clusters come from hash,
+// never rand, so the trees that share rand with their clumps draw the same trunks as before.
+function clump(r, name, rand, hang, shape = '') {
   const S = Math.ceil(r * 2.6) + 4, b = new BM(S, S + hang), c = S / 2;
   const blobs = [[0, 0, r]];
   for (let k = 0; k < 3; k++) { const a = rand() * TAU; blobs.push([Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.5, r * (0.5 + rand() * 0.2)]); }
   // name is a ramp's name, or a list of colours from dark to light where one ramp does not hold them all.
-  const ramp = Array.isArray(name) ? name : R[name];
+  const ramp = Array.isArray(name) ? name : R[name], top = ramp.length - 1;
+  const seed = Math.round(blobs[1][0] * 977 + blobs[2][1] * 613 + r * 41) & 0xffff;
+  const inBlob = (dx, dy, g) => blobs.some(([bx, by, br]) => sq(dx - bx) + sq(dy - by) <= sq(br + g));
+  const flat = shape === 'pad' ? 0.62 : shape === 'tall' ? 1.35 : 1, lr0 = shape === 'pad' ? clamp(r * 0.46, 1.6, 3.2) : clamp(r * (shape === 'tuft' ? 0.3 : 0.36), 1.3, 2.7), lobes = [];
+  for (let k = 0, n = Math.round(r * r * (shape === 'tuft' ? 0.62 : shape === 'pad' ? 0.32 : 0.5)) + 4; k < n * 3 && lobes.length < n; k++) {
+    const a = hash(k, 1, seed) * TAU, d = Math.sqrt(hash(k, 2, seed)) * r * 1.15, lx = Math.cos(a) * d, ly = Math.sin(a) * d * (shape === 'tall' ? 1.1 : 0.9);
+    if (!inBlob(lx, ly, -0.6)) continue;
+    const lr = lr0 * (0.8 + 0.45 * hash(k, 3, seed));
+    lobes.push([lx, ly, lr, lr * flat]);
+  }
+  lobes.sort((p, q) => p[1] - q[1]);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     const dx = x - c, dy = y - c;
-    if (!blobs.some(([bx, by, br]) => sq(dx - bx) + sq(dy - by) <= br * br)) continue;
+    let own = -1;
+    for (let k = lobes.length - 1; k >= 0; k--) { const [lx, ly, lr, ry] = lobes[k]; if (sq((dx - lx) / lr) + sq((dy - ly) / ry) <= 1) { own = k; break; } }
+    if (own < 0) { if (inBlob(dx, dy, -1.8)) b.set(x, y, ramp[1]); continue; }
+    const [lx, ly, lr, ry] = lobes[own], ux = (dx - lx) / lr, uy = (dy - ly) / ry;
     const nx = dx / (r * 1.3), ny = dy / (r * 1.2);
-    let v = 0.52 + 0.46 * (-0.55 * nx - 0.78 * ny) + (hash(x, y, r * 13 | 0) - 0.5) * 0.36;
-    if (hash(x + 3, y, 9) < 0.1) v += 0.25;
-    b.set(x, y, ramp[clamp(Math.round(v * (ramp.length - 1) + (bayer(x, y) - 0.5) * 0.8), 1, ramp.length - 1)]);
+    let v = 0.42 + 0.3 * (-0.55 * nx - 0.78 * ny) + 0.44 * (-0.45 * ux - (shape === 'pad' ? 0.95 : 0.75) * uy) + (hash(x, y, seed + 7) - 0.5) * 0.14;
+    if (uy < -0.35 && ux < 0.3 && hash(x, y, seed + 9) < 0.4) v += 0.18;
+    // A maple's pad is dark along its underside, so each reads as a layer over the one below.
+    if (shape === 'pad' && uy > 0.55) v -= 0.28;
+    b.set(x, y, ramp[clamp(Math.round(v * top + (bayer(x, y) - 0.5) * 0.45), 1, top)]);
   }
-  outline(b, ramp[0]);
+  // A pine's needles stick out past each tuft's edge, up and to the sides.
+  if (shape === 'tuft') for (let y = 1; y < S - 1; y++) for (let x = 1; x < S - 1; x++) {
+    const v = b.get(x, y); if (!v || v === ramp[1]) continue;
+    for (const [ox, oy] of [[0, -1], [-1, 0], [1, 0], [-1, -1], [1, -1]]) if (!b.get(x + ox, y + oy) && hash(x * 3 + ox, y * 5 + oy, seed + 11) < 0.22) b.set(x + ox, y + oy, v);
+  }
+  // The dark edge goes only under and right of the clump; its lit top and left meet the sky.
+  const edge = [];
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) if (!b.get(x, y) && (b.get(x, y - 1) || b.get(x - 1, y) || (b.get(x + 1, y) && hash(x, y, seed + 13) < 0.5 && y > c))) edge.push([x, y]);
+  for (const [x, y] of edge) b.set(x, y, ramp[0]);
   // Moss hangs from the limbs of the rainforest maples.
   for (let k = 0; k < hang && k < 4; k++) {
     const x = Math.round(c + (rand() - 0.5) * r * 1.4); let y = S - 1; while (y > 0 && !b.get(x, y)) y--;
@@ -47,10 +76,10 @@ function makeMaple(seed) {
   for (let k = 0; k < n; k++) cs.push([top[0] + (rand() - 0.5) * 22, H * 0.3 + (rand() - 0.5) * 18, 5 + rand() * 2.5]);
   // A darker copy of the canopy sits behind the clumps, so a lifted clump shows shadowed leaves, not sky.
   const inside = new BM(W, H);
-  for (const [x, y, r] of cs) disc(inside, x, y, r - 0.5, () => R.moss[1]);
+  for (const [x, y, r] of cs) disc(inside, x, y, r - 2, () => R.moss[1]);
   parts.push({ bm: inside, x: -Math.round(bx), y: -H, sway: 0 });
   cs.sort((a, c) => a[1] - c[1]);
-  for (const [x, y, r] of cs) { const bm = clump(r, 'moss', rand, 6); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
+  for (const [x, y, r] of cs) { const bm = clump(r, 'moss', rand, 6, 'pad'); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
   return { parts, h: H, w: W };
 }
 // A conifer: a trunk and tiers of branches that sway. name is a ramp's name, or a list of colours from
@@ -125,12 +154,12 @@ function tuftTier(seed, i, f, hw, th, droop, ramp, H, tiers, o, rand) {
 }
 // The crown of a broadleaf or a pine: a dark copy of the canopy behind the clumps (so a lifted clump
 // shows shadowed leaves, not sky), then the clumps from the top down.
-function crown(parts, cs, colours, dark, W, H, bx, rand) {
+function crown(parts, cs, colours, dark, W, H, bx, rand, shape = '') {
   const inside = new BM(W, H);
-  for (const [x, y, r] of cs) disc(inside, x, y, r - 0.5, () => dark);
+  for (const [x, y, r] of cs) disc(inside, x, y, r - 2, () => dark);
   parts.push({ bm: inside, x: -bx, y: -H, sway: 0 });
   cs.sort((a, c) => a[1] - c[1]);
-  for (const [x, y, r] of cs) { const bm = clump(r, colours, rand, 0); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
+  for (const [x, y, r] of cs) { const bm = clump(r, colours, rand, 0, shape); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
 }
 // A quaking aspen in autumn: a thin white trunk with dark marks where limbs were, and a small round
 // crown of yellow leaves. They are planted in groves.
@@ -156,7 +185,7 @@ function makeTwisted(seed) {
   outline(trunk, INK);
   const parts = [{ bm: trunk, x: -Math.round(bx), y: -H, sway: 0 }], dark = [R.moss[0], R.moss[1], R.moss[2], R.moss[3]];
   const cs = [pts[3], ...ends.filter((_, n) => n & 1)].slice(0, 4).map(([x, y]) => [x + (rand() - 0.5) * 4, y - 2 - rand() * 3, 3 + rand() * 1.5]);
-  for (const [x, y, r] of cs) { const bm = clump(r, dark, rand, 5); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
+  for (const [x, y, r] of cs) { const bm = clump(r, dark, rand, 5, 'pad'); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
   return { parts, h: H, w: W };
 }
 // A clump of wildflowers for the map (D5a): a few stems with a bloom on each, the blooms a part of their
@@ -212,9 +241,12 @@ function makeAspen(seed) {
   for (let y = Math.round(H * 0.25); y <= H; y++) { trunk.set(tx(y), y, R.white[1]); trunk.set(tx(y) + 1, y, R.white[0]); }
   for (let y = H - 2 - (rand() * 3 | 0); y > H * 0.3; y -= 3 + (rand() * 4 | 0)) { const two = rand() < 0.35; trunk.set(tx(y) + (rand() < 0.5 || two ? 0 : 1), y, R.basalt[0]); if (two) trunk.set(tx(y) + 1, y, R.basalt[1]); }
   outline(trunk, INK);
-  const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }], cs = [[tx(H * 0.25) + 0.5, H * 0.2, 3.6 + rand() * 1.2]];
-  for (let k = 2 + (rand() * 3 | 0); k > 0; k--) cs.push([tx(H * 0.3) + 0.5 + (rand() - 0.5) * 9, H * (0.2 + rand() * 0.26), 2.8 + rand() * 1.6]);
-  crown(parts, cs, [R.mustard[0], R.mustard[1], R.aspen[0], R.aspen[1]], R.mustard[0], W, H, bx, rand);
+  // The crown is narrow and upright, after the aspen grove painted for D03: clusters stacked up the
+  // trunk, close to it, and a small one on top for the point.
+  const r0 = 3.6 + rand() * 1.2, parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }], cs = [[tx(H * 0.25) + 0.5, H * 0.22, r0 * 0.9]];
+  for (let k = 2 + (rand() * 3 | 0); k > 0; k--) cs.push([tx(H * 0.3) + 0.5 + (rand() - 0.5) * 5, H * (0.16 + rand() * 0.32), 2.6 + rand() * 1.4]);
+  cs.push([tx(H * 0.2) + 0.5, H * 0.22 - r0 * 1.1, r0 * 0.6]);
+  crown(parts, cs, [R.mustard[0], R.mustard[1], R.aspen[0], R.aspen[1]], R.mustard[0], W, H, bx, rand, 'tall');
   return { parts, h: H, w: 13 };
 }
 // A ponderosa pine: a tall straight trunk of orange-brown bark broken into plates, bare for half its
@@ -234,7 +266,7 @@ function makePonderosa(seed) {
   for (let k = 1 + (rand() * 2 | 0); k > 0; k--) { const y = H * (0.56 + rand() * 0.14), s = rand() < 0.5 ? -1 : 1; thick(trunk, bx, y, bx + s * (3 + rand() * 2), y - 1, 1, R.pbark[0]); }
   outline(trunk, INK);
   const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }];
-  crown(parts, cs, [R.conifer[0], R.pine[0], R.pine[1], R.pine[2], R.pine[3]], R.conifer[0], W, H, bx, rand);
+  crown(parts, cs, [R.conifer[0], R.pine[0], R.pine[1], R.pine[2], R.pine[3]], R.conifer[0], W, H, bx, rand, 'tuft');
   return { parts, h: H, w: 20 };
 }
 // The dry side's trees (E5g). A lodgepole pine: tall, straight and thin, crowded in stands, its needles
@@ -248,8 +280,8 @@ function makeJuniper(seed) {
   for (let k = 1; k < pts.length; k++) thick(trunk, pts[k - 1][0], pts[k - 1][1], pts[k][0], pts[k][1], k === 1 ? 2 : 1, k === 1 ? R.ochre[0] : R.rock[1]);
   thick(trunk, pts[1][0], pts[1][1], pts[1][0] + lean * 5, pts[1][1] - 3, 1, R.ochre[0]);
   outline(trunk, INK);
-  const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }], cs = [[pts[2][0], H * 0.28, 3.4 + rand()], [pts[1][0] + lean * 5, pts[1][1] - 4, 2.8 + rand()]];
-  if (rand() < 0.6) cs.push([pts[2][0] - lean * 3, H * 0.42, 2.6 + rand()]);
+  const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }], cs = [[pts[2][0], H * 0.28, 4 + rand()], [pts[1][0] + lean * 5, pts[1][1] - 4, 3.4 + rand()]];
+  if (rand() < 0.6) cs.push([pts[2][0] - lean * 3, H * 0.42, 3.2 + rand()]);
   crown(parts, cs, [R.hill[0], R.hill[1], R.sage[1], R.sage[2], R.sage[3]], R.hill[0], W, H, bx, rand);
   return { parts, h: H, w: 14 };
 }
@@ -261,7 +293,7 @@ function makeWhitebark(seed) {
   for (let k = 0, n = 2 + (rand() * 2 | 0); k < n; k++) { const ex = bx + (k - (n - 1) / 2) * (5 + rand() * 3), ey = H * (0.18 + rand() * 0.2); thick(trunk, bx, H, ex, ey, k === 0 ? 2 : 1, R.rock[hash(k, seed, 3) < 0.5 ? 3 : 4]); cs.push([ex, ey - 1, 3 + rand() * 1.2]); }
   outline(trunk, INK);
   const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }];
-  crown(parts, cs, [R.conifer[0], R.conifer[1], R.pine[1], R.pine[2], R.pine[3]], R.conifer[0], W, H, bx, rand);
+  crown(parts, cs, [R.conifer[0], R.conifer[1], R.pine[1], R.pine[2], R.pine[3]], R.conifer[0], W, H, bx, rand, 'tuft');
   return { parts, h: H, w: 18 };
 }
 // New growth in the burn (E5g): slide alder, a low tangle of bright fresh leaves along the water, and
