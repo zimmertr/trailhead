@@ -223,7 +223,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 - [x] C5. Segfault Scree on real scree (note 14).
 - [x] C6. Every animal clickable, map and scenes (note 10). The list goes in section 11.
 - [x] C7. Everything placed by rule still stands where it should after C1 to C6 (trails, signs, animal homes, no-go areas); `walk.sh` on every route.
-- [ ] C8. The logic audit (note 38): a report artifact with a picture and a proposed fix for every error found. Nothing is built. Its link goes in section 10 and the final report.
+- [x] C8. The logic audit (note 38): a report artifact with a picture and a proposed fix for every error found. Nothing is built. Its link goes in section 10 and the final report.
 
 **D. The lake loop**
 
@@ -306,7 +306,9 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **C5 done.** The Segfault Scree sign stands on the talus fan under Proficiency Peak's prow, the map's one field of loose granite blocks, just below the old snow and beside the trail where it tops the ladder (round 5's stood on a grassy slope below the bench). Its name tag reads at Day and Dusk. Every other sign stands where it did.
 - **C6 done.** Every animal on the map and in the scenes now has a name when you point at it and answers a click; the list of what each one does is in section 11. Fourteen new sounds, none of them heard by TJ yet: the bugle, bleat, snort, huff, bawl, chatter, eagle's cry, osprey's kew, blow, plop, gulls' mew, raven's croak, owl's hoot and loon's wail. Clicking an animal is never a find, and a browser test checks that. The animal names are new words, drafts for TJ, in `content/game/names.yaml`.
 - **C7 done.** Every route walks clean at desktop (Auto) and phone (Dusk) with the same stops as round 5 (lake 3, Proficiency Peak 5, the Spires, the way home and the register), and click-to-move reaches each test point as round 5 did. Against round 5's places: the trails are the same but for 8 points of the lake loop that stepped back from the bigger lake (by its rule, up to 8 px); the lake's flag, journal and stops moved east with the lake; the Segfault sign, the tumbleweed start, two dust devils, the parkland marmots, the osprey's dive and the whale moved for the reasons logged at C1 to C5; all 16 signs stand; the engine rules test finds no animal where it may not be. One fix: a parkland marmot's tail touched the tarn stream, so the marmots now keep clear of any water the picture shows round their boulder.
-- Next: C8.
+- **C8 done.** The logic audit is a report artifact: https://claude.ai/artifact/NL787W4UYQ9YiSqpQkSuoC. Five findings, each with a picture, what was measured, the fixes and the one the planner would pick: (1) a tree is drawn the same size at the front and back of the map (TJ's example; the same 51 px fir at both edges); (2) animals at storybook size next to the trees (pick: leave it); (3) one fir on Mount Monolith's snowfield (no tree stands on a glacier); (4) 727 plants on sheer cliffs, 684 of them flower clumps, beside the Spires' glacier and under the Peak's bench; (5) Postmortem Burn's sign on bare granite, with burnt snags among living larches. Nothing is built; the fixes wait for TJ's choice.
+- **Section C done.**
+- Next: D1.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -417,6 +419,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - C6, frame time: 12.7 ms zoomed out at Dusk (11.7 before; the flocks and sea animals now note where they are drawn each frame).
 - C7, a fix: the parkland marmots' rule read the ground's water grid every 4 px and stepped over the tarn stream, which is a pixel or two wide, so one marmot lay with its tail touching it. The rule now also reads the picture for water within 14 across and 6 up or down; that marmot moved 29 px west onto open meadow.
 - C7, frame time: 12.3 ms zoomed out at Dusk.
+- C8, how: a throwaway audit page in a scratch copy of the build (never committed) read the land straight from `land.js` and measured what lies under every one of the 7,244 plants, how tall the trees are in each band of distance, which drawings are shared from front to back, and what every sign and animal home stands on; then the side scenes were looked at whole.
+- C8, a call: the report is its own artifact, since it is a report for TJ to choose from rather than a build of the game; the round's game artifact was republished unchanged with the item's label.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:
