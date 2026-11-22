@@ -52,7 +52,7 @@ function paintFog(scr, t, base, M, gx0, gy0) {
 }
 
 export function makeOffroute() {
-  const run = makeRunner('alpine'), idle = frontFig('alpine'), st = {}, focus = { x: 0, y: 0 };
+  const run = makeRunner('alpine'), idle = frontFig('alpine'), st = {}, focus = { x: 0, y: 0 }, at = { cx: -999, my: -999 };
   const sign = makeSmallSign();
   const wand = (() => { const b = new BM(7, 26); b.ox = 1; b.oy = 25; for (let y = 4; y < 26; y++) b.set(1, y, R.wood[2]); for (let y = 0; y < 5; y++) for (let x = 2; x < 6 - (y & 1); x++) b.set(x, y + 1, R.blaze[y < 2 ? 2 : 1]); outline(b, INK); return b; })();
   return {
@@ -63,7 +63,15 @@ export function makeOffroute() {
     cues: () => [{ at: 0.05, name: 'wind' }],
     enter() { st.y = null; },
     focus: () => focus,
-    pick(sx, sy) { return Math.abs(sx - focus.x - 26) < 8 && Math.abs(sy - focus.y) < 22 ? { label: NAMES.offroute.wand, x: focus.x + 26, y: focus.y - 16 } : null; },
+    // The wand and the sign answer where they stand (round 6: the wand's answer used to follow him, so it missed
+    // while he walked in, and the sign answered nothing). A click on the sign takes him back to the Trailhead,
+    // as the card's button does.
+    pick(sx, sy) {
+      const { cx, my } = at;
+      if (Math.abs(sx - cx - 26) < 8 && Math.abs(sy - my + 14) < 22) return { label: NAMES.offroute.wand, x: cx + 26, y: my - 30 };
+      if (sx >= cx - 42 && sx <= cx - 26 && sy >= my - 20 && sy <= my + 2) return { label: NAMES.offroute.sign, x: cx - 34, y: my - 20, act: 'home' };
+      return null;
+    },
     draw(scr, env, arg, q) {
       const { VW, VH } = scr, { t } = env, base = baseline(scr, env.shown, st), cx = Math.round(scr.narrow ? VW * 0.5 : VW * 0.62);
       // Where the 404 sits: in the cloud left of him, as big as fits between the top bar and the ghost ridge
@@ -84,7 +92,7 @@ export function makeOffroute() {
         const sp = 40 + hash(k, 1, 402) * 70, x = Math.floor(frac(hash(k, 2, 402) + t * sp / (VW + 40)) * (VW + 40)) - 20, y = Math.floor(frac(hash(k, 3, 402) + t * 0.05 * (1 + hash(k, 4, 402))) * VH);
         scr.set(x, y, R.snow[4]); if (k % 3 === 0) scr.set(x + 1, y, R.snow[4]);
       }
-      focus.x = mx; focus.y = my - 14;
+      focus.x = mx; focus.y = my - 14; at.cx = cx; at.my = my;
     }
   };
 }

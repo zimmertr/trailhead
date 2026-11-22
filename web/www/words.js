@@ -484,7 +484,8 @@ export const W = {
    "ridge": "Race Condition Ridge"
   },
   "offroute": {
-   "wand": "The only wand for miles"
+   "wand": "The only wand for miles",
+   "sign": "Back the way you came"
   },
   "larches": {
    "goats": "Nanny and kid",

@@ -367,3 +367,18 @@ test('an address that is off route still draws', async ({ page }) => {
   expect((await info(page))?.route).toBe('off-route')
   expect(problems).toEqual([])
 })
+
+// The sign on the off-route page names itself, and a click on it takes him back to the Trailhead, as the
+// card's button does (TJ, round 6: it answered nothing before).
+test('the sign on the off-route page names itself and leads back to the Trailhead', async ({ page }) => {
+  const problems = await open(page, '/#no-such-trail')
+  await expect.poll(() => page.evaluate(() => window.__api.hitAt('home')), { timeout: 10_000 }).not.toBeNull()
+  const at = await page.evaluate(() => window.__api.hitAt('home'))
+  if (!at) throw new Error('the sign does not answer')
+  await page.mouse.move(at[0], at[1])
+  await expect(page.locator('#tip')).toHaveText('Back the way you came')
+  await page.mouse.click(at[0], at[1])
+  await expect.poll(async () => (await info(page))?.route, { timeout: 10_000 }).toBe('lake')
+  await expect.poll(async () => (await info(page))?.scene, { timeout: 10_000 }).toBe('world')
+  expect(problems).toEqual([])
+})
