@@ -1,5 +1,5 @@
 // The animals of the side-view scenes, each drawn in code at the same pixel size as everything else.
-import { hash, frac, R, INK, BM, outline, disc, thick, pick } from './core.js';
+import { hash, frac, R, INK, BM, outline, litBack, disc, thick, pick } from './core.js';
 
 const ell = (b, cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
 
@@ -206,6 +206,9 @@ function goat(pose, kid, step = 0) {
   for (const [lx, far] of [[7, 1], [9, 0], [15, 1], [17, 0]]) { const X = lx * s + (kid ? 4 : 0), sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, X, 14, X + sw, 20, 2, far ? R.gold[4] : R.white[0]); b.set(X + sw, 21, INK); }
   ell(b, 12 * s + (kid ? 4 : 0), 12, 7 * s, 4.2 * s, wool);
   ell(b, 9 * s + (kid ? 4 : 0), 9, 3 * s, 2.5 * s, wool);
+  // A hump of long hair over the shoulders and a fringe hanging under the belly (art pass D06).
+  ell(b, 15 * s + (kid ? 4 : 0), 10, 3 * s, 2.4 * s, wool);
+  { const cx = 12 * s + (kid ? 4 : 0), rx = 7 * s; for (let x = Math.ceil(cx - rx + 1); x < cx + rx - 1; x++) { const yb = Math.round(12 + 4.2 * s * Math.sqrt(Math.max(0, 1 - ((x - cx) / rx) ** 2))); if (hash(x, 1, kid ? 7 : 5) < 0.7) b.set(x, yb + 1, R.white[0]); if (hash(x, 2, kid ? 7 : 5) < 0.3) b.set(x, yb + 2, R.gold[4]); } }
   const hx = (pose === 'look' ? 17 : pose === 'graze' ? 20 : 19) * s + (kid ? 4 : 0), hy = pose === 'look' ? 6 : pose === 'graze' ? (kid ? 12 : 14) : 7;
   thick(b, 16 * s + (kid ? 4 : 0), 10, hx, hy + 1, 3, R.white[1]);
   // The head is a long face in profile: a muzzle with a dark nose, an ear, and the shadow of the jaw
@@ -217,6 +220,7 @@ function goat(pose, kid, step = 0) {
     // A beard.
     thick(b, hx + 3, hy + 2, hx + 3, hy + 4, 1, R.white[0]);
   } else { b.set(hx + 1, hy - 3, INK); }
+  litBack(b);
   outline(b, INK);
   // The horns go on after the outline, so they stay two thin spikes.
   if (!kid) for (const [dx, dy] of [[0, -3], [0, -4], [-1, -5], [-1, -6], [2, -3], [2, -4], [1, -5], [1, -6]]) b.set(hx + dx, hy + dy, INK);

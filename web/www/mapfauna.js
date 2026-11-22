@@ -1,6 +1,6 @@
 // Drawings of the animals and the boat on the world map that came out of round 3's terrain.js: the
 // ferry, the humpback, the bighorn ram and the squirrel or chipmunk. critters.js moves them.
-import { clamp, smooth, frac, R, pick, BM, outline, thick, INK } from './core.js';
+import { clamp, smooth, frac, R, pick, BM, outline, litBack, thick, INK } from './core.js';
 import { ell } from './fauna.js';
 
 // The ferry, seen from the shore and a little above, lying along its course: bow down to the right.
@@ -108,15 +108,26 @@ function whale(p) {
 }
 
 function sheep(grazing, step = 0) {
-  // A bighorn ram: sandy brown, white rump and muzzle, and a heavy horn curling round the ear.
+  // A bighorn ram: sandy brown, white rump and muzzle, and a heavy horn curling round the ear. The horn is
+  // a thick ridged C, back over the ear and round under it toward the eye, outlined with the rest so it
+  // reads at a glance (art pass D06, after a ram painted for the game).
   const b = new BM(24, 19); b.ox = 11; b.oy = 18;
   const coat = (nx, ny, x, y) => pick('dirt', 0.5 - ny * 0.3 - nx * 0.05, x, y, 0.5);
   for (const lx of [6, 8, 15, 17]) { const sw = step ? (lx % 2 ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 12, lx + sw, 17, 1, R.dirt[lx % 2 ? 1 : 0]); b.set(lx + sw, 18, INK); }
-  ell(b, 11, 10, 7, 4, coat); ell(b, 4.5, 9.5, 1.6, 2.2, () => R.white[1]);
+  ell(b, 11, 10, 7, 4, coat); ell(b, 4.6, 9.6, 2.2, 2.8, nx => nx < 0.4 ? R.white[1] : R.white[0]);
   const hx = grazing ? 19 : 18, hy = grazing ? 12 : 6;
-  thick(b, 16, 9, hx, hy + 1, 3, R.dirt[2]); ell(b, hx + 1, hy, 2.4, 2, coat); b.set(hx + 3, hy + 1, R.white[1]); b.set(hx + 4, hy + 1, R.white[0]); b.set(hx + 2, hy - 1, INK);
+  thick(b, 16, 9, hx, hy + 1, 3, R.dirt[1]); ell(b, hx + 1, hy, 2.4, 2, coat); b.set(hx + 3, hy + 1, R.white[1]); b.set(hx + 4, hy + 1, R.white[0]);
+  const ex = hx - 0.6, ey = hy - 0.3;
+  for (let y = Math.floor(ey - 4); y <= Math.ceil(ey + 4); y++) for (let x = Math.floor(ex - 4); x <= Math.ceil(ex + 4); x++) {
+    const dx = x - ex, dy = y - ey, d = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+    if (a > -0.95 && a < 0.55) continue;
+    if (d >= 1.5 && d <= 3.5) b.set(x, y, Math.floor((a + 4) * 2.2) % 2 ? R.dry[1] : dy < 0 || d < 2.5 ? R.dry[3] : R.dry[2]);
+    // A dark edge where the horn lies over the coat, and the ear dark inside the curl.
+    else if ((d > 3.5 && d < 4.2 || d < 1.5) && b.get(x, y)) b.set(x, y, R.dirt[0]);
+  }
+  b.set(hx + 2, hy - 1, INK);
+  litBack(b);
   outline(b, INK);
-  for (const [dx, dy] of [[-1, -2], [0, -3], [1, -3], [2, -2], [2, -1], [1, 0], [0, 0], [-2, -1], [-2, 0], [-1, 1]]) b.set(hx + dx, hy + dy, dx + dy < -2 ? R.dry[3] : R.dry[1]);
   return b;
 }
 function squirrel(chip, run) {

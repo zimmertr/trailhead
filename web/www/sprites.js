@@ -1,5 +1,5 @@
 // Scenery and animal sprites that more than one scene uses.
-import { TAU, clamp, lerp, sq, rng, hash, vnoise, bayer, R, INK, BM, outline, disc, thick, pick } from './core.js';
+import { TAU, clamp, lerp, sq, rng, hash, vnoise, bayer, R, INK, BM, outline, litBack, disc, thick, pick } from './core.js';
 
 // ---------------------------------------------------------------------------------------------
 // Trees. Each is a still trunk plus leaf clumps that move on their own, a pixel at a time, as in
@@ -531,6 +531,7 @@ function makeElk(headDown, step = 0, bull = true) {
   oval(10.5, 18.5, 2.4, 3.4, dark);
   oval(hx, hy, 2.8, 1.8, dark); b.set(hx - 3, hy + 1, R.bark[0]); b.set(hx, hy - 1, INK);
   if (!bull) { b.set(hx + 3, hy - 2, R.bark[2]); b.set(hx + 4, hy - 3, R.bark[2]); }
+  litBack(b);
   outline(b, INK);
   // The rack goes on after the outline, so it stays thin: the far antler a shade darker, then the near one.
   if (bull) {
@@ -553,7 +554,7 @@ function makeMoose(calf, headDown, step = 0) {
     const hx = headDown ? 5 : 4.5, hy = headDown ? 19 : 7;
     if (headDown) thick(b, 8, 12, 6, 17, 3, dark); else thick(b, 8, 10, 6, 8, 3, dark);
     oval(hx, hy, 2.6, 1.7, coat); b.set(hx - 2, hy + 1, dark); b.set(hx - 3, hy + 1, dark); b.set(hx - 1, hy - 1, INK); b.set(hx + 2, hy - 2, R.bark[2]); b.set(hx + 3, hy - 3, R.bark[2]);
-    outline(b, INK); return b;
+    litBack(b); outline(b, INK); return b;
   }
   // The legs: dark above the knee, pale below; the near and far ones swing opposite ways when it walks.
   for (const [lx, far] of [[12, 1], [15, 0], [26, 1], [29, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 21; y < 37; y++) b.set(lx + (y > 29 ? sw : 0), y, y > 28 ? sock : R.fur[far ? 0 : 1]); if (!far) for (let y = 21; y < 29; y++) b.set(lx - 1, y, R.fur[1]); }
@@ -563,6 +564,7 @@ function makeMoose(calf, headDown, step = 0) {
   oval(hx, hy, 3.6, 2.1, coat); oval(hx - 2.4, hy + 1.6, 2.2, 1.9, coat);
   b.set(hx + 1, hy - 1, INK); b.set(hx + 4, hy - 3, dark); b.set(hx + 5, hy - 3, dark);
   if (!headDown) { b.set(hx + 4, hy + 4, dark); b.set(hx + 4, hy + 5, dark); }
+  litBack(b);
   outline(b, INK);
   // The antlers go on after the outline, as the elk's do: a broad palm with points along its top, the far one a shade darker.
   const palm = [[3, -3], [4, -4], [2, -5], [3, -5], [4, -5], [5, -5], [6, -5], [7, -5], [8, -5], [3, -6], [4, -6], [5, -6], [6, -6], [7, -6], [8, -6], [9, -6], [3, -7], [5, -7], [7, -7], [9, -7], [10, -7], [1, -4], [0, -5]];

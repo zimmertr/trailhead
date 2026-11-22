@@ -73,7 +73,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **D03 Broadleaf Trees** - maples, aspens, the twisted and whitebark pines, ponderosas and junipers. `sprites.js`.
 - [x] **D04 Meadows and Flowers** - the parkland's flowers and the grass. `sprites.js` (`makeFlowers`), `land.js`.
 - [x] **D05 The Trailhead** - the junction sign, the kiosk, the register box and the small signs. `sprites.js` (`makeSignpost`, `makeKiosk`, `makeRegister`, `makeSmallSign`).
-- [ ] **D06 The Map's Big Animals** - elk, moose, black bears, mountain goats and the bighorn ram. `sprites.js`, `mapfauna.js`.
+- [x] **D06 The Map's Big Animals** - elk, moose, black bears, mountain goats and the bighorn ram. `sprites.js`, `mapfauna.js`.
 - [ ] **D07 The Whale and the Ferry** - `mapfauna.js` (`whale`, `ferry`).
 - [ ] **D08 Boulders, Logs and Shrubs** - `sprites.js` (`makeBoulder`, `makeLog`, `makeShrub`, `makeBush`, `makeHuckleberry`, `makeFern`).
 - [ ] **D09 The Lookout, the Tent and the Journal** - `sprites.js` (`makeLookout`, `makeTent`, `makeJournal`).
@@ -275,3 +275,10 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - D05, a call: the junction sign, the small signs and the register box keep their sizes and feet and gain grain, lit sides and rocks at their feet. The register's pennants and its open desk are as they were.
 - D05, a call: `ground.png` was rebaked because its fingerprint covers `sprites.js`; its pixels are identical.
 - D05: frame time 12.6 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- D06, the before: the elk and the moose read well. The black bear was a dark oval with its shoulders no higher than its back, two dark dots for ears and a three-pixel muzzle; the bighorn ram's horn was ten pixels drawn after the outline in a ramp close to its coat, so it was lost; the goats were plain cream shapes.
+- D06, the pictures: 7 in all. Qwen's seed 1 was picked: a sprite sheet near the game's own size with the bear's hump, round ears, tan muzzle and glossy back, the ram's ridged gold C of a horn with the dark ear inside it and a big white rump, and the goat's shaggy hump and the long hair hanging under its belly. The style model's seed 2 has the walking bear and the ram's full curl. The prompts are in `design/art/D06/log.jsonl`.
+- D06, a call: one helper, `litBack` in `core.js`, lights the top pixel of each column a step in its own ramp, run before the outline, so the elk, the moose and its calf, the bear and its cubs, the goats and the ram are all lit along the back from the upper left the same way.
+- D06, a call: the bear's shoulder rises in a hump above its back, its ears are round and lit, its muzzle tan with a dark nose. The ram's horn is a ring round its ear drawn before the outline, ridged in two golds and open toward its face; a first pass blended into the coat, so where it lies over the coat it has a dark edge and the ear inside the curl is dark. Its rump patch is larger. The goats have a hump over the shoulders and a fringe of long hair under the belly.
+- D06, a call: the elk's and moose's own drawings are unchanged beyond the lit back; they already read as the picture does.
+- D06, a call: `ground.png` was rebaked because its fingerprint covers `core.js`; its pixels are identical.
+- D06: frame time 11.6 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.

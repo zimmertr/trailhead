@@ -1,23 +1,27 @@
 // The animals of the world map and the water that moves: herds that graze and wander, a moose and its calf, bears with cubs, squirrels
 // and chipmunks that dart, marmots that sit up and whistle, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
-import { TAU, clamp, lerp, smooth, frac, hash, vnoise, bayer, rng, R, INK, SHADE, KIND, RAMP_OF, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
+import { TAU, clamp, lerp, smooth, frac, hash, vnoise, bayer, rng, R, INK, SHADE, KIND, RAMP_OF, BM, outline, litBack, thick, pick, veilTable, DEBUG } from './core.js';
 import { makeElk, makeBird, makeMoose } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './land.js';
 import { makeCollide } from './collide.js';
 import { NAMES } from './content.js';
 
-// A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass.
+// A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass. Its shoulders
+// rise in a hump above its back, its ears are round and its muzzle tan, and its fur shines along the top
+// (art pass D06, after a bear painted for the game).
 export function mapBear(pose, step = 0) {
   const b = new BM(28, 17); b.ox = 12; b.oy = 16;
   const fur = (nx, ny, x, y) => pick('fur', 0.42 - ny * 0.3 + 0.2 * (hash(x, y, 4) - 0.5), x, y, 0.6);
   for (const [lx, far] of [[6, 1], [8, 0], [16, 1], [18, 0]]) { const sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 10, lx + sw, 15, 2, R.fur[far ? 0 : 1]); }
-  ell(b, 12, 8, 8, 4.4, fur); ell(b, 7, 7.5, 4, 4, fur); ell(b, 16, 6.5, 3.6, 3.4, fur);
+  ell(b, 12, 8, 8, 4.4, fur); ell(b, 7, 7.5, 4, 4, fur); ell(b, 15.5, 5.6, 3.9, 3.6, fur);
   const hx = pose === 'sniff' ? 22 : 22, hy = pose === 'sniff' ? 12 : 6;
   thick(b, 18, 7, hx - 1, hy, 4, R.fur[1]); ell(b, hx, hy, 2.8, 2.5, fur);
-  b.set(hx + 3, hy + 1, R.dirt[2]); b.set(hx + 4, hy + 1, R.dirt[2]); b.set(hx + 3, hy + 2, R.dirt[1]);
-  b.set(hx - 1, hy - 3, R.fur[1]); b.set(hx + 1, hy - 3, R.fur[1]); b.set(hx + 1, hy - 1, R.white[1]);
+  b.set(hx + 2, hy, R.dirt[3]); b.set(hx + 3, hy, R.dirt[3]); b.set(hx + 3, hy + 1, R.dirt[2]); b.set(hx + 4, hy + 1, R.dirt[2]); b.set(hx + 3, hy + 2, R.dirt[1]); b.set(hx + 5, hy + 1, INK);
+  for (const [x, y] of [[hx - 2, hy - 3], [hx - 1, hy - 3], [hx - 2, hy - 4], [hx + 1, hy - 3]]) b.set(x, y, R.fur[2]);
+  b.set(hx + 1, hy - 1, R.white[1]);
+  litBack(b);
   outline(b, INK);
   return b;
 }
@@ -40,8 +44,9 @@ export function mapCub(pose, step = 0) {
     for (const [lx, far] of [[4, 1], [5, 0], [8, 1], [9, 0]]) { const sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 8, lx + sw, 10, 1, R.fur[far ? 0 : 1]); }
     ell(b, 6.5, 6.5, 3.6, 2.3, fur);
     const hx = 11, hy = pose === 'sniff' ? 8 : 5;
-    ell(b, hx, hy, 2.1, 1.8, fur); b.set(hx - 1, hy - 2, dark); b.set(hx + 1, hy - 2, dark); b.set(hx + 2, hy + 1, R.dirt[2]);
+    ell(b, hx, hy, 2.1, 1.8, fur); b.set(hx - 1, hy - 2, dark); b.set(hx + 1, hy - 2, dark); b.set(hx + 2, hy + 1, R.dirt[3]);
   }
+  litBack(b);
   outline(b, INK);
   return b;
 }

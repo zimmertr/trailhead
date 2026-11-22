@@ -151,6 +151,11 @@ class BM {
   set(x, y, c) { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.d[y * this.w + x] = c; }
   get(x, y) { x = Math.round(x); y = Math.round(y); return x >= 0 && y >= 0 && x < this.w && y < this.h ? this.d[y * this.w + x] : 0; }
 }
+// Light from the upper left along an animal's back (art pass D06): the top pixel of each column a step
+// lighter in its own ramp. Run it before the outline.
+function litBack(b) {
+  for (let x = 0; x < b.w; x++) for (let y = 0; y < b.h; y++) { const i = y * b.w + x, v = b.d[i]; if (!v) continue; if (v !== INK) b.d[i] = LIGHT[v]; break; }
+}
 function outline(b, c) {
   const o = b.d.slice(), w = b.w, h = b.h;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -396,7 +401,7 @@ const DEBUG = { snap: true, trees: true, clouds: true, mist: true, labels: true,
 export {
   DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
   DAY, DUSK, R, RAMP_OF, STEP_OF, INK, N, SHADE, LIGHT, KIND, BLACK, pick, ramp,
-  BM, outline, disc, thick, catmull, makePath, windAt, breeze, Screen
+  BM, outline, litBack, disc, thick, catmull, makePath, windAt, breeze, Screen
 };
 
 // What each colour looks like through mist: the palette entry nearest to it mixed toward fog by this
