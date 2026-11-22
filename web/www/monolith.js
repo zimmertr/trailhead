@@ -24,11 +24,11 @@ export const monolithSky = du => clamp((MH - skyline(MCX + du)) / (MH - TOPY), 0
 // The cleavers, west to east, [x, y, half-width]. The fourth is Gibraltar Rock, broad and dark; the
 // sixth comes down off Little Tahoma; the Steamboat Prow is the wedge where the fifth meets the top.
 const RIDGES = [
-  [[238, 126, 2], [204, 190, 6], [164, 250, 9], [124, 310, 12], [94, 362, 14]],
-  [[270, 100, 2], [252, 160, 5], [230, 222, 8], [214, 290, 10], [206, 362, 12]],
-  [[302, 104, 2], [298, 168, 4], [290, 238, 7], [284, 300, 9], [280, 362, 10]],
+  [[216, 156, 2], [198, 194, 5], [164, 250, 9], [124, 310, 12], [94, 362, 14]],
+  [[262, 126, 2], [249, 166, 5], [230, 222, 8], [214, 290, 10], [206, 362, 12]],
+  [[301, 148, 2], [297, 186, 4], [290, 238, 7], [284, 300, 9], [280, 362, 10]],
   [[340, 82, 3], [350, 120, 9], [362, 160, 13], [369, 210, 12], [373, 270, 10], [378, 362, 11]],
-  [[386, 104, 2], [406, 152, 5], [426, 212, 8], [441, 272, 10], [452, 362, 12]],
+  [[394, 122, 2], [409, 158, 5], [426, 212, 8], [441, 272, 10], [452, 362, 12]],
   [[412, 104, 1.5], [426, 118, 6], [440, 136, 7], [452, 150, 5]],
   [[482, 126, 3], [489, 180, 9], [498, 250, 11], [512, 362, 13]],
   [[524, 198, 3], [550, 262, 8], [576, 330, 11]]
@@ -96,25 +96,38 @@ export function paintMonolith() {
     let left = null, right = null, on = null;
     for (let k = 0; k < RIDGES.length; k++) {
       const q = ridgeAt(RIDGES[k], y); if (!q) continue;
-      const [rx, rw] = q, dx = x - rx, w = rw * wob(y, k);
+      const [rx, rw] = q, dx = x - rx, w = rw * wob(y, k) * (1 + 0.9 * smooth(140, 300, y));
       if (Math.abs(dx) < w && (!on || Math.abs(dx) / w < Math.abs(on.dx) / on.w)) on = { k, dx, w };
       if (dx >= 0 && (!left || dx < x - left.x)) left = { x: rx, w: rw, k };
       if (dx < 0 && (!right || -dx < right.x - x)) right = { x: rx, w: rw, k };
     }
     return { left, right, on };
   };
-  const snowC = (L, x, y) => snow[clamp(Math.round(L * 4.4 - 0.15 + (bayer(x, y) - 0.5) * 0.75), 0, 4)];
-  const rockC = (L, x, y) => rock[clamp(Math.round(L * 3.8 + (bayer(x, y) - 0.5) * 0.7), 0, 4)];
+  const snowC = (L, x, y) => snow[clamp(Math.round(L * 4.4 - 0.15 + (bayer(x, y) - 0.5) * 0.5), 0, 4)];
+  const rockC = (L, x, y) => rock[clamp(Math.round(L * 3.8 + (bayer(x, y) - 0.5) * 0.45), 0, 4)];
+  // Art pass A03, after a picture of the mountain from the south: the dome is one round form in one light,
+  // not a skirt of pleats. Its west half is in full sun; past a soft line just east of the summit the snow
+  // turns to the lavender of the snow ramp's shade, all the way down the east flank. u is how far across
+  // the mountain a pixel is, -1 at its west edge on that row, 0 under the summit, 1 at its east edge.
+  const xl = new Float32Array(MH), xr = new Float32Array(MH);
+  for (let y = 0; y < MH; y++) { let a = 0, b = MW - 1; while (a < SUM[0] && skyline(a) > y) a++; while (b > SUM[0] && skyline(b) > y) b--; xl[y] = a; xr[y] = b; }
   for (let y = 0; y < MH; y++) for (let x = 0; x < MW; x++) {
     const top = skyline(x); if (y < top) continue;
     own[y * MW + x] = 1;
     const i = y * MW + x, b = bayer(x, y), n = vnoise(x / 11, y / 9, 901), r = rOf(x, y);
     const dR = (relief[y * MW + Math.min(MW - 1, x + 1)] - relief[y * MW + Math.max(0, x - 1)]) / 2;
-    // Light from the west: the east side of the mountain and the east face of every rib fall in shadow.
-    let L = 0.66 - 0.34 * smooth(-40, 300, x - SUM[0]) + clamp(dR * 0.55, -0.45, 0.4) + 0.06 * (n - 0.5);
-    // The upper slopes round over toward the summit and catch more light.
-    L += 0.12 * smooth(150, 70, y);
+    const u = x < SUM[0] ? (x - SUM[0]) / Math.max(8, SUM[0] - xl[y]) : (x - SUM[0]) / Math.max(8, xr[y] - SUM[0]);
+    // The shade line wanders a little and lies further east low down, where the flank turns south.
+    const shade = smooth(0.04, 0.4, u + 0.1 * (vnoise(y / 22, 1, 940) - 0.5) - 0.18 * smooth(120, 300, y));
+    // High up the cleavers are buried and the dome is one smooth field; their relief shows lower down.
+    const low = smooth(110, 200, y);
+    let L = 0.72 - 0.5 * shade + clamp(dR * 0.4, -0.35, 0.3) * low + 0.05 * (n - 0.5);
+    // The upper slopes round over toward the summit and catch more light, on the sunny side most.
+    L += 0.12 * smooth(150, 70, y) * (1 - shade);
     const { left, right, on } = nearest(x, y), gi = left ? left.k + 1 : 0;
+    // Each cleaver stands proud of the ice and throws a shadow onto the snow just east of it, a band
+    // that widens as the cleaver grows lower down.
+    if (left && !on) { const cast = left.w * (0.7 + 0.5 * vnoise(y / 9, left.k, 941)) + 2, gap = x - left.x - left.w; if (gap >= 0 && gap < cast) L -= 0.2 * smooth(cast, cast * 0.4, gap) * low; }
     // Little Tahoma: a dark tooth with a lit west face and snow in its gullies.
     // Its foot is not cut off: lower down, snow takes over the rock patch by patch.
     { const tx = 482, ty = 125, dy = y - ty, hw = 1 + dy * 0.4 * (0.85 + 0.3 * vnoise(y / 6, 1, 930));
@@ -124,22 +137,31 @@ export function paintMonolith() {
     // Liberty Cap's north side drops in a dark headwall (after the Willis Wall), with broken ledges of ice.
     { const wy = y - top, wb = 26 + 10 * vnoise(x / 8, 2, 904), sx = smooth(226, 236, x) * smooth(274, 262, x);
       if (wy > 6 && wy < wb * sx) { const ledge = vnoise(x / 10, y / 2.4, 905); d[i] = ledge > 0.7 ? snow[ledge > 0.8 ? 4 : 3] : ledge > 0.64 ? ice[2] : rockC(0.18 + 0.25 * n + 0.15 * smooth(260, 230, x), x, y); continue; } }
-    // The crater on the summit: a shallow dish with a bright rim, its far wall in blue shadow.
-    { const ex = (x - 330) / 24, ey = (y - 77) / 4.2, e = Math.hypot(ex, ey); if (e < 1.1) { d[i] = e > 0.82 ? snow[4] : ey < 0 ? ice[e > 0.4 ? 3 : 4] : snowC(0.62 + 0.2 * ex, x, y); continue; } }
+    // The crater on the summit: a shallow dish with a bright rim, its far wall in the snow's own shade
+    // (A03: the cyan of the icefalls made it read as a pool).
+    { const ex = (x - 330) / 24, ey = (y - 77) / 4.2, e = Math.hypot(ex, ey); if (e < 1.1) { d[i] = e > 0.82 ? snow[ex < 0.3 ? 4 : 3] : ey < 0 ? snow[e > 0.4 ? 1 : 2] : snowC(0.62 + 0.2 * ex, x, y); continue; } }
     const dome = y < domeY(x);
     const snout = SNOUT[gi] + 10 * vnoise(x / 9, gi, 907) - 6 * Math.sin(Math.PI * (left && right ? clamp((x - left.x) / (right.x - left.x), 0, 1) : 0.5));
     const green = smooth(snout + 8 + 16 * vnoise(x / 7, 5, 928), snout + 34, y) * (0.7 + 0.6 * vnoise(x / 14, y / 10, 909));
     // Cleavers. High up they are ridges under snow; rock breaks through lower down, in patches, with
     // snow lingering in the gullies (early summer). In the meadow only their crest stays bare.
+    // A03: the rock shows from higher up and runs on down the cleaver as one broken band, not streaks: a
+    // sharp crest a little east of its middle, a broad sunlit west face cut by cracks down the fall line,
+    // and an east face in deep shade.
     if (on && !dome) {
       const s = on.dx / on.w, rag = 0.4 * (vnoise(x / 3, y / 4, 920 + on.k) - 0.5);
-      let bare = lerp(-0.25, 0.95, smooth(118, 290, y)) + rag;
+      let bare = lerp(-0.1, 1.0, smooth(110, 250, y)) + rag;
       if (vnoise(y / 16, on.k, 922) < 0.3 && y < 260) bare -= 0.5;
       if (green > 0.6) bare = Math.min(bare, rag + 0.2 - 0.4 * smooth(snout + 40, snout + 70, y));
       if (Math.abs(s) < bare) {
         if (green > 0.6) own[i] = 0;
-        const gully = vnoise(x / 2.3, y / 9, 906 + on.k);
-        d[i] = gully > 0.72 - 0.18 * smooth(240, 110, y) ? snow[s < 0 ? 4 : 2] : rockC(clamp(0.66 - 0.55 * (s + 1) / 2 + 0.3 * (L - 0.5), 0, 1), x, y);
+        const crest = 0.12 + 0.14 * (vnoise(y / 6, on.k, 942) - 0.5), west = s < crest;
+        const gully = vnoise(x / 2.3, y / 9, 906 + on.k), crack = frac((x + 1.6 * Math.sin(y / 7 + on.k)) / 3.4) < 0.28 && vnoise(x / 3, y / 5, 945 + on.k) > 0.4;
+        let c;
+        if (Math.abs(s - crest) < 0.09) c = rock[west || shade > 0.5 ? 3 : 4];
+        else if (gully > 0.82 - 0.12 * smooth(240, 110, y)) c = snow[west ? (shade > 0.5 ? 2 : 4) : 1];
+        else { const l = west ? clamp(0.8 - 0.32 * shade + 0.15 * (n - 0.5) - 0.18 * (crest - s), 0.4, 0.95) : clamp(0.26 - 0.12 * shade + 0.1 * (s - crest), 0.04, 0.34); c = rockC(crack ? l - 0.26 : l, x, y); }
+        d[i] = c;
         continue;
       }
     }
@@ -149,29 +171,35 @@ export function paintMonolith() {
       // In the game only a ragged band of moraine is kept; the land's own meadow comes up to meet it.
       if (y > snout + 5 + 14 * vnoise(x / 6, 6, 929)) own[i] = 0;
       if (left && right) { const mid = (left.x + right.x) / 2 + 6 * Math.sin(y / 10 + gi * 2); if (Math.abs(x - mid) < 0.9) { d[i] = ice[(y & 1) ? 2 : 3]; if (green > 0.6) own[i] = 0; continue; } }
-      if (y < snout + 2.5) { d[i] = b < 0.55 ? ice[1] : rock[1]; continue; }
+      if (y < snout + 2.5) { d[i] = b < 0.55 ? snow[0] : rock[1]; continue; }
       const old = vnoise(x / 4, y / 5, 908);
       if (green > 0.6) { own[i] = 0; const fir = vnoise(x / 6, y / 5, 916) > 0.66; d[i] = fir ? R.conifer[clamp(Math.round(0.5 + 1.6 * L + (b - 0.5)), 0, 3)] : hash(x, y, 917) < 0.04 ? (hash(x, y, 918) < 0.5 ? R.lupine[2] : R.red[2]) : R.grass[clamp(Math.round(0.8 + 2.6 * L + (b - 0.5) * 0.8), 0, 4)]; continue; }
       d[i] = old > 0.72 ? snow[3] : rockC(0.28 + 0.45 * L + 0.2 * (hash(x >> 1, y >> 1, 910) - 0.5), x, y);
       continue;
     }
     // The bergschrund: a broken dark crack round the dome where the glaciers pull away from it.
-    const bs = domeY(x) + 4 + 4 * vnoise(x / 16, 1, 911), open = vnoise(x / 7, 3, 912) > 0.3;
+    // A03: broken into short pieces with snow bridges between, and the crack is the snow's shade, not
+    // blue ice, so it reads as a crack in the snow and not a ruled line round the dome.
+    const bs = domeY(x) + 4 + 4 * vnoise(x / 16, 1, 911), open = vnoise(x / 7, 3, 912) > 0.45;
     if (open && y >= bs - 0.5 && y < bs + 0.5) { d[i] = snow[4]; continue; }
-    if (open && y >= bs + 0.5 && y < bs + 1.6) { d[i] = ice[0]; continue; }
-    if (open && y >= bs + 1.6 && y < bs + 2.6) { d[i] = ice[2]; continue; }
+    if (open && y >= bs + 0.5 && y < bs + 1.6) { d[i] = shade > 0.5 ? snow[0] : snow[1]; continue; }
     if (dome) { d[i] = snowC(L + 0.04, x, y); continue; }
-    // Glaciers. The ice bulges, so each is lit on its west side, and it is shaded where it meets the
-    // rock to its east. It flows fastest down the middle, so its crevasses bow downhill.
+    // Glaciers. They flow fastest down the middle, so their crevasses bow downhill.
     const a = left && right ? clamp((x - left.x) / (right.x - left.x), 0, 1) : 0.5;
-    L += 0.1 * (0.5 - a) - (right ? 0.22 * smooth(right.w + 4, right.w, right.x - x) : 0);
     const bow = 9 * Math.sin(Math.PI * a), rr = r - bow;
     const fall = FALLS[gi];
     const fj = fall ? 14 * (vnoise(x / 10, gi, 927) - 0.5) : 0;
-    // The ice as it would be with no icefall: crevasses in bands, otherwise snow.
-    const plain = () => { const sp = 7 + 3 * smooth(140, 280, r), row = rr / sp, fr = frac(row), k = Math.floor(row);
-      const zone = vnoise(r / 26, gi * 3.1, 921), seg = vnoise(a * 16 + k * 0.7, k, 915);
-      if (zone > 0.55 && seg > 0.5 && a > 0.1 && a < 0.9) { const w = 1 / sp; if (fr < w) return snow[4]; if (fr < 2 * w) return ice[L > 0.45 ? 1 : 0]; if (fr < 3 * w && seg > 0.52) return ice[3]; }
+    // The ice as it would be with no icefall. A03: the crevasses lie in fields, where the glacier steepens
+    // below the dome, with smooth snow between the fields. In a field each crevasse is a short crack of
+    // its own length across the flow, bowed downhill: a bright lip above, the snow's deep shade in the
+    // crack. The rows' spacing changes and each piece starts at its own place, so no two line up. A
+    // buried icefall is one dense field, the seracs' cracks showing through its snow.
+    const fall0 = fall ? fall[0] + fj : 0, fall1 = fall ? fall[1] + fj : 0;
+    const field = Math.max(smooth(0.5, 0.64, vnoise(x / 24, y / 14, 946 + gi)) * smooth(domeY(x) + 8, domeY(x) + 24, y) * smooth(domeY(x) + 130, domeY(x) + 90, y), fall ? smooth(fall0 - 10, fall0 - 2, rr) * smooth(fall1 + 12, fall1 + 2, rr) : 0) * smooth(0.06, 0.18, a) * smooth(0.94, 0.82, a);
+    const plain = (buried) => {
+      const f = buried ? 0.45 + 0.4 * field : field, sp = 4.5 + 2 * hash(gi, 0, 947), row = (y - 5 * Math.sin(Math.PI * a)) / sp + 0.35 * vnoise(x / 11, gi, 948), fr = frac(row), k = Math.floor(row);
+      const len = 3 + 7 * hash(k, gi, 949), seg = hash(Math.floor((x + hash(k, gi, 950) * 40) / len), k, 951);
+      if (f > 0.3 && seg < 0.06 + 0.26 * f) { const w = 1 / sp; if (fr < w) return snow[shade > 0.5 ? 3 : 4]; if (fr < 2 * w) return shade > 0.5 ? snow[0] : snow[1]; if (fr < 3 * w && seg < 0.1 + 0.2 * f) return snow[shade > 0.5 ? 1 : 2]; }
       return snowC(L, x, y); };
     if (fall && rr > fall[0] + fj && rr < fall[1] + fj) {
       const before = d[i];
@@ -187,10 +215,10 @@ export function paintMonolith() {
         const topH = 0.22 + 0.25 * hash(col, row, 926);
         d[i] = fy < topH ? snow[blk < 0.2 ? 3 : 4] : fy > 0.86 ? ice[0] : fx > 0.75 ? ice[1] : fx < 0.2 ? ice[4] : blk < 0.12 ? snow[3] : ice[L > 0.5 ? 3 : 2];
       } else if (edge > 0.25) d[i] = blk < 0.85 ? ice[fy > 0.5 ? 0 : 1] : snowC(L - 0.2, x, y);
-      if (d[i] !== before) { cover.push(i, plain(), (FALL_IDS.indexOf(gi) << 6) | Math.round(63 * clamp((rr - f0) / (f1 - f0), 0, 1))); continue; }
+      if (d[i] !== before) { cover.push(i, plain(true), (FALL_IDS.indexOf(gi) << 6) | Math.round(63 * clamp((rr - f0) / (f1 - f0), 0, 1))); continue; }
     }
     // Crevasses: short arcs across the ice, not everywhere: in bands where the glacier bends or steepens.
-    d[i] = plain();
+    d[i] = plain(false);
   }
   return { w: MW, h: MH, d, own, cx: MCX, cover };
 }
