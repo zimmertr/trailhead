@@ -47,7 +47,7 @@ function paintBox(fb, L) {
   for (let y = rim; y < yH; y++) { fb[y * VW + rim] = INK; fb[y * VW + VW - 1 - rim] = INK; }
 }
 
-// The box drawn after a generated picture of it (round 6, note 9; design/art/register/): boards of uneven width
+// The box drawn after a generated picture of it (round 6, note 9; its prompt and seed in design/art/register/log.jsonl): boards of uneven width
 // with their own grain, which bends round each knot, and nail heads on the back wall; planks on the lid; the
 // floor's planks. Light from the upper left, so a groove's right side catches it (lightBox shades the rest).
 function paintBoxCode(fb, L) {

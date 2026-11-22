@@ -94,7 +94,7 @@ A side-on scene's far layer is a wide strip that wraps round as it scrolls.
 - **Keep margins.** Generate with sky on both sides and fit the whole subject inside its frame. A crop through a flank leaves a hard vertical edge.
 - **Fit the footprint.** Scale to the ground it stands on, not past it.
 - **Fade the foot** into the game's trees, never a straight cut.
-- **Keep the source.** Each picture's chosen source PNG, its `log.jsonl` and the step that builds the game data from it go in Git beside the art. Candidates stay in the scratchpad. Move PNGs to Git LFS once the art passes about 50 to 100 MB.
+- **Keep the source.** When a picture's pixels go into the game, its chosen source PNG, its `log.jsonl` and the step that builds the game data from it go in Git beside the art. A picture used only as a reference to draw from keeps just its `log.jsonl` in Git, which is enough to make it again; the PNG stays out of the repo. Candidates stay in the scratchpad. Move PNGs to Git LFS once the art passes about 50 to 100 MB.
 
 ## Reviewing a picture
 
