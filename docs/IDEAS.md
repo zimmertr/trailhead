@@ -469,3 +469,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Camera Pulls Back for the Haul** (round 6, F2). The camera could ease out to hold TJ and the two hauling in one frame while he is hauled, then close in again at the anchor.
 - **Snow Off the Axes** (round 6, F3). Each swing of an axe on the walk-off could throw a puff of snow, as the ice chips fly on the icefall.
 - **Straight On Where Trails Share** (round 6, G2). On the stretch where the peak's trail and the Spires' trail run together, sent from one to the other he could carry on to where they part instead of walking back to the Trailhead.
+- **Knots That Bend the Grain** (round 6, H1). The register's back wall could bend the streaks round each knot, as in the generated picture, instead of the knot sitting on straight grain.
+- **A Tin of Coloured Pencils** (round 6, H1). The tin on the back wall could hold the picture's mix of pencils (yellow, green, red, a pen) with a lit stripe down the tin, instead of three plain sticks.
+- **Pages That Curl at the Gutter** (round 6, H1). The open book could show its pages rising toward the spine, a shade lighter along the curve, as the picture's book does; the handwriting would have to follow the curve, so it waits.

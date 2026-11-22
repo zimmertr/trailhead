@@ -47,6 +47,52 @@ function paintBox(fb, L) {
   for (let y = rim; y < yH; y++) { fb[y * VW + rim] = INK; fb[y * VW + VW - 1 - rim] = INK; }
 }
 
+// The box drawn after a generated picture of it (round 6, note 9; design/art/register/): boards of uneven width with their own
+// grain, knots and nail heads on the back wall, seams on the lid and the side walls, the floor's planks.
+// Light from the upper left, so a groove's right side catches it.
+function paintBoxCode(fb, L) {
+  paintBox(fb, L);
+  const { VW, rim, yH, back } = L, W = R.wood, set = (x, y, c) => { fb[y * VW + x] = c; }, bh = back.y1 - back.y0;
+  for (let bx = back.x0, n = 0; bx < back.x1; n++) {
+    const bw = 11 + ((hash(bx, 0, 891) * 6) | 0), pale = hash(bx, 1, 891) > 0.8;
+    for (let x = bx; x < Math.min(back.x1 + 1, bx + bw); x++) for (let y = back.y0; y <= back.y1; y++) {
+      let c = x === bx ? W[0] : x === bx + 1 ? W[2] : pale ? W[2] : W[1];
+      if (x > bx + 1) { const r = hash(x, ((y + ((hash(x, 2, 893) * 9) | 0)) / 5) | 0, 895); if (r > 0.9) c = pale ? W[1] : W[2]; else if (r < 0.06) c = W[0]; }
+      set(x, y, c);
+    }
+    if (bx + 4 < back.x1) for (const ny of [back.y0 + 2, back.y1 - 2]) { set(bx + 3, ny, W[3]); set(bx + 4, ny + 1, W[0]); }
+    // A knot in about one board in seven, where the wall is tall enough to hold one: a dark ring, its
+    // heart a shade lighter than the board, off the board's middle.
+    if (bh >= 12 && bw >= 12 && hash(bx, 3, 897) > 0.86) {
+      const kx = bx + 3 + ((hash(bx, 5, 897) * (bw - 7)) | 0), ky = back.y0 + 4 + ((hash(bx, 4, 897) * (bh - 8)) | 0);
+      for (let dy = -2; dy <= 2; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const ring = Math.abs(dy) === 2 ? dx === 0 : Math.abs(dx) === 1;
+        set(kx + dx, ky + dy, ring ? W[0] : dy < 0 ? W[3] : W[2]);
+      }
+    }
+    bx += bw;
+  }
+  // The lid: planks running back, their edges catching the light.
+  for (let k = 1; k < 6; k++) {
+    const x0 = VW * k / 6, x1 = back.x0 + (back.x1 - back.x0) * k / 6;
+    for (let y = rim + 1; y < back.y0; y++) { const x = Math.round(x0 + (x1 - x0) * (y - rim) / (back.y0 - rim)); if (x > y && x < VW - 1 - y) set(x, y, W[1]); }
+  }
+  // The side walls: a seam a third and two thirds of the way back, and a little grain.
+  for (const side of [-1, 1]) for (const u of [1 / 3, 2 / 3]) {
+    const xi = side < 0 ? Math.round(rim + u * (back.x0 - rim)) : Math.round(VW - 1 - rim - u * (VW - 1 - rim - back.x1));
+    const top = Math.round(rim + u * (back.y0 - rim)) + 1, bot = Math.round(yH + u * (back.y1 - yH)) - 1;
+    for (let y = top; y <= bot; y++) set(xi, y, side < 0 ? W[0] : W[1]);
+  }
+  // The floor's planks, closer together toward the back, each front edge lit.
+  for (let k = 1; k < 7; k++) {
+    const y = Math.round(back.y1 + (yH - back.y1) * (k / 7) ** 1.5), t = (y - back.y1) / (yH - back.y1);
+    const el = Math.round(back.x0 + (rim - back.x0) * t), er = Math.round(back.x1 + (VW - 1 - rim - back.x1) * t);
+    for (let x = el; x <= er; x++) { set(x, y, W[1]); if (y + 1 < yH) set(x, y + 1, W[3]); }
+  }
+  // Grain on the lit rim.
+  for (let y = 0; y < yH; y++) for (let x = 1; x < rim; x++) if (hash(x, (y / 6) | 0, 899) > 0.82) set(x, y, W[3]);
+}
+
 // Where the trail conditions notice is pinned (round 6, note 23): on the back wall right of the map, as tall
 // as the wall allows. The page lays the notice itself over this box, and it opens the whole board.
 function boardAt(L) {
@@ -106,6 +152,8 @@ function paintBook(fb, L) {
   for (let y = by0 - 3; y <= by0 + 4; y++) for (let x = mid - cw; x <= mid + cw; x++) fb[y * VW + x] = y === by0 - 3 || y === by0 + 4 || x === mid - cw || x === mid + cw ? INK : y < by0 ? R.rock[4] : R.rock[3];
   for (let y = by0 - 9; y < by0 - 3; y++) { fb[y * VW + mid - cw + 3 + ((by0 - 3 - y) >> 1)] = R.rock[2]; fb[y * VW + mid + cw - 3 - ((by0 - 3 - y) >> 1)] = R.rock[2]; }
   for (let x = mid - cw + 6; x <= mid + cw - 6; x++) fb[(by0 - 9) * VW + x] = R.rock[2];
+  // The ribbon marker hanging out of the foot of the spine.
+  for (let y = by1 - 2; y <= by1 + 3; y++) for (let x = mid - 1; x <= mid + 2; x++) fb[y * VW + x] = y === by1 + 3 && (x === mid || x === mid + 1) ? R.wood[2] : x === mid + 2 ? R.red[0] : R.red[1];
 }
 
 // The front of the box swinging down on its hinge. a: 0 shut, 1 down as a desk. Shut it shows its
@@ -154,7 +202,7 @@ export function makeRegisterScene() {
   const build = scr => {
     const k = scr.VW + 'x' + scr.VH + 'x' + scr.S; if (k === key) return; key = k;
     L = layout(scr.VW, scr.VH, scr.S); pic = new Uint8Array(scr.VW * scr.VH);
-    paintBox(pic, L); paintMap(pic, L); paintBook(pic, L);
+    paintBoxCode(pic, L); paintMap(pic, L); paintBook(pic, L);
   };
   return {
     name: 'register',
