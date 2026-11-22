@@ -77,7 +77,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **D07 The Whale and the Ferry** - `mapfauna.js` (`whale`, `ferry`).
 - [x] **D08 Boulders, Logs and Shrubs** - `sprites.js` (`makeBoulder`, `makeLog`, `makeShrub`, `makeBush`, `makeHuckleberry`, `makeFern`).
 - [x] **D09 The Lookout, the Tent and the Journal** - `sprites.js` (`makeLookout`, `makeTent`, `makeJournal`).
-- [ ] **D10 Clouds** - `sprites.js` (`makeCloud`).
+- [x] **D10 Clouds** - `sprites.js` (`makeCloud`).
 - [ ] **D11 Sage, Tumbleweeds and the Dry Country's Plants** - `scenery.js` (`sageBush`), `events.js`.
 - [ ] **D12 The Small Animals** - squirrels, chipmunks, birds, the slug. `mapfauna.js`, `sprites.js`.
 
@@ -303,3 +303,10 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - D09, a call: `makeJournal` keeps its boulder and draws the notebook three rows deep: the cover lit along the top, the spine dark on the west, the page edges white along the east and the foot. `makeLookout` is unchanged.
 - D09, a call: `ground.png` was rebaked; its pixels are identical.
 - D09: frame time 13.3 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.
+- D10, the before: the drifting clouds (the lake, the larches, the ridge, the approach, camp and the climb draw them; the map does not) were flat white cut-outs of overlapping discs, with a dithered band and a pale blue strip at the foot. No puff showed against another.
+- D10, the pictures: 7 in all. The style model's seed 3 was picked for its puffs: each lit cream on top, a thin shade line where one overlaps the next, and a pale blue base. Its dark outline was not copied, because the sky behind the clouds has none. Qwen's seed 1 had the best heaped shape and set the proportions. The prompts are in `design/art/D10/log.jsonl`.
+- D10, a call: `makeCloud` keeps its 56 by 20 size and its seeds. Five to seven puffs sit along a flat base, biggest in the middle. Each pixel belongs to the topmost puff over it: white where that puff faces the upper left, sky blue on its lower right, a pale blue line wherever a higher puff's edge lies over a lower one, and two rows of pale blue at the foot. There is no outline, as before.
+- D10, a call: a first pass used the warm white middle step for the body; it read as dirty stripes against the sky, so the body is white and pale blue only, and the middle puffs were heaped higher.
+- D10, a call: the lenticular cloud over Mount Monolith (`events.js`) is drawn separately and still dithers; it was left alone, since it fades in and out through the dither.
+- D10, a call: `ground.png` was rebaked; its pixels are identical, so the committed file was kept.
+- D10: frame time 13.3 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours.

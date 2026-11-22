@@ -420,12 +420,25 @@ function makeDriftwood(seed = 0) {
   { const solid = b.d.slice(); for (let x = 0; x < W - 3; x++) for (let y = H - 4; y >= 0; y--) if (solid[y * W + x]) { for (const [dx, dy, c] of [[0, 1, R.ochre[0]], [1, 1, R.ochre[0]], [2, 1, R.ochre[1]], [1, 2, R.ochre[1]], [2, 2, R.ochre[1]], [3, 2, R.sand[0]], [2, 3, R.sand[0]]]) { const i = (y + dy) * W + x + dx; if (!solid[i] && !b.d[i]) b.d[i] = c; } break; } }
   return b;
 }
+// A fair-weather cumulus (art pass D10, after clouds painted for the game): a flat base and a heap of
+// rounded puffs, biggest in the middle. Each puff is white where the light falls from the upper left and
+// pale blue in shade on its lower right; the lower puffs are laid over the higher, with a line of shade along
+// the top of each where it crosses the puff behind; the base is a band of blue-grey. No outline.
 function makeCloud(seed) {
   const rand = rng(seed), b = new BM(56, 20); b.ox = 0; b.oy = 0;
-  const blobs = []; for (let k = 0; k < 6; k++) blobs.push([8 + k * 8 + rand() * 4, 12 - rand() * 6 - (k > 1 && k < 4 ? 4 : 0), 5 + rand() * 4]);
-  for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) {
-    if (!blobs.some(([bx, by, r]) => sq(x - bx) + sq((y - by) * 1.3) <= r * r) || y > 16) continue;
-    b.set(x, y, y > 12 ? R.sky[3] : (y > 10 && bayer(x, y) > 0.5) ? R.sky[4] : R.white[1]);
+  const n = 5 + (rand() * 3 | 0), base = 15, puffs = [];
+  for (let k = 0; k < n; k++) { const t = k / (n - 1), r = 2.8 + 6.6 * Math.sin(Math.PI * (0.1 + 0.8 * t)) ** 1.5 + rand() * 1.6; puffs.push([5 + t * 45 + (rand() - 0.5) * 3, base - r * 0.72 - rand() * 1.5, r]); }
+  puffs.sort((p, q) => p[1] - q[1]);
+  const own = new Int8Array(56 * 20).fill(-1);
+  for (let y = 0; y < 20; y++) for (let x = 0; x < 56; x++) {
+    if (y > base + 1) continue;
+    for (let k = puffs.length - 1; k >= 0; k--) { const [px, py, r] = puffs[k]; if (sq(x - px) + sq((y - py) * 1.25) <= r * r) { own[y * 56 + x] = k; break; } }
+  }
+  for (let y = 0; y < 20; y++) for (let x = 0; x < 56; x++) {
+    const k = own[y * 56 + x]; if (k < 0) continue;
+    const [px, py, r] = puffs[k], ux = (x - px) / r, uy = (y - py) * 1.25 / r, v = -0.5 * ux - 0.8 * uy;
+    const up = y > 0 ? own[(y - 1) * 56 + x] : -1, edge = up >= 0 && up !== k && puffs[up][1] < py;
+    b.set(x, y, y >= base ? R.sky[3] : y >= base - 1 || edge ? R.sky[4] : v > -0.28 ? R.white[1] : R.sky[4]);
   }
   return b;
 }
