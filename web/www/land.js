@@ -1415,7 +1415,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { mesa, eastAmt, g, depth: zb, mat: mb, bare, fogField, mouthFog, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, palAmt, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { mesa, eastAmt, g, depth: zb, mat: mb, bare, fogField, mouthFog, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, palAmt, talusAt, snowPatch, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -1521,7 +1521,6 @@ function habitat() {
     'stack-trace': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.45 && S.forestAmt(u, v) < 0.8, 0, beside(0, 0.2, 0.8)),
     monorepo: find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && S.fogAmt(u, v) < 0.3, 60, beside(0, 0.2, 0.9)),
     'scope-creep': find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'moraine', 0, beside(1, 0.7, 1)),
-    segfault: find(1, (u, v) => signable(u, v) && S.slope(u, v) > 0.35, 0, beside(1, 0.45, 0.75)),
     'merge-conflict': col ? find(1, signable, 0, ring(col, 0, 50)) : [],
     rollback: find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'land' && S.hAt(u, v) > 40 && S.hAt(u, v) < 66, 0, beside(2, 0.4, 0.8)),
     'feature-flag': tarn ? find(1, signable, 0, ring(tarn, tarn[2] + 6, tarn[2] + 24)) : [],
@@ -1532,6 +1531,10 @@ function habitat() {
     // Off By One Peak: the top of the highest of the forested foothills round Mount Monolith's foot.
     'off-by-one': [best((u, v) => Math.hypot((u - vo.cu) / vo.ru, (v - vo.cv) / vo.rv) < 1.4 && S.matAt(u, v) === 'land' && S.hAt(u, v) < vo.H * 0.3 && signable(u, v), (u, v) => S.hAt(u, v))].filter(Boolean),
     dependency: find(1, (u, v) => signable(u, v) && S.hAt(u, v) > 80, 0, beside(2, 0.85, 1)),
+    // Segfault Scree stands on scree (note 14): the talus fan under Proficiency Peak's prow, the land's one field
+    // of loose blocks, clear of the old snow on it, as near the Peak's trail as the fan allows.
+    // It comes after Dependency, whose spot higher up the trail would otherwise lie too near it, and keeps 40 from it.
+    segfault: [best((u, v) => S.talusAt(u, v) > 0.5 && !S.snowPatch(u, v) && apartFrom(taken, u, v, 40) && firm(u, v, 1.2) && trailFar(u, v) >= 4 && shows(u, v, 20), (u, v) => S.talusAt(u, v) - trailFar(u, v) / 40)].filter(Boolean),
     'cache-miss': find(1, (u, v) => { const c = S.coast(u, v); return c > -14 && c < -7 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2]; }),
     latency: find(1, (u, v) => { const c = S.coast(u, v); return c > -14 && c < -7 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2]; }, 160)
   };
