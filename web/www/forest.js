@@ -3,7 +3,7 @@
 // comes down through the canopy in slanting shafts. He runs right to left, the way the map sends him
 // in: west, away from the Trailhead.
 import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, disc, windAt } from './core.js';
-import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
+import { Strip, drawStrip, blitTall, baseline, shell, puffs } from './side.js';
 import { makeMaple, makeSpruce, makeFir, makeBoulder } from './sprites.js';
 import { elk, sasquatch, jay, slug, owl } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
@@ -386,7 +386,7 @@ const META = {
   elev: (arg, q) => -along(q * TOTAL)[1] * 1.5,
   cues: () => [{ at: (D_SLUG - 11) / TOTAL, name: 'hop' }]
 };
-export const makeForest = () => shell(META, buildForest, ['enter', 'focus', 'pick', 'draw', 'trigger']);
+export const makeForest = () => shell(META, buildForest, ['enter', 'focus', 'pick', 'act', 'draw', 'trigger']);
 function buildForest() {
   const rand = rng(31);
 
@@ -571,7 +571,7 @@ function buildForest() {
   const sit = [0, 1].map(f => sideFig('trail', { feet: [[6, 3], [5, 4]], crouch: 5, lean: 0, hands: f ? [[4, -2], [2, 3]] : [[3, 3], [2, 3]] }));
   const elkBM = { up: elk('up'), ear: elk('up', 0, 1), graze: elk('graze'), bite: elk('graze', 0, 1) }, sas = [sasquatch(0), sasquatch(1)];
   const gray = { sit: jay('gray', 'sit'), up: jay('gray', 'up'), down: jay('gray', 'down') };
-  const slugBM = [slug(0), slug(1)], slugX = X0 - D_SLUG;
+  const slugBM = [slug(0), slug(1), slug(0, true)], slugX = X0 - D_SLUG;
   const elkX = X0 - D_ELK, elkY = g(elkX) - 13;
 
   const st = {}, focus = { x: 0, y: 0 };
@@ -583,6 +583,10 @@ function buildForest() {
   let sasGo = null, sasX = 0, sasOn = 0;
   // The deer's eyes at Dusk: 8 s in every 26, or when the debug button says.
   const EYES = { slot: 26, dur: 8 }; let eyeGo = null;
+  // When each animal was last clicked (round 6, note 10): the elk bugles, the owl turns to face you and hoots,
+  // the slug draws its eyestalks in, the deer's eyes blink out as it bounds off, the gray jay flutters up.
+  const poked = { elk: -99, owl: -99, slug: -99, deer: -99, jay: -99 };
+  let eyesAt = null, jayAt = null;   // where the deer's eyes and the jay were drawn this frame, for a click
 
   return {
     ...META,
@@ -597,8 +601,20 @@ function buildForest() {
     pick(sx, sy) {
       const wx = sx + last.camX, wy = sy - last.base;
       if (Math.abs(wx - signX) < 12 && wy > g(signX) - 34 && wy < g(signX) - 4) return { label: NAMES.forest.sign, x: signX - last.camX, y: last.base + g(signX) - 36 };
+      const box = (bm, x, y, pad = 2) => Math.abs(wx - x) <= bm.w / 2 + pad && wy >= y - bm.oy - pad && wy <= y - bm.oy + bm.h + 1;
+      if (eyesAt && Math.abs(sx - eyesAt[0] - 2) < 7 && Math.abs(sy - eyesAt[1]) < 5) return { label: NAMES.forest.deer, x: eyesAt[0] + 2, y: eyesAt[1] - 6, act: 'deer' };
+      if (jayAt && Math.abs(sx - jayAt[0]) < 7 && sy > jayAt[1] - 10 && sy < jayAt[1] + 2) return { label: NAMES.forest.jay, x: jayAt[0], y: jayAt[1] - 12, act: 'jay' };
+      if (perch && box(owlBM.f, perch.x, perch.y)) return { label: NAMES.forest.owl, x: perch.x - last.camX, y: last.base + perch.y - owlBM.f.oy - 4, act: 'owl' };
+      if (box(elkBM.up, elkX, elkY)) return { label: NAMES.forest.elk, x: elkX - last.camX, y: last.base + elkY - elkBM.up.oy - 4, act: 'elk' };
+      if (box(slugBM[0], slugX, g(slugX) + 1, 4)) return { label: NAMES.forest.slug, x: slugX - last.camX, y: last.base + g(slugX) - 8, act: 'slug' };
       if (wy > g(wx) + farBank(wx) && wy < g(wx) + nearBank(wx)) return { label: NAMES.forest.creek, x: sx, y: sy - 8 };
       return null;
+    },
+    act(id, env) {
+      if (!(id in poked)) return false;
+      if (env.t - poked[id] < 1.5) return true;
+      poked[id] = env.t; env.sfx({ elk: 'bugle', owl: 'hoot', slug: null, deer: 'snort', jay: 'chirp' }[id] || 'step');
+      return true;
     },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t, tq } = env;
@@ -651,10 +667,12 @@ function buildForest() {
       list.length = 0;
       for (const th of things) { const w = th.tree ? 30 : th.bm.w; if (th.x + w > camX && th.x - w < camX + VW) list.push(th); }
       // The elk lifts his head while he passes.
-      { const up = Math.abs(d - D_ELK + 20) < 90 || frac(t / 7) >= 0.7; list.push({ bm: up ? elkBM[frac(t / 2.9) < 0.07 ? 'ear' : 'up'] : elkBM[Math.floor(t * 2.2) & 1 ? 'bite' : 'graze'], x: elkX, y: elkY, flip: false }); }
-      list.push({ bm: slugBM[Math.floor(t * 1.2) & 1], x: slugX, y: g(slugX) + 1, flip: true });
+      const bugle = t - poked.elk < 2.6;
+      { const up = bugle || Math.abs(d - D_ELK + 20) < 90 || frac(t / 7) >= 0.7; list.push({ bm: up ? elkBM[!bugle && frac(t / 2.9) < 0.07 ? 'ear' : 'up'] : elkBM[Math.floor(t * 2.2) & 1 ? 'bite' : 'graze'], x: elkX, y: elkY, flip: false }); }
+      list.push({ bm: slugBM[t - poked.slug < 3.5 ? 2 : Math.floor(t * 1.2) & 1], x: slugX, y: g(slugX) + 1, flip: true });
       // The owl turns its head to follow him: looking right as he comes, at you as he passes under, then left.
-      if (perch) { const rel = mx - perch.x, f = rel > 26 ? 'r' : rel < -26 ? 'l' : 'f'; list.push({ bm: owlBM[frac(t / 4.3) < 0.04 ? f + 'b' : f], x: perch.x, y: perch.y, z: perch.z }); }
+      // Clicked, it turns its head to face you, blinks twice slowly and hoots.
+      if (perch) { const rel = mx - perch.x, o = t - poked.owl, f = o < 2.6 ? 'f' : rel > 26 ? 'r' : rel < -26 ? 'l' : 'f', blink = o < 2.6 ? (o > 0.5 && o < 0.75) || (o > 1.3 && o < 1.55) : frac(t / 4.3) < 0.04; list.push({ bm: owlBM[blink ? f + 'b' : f], x: perch.x, y: perch.y, z: perch.z }); }
       // He hops the slug.
       const ds = d - D_SLUG, hop = Math.abs(ds) < 12 ? Math.round(9 * Math.cos(ds / 12 * Math.PI / 2)) : 0;
       const snack = !env.running && env.still > 60;
@@ -670,7 +688,9 @@ function buildForest() {
           focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
           scr.shadow(Math.round(sx), Math.round(base + my), 5, 1);
           scr.put(bm, sx, base + my - hop + (snack ? 2 : 0), face < 0);
-          if (snack) { const u = clamp((env.still - 63) / 1.2, 0, 1); scr.put(u < 1 ? (Math.floor(t * 9) & 1 ? gray.up : gray.down) : gray.sit, sx - 16 - (1 - u) * 60, base + my - (1 - u) * 50, false); }
+          jayAt = null;
+          if (snack) { const u = clamp((env.still - 63) / 1.2, 0, 1), fl = t - poked.jay < 1.2 ? Math.sin(Math.PI * (t - poked.jay) / 1.2) : 0, jx = Math.round(sx - 16 - (1 - u) * 60), jy = Math.round(base + my - (1 - u) * 50 - 8 * fl);
+            scr.put(u < 1 || fl > 0 ? (Math.floor(t * 9) & 1 ? gray.up : gray.down) : gray.sit, jx, jy, false); if (u >= 1) jayAt = [jx, jy]; }
         } else if (th.tree) {
           for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
         } else if (th.tall) blitTall(scr, th.bm, sx - th.bm.ox, sy - th.bm.oy);
@@ -678,12 +698,15 @@ function buildForest() {
         else scr.put(th.bm, sx, sy, th.flip);
       }
 
+      if (bugle) puffs(scr, elkX - camX + 14, base + elkY - Math.round(elkBM.up.oy * 0.76), 1, t - poked.elk);
       // At Dusk the foxfire glows on its log, each cluster swelling and fading at its own pace, with a faint
       // green light on the wood round it; only where the log still shows, not over a fern in front of it.
       if (env.mix > 0.3) foxfireGlow(scr, fox, foxX - camX, base + foxY, t, smooth(0.3, 0.8, env.mix));
       // And a deer's eyes shine between the trunks, now and then blinking or turning away.
-      if (eyeX !== null && env.mix > 0.5) { const s = eyeGo !== null && t - eyeGo < EYES.dur ? t - eyeGo : frac(t / EYES.slot) * EYES.slot;
-        if (s < EYES.dur && frac(s / 2.7) > 0.05) { const turn = Math.round(1.5 * Math.sin(s * 0.9)), ex = eyeX - camX + turn, ey = base + g(eyeX) - 42;
+      // Clicked, they blink out: the deer has bounded off, and comes back with the next slot.
+      eyesAt = null;
+      if (eyeX !== null && env.mix > 0.5 && t - poked.deer > EYES.dur) { const s = eyeGo !== null && t - eyeGo < EYES.dur ? t - eyeGo : frac(t / EYES.slot) * EYES.slot;
+        if (s < EYES.dur && frac(s / 2.7) > 0.05) { const turn = Math.round(1.5 * Math.sin(s * 0.9)), ex = eyeX - camX + turn, ey = base + g(eyeX) - 42; eyesAt = [ex, ey];
           for (const dx of [0, 4]) { scr.set(ex + dx, ey, R.lamp[1]); scr.set(ex + dx - 1, ey, R.lamp[0]); scr.set(ex + dx + 1, ey, R.lamp[0]); } } }
       // Shafts of light: every other pixel a step lighter, the middle of each shaft two steps.
       for (let y = 0; y < VH; y++) {

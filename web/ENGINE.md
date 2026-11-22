@@ -9,6 +9,7 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - Every animal keeps to its home, which a rule in `land.js` chooses (`habitat()`, the spots). No animal is placed by a written position.
 - Every animal says which kind of mover it is to `collide.js` (`col` on its item: `land`, `whale`, `swimmer`, `floater`, `boat` or `flyer`), and asks `collide.js` before it goes anywhere: `canBe` for where it may stand, and the same rule at every few pixels along the way.
 - An animal in a side scene (the forest, the lake loop, the larches, the ridge, the approach, camp) is drawn by its scene. It still has at least two drawings, and it changes between them.
+- Every animal answers a click with a reaction true to how it lives, and a click on one is never a find (the finds that already were, the lake's marmot and the pika, stay finds). On the map, `pick()` and `click()` in `critters.js` find the animal and start its reaction; in a side scene, its own `pick()` and `act()` do. Each new animal gets a name in `content/game/names.yaml` and a reaction.
 
 ## Plants
 

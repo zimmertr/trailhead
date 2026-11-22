@@ -189,6 +189,27 @@ test('every start button with a place on the map moves the view there and keeps 
   expect(problems).toEqual([])
 })
 
+test('the animals on the map and in the forest answer a click without counting as a find', async ({ page }) => {
+  const problems = await open(page, '/?route=lake&p=0.31')
+  const finds = () => page.evaluate(() => JSON.stringify(localStorage))
+  const before = await finds()
+  for (const act of ['elk', 'owl', 'slug']) {
+    await expect.poll(() => page.evaluate((a) => window.__api.hitAt(a), act), { timeout: 10_000 }).not.toBeNull()
+    const at = await page.evaluate((a) => window.__api.hitAt(a), act)
+    if (!at) throw new Error(`nothing in the forest answers to ${act}`)
+    await page.mouse.click(at[0], at[1])
+  }
+  await page.goto(new URL('/', page.url()).href)
+  await page.locator('#fork-x').click()
+  await expect.poll(() => page.evaluate(() => window.__api.hitAt('animal:')), { timeout: 15_000 }).not.toBeNull()
+  const at = await page.evaluate(() => window.__api.hitAt('animal:'))
+  if (!at) throw new Error('no animal on the map answers a click')
+  await page.mouse.click(at[0], at[1])
+  await page.waitForTimeout(500)
+  expect(await finds()).toBe(before)
+  expect(problems).toEqual([])
+})
+
 test('Glissade to camp sets off at once from inside the binoculars', async ({ page }) => {
   const problems = await open(page, '/#sideproject-spires/trailhead')
   await expect(page.locator('#card-go')).toBeVisible()

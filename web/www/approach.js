@@ -399,7 +399,7 @@ function buildApproach() {
     ...META,
     enter(scr, arg, q) { cam = xOf(q); st.y = null; for (const p of P) p.shy.reset(); },
     focus: () => focus,
-    act(id, env) { if (id === 'kayti') { waved = now; return true; } if (id.startsWith('pika')) { if (P[+id.slice(4)].shy.startle(env.t)) env.sfx('eep'); return true; } const m = M[+id.slice(6)]; if (id.startsWith('marmot') && m) { m.seen = env.t; env.sfx('whistle'); return true; } return false; },
+    act(id, env) { if (id === 'kayti') { waved = now; return true; } if (id.startsWith('pika')) { if (P[+id.slice(4)].shy.startle(env.t)) env.sfx('eep'); return true; } const m = M[+id.slice(6)]; if (id.startsWith('marmot') && m) { m.seen = env.t; if (!(env.t - m.dive < 4.6)) m.dive = env.t; env.sfx('whistle'); return true; } return false; },
     pick(sx, sy) {
       if (last.dir < 0) sx = last.VW - 1 - sx;
       const wx = sx + last.camX, wy = sy - last.base, mx = v => last.dir < 0 ? last.VW - 1 - (v - last.camX) : v - last.camX;
@@ -471,7 +471,8 @@ function buildApproach() {
       for (let k = 0; k < M.length; k++) {
         const m = M[k], near = Math.abs(mx - m.x) < 60;
         if (near && env.running && t - m.seen > 6) { m.seen = t; env.sfx('whistle'); }
-        list.push({ bm: near || t - m.seen < 1.6 ? marm.up : marm.sun, x: m.x + 1, y: m.y - m.top + 3, z: m.y + 0.5, flip: mx > m.x });
+        // Clicked, it whistles and dives behind its rock, and is back up a few seconds later (round 6, note 10).
+        if (!(t - m.dive > 1.2 && t - m.dive < 4.6)) list.push({ bm: near || t - m.seen < 1.6 ? marm.up : marm.sun, x: m.x + 1, y: m.y - m.top + 3, z: m.y + 0.5, flip: mx > m.x });
       }
       // The pika: each calls and bolts for its gap as he comes up, and looks out once he has gone by.
       for (const p of P) {

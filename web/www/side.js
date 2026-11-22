@@ -1,5 +1,5 @@
 // Helpers for the side-view scenes: wide strips of scenery that scroll at their own speed.
-import { frac, smooth, hash, vnoise, fbm, R, pick } from './core.js';
+import { frac, smooth, hash, vnoise, fbm, bayer, R, pick } from './core.js';
 
 // A strip is a wide index bitmap whose row `up` is the line he runs along. Scenes paint into it
 // with y measured from that line, negative above it.
@@ -92,4 +92,11 @@ function paintPeaks(S, SP) {
   return topAt;
 }
 
-export { Strip, drawStrip, blitTall, baseline, shell, blitScaled, paintPeaks };
+// An animal's answer to a click, drawn over it (round 6, note 10): breath (an elk's bugle, a snort) puffing
+// out from a mouth at x, y toward dir and rising as it fades, age seconds after the click.
+function puffs(scr, x, y, dir, age, big = 1) {
+  for (let k = 0; k < 8; k++) { const s = age - k * 0.15; if (s < 0 || s > 1.6) continue; const px = Math.round(x + dir * (2 + s * 8 * big)), py = Math.round(y - s * 9 * big), r = s < 0.5 ? 1 : 2;
+    for (let dy = -r; dy <= 0; dy++) for (let dx = -r; dx <= r; dx++) if (Math.abs(dx) + Math.abs(dy) <= r && bayer(px + dx, py + dy) < 1.1 - s / 1.6) scr.set(px + dx, py + dy, s < 0.4 ? R.white[1] : R.white[0]); }
+}
+
+export { Strip, drawStrip, blitTall, baseline, shell, blitScaled, paintPeaks, puffs };

@@ -455,11 +455,18 @@ export const W = {
   },
   "forest": {
    "sign": "Legacy Grove",
-   "creek": "Cache Miss Creek"
+   "creek": "Cache Miss Creek",
+   "elk": "Roosevelt elk",
+   "owl": "Barred owl",
+   "slug": "Banana slug",
+   "deer": "Black-tailed deer",
+   "jay": "Canada jay"
   },
   "lakeside": {
    "sign": "Cold Start Cove",
    "marmot": "Hoary marmot",
+   "loon": "Common loon",
+   "chick": "Loon chick",
    "swim": "Go for a swim",
    "back": "Swim back"
   },
@@ -467,6 +474,10 @@ export const W = {
    "ledge": "Deadlock Ledge",
    "roof": "Rollback Roof",
    "scree": "Segfault Scree"
+  },
+  "ridge": {
+   "raven": "Common raven",
+   "goat": "Mountain goat"
   },
   "climb": {
    "crevasse": "Tech Debt Crevasse",
@@ -480,9 +491,33 @@ export const W = {
    "billy": "On-call billy goat",
    "pika": "Pika"
   },
+  "camp": {
+   "goats": "Mountain goats"
+  },
   "approach": {
    "marmot": "Hoary marmot",
    "pika": "Pika"
+  },
+  "map": {
+   "bull": "Bull elk",
+   "elk": "Roosevelt elk",
+   "goat": "Mountain goat",
+   "kid": "Mountain goat kid",
+   "sheep": "Bighorn ram",
+   "moose": "Bull moose",
+   "calf": "Moose calf",
+   "bear": "Black bear",
+   "cub": "Black bear cub",
+   "squirrel": "Douglas squirrel",
+   "chipmunk": "Chipmunk",
+   "marmot": "Hoary marmot",
+   "whale": "Humpback whale",
+   "eagle": "Bald eagle",
+   "osprey": "Osprey",
+   "orca": "Orca",
+   "jelly": "Moon jelly",
+   "raven": "Ravens",
+   "gull": "Gulls"
   }
  },
  "TRACK_NAMES": [

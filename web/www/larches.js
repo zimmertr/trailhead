@@ -233,6 +233,7 @@ function buildLarches() {
   let gustGo = -1e9, gustHeard = -1;
   const gustAt = t => { const n = Math.floor(t / GUST.slot), u = t - n * GUST.slot - 6 * hash(n, 1, 690); return u >= 0 && u < GUST.len ? [u, n] : t - gustGo < GUST.len ? [t - gustGo, -2 - Math.floor(gustGo)] : null; };
   let cam = 0, last = { camX: 0, base: 0, dir: 1, VW: 0 };
+  const poked = { nanny: -99, kid: -99, billy: -99 }; let billyOff = 0;   // when each goat was clicked, and how far along the verge the billy is
   const list = [];
   const xOf = q => at(q).x;
   // On the rungs, side-on and facing the rock: hands and feet move up them in turn.
@@ -242,14 +243,19 @@ function buildLarches() {
     ...META,
     enter(scr, arg, q) { cam = xOf(q); st.y = null; st.rung = -1; shy.reset(); pk0.easy = true; },
     focus: () => focus,
-    act(id, env) { if (id === 'pika') { if (shy.startle(env.t)) env.sfx('eep'); env.found('pika'); return true; } return false; },
+    act(id, env) {
+      // The goats answer a click (round 6, note 10): the nanny looks up and snorts, the kid springs about and
+      // bleats, and the billy on call bounds off along the verge and comes back.
+      if (id === 'nanny' || id === 'kid' || id === 'billy') { if (env.t - poked[id] > 1.5) { poked[id] = env.t; env.sfx(id === 'kid' ? 'bleat' : 'snort'); } return true; }
+      if (id === 'pika') { if (shy.startle(env.t)) env.sfx('eep'); env.found('pika'); return true; } return false; },
     trigger(name, t) { if (name === 'gust') { gustGo = t; return true; } return false; },
     pick(sx, sy) {
       if (last.dir < 0) sx = last.VW - 1 - sx;
       const wx = sx + last.camX, wy = sy - last.base, near = (p, w, h) => Math.abs(wx - p.x) < w && wy > p.y - h && wy < p.y + 2;
       const mx = v => last.dir < 0 ? last.VW - 1 - (v - last.camX) : v - last.camX;
-      if (near(nanny, 14, 20) || near(kidAt, 10, 15)) return { label: NAMES.larches.goats, x: mx(nanny.x - 10), y: last.base + nanny.y - 24 };
-      if (near(billy, 13, 22)) return { label: NAMES.larches.billy, x: mx(billy.x), y: last.base + billy.y - 26 };
+      if (near(kidAt, 10, 15)) return { label: NAMES.larches.goats, x: mx(nanny.x - 10), y: last.base + nanny.y - 24, act: 'kid' };
+      if (near(nanny, 14, 20)) return { label: NAMES.larches.goats, x: mx(nanny.x - 10), y: last.base + nanny.y - 24, act: 'nanny' };
+      if (near({ x: billy.x + billyOff, y: billy.y }, 13, 22)) return { label: NAMES.larches.billy, x: mx(billy.x + billyOff), y: last.base + billy.y - 26, act: 'billy' };
       if (wx > px - 12 && wx < px + 32 && wy > py - 18 && wy < py + 2) return { label: NAMES.larches.pika, x: mx(px + 11), y: last.base + py - 20, act: 'pika' };
       return null;
     },
@@ -282,10 +288,13 @@ function buildLarches() {
       list.length = 0;
       for (const th of things) if (th.x > camX - 40 && th.x < camX + VW + 40) list.push(th);
       // The nanny grazes and lifts her head as he comes by; the kid hops now and then; the billy watches.
-      const near = Math.abs(mx - nanny.x) < 70, hop = frac(t / 2.7) < 0.12;
-      list.push({ bm: near ? G.look : G.graze, x: nanny.x, y: nanny.y, flip: near && mx < nanny.x });
-      list.push({ bm: hop ? G.hop : G.kid, x: kidAt.x, y: kidAt.y - (hop ? 2 : 0), z: kidAt.y, flip: false });
-      list.push({ bm: Math.abs(mx - billy.x) < 160 ? G.look : G.stand, x: billy.x, y: billy.y, flip: mx < billy.x });
+      const pn = t - poked.nanny, pkid = t - poked.kid, pb = t - poked.billy;
+      const near = Math.abs(mx - nanny.x) < 70 || pn < 2.4, spring = pkid < 2.1 ? Math.abs(Math.sin(pkid * Math.PI / 0.7)) : 0, hop = spring > 0.2 || frac(t / 2.7) < 0.12;
+      list.push({ bm: near ? G.look : G.graze, x: nanny.x, y: nanny.y, flip: pn < 2.4 ? false : near && mx < nanny.x });
+      list.push({ bm: hop ? G.hop : G.kid, x: kidAt.x, y: kidAt.y - (spring > 0 ? Math.round(7 * spring) : hop ? 2 : 0), z: kidAt.y, flip: pkid < 2.1 ? (Math.floor(pkid / 0.7) & 1) === 1 : false });
+      // The billy bounds 18 along the verge and back over three seconds, hopping as he goes.
+      billyOff = pb < 3 ? Math.round(18 * Math.sin(Math.PI * pb / 3)) : 0;
+      list.push({ bm: pb < 3 ? G.hop : Math.abs(mx - billy.x) < 160 ? G.look : G.stand, x: billy.x + billyOff, y: billy.y - (pb < 3 ? Math.round(3 * Math.abs(Math.sin(pb * 7))) : 0), z: billy.y, flip: pb < 3 ? pb > 1.5 : mx < billy.x });
       // The pika. At ease it goes about its haystack: a hop over, a pause with a mouthful of flowers, a hop back.
       // As he comes up it calls and bolts, from wherever it is, and comes back to its rock when he is well away.
       { const a = shy.step(t, Math.abs(mx - px - 11));

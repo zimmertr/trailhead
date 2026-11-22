@@ -74,13 +74,14 @@ function owl(face, blink) {
   return b;
 }
 
-// A banana slug, big enough to see: yellow, a few dark spots, two eye stalks.
-function slug(f) {
+// A banana slug, big enough to see: yellow, a few dark spots, two eye stalks. shy: touched, it has drawn its
+// stalks in and bunched up shorter (round 6, note 10).
+function slug(f, shy = false) {
   const b = new BM(12, 6); b.ox = 6; b.oy = 5;
-  const len = f ? 9 : 8;
+  const len = shy ? 7 : f ? 9 : 8;
   for (let x = 1; x <= len; x++) { b.set(x, 4, R.yellow[0]); b.set(x, 3, R.yellow[1]); if (x > 2 && x < len - 1) b.set(x, 2, R.yellow[1]); }
   b.set(4, 3, R.mustard[0]); b.set(6, 2, R.mustard[0]);
-  b.set(0, 2, R.yellow[1]); b.set(1, 1, R.yellow[0]); b.set(0, 0, R.mustard[0]); b.set(2, 0, R.mustard[0]);
+  if (shy) b.set(1, 2, R.yellow[0]); else { b.set(0, 2, R.yellow[1]); b.set(1, 1, R.yellow[0]); b.set(0, 0, R.mustard[0]); b.set(2, 0, R.mustard[0]); }
   outline(b, INK);
   return b;
 }

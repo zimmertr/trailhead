@@ -353,6 +353,9 @@ function buildLakeside() {
   // swim is how far into the swim he is, in seconds (0 on the trail); dir is +1 on the way out and
   // while he stays on the island, -1 on the way back; swimT is how long the swimming part takes.
   let cam = 0, last = { camX: 0, base: 0, isle: [0, 0], me: [0, 0] }, swim = 0, dir = 0, swimT = 3, arrived = 0, whistled = false;
+  // Clicks on the animals (round 6, note 10): the marmot whistles and dives behind its rock; the loon dives and
+  // comes up farther along with a wail; her chick paddles hard to catch her up. loonAt: where each was drawn.
+  let dived = -99, loonDive = -99, loonOff = 0, loonUp = true, chickGo = -99; const loonAt = [null, null];
   const list = [];
   const xOf = q => X0 + q * LEN;
 
@@ -367,6 +370,7 @@ function buildLakeside() {
       // While he is out there, he and the island call him back. Asked first, since from some spots on the
       // shore the island stands right above the marmot's rock and a tap on it would wake the marmot instead.
       if (swim > 0 && dir > 0 && (onIsle || (Math.abs(sx - last.me[0]) < 10 && sy > last.me[1] - 30 && sy < last.me[1] + 4))) return { label: NAMES.lakeside.back, x: sx, y: sy - 6, act: 'back' };
+      for (const k of [0, 1]) { const L = loonAt[k]; if (L && sx >= L[0] - 2 && sx <= L[0] + 9 && sy >= L[1] - 5 && sy <= L[1] + 2) return { label: k ? NAMES.lakeside.chick : NAMES.lakeside.loon, x: L[0] + 3, y: L[1] - 7, act: k ? 'chick' : 'loon' }; }
       if (Math.abs(wx - xMarmot) < 13 && wy > shore(xMarmot) - 32 && wy < shore(xMarmot) + 6) return { label: NAMES.lakeside.marmot, x: xMarmot - last.camX, y: last.base + shore(xMarmot) - 30, act: 'marmot' };
       // Otherwise the island and the water send him out.
       if (swim > 0) return null;
@@ -376,7 +380,9 @@ function buildLakeside() {
     act(id, env) {
       if (id === 'swim' && !env.running && swim === 0 && last.reach) { swim = 1e-3; dir = 1; env.found('swim'); return true; }
       if (id === 'back' && swim > 0) { dir = -1; return true; }
-      if (id === 'marmot') { whistled = env.t; env.sfx('whistle'); env.found('marmot'); return true; }
+      if (id === 'marmot') { whistled = env.t; if (env.t - dived > 4.6) dived = env.t; env.sfx('whistle'); env.found('marmot'); return true; }
+      if (id === 'loon') { if (env.t - loonDive > 4) { loonDive = env.t; loonUp = false; env.sfx('plop'); } return true; }
+      if (id === 'chick') { chickGo = env.t; env.sfx('eep'); return true; }
       return false;
     },
     // Asked to run on while he is in the water or on the island, he swims back and dresses first.
@@ -451,9 +457,16 @@ function buildLakeside() {
       }
       { const k = Math.floor(t / 5.3), u = frac(t / 5.3) * 5.3, rx = Math.round(hash(k, 1, 151) * VW), ry = hor + 14 + Math.round(hash(k, 2, 151) * 18); if (u < 1.6) { const r = 1 + u * 5; for (let a = 0; a < 24; a++) { const x = rx + Math.round(Math.cos(a / 24 * 6.283) * r), y = ry + Math.round(Math.sin(a / 24 * 6.283) * r * 0.35); if (y < base + shore(camX + x) - 1 && y > hor + 2) scr.set(x, y, tarn[5]); } } }
       // A loon and her chick paddle along the far side, leaving a wake.
+      const ld = t - loonDive; if (ld > 3.4 && !loonUp) { loonUp = true; loonOff += 22; env.sfx('wail'); }
       for (let k = 0; k < 2; k++) {
-        const lx = Math.round(((260 - k * 13 + t * 3.2 - camX * 0.7) % (VW + 80) + VW + 80) % (VW + 80)) - 40, ly = hor + 20 + (Math.floor(t * 1.5 + k) & 1), sm = k ? 1 : 0;
+        // The chick keeps 13 behind her, closes up when clicked, and swims up to her new place after a dive.
+        const gap = k ? 13 - 9 * Math.sin(Math.PI * clamp((t - chickGo) / 4, 0, 1)) : 0, off = k && loonUp ? loonOff - 22 * (1 - smooth(0, 6, ld - 3.4)) : loonOff;
+        const lx = Math.round(((260 - gap + off + t * 3.2 - camX * 0.7) % (VW + 80) + VW + 80) % (VW + 80)) - 40, ly = hor + 20 + (Math.floor(t * (k && t - chickGo < 4 ? 5 : 1.5) + k) & 1), sm = k ? 1 : 0;
+        loonAt[k] = null;
         if (ly > base + shore(camX + lx) - 6) continue;
+        // Under the water: a ring where it went down, spreading.
+        if (!k && ld > 0.3 && ld < 3.4) { if (ld < 1.4) { const r = 1 + ld * 4; for (let a = 0; a < 16; a++) scr.set(lx + 3 + Math.round(Math.cos(a / 16 * 6.283) * r), ly + Math.round(Math.sin(a / 16 * 6.283) * r * 0.35), R.white[1]); } continue; }
+        loonAt[k] = [lx, ly];
         for (let j = 0; j < 6 - sm * 2; j++) scr.set(lx + j, ly, INK);
         for (let j = 1; j < 5 - sm * 2; j++) scr.set(lx + j, ly - 1, (j + k) & 1 ? R.navy[1] : R.white[0]);
         scr.set(lx + 5 - sm * 2, ly - 1, R.white[1]); scr.set(lx + 5 - sm * 2, ly - 2, INK); scr.set(lx + 6 - sm * 2, ly - 2, INK); scr.set(lx + 7 - sm * 2, ly - 2, R.rock[2]);
@@ -486,7 +499,7 @@ function buildLakeside() {
       const alert = Math.abs(d - D_MARMOT) < 46 || t - whistled < 1.6;
       if (Math.abs(d - D_MARMOT) < 46 && !whistled && env.running) { whistled = t; env.sfx('whistle'); }
       if (Math.abs(d - D_MARMOT) > 120 && t - whistled > 2) whistled = false;
-      list.push({ bm: alert ? marm.up : marm.sun, x: xMarmot + 1, y: shore(xMarmot) + 5 - rockTop + 3, z: shore(xMarmot) + 5.5, flip: d > D_MARMOT });
+      if (!(t - dived > 1.2 && t - dived < 4.6)) list.push({ bm: alert ? marm.up : marm.sun, x: xMarmot + 1, y: shore(xMarmot) + 5 - rockTop + 3, z: shore(xMarmot) + 5.5, flip: d > D_MARMOT });
       list.push({ me: true, x: mx, y: (at ? at.y : my) + 0.5 });
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
       const snack = !env.running && env.still > 60 && swim === 0;

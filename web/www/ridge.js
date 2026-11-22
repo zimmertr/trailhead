@@ -14,6 +14,7 @@ import { Strip, drawStrip, baseline, shell } from './side.js';
 import { makeConifer, makeCloud, makeHuckleberry, huckClumps } from './sprites.js';
 import { sideFig, frontFig, backFig, FEET, HANDS, KITS } from './tj.js';
 import { makeCragPair, PAIR } from './people.js';
+import { NAMES } from './content.js';
 
 const W = 1500, UP = 520, DOWN = 380;
 // The foot of the face: level with the start at the left, falling away to the right, so the drop
@@ -1208,6 +1209,9 @@ function buildRidge() {
   // button's raven, now.
   const RV = { slot: 36, len: 10 }, RB = { hang: [raven('hang', 0), raven('hang', 1)], peel: raven('peel') };
   let ravenGo = -1e9, ravenN = null, ravenAt = null, ravenHeard = null;
+  // Clicks (round 6, note 10): the goat snorts and leaps on its boulder; the raven croaks and rolls over in the
+  // air, as ravens do for the fun of it. Where each was drawn this frame, in view pixels, for a click to find.
+  const poked = { goat: -99, raven: -99 }; let goatSeen = null, ravenSeen = null;
   // On the ridge all three wear helmets, one colour each with their hair showing below: his green, the
   // leader's red, the woman's white over her red hair. The leader carries the rack on his harness.
   const KIT = { tj: 'wall', lead: { ...PAIR[0], bare: false, hat: R.red, rack: true }, red: { ...PAIR[1], bare: false, hat: [R.white[0], R.white[1], R.white[1]] } };
@@ -1302,8 +1306,12 @@ function buildRidge() {
     ...META,
     enter(scr, arg, q) { const p = posAt(stateAt(q * DUR).tj.d); camX = p.x; camH = p.h; st.y = null; },
     focus: () => focus,
-    pick: () => null,
-    act: () => false,
+    pick(sx, sy) {
+      if (ravenSeen && Math.abs(sx - ravenSeen[0]) < 10 && sy > ravenSeen[1] - 8 && sy < ravenSeen[1] + 6) return { label: NAMES.ridge.raven, x: ravenSeen[0], y: ravenSeen[1] - 10, act: 'raven' };
+      if (goatSeen && Math.abs(sx - goatSeen[0]) < 12 && sy > goatSeen[1] - 22 && sy < goatSeen[1] + 2) return { label: NAMES.ridge.goat, x: goatSeen[0], y: goatSeen[1] - 24, act: 'goat' };
+      return null;
+    },
+    act(id, env) { if (!(id in poked)) return false; if (env.t - poked[id] > 1.5) { poked[id] = env.t; env.sfx(id === 'raven' ? 'croak' : 'snort'); } return true; },
     skip() { const a = ahead; ahead = 0; aheadAt = -1; return a; },
     trigger(name, t) { if (name === 'ridgegust') { gustGo = t; return true; } if (name === 'raven') { ravenGo = t; return true; } return false; },
     draw(scr, env, arg, q) {
@@ -1525,7 +1533,9 @@ function buildRidge() {
       }
       if (dv > DESC.toss[0] && dv < DESC.under) descRope(scr, dv, P, cx, rowOf);
       if (dv >= DESC.under + 0.5) underRope(scr, dv - DESC.under, P, cx, rowOf);
-      if (DEBUG.animals) { const gx = goatAt.x - cx, near = Math.abs(P.tj.x - goatAt.x) < 160; if (gx > -30 && gx < VW + 30) scr.put(near ? GOAT.look : GOAT.stand, gx, rowOf(goatAt.h) + 1, P.tj.x < goatAt.x); }
+      goatSeen = null;
+      if (DEBUG.animals) { const gx = goatAt.x - cx, near = Math.abs(P.tj.x - goatAt.x) < 160, pg = t - poked.goat, leap = pg < 1.6 ? Math.round(8 * Math.abs(Math.sin(pg * Math.PI / 0.8))) : 0;
+        if (gx > -30 && gx < VW + 30) { const gy = rowOf(goatAt.h) + 1; scr.put(near || pg < 1.6 ? GOAT.look : GOAT.stand, gx, gy - leap, pg < 1.6 ? pg > 0.8 : P.tj.x < goatAt.x); goatSeen = [gx, gy]; } }
       for (const w of WHO) if (P[w].where !== 'n') draw1(w);
       // Jackets snap downwind and loose hair streams from under a helmet once there is wind.
       if (wnd > 0.15) for (const w of WHO) {
@@ -1560,9 +1570,14 @@ function buildRidge() {
           let x = ravenAt.x, h = ravenAt.h + Math.sin(t * 1.3) * 1.5, bm = RB.hang[Math.floor(t * 1.6) & 1];
           if (u < 1.5) { const e = 1 - smooth(0, 1.5, u); x += 90 * e; h += 20 * e; }
           if (u > 7.5) { const e = (u - 7.5) / 2.5; x += 160 * e * e + 30 * e; h -= 120 * e * e; bm = RB.peel; if (ravenHeard !== n) { ravenHeard = n; env.sfx('kraa'); } }
-          scr.put(bm, Math.round(x) - cx, rowOf(h), u > 7.5);
-        }
-      }
+          // Clicked, it tips over onto its back and rights itself, dropping a few pixels as it rolls.
+          const pr = t - poked.raven, roll = pr < 1.2 ? pr / 1.2 : 1; if (roll < 1) h -= 6 * Math.sin(Math.PI * roll);
+          const rx = Math.round(x) - cx, ry = rowOf(h);
+          if (roll < 1 && roll > 0.25 && roll < 0.75) { for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (c) scr.set(rx - bm.ox + i, ry - bm.oy + (bm.h - 1 - j), c); } }
+          else scr.put(bm, rx, ry, roll < 1 ? roll > 0.5 : u > 7.5);
+          ravenSeen = [rx, ry - Math.round(bm.oy / 2)];
+        } else ravenSeen = null;
+      } else ravenSeen = null;
       windLines(scr, t, wnd, g);
       const me = P.tj; focus.x = Math.round(me.x) - cx; focus.y = rowOf(me.h) - 14;
     }

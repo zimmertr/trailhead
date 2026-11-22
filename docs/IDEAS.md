@@ -443,3 +443,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Tumbleweeds Pile on the Fence** (round 6, C4). A short run of fence at the Palouse's edge could catch the tumbleweeds that roll into it, two or three heaped against the wire, and a gust could free one now and then.
 - **A Wheat Field on the Palouse** (round 6, C4). One patch of the gold hills could be a field in strips of stubble and green, with a combine crawling along a contour in the summer light, the way the real Palouse looks from Steptoe Butte.
 - **A Rock Rattles Down the Scree** (round 6, C5). Now and then a block could break off the prow, bounce down the talus fan with a clatter, and settle among the others, with a puff of grit where it stops.
+- **The Herd Answers the Bull** (round 6, C6). When the bull elk bugles, another bull far off across the parkland could answer a moment later, quieter, and the first could turn his head toward it.
+- **Ravens Play With Anything** (round 6, C6). A raven could drop a twig in the updraft and catch it again, as real ravens do, now and then without a click.
+- **A Marmot Census** (round 6, C6). The kiosk's checklist could count how many different animals you have made answer, not as finds but as a quiet tally in the corner of the board.

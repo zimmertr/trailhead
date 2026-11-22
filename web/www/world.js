@@ -491,6 +491,7 @@ export function makeWorld() {
   }
   // The animals look after themselves: see critters.js. Where each one lives comes from land.js.
   const crit = makeCritters(W); window.__crit = crit;
+  let pokeAt = [0, 0];   // where the last animal under the pointer was, so a click on it knows which way to flee
   // For the browser suite: every engine rule the map breaks (rules.js).
   window.__rules = () => checkRules(W.things, crit.items, crit.collide);
   const ev = makeEvents(W, crit.collide);
@@ -697,6 +698,8 @@ export function makeWorld() {
       const wx = sx + last.ox, wy = sy + last.oy;
       for (const s of spots.signs) if (Math.abs(wx - s[0]) < 8 && wy > s[1] - 17 && wy < s[1] + 3) return { label: SIGNS[s[2]], x: s[0] - last.ox, y: s[1] - 18 - last.oy };
       const c = kit.pick(wx, wy); if (c) return { label: c.label, x: c.wx - last.ox, y: c.wy - last.oy, act: c.act };
+      // Every animal on the map answers a click (round 6, note 10); critters.js says which is under the point.
+      { const a = crit.pick(wx, wy, last.ox, last.oy); if (a) { pokeAt = [wx, wy]; return { label: a.label, x: a.wx - last.ox, y: a.wy - last.oy, act: a.act }; } }
       if (spots.lookout) { const [lx, ly] = spots.lookout; if (Math.abs(wx - lx) < 9 && wy > ly - 30 && wy < ly + 2) return { label: NAMES.lookout, x: lx - last.ox, y: ly - 31 - last.oy }; }
       { const [rx, ry] = spots.register; if (Math.abs(wx - rx) < 6 && wy > ry - 21 && wy < ry + 2) return { label: NAMES.register, x: rx - last.ox, y: ry - 21 - last.oy, act: 'register' }; }
       { const [kx, ky] = spots.kiosk; if (Math.abs(wx - kx) < 14 && wy > ky - 27 && wy < ky + 3) return { label: NAMES.kiosk, x: kx - last.ox, y: ky - 27 - last.oy, act: 'kiosk' }; }
@@ -731,7 +734,7 @@ export function makeWorld() {
       if (name === 'lens') return startLens(t);
       return ev.trigger(name, t) || crit.trigger(name, t);
     },
-    act(id, env) { if (id === 'pool') { env.found('tidepool'); return false; } if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
+    act(id, env) { if (id === 'pool') { env.found('tidepool'); return false; } if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } if (/^(animal|orca|jelly|flock|air):|^whale$/.test(id)) { const snd = crit.click(id, pokeAt[0], pokeAt[1], env.t); if (snd) env.sfx(snd); return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
     draw(scr, env, leg, q) {
       const { VW, VH, fb } = scr, { t, tq, dt } = env; nowT = t;
       regTrip = leg.path === 'register';

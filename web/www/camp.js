@@ -256,7 +256,7 @@ export function makeCamp() {
   const focus = { x: 0, y: 0 };
   // Kayti sits toward the east end of the moraine and paints the towers. waved: when she was last clicked.
   // sat: when he sat down beside her, which is when the heart goes up.
-  const kayti = makeKayti(); let waved = -9, now = 0, flown = {}, sat = null;
+  const kayti = makeKayti(); let waved = -9, goatsGo = -9, now = 0, flown = {}, sat = null;
   const seat = () => [pic.camp[0] + Math.round(pic.rx * 0.56), pic.camp[1]];
 
   function fit(scr) { const k = scr.VW + 'x' + scr.VH; if (k !== key) { key = k; pic = build(scr.VW, scr.VH, scr.narrow); } }
@@ -274,11 +274,15 @@ export function makeCamp() {
     pick(x, y) {
       if (!pic) return null;
       { const [kx, ky] = seat(); if (Math.abs(x - kx) < 9 && y > ky - 25 && y < ky + 3) return { label: NAMES.kayti, x: kx, y: ky - 27, act: 'kayti' }; }
+      // The goats on their knoll, in front of the towers behind them.
+      { const [gx, gy] = pic.knoll; if (Math.abs(x - gx) < 20 && y > gy - 18 && y < gy + 1) return { label: NAMES.camp.goats, x: gx, y: gy - 20, act: 'goats' }; }
       for (const g of [...pic.geo].sort((a, c) => c.by - a.by)) if (y > g.top - 3 && y < g.by && Math.abs(x - g.x) < 4 + (y - g.top) / g.h * g.w * 0.55) return { label: g.name, named: true, x: g.x, y: g.top - 6, act: 'spire:' + g.id };
       return null;
     },
     // A click on her and she looks up from the page and waves.
-    act(id) { if (id !== 'kayti') return false; waved = now; return true; },
+    // A click on the goats (round 6, note 10): all three bound up on the spot twice, the kid bleating, and the
+    // two grown ones turn to look.
+    act(id, env) { if (id === 'goats') { if (now - goatsGo > 1.6) { goatsGo = now; if (env) env.sfx('bleat'); } return true; } if (id !== 'kayti') return false; waved = now; return true; },
     draw(scr, env, arg, q) {
       fit(scr); now = env.t; flown = env.done;
       const { VW, fb } = scr, { t } = env, { geo, camp, rx, yh } = pic;
@@ -300,7 +304,8 @@ export function makeCamp() {
       for (const g of geo) if (env.done['spire:' + g.id]) scr.blit(flags[Math.floor(t * 5) & 1], g.x - 2, g.top - 14);
       // The goats on their knoll out on the ice: the nanny looks about, the billy grazes at the lichen, and
       // every few seconds the kid bounces twice on the spot.
-      { const [gx, gy] = pic.knoll; scr.put(frac(t / 5) < 0.6 ? goats.stand : goats.look, gx - 9, gy - 7, true); scr.put(frac(t / 7.3) < 0.7 ? goats.graze : goats.stand, gx + 9, gy - 5, false); const u = frac(t / 5.9) / 0.14, hop = u < 1 ? Math.round(2 * Math.abs(Math.sin(u * 2 * Math.PI))) : 0; scr.put(goats.kid, gx, gy - 2 - hop, frac(t / 3.3) < 0.5); }
+      { const [gx, gy] = pic.knoll, g = t - goatsGo, up = g < 1.6 ? Math.round(4 * Math.abs(Math.sin(g * Math.PI / 0.8))) : 0;
+        scr.put(g < 1.6 || frac(t / 5) >= 0.6 ? goats.look : goats.stand, gx - 9, gy - 7 - up, g < 1.6 ? false : true); scr.put(g < 1.6 ? goats.look : frac(t / 7.3) < 0.7 ? goats.graze : goats.stand, gx + 9, gy - 5 - up, g < 1.6); const u = frac(t / 5.9) / 0.14, hop = g < 1.6 ? up + 1 : u < 1 ? Math.round(2 * Math.abs(Math.sin(u * 2 * Math.PI))) : 0; scr.put(goats.kid, gx, gy - 2 - hop, frac(t / 3.3) < 0.5); }
 
       { const [kx, ky] = seat(); kayti.draw(scr, kx, ky, t, t - waved < 1.6); }
 

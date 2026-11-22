@@ -221,7 +221,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 - [x] C3. The forest gap filled; a mossy bog with skunk cabbage and one or two old-growth groves elsewhere in the forest (note 8).
 - [x] C4. Tumbleweeds bigger, rolling across the empty Palouse (note 5).
 - [x] C5. Segfault Scree on real scree (note 14).
-- [ ] C6. Every animal clickable, map and scenes (note 10). The list goes in section 11.
+- [x] C6. Every animal clickable, map and scenes (note 10). The list goes in section 11.
 - [ ] C7. Everything placed by rule still stands where it should after C1 to C6 (trails, signs, animal homes, no-go areas); `walk.sh` on every route.
 - [ ] C8. The logic audit (note 38): a report artifact with a picture and a proposed fix for every error found. Nothing is built. Its link goes in section 10 and the final report.
 
@@ -304,7 +304,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **C3 done.** The empty patch in TJ's circle was a hill whose ground is painted as distant canopy with no tree standing on it; every such hole in the hills' forest (no trunk within about 8 px) now gets a tree of the same wet-or-dry mix, kept back from the ground in front of a river as the ranks are. That filled TJ's patch and a smaller one by the lake trail. A bog clearing lies in the deep forest west of the Trailhead, found by rule (flat, off the hills and the trail, a stream some way off, as near the Trailhead as that allows): bright sphagnum moss with dark pools, skunk cabbage round them (a new drawing that sways), the trees kept back from it and from its near side so it shows from the map. Two old-growth groves of three or four giant redcedars, half as tall again as the forest round them, with ferns below, stand at the two flattest wet spots well away from the bog and each other. Frame time 11.3 ms; nothing moved; the lake loop walks clean.
 - **C4 done.** The tumbleweed is 15 px across (round 5: 9), a ball of dead stems round a dark core with a dark outline, a wider shadow that shrinks as it bounces higher, and a puff of dust behind it each time it lands. It rolls across the open gold hills east of the burn, with nothing standing near its line, instead of the sagebrush; it reads at Day, at Dusk and on a phone. Only one start on the Palouse is in plain sight with room to roll, so every tumbleweed starts there (round 5 had three in the sage). The debug panel's tumbleweed button used to send the view nowhere and freeze the map (the place it was given was not a point); it now moves the view to the roll, and a new browser test checks every start button that has a place.
 - **C5 done.** The Segfault Scree sign stands on the talus fan under Proficiency Peak's prow, the map's one field of loose granite blocks, just below the old snow and beside the trail where it tops the ladder (round 5's stood on a grassy slope below the bench). Its name tag reads at Day and Dusk. Every other sign stands where it did.
-- Next: C6.
+- **C6 done.** Every animal on the map and in the scenes now has a name when you point at it and answers a click; the list of what each one does is in section 11. Fourteen new sounds, none of them heard by TJ yet: the bugle, bleat, snort, huff, bawl, chatter, eagle's cry, osprey's kew, blow, plop, gulls' mew, raven's croak, owl's hoot and loon's wail. Clicking an animal is never a find, and a browser test checks that. The animal names are new words, drafts for TJ, in `content/game/names.yaml`.
+- Next: C7.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -386,6 +387,33 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - C5, a call: "real scree" is the land's own talus fan (`talusAt`, now handed out with the rest of the land), not ground painted grey: the bench's cliffs and slabs are painted in the same greys, and the first try by colour put the sign on the cliff face.
 - C5, a call: the sign now comes after Dependency in the list of signs and keeps 40 from the signs before it (the others keep 70). Placed first, it took the room Dependency needs higher up the same trail, and Dependency vanished. The two stand about 50 apart in the picture, one on the talus and one on the bench's edge below.
 - C5, frame time: 11.7 ms zoomed out at Dusk.
+- C6, the list of animal reactions (note 10). Map:
+  - **Bull elk** - bugles, his breath puffing from his muzzle, and the whole herd lifts their heads.
+  - **Roosevelt elk (cows)** - barks the alarm and trots off a short way.
+  - **Mountain goat and bighorn ram** - snorts and bounds away up its slope.
+  - **Mountain goat kid** - bleats and springs straight up, twice.
+  - **Bull moose** - snorts and shakes his head, looking this way and that.
+  - **Moose calf** - bleats and trots to his side.
+  - **Black bear (sow)** - huffs and stands looking, and her cubs make for the nearest trunks and climb, as black bear cubs are sent up trees.
+  - **Black bear cub** - bawls and climbs the nearest trunk, or rolls on its back if no trunk is near.
+  - **Douglas squirrel and chipmunk** - chatters and darts off, away from the click.
+  - **Hoary marmot** - sits up, whistles and dives into its burrow, and is back a few seconds later.
+  - **Humpback whale** - blows and breaches at its next spot.
+  - **Bald eagle on its stack** - cries and lifts off on its fishing flight. In the air, it cries; the osprey calls with a run of kews.
+  - **Orca** - blows and spyhops.
+  - **Moon jelly** - pulses hard and sinks out of sight, then drifts back up.
+  - **Ravens and gulls circling** - croak or mew and scatter, beating hard, then settle back into their circle.
+  Scenes:
+  - **Forest** - the elk bugles with his breath showing; the barred owl turns its head to face you, blinks twice and hoots; the banana slug draws in its eyestalks and bunches up; the black-tailed deer's eyeshine at Dusk blinks out with a snort (it has bounded off until the next time); the Canada jay at the snack flutters up.
+  - **Lake loop** - the hoary marmot whistles (still the find) and now dives behind its rock; the common loon dives with a plop and comes up farther along with a wail; her chick peeps and paddles hard to close up on her.
+  - **Larches** - the kid springs about and bleats; the nanny looks up and snorts; the on-call billy snorts and bounds off along the verge and back. The pika stays the find it was.
+  - **Ridge** - the mountain goat snorts and leaps on its boulder; the raven croaks and rolls onto its back in the updraft and rights itself.
+  - **Approach** - the marmots whistle (as before) and now dive behind their rocks; the pikas eep and duck, as before.
+  - **Camp** - the three goats on the knoll bound up twice, the kid bleating, and the grown ones turn to look.
+- C6, a call: not clickable, and why. The birds that cross high over the lake and the camp are specks a few pixels across, too small to aim at. The climb's bird and squirrel only appear inside a summit find's own animation, so a click there is that find. The trout is a ring on the water, where a click sends him swimming. The tide pools' crab and creatures sit in the pool, whose click is the tide pool find. Sasquatch is a find, not an animal.
+- C6, a call: the forest scene's shell did not pass clicks on (only the scenes with a click of their own did), so it now forwards `act` as the others do.
+- C6, a call: the lake's loon swims behind the near trees for part of the loop and can still be pointed at there. Left: it is a few pixels across and the trees cover it only at one end.
+- C6, frame time: 12.7 ms zoomed out at Dusk (11.7 before; the flocks and sea animals now note where they are drawn each frame).
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:

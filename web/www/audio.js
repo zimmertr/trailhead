@@ -232,6 +232,34 @@ export function makeAudio() {
     rumble: t => { noise(fx, t, 1.8, 0.22, 150, 0.7, 'lowpass'); noise(fx, t + 0.25, 1.2, 0.12, 420, 0.8, 'lowpass'); tone(fx, 'triangle', 58, t, 1.4, 0.16, 36); },
     // The avalanche (E5c): a longer, deeper roll than a serac's, building and dying away.
     avalanche: t => { noise(fx, t, 4.5, 0.3, 110, 0.7, 'lowpass'); noise(fx, t + 0.4, 3.4, 0.16, 300, 0.8, 'lowpass'); tone(fx, 'triangle', 44, t, 3.8, 0.2, 28); },
+    // The animals' answers to a click (round 6, note 10). A bull elk's bugle: a low grunt that climbs to a long
+    // high whistle and breaks off in grunts.
+    bugle: t => { tone(fx, 'sawtooth', 160, t, 0.18, 0.06, 220); tone(fx, 'sine', 520, t + 0.15, 0.55, 0.12, 1900); tone(fx, 'sine', 1900, t + 0.7, 0.5, 0.1, 1700); for (let i = 0; i < 3; i++) tone(fx, 'sawtooth', 130, t + 1.25 + i * 0.16, 0.08, 0.06, 110); },
+    // A goat's or a calf's bleat: one wavering note.
+    bleat: t => { for (let i = 0; i < 5; i++) tone(fx, 'square', i & 1 ? 560 : 620, t + i * 0.05, 0.05, 0.08); },
+    // A snort: a short blast of breath through the nose.
+    snort: t => { noise(fx, t, 0.16, 0.22, 700, 0.9, 'lowpass'); noise(fx, t + 0.05, 0.08, 0.1, 1800, 1.5, 'bandpass'); },
+    // A black bear's huff: two quick, deep blows.
+    huff: t => { noise(fx, t, 0.12, 0.3, 380, 0.8, 'lowpass'); noise(fx, t + 0.2, 0.14, 0.26, 340, 0.8, 'lowpass'); },
+    // A cub's bawl: a short falling cry.
+    bawl: t => tone(fx, 'square', 760, t, 0.22, 0.09, 480),
+    // A squirrel's chatter: a fast run of dry ticks.
+    chatter: t => { for (let i = 0; i < 12; i++) tone(fx, 'square', 2300 + (i & 1) * 300, t + i * 0.045, 0.025, 0.05); },
+    // A bald eagle's cry: thin, high, piping notes that fall away.
+    cry: t => [2600, 2500, 2350, 2200, 2050].forEach((f, i) => tone(fx, 'sine', f, t + i * 0.09, 0.06, 0.08, f - 300)),
+    // An osprey's call: short whistled kews.
+    kew: t => { for (let i = 0; i < 4; i++) tone(fx, 'sine', 1800, t + i * 0.13, 0.07, 0.08, 2300); },
+    // A whale's or an orca's blow: a breathy rush of air.
+    blow: t => { noise(fx, t, 0.7, 0.2, 900, 0.6, 'bandpass'); noise(fx, t, 0.3, 0.1, 300, 0.8, 'lowpass'); },
+    // A small thing slipping under the water.
+    plop: t => tone(fx, 'sine', 900, t, 0.09, 0.12, 300),
+    // Gulls' mewing and ravens' croaks.
+    mew: t => { tone(fx, 'square', 1300, t, 0.18, 0.05, 900); tone(fx, 'square', 1250, t + 0.24, 0.16, 0.04, 880); },
+    croak: t => { for (let i = 0; i < 2; i++) { tone(fx, 'square', 240, t + i * 0.28, 0.16, 0.08, 190); noise(fx, t + i * 0.28, 0.14, 0.06, 700, 2, 'bandpass'); } },
+    // A barred owl's hoot: who cooks for you.
+    hoot: t => [[390, 0.14], [390, 0.14], [430, 0.12], [390, 0.36]].reduce((d, [f, l]) => { tone(fx, 'sine', f, t + d, l, 0.16, f * 0.92); return d + l + 0.08; }, 0),
+    // A loon's wail: a long, rising and falling cry over the water.
+    wail: t => { tone(fx, 'sine', 620, t, 0.5, 0.12, 930); tone(fx, 'sine', 930, t + 0.5, 0.7, 0.12, 820); tone(fx, 'sine', 820, t + 1.2, 0.5, 0.1, 600); },
     locked: t => { tone(fx, 'square', 180, t, 0.08, 0.16); tone(fx, 'square', 150, t + 0.09, 0.12, 0.16); },
     unlock: t => [659, 784, 988, 1319].forEach((f, i) => tone(fx, 'triangle', f, t + i * 0.07, 0.14, 0.4))
   };

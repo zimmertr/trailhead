@@ -1,11 +1,12 @@
 // The animals of the world map and the water that moves: herds that graze and wander, a moose and its calf, bears with cubs, squirrels
 // and chipmunks that dart, marmots that sit up and whistle, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
-import { TAU, clamp, lerp, smooth, frac, hash, vnoise, rng, R, INK, SHADE, KIND, RAMP_OF, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
+import { TAU, clamp, lerp, smooth, frac, hash, vnoise, bayer, rng, R, INK, SHADE, KIND, RAMP_OF, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
 import { makeElk, makeBird, makeMoose } from './sprites.js';
 import { ell, goat, marmot } from './fauna.js';
 import { NW, NH } from './land.js';
 import { makeCollide } from './collide.js';
+import { NAMES } from './content.js';
 
 // A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass.
 export function mapBear(pose, step = 0) {
@@ -260,12 +261,15 @@ export function makeCritters(W, opts = {}) {
   if (spots.bearHome) family(spots.bearHome[0], spots.bearHome[1], { faces: 1, r: spots.bearHome[2] + 2, v: 5, ok: (x, y) => meadow(x, y) && !W.nearTrail(x, y, 9), roam: 0.3 }, false);
 
   function walk(a, dt, t) {
+    // A click (round 6, note 10): a moose shakes his head, looking this way and that; a kid springs straight up.
+    if (a.shake != null && t - a.shake < 1.3) { a.bm = a.f.look; a.flip = (Math.floor((t - a.shake) * 6) & 1) ? !a.flip0 : a.flip0; return; }
+    a.hop = a.spring != null && t - a.spring < 1.4 ? Math.round(6 * Math.abs(Math.sin((t - a.spring) * Math.PI / 0.7))) : 0;
     if (a.st === 'walk') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
       if (d < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; a.fx = a.tx; a.fy = a.ty; }   // it stops on the spot it chose, which is ground it may stand on
-      else { const s = Math.min(d, a.v * dt); a.fx += dx / d * s; a.fy += dy / d * s * 0.7; if (Math.abs(dx) > 0.5) a.flip = (dx > 0 ? 1 : -1) !== a.faces; }
+      else { const fast = a.fast > t, s = Math.min(d, a.v * (fast ? (a.bound ? 4 : 2.6) : 1) * dt); a.fx += dx / d * s; a.fy += dy / d * s * 0.7; if (Math.abs(dx) > 0.5) a.flip = (dx > 0 ? 1 : -1) !== a.faces; if (fast && a.bound) a.hop = Math.round(4 * Math.abs(Math.sin(t * 9))); }
       a.x = Math.round(a.fx); a.y = Math.round(a.fy);
-      a.bm = a.f.walk[Math.floor(t * 4.5 + a.hx) & 1];
+      a.bm = a.f.walk[Math.floor(t * (a.fast > t ? 9 : 4.5) + a.hx) & 1];
       if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; a.fx = a.tx; a.fy = a.ty; a.x = Math.round(a.fx); a.y = Math.round(a.fy); }
       return;
     }
@@ -325,6 +329,8 @@ export function makeCritters(W, opts = {}) {
   spots.marmots.forEach(([x, y0, perch = 0], n) => { const y = y0 + (perch ? 1 : 0); items.push({ critter: 'marmot', col: 'land', f: mar, bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: perch ? 0 : 16, perch, lift: perch, st: 'sun', until: 4 + rand() * 10 }); });
   const offIce = (x, y) => { const k = RAMP_OF[g[Math.round(y) * NW + Math.round(x)]]; return k !== 'glac' && k !== 'snow' && k !== 'farsnow'; };
   function scurry(a, dt, t, here) {
+    // Clicked, it whistles and dives into its burrow, and comes back up a few seconds later (note 10).
+    a.gone = a.dive != null && t > a.dive + 1.2 && t < a.dive + 4.6;
     const up = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / MAR.cycle + a.n * 0.37) < MAR.up / MAR.cycle || (a.call != null && t - a.call < MAR.up);
     if (up && !a.wasUp) a.rose = t; else if (!up && a.wasUp && rand() < 0.5) a.flip = !a.flip;
     a.wasUp = up;
@@ -383,6 +389,7 @@ export function makeCritters(W, opts = {}) {
     const T = t + whaleAhead + T0, n = Math.floor(T / SLOT), u = T - n * SLOT - starts(n);
     if (a.slot !== n) { a.slot = n; [a.x, a.y] = n ? pickOpen(n, ox, oy, scr.VW, scr.VH) : spots.whale; a.blows = [null, null]; }
     const wx = a.x - ox, wy = a.y - oy;
+    seen.whale = wx > -30 && wx < scr.VW + 30 && wy > -30 && wy < scr.VH + 10 ? [wx - 10, wy] : null;
     const white = R.white[1], pale = R.sea[5], ease = v => v * v * (3 - 2 * v);
     // The foam it leaves lies on the water, so it goes down first: a patch where it landed that thins
     // out, and a ring that spreads from it and breaks up. A small ring marks where it came out.
@@ -562,6 +569,7 @@ export function makeCritters(W, opts = {}) {
   };
   const fishAt = (scr, x, y, face) => { scr.set(x - 2 * face, y, R.shoe[0]); for (let i = -1; i <= 1; i++) { scr.set(x + i, y, R.shoe[1]); scr.set(x + i, y + 1, R.shoe[2]); } scr.set(x + 2 * face, y, R.shoe[2]); };
   function raptor(scr, x, y, K, up, face, bank = 0, sc = 1, carry = null) {
+    seen[K === BIRD.eagle ? 'eagle' : 'osprey'] = [x, y];
     const half = Math.max(2, Math.round(K.half * sc)), small = sc < 0.6;
     for (const s of [-1, 1]) { const lift = up + s * bank;
       for (let i = 2; i <= half + 1; i++) { const f = (i - 1) / half, dy = Math.round(K.wrist ? (f < K.wrist ? -(lift + 1.5) * f / K.wrist : -(lift + 1.5) + (f - K.wrist) / (1 - K.wrist) * (2.5 + 0.4 * lift)) : -lift * f);
@@ -648,6 +656,7 @@ export function makeCritters(W, opts = {}) {
     a.bm = fed >= 0 && fed < 10 ? (fed > 1 && frac(fed / 1.6) < 0.45 ? EAGLE_BM.bow : EAGLE_BM.fed) : EAGLE_BM.sit;
   }
   function eagleFlies(scr, ox, oy, t) {
+    seen.eagle = null;
     const E = eagle(); if (!E) return; const [n, s] = slotOf(EAG, t, eagAhead), c = E.flight(n); if (!c || s < 0 || s >= c.len) return;
     const sf = s - c.mark.fish; if (sf >= 0 && sf < 1) splash(scr, Math.round(c.F[0]) - ox, Math.round(c.F[1]) - oy, sf, 5);
     const up = s < c.mark.round ? 4.5 * Math.sin(s * TAU * 3.2)                                   // lifting off
@@ -671,6 +680,7 @@ export function makeCritters(W, opts = {}) {
     const way = [[...far, 64, 58], [...mid, 40, 52]]; for (let j = 0; j <= last; j++) way.push([...pt(j), HI, 30]); way.push([dive[0], dive[1], HV, 20]);
     return { dive, lake: L.lake, home, inn: course(way), out: course([[dive[0], dive[1], 9, 30], [...mid, 36, 44], [...far, 64, 58]]), sc: (x, y) => smooth(FAR - 10, 130, Math.hypot(x - cx, (y - cy) / 0.6)) }; })();
   function ospreyFlies(scr, ox, oy, t) {
+    seen.osprey = null;
     const O = OSPREY; if (!O) return; const [, s] = slotOf(OSP, t, ospAhead); if (s < 0) return;
     const K = BIRD.osprey, dx = Math.round(O.dive[0]) - ox, dy = Math.round(O.dive[1]) - oy, a = s - O.inn.len;
     // In from the forest and round over the lake, mostly on set wings.
@@ -705,14 +715,18 @@ export function makeCritters(W, opts = {}) {
     const f = (d - len[a]) / Math.max(1e-6, len[b] - len[a]), e = ebbAt(t) / EBB, at = r => lerp(hi[r], lo[r] == null ? -12 : lo[r], e), x = lerp(at(a), at(b), f), y = SEA.y0 + a + f;
     return col.canBe('swimmer', x, y, t, 4) ? [x, y] : null; };
   function orcas(scr, ox, oy, t) {
+    seen.orca.length = 0;
     const T = t + orcaAhead - ORCA.first, n = Math.floor(T / ORCA.slot), s = T - n * ORCA.slot; if (T < 0 || s > ORCA.dur) return;
     const spy = Math.floor(hash(n, 1, 6301) * POD.length), spyAt = 30 + 30 * hash(n, 2, 6301), sv = s - spyAt;
     // As the tide goes out the pod keeps the same depth under it, so its lanes move out with the water (T15).
     POD.forEach((o, i) => {
       const at = orcaAt(i, s, t); if (!at) return;
       const x = Math.round(at[0]) - ox, y = Math.round(at[1]) - oy; if (x < -20 || x > scr.VW + 20 || y < -20 || y > scr.VH + 6) return;
-      if (i === spy && sv > 0 && sv < 3.2) return spyhop(scr, x, y, sv / 3.2, t);
+      // A clicked orca spyhops at once (note 10): it is in sight, so it can be clicked, only while it is up.
+      const asked = orcaSpy[i] != null && t - orcaSpy[i] < 3.2;
+      if (asked || (i === spy && sv > 0 && sv < 3.2)) { seen.orca[i] = [x, y]; return spyhop(scr, x, y, asked ? (t - orcaSpy[i]) / 3.2 : sv / 3.2, t); }
       const ph = frac(s / 4.2 + i * 0.31), q = ph / 0.55; if (q >= 1) return; const h = Math.sin(Math.PI * q);
+      if (h > 0.3) seen.orca[i] = [x, y];
       orcaBack(scr, x, y, h, o.bull, t, i);
       // A blow as it comes up, now and then.
       if (q < 0.45 && hash(Math.floor(s / 4.2), i, 6302) < 0.35) { const k = q / 0.45, hgt = Math.round(3 + 4 * k); for (let j = 0; j < hgt; j++) { if (k > 0.6 && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 3 ? 1 : 0; scr.set(x + 3 - sp, y - 3 - j, R.white[1]); if (sp) scr.set(x + 3 + sp, y - 3 - j, R.white[1]); } }
@@ -931,6 +945,58 @@ export function makeCritters(W, opts = {}) {
   // Where each flock circles comes from the land (land.js, habitat).
   const FLOCKS = (W.flocks || []).map(F => ({ ...F, bm: F.gull ? gull : ink }));
 
+  // ---- a click on an animal (round 6, note 10) --------------------------------------------------
+  // Every animal on the map answers a click with something true to how it lives. Not finds: just for fun,
+  // as the cats are. Each reaction is a state the animal already has, started now or sped up, with a
+  // sound, and for the bull elk his breath as he bugles.
+  // Where each animal of the sea and the air was drawn this frame, in view pixels, for a click to find it.
+  const seen = { orca: [], jelly: [], flock: [], whale: null, eagle: null, osprey: null }, orcaSpy = [], jellyKick = [];
+  const nameOf = a => { const N = NAMES.map;
+    if (a.critter === 'elk') return a.f === elkBull ? N.bull : N.elk;
+    if (a.critter === 'goat') return a.mum ? N.kid : N.goat;
+    if (a.critter === 'moose') return a.mum ? N.calf : N.moose;
+    if (a.critter === 'bear') return a.cub ? N.cub : N.bear;
+    if (a.critter === 'squirrel') return a.f === sq[1] ? N.chipmunk : N.squirrel;
+    return N[a.critter] || a.critter; };
+  // A walker heads off away from the click, on ground it may cross, to a spot in its own country.
+  const flee = (a, px, py, d0, d1) => { for (let k = 0; k < 12; k++) { const an = Math.atan2(a.fy - py, a.fx - px) + (rand() - 0.5) * 1.6, rr = d0 + rand() * (d1 - d0), tx = a.fx + Math.cos(an) * rr, ty = a.fy + Math.sin(an) * rr * 0.6; if (a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return true; } } return false; };
+  const lookUp = (a, t, s) => { a.st = 'look'; a.until = t + s; a.bm = a.f.look; };
+  // The bull's breath as he bugles: puffs that leave his mouth, rise and fade.
+  function breath(scr, a, ox, oy, age) {
+    const dir = a.faces * (a.flip ? -1 : 1), hx = a.x - ox + dir * Math.round(a.bm.w * 0.45), hy = a.y - oy - Math.round(a.bm.oy * 0.55);
+    for (let k = 0; k < 8; k++) { const s = age - k * 0.15; if (s < 0 || s > 1.6) continue; const x = Math.round(hx + dir * (2 + s * 8)), y = Math.round(hy - s * 9), r = s < 0.5 ? 1 : 2;
+      for (let dy = -r; dy <= 0; dy++) for (let dx = -r; dx <= r; dx++) if (Math.abs(dx) + Math.abs(dy) <= r && bayer(x + dx, y + dy) < 1.1 - s / 1.6) scr.set(x + dx, y + dy, s < 0.4 ? R.white[1] : R.white[0]); }
+  }
+  function poke(id, px, py, t) {
+    const [kind, n] = id.split(':');
+    if (kind === 'orca') { orcaSpy[+n] = t; return 'blow'; }
+    if (kind === 'jelly') { jellyKick[+n] = t; return 'plop'; }
+    if (kind === 'flock') { FLOCKS[+n].scare = t; return FLOCKS[+n].gull ? 'mew' : 'croak'; }
+    if (kind === 'air') return n === 'eagle' ? 'cry' : 'kew';
+    if (kind === 'whale') { const T = t + whaleAhead + T0, m = Math.floor(T / SLOT); whaleAhead = (m + 1) * SLOT + starts(m + 1) - t - T0; return 'blow'; }
+    const a = items[+n]; if (!a) return null;
+    if (a.critter === 'eagle') { if (a.bm === EAGLE_BM.none) return null; eagAhead += startNow(EAG, t + eagAhead); return 'cry'; }
+    if (a.critter === 'squirrel') { a.until = 0; dart(a, 0, t, { x: px, y: py }); return 'chatter'; }
+    if (a.critter === 'marmot') { if (a.dive != null && t - a.dive < 4.6) return null; a.call = t; a.dive = t; return null; }   // its own whistle sounds as it sits up
+    if (a.cub) {
+      const T = a.st !== 'climb' && trunkFor(a, 44);
+      if (T) { a.trunk = T; a.tx = T.x; a.ty = T.y + 1; a.goal = 'trunk'; a.st = 'walk'; a.hop = a.lift = 0; }
+      else if (a.st !== 'climb') { a.st = 'roll'; a.t0 = t; a.until = t + 2.4; }
+      return 'bawl'; }
+    if (a.critter === 'bear') {
+      // She huffs and stands looking, and her cubs make for the nearest trunks and climb, as black bear cubs do.
+      lookUp(a, t, 4);
+      for (const c of items.filter(c => c.mum === a && c.cub && c.st !== 'climb')) { const T = trunkFor(c, 44); if (T) { c.trunk = T; c.tx = T.x; c.ty = T.y + 1; c.goal = 'trunk'; c.st = 'walk'; c.hop = c.lift = 0; } }
+      return 'huff'; }
+    if (a.critter === 'elk' && a.f === elkBull) { for (const b of items) if (b.critter === 'elk') lookUp(b, t, 4); a.bugle = t; return 'bugle'; }
+    if (a.critter === 'elk') { a.fast = t + 3; a.bound = false; if (!flee(a, px, py, 14, 26)) lookUp(a, t, 3); return 'bark'; }
+    if (a.critter === 'goat' && a.mum) { a.spring = t; lookUp(a, t, 2); return 'bleat'; }
+    if (a.critter === 'goat' || a.critter === 'sheep') { a.fast = t + 2.5; a.bound = true; if (!flee(a, px, py, 16, 30)) { a.spring = t; lookUp(a, t, 2); } return 'snort'; }
+    if (a.critter === 'moose' && a.mum) { a.fast = t + 3; a.bound = false; a.tx = a.mum.fx + 10; a.ty = a.mum.fy + 3; if (a.ok(a.tx, a.ty) && way(pass, a.fx, a.fy, a.tx, a.ty)) a.st = 'walk'; else lookUp(a, t, 2); return 'bleat'; }
+    if (a.critter === 'moose') { a.shake = t; a.flip0 = a.flip; a.st = 'look'; a.until = t + 3; return 'snort'; }
+    return null;
+  }
+
   return {
     items,
     // Sounds the animals made while they were drawn this frame; the map plays them and empties the list.
@@ -946,12 +1012,32 @@ export function makeCritters(W, opts = {}) {
     },
     draw(scr, a, ox, oy, t) {
       if (a.critter === 'whale') return drawWhale(scr, a, ox, oy, t);
+      if (a.gone) return;
       if (a.walker || (a.critter === 'marmot' && !a.perch)) scr.shadow(a.x - ox, a.y - oy, a.critter === 'marmot' ? 5 : 7, 1);
       else if (a.cub && !a.lift) scr.shadow(a.x - ox, a.y - oy, 4, 1);
       // A marmot that has just sat up whistles, if it is being drawn (so only when it is on screen).
       if (a.critter === 'marmot' && a.rose != null && a.sung !== a.rose && t - a.rose < 0.5) { a.sung = a.rose; sounds.push('whistle'); }
       scr.put(a.bm, a.x - ox, a.y - oy - (a.hop || 0) - (a.perch || 0), a.flip);
+      if (a.bugle != null && t - a.bugle < 2.4) breath(scr, a, ox, oy, t - a.bugle);
     },
+    // What is under a point of the map (world pixels; ox, oy: the view's corner, for what was drawn on screen
+    // this frame): an animal's name and its act, or null. The nearest animal in front wins.
+    pick(wx, wy, ox, oy) {
+      let top = null;
+      for (let i = 0; i < items.length; i++) { const a = items[i]; if (a.critter === 'whale' || a.gone || !a.bm || !a.bm.w) continue;
+        const up = (a.hop || 0) + (a.perch || 0), y1 = a.y - up + 2, y0 = a.y - up - a.bm.oy - 2, half = Math.max(5, a.bm.w / 2);
+        if (Math.abs(wx - a.x) <= half && wy >= y0 && wy <= y1 && (!top || a.y > top.a.y)) top = { a, i, y0 }; }
+      if (top) return { label: nameOf(top.a), wx: top.a.x, wy: top.y0 - 1, act: 'animal:' + top.i };
+      const sx = wx - ox, sy = wy - oy, near = (p, rx, up, dn) => p && Math.abs(sx - p[0]) <= rx && sy >= p[1] - up && sy <= p[1] + dn;
+      for (const [i, p] of seen.orca.entries()) if (near(p, 9, 14, 3)) return { label: NAMES.map.orca, wx: p[0] + ox, wy: p[1] + oy - 15, act: 'orca:' + i };
+      for (const [i, p] of seen.jelly.entries()) if (near(p, 4, 2, 7)) return { label: NAMES.map.jelly, wx: p[0] + ox, wy: p[1] + oy - 3, act: 'jelly:' + i };
+      if (near(seen.whale, 22, 18, 4)) return { label: NAMES.map.whale, wx: seen.whale[0] + ox, wy: seen.whale[1] + oy - 18, act: 'whale' };
+      for (const k of ['eagle', 'osprey']) if (near(seen[k], 12, 6, 6)) return { label: NAMES.map[k], wx: seen[k][0] + ox, wy: seen[k][1] + oy - 8, act: 'air:' + k };
+      for (const [i, F] of seen.flock.entries()) if (F && F.some(p => near(p, 5, 4, 4))) { const p = F.find(q => near(q, 5, 4, 4)); return { label: NAMES.map[FLOCKS[i].gull ? 'gull' : 'raven'], wx: p[0] + ox, wy: p[1] + oy - 6, act: 'flock:' + i }; }
+      return null;
+    },
+    // A click on one of them, by the act pick() gave: what it does, and the sound it makes (or null).
+    click(id, px, py, t) { return poke(id, px, py, t); },
     tideAt: t => ebbAt(t) / EBB,
     // For the checks: where the two fishing birds live and how far into its flight each is (under 0: not yet).
     birds: t => { const E = eagle(), c = E && E.flight(slotOf(EAG, t, eagAhead)[0]); return { eagle: E && { perch: [E.p.x, E.p.y, E.p.tall], over: E.C, fish: E.fish, tops: TOPS.map(p => [p.x, p.y, p.tall]), s: slotOf(EAG, t, eagAhead)[1], len: c && c.len, mark: c && c.mark },
@@ -1038,11 +1124,16 @@ export function makeCritters(W, opts = {}) {
       drawWake(scr, ox, oy, t);
       // Moon jellies drift slowly in open water beyond the surf (T26), each round its own spot, and move out
       // ahead of a falling tide and back in with it (jellyAt, above).
+      seen.jelly.length = 0;
       spots.jelly.forEach(([, , pale], k) => {
         const at = jellyAt(k, t); if (!at) return;
-        const x = Math.round(at[0]) - ox, y = Math.round(at[1] + 1.5 * Math.sin(t * 0.5 + k)) - oy;
+        // Clicked, it pulses hard three times and sinks out of sight, and drifts back up (note 10).
+        const kick = jellyKick[k] != null ? t - jellyKick[k] : 9, sink = kick < 4 ? Math.round(5 * Math.sin(Math.PI * kick / 4)) : 0;
+        const x = Math.round(at[0]) - ox, y = Math.round(at[1] + 1.5 * Math.sin(t * 0.5 + k)) - oy + sink;
         if (x < -4 || y < -6 || x > VW + 4 || y > VH) return;
-        const c = pale ? R.white[1] : R.pink[2], d = R.pink[1], shut = frac(t * 0.3 + k * 0.37) < 0.3;
+        if (kick > 1 && kick < 3 && bayer(x, y) < 0.6) return;
+        seen.jelly[k] = [x, y];
+        const c = pale ? R.white[1] : R.pink[2], d = R.pink[1], shut = kick < 1.2 ? frac(kick * 2.5) < 0.5 : frac(t * 0.3 + k * 0.37) < 0.3;
         for (let dx = 0; dx < 3; dx++) scr.set(x + dx, y, c);
         if (shut) { for (let dx = 0; dx < 3; dx++) scr.set(x + dx, y + 1, dx === 1 ? c : d); for (const [dx, dy] of [[0, 2], [2, 2], [0, 3], [2, 3], [1, 4], [1, 5]]) scr.set(x + dx, y + dy, d); }
         else { for (let dx = -1; dx < 4; dx++) scr.set(x + dx, y + 1, dx === 0 ? c : d); for (const [dx, dy] of [[-1, 2], [1, 3], [3, 2], [0, 4], [2, 4]]) scr.set(x + dx, y + dy, d); }
@@ -1159,13 +1250,18 @@ export function makeCritters(W, opts = {}) {
     over(scr, ox, oy, t) {
       const { VW, VH, fb } = scr;
       eagleFlies(scr, ox, oy, t); ospreyFlies(scr, ox, oy, t);
+      FLOCKS.forEach((F, i) => { seen.flock[i] = []; }); let fi = -1;
       for (const F of FLOCKS) for (let k = 0; k < F.n; k++) {
-        const an = t * F.w + k * TAU / F.n + 0.5 * Math.sin(t * 0.3 + k * 2), wob = 1 + 0.14 * Math.sin(t * 0.21 + k * 3);
+        if (k === 0) fi++;
+        // Clicked, the flock scatters: wider, faster round, beating hard, then settles to its circle again (note 10).
+        const sc = F.scare != null ? t - F.scare : 9, burst = sc < 3 ? Math.sin(Math.PI * sc / 3) : 0;
+        const an = t * F.w + k * TAU / F.n + 0.5 * Math.sin(t * 0.3 + k * 2) + 2.2 * smooth(0, 3, sc) * (sc < 9 ? 1 : 0) + k * 0.4 * burst, wob = (1 + 0.14 * Math.sin(t * 0.21 + k * 3)) * (1 + 0.6 * burst);
         const x = Math.round(F.cx + Math.cos(an) * F.rx * wob - ox), y = Math.round(F.cy + Math.sin(an) * F.ry * wob - oy);
         if (x < -8 || x > VW + 8 || y < -8 || y - F.lift > VH + 8) continue;
+        seen.flock[fi].push([x, y - F.lift]);
         for (let dx = -2; dx <= 2; dx++) { const sx = x + dx; if (sx >= 0 && sx < VW && y >= 0 && y < VH) fb[y * VW + sx] = SHADE[fb[y * VW + sx]]; }
         // They mostly hold their wings out, and beat them in short bursts.
-        const f = F.glide ? (frac(t * 0.23 + k) < 0.12 ? Math.floor(t * 5) & 1 : 1) : frac(t * 0.17 + k * 0.37) < 0.4 ? (Math.floor(t * 3.5) + k) & 1 : 1;
+        const f = burst > 0.1 ? (Math.floor(t * 9) + k) & 1 : F.glide ? (frac(t * 0.23 + k) < 0.12 ? Math.floor(t * 5) & 1 : 1) : frac(t * 0.17 + k * 0.37) < 0.4 ? (Math.floor(t * 3.5) + k) & 1 : 1;
         scr.blit(F.bm[f], x - 3, y - F.lift - 2);
       }
     }
