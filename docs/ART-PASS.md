@@ -35,7 +35,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 ### TJ's Must-Haves, on the Map
 
 - [x] **A01 Sideproject Spires and Their Glacier** - the granite wall of six towers in the middle of the map and the glacier below it, with its icefall and the camp's island. `land.js` (`spires`, the `GL` glacier). The biggest gap for the most screen: the glacier is a flat white fan.
-- [ ] **A02 The Background Mountains** - the far ranges along the top of the map, east of Monolith. `land.js` (`range`, `farRow`). A wide band seen on every visit; the ridges repeat.
+- [x] **A02 The Background Mountains** - the far ranges along the top of the map, east of Monolith. `land.js` (`range`, `farRow`). A wide band seen on every visit; the ridges repeat.
 - [ ] **A03 Mount Monolith** - the volcano, after Mt Rainier. `monolith.js` (`paintMonolith`). The largest landmark; painted already, so the gap is smaller, but nothing is seen more.
 - [ ] **A04 Proficiency Peak** - the granite peak and its bench, the talus fan under its prow. `land.js` (`proficiency`, `talusAt`).
 - [ ] **A05 The Larch Basin** - the granite benches with gold larches and tarns east of the Spires, after the Enchantments. `land.js` (`plateau`, `larchAmt`, the tarns).
@@ -100,3 +100,8 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A01, a call: the snout lake is 132 wide (64 before), to take the broader tongue. One sign by it moved 31 px west, one of the eight serac falls was lost, the tower tops moved up to 14 px, and the elk, a bear's home and the whale moved through the placement dice. All stand where their rules want them.
 - A01, a fix outside the item: a bear cub with no room at its mother's side was put by a fallback that never checked the ground, and the new bear home put one where no land animal may stand (the engine rules test caught it). The fallback now looks for the nearest ground a cub may stand on.
 - A01: frame time 11.6 ms zoomed out at Dusk; 35 browser tests pass; no new colours.
+- A02, the pictures: 8 drafts at 1024 by 384. `qwen-image-2.1` seed 2 picked (an irregular skyline, long snow couloirs, faces lit on the left) and repainted as pixel art (seed 11). The style model's seed 4 showed a second, paler rank behind; the far row already draws one, so it was not added.
+- A02, a call: the crests change in code two ways, both in `land.js`: `range()` with `vary` makes about one peak in five a big summit and one in four a small one, with smaller tops along the shoulders; and the crest colouring finds the summit above each spot and draws its main ridge, its ribs, snow in the high cirques and in some couloirs, and the light on the left of each ridge.
+- A02, a call: no big summit within the far crest's stretch behind the Spires and Proficiency Peak (u 880 to 1500) or the east crest's behind the peak (1360 to 1500). On the first try a big summit stood straight behind Proficiency Peak and took the eye off it; the Spires' trailhead summit must also still top the crest behind it.
+- A02, a call: the Legacy Range (the painted far row in the west) is left as it was. Its painting already draws ridges, spurs and snow high up, which is what the crest code now copies.
+- A02: frame time 12.3 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.

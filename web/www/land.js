@@ -31,10 +31,16 @@ const horn = (mat, cu, cv, ru, rv, H, o = {}) => add(mat, cu - ru * 1.1, cu + ru
 });
 // A range: a ridge running east and west at one depth, whose skyline is a row of blunt pyramids of
 // uneven height. env gives the height wanted at each u.
+// With o.vary (art pass A02, after the generated picture logged in design/art/A02/) the skyline is not a row
+// of like pyramids: about one peak in five is a big summit, broader and higher, one in four a small one, and
+// each has smaller tops along its shoulders, so saddles and cols lie between them. The peaks of every crest
+// are kept in CREST, which the colouring reads to find the summit above a spot.
+const CREST = [];
 function range(mat, u0, u1, cv, env, seed, o = {}) {
   const r = rng(seed), peaks = [], D = o.front || 56, B = o.back || 40;
-  for (let cx = u0; cx <= u1;) { const h = env(cx) * (0.8 + 0.4 * r()), w = h * ((o.wide || 0.55) + 0.3 * r()); peaks.push([cx, h, w * (0.8 + 0.4 * r()), w * (0.8 + 0.4 * r()), 3 + 6 * r()]); cx += w * (0.7 + 0.5 * r()); }
-  const high = u => { let best = 0; for (const [cx, h, wl, wr, cap] of peaks) { const t = Math.max(0, Math.abs(u - cx) - cap / 2) / (u < cx ? wl : wr); if (t < 1) best = Math.max(best, h * (1 - Math.pow(t, o.pow || 1.1))); } return best <= 0 ? 0 : Math.max(0, best + (o.jag || 4) * (sq(rdg(vnoise(u / 4, seed, 811))) - 0.5)); };
+  for (let cx = u0; cx <= u1;) { const k = o.vary && !(o.calm && cx > o.calm[0] && cx < o.calm[1]) ? r() : (o.vary ? (r(), 0.5) : 0.5), big = k < 0.2 ? 1.25 : k > 0.75 ? 0.66 : 1, h = env(cx) * (0.8 + 0.4 * r()) * big, w = h * ((o.wide || 0.55) + 0.3 * r()) * (o.vary ? Math.sqrt(big) : 1); peaks.push([cx, h, w * (0.8 + 0.4 * r()), w * (0.8 + 0.4 * r()), 3 + 6 * r()]); cx += w * (0.7 + 0.5 * r()); }
+  const high = u => { let best = 0; for (const [cx, h, wl, wr, cap] of peaks) { const t = Math.max(0, Math.abs(u - cx) - cap / 2) / (u < cx ? wl : wr); if (t < 1) best = Math.max(best, h * (1 - Math.pow(t, o.pow || 1.1))); } if (best <= 0) return 0; if (o.vary) best *= 1 + 0.16 * (rdg(vnoise(u / 11, seed, 815)) - 0.6); return Math.max(0, best + (o.jag || 4) * (sq(rdg(vnoise(u / 4, seed, 811))) - 0.5)); };
+  if (mat === 'crest') for (const [cx, h, wl, wr] of peaks) CREST.push({ cx, h, wl, wr, cv, seed });
   add(mat, u0 - 110, u1 + 110, cv - D - 14, cv + B + 8, (u, v) => { const hi = high(u); if (hi <= 0) return 0; const vv = v + 10 * (vnoise(u / 11, seed, 830) - 0.5), f = vv < cv ? (vv - (cv - D)) / D : (cv + B - vv) / B; return f <= 0 ? 0 : hi * Math.pow(f, 0.75); });
 }
 // A level with a steep edge: a bench, a basin floor, a mesa, a field of ice. tilt lifts its far side.
@@ -220,11 +226,11 @@ for (const [cu, cv, ru, rv, H] of [[500, 478, 96, 44, 42], [770, 474, 84, 40, 38
 plateau('land', 655, 440, 152, 40, 30, 0.1); C.bench = F[F.length - 1];
 C.lakes.push([666, 446, 100, 21, 'lake']);
 // Its west end rises gently from behind Little Tahoma, so no peak of it stands alone beside the tooth.
-range('crest', 800, NW + 60, 716, u => (112 + 20 * vnoise(u / 70, 1, 64)) * lerp(0.35, 1, smooth(820, 930, u)), 64, { front: 40, back: 18 });
+range('crest', 800, NW + 60, 716, u => (112 + 20 * vnoise(u / 70, 1, 64)) * lerp(0.35, 1, smooth(820, 930, u)), 64, { front: 40, back: 18, vary: true, calm: [880, 1500] });
 range('crest', 800, 930, 660, crestH(1070, 120, 60), 61);
 lift = under; spires(1070, 648, 70, 115, 1, 1.2); lift = null;
 range('crest', 1232, 1300, 664, crestH(1070, 120, 60), 62);
-range('crest', 1336, NW + 40, 676, u => (112 + 24 * vnoise(u / 90, 2, 65)) * (1 - 0.42 * Math.exp(-sq((u - 1430) / 90))), 63, { pow: 1.25, jag: 6, front: 50 });
+range('crest', 1336, NW + 40, 676, u => (112 + 24 * vnoise(u / 90, 2, 65)) * (1 - 0.42 * Math.exp(-sq((u - 1430) / 90))), 63, { pow: 1.25, jag: 6, front: 50, vary: true, calm: [1360, 1500] });
 lift = under;
 add('ice', 940, 1204, GL.toe - 2, GL.top + 6, (u, v) => { const w = GL.w(v), d = glD(u, v); return v < GL.toe || v > GL.top + 4 || d >= w ? 0 : GL.h(v) - 6 * sq(d / w) - 8 * smooth(GL.toe + 8, GL.toe, v); });
 add('moraine', NUN[0] - 20, NUN[0] + 20, NUN[1] - 10, NUN[1] + 10, (u, v) => { const e = isleAt(u, v); return e >= 1 ? 0 : GL.h(NUN[1]) + 2 + 2.5 * smooth(1, 0.6, e); });
@@ -696,7 +702,23 @@ function colour(u, v, hh, x, y) {
     const flute = vnoise(x / 2.5, hh / 16, 813), rock = R.rock[clamp(Math.round(L * 2.6) + (flute > 0.64 ? 1 : flute < 0.34 ? -1 : 0), 0, 3) + pale], band = (x + (y >> 3) * 3) >> 2, row = hh / 7 + hash(band, 0, 814) * 7;
     // Snow lies in streaks down the gullies and on the ledges, more of it on the faces the light reaches.
     const streak = 0.62 * vnoise(x / 2.6, hh / 18, 815) + 0.38 * vnoise(x / 8, hh / 8, 819), lie = 0.5 + 0.2 * smooth(120, 60, hh) + 0.18 * east - 0.16 * (L - 0.5) - 0.12 * smooth(1.2, 0.6, steep);
-    if (mat === 'crest') return hh > 62 + 34 * vnoise(x / 14, 3, 816) + 46 * east && streak > lie ? R.snow[L > 0.55 ? 4 : L > 0.35 ? 3 : 2] : hh < 44 + 20 * vnoise(u / 20, v / 20, 827) ? pick('conifer', 0.2 + 0.5 * L, x, y) : rock;
+    // The crests (art pass A02): each summit sends a main ridge down its face, wandering, with ribs off it
+    // down both sides. Snow fills the high cirques between the ribs and runs far down the narrow couloirs;
+    // none lies low on the open faces. The western light reaches the left of each ridge and rib.
+    if (mat === 'crest') {
+      if (hh < 44 + 20 * vnoise(u / 20, v / 20, 827)) return pick('conifer', 0.2 + 0.5 * L, x, y);
+      let pk = null, top = 0;
+      for (const p of CREST) { if (Math.abs(p.cv - v) > 60) continue; const t = Math.abs(u - p.cx) / (u < p.cx ? p.wl : p.wr); if (t < 1 && p.h * (1 - t) > top) { top = p.h * (1 - t); pk = p; } }
+      if (!pk) return rock;
+      const dd = Math.max(0, pk.h - hh), rel = dd / pk.h, side = u < pk.cx ? -1 : 1;
+      const rx = pk.cx + dd * (0.12 + 0.2 * (hash(Math.round(pk.cx), pk.seed, 701) - 0.5)) + 5 * (vnoise(dd / 14, pk.cx, 702) - 0.5), west = u < rx;
+      const sp = (u - rx) * 0.055 - side * dd * 0.04 + 0.35 * vnoise(u / 18, dd / 18, 703), spur = frac(sp), mid = Math.abs(spur - 0.55), deep = hash(Math.floor(sp), Math.round(pk.cx), 709) < 0.45;
+      if (Math.abs(u - rx) < 1.2 && rel > 0.03) return west ? R.rock[2] : R.rock[1];
+      if (rel < 0.24 + 0.08 * (vnoise(u / 30, pk.seed, 705) - 0.5) - 0.06 * east && mid < 0.3) return L > 0.5 ? R.snow[4] : R.snow[3];
+      if (deep && rel < 0.7 - 0.2 * east && mid < 0.05 + 0.04 * (1 - rel)) return L > 0.45 ? R.snow[3] : R.snow[2];
+      if (spur < 0.09) return west ? R.rock[4] : R.rock[0];
+      return rock;
+    }
     // Snow gullies run up the wall from the ice to the notches between its summits.
     { const dx = (u - SP.cu) / SP.wide, up = hh - SP.base - under(SP.cu, SP.cv - 34) - 4; for (const [o, top, k] of GULLY) { const t = up / (top * SP.H); if (t > 0 && t < 1 && Math.abs(dx - o - 3 * Math.sin(hh / 9 + k)) < 1 + k * 0.5 + (3 + 2 * k) * sq(1 - t)) return R.snow[L > 0.4 ? 4 : 3]; } }
     if (steep < 0.9) return R.snow[L > 0.5 ? 4 : 3];

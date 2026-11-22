@@ -417,6 +417,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 
 ## Round 6 (2026-11-21)
 
+- **Seracs Off the New Icefall** (art pass, A01). The Spires' icefall is rows of serac columns now; the serac that falls on the map could break off one of those columns, leaving a gap that fills again over a minute.
+- **Couloir Light at Sunset** (art pass, A02). The crests' snow couloirs could catch the sunset a step pinker than the rock round them, so the range's gullies glow for the minute of sunset.
 - **The Register as a Scene** (TJ, 2026-11-22, in progress). The register opens on the box laid out like the generated picture (its prompt and seed in `design/art/register/log.jsonl`; the picture is beside the game on https://claude.ai/artifact/BUJyY8vSFXoKdRgZWpup7i), in the game's colours: a tall back wall with the map hanging on it, drawn from the world map; a pencil cup at its real size beside the book; the book lying open on the shelf at an angle, its pages showing the words they carry now. A click on the book zooms into the page to read and sign it, and a click on the map opens the Trail Map. TJ wants an artifact of it first. The second pass of H1 kept the flat book that fills the screen, which is why it could not look as deep as the picture.
 - **A Lighter Ground** (round 6, A2). `ground.png` is 1.5 MB of the page's 2.1 MB. Saved as an indexed PNG (its pixels are palette indices already) or as WebP, it could be a third of that, and the first screen would come sooner on a phone.
 - **Cache the Game for Good** (round 6, A2). `build.mjs` could put a short content hash in each module's name and rewrite the imports, so nginx can mark every file immutable as it did for Vite's assets, and a return visit loads nothing but the page.
