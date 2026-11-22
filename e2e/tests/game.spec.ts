@@ -1,5 +1,5 @@
 import AxeBuilder from '@axe-core/playwright'
-import { type Page, expect, test } from '@playwright/test'
+import { type Page, type Route, expect, test } from '@playwright/test'
 
 // The suite runs against the built web image (`make browser`), on localhost, because only there
 // does the page warn that ground.png is older than the map it was baked from. That warning fails
@@ -305,6 +305,30 @@ test('a project card shows the stars and release the API answers', async ({ page
   await expect(page.locator('#card-facts')).toContainText('v9.9.9')
   expect(problems).toEqual([])
 })
+
+// When the API is down, the card keeps the numbers baked into the game (Bluebird Forecast's release in
+// content/game/sideproject-spires.yaml) and nothing throws (round 6, K4). The browser's own line about a
+// request that failed is expected here, so only thrown errors are collected.
+const DOWN: [string, (route: Route) => Promise<void>][] = [
+  ['cannot be reached', (route) => route.abort('connectionrefused')],
+  ['answers an error', (route) => route.fulfill({ status: 503, body: 'down' })],
+  ['answers something that is not its JSON', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: '{"projects": [{"repo": "zimmertr/bluebird"' })],
+]
+for (const [how, answer] of DOWN) {
+  test(`a project card keeps its own numbers when the API ${how}`, async ({ page }) => {
+    const thrown: string[] = []
+    page.on('pageerror', (error) => thrown.push(error.message))
+    let asked = false
+    await page.route(`${origin}/api/v1/projects`, (route) => { asked = true; return answer(route) })
+    await page.goto(origin + '/#sideproject-spires/bluebird')
+    await page.waitForFunction(() => window.__ready === true, null, { timeout: 30_000 })
+    await expect(page.locator('#card-facts')).toContainText('v0.141.8')
+    await expect.poll(() => asked, { timeout: 10_000 }).toBe(true)
+    await watch(page)
+    await expect(page.locator('#card-facts')).toContainText('v0.141.8')
+    expect(thrown).toEqual([])
+  })
+}
 
 test('the world and the page of text pass axe', async ({ page }) => {
   const problems = await open(page, '/')
