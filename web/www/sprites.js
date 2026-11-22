@@ -232,18 +232,6 @@ function swaying(bm, cut = Math.round(bm.h * 0.55)) {
   for (let y = 0; y < bm.h; y++) for (let x = 0; x < bm.w; x++) { const c = bm.d[y * bm.w + x]; if (c) (y < cut ? top : foot).set(x, y < cut ? y : y - cut, c); }
   return { parts: [{ bm: foot, x: -bm.ox, y: cut - bm.oy, sway: 0 }, { bm: top, x: -bm.ox, y: -bm.oy, sway: 0.8, lx: 0 }], h: bm.h, w: bm.w, low: true };
 }
-// The owl in the rainforest, on a broken stub: pose 'open', 'blink' or 'turn' (its head round to one side).
-function makeOwl(pose) {
-  const b = new BM(5, 15), F = R.fur, eye = pose === 'blink' ? F[1] : R.yellow[1];
-  for (let y = 6; y < 15; y++) for (let x = 1; x <= 2; x++) b.set(x, y, hash(x, y, 31) < 0.3 ? R.moss[2] : R.bark[x === 1 ? 0 : 1]);
-  b.set(2, 5, R.bark[1]);
-  b.set(1, 0, F[2]); b.set(3, 0, F[2]);
-  for (let x = 0; x <= 4; x++) { b.set(x, 1, F[2]); b.set(x, 2, x === 2 ? R.yellow[0] : F[3]); b.set(x, 3, x === 0 || x === 4 ? F[1] : F[2]); }
-  for (let x = 1; x <= 3; x++) b.set(x, 4, F[x === 2 ? 2 : 1]);
-  if (pose === 'turn') { b.set(3, 1, eye); b.set(4, 2, R.yellow[0]); b.set(2, 2, F[3]); } else { b.set(1, 1, eye); b.set(3, 1, eye); }
-  b.ox = 2; b.oy = 14;
-  return b;
-}
 function makeAspen(seed) {
   const rand = rng(seed), H = 23 + (rand() * 14 | 0), W = 22, bx = W >> 1, lean = (rand() - 0.5) * 3;
   const trunk = new BM(W, H + 2), tx = y => bx + Math.round(lean * (1 - y / H));
@@ -608,40 +596,10 @@ function makeMoose(calf, headDown, step = 0) {
   for (const [dx, dy, c] of [[-4, 0, R.dirt[3]], [0, 0, R.white[0]]]) for (const [x, y] of palm) b.set(hx + x + dx, hy + y + dy, c);
   return b;
 }
-function makeSlug() {
-  const b = new BM(8, 4); b.ox = 4; b.oy = 3;
-  for (let x = 1; x < 7; x++) b.set(x, 2, R.yellow[1]);
-  for (let x = 2; x < 6; x++) b.set(x, 1, R.yellow[1]);
-  b.set(6, 1, R.yellow[0]); b.set(7, 0, R.yellow[0]);
-  outline(b, INK);
-  return b;
-}
 function makeBird(f) {
   const b = new BM(7, 4); b.ox = 3; b.oy = 2;
   const ys = f ? [0, 1, 2, 2, 2, 1, 0] : [2, 2, 1, 2, 1, 2, 2];
   ys.forEach((y, x) => b.set(x, y, INK));
-  return b;
-}
-function makeCat(name, pose, seed) {
-  const b = new BM(16, 12); b.ox = 8; b.oy = 11;
-  const ramp = R[name], col = (x, y, v) => {
-    if (name === 'tortie') { const n = vnoise(x / 2.2, y / 2.2, seed); return n > 0.62 ? ramp[3] : n > 0.5 ? ramp[2] : ramp[v > 0.6 ? 1 : 0]; }
-    return ramp[clamp(Math.round(v * 3), 0, 3)];
-  };
-  const crouch = pose === 'crouch', leap = pose === 'leap';
-  const bodyY = crouch ? 8.5 : leap ? 6 : 7.5, bodyR = leap ? 4.2 : 3.4;
-  for (let y = 0; y < 12; y++) for (let x = 0; x < 16; x++) {
-    const nx = (x - 7) / (bodyR * (leap ? 1.4 : 1.15)), ny = (y - bodyY) / (bodyR * 0.85);
-    if (nx * nx + ny * ny <= 1) b.set(x, y, col(x, y, 0.65 - ny * 0.3 - nx * 0.1));
-  }
-  const hx = leap ? 12 : crouch ? 11 : 10, hy = crouch ? 7 : leap ? 4.5 : 4;
-  disc(b, hx, hy, 2.6, (nx, ny, x, y) => col(x, y, 0.75 - ny * 0.3));
-  b.set(hx - 2, hy - 3, ramp[name === 'tortie' ? 0 : 1]); b.set(hx + 1, hy - 3, ramp[name === 'tortie' ? 2 : 1]);
-  b.set(hx + 1, hy - 0.5, name === 'tortie' ? R.yellow[1] : R.yellow[1]);
-  const tail = pose === 'sitB' ? [[3, 9], [1, 7], [1, 5]] : pose === 'sitA' ? [[3, 9], [1, 9], [0, 7]] : [[3, bodyY], [1, bodyY - 1], [0, bodyY - 3]];
-  for (const [x, y] of tail) { b.set(x, y, col(x, y, 0.5)); b.set(x + 1, y, col(x + 1, y, 0.4)); }
-  if (!leap) for (const x of [5, 9]) b.set(x, 11, col(x, 11, 0.3));
-  outline(b, name === 'nebel' ? (x, y) => (hash(x, y, 2) < 0.3 ? R.nebel[1] : INK) : INK);
   return b;
 }
 
@@ -766,4 +724,4 @@ function makeFlag(f, ramp = R.red) {
 }
 
 export { makeRegister, makeMoose };
-export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeBird };

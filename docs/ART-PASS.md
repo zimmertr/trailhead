@@ -337,3 +337,4 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - E02, a call: a first pass put a white step across the stream every nine rows and read as a ladder; the steps are now rarer and broken.
 - E02, a call: the valley floor, the snow patches, the far peaks and the Spires were kept; the far peaks belong to the background mountains, already done.
 - E02: frame time 13.3 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours; the walk to camp is not in the bake.
+- E02, a call: CI’s Lighthouse run failed the script budget by 538 bytes (520,538 of 520,000). The budget is not widened to turn a run green (docs/LIMITS.md), so three drawings in `sprites.js` that nothing draws were deleted: `makeOwl`, `makeSlug` and `makeCat` (fauna.js and cats.js draw the owl, the slug and the cats). That frees about 2.5 kB. `ground.png` was rebaked for the changed source; its pixels are identical.
