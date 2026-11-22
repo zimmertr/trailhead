@@ -254,7 +254,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 
 **K. Whole-site checks and the report**
 
-- [ ] K1. Every route through every stop in Auto, Day and Dusk, desktop and phone (`walk.sh`), clean console, no request to another site (`api` answers on the same site under `/api`).
+- [x] K1. Every route through every stop in Auto, Day and Dusk, desktop and phone (`walk.sh`), clean console, no request to another site (`api` answers on the same site under `/api`).
 - [ ] K2. Round 5's 72 standard views beside round 6's. A list for TJ of anything worse, and what fixing it would mean.
 - [ ] K3. Frame time on every view in section 7, load time, colours.
 - [ ] K4. Every way it can go wrong behaves at least as well as round 5 (`break=`, a missing scene, an address that goes nowhere, `api` down).
@@ -328,7 +328,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **G1 done.** The burst of snow as he pushes off into a glissade is drawn only while he runs, so scrubbed to that moment and held there the picture is clear (round 5: half white until he moved). Playing through, it bursts and clears as before.
 - **G2 done.** The cause: once he had walked to a point on a trail (a click on the trail, or a click on a place along it), sending him to a place always walked him back to the Trailhead first and set off from there, even when the place's route starts up the very trail he was standing on. Now, standing on the trail a route sets off along, short of where it leaves the map, he carries on from where he stands. Stopped with the Stop button it already carried on, and still does. Two browser tests stop part way to the Sideproject Spires, one at a point on the trail and one with the Stop button, send him on to the Spires and check that he goes on up the trail and never back toward the Trailhead; the first failed before the fix (he went from 30% of the trail back to 29% and on down) and both pass now.
 - **H1 deferred.** The image models on TJ's GPU could not be reached from this workstation's Docker (the connection to llama-swap's address timed out twice; the cluster itself answered kubectl, and llama-swap's pod was running with TJ's Qwen coding model loaded). H1 comes back after K4 and before K5, which deletes this file.
-- Next: K1.
+- **K1 done.** Every route walked from start to finish through every stop on the page's clock (`walk.sh`): the lake, the peak, the Spires, the way home from them, the register, an address that goes nowhere, click to move on each trail, and each of the six spires, in Auto, Day and Dusk, at 1440 by 900 and on a phone (390 by 844): 81 walks, every one clean (nothing on the console, no request to another site), every route ending where it should after all its stops. Walked as a visitor who asked for reduced motion, the idle tour stays off and Auto holds Day. The game's only requests are its own files and the site's own `/api/v1/projects`.
+- Next: K2.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -487,6 +488,7 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - G2, a call: the fix is in `api.go()`; it covers all three routes that start on the map (the lake, the peak, the Spires). Left as it was: standing on the stretch where the peak's trail and the Spires' trail run together from the Trailhead, on one of them, and sent to the other, he still walks back to the Trailhead before setting off, along the shared stretch he is on (in IDEAS.md).
 - G2: `__api.onTrail()` added for the tests (which trail he is on and how far along).
 - H1, a call: deferred to after K4 rather than ending the loop, since K1 to K4 need no GPU. Nothing on the cluster or the network was touched to get through; kubectl was only read.
+- K1: click to move ends 32 to 42 px (CSS) from the clicked point at 1440 by 900 and 13 to 15 on a phone; round 5 measures the same, 32 to 42, so it is how the check measures at that zoom, not a change.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:
