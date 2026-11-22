@@ -243,7 +243,7 @@ Work top to bottom. Each item is finished by the steps in section 9.
 **F. Proficiency Peak**
 
 - [x] F1. Climbing 1.5 times faster (note 21).
-- [ ] F2. The haul and the stuck rope read at once (note 21).
+- [x] F2. The haul and the stuck rope read at once (note 21).
 - [ ] F3. The snow traverse: on the snow before the pose changes, and short (note 22).
 
 **G and H** (G2 added by TJ mid-round)
@@ -322,7 +322,8 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - **E4 done.** On yggdrasil he climbs the staples and the ladder hold by hold, the way people climb a ladder: he stands up on his higher foot, steps the other foot up past it, then moves his lower hand up past the other one, always the hand on the opposite side from the foot, so three of his hands and feet are on the iron all the time. A hand or a boot on a hold stays put while the rest of him moves, his near arm reaches up across his face, and each hand that closes on the iron tinks. He steps in from the ground and takes hold at the foot, pulls over the lip at the top and stands up on the ledge (round 5: two frames slid up the wall, then a moment standing in the air beside the edge). When he stops on a wall to move his lanyards it is between two moves, with his near hand off the iron. The staples, the ladder and the cable now follow the face as it leans back, where round 5's stood off the rock near the top. Day, Dusk and phone checked against round 5.
 - Section E is done.
 - **F1 done.** On Proficiency Peak's wall all three climb half as fast again as in round 5, and the short stops on a pitch (placing and clipping gear, swapping the ropes, taking gear out, building and taking apart an anchor, shaking out an arm) take two thirds of the time. Their hands and feet still step with the distance climbed, so the moves quicken with them. The falls, the hangs and the haul keep their round 5 timing, so they still read (the haul is F2).
-- Next: F2.
+- **F2 done.** The haul after TJ's whipper now reads as a haul. He hangs with both hands on the rope over his head, and on each yank he is snatched up in a jerk with his knees jerked up, then settles and bounces on the rope (round 5: one stiff hanging frame, lifted evenly). The two above bend forward reaching down the rope toward him, then sit right back on it with a foot braced, taking it in hand over hand, and the flecks on the haul ropes run through the pulley and through their hands as he comes up. Under the cloud, on each of the three heaves the rope comes off the foot of the face and runs straight and tight from their hands up it, the jammed end twitches toward the slot, and the rope goes slack again between heaves; each heave has the sound of a rope coming tight. Then all three look up at the flake, the leader with a hand over his eyes, before they look at each other and shrug (0.6 s longer than round 5).
+- Next: F3.
 
 ## 11. Calls made in round 6
 - A1, a call: the code-scanning fix strips tags in a loop until the text stops changing and then removes any leftover `<` or `>`. A single extra pass satisfied the test but not CodeQL, which flagged it again on the PR; the loop is the form CodeQL's own help gives.
@@ -472,6 +473,10 @@ The loop prompt TJ starts round 6 with (paste it after `/loop`):
 - E4, frame time: the workstation's load average was 57 to 65 while this was measured, so the numbers swing with it. On the walls at 1920 by 1080, E3 and E4 measured together gave 11.1 and 11.1 ms, then 6.8 and 10.9. The zoomed-out map at Dusk gave E3 30.2 and 15.4, E4 29.4 and 26.4; E4 changes nothing drawn on the map, and check.sh's frame-time gate failed on that load alone. To be measured again at F1 on a quiet machine.
 - F1, a call: "1.5 times faster" covers the climbing and the stops on a pitch, which are part of it; left as they were: walking on the ground, the fall, the slip, the whipper, the hangs after them and the haul, which F2 reworks.
 - F1, frame time (measured again on a quieter machine, load 20 to 31, as promised at E4): the zoomed-out map at Dusk, round 5 11.1 ms, then E4 and F1 side by side 14.0 and 14.3, then 18.9 and 20.0 as the load rose again. F1 changes nothing on the map; round 6's map has measured 13.5 to 15 ms on a quiet machine since D2. check.sh's gate failed both times on the load.
+- F2, a call: the camera is left as it was. At the haul it holds on TJ, so the two hauling are small until the last two yanks; their poses were made big enough in the lean to read at that size.
+- F2, a call: the look up at the flake is added between the heaves and the look at each other (`UNDER.gaze`), pushing the shrug and the walk-off 0.6 s later.
+- F1, CI: Lighthouse Budgets failed once with a largest contentful paint of 12.5 s (budget 3 s) on a change to `ridge.js` alone, which is not on the first screen; it passed on a rerun. A slow runner, logged with the earlier flakes.
+- F2, frame time: check.sh's map gate measured 33.2 ms with the load average at 19 to 43; F2 changes only `ridge.js`.
 ## 12. TJ's pictures for this round
 
 Two of TJ's screenshots of 2026-11-21 survive, on his desktop: `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.38.59 AM.png` (note 4) and `/Users/tj/Desktop/Screenshot 2026-11-21 at 10.43.51 AM.png` (note 8). The rest were temporary and are gone, so the words below are the record. Never put them in the repo. What each shows:
