@@ -43,7 +43,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A07 The Golden Palouse Hills** - the rolling gold hills in the far east corner. `land.js` (`palAmt`, `colour`).
 - [x] **A08 Coulee Textures** - the basalt coulee and mesas of the dry corner. `land.js` (the coulee cut, `mesa`, `colour`).
 - [x] **A09 Rivers and Waterfalls** - the rivers across the map and the falls where they drop. `land.js` (the rivers), `world.js` (`whiteWater`).
-- [ ] **A10 Reflection Lake** - the lake on the map, its shore, island and boardwalk. `land.js` (`lakeAt`, `lakeRim`).
+- [x] **A10 Reflection Lake** - the lake on the map, its shore, island and boardwalk. `land.js` (`lakeAt`, `lakeRim`).
 - [ ] **A11 Moraine Textures** - the moraine band round Monolith, the glacier's moraines and the Spires' shelf. `land.js` (`colour`, the moraine material).
 - [ ] **A12 Moraine Tarns** - the tarns at the foot of Monolith's glaciers and on the larch benches. `monolith.js` (`moraineLakes`), `land.js` (the tarns).
 - [ ] **A13 The Burned Trees** - Postmortem Burn's charred snags. `sprites.js` (`makeSnag`), `scenery.js`.
@@ -150,3 +150,9 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A09, a call: the moving white water of the lake's own fall (`world.js`, `whiteWater`) already falls in strands, so it is left as it is. The pool at a fall's foot is not drawn, since that would change the land.
 - A09, a call: a first pass with random white and a random mix of two blues on the moderate slopes read as noise, so the riffles were set in segments and the body made to vary slowly. The strands start at a lower steepness than the first try so the chutes cut through the walls fall in strands.
 - A09: frame time 11.3 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
+- A10, the before: the lake was one dithered blue with rows of pale dots across it, a pale rim and its island; nothing in it showed that it was Reflection Lake.
+- A10, the pictures: 8 in all. Qwen's seed 2 was picked: seen from above, the volcano's snowy slopes mirrored along the far shore, fading to deep blue toward the near shore, with a pale shallow band at the near shore. Seed 4 was the runner-up; the style model's seed 2 for its ripple lines across the reflection. The prompts are in `design/art/A10/log.jsonl`.
+- A10, a call: from the map's height a true mirror only shows the meadow behind the lake (tried first: murky green speckle) or, raising the sight line to fake a lower eye, the sky (tried at four and twice the rise). So the reflection is the one a walker on the shore would see: in each column Monolith, from its foot up, is turned upside down along the far shore and squeezed to about three quarters of the lake. Only the snow and the rock read at this size, so the glaciers show as the snow mixed toward deep water and the ridges as the deepest water blue; everything else is plain water. It ends at a ragged line, and a few broken pale ripple lines cross it.
+- A10, a call: the lake's own water is deep blue with slow lighter patches, pale where it is shallow along the shore. The reflection only paints water, so the footbridge and the island keep their colours. It is drawn into the ground, so it does not move with the time of day except through the palette, which turns the snow pink at Dusk as it should.
+- A10, a call: `veilTable` in `core.js` became `mixTable`, which mixes toward any colour and can keep to some ramps; `veilTable` calls it with the same sums, so its tables are what they were.
+- A10: frame time 11.4 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.

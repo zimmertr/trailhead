@@ -2,7 +2,7 @@
 // The world is a height for every spot (u east, v away from the camera). A spot is drawn at screen
 // (u, SY - v - height), nearest first, so ground and mountains are one surface and near slopes hide
 // far ones.
-import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
+import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, mixTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
 import { paintMonolith, monolithSky, moraineLakes, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
@@ -707,6 +707,13 @@ function basaltWall(u, v, hh, x, y, L) {
 // lands in spray. Where it only runs down a slope it shows white riffles across a blue stream. Flat water
 // is a clear blue with short pale ripples and glints; its west bank throws a shadow on it and its east
 // edge catches the light, the sun being in the west.
+// Reflection Lake's own water (A10): pale where it is shallow along the shore, deep blue beyond.
+function lakeWater(u, v, x, y) {
+  const d = lakeIn(u, v), W = R.water;
+  if (d < 0.06) return W[3];
+  if (d < 0.14) return bayer(x, y) < smooth(0.14, 0.06, d) ? W[3] : W[2];
+  return vnoise(u / 8, v / 3, 1403) > 0.62 && bayer(x, y) < 0.5 ? W[2] : W[1];
+}
 function streamColour(u, v, hh, x, y, i, fall) {
   const W = R.water, WH = R.white[1], wet = (a, b) => water[at(clamp(a, 0, NW - 1), clamp(b, 0, VD - 1))] > 0;
   if (fall > 1.1) {
@@ -738,7 +745,7 @@ function colour(u, v, hh, x, y) {
   const lk = lakeAt(u, v);
   if (lk === 'lake' && isle(u, v) < 1) return pick('grass', 0.55 + 0.3 * n1, x, y);
   if (lk === 'tarn' || lk === 'milk') { const dep = lakeIn(u, v); if (dep < 0.13) return lk === 'tarn' ? R.tarn[5] : R.glac[4]; if (dep < 0.28 && lk === 'tarn') return R.tarn[4]; }
-  if (lk) return lk === 'tarn' ? pick('tarn', 0.62 - 0.5 * lakeIn(u, v) + 0.14 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
+  if (lk) return lk === 'tarn' ? pick('tarn', 0.62 - 0.5 * lakeIn(u, v) + 0.14 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : lk === 'lake' ? lakeWater(u, v, x, y) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
   // Where a trail crosses water there is a footbridge: a deck of planks with a dark edge.
   if (water[i] && trail[i] && mat !== 'ice') return trail[i] === 2 ? ((u + 2 * v) % 3 === 0 ? R.dirt[1] : R.dirt[2]) : R.dirt[0];
   // White water where the stream itself falls, read from the water's own surface, not from its banks,
@@ -1546,6 +1553,26 @@ if (!B) for (const [su, sv] of STACKS) { const fy = Math.round(SY - sv - hAt(su,
 // Nothing grows on the lookout's cleared summit (E5j). Taken out after every roll of the dice, so
 // nothing else moves.
 for (const list of [things, RANKTREES]) for (let k = list.length - 1; k >= 0; k--) { const th = list[k], u = th.u ?? th.x; if (lookAmt(u, th.v) > 0.2) list.splice(k, 1); }
+// A10, after a picture of Reflection Lakes under the real volcano: the lake mirrors Monolith. Seen from the
+// map's height a true mirror would only show the meadow behind the lake, so the reflection is the one a
+// walker on the shore would see: in each column the volcano, from its foot up, is turned upside down along
+// the far shore and squeezed to about three quarters of the lake, mixed toward deep water. Below it the
+// water is plain deep blue, the pale shallow rim is kept, and a few broken pale ripple lines cross it.
+if (!B) { const VI = MATS.indexOf('volc'), [lcu, , lru] = C.lakes[0], REFL = mixTable(R.water[1], 0.3, ['water', 'ice', 'glac', 'snow', 'sky', 'far', 'hill', 'conifer', 'grass', 'moss', 'rock', 'tarn', 'mist', 'gold']);
+  const open = (x, y) => { const v = zb[px(x, y)]; return v < VD && lakeAt(x, v) === 'lake' && isle(x, v) >= 1 && !water[at(x, Math.round(v))]; };
+  const span = x => { let top = -1, bot = -1; for (let y = 0; y < SH; y++) if (open(x, y)) { if (top < 0) top = y; bot = y; } let foot = -1, peak = -1; if (top >= 0) for (let y = top - 1; y >= 0; y--) if (mb[px(x, y)] === VI) { if (foot < 0) foot = y; peak = y; } return { top, bot, foot, peak }; };
+  const mid = span(lcu), squeeze = mid.foot > 0 ? (mid.foot - mid.peak) / Math.max(4, 0.75 * (mid.bot - mid.top)) : 1;
+  for (let x = Math.max(0, lcu - lru - 6); x <= Math.min(NW - 1, lcu + lru + 6); x++) {
+    const { top, bot, foot } = span(x); if (top < 0) continue;
+    const reach = top + (bot - top) * (0.78 + 0.14 * (vnoise(x / 7, 0, 1404) - 0.5));
+    for (let y = top; y <= Math.min(bot, reach); y++) { const i = px(x, y); if (!open(x, y) || lakeIn(x, Math.round(zb[i])) < 0.1 || RAMP_OF[g[i]] !== 'water') continue;
+      const sy = foot < 0 ? -1 : Math.round(foot - (y - top) * squeeze), c = sy >= 0 && mb[px(x, sy)] === VI ? g[px(x, sy)] : 0;
+      if (!c) continue;
+      // At this size only the snow and the rock read: the glaciers pale, the cleavers dark, the rest water.
+      const k = RAMP_OF[c], snowy = k === 'snow' || k === 'glac' || k === 'ice' || k === 'white' || k === 'serac', rocky = k === 'rock' || k === 'gold' || k === 'granite' || k === 'basalt';
+      if (!snowy && !rocky) continue;
+      g[i] = (y + Math.floor(6 * hash(x >> 3, 0, 1401))) % 6 === 0 && hash(x >> 1, y, 1402) < 0.55 ? R.water[3] : snowy ? REFL[c] : R.water[0];
+    } } }
 things.sort((a, b) => b.v - a.v);
 const live = [], HAZE = [0.1, 0.18, 0.27, 0.36].map(veilTable);
 for (const th of things) {
