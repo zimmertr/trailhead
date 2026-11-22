@@ -1068,7 +1068,11 @@ let MONO_OY = 0;
     const topAt = x => MONO_OY + Math.floor(e.snout(x - MONO_OX)) + 1, yc = topAt(xc) + rv - 1;
     for (let dx = -hw - 2; dx <= hw + 2; dx++) { const x = xc + dx, f = Math.abs(dx) / hw;
       const yTop = topAt(x), yBot = yc + Math.round(rv * Math.sqrt(Math.max(0, 1 - f * f)) + 0.6 * (vnoise(x / 4, 3, 951) - 0.5));
-      if (f < 1) for (let y = yTop; y <= yBot; y++) paint(x, y, bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(x / 6, y / 3, 952), x, y));
+      // A12, after a picture of a tarn at a glacier's snout: a dark line of shadow on the water under the ice
+      // front, pale silty water near the ice with faint plumes spreading from it, a deeper turquoise in the
+      // middle, and pale shallows along the shore and round the ends.
+      if (f < 1) for (let y = yTop; y <= yBot; y++) { const T = R.tarn, ty = (y - yTop) / Math.max(1, yBot - yTop), shore = Math.max(f * f, ty) + 0.08 * (bayer(x, y) - 0.5);
+        paint(x, y, y === yTop ? T[1] : y === yTop + 1 && hash(x, 1, 954) < 0.5 ? T[2] : shore > 0.86 ? T[5] : shore > 0.74 ? (bayer(x, y) < 0.5 ? T[5] : T[4]) : ty < 0.34 + 0.12 * vnoise(x / 5, 4, 955) ? (vnoise(x / 4 + y * 0.5, y / 2, 956) > 0.58 ? R.glac[4] : T[4]) : hash(x >> 1, y, 957) < 0.08 ? T[4] : T[3]); }
       // The rim: a low bank of moraine along the near shore and round the ends, pale on top, and a notch
       // at the middle where the stream leaves.
       if (Math.abs(dx) <= 1) { paint(x, yBot + 1, R.water[2]); continue; }

@@ -45,7 +45,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **A09 Rivers and Waterfalls** - the rivers across the map and the falls where they drop. `land.js` (the rivers), `world.js` (`whiteWater`).
 - [x] **A10 Reflection Lake** - the lake on the map, its shore, island and boardwalk. `land.js` (`lakeAt`, `lakeRim`).
 - [x] **A11 Moraine Textures** - the moraine band round Monolith, the glacier's moraines and the Spires' shelf. `land.js` (`colour`, the moraine material).
-- [ ] **A12 Moraine Tarns** - the tarns at the foot of Monolith's glaciers and on the larch benches. `monolith.js` (`moraineLakes`), `land.js` (the tarns).
+- [x] **A12 Moraine Tarns** - the tarns at the foot of Monolith's glaciers and on the larch benches. `monolith.js` (`moraineLakes`), `land.js` (the tarns).
 - [ ] **A13 The Burned Trees** - Postmortem Burn's charred snags. `sprites.js` (`makeSnag`), `scenery.js`.
 - [ ] **A14 The Orca Pod** - the orcas in the sea. `critters.js` (`orcas`, `orcaBack`).
 - [ ] **A15 Tide Pools** - the pools left on the beach at low tide. `critters.js` (`tidePools`).
@@ -161,3 +161,8 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - A11, a call: a moraine's steep bank is drawn as gullies 2 to 8 wide that wander a little down it, each lit on its west edge and dark in its east seam, the whole bank darker where it faces away from the sun, with a pale crest row along its top. A first pass with gullies 3 to 12 wide and lighter bodies read as poured concrete.
 - A11, a call: the moraine's flat till is a calm grey gravel lit by its slope, with boulders of radius 1 to 2.6 lying on about a third of six by four cells, each lit on its upper left and dark underneath; the tufts of grass stay as they were. The rock island in the glacier, where the camp stands, is left as it is.
 - A11: frame time 11.4 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
+- A12, the before: the two lakes where Monolith's glaciers end were a flat checkerboard of pale teal and glacier blue under a grey rim, so they read as cyan blobs.
+- A12, the pictures: 8 in all. Qwen's seed 4 was picked for the dark line of shadow on the water under the ice, the milky water paling toward the shore, the bouldered bank and the stream through its notch. The style model's seed 2 was the runner-up for its clear zones of turquoise. The prompts are in `design/art/A12/log.jsonl`.
+- A12, a call: each lake's water is drawn in bands from the ice to the shore: one dark row under the ice front and a broken one below it, pale silty water with faint plumes for the first third or so, a deeper turquoise in the middle with a few pale flecks, and pale shallows along the shore and round the ends. The ice, the rim, the notch and the stream are as they were. No floating ice was added, since that would be new.
+- A12, a call: the larch benches' tarns were redrawn in A05 (pale where shallow, darker in the middle, the milky ones with a pale rim), so they are left as they are.
+- A12: frame time 11.5 ms zoomed out at Dusk; 35 browser tests pass; nothing moved; no new colours.
