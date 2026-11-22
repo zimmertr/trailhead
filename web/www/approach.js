@@ -212,11 +212,30 @@ function paintMain(S) {
 // A crevasse at this spot of the ice, or 0: its blue depth, or the white lip beside it. rl: rows in
 // front of the ice's near edge (behind it is less than 0); d: how far back toward the far edge, 0 to 1,
 // and below 0 in front of the trail, where the same cracks run on toward the camera and gape wider.
+// The ice cracks in fields where it bends, with long smooth stretches between them: the ground is cut
+// into cells, along the glacier and across it, and about half of them hold a field. In a field the
+// cracks lie side by side at the field's own slant, each a long gash bowed downhill, widest in the
+// middle and pinching out at both ends, each its own length. Lit from the upper left, so a crack's
+// upper lip is a bright edge, its upper wall is in shadow and its lower wall, facing the sun, is paler.
 function crevasse(x, rl, d) {
-  const u = x - rl * (0.6 + 0.6 * vnoise(x / 80, 5, 784)), sp = u / 30 + 1.2 * vnoise(u / 45, d * 2, 767), k = Math.floor(sp), cr = frac(sp), gape = hash(k, 1, 785);
-  // In front of the trail they are fewer, and stop short of the boot track.
-  const w = (gape > 0.8 ? 0.22 : 0.08) * Math.min(1.6, 1 - 0.6 * d) * smooth(0, 0.3, vnoise(u / 12, d * 5 + k, 768) - 0.25 - (d < 0 ? 0.16 + 0.2 * smooth(0.3, 0, -d) : 0));
-  return cr < w ? R.glac[cr < w * 0.55 ? 0 : 1] : w > 0 && cr < w + 0.04 ? R.glac[5] : 0;
+  const u = x - rl * 0.35, dd = d * 3 + 0.35 * vnoise(u / 90, 5, 784), row = Math.floor(dd);
+  const cw = 120 + 60 * hash(row, 0, 785), ru = u / cw + hash(row, 1, 785), col = Math.floor(ru);
+  // In front of the trail fewer fields hold cracks, and nearer the camera everything is bigger.
+  if (hash(col, row, 786) > (d < 0 ? 0.45 : 0.66)) return 0;
+  const f = hash(col, row, 787), lu = frac(ru) - 0.5, ld = frac(dd) - 0.5;
+  const m = 1 - sq(lu / 0.42) - sq(ld / 0.44) - 0.4 * (vnoise(u / 16, dd * 4, 768) - 0.5);
+  if (m <= 0) return 0;
+  const near = d < 0 ? 1.5 : 1.15 - 0.4 * Math.min(1, d), th = (0.25 + 0.5 * hash(col, row, 789)) * (f < 0.5 ? 1 : -1);
+  const px = lu * cw / near, py = ld * 22 / near, sn = Math.sin(th), cs = Math.cos(th);
+  const along = px * cs + py * sn, sp = 5 + 5 * hash(col, row, 788);
+  const q = -px * sn + py * cs + (4 + 9 * f) * (1 - sq(along / 45)), k = Math.floor(q / sp), cr = (q / sp - k) * sp;
+  // How wide the crack opens, in pixels: a few gape, most are thin; each pinches out at its own ends.
+  const h = hash(k, col * 7 + row, 790), half = 18 + 30 * hash(k, col + row * 5, 791), mid = 14 * (hash(k, row, 792) - 0.5);
+  const wpx = (h > 0.85 ? 3.4 : 1 + 1.3 * h) * Math.min(1, 1.8 * m) * (1 - sq((along - mid) / half)) * near;
+  if (wpx < 0.7) return 0;
+  if (cr < 1) return R.glac[5];
+  const i = (cr - 1) / wpx;
+  return i >= 1 ? 0 : i < 0.55 || wpx < 2 ? R.glac[0] : i < 0.8 ? R.glac[1] : R.glac[2];
 }
 // The ice he walks on in part three, from the trail toward the camera: wind-cut and sun-cupped, the
 // glacier's crevasses running on across it, grit from the moraine along its edge, and the meltwater
@@ -258,7 +277,9 @@ function paintIce(S, x, gy, lip) {
     else if (r === lip - 1 && wet > 0.5) c = (x + Math.round(r)) % 5 === 0 ? R.water[4] : R.water[2];
     else if (r === lip - 2 && wet > 0.5) c = R.rock[1];
     else {
-      c = pick('glac', 0.66 + 0.18 * d + 0.12 * (vnoise(x / 6, d * 8, 772) - 0.5), x, y, 0.6);
+      // Faint flow lines run along the glacier between the fields, a shade darker, broken here and there.
+      const flow = Math.abs(frac(d * 6 + 0.9 * vnoise(x / 70, 6, 777)) - 0.5) < 0.035 && vnoise(x / 24, d * 6, 778) > 0.4 ? 0.07 : 0;
+      c = pick('glac', 0.66 + 0.18 * d - flow + 0.12 * (vnoise(x / 6, d * 8, 772) - 0.5), x, y, 0.6);
       c = crevasse(x, r - lip, d) || c;
       // The medial moraine thins out up the glacier.
       if (Math.abs(d - med) < (0.035 + 0.02 * vnoise(x / 9, 4, 773)) * smooth(XG + 170, XG + 20, x)) c = pick('rock', 0.3 + 0.3 * hash(x, y, 774), x, y);
@@ -289,16 +310,25 @@ function makeSpires() {
   for (let y = SPY; y < SPH; y++) {
     const u = (y - SPY) / (SPH - SPY), half = 116 - 36 * u + 3 * Math.sin(y / 5), cx = 152 - 16 * u;
     for (let x = Math.round(cx - half); x <= cx + half; x++) {
-      const a = (x - (cx - half)) / (2 * half), cre = frac((y - SPY) / 10 - 1.3 * Math.sin(Math.PI * a) + 0.25 * vnoise(x / 14, y / 5, 746));
+      const a = (x - (cx - half)) / (2 * half), cre = frac((y - SPY) / (7 + 6 * vnoise(y / 18, 2, 745)) - 1.3 * Math.sin(Math.PI * a) + 0.25 * vnoise(x / 14, y / 5, 746));
       let c = pick('glac', 0.92 - 0.35 * a - 0.2 * u + 0.1 * (vnoise(x / 4, y / 3, 747) - 0.5), x, y, 0.6);
-      if (cre < 0.09 && a > 0.1 && a < 0.9 && vnoise(x / 16, y / 4, 748) > 0.45) c = R.glac[cre < 0.045 ? 0 : 1];
+      if (cre < 0.11 && a > 0.1 && a < 0.9 && vnoise(x / 16, y / 4, 748) > 0.5) c = R.glac[cre < 0.025 ? 5 : cre < 0.08 ? 0 : 1];
       // The icefall (TJs-Kubernetes-Service on the map): where the ice breaks over a rock step under
       // the towers it shatters into seracs, blocks lit on their west faces with blue shadow between.
       const fall = smooth(0.08, 0.16, u) * smooth(0.46, 0.36, u) * smooth(0.12, 0.28, a) * smooth(0.82, 0.66, a);
       if (fall > 0.3) {
-        // Columns of blocks, each column's joints at its own heights, so they stagger like a jumble.
-        const bx = (x + 3 * vnoise(y / 5, 2, 757)) / 8, col = Math.floor(bx), yy = (y - SPY + 7 * hash(col, 0, 755) + 2 * vnoise(x / 4, 1, 756)) / (6 + 3 * hash(col, 1, 755)), row = Math.floor(yy), i = frac(bx), j = frac(yy), h = hash(col, row, 754);
-        c = j > 0.78 || i > 0.84 ? R.glac[h < 0.5 ? 0 : 1] : R.glac[i < 0.25 || j < 0.18 ? 5 : h < 0.3 ? 2 : h < 0.65 ? 3 : 4];
+        // Seracs: each spot belongs to the nearest of a scatter of block centres, so the blocks come in
+        // every size and lean every way. Where two blocks meet, the edge is in blue shadow
+        // along a block's lower right and catches the sun along its top and west, so they read as stacked.
+        const sx = x / 13, sy = (y - SPY) / 9, gx = Math.floor(sx), gy = Math.floor(sy);
+        let n1 = 99, n2 = 99, id = 0, ox = 0, oy = 0;
+        for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+          const cx = gx + i + 0.15 + 0.7 * hash(gx + i, gy + j, 754), cy = gy + j + 0.15 + 0.7 * hash(gx + i, gy + j, 755), dx = (sx - cx) * 13, dy = (sy - cy) * 9, dist = Math.hypot(dx, dy);
+          if (dist < n1) { n2 = n1; n1 = dist; id = hash(gx + i, gy + j, 756); ox = dx; oy = dy; } else if (dist < n2) n2 = dist;
+        }
+        const tilt = (id - 0.5) * 1.6, lit = -ox * (1 - Math.abs(tilt) * 0.3) - oy * 1.3 + tilt * ox * 0.4;
+        const edge = n2 - n1, shade = oy * 1.2 + ox * 0.6 + tilt * 2;
+        c = edge < 2.6 ? (shade > -1 ? R.glac[edge < 1.3 && shade > 2 ? 0 : 1] : R.glac[5]) : oy < -3 + id * 2 && lit > -2 ? R.glac[5] : lit > 1 ? R.glac[4] : lit > -3 ? R.glac[id < 0.4 ? 3 : 4] : R.glac[id < 0.5 ? 1 : 2];
       }
       if (SPH - y < 6 + 3 * vnoise(x / 5, 9, 749)) c = pick('rock', 0.5 + 0.3 * hash(x, y, 750), x, y);
       b.set(x, y, c);
