@@ -71,11 +71,11 @@ function paintRidge(S) {
     // Pitch 1's crack sits in a band of almost white rock.
     const d = x - (250 + 0.36 * h + 2 * Math.sin(h / 9));
     if (h > 6 && h < 106 && d > -10 - 3 * vnoise(h / 8, 5, 725) && d < 13 + 3 * vnoise(h / 8, 6, 725)) return tex('white', x, h, t + 0.3 - (d > 8 ? 0.12 : 0));
-    // Black lichen in blotches, white specks, lime and rust patches: salt and pepper from afar.
+    // Black lichen in speckled patches, dark and white specks, lime and rust patches: salt and pepper from afar.
     const l = kind === 'plain' ? 0 : fbm(x / 10, h / 10, 701, 3);
-    if (l > 0.64) return hash(x, h, 702) < 0.35 ? INK : R.rock[0];
-    if (l > 0.6 && bayer(x, h) < 0.5) return R.rock[0];
-    if (hash(x, h, 703) < 0.025) return R.rock[4];
+    if (l > 0.66 && hash(x, h, 702) < 0.45) return hash(x, h, 724) < 0.4 ? INK : R.rock[0];
+    if (l > 0.6 && hash(x, h, 702) < 0.18) return R.rock[0];
+    if (hash(x, h, 703) < 0.03) return hash(x, h, 726) < 0.6 ? R.rock[1] : R.rock[4];
     if (fbm(x / 11, h / 11, 704, 2) > 0.82) return pick('moss', 0.72 + 0.2 * hash(x, h, 708), x, h);
     if (fbm(x / 9, h / 9, 709, 2) > 0.83) return hash(x, h, 710) < 0.5 ? R.tent[0] : R.dirt[1];
     return pick('rock', t, x, h);
@@ -128,17 +128,22 @@ function paintRidge(S) {
         let top_, bot, lft, rgt, id;
         if (box) {
           // Blocks of every size: the nearest of a jittered grid of points, measured square, so cells come
-          // out boxy; which side of the block a pixel is near says how it is lit.
-          const iu = Math.floor(u / cs), iv = Math.floor(v / ch);
-          let d1 = 1e9, d2 = 1e9, p1u = 0, p1v = 0, p2u = 0, p2v = 0;
+          // out boxy, a few points weighted so their blocks grow big and crowd small ones. How far a pixel is from each of the block's four sides (half the difference between
+          // its distance to this block's point and to the neighbour's on that side) says how it is lit.
+          const iu = Math.floor(u / cs), iv = Math.floor(v / ch), sc = cs / ch, P = [];
+          let d1 = 1e9, k1 = 0;
           for (let j = -2; j <= 2; j++) for (let i = -2; i <= 2; i++) {
             const cu = iu + i, cv = iv + j, pu = (cu + 0.1 + 0.8 * hash(cu, cv, seed)) * cs, pv = (cv + 0.1 + 0.8 * hash(cu, cv, seed + 1)) * ch;
-            const dd = Math.max(Math.abs(u - pu), Math.abs(v - pv) * cs / ch);
-            if (dd < d1) { d2 = d1; p2u = p1u; p2v = p1v; d1 = dd; p1u = pu; p1v = pv; id = cu * 7919 + cv; } else if (dd < d2) { d2 = dd; p2u = pu; p2v = pv; }
+            const dd = Math.max(Math.abs(u - pu), Math.abs(v - pv) * sc) - 0.45 * cs * hash(cu, cv, seed + 5) ** 3;
+            P.push([pu, pv, dd]);
+            if (dd < d1) { d1 = dd; k1 = P.length - 1; id = cu * 7919 + cv; }
           }
-          const e = (d2 - d1) * ch / cs * 1.2, du = p2u - p1u, dv = (p2v - p1v) * cs / ch;
           top_ = bot = lft = rgt = 99;
-          if (Math.abs(dv) > Math.abs(du)) { if (dv > 0) top_ = e; else bot = e; } else { if (du > 0) rgt = e; else lft = e; }
+          for (let n = 0; n < P.length; n++) {
+            if (n === k1) continue;
+            const du = P[n][0] - P[k1][0], dv = (P[n][1] - P[k1][1]) * sc, e = (P[n][2] - d1) / sc * 0.6;
+            if (Math.abs(dv) > Math.abs(du)) { if (dv > 0) top_ = Math.min(top_, e); else bot = Math.min(bot, e); } else if (du > 0) rgt = Math.min(rgt, e * sc); else lft = Math.min(lft, e * sc);
+          }
         } else {
           // Joints: wavy bedding rows across the face, cut by cross-joints at their own skew and spacing.
           const rv = v / ch + 0.35 * vnoise(u / 90, 0, seed), iv = Math.floor(rv), fv = rv - iv;
@@ -147,6 +152,30 @@ function paintRidge(S) {
           id = iv * 4099 + iu; top_ = (1 - fv) * ch; bot = fv * ch; lft = fu * w; rgt = (1 - fu) * w;
         }
         let t = 0.14 + 0.7 * litOf(id) - 0.22 * smooth(0, 220, tp - h) + 0.05 * (vnoise(x / 5, h / 5, seed + 2) - 0.5);
+        if (box) {
+          // A block of granite, lit from the upper left: a rounded top face catching the sun, the front a
+          // little lighter toward its top, the right side in shade, dark under its foot where it sits on
+          // the block below, and a black crack all round. Above a sunken block, the gap is shadow.
+          const rc = 3, cx = Math.max(0, rc - Math.min(lft, rgt)), cy = Math.max(0, rc - Math.min(top_, bot));
+          const tw = clamp(0.3 * (top_ + bot), 2, 5), sw = clamp(0.12 * (lft + rgt), 2, 4);
+          t = 0.48 + 0.12 * (hash(id, 9, seed) - 0.5) - 0.2 * smooth(0, 220, tp - h) + 0.04 * (vnoise(x / 5, h / 5, seed + 2) - 0.5);
+          let c;
+          if (top_ < 0) c = top_ < -1.5 ? R.rock[0] : INK;
+          else if (bot < 1.2 || rgt < 1 || lft < 0.6 || top_ < 0.6 || cx * cx + cy * cy > rc * rc) {
+            // In pitch 1's band of almost white rock the joints are faint, so the band stays one sweep.
+            const bd = x - (250 + 0.36 * h + 2 * Math.sin(h / 9));
+            c = h > 6 && h < 106 && bd > -10 && bd < 13 ? (bot < 0.7 ? R.gold[3] : null) : INK;
+            if (!c) c = tex(kind, x, h, t + 0.2);
+          }
+          else {
+            if (top_ < tw) t += top_ < 1.6 ? 0.36 : 0.26;
+            else if (rgt < sw) t -= rgt < 1.8 ? 0.28 : 0.2;
+            else { t += 0.1 * (bot / (top_ + bot) - 0.5); if (lft < 1.8) t += 0.12; if (bot < 3) t -= 0.12; }
+            c = tex(kind === 'dark' && hash(id, 3, seed) > 0.35 ? 'plain' : kind, x, h, t);
+          }
+          put(x, h, c, 2);
+          continue;
+        }
         // Each block: its top edge catches the light, a dark crack under it, its left edge lit, its right in shade.
         if (bot < 1.1 || rgt < 0.9) t = -1;
         else if (top_ < 1.3) t += 0.28;
