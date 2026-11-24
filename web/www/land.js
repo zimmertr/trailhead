@@ -98,6 +98,9 @@ function spires(cu, cv, base, H, thin = 1, wide = 1) {
 // Proficiency Peak, after Prusik Peak's south face: a thin fin of granite that shows the camera its
 // wall. A lower flat-topped tower on the left, a prow to a small summit block, a serrated ridge right.
 let PF = null;
+// The fin's planes, west to east (B1): where each starts in the profile's units, whether it is in the sun,
+// which way its western edge leans as it drops, and whether it is the tower's front, which faces the camera.
+const FIN_PLANES = [[-76, 1, 0], [-50, 0, -0.25, 1], [-31, 0, 0.1], [-27, 1, -0.1], [-2, 0, 0.55], [18, 1, 0.3], [29, 0, 0.55], [33, 1, 0.35], [39, 0, 0.6], [44, 1, 0.45], [50, 0, 0.7]];
 function proficiency(cu, cv, base, w, hgt) {
   PF = { cu, cv, base, w, hgt };
   add('fin', cu - w / 2 - 2, cu + w / 2 + 2, cv - 12, cv + 62, (u, v) => { const p = PP((u - cu) * 150 / w), f = v < cv ? smooth(cv - 8, cv, v) : smooth(cv + 58, cv + 10, v); return p <= 0 || f <= 0 ? 0 : base * smooth(0, 0.4, f) + (hgt * p + 2 * (vnoise(u / 3, 4, 900) - 0.5)) * f; });
@@ -881,7 +884,26 @@ function colour(u, v, hh, x, y) {
       if (ta > 0.3 && snowPatch(u, v)) return hash(x, y, 908) < 0.1 ? R.snow[2] : R.snow[L > 0.4 ? 4 : 3];
       if (bayer(x, y) < ta * 1.6) { const yy = y + Math.floor(3 * hash(x >> 2, 0, 911)), by = (yy / 3) | 0, bx = ((x + 2.6 * hash(by, 1, 912)) / (3 + ((hash(by, 2, 913) * 3) | 0))) | 0, q = hash(bx, by, 909), row = yy - by * 3; if (q < 0.14) return R.rock[0]; return row === 2 ? R.rock[q < 0.5 ? 0 : 1] : R.rock[clamp(Math.round(1.4 + 2.2 * L + 1.2 * (q - 0.5) + (row === 0 ? 1 : 0)), 1, 4)]; }
     }
-    if (mat === 'fin') { const crack = vnoise(x / 2.2, hh / 26, 902), streak = vnoise(x / 5, hh / 40, 903); const k = clamp(Math.round(1.5 + 2.9 * L + (streak > 0.62 ? -1.1 : 0) + (crack > 0.74 ? -1.4 : crack < 0.2 ? 0.5 : 0) + (b2(x, y) - 0.5) * 0.9), 0, 5); return k === 5 ? R.gold[6] : R.rock[k]; }
+    // Round 8, B1, after a picture: the face in crisp planes on the old greys. Ribs drop from the tower's
+    // corners, the summit and the teeth; the side of each that turns west is in the sun and the side that
+    // turns east is in shadow, darkest under the rib, with a few long cracks. fx is the place across the fin
+    // in the profile's units, dt how far below the skyline a pixel is; each edge wanders a little in steps.
+    if (mat === 'fin' && PF) {
+      const fx = (u - PF.cu) * 150 / PF.w, dt = PF.base + PF.hgt * PP(fx) - hh, D = PF.base + PF.hgt - hh, row = Math.floor(hh / 5);
+      const edge = n => FIN_PLANES[n][0] + 0.13 * D * FIN_PLANES[n][2] + 1.6 * (hash(row, n, 961) - 0.5);
+      let k = 0; while (k < FIN_PLANES.length - 1 && fx >= edge(k + 1)) k++;
+      const [, sun, , front] = FIN_PLANES[k], x0 = k ? edge(k) : -76, x1 = k + 1 < FIN_PLANES.length ? edge(k + 1) : 76, wide = Math.max(1, x1 - x0), pf = clamp((fx - x0) / wide, 0, 1);
+      // A crack: one pixel wide, a length of the wall long.
+      const crack = hash(x, 3, 902) < 0.1 && frac(hh / 46 + hash(x, 4, 902)) < 0.4 && dt > 4;
+      // Water streaks down the face, a step darker, as the old drawing had them, but fewer.
+      const streak = vnoise(x / 4, hh / 44, 903) > 0.66 && b2(x, y) < 0.7;
+      if (dt < 1.5 && v >= PF.cv) return sun || front ? R.gold[6] : R.rock[3];
+      // The palest granite, thick near the skyline and thinning down the wall: it is what takes the pink at Dusk.
+      const pale = b2(x, y) < 0.95 * smooth(75, 8, dt) * (0.4 + 0.6 * smooth(0.7 * PF.hgt, 0.25 * PF.hgt, D));
+      if (front) return crack || streak ? R.rock[2] : pale && b2(x + 1, y) < 0.5 ? R.gold[6] : R.rock[b2(x, y) < 0.22 ? 4 : 3];
+      if (sun) return crack ? R.rock[2] : x1 - fx < 1.6 && dt < 70 ? R.gold[6] : streak ? R.rock[3] : pale ? R.gold[6] : R.rock[b2(x, y) < 0.3 - 0.6 * pf ? 3 : 4];
+      return fx - x0 < 1.4 ? R.rock[1] : crack || streak ? R.rock[1] : R.rock[b2(x, y) < 0.75 - 1.5 * (fx - x0) / 8 ? 1 : b2(x, y) < pf - 0.5 ? 3 : 2];
+    }
     if (steep > 0.75) return wallRock(x, y, hh, L, 1, R.grass[2]);
     // A05, after a picture of the Enchantments: the benches' tops are glacier-polished slabs of warm
     // granite, rounded pillows of every size, each lit on its upper left and a step darker toward its
