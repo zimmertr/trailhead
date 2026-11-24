@@ -509,7 +509,7 @@ try {
   try { if (navigator.getAutoplayPolicy && navigator.getAutoplayPolicy('audiocontext') === 'allowed') audio.start(); } catch { /* not every browser can say */ }
   status.hidden = true;
   // For screenshot scripts: the debug panel's controls (speed, start buttons) without clicking.
-  window.__api = api;
+  window.__api = api; window.__sound = () => audio.live();
   window.__ready = true;
   try { console.log(...CONSOLE); } catch { /* no console */ }
 } catch (err) {
@@ -521,6 +521,10 @@ try {
 // The first click, tap or key of any kind starts the sound. Which of these a browser counts as a go-ahead differs (a
 // finger going down does not, a finger coming up does), so every one of them asks.
 for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click']) addEventListener(ev, () => audio.start(), { capture: true, passive: true });
+// The sound plays only while the page is in front (round 8, note 24): it stops when the tab is hidden, the
+// window loses focus, the page is put away or a phone's screen sleeps, and comes back when he does.
+for (const [ev, gone] of [['blur', true], ['pagehide', true], ['focus', false], ['pageshow', false]]) addEventListener(ev, () => audio.away(gone || document.hidden));
+document.addEventListener('visibilitychange', () => audio.away(document.hidden || !document.hasFocus()));
 addEventListener('popstate', () => navigate(location.hash));
 // Space and the Start button: a press starts or stops him. Held for more than a quarter of a second, he goes
 // faster for as long as it is held, and carries on at his own pace when it is let go.

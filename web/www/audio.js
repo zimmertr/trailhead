@@ -97,8 +97,10 @@ export function makeAudio() {
   // The music follows the place unless the visitor has picked a track by hand, and a pick is kept between visits.
   try { muted = localStorage.getItem('trailhead.muted') === '1'; const own = localStorage.getItem('trailhead.track'); if (own != null && TRACKS[+own]) { auto = false; cur = +own; } const v = +localStorage.getItem('trailhead.set'); if (SETS[v]) set = v; } catch { /* private window */ }
 
+  // held: the sound was running when the page went out of sight, and is waiting for it to come back.
+  let held = false;
   function start() {
-    if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
+    if (ctx) { held = false; if (ctx.state === 'suspended') ctx.resume(); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     ctx = new AC();
     // The page shows whether sound is running yet, so it is told when that changes.
@@ -287,6 +289,9 @@ export function makeAudio() {
     muted: () => muted,
     // Whether anything can be heard yet: a browser holds the sound back until the first click, tap or key.
     live: () => !!ctx && ctx.state === 'running',
+    // The page has gone out of sight, or come back (round 8, note 24): the sound stops with it and comes back
+    // with it, if it was running when it went.
+    away(gone) { if (!ctx) return; if (gone) { if (ctx.state === 'running') { held = true; ctx.suspend(); } } else if (held) { held = false; ctx.resume(); } },
     setMuted(m) { muted = !!m; if (master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.05); try { localStorage.setItem('trailhead.muted', muted ? '1' : '0'); } catch { /* private window */ } },
     track: () => ({ index: swap == null ? cur : swap, name: TRACKS[swap == null ? cur : swap].name, count: TRACKS.length, auto }),
     // The scene has changed: in Auto the music changes with it.

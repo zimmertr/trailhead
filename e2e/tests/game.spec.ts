@@ -17,6 +17,7 @@ declare global {
     __info?: Info
     __api: { hitAt: (act: string) => [number, number] | null; showEvent: (name: string) => number; trigger: (name: string) => boolean; trailAt: (path: string, s: number) => [number, number]; onTrail: () => { i: number; s: number } | null; running: () => boolean }
     __rules?: () => string[]
+    __sound: () => boolean
   }
 }
 
@@ -179,6 +180,28 @@ test('the music button opens its menu, and Sound off turns the sound off', async
   await expect(menu).toBeHidden()
   await expect(button).toContainText('Sound off')
   expect(await axe(page).then(found)).toEqual([])
+  expect(problems).toEqual([])
+})
+
+// The sound plays only while the page is in front (round 8, note 24): it stops when the window loses focus or
+// the tab is hidden, and comes back when the visitor does. Sound that was never started stays off.
+test('the sound stops while the page is out of sight and comes back with it', async ({ page }) => {
+  const problems = await open(page, '/')
+  const sound = () => page.evaluate(() => window.__sound())
+  const hide = (hidden: boolean) => page.evaluate((h) => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => h }); document.dispatchEvent(new Event('visibilitychange')) }, hidden)
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  expect(await sound()).toBe(false)
+  await page.locator('#b-track').click()
+  await expect.poll(sound, { timeout: 5_000 }).toBe(true)
+  await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+  await expect.poll(sound, { timeout: 5_000 }).toBe(false)
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+  await expect.poll(sound, { timeout: 5_000 }).toBe(true)
+  await hide(true)
+  await expect.poll(sound, { timeout: 5_000 }).toBe(false)
+  await hide(false)
+  await expect.poll(sound, { timeout: 5_000 }).toBe(true)
   expect(problems).toEqual([])
 })
 
