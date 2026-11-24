@@ -95,12 +95,48 @@ test('the trail register opens from its address', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
+// The register opens on the box seen from a step back (B01): the book zooms into its pages, Close the book
+// zooms back out to the box, and the map on the back wall opens the trail map.
+test('the register book opens to its pages and closes back to the box, and its map opens the trail map', async ({ page }) => {
+  const problems = await open(page, '/#register')
+  const book = page.locator('#book .spot.open')
+  await expect(book).toBeVisible({ timeout: 10_000 })
+  await book.click()
+  await expect(page.locator('#book .page.right')).toBeVisible()
+  await page.locator('#book-x').click()
+  await expect(page.locator('#book .page')).toHaveCount(0)
+  await expect(book).toBeVisible()
+  expect(await axe(page).then(found)).toEqual([])
+  await page.locator('#book .spot.map').click()
+  await expect(page.locator('#sheet')).toBeVisible()
+  expect(problems).toEqual([])
+})
+
 test('the page shows the picture of the map and every card', async ({ page }) => {
   const problems = await open(page, '/#page')
   await watch(page)
   await expect(page.locator('#plain canvas[role="img"]')).toBeVisible()
   for (const heading of ['Who TJ is', 'A personal note', 'Platform Engineering', 'Bluebird Forecast', 'Kubernetes-Manifests'])
     await expect(page.locator('#plain h4', { hasText: heading })).toBeVisible()
+  expect(problems).toEqual([])
+})
+
+// A scene's code loads when a route needs it (the art pass): the junction signs time the peak's and the
+// Spires' routes from the lengths in pixel.js, and those lengths are the scenes' own once they load.
+test('the Trailhead times every route without loading the scenes it does not need yet', async ({ page }) => {
+  const loaded: string[] = []
+  page.on('request', (request) => loaded.push(new URL(request.url()).pathname))
+  const problems = await open(page, '/')
+  await expect(page.locator('#signs button[data-route="stack"] small br')).toHaveCount(1)
+  await watch(page)
+  for (const scene of ['ridge', 'approach', 'larches', 'camp', 'climb']) expect(loaded).not.toContain(`/${scene}.js`)
+  type Timer = { __api: { routeTime: (r: string) => Promise<number>; setRoute: (r: string) => Promise<void> } }
+  for (const route of ['lake', 'stack', 'spires']) {
+    const before = await page.evaluate((r) => (window as unknown as Timer).__api.routeTime(r), route)
+    await page.evaluate((r) => (window as unknown as Timer).__api.setRoute(r), route)
+    const after = await page.evaluate((r) => (window as unknown as Timer).__api.routeTime(r), route)
+    expect(after).toBeCloseTo(before, 0)
+  }
   expect(problems).toEqual([])
 })
 

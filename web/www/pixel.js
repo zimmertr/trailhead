@@ -20,6 +20,10 @@ const MAKERS = {
   register: () => import('./register.js').then(m => m.makeRegisterScene())
 };
 const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb', 'offroute', 'larches', 'approach', 'register'];
+// How long the scenes the junction signs time take, in seconds, so a sign can say how long its route is
+// without loading the scene (asking them loaded every scene with the page, a fifth of its script). A
+// browser test holds these to the scenes' own numbers.
+const SECS = { wall: 134.5, larches: 12, approach: 21, camp: 1.4 };
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
@@ -553,6 +557,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     scale: () => scr.S0 / (window.devicePixelRatio || 1),
     // The register's pages in the close-up, in its pixels (L3), once it has been drawn.
     pages: () => drawn && drawn.s === 'register' && drawn.scene.pages ? drawn.scene.pages() : null,
+    // Moves the register between the box and the page view (B01); the answer is how long the zoom takes, in ms.
+    regView: v => (drawn && drawn.s === 'register' && drawn.scene.view ? drawn.scene.view(v) : 0),
     zoom: (d, at) => zoomBy(d, at),
     // For screenshot scripts: the pixel size the map is drawn at now.
     size: () => scr.S,
@@ -622,7 +628,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     goto(id) { const s = stops.find(q => q.id === id); if (!s) return false; running = false; scrubbing = 0.16; p = s.at; shown = null; showStop(s); return true; },
     info: () => ({ lengths: world.lengths() }),
     // How long a route takes from the junction and back, in seconds, for the junction sign.
-    async routeTime(r) { if (!ROUTES[r]) return 0; await need(ROUTES[r]().map(l => l[0])); return ROUTES[r]().filter(([n]) => scenes[n]).reduce((a, [n, arg]) => a + scenes[n].dur(arg), 0); },
+    async routeTime(r) { if (!ROUTES[r]) return 0; await need(ROUTES[r]().map(l => l[0]).filter(n => !(n in SECS))); return ROUTES[r]().reduce((a, [n, arg]) => a + (scenes[n] ? scenes[n].dur(arg) : SECS[n] || 0), 0); },
     dispose() { alive = false; removeEventListener('resize', onResize); }
   };
   return api;

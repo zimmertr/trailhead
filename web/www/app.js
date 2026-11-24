@@ -3,6 +3,7 @@
 import { mount } from './pixel.js';
 import { makeAudio } from './audio.js';
 import { LINKS, INTRO, DESTINATIONS, CARDS, PROJECTS, SPIRE_ORDER, LABELS, ENDS, REGISTER, HELP, CONSOLE, FINDS, UI, NAMES, DEST_NAMES, TRACK_NAMES, SET_NAMES, ago } from './content.js';
+import { HANDS, INKS, shortDate } from './kiosk.js';
 import { OX, OY, BAKE } from './land.js';
 import { DEBUG } from './core.js';
 import { TRICKS } from './cats.js';
@@ -85,32 +86,47 @@ async function openBook() { audio.start(); audio.sfx('select'); hideCard(); clos
 // left it.
 async function closeBook() { inBook(false); audio.sfx('close'); setAddress(''); await api.setRoute('register-back'); buildMarks(); api.start(); }
 // The book's way out shows once it is open; the map's tags and the route bar go as he sets off for it.
-function inBook(on) { document.documentElement.classList.toggle('in-book', on); $('book-x').hidden = !on; book.hidden = !on; if (on) { fillBook(); handsReady().then(() => { if (!book.hidden) fillBook(); }); } }
+let pageOpen = false;
+function inBook(on) { if (!on) pageOpen = false; document.documentElement.classList.toggle('in-book', on); $('book-x').hidden = !on; book.hidden = !on; if (on) { fillBook(); handsReady().then(() => { if (!book.hidden) fillBook(); }); } }
 // The book's pages (L3): the words laid over the pages the close-up draws, on its printed rules. Every
 // entry is written in its own hand and ink (blue pen, black pen, pencil), taken in turn down the page so
 // no two neighbours match; its slight tilt comes from its name. The rules are about 24 CSS pixels apart on any screen.
 const book = $('book');
-const HANDS = [['Caveat', 1.06], ['Kalam', 0.8], ['Patrick Hand', 0.92], ['Gochi Hand', 0.86]], INKS = ['#22409a', '#1c1a24', '#5f5f6a'];
 // The hands are fetched as he sets off for the box; the page is laid out again once they are in, since
 // how many lines an entry takes depends on its hand.
 let hands = null;
 const handsReady = () => hands || (hands = document.fonts && document.fonts.load ? Promise.all(HANDS.map(([f]) => document.fonts.load('24px "' + f + '"').catch(() => null))) : Promise.resolve());
-const shortDate = d => { const m = /^\d{4}-(\d\d)-(\d\d)/.exec(d || ''); return m ? +m[1] + '/' + +m[2] : ''; };
+// The box seen from a step back (B01) comes first: the book, the map and the notice on it answer a click,
+// as buttons laid over the picture. The book zooms into the page view, and Close the book zooms back out.
+function openPage() { if (pageOpen) return; pageOpen = true; audio.sfx('open'); book.replaceChildren(); setTimeout(() => { if (pageOpen && !book.hidden) { fillBook(); $('book-x').focus({ preventScroll: true }); } }, api.regView('page') + 40); }
+function closePage() { pageOpen = false; audio.sfx('close'); book.replaceChildren(); setTimeout(() => { if (!pageOpen && !book.hidden) fillBook(); }, api.regView('kiosk') + 40); }
+// The trail conditions notice pinned on the back wall: what the board says first, and a click opens all of it.
+function noticeAt(B, k) {
+  if (!B || B.w * k < 96 || B.h * k < 40) return [];
+  const ids = Object.keys(FINDS), found = api.found();
+  return [el('button', { class: 'notice', style: 'left:' + B.x * k + 'px;top:' + B.y * k + 'px;width:' + B.w * k + 'px;height:' + B.h * k + 'px', onclick: () => openSheet('kiosk') },
+    el('b', { text: UI.kiosk.title }), el('span', { text: UI.kiosk.status[1] }), el('span', { text: UI.kiosk.checklist(ids.filter(i => found[i]).length, ids.length) }))];
+}
+function fillKiosk(P) {
+  const k = api.scale(), at = g => 'left:' + g.x * k + 'px;top:' + g.y * k + 'px;width:' + g.w * k + 'px;height:' + g.h * k + 'px;';
+  const d = api.done(), B = P.book, mapName = $('b-map').textContent.trim();
+  const clip = 'clip-path:polygon(' + (B.top[0] / B.w * 100).toFixed(1) + '% 0,' + (B.top[1] / B.w * 100).toFixed(1) + '% 0,100% 100%,0 100%);';
+  book.replaceChildren(
+    el('button', { class: 'spot map', style: at(P.map), 'aria-label': mapName, title: mapName, onclick: () => openSheet('map') }),
+    el('button', { class: 'spot open', style: at(B) + clip, 'aria-label': UI.register.link + ', ' + (d.lake && d.stack && d.spires ? UI.register.canSign : UI.register.canRead), title: UI.register.link, onclick: openPage }),
+    ...noticeAt(P.notice, k));
+}
 function fillBook() {
-  const P = api.pages(); if (!P) return;
+  const P = api.pages(); if (!P) { book.replaceChildren(); return; }
+  const label = $('book-x').querySelector('span'); if (label) label.textContent = P.kiosk ? $('close').textContent : UI.register.close;
+  if (P.kiosk) { fillKiosk(P); return; }
   const k = api.scale(), pitch = P.pitch * k, top = P.top * k, R = P.right, col = Math.round(R.w * 0.24) * k;
   const page = (g, cls) => el('div', { class: 'page ' + cls, style: 'left:' + g.x * k + 'px;top:' + g.y * k + 'px;width:' + g.w * k + 'px;height:' + g.h * k + 'px' });
   const right = page(R, 'right');
   right.append(el('span', { class: 'head', style: 'left:' + 3 * k + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.date }), el('span', { class: 'head', style: 'left:' + (col + 3 * k) + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.who }));
   const left = page(P.left, 'left');
   book.replaceChildren(left, right);
-  // The trail conditions notice pinned on the back wall: what the board says first, and a click opens all of it.
-  const B = P.board;
-  if (B && B.w * k >= 96 && B.h * k >= 40) {
-    const ids = Object.keys(FINDS), found = api.found();
-    book.append(el('button', { class: 'notice', style: 'left:' + B.x * k + 'px;top:' + B.y * k + 'px;width:' + B.w * k + 'px;height:' + B.h * k + 'px', onclick: () => openSheet('kiosk') },
-      el('b', { text: UI.kiosk.title }), el('span', { text: UI.kiosk.status[1] }), el('span', { text: UI.kiosk.checklist(ids.filter(i => found[i]).length, ids.length) })));
-  }
+  book.append(...noticeAt(P.board, k));
   // The left-hand page (L4): until the lake, the peak and one Spires summit are done, TJ's note of what is
   // still to do, ticked off as each is done. After that it is blank, and the close-up lays the pencil on it.
   const done = api.done(), T = UI.register.todo;
@@ -521,7 +537,7 @@ addEventListener('blur', () => { if (press.down) { press.down = false; clearTime
   // Pressed from the keyboard there is no pointer: it is a plain start or stop.
   run.addEventListener('click', e => { if (e.detail === 0) { audio.start(); api.toggle(); } });
   run.addEventListener('contextmenu', e => e.preventDefault()); }
-$('book-x').addEventListener('click', closeBook);
+$('book-x').addEventListener('click', () => (pageOpen ? closePage() : closeBook()));
 $('fork-x').addEventListener('click', () => { forkShut = true; audio.sfx('close'); });
 $('card-x').addEventListener('click', () => { cardShut = true; card.hidden = true; audio.focus(0); audio.sfx('close'); });
 tab.addEventListener('click', e => { e.currentTarget.blur(); if (shown && cardShut) { cardShut = false; card.hidden = false; audio.focus(1); } else forkShut = false; audio.sfx('open'); });

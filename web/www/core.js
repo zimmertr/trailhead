@@ -151,6 +151,11 @@ class BM {
   set(x, y, c) { x = Math.round(x); y = Math.round(y); if (x >= 0 && y >= 0 && x < this.w && y < this.h) this.d[y * this.w + x] = c; }
   get(x, y) { x = Math.round(x); y = Math.round(y); return x >= 0 && y >= 0 && x < this.w && y < this.h ? this.d[y * this.w + x] : 0; }
 }
+// Light from the upper left along an animal's back (art pass D06): the top pixel of each column a step
+// lighter in its own ramp. Run it before the outline.
+function litBack(b) {
+  for (let x = 0; x < b.w; x++) for (let y = 0; y < b.h; y++) { const i = y * b.w + x, v = b.d[i]; if (!v) continue; if (v !== INK) b.d[i] = LIGHT[v]; break; }
+}
 function outline(b, c) {
   const o = b.d.slice(), w = b.w, h = b.h;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
@@ -396,7 +401,7 @@ const DEBUG = { snap: true, trees: true, clouds: true, mist: true, labels: true,
 export {
   DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
   DAY, DUSK, R, RAMP_OF, STEP_OF, INK, N, SHADE, LIGHT, KIND, BLACK, pick, ramp,
-  BM, outline, disc, thick, catmull, makePath, windAt, breeze, Screen
+  BM, outline, litBack, disc, thick, catmull, makePath, windAt, breeze, Screen
 };
 
 // What each colour looks like through mist: the palette entry nearest to it mixed toward fog by this
@@ -406,13 +411,17 @@ const NO_VEIL = ['glint', 'star', 'aurora', 'rock', 'gold', 'granite', 'basalt',
 // Each table is worked out once and kept (M3): fourteen were made at every start, several twice over. The
 // sums are the same as before, in the same order, so every table is exactly what it was.
 const VEILS = new Map(), WK = [3, 4, 2];
-export function veilTable(amount) {
-  if (VEILS.has(amount)) return VEILS.get(amount);
-  const out = new Uint8Array(256), fog = R.fog[2], skip = new Uint8Array(256); for (const j of NO_VEIL.flatMap(k => R[k])) skip[j] = 1;
+// A table of each colour mixed toward the colour `to` by `amount`, picked from the palette less NO_VEIL,
+// or, when `only` names ramps, from those ramps alone (A10: the lake's reflection, toward deep water).
+export function mixTable(to, amount, only = null) {
+  const key = to + ':' + amount + ':' + (only ? only.join() : '');
+  if (VEILS.has(key)) return VEILS.get(key);
+  const out = new Uint8Array(256), skip = new Uint8Array(256);
+  if (only) { skip.fill(1); for (const j of only.flatMap(k => R[k])) skip[j] = 0; } else for (const j of NO_VEIL.flatMap(k => R[k])) skip[j] = 1;
   const PS = [DAY, DUSK];
   for (let i = 1; i < N; i++) {
     let best = i, bd = Infinity;
-    const want = []; for (const P of PS) for (let k = 0; k < 3; k++) want.push(P[i][k] + (P[fog][k] - P[i][k]) * amount);
+    const want = []; for (const P of PS) for (let k = 0; k < 3; k++) want.push(P[i][k] + (P[to][k] - P[i][k]) * amount);
     for (let j = 1; j < N; j++) {
       if (skip[j]) continue;
       let d = 0, m = 0;
@@ -422,6 +431,7 @@ export function veilTable(amount) {
     out[i] = best;
   }
   out[BLACK] = BLACK;
-  VEILS.set(amount, out);
+  VEILS.set(key, out);
   return out;
 }
+export const veilTable = amount => mixTable(R.fog[2], amount);

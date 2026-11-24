@@ -190,12 +190,20 @@ function makeTrunk(seed, w, H) {
       const u = dx / hw; if (Math.abs(u) > 1) continue;
       const x = Math.round(x0 + dx);
       const ridge = vnoise((dx + 5 * vnoise(y / 44, seed, 5)) / (cedar ? 1.5 : 2.3), y / (cedar ? 70 : 28), seed + 7);
-      const v = 0.58 - 0.4 * u - 0.2 * u * u + 0.36 * (ridge - 0.5);
-      const m = fbm(x / 12 + seed, y / 22, 31, 3) + 0.34 * Math.exp(-up / 40) - 0.16 * u;
-      if (m > 0.6) b.set(x, y, pick('moss', v * 0.75 + 0.14 + (m > 0.7 ? 0.12 : 0) + 0.12 * (hash(x, y, 9) - 0.5), x, y, 0.8));
-      else b.set(x, y, pick(cedar ? 'wood' : 'bark', v * (cedar ? 0.8 : 1) + (m > 0.56 ? -0.22 : 0), x, y, 0.8));
+      const v = 0.58 - 0.4 * u - 0.2 * u * u + 0.48 * (ridge - 0.5);
+      // Moss (art pass E01) climbs in strips along the bark's furrows; it is shaded below, once all is laid.
+      const m = fbm(x / 5 + seed, y / 46, 31, 3) + 0.14 * (vnoise(x / 3, y / 4, seed + 11) - 0.5) + 0.24 * (0.5 - ridge) + 0.5 * Math.exp(-up / 48) - 0.12 * u;
+      if (m > 0.6) b.set(x, y, R.moss[3]);
+      else b.set(x, y, pick(cedar ? 'wood' : 'bark', v * (cedar ? 0.8 : 1) + (m > 0.55 ? -0.22 : 0), x, y, 0.8));
     }
   }
+  // Each moss cushion lit along its upper left edge, dark along its foot and right side, mid between,
+  // and the trunk's own light across it, so the strips stand off the bark.
+  { const o = b.d.slice(), M = new Set([R.moss[3]]), isM = (x, y) => M.has(o[y * W + x]);
+    for (let y = 1; y < H + 2; y++) for (let x = 1; x < W - 1; x++) { if (!isM(x, y)) continue;
+      const u = (x - cx - lean * (H - y)) / (w / 2), top = !isM(x, y - 1) || (u < -0.2 && !isM(x - 1, y)), foot = !isM(x, y + 1) || !isM(x + 1, y);
+      const v = 0.48 - 0.3 * u + (top ? 0.26 : 0) - (foot && !top ? 0.24 : 0) + 0.12 * (hash(x, y, 9) - 0.5);
+      b.set(x, y, R.moss[clamp(Math.round(v * 6.4), 1, 6)]); } }
   for (const s of [-1, 1]) for (let k = 0; k < 2; k++) {
     const len = w * (0.45 + rand() * 0.6) + 8, y0 = H - 5 - k * 6 - rand() * 3;
     for (let i = 0; i <= len; i++) {
@@ -623,7 +631,7 @@ function buildForest() {
     trunks.push(t); if (!gone) things.push(t);
     for (let k = 0; k < 3; k++) { const dir = rand() < 0.5 ? -1 : 1, len = 30 + (rand() * 46 | 0), up = 96 + rand() * 300; if (!gone) { things.push({ bm: makeLimb(2000 + tx + k, len, dir), x: t.x + dir * (w / 2 - 2), y: t.y - up, z: t.y + 0.1, sway: 0.5 }); const dx = Math.round(t.x + dir * (w / 2 + len * 0.6)); drips.push([dx, t.y - up + 10, g(dx) - 4, hash(tx, k, 4093)]); } }
   }
-  const maples = Array.from({ length: 6 }, (_, i) => makeMaple(120 + i)), spruces = Array.from({ length: 4 }, (_, i) => makeSpruce(220 + i));
+  const maples = Array.from({ length: 6 }, (_, i) => makeMaple(120 + i)), spruces = Array.from({ length: 4 }, (_, i) => makeSpruce(220 + i, true));
   const free = (x, r) => !trunks.some(t => Math.abs(t.x - x) < t.w * 0.8 + r) && !reserve.some(([a, b]) => x > a - r && x < b + r);
   for (let n = 0; n < 70; n++) { const x = rand() * SW, by = -9 - rand() * 22; if (!free(x, 14)) continue; const th = { tree: rand() < 0.7 ? maples[(rand() * 6) | 0] : spruces[(rand() * 4) | 0], x: Math.round(x), y: g(x) + Math.round(by) }; if (x <= 300 || x >= FALL + 44) things.push(th); }
   const ferns = [5, 6, 7, 8, 10, 12, 15, 19, 23].map((r, i) => swordFern(300 + i, r));
@@ -677,14 +685,14 @@ function buildForest() {
   // Trees on the slope (note 12), by rule: wherever the ground under the trunk is earth, out of the gorge, and
   // never where a leg passes through the tree (so none hides him), from foot to crown. Smaller the higher up the
   // slope they stand, as they are farther off, and each in front of everything that stands higher.
-  { const pines = Array.from({ length: 6 }, (_, i) => makeConifer(4060 + i, 30 + i * 6, 12 + i * 3, 'conifer', 6 + (i >> 1)));
+  { const pines = Array.from({ length: 6 }, (_, i) => makeConifer(4060 + i, 30 + i * 6, 12 + i * 3, 'conifer', 6 + (i >> 1), { tufts: true }));
     for (let x = 4, n = 0; x < CW - 8; x += 19 + hash(n, 1, 4061) * 24, n++) { const xx = Math.round(x), top = RIM(xx);
       if (top > -40) continue;
       const y = Math.round(lerp(top + 18, -12, Math.sqrt(hash(n, 2, 4061)))), k = clamp(Math.round(5 * (y - top) / (-12 - top) - hash(n, 3, 4061)), 0, 5), h = 30 + k * 6, hw = 7 + k * 1.5;
       if (crag.rockAt(xx, y + 1) || gorgeAt(xx, y) < hw || [-hw, 0, hw].some(dx => nearTread(xx + dx, y + 8, h + 8)) || (xx > RIM0 - hw - 4 && xx < TOP_X + hw && y - h - 4 < RIM(xx))) continue;
       things.push({ tree: hash(n, 4, 4061) < 0.28 ? maples[n % 6] : pines[k], x: xx, y: y + 1, bench: true }); } }
   for (let n = 0; n < 9; n++) { const x = 16 + Math.round(hash(n, 1, 4020) * 570); if (x > FOOT - 56 && x < FALL + 44) continue; things.push({ bm: boulders[n & 3], x, y: g(x) - 7 - Math.round(hash(n, 2, 4020) * 4), z: -60 }); }
-  const firs = Array.from({ length: 5 }, (_, i) => makeFir(330 + i));
+  const firs = Array.from({ length: 5 }, (_, i) => makeFir(330 + i, true));
   for (let x = 6, n = 0; x < 600; x += hash(n, 1, 4021) < 0.45 ? 9 + hash(n, 2, 4021) * 8 : 30 + hash(n, 2, 4021) * 44, n++) { const xx = Math.round(x); if (Math.abs(xx - FALL) < 18 || RIM(xx) > -100) continue; things.push({ tree: hash(n, 3, 4021) < 0.2 ? spruces[n & 3] : firs[n % 5], x: xx, y: RIM(xx) + 1, z: -310 - hash(n, 4, 4021), bench: true }); }
 
   // The stream mirrors what stands behind it: build the still picture once and reflect it.

@@ -55,9 +55,11 @@ function paintFar(S, rand) {
     const a = 1 - Math.abs(x - big.cx) / (big.hw * 0.9), surf = Math.round(-18 - big.h * 0.62 + 10 * (1 - a)), toe = Math.round(-18 - big.h * 0.22 - 10 * a - 4 * vnoise(x / 5, 3, 614));
     for (let y = Math.max(surf, Math.round(topAt(x)) + 2); y <= toe; y++) {
       const d = (y - surf) / Math.max(1, toe - surf);
-      let c = pick('glac', 0.95 - 0.35 * d + 0.1 * (vnoise(x / 4, y / 3, 615) - 0.5), x, y);
-      if (frac((y - surf) / 6 + 0.3 * Math.sin(x / 9)) < 0.14 && d > 0.2) c = R.glac[2];
-      if (toe - y < 3) c = R.glac[toe - y < 1 ? 0 : 1];
+      // Snow on top, lit from the west; two or three crevasses bowed down the slope, broken; at its foot
+      // the blue ice front, streaked where it calves.
+      let c = pick('glac', 0.95 - 0.3 * d - 0.15 * (x > big.cx ? (x - big.cx) / big.hw : 0) + 0.06 * (vnoise(x / 4, y / 3, 615) - 0.5), x, y, 0.5);
+      if (d > 0.25 && d < 0.8 && frac((y - surf) / 9 - 1.2 * a * a) < 0.12 && vnoise(x / 6, y / 5, 618) > 0.45) c = R.glac[frac((y - surf) / 9 - 1.2 * a * a) < 0.05 ? 5 : 1];
+      if (toe - y < 4) c = toe - y < 1 ? R.glac[0] : R.glac[hash(x, 0, 619) < 0.3 ? 1 : 2];
       S.set(x, y, c);
     }
   }
@@ -73,10 +75,13 @@ function makePeak() {
     const p = at(i); if (p <= 0) continue;
     const h = Math.round(p * PKH), lit = at(i + 1) - at(i - 1) > 0;
     for (let y = PKH - h; y < PKH; y++) {
-      const crack = vnoise(i / 2.2, y / 26, 902), streak = vnoise(i / 5, y / 40, 903);
-      let v = 0.56 + (lit ? 0.2 : -0.16) + (streak > 0.62 ? -0.2 : 0) + (crack > 0.74 ? -0.3 : 0) + 0.1 * (hash(i, y, 904) - 0.5) - 0.12 * smooth(PKH - 30, PKH, y);
+      // Broad planes a few columns wide, each a shade lighter or darker, split by long vertical cracks
+      // with a lit lip; water streaks darken it in places. Clean planes, not speckle, as in the picture.
+      const crack = vnoise(i / 2.2, y / 26, 902), streak = vnoise(i / 5, y / 40, 903), plane = Math.floor(i / 11 + 0.6 * vnoise(y / 50, 1, 905));
+      let v = 0.56 + (lit ? 0.2 : -0.16) + 0.12 * (hash(plane, 0, 904) - 0.5) + (streak > 0.64 ? -0.14 : 0) - 0.14 * smooth(PKH - 30, PKH, y);
+      if (crack > 0.76) v = 0.18; else if (crack > 0.72 && lit) v += 0.16;
       if (y - (PKH - h) < 2 && lit) v = 1;
-      b.set(i, y, v > 0.9 ? R.gold[6] : pick('rock', v / 0.9, i, y));
+      b.set(i, y, v > 0.9 ? R.gold[6] : pick('rock', v / 0.9, i, y, 0.4));
     }
   }
   outline(b, INK);
@@ -85,33 +90,65 @@ function makePeak() {
 
 // The basin's middle distance: rounded granite benches stepping up, crowded with larches, a tarn on one of
 // them with the bench behind upside down in it, its outlet falling down the face below, scree at the feet.
+// After the picture the scene was redrawn from (design/art/C04): each bench is a crowd of whaleback slabs
+// of pale granite overlapping one another, each bulging to a rounded top, lit on its west shoulder,
+// shaded underneath, with crack lines curving along the bulge where its sheets peel. Two tiers: the
+// back one stepping up in levels, the front one lower. The tarn lies in a hollow on the back tier.
 const level = x => Math.floor(x / 210 + 0.6 * vnoise(x / 120, 4, 620)) % 3;
-const benchTop = x => { let t = 0; for (let k = -6; k <= 6; k++) t += level(x + k * 3); return Math.round(-8 - 11 * t / 13 - 2 * vnoise(x / 18, 5, 621)); };
-const TX0 = 430, TX1 = 530;
+const TX0 = 430, TX1 = 530, MIDW = 1300;
+const HUMPS = (() => {
+  const rr = rng(661), out = [];
+  // Back tier: tops step up with the levels; none over the tarn, two flanking it.
+  for (let x = -30; x < MIDW + 40; x += 22 + rr() * 46) {
+    const hw = 24 + rr() * 34, ht = 6 + rr() * 10;
+    if (x > TX0 - 12 && x < TX1 + 12) continue;
+    out.push({ cx: x, hw, top: -6 - ht - 5 * level(x), base: 14, k: 3.4 + rr() * 1.8, s: rr() });
+  }
+  out.push({ cx: TX0 - 14, hw: 30, top: -14, base: 14, k: 4, s: 0.3 }, { cx: TX1 + 16, hw: 34, top: -16, base: 14, k: 4.4, s: 0.7 });
+  // Front tier, lower and nearer.
+  for (let x = -20; x < MIDW + 40; x += 26 + rr() * 52) { const hw = 20 + rr() * 30; out.push({ cx: x, hw, top: 9 - 4 - rr() * 7, base: 31, k: 3 + rr() * 1.6, s: rr(), front: true }); }
+  // Back to front: the back tier first, then the front; within a tier the lower tops last, so they overlap.
+  return out.sort((p, q) => (p.front ? 1 : 0) - (q.front ? 1 : 0) || p.top - q.top);
+})();
+const humpTop = (o, x) => { const u = (x - o.cx) / o.hw; return Math.abs(u) >= 1 ? null : o.top + (o.base - o.top) * (1 - Math.sqrt(1 - u * u)) * 0.85 + 1.2 * vnoise(x / 9, o.s * 40, 621); };
+// The flat slab the tarn lies on, between its two flanking humps.
+const surfY = -9;
+const SKY = (() => { const a = new Float32Array(MIDW); for (let x = 0; x < MIDW; x++) { let t = 99; for (const o of HUMPS) if (!o.front) { const y = humpTop(o, x); if (y != null && y < t) t = y; } if (x >= TX0 - 6 && x <= TX1 + 6) t = Math.min(t, surfY - 2); a[x] = t === 99 ? 0 : t; } return a; })();
+const benchTop = x => Math.round(SKY[clamp(Math.round(x), 0, MIDW - 1)]);
 function miniLarch(S, x, y, h) {
   for (let j = 0; j < h; j++) { const w = Math.round((j / h) * h * 0.3 + (j % 3 === 2 ? 1 : 0)); for (let i = -w; i <= w; i++) S.set(x + i, y - h + j, R.larch[clamp(Math.round(2.4 + (i < 0 ? 0.9 : -0.6) + (hash(x + i, j, 622) - 0.5) * 1.6 - (j % 3 === 0 ? 0.8 : 0)), 0, 4)]); }
   S.set(x, y, R.bark[1]); S.set(x, y - 1, R.bark[1]);
 }
 function paintMid(S, rand) {
-  for (let x = 0; x < S.w; x++) {
-    const top = benchTop(x), sl = benchTop(x + 2) - benchTop(x - 2);
-    for (let y = top; y < 30; y++) {
-      const dy = y - top, joint = vnoise(x / 3, y / 30, 623) > 0.78, sheet = frac(dy / 11 + 0.6 * vnoise(x / 40, y / 40, 628)) < 0.07;
-      // A slab's top catches the sun, its face below is in shade, joints run down it.
-      const face = smooth(3, 9, dy), lip = dy >= 3 && dy < 5;
-      let c = lip ? R.rock[1] : pick('rock', 0.88 - 0.42 * face + (sl < -1 ? 0.08 : sl > 1 ? -0.1 : 0) + 0.16 * (fbm(x / 14, y / 22, 625, 3) - 0.5) - (joint && face > 0.5 ? 0.22 : 0) - (sheet ? 0.1 : 0), x, y, 0.6);
-      if (dy < 3) c = fbm(x / 7, y / 3, 626, 2) > 0.45 ? pick(hash(x, y, 629) < 0.6 ? 'grass' : 'larch', 0.4 + 0.3 * hash(x, y, 627), x, y) : R.rock[4];
-      if (dy > 22 && fbm(x / 9, y / 4, 630, 2) > 0.45) c = pick('rock', 0.5 + 0.3 * hash(x, y, 631), x, y);
-      S.set(x, y, c);
+  // Scree and turf at the feet first, under everything.
+  for (let x = 0; x < S.w; x++) for (let y = 14; y < 30; y++) S.set(x, y, fbm(x / 9, y / 4, 630, 2) > 0.5 ? pick('rock', 0.5 + 0.3 * hash(x, y, 631), x, y) : pick('grass', 0.4 + 0.25 * hash(x, y, 627), x, y, 0.4));
+  // The flat slab under the tarn.
+  for (let x = TX0 - 20; x <= TX1 + 20; x++) for (let y = surfY - 2; y < 14; y++) S.set(x, y, pick('granite', 0.78 - 0.4 * smooth(surfY, 14, y) + 0.06 * (vnoise(x / 6, y / 4, 664) - 0.5), x, y, 0.5));
+  for (const o of HUMPS) {
+    for (let x = Math.max(0, Math.floor(o.cx - o.hw)); x <= Math.min(S.w - 1, Math.ceil(o.cx + o.hw)); x++) {
+      const tp = humpTop(o, x); if (tp == null) continue;
+      const top = Math.round(tp), u = (x - o.cx) / o.hw;
+      for (let y = top; y < o.base; y++) {
+        const d = y - top, depth = d / Math.max(1, o.base - o.top);
+        // The rounded top faces the sun on its west shoulder; underneath the bulge turns away into shade.
+        let v = 0.82 - 0.3 * u - 0.75 * smooth(0.25, 0.95, depth) + 0.06 * (vnoise(x / 7, y / 4, 662 + o.s * 9) - 0.5);
+        // Sheets peeling along the bulge: crack lines that follow the top's curve, broken here and there.
+        if (d > 2 && frac(d / o.k + 0.3 * vnoise(x / 30, o.s * 20, 663)) < 0.16 && vnoise(x / 11, y / 3, 665 + o.s * 5) > 0.38) v -= 0.22;
+        let c = d === 0 ? (S.get(x, y - 1) ? R.granite[1] : R.granite[u < 0.2 ? 5 : 4]) : d === 1 && u < 0.5 ? R.granite[5] : pick('granite', clamp(v, 0.05, 1), x, y, 0.5);
+        if (o.base - y <= 1) c = R.granite[0];
+        S.set(x, y, c);
+      }
+      // Turf and heather in the crease where a slab meets the one behind it.
+      if (top > 0 && hash(x, 2, 666) < 0.5) S.set(x, top - 1, pick('grass', 0.45 + 0.3 * hash(x, 3, 667), x, top - 1));
     }
   }
   for (let n = 0; n < 420; n++) { const x = Math.round(rand() * S.w); if ((x > TX0 - 8 && x < TX1 + 8) || fbm(x / 60, 1, 632, 2) < 0.4) continue; miniLarch(S, x, benchTop(x) + 2, 6 + Math.round(rand() * rand() * 14)); }
-  // The tarn: still water reflecting the bench behind it.
+  // The tarn: still water reflecting the bench behind it, in a pale rim on its flat slab.
   const surf = benchTop(TX0) + 2;
   for (let x = TX0; x <= TX1; x++) {
     const edge = Math.min(x - TX0, TX1 - x);
     for (let j = 0; j < 8; j++) {
-      if (j > edge * 0.7 + 1) continue;
+      if (j > edge * 0.7 + 1) { if (j <= edge * 0.7 + 2) S.set(x, surf + j, R.granite[5]); continue; }
       const src = S.get(x, surf - 2 - Math.round(j * 1.6)), lum = src ? (0.3 * DAY[src][0] + 0.59 * DAY[src][1] + 0.11 * DAY[src][2]) / 255 : 0.7;
       S.set(x, surf + j, R.tarn[clamp(Math.round((0.25 + lum * 0.6) * 5 + (bayer(x, j) - 0.5) * 0.8), 1, 5)]);
     }
@@ -126,6 +163,8 @@ function paintMid(S, rand) {
 // Where bare granite breaks through the near ground (r: rows below the trail).
 const slabAt = (x, r) => fbm(x / 34, (g(x) + r) / 12, 630, 3) > 0.66 - 0.08 * smooth(10, -4, r);
 const huckAt = (x, y) => fbm(x / 9, y / 4, 639, 3);
+// The slab the rungs climb, which carries on below the trail.
+const onRungs = (x, r) => x >= RUNG.top - RUNG.run - 14 && x <= RUNG.top + 10 + 12 * vnoise((g(x) + r) / 5, 5, 602) && r < 30 + 16 * vnoise(x / 9, 3, 601);
 function paintMain(S, near) {
   for (let x = 0; x < S.w; x++) {
     const gy = g(x), step = g(x + 1) < gy && !onSlab(x);
@@ -139,15 +178,22 @@ function paintMain(S, near) {
       S.set(x, y, c);
     }
     for (let y = gy - 14; y < S.h - S.up; y++) {
-      const r = y - gy, slab = slabAt(x, r) || (x >= RUNG.top - RUNG.run - 14 && x <= RUNG.top + 10 + 12 * vnoise(y / 5, 5, 602) && r < 30 + 16 * vnoise(x / 9, 3, 601)), n = hash(x, y, 638);
+      // A sliver one row deep reads as a dash, not a slab, so it stays turf.
+      const r = y - gy, slab = (slabAt(x, r) && (slabAt(x, r - 1) || slabAt(x, r + 1))) || onRungs(x, r), n = hash(x, y, 638);
       let c;
-      if (slab) c = frac(x / 41 + y / 13 + vnoise(x / 30, y / 30, 634)) < 0.03 ? R.rock[1] : pick('rock', 0.74 + 0.16 * (fbm(x / 20, y / 9, 635, 3) - 0.5) + (n < 0.04 ? -0.25 : 0), x, y, 0.6);
+      if (slab) {
+        // A slab bulges out of the turf like the benches behind: its top edge catches the sun, its foot is
+        // in shade, it is palest where it bulges most, and its sheets show as cracks along the bulge.
+        const inner = Math.max(0.02, fbm(x / 34, (gy + r) / 12, 630, 3) - (0.66 - 0.08 * smooth(10, -4, r)));
+        c = !slabAt(x, r - 1) && !onRungs(x, r - 1) ? R.granite[x % 3 ? 5 : 4] : !slabAt(x, r + 1) && !onRungs(x, r + 1) ? R.granite[1] : !slabAt(x, r + 2) && !onRungs(x, r + 2) ? R.granite[2]
+          : frac(inner * 55 + 0.4 * vnoise(x / 20, y / 6, 634)) < 0.12 && inner > 0.03 ? R.granite[2] : pick('granite', 0.58 + 2.2 * Math.min(inner, 0.12) + 0.08 * (vnoise(x / 9, y / 4, 635) - 0.5) + (n < 0.03 ? -0.2 : 0), x, y, 0.5);
+      }
       else if (r >= -2 && r <= 3) c = n < 0.08 ? R.rock[2] : pick('dirt', 0.6 - Math.abs(r - 0.5) * 0.06 + 0.25 * (vnoise(x / 5, y / 2, 633) - 0.5), x, y, 0.7);
       else {
         c = pick(fbm(x / 24, y / 9, 637, 2) > 0.52 ? 'moss' : 'grass', 0.52 + 0.3 * (fbm(x / 22, y / 12, 648, 3) - 0.5) + 0.12 * (hash(x >> 1, y >> 1, 649) - 0.5) - smooth(40, 200, r) * 0.25, x, y, 0.35);
         if (n < 0.1 * near(x, r)) c = R.larch[n < 0.04 * near(x, r) ? 3 : 2];
       }
-      if (slab && r >= -2 && r <= 3) c = pick('rock', 0.86, x, y, 0.5);
+      if (slab && r >= -2 && r <= 3) c = pick('granite', 0.86, x, y, 0.5);
       if (r < -2 && y - (gy - 14) < 1 && x >= RUNG.top) c = R.moss[1];
       if (step && r >= 0 && r < 3) c = R.rock[1];
       S.set(x, y, c);
@@ -185,7 +231,7 @@ function buildLarches() {
     if (fbm(x / 70, front ? 2 : 3, 640, 2) < 0.42) continue;
     const a = AGES[Math.min(3, Math.floor(rand() * 4 * (front ? 1 : 0.7) + (y > 60 ? 1 : 0)))], s = front ? 1 + y / 220 : 0.8;
     const H = Math.round(a[0] * s);
-    things.push({ tree: makeConifer(650 + things.length, H, Math.round(a[1] * s), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: a[0] > 40 && rand() < 0.5 ? 0.5 : 0.15, droop: 0.6 }), x: Math.round(x), y: g(x) + y });
+    things.push({ tree: makeConifer(650 + things.length, H, Math.round(a[1] * s), 'larch', Math.max(4, Math.round(H / 3.2)), { ragged: a[0] > 40 && rand() < 0.5 ? 0.5 : 0.15, droop: 0.6, tufts: true, open: true }), x: Math.round(x), y: g(x) + y });
   }
   // Nothing stands on the slab with the rungs, or in front of it.
   const offSlab = th => !(th.x > RUNG.top - RUNG.run - 22 && th.x < RUNG.top + 18 && th.y - g(th.x) < 76);

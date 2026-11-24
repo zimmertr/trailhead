@@ -62,50 +62,81 @@ function farGoat(pose, kid) {
   return b;
 }
 
-// The Spires as the map draws them (section 4a, the six climbs): one jagged granite wall, its skyline
-// a crowd of pinnacles over six summits, west to east in the order of SPIRES. Bluebird Forecast is the
-// west end summit, standing clear; TJs-Kubernetes-Service the second, with the icefall under it;
-// hevy-garmin-sync the third, a long snow gully running down from the notch beside it; trailhead
-// the fourth and the highest of the six (round 5, T57), the knife-edge running up to it from the
-// third; yggdrasil the fifth, on the dry rock of the east arm, where no snow lies;
-// Kubernetes-Manifests the east end summit above the crevassed tongue.
+// The Spires as the map draws them (section 4a, the six climbs): one granite wall of six summits, west
+// to east in the order of SPIRES. Bluebird Forecast is the west end summit, standing clear; TJs-Kubernetes-
+// Service the second; hevy-garmin-sync the third, a long snow gully running down from the notch beside
+// it; trailhead the fourth and the highest of the six (round 5, T57), the knife-edge running up to it
+// from the third; yggdrasil the fifth, on the dry rock of the east arm, where no snow lies;
+// Kubernetes-Manifests the east end summit.
+// Art pass C01, after a generated picture of the wall from camp (design/art/C01/) and the map's own towers
+// (A01): each summit is a broad, blunt tower, its rough rounded top breaking over into sheer sides, with a
+// deep notch to its neighbour and a snow couloir running down from the notch, fanning out at the foot.
+// The rock is grey, lit on the west faces and in blue-grey shade on the east, its shoulders darkest, cut
+// by long broken vertical cracks; snow caps the tops and lies on a few ledges near them, and nowhere else.
 // Painted into b between x0 and x1, its foot at yb, the highest summit H above it. Returns where each
 // project's summit is (geo, in SPIRES order) and the wall's foot in each column (feet).
-// Each summit: where it stands across the wall (u), its height, and how wide its mass is (half width).
+// Each summit: where it stands across the wall (u), its height, and its half width at the two ends.
 const SUMMITS = [[0.08, 0.68, 0.13], [0.26, 0.82, 0.14], [0.45, 0.9, 0.15], [0.63, 1, 0.14], [0.79, 0.7, 0.13], [0.94, 0.53, 0.12]];
 const AT = SUMMITS.map(s => s[0]);
-const GULLIES = [[0.355, 1], [0.17, 0.6], [0.71, 0.45]];
+// The couloirs, from the notches between summits: where, and how far down the wall they run.
+const GULLIES = [[0.17, 0.95], [0.355, 1], [0.54, 0.75], [0.71, 0.5]];
+// What makes each tower its own (C01): how much of the gap to each neighbour it takes, a lower shoulder
+// stepped down on one side (-1 west, 1 east, 0 none) and how high, and how soon its top breaks over.
+const SHAPE = [[0.9, 1, 0.84, 0.8], [1.05, -1, 0.86, 0.88], [0.95, 1, 0.9, 0.84], [1.0, -1, 0.82, 0.9], [0.88, 1, 0.8, 0.78], [1.0, 0, 0, 0.82]];
+// Smaller pinnacles standing in some of the notches, beside the couloir: where, how high, how wide.
+const MINOR = [[0.195, 0.62, 0.022], [0.515, 0.7, 0.018], [0.69, 0.56, 0.02], [0.885, 0.5, 0.024]];
+// One pixel of rock face. p runs from -1 at a tower's west shoulder to 1 at its east one; d is how far
+// below the skyline the pixel is, hgt how tall the face is there; dry is the east arm, where no snow lies.
+function face(x, y, p, d, hgt, n, dry, sc) {
+  const z = Math.max(0.7, sc), up = d / Math.max(1, hgt);
+  // Snow: a cap on the top, its lower edge ragged, and a few ledges in the top quarter.
+  const cap = (2.5 + 2.5 * vnoise(x / (3 * z), n, 330)) * z * (1 - smooth(0.7, 1, Math.abs(p)));
+  if (dry < 0.5 && d < cap) return d < 1 ? R.snow[2] : R.snow[p < 0.2 ? 4 : 3];
+  // A ledge is a short stroke of snow, a pixel deep, a few wide.
+  const row = Math.floor(y / (4 * z)), seg = Math.floor((x + 3 * hash(row, 0, 335)) / (5 * z));
+  if (dry < 0.5 && up < 0.18 && y === Math.floor(row * 4 * z) && hash(seg, row, 332) < 0.07) return R.snow[p < 0.2 ? 4 : 3];
+  if (d < 1) return R.rock[0];
+  // Broad planes of rock, each a little lighter or darker, the edge on its east side in shade.
+  const pl = (x - 0.04 * y) / (16 * z) + 0.6 * vnoise(x / (30 * z), n, 336), pk = Math.floor(pl), pf = pl - pk;
+  let v = 0.62 - 0.42 * p - 0.25 * smooth(0.72, 1, Math.abs(p)) + 0.16 * (hash(pk, n, 337) - 0.5) - (pf > 0.88 ? 0.18 : 0) + 0.08 * (vnoise(x / 3, y / 9, 333 + n) - 0.5) + 0.05 * dry - 0.12 * smooth(0.6, 1, up);
+  // Long vertical cracks, wavering a little, broken here and there; each has a lit lip on its west side.
+  const c = (x + 1.2 * Math.sin(y / 13 + x / 9)) / (5 * z), f = frac(c), on = vnoise(c * 1.7, y / (12 * z), 334 + n) > 0.34;
+  if (on && Math.abs(f - 0.5) < 0.07) v -= 0.3; else if (on && f > 0.57 && f < 0.64) v += 0.1;
+  return pick('rock', clamp(v, 0, 1), x, y, 0.7);
+}
 export function paintSpires(b, x0, x1, yb, H, feet) {
   const span = x1 - x0, U = x => (x - x0) / span, sc = Math.min(1, span / 220);
-  // Which summit's mass a column belongs to, and how high the wall stands there (0 to 1 of H).
-  const mass = u => { let e = 0.34 + 0.05 * vnoise(u * 9, 1, 300), k = -1; for (let i = 0; i < SUMMITS.length; i++) { const [su, sh, hw] = SUMMITS[i], m = sh * Math.max(0, 1 - Math.abs(u - su) / hw); if (m > e) { e = m; k = i; } } const kn = 0.8 * smooth(0.45, 0.49, u) * smooth(0.64, 0.6, u); if (kn > e) { e = kn; k = 3.5; } return [e, k]; };
+  // Which summit's tower a column belongs to and where across it (p), and how high the wall stands there
+  // (0 to 1 of H): the towers' rounded profiles, as on the map, over a low wall between them.
+  const mass = u => {
+    let e = 0.42 + 0.05 * vnoise(u * 9, 1, 300), k = -1, p = 0;
+    SUMMITS.forEach(([su, sh, hw0], i) => {
+      const [wk, side, shh, brk] = SHAPE[i], nb = SUMMITS[i + (u < su ? -1 : 1)], hw = (nb ? Math.abs(nb[0] - su) / 2 : hw0 * 0.7) * wk, q = (u - su) / hw, s = Math.abs(q);
+      // The top, with its shoulder: past halfway out on that side it drops to a lower step before breaking over.
+      const step = side && Math.sign(q) === side ? smooth(0.42, 0.5, s) * (1 - shh) : 0;
+      const v = sh * (1 - 0.2 * s * s - step - 3.5 * Math.pow(Math.max(0, s - brk - 0.05 * (vnoise(u * 60, i, 338) - 0.5)), 1.4) + q * (i & 1 ? -0.05 : 0.05));
+      if (v > e) { e = v; k = i; p = clamp(q, -1, 1); }
+    });
+    for (const [mu, mh, mw] of MINOR) { const q = (u - mu) / mw, s = Math.abs(q), v = mh * (1 - 0.25 * s * s - 3 * Math.pow(Math.max(0, s - 0.7), 1.3)); if (v > e) { e = v; k = 6; p = clamp(q, -1, 1); } }
+    const kn = 0.78 * smooth(0.47, 0.5, u) * smooth(0.6, 0.57, u); if (kn > e) { e = kn; k = 3.5; p = (u - 0.535) / 0.07; }
+    return [e, k, p];
+  };
   const knife = u => smooth(0.48, 0.51, u) * smooth(0.59, 0.56, u);
-  // The skyline: the masses, crowded with pinnacles of uneven width and height, fewer near the tops and
-  // only small teeth along the knife-edge.
-  const top = x => { const u = U(x), [e] = mass(u), w = x / (8 * sc) + 0.8 * vnoise(x / 16, 2, 301), i = Math.floor(w), tooth = (1 - 0.75 * knife(u)) * 13 * sc * (1.15 - e) * tri(w) * (0.3 + 0.7 * hash(i, 3, 302)); return yb - H * e * smooth(-0.04, 0.03, u) * smooth(1.04, 0.97, u) - tooth; };
+  // The skyline: the masses, roughened a little along the tops, and small teeth along the knife-edge.
+  const top = x => { const u = U(x), [e] = mass(u), w = x / (5 * sc), tooth = knife(u) * 4 * sc * tri(w) * (0.3 + 0.7 * hash(Math.floor(w), 3, 302)); return yb - H * e * smooth(-0.04, 0.03, u) * smooth(1.04, 0.97, u) - tooth - 2.2 * sc * (vnoise(x / 3, 2, 301) - 0.5) - 3 * sc * Math.max(0, vnoise(x / 7, 5, 339) - 0.55) / 0.45; };
   const dryAt = u => smooth(0.69, 0.74, u) * smooth(0.89, 0.85, u);
   for (let x = Math.max(0, Math.round(x0 - span * 0.04)); x <= Math.min(b.w - 1, x1 + span * 0.04); x++) {
-    const u = U(x), t0 = Math.round(top(x)), s = top(x + 1) - top(x - 1), dry = dryAt(u), foot = Math.round(yb + 3 * (vnoise(x / 9, 7, 303) - 0.5));
+    const u = U(x), t0 = Math.round(top(x)), dry = dryAt(u), foot = Math.round(yb + 3 * (vnoise(x / 9, 7, 303) - 0.5));
     if (t0 >= foot) continue;
-    const [, k] = mass(u), su = k < 0 ? u : k === 3.5 ? 0.545 : SUMMITS[k][0], lit = u < su, hgt = foot - t0, apron = hgt * (0.7 + 0.12 * vnoise(x / 11, 8, 304) + 0.15 * dry);
+    const [, k, p] = mass(u), hgt = foot - t0, apron = hgt * (0.7 + 0.12 * vnoise(x / 11, 8, 304) + 0.15 * dry);
     for (let y = Math.max(0, t0); y <= Math.min(b.h - 1, foot); y++) {
       const d = y - t0;
       let gully = 0;
-      for (const [gu, len] of GULLIES) { const gx = x0 + gu * span, gt = top(gx) + 1, kk = (y - gt) / (foot - gt); if (kk < -0.02 || kk > len + 0.3) continue; const o = x - gx - 2.5 * Math.sin(y / 8) * sc - kk * 6 * sc, w = 1.2 + 4 * sc * Math.max(0, kk); if (Math.abs(o) < w) gully = o > w - 1.2 ? 2 : 1; }
-      const fl = frac(x / (4.5 * Math.max(0.6, sc)) + 0.35 * vnoise(x / 9, y / 25, 305));
-      // A rib of darker rock runs down each summit just east of its axis.
-      const rib = k >= 0 && k !== 3.5 && Math.abs(x - (x0 + su * span) - 2 - 3 * Math.sin(y / 11 + k * 2)) < (1.2 + d * 0.05) * Math.max(0.7, sc);
+      for (const [gu, len] of GULLIES) { const gx = x0 + gu * span, gt = top(gx) + 1, kk = (y - gt) / (foot - gt); if (kk < -0.02 || kk > len + 0.3) continue; const o = x - gx - 2 * Math.sin(y / 8) * sc, w = (1.2 + 2.5 * sc * Math.max(0, kk) + 12 * sc * smooth(len - 0.25, len + 0.25, kk)) * (kk > len ? Math.max(0, 1 - (kk - len) / 0.3) : 1); if (Math.abs(o) < w) gully = o > w - 1.2 ? 2 : 1; }
       let c;
-      if (d < 1) c = R.granite[0];
-      else if (gully && dry < 0.5) c = gully === 2 ? R.glac[2] : pick('snow', 0.82 - 0.1 * vnoise(x / 2, y / 3, 310), x, y, 0.5);
-      else if (d > apron) c = pick('glac', 0.74 + 0.1 * (lit ? 1 : -1) * smooth(0.5, 3, Math.abs(x - x0 - su * span)) + 0.15 * (vnoise(x / 4, y / 4, 306) - 0.5) - (frac((d - apron) / 9 + 0.6 * vnoise(x / 20, 4, 311)) < 0.1 ? 0.28 : 0), x, y, 0.6);
-      else {
-        const v = (lit ? 0.6 : 0.3) + clamp(-s * 0.04, -0.08, 0.08) + (rib ? -0.16 : 0) + (fl < 0.22 ? -0.12 : fl > 0.82 ? 0.08 : 0) + 0.12 * (vnoise(x / 3, y / 12, 307) - 0.5) + 0.06 * dry;
-        c = pick('granite', v * 0.85, x, y, 0.8);
-        // Snow and ice hang on the faces, mostly the lit ones; on the dry east arm there is none.
-        if (dry < 0.5 && !rib && d > 3 && vnoise(x / (6 * Math.max(0.6, sc)), y / (7 * Math.max(0.6, sc)), 309) > (lit ? 0.64 : 0.76)) c = pick('glac', lit ? 0.9 : 0.56, x, y, 0.6);
-        else if (dry < 0.5 && vnoise(x / 2.6, y / 1.1, 308) > 0.84 && fl > 0.25) c = R.snow[lit ? 4 : 3];
-      }
+      if (gully && dry < 0.5) c = gully === 2 ? R.glac[3] : pick('snow', 0.86 - 0.1 * vnoise(x / 2, y / 3, 310), x, y, 0.5);
+      else if (d > apron) c = pick('glac', 0.74 + 0.1 * (p < 0 ? 1 : -1) * smooth(0, 0.4, Math.abs(p)) + 0.15 * (vnoise(x / 4, y / 4, 306) - 0.5) - (frac((d - apron) / 9 + 0.6 * vnoise(x / 20, 4, 311)) < 0.1 ? 0.28 : 0), x, y, 0.6);
+      else c = face(x, y, k < 0 ? 0.3 : p, d, hgt, Math.floor(k) + 1, dry, sc);
       b.set(x, y, c);
     }
     if (feet) feet.push([x, foot]);
@@ -113,27 +144,21 @@ export function paintSpires(b, x0, x1, yb, H, feet) {
   return SPIRES.map((sp, k) => { const x = Math.round(x0 + AT[k] * span); let t = top(x); for (let i = -4; i <= 4; i++) t = Math.min(t, top(x + i)); return { id: sp.id, name: sp.name, x, top: Math.round(t), by: yb, w: Math.round(span * 0.2), h: Math.round(yb - t) }; });
 }
 
-// One granite tower, painted a column at a time: a jagged skyline, lit on the left, cut by a dark
-// central rib, with ice in the gullies and snow banked against the foot.
+// One granite tower close by, painted a column at a time with the wall's own rock (face): a rough rounded
+// top breaking over into sheer sides, lit on the left, and snow and ice banked against its foot.
 export function tower(b, n, bx, by, h, w, feet) {
-  // On a bigger wall the bare rock runs further down before the ice takes over.
-  const top = by - h, sl = h / (w / 2), big = Math.max(1, h / 130);
-  const sky = x => { const dx = Math.abs(x - bx); return top + dx * sl * (x < bx ? 1.06 : 0.94) * (1 - 0.22 * smooth(0, w * 0.5, dx)) + 5 * (1 - Math.exp(-dx / 2.5)) + 7 * (vnoise(x / 4.5, n * 3.1, 216) - 0.5) * Math.min(1, dx / 4) - 4 * Math.max(0, vnoise(x / 2.2, n, 217) - 0.64) / 0.36 * Math.min(1, dx / 5); };
+  const top = by - h, hw = w / 2, sc = Math.min(1.6, Math.max(0.7, w / 60));
+  const sky = x => { const s = Math.abs(x - bx) / hw; return top + h * (0.12 * s * s + 2.2 * Math.pow(Math.max(0, s - 0.75), 1.3)) + 3 * sc * (vnoise(x / 4, n * 3.1, 216) - 0.5) + ((x - bx) / hw) * h * (n & 1 ? 0.04 : -0.04); };
   for (let x = Math.max(0, Math.round(bx - w * 0.7)); x <= Math.min(b.w - 1, bx + w * 0.7); x++) {
     const t0 = Math.round(sky(x)), foot = Math.round(by + 3 * (vnoise(x / 7, n, 243) - 0.5) - sq((x - bx) / (w * 0.7)) * 6);
     if (t0 >= foot) continue;
+    const p = clamp((x - bx) / hw, -1, 1);
     for (let y = Math.max(0, t0); y <= Math.min(b.h - 1, foot); y++) {
-      const face = x < bx ? 0.2 : -0.2, d = y - t0;
-      const fr = frac((x - bx) / Math.max(3, y - top) * 2.4 + 0.3 * vnoise(x / 6, y / 6, 218 + n));
-      let v = 0.44 + face + (fr < 0.5 ? 0.12 : -0.12) + 0.18 * (vnoise(x / 3, y / 5, 219) - 0.5);
-      if (Math.abs(fr - 0.5) > 0.45) v += 0.18;
-      const rock = Math.abs(x - bx - 3 * Math.sin(y / 11 + n * 2)) < 1.5 + (y - top) * 0.085 + 2.5 * (vnoise(x / 3, y / 5, 220 + n) - 0.5);
-      const low = foot - y < 4 + 7 * vnoise(x / 5, n, 244);
-      const ice = low || (!rock && d > (18 + 12 * vnoise(x / 7, 4, 221)) * big * big && vnoise(x / (9 * big), y / (14 * big), 282 + n) > (big > 1.2 ? 0.46 : 0)) || (fr > 0.62 && fr < 0.76 && d > 6 && !rock) || (x < bx && d > 4 && vnoise(x / 6 + n * 9, y / 7, 222) > 0.68);
-      let c;
-      if (ice) { const cre = frac(d / 9 + 0.3 * Math.sin(x / 9 + n)); c = !low && d > 16 && cre < 0.1 && vnoise(x / 8, y / 3, 223) > 0.45 ? R.glac[cre < 0.05 ? 0 : 2] : pick('glac', 0.84 + face * 0.75 + (fr < 0.5 ? 0.05 : -0.08) + 0.2 * (vnoise(x / 4, y / 4, 224) - 0.5), x, y, 0.6); }
-      else c = d < 1 ? R.granite[0] : pick('granite', v * 0.78, x, y, 0.8);
-      b.set(x, y, c);
+      const d = y - t0, low = foot - y < 4 + 7 * vnoise(x / 5, n, 244);
+      // Two runnels of old snow and ice down its face, wavering and broken, one on each side of its middle.
+      let run = false;
+      for (const [rp, k] of [[-0.42, 0], [0.3, 1]]) { const o = x - bx - rp * hw - 4 * sc * Math.sin(y / (17 * sc) + k * 2 + n), w = (1 + 1.4 * sc) * (0.6 + 0.6 * vnoise(y / (9 * sc), k + n, 225)); if (Math.abs(o) < w && d > h * 0.12 && vnoise(x / 6, y / (14 * sc), 226 + k) > 0.3) run = o > w - 1 ? 'edge' : true; }
+      b.set(x, y, low ? pick('glac', 0.84 - p * 0.15 + 0.2 * (vnoise(x / 4, y / 4, 224) - 0.5), x, y, 0.6) : run ? (run === 'edge' ? R.glac[2] : pick('snow', p < 0 ? 0.82 : 0.62, x, y, 0.5)) : face(x, y, p, d, foot - t0, n + 7, 0, sc));
     }
     if (feet) feet.push([x, foot]);
   }

@@ -2,7 +2,7 @@
 // The world is a height for every spot (u east, v away from the camera). A spot is drawn at screen
 // (u, SY - v - height), nearest first, so ground and mountains are one surface and near slopes hide
 // far ones.
-import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
+import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, mixTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
 import { paintMonolith, monolithSky, moraineLakes, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel } from './mapfauna.js';
@@ -14,7 +14,10 @@ const NW = 1920, SH = 1080, VD = 740, SY = SH + 52;
 const rdg = n => 1 - Math.abs(2 * n - 1);
 const prof = pts => x => { if (x <= pts[0][0]) return pts[0][1]; for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [xa, ha] = pts[i - 1], [xb, hb] = pts[i]; return lerp(ha, hb, (x - xa) / (xb - xa)); } return pts[pts.length - 1][1]; };
 // Proficiency Peak's outline, after Prusik's south face (used below and drawn again in the larch basin, larches.js).
-const PP = prof([[-75, 0], [-70, 0.14], [-63, 0.2], [-58, 0.34], [-51, 0.4], [-46, 0.58], [-41, 0.63], [-31, 0.62], [-27, 0.53], [-22, 0.62], [-16, 0.8], [-9, 0.9], [-5, 0.97], [-3, 1], [3, 1], [5, 0.94], [10, 0.9], [15, 0.8], [21, 0.76], [24, 0.68], [29, 0.71], [33, 0.6], [39, 0.62], [44, 0.5], [50, 0.53], [55, 0.4], [61, 0.36], [66, 0.2], [75, 0]]);
+// Art pass A04, after a picture of the peak from the south: the lower tower has a flat top and sheer
+// sides with a deep notch beyond it, the summit is a small block with a flat top, not a point, and the
+// ridge east of it steps down in teeth.
+const PP = prof([[-75, 0], [-72, 0.1], [-67, 0.3], [-63, 0.6], [-61, 0.68], [-49, 0.71], [-46, 0.69], [-44, 0.55], [-39, 0.52], [-35, 0.62], [-29, 0.76], [-22, 0.86], [-7, 0.9], [-6, 1], [5, 1], [6, 0.92], [9, 0.9], [12, 0.98], [14, 0.86], [18, 0.85], [21, 0.92], [23, 0.8], [27, 0.78], [30, 0.85], [32, 0.72], [36, 0.7], [39, 0.76], [41, 0.63], [45, 0.61], [48, 0.66], [50, 0.54], [54, 0.5], [57, 0.53], [59, 0.43], [62, 0.36], [66, 0.26], [70, 0.14], [75, 0]]);
 
 export { NW, SH as NH, VD, SY, PP as PROFICIENCY };
 // B is the bake (readBake, below): with it, the heights, the water and the picture are read, not worked out.
@@ -31,10 +34,16 @@ const horn = (mat, cu, cv, ru, rv, H, o = {}) => add(mat, cu - ru * 1.1, cu + ru
 });
 // A range: a ridge running east and west at one depth, whose skyline is a row of blunt pyramids of
 // uneven height. env gives the height wanted at each u.
+// With o.vary (art pass A02, after the generated picture logged in design/art/A02/) the skyline is not a row
+// of like pyramids: about one peak in five is a big summit, broader and higher, one in four a small one, and
+// each has smaller tops along its shoulders, so saddles and cols lie between them. The peaks of every crest
+// are kept in CREST, which the colouring reads to find the summit above a spot.
+const CREST = [];
 function range(mat, u0, u1, cv, env, seed, o = {}) {
   const r = rng(seed), peaks = [], D = o.front || 56, B = o.back || 40;
-  for (let cx = u0; cx <= u1;) { const h = env(cx) * (0.8 + 0.4 * r()), w = h * ((o.wide || 0.55) + 0.3 * r()); peaks.push([cx, h, w * (0.8 + 0.4 * r()), w * (0.8 + 0.4 * r()), 3 + 6 * r()]); cx += w * (0.7 + 0.5 * r()); }
-  const high = u => { let best = 0; for (const [cx, h, wl, wr, cap] of peaks) { const t = Math.max(0, Math.abs(u - cx) - cap / 2) / (u < cx ? wl : wr); if (t < 1) best = Math.max(best, h * (1 - Math.pow(t, o.pow || 1.1))); } return best <= 0 ? 0 : Math.max(0, best + (o.jag || 4) * (sq(rdg(vnoise(u / 4, seed, 811))) - 0.5)); };
+  for (let cx = u0; cx <= u1;) { const k = o.vary && !(o.calm && cx > o.calm[0] && cx < o.calm[1]) ? r() : (o.vary ? (r(), 0.5) : 0.5), big = k < 0.2 ? 1.25 : k > 0.75 ? 0.66 : 1, h = env(cx) * (0.8 + 0.4 * r()) * big, w = h * ((o.wide || 0.55) + 0.3 * r()) * (o.vary ? Math.sqrt(big) : 1); peaks.push([cx, h, w * (0.8 + 0.4 * r()), w * (0.8 + 0.4 * r()), 3 + 6 * r()]); cx += w * (0.7 + 0.5 * r()); }
+  const high = u => { let best = 0; for (const [cx, h, wl, wr, cap] of peaks) { const t = Math.max(0, Math.abs(u - cx) - cap / 2) / (u < cx ? wl : wr); if (t < 1) best = Math.max(best, h * (1 - Math.pow(t, o.pow || 1.1))); } if (best <= 0) return 0; if (o.vary) best *= 1 + 0.16 * (rdg(vnoise(u / 11, seed, 815)) - 0.6); return Math.max(0, best + (o.jag || 4) * (sq(rdg(vnoise(u / 4, seed, 811))) - 0.5)); };
+  if (mat === 'crest') for (const [cx, h, wl, wr] of peaks) CREST.push({ cx, h, wl, wr, cv, seed });
   add(mat, u0 - 110, u1 + 110, cv - D - 14, cv + B + 8, (u, v) => { const hi = high(u); if (hi <= 0) return 0; const vv = v + 10 * (vnoise(u / 11, seed, 830) - 0.5), f = vv < cv ? (vv - (cv - D)) / D : (cv + B - vv) / B; return f <= 0 ? 0 : hi * Math.pow(f, 0.75); });
 }
 // A level with a steep edge: a bench, a basin floor, a mesa, a field of ice. tilt lifts its far side.
@@ -72,10 +81,14 @@ const GULLY = [[-80, 0.46, 1], [-40, 0.7, 0], [-9, 0.6, 2], [60, 0.56, 1]];
 const SUMMITS = [[-94, 0.66, 26, 30, 8], [-60, 0.84, 24, 20, 5], [-24, 0.92, 26, 22, 9], [10, 1.14, 18, 20, 5], [42, 0.88, 22, 26, 8], [82, 0.7, 24, 34, 10]];
 function spires(cu, cv, base, H, thin = 1, wide = 1) {
   SP = { cu, cv, base, H, wide, top: cu + SUMMITS[3][0] * wide, west: SUMMITS[0][0] };
+  // Each summit is a blunt tower (art pass A01, after the generated picture logged in design/art/A01/):
+  // a rounded top that breaks over into steep sides, each top tilted a little one way or the other, and
+  // a deep, narrow notch between neighbours where a snow gully runs up. s is 0 in a tower's middle and 1
+  // at its shoulder.
   const high = dx => {
     let best = H * (0.28 + 0.2 * smooth(160, 90, Math.abs(dx)));
-    SUMMITS.forEach(([o, hh, wl, wr, cap], k) => { const u = Math.max(0, Math.abs(dx - o) - cap / 2) / (dx < o ? wl : wr), v = H * hh * (1 - 0.3 * Math.pow(u, 1.05)) - (dx - o) * (k & 1 ? 0.12 : -0.1) * (u === 0 ? 1 : 0); if (u < 2 && v > best) best = v; });
-    return (best + (5 * sq(rdg(vnoise(dx / 4, 6, 811))) - 2.5 - 9 * smooth(0.74, 0.92, vnoise(dx / 6, 7, 812))) * smooth(0.3, 0.5, best / H)) * smooth(165, 120, Math.abs(dx));
+    SUMMITS.forEach(([o, hh, wl, wr], k) => { const nb = SUMMITS[k + (dx < o ? -1 : 1)], hw = nb ? Math.abs(nb[0] - o) / 2 : (dx < o ? wl : wr) * 0.7, s = Math.abs(dx - o) / hw, v = H * hh * (1 - 0.1 * s * s - 3.5 * Math.pow(Math.max(0, s - 0.8), 1.4) + (dx - o) / hw * (k & 1 ? -0.05 : 0.05)); if (v > best) best = v; });
+    return (best + (3 * sq(rdg(vnoise(dx / 3, 6, 811))) - 1.5) * smooth(0.3, 0.5, best / H)) * smooth(165, 120, Math.abs(dx));
   };
   add('wall', cu - 170 * wide, cu + 170 * wide, cv - 70, cv + 50, (u, v) => {
     const dx = (u - cu) / wide, vv = v + 9 * (vnoise(u / 10, 3, 830) - 0.5) + 7 * Math.max(...SUMMITS.map(([o]) => Math.max(0, 1 - Math.abs(dx - o) / 14)));
@@ -86,6 +99,8 @@ function spires(cu, cv, base, H, thin = 1, wide = 1) {
 // Proficiency Peak, after Prusik Peak's south face: a thin fin of granite that shows the camera its
 // wall. A lower flat-topped tower on the left, a prow to a small summit block, a serrated ridge right.
 let PF = null;
+// The corners that part the fin's face into planes (A04), in the profile's units: 16 to 30 apart, set once.
+const FIN_EDGES = (() => { const out = []; for (let x = -44.5, k = 0; x < 75; k++) { x += 16 + 14 * hash(k, 0, 961); out.push(x); } return out; })();
 function proficiency(cu, cv, base, w, hgt) {
   PF = { cu, cv, base, w, hgt };
   add('fin', cu - w / 2 - 2, cu + w / 2 + 2, cv - 12, cv + 62, (u, v) => { const p = PP((u - cu) * 150 / w), f = v < cv ? smooth(cv - 8, cv, v) : smooth(cv + 58, cv + 10, v); return p <= 0 || f <= 0 ? 0 : base * smooth(0, 0.4, f) + (hgt * p + 2 * (vnoise(u / 3, 4, 900) - 0.5)) * f; });
@@ -176,12 +191,17 @@ const regional = (u, v) => (8 + 0.02 * v + 10 * Math.exp(-sq((u - divU(v)) / 250
 // (D10): flat-topped mesas of basalt in one or two steps, whose cliffs face the camera, since a rise that
 // climbs toward the camera hides its own riser. In the far corner they give way to low, rolling Palouse hills.
 const palAmt = (u, v) => { const e = eastOf(u, v); return smooth(50, 150, e) * northAmt(u, v); };
+// How far up its swell a point of the golden hills stands: 0 in the hollows, 1 on the crests.
+const palSwell = (u, v) => sq(clamp((fbm(u / 42, v / 16, 34, 2) - 0.38) / 0.3, 0, 1));
 const mesa = (u, v) => { const k = fbm(u / 64, v / 34, 36, 3) + 0.04 * (vnoise(u / 6, v / 4, 37) - 0.5); return 12 * (smooth(0.52, 0.545, k) + smooth(0.63, 0.655, k)) * smooth(0.12, 0.3, dryS0(u, v)) * (1 - palAmt(u, v)); };
 const plate = (u, v) => { const raw = 34 * smooth(0.02, 0.4, dryS0(u, v)) + 10 * fbm(u / 80, v / 60, 33, 2) * dryAmt0(u, v), b = raw + mesa(u, v); return b; };
 // The glacier: where its middle runs, how wide it is and how high its surface stands, by depth. It
 // starts under the Spires' wall, breaks over a rock step (the icefall) and ends in a broad snout in its
-// lake (E8c), not a point.
-const GL = { top: 616, toe: 503, fall: [556, 578], cu: v => 1072 + 7 * Math.sin((v - 500) / 24), w: v => lerp(30, 112, smooth(522, 592, v)) * smooth(498, 506, v), h: v => 28 + 0.3 * (v - 500) + 10 * smooth(556, 576, v) };
+// lake (E8c), not a point. Its shape is the generated picture's (art pass A01): a broad snow field under
+// the whole wall, narrowing through the icefall to a tongue about two fifths as wide, which spreads into
+// a rounded lobe at the snout. w is the half width.
+const glW = v => { const t = v > 584 ? 116 : v > 556 ? lerp(48, 116, smooth(556, 584, v)) : 46 + 2 * Math.sin((v - 520) / 9); return t * (1 + 0.08 * smooth(524, 510, v)) * Math.sqrt(clamp((v - 502) / 9, 0, 1)); };
+const GL = { top: 616, toe: 503, fall: [556, 578], cu: v => 1072 + 7 * Math.sin((v - 500) / 24), w: glW, h: v => 28 + 0.3 * (v - 500) + 10 * smooth(556, 576, v) };
 // Base camp's rock island (round 5, T48, TJ: "suddenly camp is surrounded by nunataks, situated on teh
 // glacier"): a low island of rock in the middle of the tongue, ten below the foot of the icefall, so the
 // map's camp is where the camp scene shows it: on the ice, the icefall behind it, rock either side.
@@ -213,11 +233,11 @@ for (const [cu, cv, ru, rv, H] of [[500, 478, 96, 44, 42], [770, 474, 84, 40, 38
 plateau('land', 655, 440, 152, 40, 30, 0.1); C.bench = F[F.length - 1];
 C.lakes.push([666, 446, 100, 21, 'lake']);
 // Its west end rises gently from behind Little Tahoma, so no peak of it stands alone beside the tooth.
-range('crest', 800, NW + 60, 716, u => (112 + 20 * vnoise(u / 70, 1, 64)) * lerp(0.35, 1, smooth(820, 930, u)), 64, { front: 40, back: 18 });
+range('crest', 800, NW + 60, 716, u => (112 + 20 * vnoise(u / 70, 1, 64)) * lerp(0.35, 1, smooth(820, 930, u)), 64, { front: 40, back: 18, vary: true, calm: [880, 1500] });
 range('crest', 800, 930, 660, crestH(1070, 120, 60), 61);
 lift = under; spires(1070, 648, 70, 115, 1, 1.2); lift = null;
 range('crest', 1232, 1300, 664, crestH(1070, 120, 60), 62);
-range('crest', 1336, NW + 40, 676, u => (112 + 24 * vnoise(u / 90, 2, 65)) * (1 - 0.42 * Math.exp(-sq((u - 1430) / 90))), 63, { pow: 1.25, jag: 6, front: 50 });
+range('crest', 1336, NW + 40, 676, u => (112 + 24 * vnoise(u / 90, 2, 65)) * (1 - 0.42 * Math.exp(-sq((u - 1430) / 90))), 63, { pow: 1.25, jag: 6, front: 50, vary: true, calm: [1360, 1500] });
 lift = under;
 add('ice', 940, 1204, GL.toe - 2, GL.top + 6, (u, v) => { const w = GL.w(v), d = glD(u, v); return v < GL.toe || v > GL.top + 4 || d >= w ? 0 : GL.h(v) - 6 * sq(d / w) - 8 * smooth(GL.toe + 8, GL.toe, v); });
 add('moraine', NUN[0] - 20, NUN[0] + 20, NUN[1] - 10, NUN[1] + 10, (u, v) => { const e = isleAt(u, v); return e >= 1 ? 0 : GL.h(NUN[1]) + 2 + 2.5 * smooth(1, 0.6, e); });
@@ -234,7 +254,7 @@ plateau('moraine', 1020, 526, 22, 8, 44, 0.35);
 lift = null;
 // The Spires' glacier ends in its lake (E8c, after TJ's photograph): the snout runs into milky water, and
 // the terminal moraine is the low rim that holds the lake on the near side. Ice, water, moraine.
-const PRO = (() => { const rv = 8, ru = 32; return { cu: Math.round(GL.cu(GL.toe)), cv: GL.toe - rv + 4, ru, rv }; })(); // its far edge runs a little under the snout, so no rim shows between
+const PRO = (() => { const rv = 9, ru = 66; return { cu: Math.round(GL.cu(GL.toe)), cv: GL.toe - rv + 4, ru, rv }; })(); // its far edge runs a little under the snout, so no rim shows between
 C.lakes.push([PRO.cu, PRO.cv, PRO.ru, PRO.rv, 'silt']);
 // The granite country: three steps. Larches from the second step up, Proficiency Peak on the second.
 plateau('gran', 1745, 598, 150, 42, 110, 0.08); plateau('gran', 1471, 574, 205, 50, 84, 0.08); C.step2 = F[F.length - 1];
@@ -292,7 +312,7 @@ for (const f of F) { const m = MATS.indexOf(f.mat); for (let v = Math.max(0, Mat
 }
 // The golden hills in the dry side's north-east (E5g): rounded swells rolling one behind another, laid on
 // after every piece so they roll over the east end of the bench as well as the low ground.
-if (!B) for (let v = 280; v < VD; v++) for (let u = 1300; u < NW; u++) { const i = at(u, v); if (MATS[mg[i]] !== 'land' || hg[i] <= 0) continue; const p = palAmt(u, v); if (p > 0.01) hg[i] += p * 22 * sq(clamp((fbm(u / 42, v / 16, 34, 2) - 0.38) / 0.3, 0, 1)); }
+if (!B) for (let v = 280; v < VD; v++) for (let u = 1300; u < NW; u++) { const i = at(u, v); if (MATS[mg[i]] !== 'land' || hg[i] <= 0) continue; const p = palAmt(u, v); if (p > 0.01) hg[i] += p * 22 * palSwell(u, v); }
 const hAt = (u, v) => hg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))];
 // A valley's line is bent as it goes, so no reach of it is ruled. Its two ends stay where they are.
 const wander = (all, amp, seed) => { let len = 0; const total = all.reduce((t, p, n) => t + (n ? Math.hypot(p[0] - all[n - 1][0], p[1] - all[n - 1][1]) : 0), 0); return all.map(([u, v], n) => { if (n) len += Math.hypot(u - all[n - 1][0], v - all[n - 1][1]); const a = all[Math.max(0, n - 4)], b = all[Math.min(all.length - 1, n + 4)], l = Math.hypot(b[0] - a[0], b[1] - a[1]) || 1, k = amp * (2 * vnoise(len / 70, seed, 77) - 1 + 0.5 * Math.sin(len / 26 + seed)) * smooth(0, 50, len) * smooth(total, total - 50, len); return [u - (b[1] - a[1]) / l * k, v + (b[0] - a[0]) / l * k * 0.6]; }); };
@@ -327,6 +347,21 @@ if (!B) { const { cu, cv, ru, rv } = PRO, LV = hAt(cu, cv - rv - 14) + 4, MI = M
 const ISLE = [C.lakes[0][0] - 14, C.lakes[0][1] + 3], isle = (u, v) => Math.hypot((u - ISLE[0]) / 7, (v - ISLE[1]) / 3.2); C.lakeIsle = ISLE; C.glToe = [GL.cu(GL.toe), GL.toe];
 const lakeRim = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) { const d = Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); if (d >= 1 && d < 1 + 2.2 / Math.min(ru, 8 * rv)) return kind; } return null; };
 const lakeAt = (u, v) => { for (const [cu, cv, ru, rv, kind] of C.lakes) if (Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5) < 1) return kind; return null; };
+// How far in from its shore a spot of a lake lies, 0 at the shore to 1 at its middle (A05: tarns are pale
+// where they are shallow and darker in the middle).
+const lakeIn = (u, v) => { for (const [cu, cv, ru, rv] of C.lakes) { const d = Math.hypot((u - cu) / ru, (v - cv) / rv) + 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); if (d < 1) return 1 - d; } return 0; };
+// The benches' polished slabs (A05): cells of a jittered grid, squashed to the map's slant. Returns how
+// near the crack to the next slab a spot is (edge, in pixels) and where it lies on its slab toward the
+// lower right (lr, -1 on the upper left to 1 on the lower right).
+function slabAt(u, v) {
+  const S = 26, pv = v * 1.8, gi = Math.floor(u / S), gj = Math.floor(pv / S);
+  let f1 = 1e9, f2 = 1e9, cx = 0, cy = 0;
+  for (let j = gj - 1; j <= gj + 1; j++) for (let i = gi - 1; i <= gi + 1; i++) {
+    const px = (i + 0.15 + 0.7 * hash(i, j, 971)) * S, py = (j + 0.15 + 0.7 * hash(i, j, 972)) * S, d = Math.hypot(u - px, pv - py);
+    if (d < f1) { f2 = f1; f1 = d; cx = px; cy = py; } else if (d < f2) f2 = d;
+  }
+  return { edge: f2 - f1, lr: clamp(((u - cx) + (pv - cy)) / (1.41 * Math.max(4, (f1 + f2) / 2)), -1, 1) };
+}
 // The talus fan stands a little proud of the step, highest against the wall.
 if (!B && PF) for (let v = PF.cv - 45; v <= PF.cv; v++) for (let u = PF.cu - 110; u <= PF.cu + 110; u++) { const t = talusAt(u, v); if (t > 0 && MATS[mg[at(u, v)]] === 'gran') hg[at(u, v)] += 6 * t * t; }
 // Reflection Lake's bench tips down to the west, toward the forest's stream (E8b, TJ: its low end looks to
@@ -611,6 +646,118 @@ const seaFog = (u, v) => smooth(300, 30, u + wob(u, v, 201, 110)) * (0.75 + 0.5 
 const HILLHAZE = veilTable(0.28);
 // The colour of one spot of ground. hh is the height of the bit being drawn, which on a cliff runs
 // from the cliff's foot to its lip.
+// A cliff face of rock (art pass A06, after a picture of a granite wall under a plateau): buttresses and
+// tall planes of every width, parted by long vertical corners. Each plane is lit at its west edge and a
+// little darker toward the corner on its east side, whose wall turns from the sun into shade; some planes
+// face away and are darker all over. Dark water streaks run down from a few places, and here and there a
+// narrow ledge holds a line of green (moss on the wet steps of the land, grass on the granite).
+// A07, after a picture of the Palouse: each swell is gold to its crest. Its top catches the most light
+// and its foot in the hollow is a step darker; the slopes turned west are lit and those turned east are
+// shaded. Broad strips of the same lightness but a little more or less golden follow the slope round, as
+// the wheat does, and there is little dither, so a swell reads as a few flat bands of colour.
+function palouse(u, v, hh, x, y, L, steep) {
+  const b = palSwell(u, v), strip = steep > 0.12 && steep < 1.4 && (Math.floor(hh / 3.2 + 0.8 * vnoise(u / 50, v / 30, 186)) & 1) === 1;
+  const lv = 0.36 + 0.3 * b + 1.4 * (L - 0.5) + 0.08 * (fbm(u / 60, v / 40, 185, 2) - 0.5);
+  const k = clamp(Math.round(lv * 3 + (bayer(x, y) - 0.5) * 0.5), 0, 3);
+  return k === 2 && strip ? R.mustard[2] : R.dry[k];
+}
+function wallRock(x, y, hh, L, seed, green) {
+  const c = x + 1.2 * Math.sin(hh / 17 + seed), k = Math.floor(c / 9), edge = j => hash(j, seed, 981) < 0.42;
+  let a = k; while (a > k - 4 && !edge(a)) a--; let b = k + 1; while (b < k + 5 && !edge(b)) b++;
+  const w = (b - a) * 9, pf = (c - a * 9) / w, away = hash(a, seed, 982) < 0.38, cw = (2 + 0.42 * w * hash(a, seed, 983)) / w;
+  const col = Math.floor(x / 2), wet = hash(col, seed, 984) < 0.035 && vnoise(col, hh / 34, seed + 985) > 0.4;
+  if (pf > 1 - cw) return R.rock[pf > 1 - 1.2 / w ? 0 : pf > 1 - 0.5 * cw ? 1 : 2];
+  if (wet) return R.rock[away ? 0 : 1];
+  if (green && !away && frac(hh / (31 + 9 * hash(a, seed, 986)) + hash(a, seed, 987)) < 0.035 && hash(x >> 2, Math.floor(hh / 31), seed + 988) < 0.3) return green;
+  if (pf < 1.1 / w && !away) return R.rock[4];
+  const lit = 0.8 + 0.5 * (L - 0.5) - (away ? 0.3 : 0.22 * pf * pf) + 0.12 * (vnoise(x / 4, hh / 12, seed + 989) - 0.5) + 0.12 * (hash(a, seed, 990) - 0.5);
+  return R.rock[clamp(Math.round(4.4 * lit + (bayer(x, y) - 0.5) * 0.4), 0, 4)];
+}
+// A08, after a picture of a scabland coulee: a basalt cliff is one or two lava flows stacked. Each flow
+// is a band of short, broken columns over a colonnade of tall ones, every column lit on its west edge
+// and parted from the next by a dark seam. The columns' pale caps make a rim along the top, and a fan of
+// lighter broken rock lies against the foot. Where on the cliff a spot is comes from the ground just
+// behind it (the top) and just in front of it (the foot).
+function basaltWall(u, v, hh, x, y, L) {
+  // Walk up the slope behind and down the slope in front until the ground goes flat.
+  let top = hg[at(u, v)], foot = top;
+  for (let k = v + 1, n = 0; k < Math.min(VD, v + 60) && n < 3; k++) { const h = hg[at(u, k)]; if (h > top + 0.5) { top = h; n = 0; } else n++; }
+  for (let k = v - 1, n = 0; k > Math.max(0, v - 60) && n < 3; k--) { const h = hg[at(u, k)]; if (h < foot - 0.5) { foot = h; n = 0; } else n++; }
+  top = Math.max(top, hh); foot = Math.min(foot, hh);
+  const H = Math.max(4, top - foot), d = top - hh, t = d / H, B = R.basalt, A = R.ash;
+  if (d < 1) return hash(x >> 1, 0, 1201) < 0.5 ? A[3] : B[3];
+  // The talus: its top is ragged and rises into fans here and there.
+  const tal = 0.88 - 0.12 * sq(vnoise(x / 9, 0, 1202)) - 0.03 * hash(x, 0, 1203);
+  if (t > tal) { const r = hash(x >> 1, Math.floor(hh / 1.5), 1204); return r < 0.3 ? B[1] : r < 0.65 ? B[2] : r < 0.9 ? B[3] : A[2]; }
+  // Two flows on a tall cliff, one on a low one; the upper third of each is the broken band.
+  const flows = H > 17 ? 2 : 1, f = Math.min(flows - 1, Math.floor(t * flows / tal)), ft = t * flows / tal - f, fd = d - f * H * tal / flows;
+  if (f > 0 && fd < 1) return A[2];
+  const broken = ft < 0.26, cell = 2, seed = 1210 + 7 * f + (broken ? 3 : 0), c = x + (broken ? 0 : Math.floor(2 * hash(f, 0, 1205)));
+  const k = Math.floor(c / cell), edge = j => hash(j, seed, 1206) < (broken ? 0.6 : 0.5);
+  let a = k; while (a > k - 3 && !edge(a)) a--; let b = k + 1; while (b < k + 4 && !edge(b)) b++;
+  const p = c - a * cell, w = (b - a) * cell, shade = hash(a, seed, 1207), lit = 0.5 + 0.7 * (L - 0.5);
+  if (p === w - 1) return B[0];
+  // A broken column is cut into blocks, each joint a dark line under a lit one.
+  if (broken && w > 2) { const j = frac((fd + 5 * hash(a, seed, 1208)) / (4 + 3 * hash(a, seed, 1209))); if (j < 1 / (4 + 3 * hash(a, seed, 1209))) return B[0]; }
+  if (p === 0) return lit > 0.3 ? B[3] : B[2];
+  return B[clamp(Math.round(0.6 + 2.2 * shade + 1.2 * (lit - 0.5) - 0.9 * p / w), 1, 3)];
+}
+// A09, after a picture of a meadow stream falling off a granite step: where the water drops far it falls
+// in vertical strands of white with blue between them, its west edge lit and its east edge in shade, and
+// lands in spray. Where it only runs down a slope it shows white riffles across a blue stream. Flat water
+// is a clear blue with short pale ripples and glints; its west bank throws a shadow on it and its east
+// edge catches the light, the sun being in the west.
+// Reflection Lake's own water (A10): pale where it is shallow along the shore, deep blue beyond.
+function lakeWater(u, v, x, y) {
+  const d = lakeIn(u, v), W = R.water;
+  if (d < 0.06) return W[3];
+  if (d < 0.14) return bayer(x, y) < smooth(0.14, 0.06, d) ? W[3] : W[2];
+  return vnoise(u / 8, v / 3, 1403) > 0.62 && bayer(x, y) < 0.5 ? W[2] : W[1];
+}
+// A11, after a picture of the lateral moraines below the real volcano's glaciers: a moraine's steep bank is
+// loose till cut by fine gullies running down it, each lit on its west edge and dark in its east seam,
+// the whole bank darker where it faces away from the sun, with a pale crest along its top. On the flat the
+// till is a calm grey gravel with boulders of a few sizes lying on it, each lit on its upper left and dark
+// underneath, and here and there a tuft of grass, as before.
+function moraineRock(u, v, hh, x, y, L, steep, i) {
+  const K = R.rock;
+  if (steep > 0.7) {
+    if (hg[i] - hh < 1 && hg[at(u, Math.min(VD - 1, v + 2))] <= hg[i] + 0.3) return K[4];
+    const c = x + 1.4 * Math.sin(hh / 9 + x * 0.3), k = Math.floor(c / 2), edge = j => hash(j, 0, 1501) < 0.5;
+    let a = k; while (a > k - 3 && !edge(a)) a--; let b = k + 1; while (b < k + 4 && !edge(b)) b++;
+    const p = c - a * 2, w = (b - a) * 2, lit = clamp(0.5 + 1.1 * (L - 0.5), 0, 1);
+    if (p > w - 1) return K[lit > 0.5 ? 1 : 0];
+    if (p < 1) return K[lit > 0.55 ? 3 : 2];
+    return K[clamp(Math.round(0.7 + 2 * lit - 0.8 * p / w + 0.7 * (hash(a, 0, 1502) - 0.5) + 0.4 * (bayer(x, y) - 0.5)), 1, 3)];
+  }
+  // Boulders: one in a cell now and then, its middle a little off the cell's, of radius 1 to 2.6.
+  const cu = Math.floor(u / 6), cv = Math.floor(v / 4);
+  for (let du = -1; du <= 1; du++) for (let dv = -1; dv <= 1; dv++) { const a = cu + du, b = cv + dv; if (hash(a, b, 1503) > 0.32) continue;
+    const bu = (a + 0.2 + 0.6 * hash(a, b, 1504)) * 6, bv = (b + 0.2 + 0.6 * hash(a, b, 1505)) * 4, r = 1 + 1.6 * hash(a, b, 1506), ex = (u - bu) / r, ey = (v - bv) / (0.75 * r);
+    if (ex * ex + ey * ey < 1) return ey > 0.45 ? K[0] : ex + ey < -0.5 ? K[4] : K[3]; }
+  if (hash(u >> 1, v >> 1, 12) < 0.2 && isleAt(u, v) > 1.4) return pick('grass', 0.4, x, y);
+  return pick('rock', 0.42 + 0.3 * (vnoise(u / 7, v / 4, 1507) - 0.5) + 0.25 * (L - 0.5), x, y, 0.45);
+}
+function streamColour(u, v, hh, x, y, i, fall) {
+  const W = R.water, WH = R.white[1], wet = (a, b) => water[at(clamp(a, 0, NW - 1), clamp(b, 0, VD - 1))] > 0;
+  if (fall > 1.1) {
+    if (!wet(u - 1, v)) return WH;
+    if (!wet(u + 1, v)) return W[2];
+    const st = hash(x, 0, 1301), br = vnoise(x * 1.7, hh / 5, 1302);
+    return st < 0.65 && br > 0.25 ? WH : st < 0.88 ? W[4] : W[3];
+  }
+  if (fall > 0.55) {
+    if (!wet(u - 1, v) && wet(u + 1, v)) return W[4];
+    const seg = Math.floor(x / 3), ph = (y + Math.floor(5 * hash(seg, 0, 1303))) % 5;
+    return ph === 0 || (ph === 1 && hash(seg, y, 1304) < 0.5) ? WH : vnoise(x / 3, hh / 4, 1305) > 0.55 ? W[4] : W[3];
+  }
+  // Spray where a fall lands: the water just below it, nearer the eye.
+  for (let k = 1; k <= 4; k++) if (wet(u, v + k) && hg[at(u, Math.min(VD - 1, v + k))] - hg[i] > 2.5) return hash(x, y, 1306) < 0.6 - 0.12 * k ? WH : W[4];
+  if (water[i] === 1) return !wet(u - 1, v) || !wet(u, v - 1) ? W[1] : W[2];
+  if (hash(x, y, 9) < 0.05) return R.glint[(x + y) & 3];
+  const rip = hash(Math.floor((x + 3 * hash(y, 0, 1307)) / 3), y, 1308) < 0.14;
+  return rip ? W[4] : !wet(u - 2, v) ? W[2] : W[3];
+}
 function colour(u, v, hh, x, y) {
   const i = at(u, v), mat = MATS[mg[i]], n1 = hash(u, v, 31) - 0.5, uu = clamp(u, 1, NW - 2), vv = clamp(v, 1, VD - 2);
   const du = hg[at(uu + 1, vv)] - hg[at(uu - 1, vv)], dv = hg[at(uu, vv + 1)] - hg[at(uu, vv - 1)], steep = Math.hypot(du, dv) / 2;
@@ -621,13 +768,14 @@ function colour(u, v, hh, x, y) {
   if (cs > -24 - 8 * vnoise(u / 20, v / 20, 87)) return water[i] ? (water[i] === 1 ? R.sand[0] : hash(x, y, 4733) < 0.07 ? R.glint[(x + y) & 3] : R.water[(x + 2 * y) % 5 < 2 ? 4 : 3]) : R.sand[cs > -4 ? 0 : hash(u, v, 88) < 0.25 ? 1 : 2];
   const lk = lakeAt(u, v);
   if (lk === 'lake' && isle(u, v) < 1) return pick('grass', 0.55 + 0.3 * n1, x, y);
-  if (lk) return lk === 'tarn' ? pick('tarn', 0.3 + 0.4 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
+  if (lk === 'tarn' || lk === 'milk') { const dep = lakeIn(u, v); if (dep < 0.13) return lk === 'tarn' ? R.tarn[5] : R.glac[4]; if (dep < 0.28 && lk === 'tarn') return R.tarn[4]; }
+  if (lk) return lk === 'tarn' ? pick('tarn', 0.62 - 0.5 * lakeIn(u, v) + 0.14 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : lk === 'lake' ? lakeWater(u, v, x, y) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
   // Where a trail crosses water there is a footbridge: a deck of planks with a dark edge.
   if (water[i] && trail[i] && mat !== 'ice') return trail[i] === 2 ? ((u + 2 * v) % 3 === 0 ? R.dirt[1] : R.dirt[2]) : R.dirt[0];
   // White water where the stream itself falls, read from the water's own surface, not from its banks,
   // so a low river between high banks near the sea stays blue (D11).
   const wh = (a, b) => water[at(a, b)] ? hg[at(a, b)] : hg[at(uu, vv)], fall = water[i] ? Math.hypot(wh(uu + 1, vv) - wh(uu - 1, vv), wh(uu, vv + 1) - wh(uu, vv - 1)) / 2 : 0;
-  if (water[i]) return fall > 0.55 ? (hash(x, y >> 1, 5) < 0.72 ? R.white[1] : R.water[4]) : water[i] === 2 ? (hash(x, y, 9) < 0.08 ? R.glint[(x + y) & 3] : R.water[y & 1 ? 3 : 4]) : R.water[1];
+  if (water[i]) return streamColour(u, v, hh, x, y, i, fall);
   const rim = lakeRim(u, v); if (rim) return rim === 'lake' ? R.dirt[hash(x, y, 3) < 0.3 ? 3 : 4] : R.rock[hash(x >> 1, y >> 1, 3) < 0.5 ? 2 : 3];
   // The boot track up the ice: a trench with its floor in shade; where it crosses rock, a worn line.
   if (track[i] && !trail[i] && !printGap(i)) return mat === 'ice' ? (track[i] === 1 ? R.glac[3] : hash(x, y, 16) < 0.3 ? R.glac[2] : R.glac[1]) : track[i] === 1 ? R.rock[1] : R.rock[hash(x, y, 6) < 0.3 ? 4 : 3];
@@ -649,28 +797,70 @@ function colour(u, v, hh, x, y) {
   if (trail[i] === 2 && !rungs) return R.glac[1];
   if (trail[i] === 1 && !rungs) return R.glac[3];
   if (mat === 'ice') {
-    // Under the wall the ice gapes away from the rock. Above the icefall it is snow with a few long
-    // crevasses, the icefall is broken blocks, and the tongue below is bare blue ice crevassed across.
-    if (MATS[mg[at(u, Math.min(VD - 1, v + 3))]] === 'wall' && hash(u >> 3, 1, 852) < 0.85) return R.glac[0];
-    if (v > GL.fall[1]) return frac((v + 0.2 * u) / 11 + 0.5 * vnoise(u / 12, v / 12, 853)) < 0.08 && vnoise(u / 30, v / 8, 854) > 0.5 ? R.glac[3] : R.snow[L > 0.45 ? 4 : 3];
-    if (v >= GL.fall[0]) { const row = Math.floor((v * 2 + hh) / 4), k = hash((u + row * 5) >> 2, row, 855); return k < 0.24 ? R.glac[1] : k < 0.5 ? R.glac[3] : k < 0.8 ? R.glac[4] : R.snow[4]; }
+    // After the generated picture (art pass A01). Under the wall the snow meets the rock with only a
+    // broken crack between. Above the icefall it is a smooth snow field with a few faint long crevasses.
+    // The icefall is rows of blue ice cliffs, each capped with snow, lit on the left of each block and dark
+    // at its foot. The tongue below is pale blue ice with thin dark crevasses that run with the flow and
+    // fan out toward the snout, and a stripe of dark rock debris along each edge.
+    if (MATS[mg[at(u, Math.min(VD - 1, v + 3))]] === 'wall' && hash(u >> 2, 1, 852) < 0.3) return R.glac[1];
+    const q = (u - GL.cu(v)) / Math.max(1, GL.w(v));
+    if (v > GL.fall[1]) return frac((v + 0.15 * u) / 11 + 0.5 * vnoise(u / 12, v / 12, 853)) < 0.07 && vnoise(u / 30, v / 8, 854) > 0.52 ? R.snow[2] : bayer(x, y) < 0.55 * smooth(GL.fall[1] + 16, GL.fall[1] + 2, v) + 0.25 * (0.45 - L) ? R.snow[3] : R.snow[4];
+    if (v > GL.fall[1] - 1 && v < GL.fall[1] + 4 && bayer(x, y) < smooth(GL.fall[1] + 4, GL.fall[1], v) * 0.6) return R.snow[2];   // the field's edge darkens as it breaks over
+    if (v >= GL.fall[0]) {
+      // Seracs: columns of ice blocks, each column stacked at its own height so no row lines up (lined up
+      // they read as brickwork), each block's top slanted, capped with snow, lit on its left face, shaded
+      // on its right and dark at its foot. One in five has slumped to snow.
+      const j = u + 2 * Math.sin(v / 5), col = Math.floor(j / 7), bx = frac(j / 7), rr = (v * 2 + hh) / 9 + hash(col, 2, 856) + 0.25 * bx, row = Math.floor(rr), f = frac(rr), cap = 0.74 - 0.14 * hash(col, row, 863);
+      if (hash(col, row, 855) < 0.2) return f > 0.5 ? R.snow[4] : R.snow[3];
+      if (f > cap) return bx > 0.8 ? R.snow[3] : R.snow[4];
+      if (f < 0.14 + 0.1 * hash(col, row, 866)) return R.serac[0];
+      return bx < 0.3 ? R.serac[4] : bx < 0.65 ? R.serac[3] : bx < 0.88 ? R.serac[2] : R.serac[1];
+    }
+    if (Math.abs(q) > 0.84 + 0.06 * vnoise(u / 5, v / 4, 857)) return hash(x, y, 858) < 0.45 ? R.rock[0] : hash(x, y, 859) < 0.5 ? R.rock[1] : R.glac[2];
+    // Crevasses across the tongue, bowed downstream in its middle as the ice flows fastest there, long and
+    // broken here and there, each a dark crack with a lit lip on its far side.
+    // Ogives under them: the pale and darker bands an icefall leaves on the tongue, bowed the same way.
+    const arc = v + 9 * (1 - q * q), cr = frac(arc / 7 + 0.25 * vnoise(u / 11, v / 9, 860)), on = vnoise(u / 14, Math.floor(arc / 7), 861) > 0.34 && Math.abs(q) < 0.8;
+    if (on && cr < 0.08) return R.glac[2];
+    if (on && cr < 0.17) return R.glac[0];
+    if (on && cr < 0.27) return R.glac[5];
+    const ogive = frac(arc / 13 + 0.15 * vnoise(u / 20, v / 20, 867)) < 0.45 ? -0.2 : 0;
+    return pick('glac', 0.62 + ogive + 0.3 * L + 0.1 * vnoise(u / 7, v / 5, 818), x, y, 0.6);
   }
-  if (mat === 'ice') return frac((v * 0.9 + 0.3 * u) / 7 + 0.4 * vnoise(u / 8, v / 8, 817)) < 0.14 ? R.glac[2] : pick('glac', 0.45 + 0.4 * L + 0.2 * vnoise(u / 6, v / 4, 818), x, y, 0.6);
   // Base camp's island: bare rock, its top in the light and its face in shade, a dark line where it meets the ice.
   if (mat === 'moraine' && isleAt(u, v) < 1.4) { const e = isleAt(u, v); return hg[i] - hh > 0.8 ? R.rock[hash(x >> 1, y, 14) < 0.35 ? 1 : 0] : e > 0.62 && v < NUN[1] - 1 ? R.rock[hash(x >> 1, y, 14) < 0.3 ? 2 : 1] : R.rock[hash(x >> 1, y >> 1, 13) < 0.3 ? 3 : 4]; }
-  if (mat === 'moraine') return steep > 0.7 ? pick('rock', 0.12 + 0.4 * vnoise(x / 3, hh / 10, 97), x, y, 0.7) : hash(u >> 1, v >> 1, 12) < 0.25 && isleAt(u, v) > 1.4 ? pick('grass', 0.4, x, y) : pick('rock', 0.2 + 0.7 * hash(u >> 1, v >> 1, 13), x, y);
+  if (mat === 'moraine') return moraineRock(u, v, hh, x, y, L, steep, i);
   if (mat === 'wall' || mat === 'crest') {
     // Dark rock; snow lies where the slope lets it, and on the ledges of the walls. Toward the dry
     // east the same rock is a step paler and cleaner and holds less snow.
     const east = smooth(1240, 1600, u + 80 * (vnoise(u / 60, hh / 40, 840) - 0.5)), pale = bayer(x, y) < east * 0.9 ? 1 : 0;
     const flute = vnoise(x / 2.5, hh / 16, 813), rock = R.rock[clamp(Math.round(L * 2.6) + (flute > 0.64 ? 1 : flute < 0.34 ? -1 : 0), 0, 3) + pale], band = (x + (y >> 3) * 3) >> 2, row = hh / 7 + hash(band, 0, 814) * 7;
-    // Snow lies in streaks down the gullies and on the ledges, more of it on the faces the light reaches.
-    const streak = 0.62 * vnoise(x / 2.6, hh / 18, 815) + 0.38 * vnoise(x / 8, hh / 8, 819), lie = 0.5 + 0.2 * smooth(120, 60, hh) + 0.18 * east - 0.16 * (L - 0.5) - 0.12 * smooth(1.2, 0.6, steep);
-    if (mat === 'crest') return hh > 62 + 34 * vnoise(x / 14, 3, 816) + 46 * east && streak > lie ? R.snow[L > 0.55 ? 4 : L > 0.35 ? 3 : 2] : hh < 44 + 20 * vnoise(u / 20, v / 20, 827) ? pick('conifer', 0.2 + 0.5 * L, x, y) : rock;
+    // The crests (art pass A02): each summit sends a main ridge down its face, wandering, with ribs off it
+    // down both sides. Snow fills the high cirques between the ribs and runs far down the narrow couloirs;
+    // none lies low on the open faces. The western light reaches the left of each ridge and rib.
+    if (mat === 'crest') {
+      if (hh < 44 + 20 * vnoise(u / 20, v / 20, 827)) return pick('conifer', 0.2 + 0.5 * L, x, y);
+      let pk = null, top = 0;
+      for (const p of CREST) { if (Math.abs(p.cv - v) > 60) continue; const t = Math.abs(u - p.cx) / (u < p.cx ? p.wl : p.wr); if (t < 1 && p.h * (1 - t) > top) { top = p.h * (1 - t); pk = p; } }
+      if (!pk) return rock;
+      const dd = Math.max(0, pk.h - hh), rel = dd / pk.h, side = u < pk.cx ? -1 : 1;
+      const rx = pk.cx + dd * (0.12 + 0.2 * (hash(Math.round(pk.cx), pk.seed, 701) - 0.5)) + 5 * (vnoise(dd / 14, pk.cx, 702) - 0.5), west = u < rx;
+      const sp = (u - rx) * 0.055 - side * dd * 0.04 + 0.35 * vnoise(u / 18, dd / 18, 703), spur = frac(sp), mid = Math.abs(spur - 0.55), deep = hash(Math.floor(sp), Math.round(pk.cx), 709) < 0.45;
+      if (Math.abs(u - rx) < 1.2 && rel > 0.03) return west ? R.rock[2] : R.rock[1];
+      if (rel < 0.24 + 0.08 * (vnoise(u / 30, pk.seed, 705) - 0.5) - 0.06 * east && mid < 0.3) return L > 0.5 ? R.snow[4] : R.snow[3];
+      if (deep && rel < 0.7 - 0.2 * east && mid < 0.05 + 0.04 * (1 - rel)) return L > 0.45 ? R.snow[3] : R.snow[2];
+      if (spur < 0.09) return west ? R.rock[4] : R.rock[0];
+      return rock;
+    }
     // Snow gullies run up the wall from the ice to the notches between its summits.
     { const dx = (u - SP.cu) / SP.wide, up = hh - SP.base - under(SP.cu, SP.cv - 34) - 4; for (const [o, top, k] of GULLY) { const t = up / (top * SP.H); if (t > 0 && t < 1 && Math.abs(dx - o - 3 * Math.sin(hh / 9 + k)) < 1 + k * 0.5 + (3 + 2 * k) * sq(1 - t)) return R.snow[L > 0.4 ? 4 : 3]; } }
     if (steep < 0.9) return R.snow[L > 0.5 ? 4 : 3];
-    return frac(row) < 0.15 && hash(band, Math.floor(row), 815) < 0.26 ? R.snow[L > 0.4 ? 4 : 3] : rock;
+    // The towers (art pass A01): long vertical cracks, broken here and there, and snow on a few ledges only
+    // in the top quarter of the wall. The white dashes that used to cover the whole face read as rain.
+    { const dx = (u - SP.cu) / SP.wide, up = (hh - SP.base - under(SP.cu, SP.cv - 34)) / SP.H, c = (dx + 1.2 * Math.sin(hh / 13 + dx / 9)) / 3.3;
+      if (Math.abs(frac(c) - 0.5) < 0.12 && vnoise(c * 1.7, hh / 12, 862) > 0.36) return R.rock[Math.max(0, R.rock.indexOf(rock) - 1)];
+      if (up > 0.75 && frac(row) < 0.12 && hash(band, Math.floor(row), 815) < 0.22) return R.snow[L > 0.4 ? 4 : 3]; }
+    return rock;
   }
   if (mat === 'volc') {
     // Lit from the west; the east flank turns away into blue shadow.
@@ -694,9 +884,36 @@ function colour(u, v, hh, x, y) {
       if (ta > 0.3 && snowPatch(u, v)) return hash(x, y, 908) < 0.1 ? R.snow[2] : R.snow[L > 0.4 ? 4 : 3];
       if (bayer(x, y) < ta * 1.6) { const yy = y + Math.floor(3 * hash(x >> 2, 0, 911)), by = (yy / 3) | 0, bx = ((x + 2.6 * hash(by, 1, 912)) / (3 + ((hash(by, 2, 913) * 3) | 0))) | 0, q = hash(bx, by, 909), row = yy - by * 3; if (q < 0.14) return R.rock[0]; return row === 2 ? R.rock[q < 0.5 ? 0 : 1] : R.rock[clamp(Math.round(1.4 + 2.2 * L + 1.2 * (q - 0.5) + (row === 0 ? 1 : 0)), 1, 4)]; }
     }
-    if (steep > 0.75 || mat === 'fin') { const crack = vnoise(x / 2.2, hh / 26, 902), streak = vnoise(x / 5, hh / 40, 903); const k = clamp(Math.round(1.5 + 2.9 * L + (streak > 0.62 ? -1.1 : 0) + (crack > 0.74 ? -1.4 : crack < 0.2 ? 0.5 : 0) + (b2(x, y) - 0.5) * 0.9), 0, 5); return k === 5 ? R.gold[6] : R.rock[k]; }
+    // Art pass A04: the fin is warm granite in tall planes, not the walls' grey. Each plane is lit; the
+    // corner on its east side, which turns away from the sun, is in cool shadow, and so is the east end
+    // of the ridge; the teeth on the ridge stand dark against the sky, the summit block catches the light
+    // on top, and a few thin cracks run down the face. fx is the place across the fin in the profile's
+    // units, dt how far below the fin's top a pixel is.
+    if (mat === 'fin' && PF) {
+      const fx = (u - PF.cu) * 150 / PF.w, dt = PF.base + PF.hgt * PP(fx) - hh, G = R.granite;
+      const east = smooth(28, 56, fx), foot = smooth(30, 4, hh - PF.base), tower = fx < -44.5;
+      const lx = fx - 0.05 * (hh - PF.base), k = FIN_EDGES.findIndex(e => e > lx), a0 = FIN_EDGES[k - 1] ?? -80, a1 = FIN_EDGES[k] ?? 80, pf = (lx - a0) / (a1 - a0), wide = a1 - a0;
+      // The fin's narrow top, seen from above: lit on the summit block and the tower, a step darker along
+      // the ridge east of the summit, where the teeth turn away from the sun.
+      if (v >= PF.cv && v < PF.cv + 10 && dt < 3) return fx >= -6 && fx <= 5 ? R.gold[6] : fx > 5 ? G[east > 0.5 ? 2 : 3] : G[5];
+      if (tower && fx > -47.5) return G[b2(x, y) < 0.5 ? 1 : 2];
+      const sh = 1 - (1.5 + 0.3 * wide * (0.3 + 0.7 * hash(k, 8, 971))) / wide;
+      const run = dt > 3 + 20 * hash(k, 5, 968);
+      if (!tower && pf > sh && run) return G[pf > 1 - 1.2 / wide ? 1 : east > 0.5 || pf > 1 - 0.45 * (1 - sh) ? 2 : 3];
+      if (!tower && run && pf < 0.9 / wide && east < 0.5) return dt < 30 ? R.gold[6] : G[5];
+      if (hash(k, 2, 963) < 0.35 && Math.abs(pf - 0.4 - 0.1 * hash(k, 3, 964)) < 0.5 / wide && dt > 6 && dt < 20 + 60 * hash(k, 4, 965)) return G[2];
+      const lit = 0.86 - 0.5 * east - 0.3 * foot + 0.16 * (vnoise(lx / 5, hh / 14, 966) - 0.5) - (tower ? 0.12 * smooth(-61, -47, fx) : 0.3 * pf * pf) + 0.2 * (hash(k, 7, 970) - 0.5) + 0.1 * smooth(60, 0, dt);
+      return G[clamp(Math.round(1 + 4.2 * lit + (b2(x, y) - 0.5) * 0.6), 1, 5)];
+    }
+    if (steep > 0.75 || mat === 'fin') return wallRock(x, y, hh, L, 1, R.grass[2]);
+    // A05, after a picture of the Enchantments: the benches' tops are glacier-polished slabs of warm
+    // granite, rounded pillows of every size, each lit on its upper left and a step darker toward its
+    // lower right, parted by thin dark cracks. Heather fills the hollows where it grew before.
     const slab = fbm(u / 22, v / 11, 96, 3);
-    return slab > 0.4 ? pick('rock', 0.82 + 0.4 * (slab - 0.5) + 0.2 * n1, x, y, 0.7) : hash(u, v, 98) < 0.06 ? R.red[1] : pick('grass', 0.42 + 0.2 * n1, x, y, 0.4);
+    if (slab <= 0.4) return hash(u, v, 98) < 0.06 ? R.red[1] : pick('grass', 0.42 + 0.2 * n1, x, y, 0.4);
+    const sl = slabAt(u, v), G = R.granite;
+    if (sl.edge < 1.2 && sl.lr > -0.1) return G[sl.lr > 0.45 ? 2 : 3];
+    return G[clamp(Math.round(4.95 - 0.55 * sl.lr - 1.1 * Math.max(0, sl.lr) * smooth(8, 2, sl.edge) + 0.3 * (L - 0.5) + (b2(x, y) - 0.5) * 0.4 + 0.2 * n1), 3, 5)];
   }
   // The ground behind the crest, glimpsed between its peaks against the sky, is more mountain, not meadow.
   if (u > 760 && v > 684) return hh > 128 && vnoise(x / 3, hh / 12, 829) > 0.45 + 0.3 * smooth(1240, 1700, u) ? R.snow[L > 0.5 ? 4 : 3] : pick('rock', 0.3 + 0.45 * L + 0.15 * vnoise(x / 3, hh / 10, 97), x, y, 0.7);
@@ -713,8 +930,8 @@ function colour(u, v, hh, x, y) {
     return bayer(x + 1, y) < 0.45 * smooth(470, 740, v) ? HILLHAZE[c] : c; }
   // Land. A step in it shows the rock of its own country.
   // The golden hills' swells are grass to their crests, lit and shaded, never rock.
-  if (steep > 1.05 && palAmt(u, v) > 0.3) return pick('dry', 0.12 + 0.95 * L, x, y, 0.5);
-  if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? ((x >> 1) % 4 === 0 ? R.basalt[0] : R.basalt[1 + (hash(x >> 1, 0, 91) * 2.9 | 0)]) : u > 1190 ? pick('rock', 0.36 + 0.42 * vnoise(x / 3, hh / 10, 97) + 0.15 * L, x, y, 0.7) : ((ld, ck) => ld < 0.22 && hash(x, y, 100) < 0.75 ? pick('moss', 0.3 + 0.35 * L, x, y) : ck > 0.74 ? R.rock[0] : pick('rock', 0.14 + 0.5 * vnoise(x / 3, hh / 5, 97) + 0.25 * L, x, y, 0.7))(frac(hh / 4.5 + 0.7 * vnoise(x / 9, 3, 98)), vnoise(x / 2.2, hh / 9, 99));
+  if (steep > 1.05 && palAmt(u, v) > 0.3) return palouse(u, v, hh, x, y, L, steep);
+  if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? basaltWall(u, v, hh, x, y, L) : wallRock(x, y, hh, L, 2, u > 1190 ? null : R.moss[1]);
   const sh = (L - 0.5) * 0.5, blot = s => 0.5 + 0.85 * (fbm(u / 32, v / 21, s, 3) - 0.5) + 0.2 * n1;
   // The bog: bright sphagnum moss with dark peaty pools in it, the moss darker towards its edge.
   { const e = bogAt(u, v); if (e < 1) return fbm(u / 6, v / 4, 471, 2) > 0.52 && e < 0.85 ? (hash(u, v, 472) < 0.07 ? R.water[1] : R.moss[0]) : pick('moss', 0.62 + 0.3 * fbm(u / 5, v / 4, 473, 2) - 0.3 * e, x, y, 0.4); }
@@ -723,11 +940,14 @@ function colour(u, v, hh, x, y) {
   if (larchAmt(u, v) > blot(181) && bu < 0.5) { const slab = fbm(u / 22, v / 11, 96, 3); return slab > 0.58 ? pick('rock', 0.85 + 0.2 * n1, x, y, 0.7) : hash(u, v, 98) < 0.06 ? R.red[1] : hash(u, v, 99) < 0.05 ? R.larch[3] : pick('grass', 0.42 + sh + 0.2 * n1, x, y, 0.4); }
   // The burn's ground: grass and ash. Its fireweed stands on it as things that sway (I1), not painted here.
   if (bu > blot(182)) { return fbm(u / 24, v / 16, 100, 3) > 0.56 ? pick('grass', 0.3, x, y, 0.5) : pick('ash', 0.4 + 0.5 * fbm(u / 14, v / 9, 102, 3), x, y); }
-  if (da > blot(183) && palAmt(u, v) > blot(184)) return pick('dry', 0.22 + 0.95 * L + 0.18 * (fbm(u / 60, v / 40, 185, 2) - 0.5), x, y, 0.5);
+  if (da > blot(183) && palAmt(u, v) > blot(184)) return palouse(u, v, hh, x, y, L, steep);
   if (da > blot(183)) { const sg = sageAmt(u, v); return hash(u >> 1, v >> 1, 103) < 0.04 + sg * 0.3 ? R.sage[1 + (hash(u, v, 104) < 0.5 ? 0 : 1)] : pick('dry', 0.5 + 0.5 * (fbm(u / 24, v / 14, 105, 3) - 0.5) + sh + sg * 0.1, x, y); }
   // High ground with no forest on it goes from meadow to bare rock and then snow.
   if (hh > 96 + 30 * vnoise(u / 30, v / 30, 828)) return hh > 150 ? R.snow[L > 0.5 ? 4 : 3] : pick('rock', 0.3 + 0.5 * L, x, y);
-  return pick('grass', 0.56 + 0.55 * (fbm(u / 26, v / 26, 31, 3) - 0.5) + 0.14 * (hash(x >> 1, y >> 1, 32) - 0.5) + sh - fa * 0.45 + da * 0.2, x, y, 0.3);
+  // The turf lies in soft patches (art pass D04, after a meadow painted for the game): sunlit drifts of
+  // lighter grass and darker hollows with a crisp edge, over the slow swell, instead of an even speckle.
+  const pt = vnoise(u / 13, v / 8, 34) + 0.2 * (vnoise(u / 4, v / 3, 35) - 0.5), patch = pt > 0.63 ? 0.17 : pt < 0.3 ? -0.13 : 0;
+  return pick('grass', 0.56 + 0.5 * (fbm(u / 26, v / 26, 31, 3) - 0.5) + patch + 0.06 * (hash(x >> 1, y >> 1, 32) - 0.5) + sh - fa * 0.45 + da * 0.2, x, y, 0.3);
 }
 function b2(x, y) { return bayer(x, y); }
 
@@ -851,7 +1071,11 @@ let MONO_OY = 0;
     const topAt = x => MONO_OY + Math.floor(e.snout(x - MONO_OX)) + 1, yc = topAt(xc) + rv - 1;
     for (let dx = -hw - 2; dx <= hw + 2; dx++) { const x = xc + dx, f = Math.abs(dx) / hw;
       const yTop = topAt(x), yBot = yc + Math.round(rv * Math.sqrt(Math.max(0, 1 - f * f)) + 0.6 * (vnoise(x / 4, 3, 951) - 0.5));
-      if (f < 1) for (let y = yTop; y <= yBot; y++) paint(x, y, bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(x / 6, y / 3, 952), x, y));
+      // A12, after a picture of a tarn at a glacier's snout: a dark line of shadow on the water under the ice
+      // front, pale silty water near the ice with faint plumes spreading from it, a deeper turquoise in the
+      // middle, and pale shallows along the shore and round the ends.
+      if (f < 1) for (let y = yTop; y <= yBot; y++) { const T = R.tarn, ty = (y - yTop) / Math.max(1, yBot - yTop), shore = Math.max(f * f, ty) + 0.08 * (bayer(x, y) - 0.5);
+        paint(x, y, y === yTop ? T[1] : y === yTop + 1 && hash(x, 1, 954) < 0.5 ? T[2] : shore > 0.86 ? T[5] : shore > 0.74 ? (bayer(x, y) < 0.5 ? T[5] : T[4]) : ty < 0.34 + 0.12 * vnoise(x / 5, 4, 955) ? (vnoise(x / 4 + y * 0.5, y / 2, 956) > 0.58 ? R.glac[4] : T[4]) : hash(x >> 1, y, 957) < 0.08 ? T[4] : T[3]); }
       // The rim: a low bank of moraine along the near shore and round the ends, pale on top, and a notch
       // at the middle where the stream leaves.
       if (Math.abs(dx) <= 1) { paint(x, yBot + 1, R.water[2]); continue; }
@@ -919,13 +1143,16 @@ for (const br of BRIDGES) {
     g[i] = k === 'snow' || k === 'farsnow' || k === 'glac' ? R.water[4] : k === 'conifer' || k === 'moss' || k === 'grass' || k === 'mist' ? R.water[1] : R.water[2];
   }
 }
-// Tufts of grass: a small arch with a dark root.
+// Tufts of grass (D04, after the meadow painted for the game): a V of two blades from a dark root, the
+// left tip lit, the right a step darker. Placed by the same dice as the arches they replace.
 {
   const r0 = rng(5);
   for (let n = 0; n < 30000; n++) {
     const x = 2 + (r0() * (NW - 4)) | 0, y = 300 + (r0() * (SH - 302)) | 0, i = px(x, y), k = KIND[g[i]]; if ((k !== 1 && k !== 2) || mb[i] !== 0) continue;
     if (KIND[g[i - NW]] !== k || KIND[g[i - 2 * NW]] !== k || !sameGround(i, i - 2 * NW)) continue;
-    const r = R[k === 1 ? 'grass' : 'moss']; g[i - 2 * NW] = r[r.length - 1]; g[i - NW - 1] = r[r.length - 2]; g[i - NW + 1] = r[r.length - 2]; g[i] = r[1];
+    const r = R[k === 1 ? 'grass' : 'moss'], L = r.length - 1;
+    if (KIND[g[i - 2 * NW - 1]] !== k || KIND[g[i - 2 * NW + 1]] !== k) continue;
+    g[i] = r[1]; g[i - NW] = r[L - 2]; g[i - 2 * NW - 1] = r[L]; g[i - 2 * NW + 1] = r[L - 1];
   }
 }
 // Wildflowers are not painted into the ground any more: they are things that stand up and sway (D5a,
@@ -1148,7 +1375,7 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   // The bigleaf maples stood still as one drawing until round 6 (I1): now their crowns sway as every tree's does.
   const bigleaf = Array.from({ length: 4 }, (_, i) => ({ ...swaying(blobTree(800 + i, i & 1 ? 'larch' : 'sun', 36 + i * 2, 'bark', 5, 5.5)), low: false }));
   const larches = Array.from({ length: 6 }, (_, i) => { const r = rng(900 + i); return makeConifer(900 + i, 24 + (r() * 14 | 0), 10 + (r() * 4 | 0), 'larch', 6); });
-  const pines = Array.from({ length: 5 }, (_, i) => makePonderosa(820 + i)), aspens = Array.from({ length: 7 }, (_, i) => makeAspen(600 + i)), snags = Array.from({ length: 5 }, (_, i) => makeSnag(730 + i));
+  const pines = Array.from({ length: 5 }, (_, i) => makePonderosa(820 + i)), aspens = Array.from({ length: 7 }, (_, i) => makeAspen(600 + i)), snags = Array.from({ length: 5 }, (_, i) => makeSnag(730 + i, i % 2 ? 'char' : 'silver'));
   // The rainforest (E5b2, after the Olympic Peninsula): below the ranks on the hills, a mix picked by how
   // wet the spot is. Wet (by the sea, the valley floors, the trail): mostly mossy maples, Sitka spruce
   // and redcedar, with a gold bigleaf maple now and then. Drier (up the hills, the east edge): mostly
@@ -1360,6 +1587,26 @@ if (!B) for (const [su, sv] of STACKS) { const fy = Math.round(SY - sv - hAt(su,
 // Nothing grows on the lookout's cleared summit (E5j). Taken out after every roll of the dice, so
 // nothing else moves.
 for (const list of [things, RANKTREES]) for (let k = list.length - 1; k >= 0; k--) { const th = list[k], u = th.u ?? th.x; if (lookAmt(u, th.v) > 0.2) list.splice(k, 1); }
+// A10, after a picture of Reflection Lakes under the real volcano: the lake mirrors Monolith. Seen from the
+// map's height a true mirror would only show the meadow behind the lake, so the reflection is the one a
+// walker on the shore would see: in each column the volcano, from its foot up, is turned upside down along
+// the far shore and squeezed to about three quarters of the lake, mixed toward deep water. Below it the
+// water is plain deep blue, the pale shallow rim is kept, and a few broken pale ripple lines cross it.
+if (!B) { const VI = MATS.indexOf('volc'), [lcu, , lru] = C.lakes[0], REFL = mixTable(R.water[1], 0.3, ['water', 'ice', 'glac', 'snow', 'sky', 'far', 'hill', 'conifer', 'grass', 'moss', 'rock', 'tarn', 'mist', 'gold']);
+  const open = (x, y) => { const v = zb[px(x, y)]; return v < VD && lakeAt(x, v) === 'lake' && isle(x, v) >= 1 && !water[at(x, Math.round(v))]; };
+  const span = x => { let top = -1, bot = -1; for (let y = 0; y < SH; y++) if (open(x, y)) { if (top < 0) top = y; bot = y; } let foot = -1, peak = -1; if (top >= 0) for (let y = top - 1; y >= 0; y--) if (mb[px(x, y)] === VI) { if (foot < 0) foot = y; peak = y; } return { top, bot, foot, peak }; };
+  const mid = span(lcu), squeeze = mid.foot > 0 ? (mid.foot - mid.peak) / Math.max(4, 0.75 * (mid.bot - mid.top)) : 1;
+  for (let x = Math.max(0, lcu - lru - 6); x <= Math.min(NW - 1, lcu + lru + 6); x++) {
+    const { top, bot, foot } = span(x); if (top < 0) continue;
+    const reach = top + (bot - top) * (0.78 + 0.14 * (vnoise(x / 7, 0, 1404) - 0.5));
+    for (let y = top; y <= Math.min(bot, reach); y++) { const i = px(x, y); if (!open(x, y) || lakeIn(x, Math.round(zb[i])) < 0.1 || RAMP_OF[g[i]] !== 'water') continue;
+      const sy = foot < 0 ? -1 : Math.round(foot - (y - top) * squeeze), c = sy >= 0 && mb[px(x, sy)] === VI ? g[px(x, sy)] : 0;
+      if (!c) continue;
+      // At this size only the snow and the rock read: the glaciers pale, the cleavers dark, the rest water.
+      const k = RAMP_OF[c], snowy = k === 'snow' || k === 'glac' || k === 'ice' || k === 'white' || k === 'serac', rocky = k === 'rock' || k === 'gold' || k === 'granite' || k === 'basalt';
+      if (!snowy && !rocky) continue;
+      g[i] = (y + Math.floor(6 * hash(x >> 3, 0, 1401))) % 6 === 0 && hash(x >> 1, y, 1402) < 0.55 ? R.water[3] : snowy ? REFL[c] : R.water[0];
+    } } }
 things.sort((a, b) => b.v - a.v);
 const live = [], HAZE = [0.1, 0.18, 0.27, 0.36].map(veilTable);
 for (const th of things) {

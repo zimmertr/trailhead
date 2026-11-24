@@ -53,11 +53,14 @@ function sideFig(kitName, o = {}) {
   for (let y = sh[1]; y <= sh[1] + (k.packW > 1 ? 5 : 3); y++) for (let x = 1; x <= k.packW; x++) b.set(hip[0] - 2 - x + Math.round((hip[1] - y) / 6 * lean), y, k.pack[x === k.packW ? 0 : 1]);
   for (let y = sh[1] - 1; y <= hip[1]; y++) for (let x = -2; x <= 2; x++) {
     const l = Math.round((hip[1] - y) / 6 * lean);
-    let c = y >= hip[1] - 1 ? k.upper[1] : x === -2 ? k.top[0] : x === 2 ? k.top[2] : k.top[1];
+    // Lit down his back, which faces the light from the upper left.
+    let c = y >= hip[1] - 1 ? k.upper[1] : x === -2 ? k.top[2] : x === 2 ? k.top[0] : k.top[1];
     if (y < hip[1] - 1 && x === 1 && k.strap) c = k.strap;
     b.set(hip[0] + x + l, y, c);
   }
   if (k.flask) b.set(hip[0] + 2 + lean, sh[1] + 1, k.flask);
+  // The sun hoody's hood, bunched behind his neck.
+  if (k.top === R.sun) { const x = hip[0] - 2 + lean; b.set(x, sh[1] - 2, k.top[2]); b.set(x - 1, sh[1] - 1, k.top[1]); b.set(x + 1, sh[1] - 2, k.top[1]); }
   if (k.rack) rackOn(b, hip[0], hip[1], [-2, -1, 0, 1, 2]);
   leg(0, false); if (!o.armOver) arm(0, false);
   const hd = o.head || [0, 0], cx = sh[0] + 1 + hd[0], cy = sh[1] - 6 + hd[1];
@@ -82,6 +85,8 @@ function head(b, k, cx, cy, view, look) {
     if (view === 'back') return ry >= 3 && !k.long ? R.skin[1] : hr[ry >= 2 ? 0 : 1];
     if (view === 'side') {
       if (nx < -0.4) return ry >= 2 && !k.long ? R.skin[1] : hr[k.long && nx < -0.78 ? 0 : 1];
+      // The beard runs up the jaw to a sideburn in front of the ear.
+      if (beard && ry >= 1 && nx < -0.3) return hr[1];
       if (beard && ry >= 4 + dy && nx > -0.3) return hr[1];
       if (beard && ry === 3 + dy && nx > -0.3 && nx < 0.35) return hr[1];
       return R.skin[nx > 0.5 ? 1 : 2];

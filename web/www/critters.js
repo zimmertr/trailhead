@@ -1,23 +1,27 @@
 // The animals of the world map and the water that moves: herds that graze and wander, a moose and its calf, bears with cubs, squirrels
 // and chipmunks that dart, marmots that sit up and whistle, birds that circle, a whale, jellyfish, the
 // ferry, the mist, and the swells and the wash on the beach. The world scene draws them; so does the block-in page, at time 0.
-import { TAU, clamp, lerp, smooth, frac, hash, vnoise, bayer, rng, R, INK, SHADE, KIND, RAMP_OF, BM, outline, thick, pick, veilTable, DEBUG } from './core.js';
-import { makeElk, makeBird, makeMoose } from './sprites.js';
-import { ell, goat, marmot } from './fauna.js';
+import { TAU, clamp, lerp, smooth, frac, hash, vnoise, bayer, rng, R, INK, SHADE, KIND, RAMP_OF, BM, outline, litBack, thick, pick, veilTable, DEBUG } from './core.js';
+import { makeElk, makeMoose } from './sprites.js';
+import { ell, goat, marmot, speck } from './fauna.js';
 import { NW, NH } from './land.js';
 import { makeCollide } from './collide.js';
 import { NAMES } from './content.js';
 
-// A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass.
+// A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass. Its shoulders
+// rise in a hump above its back, its ears are round and its muzzle tan, and its fur shines along the top
+// (art pass D06, after a bear painted for the game).
 export function mapBear(pose, step = 0) {
   const b = new BM(28, 17); b.ox = 12; b.oy = 16;
   const fur = (nx, ny, x, y) => pick('fur', 0.42 - ny * 0.3 + 0.2 * (hash(x, y, 4) - 0.5), x, y, 0.6);
   for (const [lx, far] of [[6, 1], [8, 0], [16, 1], [18, 0]]) { const sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 10, lx + sw, 15, 2, R.fur[far ? 0 : 1]); }
-  ell(b, 12, 8, 8, 4.4, fur); ell(b, 7, 7.5, 4, 4, fur); ell(b, 16, 6.5, 3.6, 3.4, fur);
+  ell(b, 12, 8, 8, 4.4, fur); ell(b, 7, 7.5, 4, 4, fur); ell(b, 15.5, 5.6, 3.9, 3.6, fur);
   const hx = pose === 'sniff' ? 22 : 22, hy = pose === 'sniff' ? 12 : 6;
   thick(b, 18, 7, hx - 1, hy, 4, R.fur[1]); ell(b, hx, hy, 2.8, 2.5, fur);
-  b.set(hx + 3, hy + 1, R.dirt[2]); b.set(hx + 4, hy + 1, R.dirt[2]); b.set(hx + 3, hy + 2, R.dirt[1]);
-  b.set(hx - 1, hy - 3, R.fur[1]); b.set(hx + 1, hy - 3, R.fur[1]); b.set(hx + 1, hy - 1, R.white[1]);
+  b.set(hx + 2, hy, R.dirt[3]); b.set(hx + 3, hy, R.dirt[3]); b.set(hx + 3, hy + 1, R.dirt[2]); b.set(hx + 4, hy + 1, R.dirt[2]); b.set(hx + 3, hy + 2, R.dirt[1]); b.set(hx + 5, hy + 1, INK);
+  for (const [x, y] of [[hx - 2, hy - 3], [hx - 1, hy - 3], [hx - 2, hy - 4], [hx + 1, hy - 3]]) b.set(x, y, R.fur[2]);
+  b.set(hx + 1, hy - 1, R.white[1]);
+  litBack(b);
   outline(b, INK);
   return b;
 }
@@ -40,8 +44,9 @@ export function mapCub(pose, step = 0) {
     for (const [lx, far] of [[4, 1], [5, 0], [8, 1], [9, 0]]) { const sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 8, lx + sw, 10, 1, R.fur[far ? 0 : 1]); }
     ell(b, 6.5, 6.5, 3.6, 2.3, fur);
     const hx = 11, hy = pose === 'sniff' ? 8 : 5;
-    ell(b, hx, hy, 2.1, 1.8, fur); b.set(hx - 1, hy - 2, dark); b.set(hx + 1, hy - 2, dark); b.set(hx + 2, hy + 1, R.dirt[2]);
+    ell(b, hx, hy, 2.1, 1.8, fur); b.set(hx - 1, hy - 2, dark); b.set(hx + 1, hy - 2, dark); b.set(hx + 2, hy + 1, R.dirt[3]);
   }
+  litBack(b);
   outline(b, INK);
   return b;
 }
@@ -206,8 +211,10 @@ export function makeCritters(W, opts = {}) {
   // landWay is a straight line clear of all that.
   const land = (x, y) => col.canBe('land', x, y, 0), landWay = (x0, y0, x1, y1) => way(land, x0, y0, x1, y1);
   const besideHer = (a, d, dy) => { const M = a.mum, B = a.sib, sd = a.n ? 1 : -1, tw = !B ? null : B.st === 'walk' && B.goal === 'mum' ? [M.fx + B.off[0], M.fy + B.off[1]] : [B.fx, B.fy];
-    for (const o of [[sd * d, dy], [-sd * d, dy + 1], [sd * d, -1], [-sd * d, -2], [sd * d, dy + 7], [-sd * d, dy + 8], [sd * 13, 7], [-sd * 13, 8]]) { const x = M.fx + o[0], y = M.fy + o[1]; if (tw && Math.hypot(x - tw[0], y - tw[1]) < 10) continue; if (M.ok(x, y) && land(x - 5, y) && land(x + 5, y) && way(M.ok, M.fx, M.fy, x, y)) return o; }
-    return [sd * 8, 7]; };
+    for (const o of [[sd * d, dy], [-sd * d, dy + 1], [sd * d, -1], [-sd * d, -2], [sd * d, dy + 7], [-sd * d, dy + 8], [sd * 13, 7], [-sd * 13, 8]]) { const x = M.fx + o[0], y = M.fy + o[1]; if (tw && Math.hypot(x - tw[0], y - tw[1]) < 10) continue; if (M.ok(x, y) && land(x, y) && land(x - 5, y) && land(x + 5, y) && way(M.ok, M.fx, M.fy, x, y)) return o; }
+    // Nothing at her side: the nearest ground a cub may stand on, so a cramped spot never puts one in the water or a rock.
+    for (let r = 4; r <= 26; r += 2) for (let k = 0; k < 12; k++) { const o = [Math.round(Math.cos(k / 12 * TAU) * r), Math.round(Math.sin(k / 12 * TAU) * r * 0.6)]; if (land(M.fx + o[0], M.fy + o[1]) && way(land, M.fx, M.fy, M.fx + o[0], M.fy + o[1])) return o; }
+    return [0, 1]; };
   const toSide = a => { a.st = 'walk'; a.goal = 'mum'; a.hop = a.lift = 0; a.off = besideHer(a, 21 + rand() * 5, 3 + rand() * 4); };
   function cubStep(a, dt, t) {
     const M = a.mum, B = a.sib, side = a.n ? 1 : -1, dM = Math.hypot(a.fx - M.fx, (a.fy - M.fy) / 0.6);
@@ -732,15 +739,26 @@ export function makeCritters(W, opts = {}) {
       if (q < 0.45 && hash(Math.floor(s / 4.2), i, 6302) < 0.35) { const k = q / 0.45, hgt = Math.round(3 + 4 * k); for (let j = 0; j < hgt; j++) { if (k > 0.6 && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 3 ? 1 : 0; scr.set(x + 3 - sp, y - 3 - j, R.white[1]); if (sp) scr.set(x + 3 + sp, y - 3 - j, R.white[1]); } }
     });
   }
-  // The back above the water by h (0 to 1): a black arc with the grey saddle behind the fin, the fin on
-  // top, and white water where it cuts the surface.
+  // The back above the water by h (0 to 1). A14, after a picture of four orcas surfacing: a glossy black arc
+  // lit along its top on the sun's side (upper left) and dark on the other, the grey saddle just behind the
+  // fin, the white eye patch at the head end as it comes up, the fin lit on its left edge (the bull's tall
+  // and straight, the cows' smaller and curved back), white water at the bow and a thin wake behind.
   function orcaBack(scr, x, y, h, bull, t, i) {
-    for (let dx = -8; dx <= 8; dx++) { const top = Math.round(h * 3.6 * (1 - (dx / 8.6) ** 2)); for (let j = 1; j <= top; j++) scr.set(x + dx, y - j, j === top ? INK : (dx === -3 || dx === -4) && j >= top - 2 && j < top && h > 0.6 ? R.rock[4] : R.navy[0]); }
-    const fh = Math.round((bull ? 11 : 6) * h), base = y - Math.round(h * 3.6);
-    for (let j = 1; j <= fh; j++) { const lean = bull ? 0 : -Math.round(1.5 * (j / fh) ** 1.5), w = j < fh * 0.55 ? 2 : 1; for (let k = 0; k < w; k++) scr.set(x + 1 + lean - k, base - j, INK); }
-    if (h > 0.5) for (let dx = 4; dx <= 5; dx++) scr.set(x + dx, y - 1, R.white[1]);
+    const N = R.navy, top = dx => Math.round(h * 3.6 * (1 - (dx / 8.6) ** 2));
+    for (let dx = -8; dx <= 8; dx++) { const tp = top(dx); for (let j = 1; j <= tp; j++) {
+      let c = N[0];
+      if (j === tp) c = dx < 2 ? N[2] : INK;
+      else if (j === tp - 1 && dx < -1 && dx > -7) c = N[1];
+      if (h > 0.55 && dx >= -5 && dx <= -2 && j >= tp - 2 && j < tp && dx + (tp - j) > -6) c = j === tp - 1 ? R.rock[4] : R.rock[3];
+      if (h > 0.6 && (dx === 5 || dx === 6) && j === 1) c = R.white[1];
+      scr.set(x + dx, y - j, c); } }
+    const fh = Math.round((bull ? 11 : 6) * h), base = y - top(1);
+    for (let j = 1; j <= fh; j++) { const lean = bull ? 0 : -Math.round(1.6 * (j / fh) ** 1.5), w = j < fh * 0.55 ? 2 : 1;
+      for (let k = 0; k < w; k++) scr.set(x + 1 + lean - k, base - j, w === 2 && k === 1 ? N[2] : w === 1 && j < fh ? N[1] : INK); }
     const beat = Math.floor(t * 6);
+    if (h > 0.4) for (let dx = 7; dx <= 9; dx++) if (hash(dx, beat + i * 9, 6305) < 0.7) scr.set(x + dx, y - (dx === 7 ? 1 : 0), R.white[1]);
     for (let dx = -11; dx <= 11; dx++) if (Math.abs(dx) > 7 - h * 3 && hash(dx, beat + i * 9, 6303) < 0.55) scr.set(x + dx, y, R.white[1]);
+    for (let dx = -16; dx < -9; dx++) if (hash(dx, beat + i * 5, 6306) < 0.35 * h) scr.set(x + dx, y + (dx & 1), R.white[0]);
   }
   // A spyhop: the head rises straight up out of the water, holds and slides back down.
   function spyhop(scr, x, y, v, t) {
@@ -765,11 +783,14 @@ export function makeCritters(W, opts = {}) {
     const px = [];
     for (let dy = -ry - 4; dy <= ry + 4; dy++) for (let dx = -rx - 4; dx <= rx + 4; dx++) {
       if (wet(dx, dy)) { const r = rr(dx, dy), edge = !wet(dx - 1, dy) || !wet(dx + 1, dy) || !wet(dx, dy + 1), under = !wet(dx, dy - 1);
-        px.push([dx, dy, under ? R.sea[1] : edge ? R.sea[4] : r < 0.5 && ((dx + dy) & 1) ? R.sea[2] : R.sea[3]]); at.set(key(dx, dy), 1); continue; }
+        px.push([dx, dy, under ? R.sea[1] : edge ? (hash(x + dx, y + dy, 6116) < 0.12 ? R.pink[1] : R.sea[4]) : r < 0.42 ? R.sea[2] : r < 0.62 && ((dx + dy) & 1) ? R.sea[2] : R.sea[3]]); at.set(key(dx, dy), 1); continue; }
       let near = false; for (let b = -2; b <= 2 && !near; b++) for (let a = -2; a <= 2; a++) if (Math.abs(a) + Math.abs(b) <= 3 && wet(dx + a, dy + b)) { near = true; break; }
-      if (!near) { if (wet(dx, dy - 3) || wet(dx - 1, dy - 3) || wet(dx + 1, dy - 3)) px.push([dx, dy, R.sand[0]]); continue; }
+      // A15, after a picture of tide pools on the Olympic coast: the rim is dark wet rock, its far side lit on top
+      // and crusted with white barnacles and black mussels, its near side in shade with olive weed hanging over
+      // the sand below it.
+      if (!near) { const hang = wet(dx, dy - 3) || wet(dx - 1, dy - 3) || wet(dx + 1, dy - 3); if (hang) px.push([dx, dy, hash(x + dx, 7, 6117) < 0.45 ? R.moss[hash(x + dx, y + dy, 6118) < 0.5 ? 2 : 3] : R.sand[0]]); else if ((wet(dx, dy - 4) || wet(dx, dy - 5)) && hash(x + dx, 7, 6117) < 0.2) px.push([dx, dy, R.moss[2]]); continue; }
       const far = wet(dx, dy + 1) || wet(dx, dy + 2), front = wet(dx, dy - 1) || wet(dx, dy - 2), k = hash(x + dx, y + dy, 6115);
-      px.push([dx, dy, far ? (k < 0.12 ? R.white[0] : wet(dx, dy + 1) ? R.rock[3] : R.rock[4]) : front ? (k < 0.07 ? R.white[0] : wet(dx, dy - 1) ? R.rock[1] : R.rock[0]) : R.rock[k < 0.5 ? 2 : 1]]); }
+      px.push([dx, dy, far ? (k < 0.16 ? R.white[1] : k < 0.26 ? R.jay[0] : wet(dx, dy + 1) ? R.rock[2] : R.rock[3]) : front ? (k < 0.08 ? R.white[0] : k < 0.2 ? R.jay[0] : wet(dx, dy - 1) ? R.rock[1] : R.rock[0]) : k < 0.1 ? R.white[0] : R.rock[k < 0.5 ? 1 : 0]]); }
     return { x, y, rx, ry, life, px, wet }; };
   const bared = (x, y) => { const c = csAt(x, y); return c >= 6 && c - 4 <= EBB - 8; };
   // The pool to find (E7, and round 5's T33: "about twice the size"): one big basin, 27 by 13, beside the
@@ -941,7 +962,7 @@ export function makeCritters(W, opts = {}) {
   }
 
   // ---- birds that circle, each with its shadow on the ground --------------------------------
-  const ink = [makeBird(0), makeBird(1)], gull = ink.map(b => tint(b, R.white[1]));
+  const ink = [speck(0), speck(1)], gull = ink.map(b => tint(b, R.white[1]));
   // Where each flock circles comes from the land (land.js, habitat).
   const FLOCKS = (W.flocks || []).map(F => ({ ...F, bm: F.gull ? gull : ink }));
 

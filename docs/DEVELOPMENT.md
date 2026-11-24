@@ -53,7 +53,7 @@ Plain ES modules with no dependencies:
 - `land.js`: the map. Heights and materials, rivers and lakes, the trails (routed by least cost from the Trailhead), footbridges, the coast, the dry edge, the glacier, every planted thing, the fire lookout, the flower drifts, the animals' homes (`habitat()`) and `buildTerrain()`. `bake.sh` keeps its slow work in `ground.png`.
 - `world.js`: the map scene: drawing order, taps (`pick`), name tags, the camera and the opening, the night sky and Dusk. `monolith.js` paints Mount Monolith.
 - `critters.js`: everything on the map that moves. `mapfauna.js` and `scenery.js` hold map drawings, `events.js` the timed map events, `collide.js` the ground each mover may cross ([`web/ENGINE.md`](../web/ENGINE.md)).
-- The side scenes: `forest.js` and `lakeside.js` (on `side.js`), `larches.js`, `ridge.js` (the West Ridge), `approach.js`, `camp.js`, `climb.js` (the six Spires climbs), `register.js` and `offroute.js`. The drawings of people and animals are in `tj.js`, `people.js`, `cats.js`, `fauna.js` and `sprites.js`.
+- The side scenes: `forest.js` and `lakeside.js` (on `side.js`), `larches.js`, `ridge.js` (the West Ridge), `approach.js`, `camp.js`, `climb.js` (the six Spires climbs), `register.js` (with the box seen from a step back in `kiosk.js`) and `offroute.js`. The drawings of people and animals are in `tj.js`, `people.js`, `cats.js`, `fauna.js` and `sprites.js`.
 - `pixel.js`: the scene manager: `ROUTES` (lists of legs), stops, the cut between scenes, zoom, pace, input and the world clock.
 - `app.js`, `index.html` and `style.css`: the page round the canvas (signs, cards, timeline, trail map, debug panel). `content.js` fills the numbers into the words, and `audio.js` synthesises the music and the effects.
 

@@ -94,15 +94,20 @@ function paintFar(S) {
 }
 // The far wall of the valley: forest up its lower slopes, rock and meadow above, all a little hazy.
 const wallTop = x => -38 - 24 * fbm(x / 60, 3.1, 707, 3) - 5 * Math.sin(x / 23);
+// The wall's spurs (art pass E02): its light follows them, and the skyline's own slope only along its top,
+// where it once lit whole columns and broke the wall into tall slabs.
+const spur = (x, y) => vnoise((x - (y - wallTop(x)) * 0.9) / 30, 4.2, 739) + 0.4 * vnoise((x - (y - wallTop(x)) * 1.3) / 11, 5.1, 740);
 function paintWall(S, haze) {
   for (let x = 0; x < S.w; x++) {
-    const top = Math.round(wallTop(x)), sl = wallTop(x + 2) - wallTop(x - 2);
+    const top = Math.round(wallTop(x)), sk = wallTop(x + 2) - wallTop(x - 2);
     for (let y = top; y < 0; y++) {
+      const face = spur(x + 2, y) - spur(x - 2, y), nearTop = smooth(10, 0, y - top), sl = (1 - nearTop) * face * -4 + nearTop * sk;
       const tree = y > -30 + 12 * vnoise(x / 13, 1, 708) && fbm(x / 5, y / 3, 709, 2) > 0.3;
       const cliff = frac(y / 9 + 0.5 * vnoise(x / 20, 2, 731)) < 0.18 && vnoise(x / 15, y / 12, 732) > 0.55;
-      let c = tree ? pick('conifer', 0.15 + 0.3 * hash(x, y, 710) + (sl < 0 ? 0.15 : -0.05), x, y)
-        : pick(y - top < 8 || cliff ? 'rock' : 'moss', (cliff ? 0.3 : 0.32) + (sl < 0 ? 0.15 : -0.12) + 0.12 * (vnoise(x / 5, y / 4, 711) - 0.5), x, y);
-      if (y - top < 3 && top < -52) c = R.snow[sl < 0 ? 3 : 2];
+      const lit = clamp(-sl * 0.6, -1, 1);
+      let c = tree ? pick('conifer', 0.2 + 0.3 * hash(x, y, 710) + 0.14 * lit, x, y)
+        : pick(y - top < 8 || cliff ? 'rock' : 'moss', (cliff ? 0.3 : 0.32) + 0.15 * lit + 0.12 * (vnoise(x / 5, y / 4, 711) - 0.5), x, y);
+      if (y - top < 3 && top < -52) c = R.snow[sk < 0 ? 3 : 2];
       if (Math.abs(x - 410 - 2 * Math.sin(y / 4)) < 0.7 && y > top + 4) c = R.white[1];
       S.set(x, y, haze[c]);
     }
@@ -144,6 +149,15 @@ function paintFloor(S, haze, th, foot) {
 const DROP = 12;
 const lipAt = x => -7 - Math.round(3 * vnoise(x / 9, 5, 735) + 1.5 * Math.sin(x / 17));
 const drift = (x, y) => { const k = vnoise(x / 60, y / 22, 714); return k < 0.33 ? 'lupine' : k < 0.4 ? 'heather' : k > 0.76 ? 'red' : k > 0.66 ? 'white' : null; };
+// Rock on the near slope: outcrops and the runnels of scree below them.
+const screeAt = (x, y) => fbm(x / 16, y / 30, 722, 2) + 0.06 * (vnoise(x / 4, y / 4, 727) - 0.5) > 0.76;
+// Flowers in a drift (art pass E02): spikes, clumps or dots, densest in its heart. 0 where nothing grows.
+function bloom(x, y, kind) {
+  const heart = smooth(0, 0.5, Math.abs(vnoise(x / 60, y / 22, 714) - 0.5) * 2), cell = hash(x, Math.floor(y / 3), 728), row = ((y % 3) + 3) % 3;
+  if (kind === 'lupine' || kind === 'red') { if (cell > 0.2 + 0.25 * heart || hash(x - 1, Math.floor(y / 3), 728) < 0.2 + 0.25 * heart) return 0; const r = kind === 'lupine' ? R.lupine : R.red; return row === 0 ? r[2] : row === 1 ? r[1] : hash(x, y, 729) < 0.5 ? r[0] : 0; }
+  if (kind === 'heather') { const k = hash(x >> 1, y >> 1, 728); return k < 0.32 ? R.pink[(x + y) & 1 ? 2 : 1] : 0; }
+  return hash(x, y, 728) < 0.14 ? R.white[1] : 0;
+}
 function paintMain(S) {
   for (let x = 0; x < S.w; x++) {
     const gy = g(x), ic = ice(x);
@@ -191,17 +205,23 @@ function paintMain(S) {
         if (inSnow(x, r)) c = (x + r) % 4 === 0 ? R.snow[1] : snowC(x, r);
       } else {
         // In front: the cut bank under the trail, then the meadow.
-        const bank = r < 5, fl = drift(x, y), h = hash(x, y, 721), scree = fbm(x / 16, y / 30, 722, 2) > 0.76;
+        const bank = r < 5, fl = drift(x, y), scr = screeAt(x, y);
         c = bank ? pick('dirt', 0.35, x, y, 0.5) : pick(fbm(x / 26, y / 10, 723, 2) > 0.55 ? 'moss' : 'grass', 0.56 + 0.3 * (fbm(x / 22, y / 12, 724, 3) - 0.5) - smooth(40, 220, r) * 0.2, x, y, 0.35);
-        if (scree && !bank) c = pick('rock', 0.55 + 0.35 * hash(x >> 1, y >> 1, 725), x, y);
-        else if (!bank && fl && h < 0.16) c = fl === 'lupine' ? R.lupine[h < 0.12 ? 2 : 1] : fl === 'red' ? R.red[h < 0.12 ? 2 : 1] : fl === 'white' ? R.white[h < 0.15 ? 1 : 0] : R.pink[h < 0.12 ? 2 : 1];
+        // Rock: outcrops and scree runnels with a lit top and west edge, a dark foot and cracks between blocks.
+        if (scr && !bank) { const up = !screeAt(x, y - 1), west = !screeAt(x - 1, y), foot = !screeAt(x, y + 1) || !screeAt(x, y + 2), east = !screeAt(x + 1, y), crack = vnoise(x / 3, y / 2, 725) > 0.68;
+          c = up ? R.rock[4] : foot ? R.rock[0] : east ? R.rock[1] : west ? R.rock[3] : crack ? R.rock[1] : pick('rock', 0.62 + 0.18 * (vnoise(x / 4, y / 3, 726) - 0.5), x, y, 0.5); }
+        else if (!bank && fl) { const f = bloom(x, y, fl); if (f) c = f; }
+        else if (!bank && hash(x, y, 721) < 0.025) c = R.white[1];
         if (inSnow(x, r)) c = snowC(x, r);
       }
       S.set(x, y, c);
     }
   }
   // The stream: it comes down the near slope, runs over stones across the trail, and drops away behind.
-  for (let y = 3; y < S.h - S.up; y++) for (let i = -1; i <= 1; i++) { const x = Math.round(STREAM + i + 2 * Math.sin(y / 7)); S.set(x, g(STREAM) + y, i === 0 ? R.white[1] : R.water[3]); }
+  // It wanders down its gully, wider toward the foot, white where it tumbles over steps and dark at its banks.
+  for (let y = 3; y < S.h - S.up; y++) { const hw = 1 + (y > 60 ? 1 : 0), xc = STREAM + 2 * Math.sin(y / 7) + 3 * Math.sin(y / 23 + 1);
+    for (let i = -hw - 1; i <= hw + 1; i++) { const x = Math.round(xc + i), edge = Math.abs(i) > hw, step = frac(y / 17 + 0.3 * Math.sin(y / 5)) < 0.12 && hash(i, Math.floor(y / 17), 742) < 0.7;
+      S.set(x, g(STREAM) + y, edge ? R.moss[1] : step || (i === -hw && hash(x, y >> 1, 741) < 0.35) ? R.white[1] : i < 0 ? R.water[4] : R.water[2]); } }
   for (const dx of [-3, 0, 3]) { S.set(STREAM + dx, g(STREAM) + 1, R.rock[3]); S.set(STREAM + dx + 1, g(STREAM) + 1, R.rock[2]); }
   // A boot track across the snow: dimples where people have stepped.
   for (const p of PATCHES) for (let x = p.x - p.w; x < p.x + p.w; x += 3) if (inSnow(x, 0)) S.set(x, g(x) + 1, R.snow[1]);
@@ -212,11 +232,30 @@ function paintMain(S) {
 // A crevasse at this spot of the ice, or 0: its blue depth, or the white lip beside it. rl: rows in
 // front of the ice's near edge (behind it is less than 0); d: how far back toward the far edge, 0 to 1,
 // and below 0 in front of the trail, where the same cracks run on toward the camera and gape wider.
+// The ice cracks in fields where it bends, with long smooth stretches between them: the ground is cut
+// into cells, along the glacier and across it, and about half of them hold a field. In a field the
+// cracks lie side by side at the field's own slant, each a long gash bowed downhill, widest in the
+// middle and pinching out at both ends, each its own length. Lit from the upper left, so a crack's
+// upper lip is a bright edge, its upper wall is in shadow and its lower wall, facing the sun, is paler.
 function crevasse(x, rl, d) {
-  const u = x - rl * (0.6 + 0.6 * vnoise(x / 80, 5, 784)), sp = u / 30 + 1.2 * vnoise(u / 45, d * 2, 767), k = Math.floor(sp), cr = frac(sp), gape = hash(k, 1, 785);
-  // In front of the trail they are fewer, and stop short of the boot track.
-  const w = (gape > 0.8 ? 0.22 : 0.08) * Math.min(1.6, 1 - 0.6 * d) * smooth(0, 0.3, vnoise(u / 12, d * 5 + k, 768) - 0.25 - (d < 0 ? 0.16 + 0.2 * smooth(0.3, 0, -d) : 0));
-  return cr < w ? R.glac[cr < w * 0.55 ? 0 : 1] : w > 0 && cr < w + 0.04 ? R.glac[5] : 0;
+  const u = x - rl * 0.35, dd = d * 3 + 0.35 * vnoise(u / 90, 5, 784), row = Math.floor(dd);
+  const cw = 120 + 60 * hash(row, 0, 785), ru = u / cw + hash(row, 1, 785), col = Math.floor(ru);
+  // In front of the trail fewer fields hold cracks, and nearer the camera everything is bigger.
+  if (hash(col, row, 786) > (d < 0 ? 0.45 : 0.66)) return 0;
+  const f = hash(col, row, 787), lu = frac(ru) - 0.5, ld = frac(dd) - 0.5;
+  const m = 1 - sq(lu / 0.42) - sq(ld / 0.44) - 0.4 * (vnoise(u / 16, dd * 4, 768) - 0.5);
+  if (m <= 0) return 0;
+  const near = d < 0 ? 1.5 : 1.15 - 0.4 * Math.min(1, d), th = (0.25 + 0.5 * hash(col, row, 789)) * (f < 0.5 ? 1 : -1);
+  const px = lu * cw / near, py = ld * 22 / near, sn = Math.sin(th), cs = Math.cos(th);
+  const along = px * cs + py * sn, sp = 5 + 5 * hash(col, row, 788);
+  const q = -px * sn + py * cs + (4 + 9 * f) * (1 - sq(along / 45)), k = Math.floor(q / sp), cr = (q / sp - k) * sp;
+  // How wide the crack opens, in pixels: a few gape, most are thin; each pinches out at its own ends.
+  const h = hash(k, col * 7 + row, 790), half = 18 + 30 * hash(k, col + row * 5, 791), mid = 14 * (hash(k, row, 792) - 0.5);
+  const wpx = (h > 0.85 ? 3.4 : 1 + 1.3 * h) * Math.min(1, 1.8 * m) * (1 - sq((along - mid) / half)) * near;
+  if (wpx < 0.7) return 0;
+  if (cr < 1) return R.glac[5];
+  const i = (cr - 1) / wpx;
+  return i >= 1 ? 0 : i < 0.55 || wpx < 2 ? R.glac[0] : i < 0.8 ? R.glac[1] : R.glac[2];
 }
 // The ice he walks on in part three, from the trail toward the camera: wind-cut and sun-cupped, the
 // glacier's crevasses running on across it, grit from the moraine along its edge, and the meltwater
@@ -258,7 +297,9 @@ function paintIce(S, x, gy, lip) {
     else if (r === lip - 1 && wet > 0.5) c = (x + Math.round(r)) % 5 === 0 ? R.water[4] : R.water[2];
     else if (r === lip - 2 && wet > 0.5) c = R.rock[1];
     else {
-      c = pick('glac', 0.66 + 0.18 * d + 0.12 * (vnoise(x / 6, d * 8, 772) - 0.5), x, y, 0.6);
+      // Faint flow lines run along the glacier between the fields, a shade darker, broken here and there.
+      const flow = Math.abs(frac(d * 6 + 0.9 * vnoise(x / 70, 6, 777)) - 0.5) < 0.035 && vnoise(x / 24, d * 6, 778) > 0.4 ? 0.07 : 0;
+      c = pick('glac', 0.66 + 0.18 * d - flow + 0.12 * (vnoise(x / 6, d * 8, 772) - 0.5), x, y, 0.6);
       c = crevasse(x, r - lip, d) || c;
       // The medial moraine thins out up the glacier.
       if (Math.abs(d - med) < (0.035 + 0.02 * vnoise(x / 9, 4, 773)) * smooth(XG + 170, XG + 20, x)) c = pick('rock', 0.3 + 0.3 * hash(x, y, 774), x, y);
@@ -289,16 +330,25 @@ function makeSpires() {
   for (let y = SPY; y < SPH; y++) {
     const u = (y - SPY) / (SPH - SPY), half = 116 - 36 * u + 3 * Math.sin(y / 5), cx = 152 - 16 * u;
     for (let x = Math.round(cx - half); x <= cx + half; x++) {
-      const a = (x - (cx - half)) / (2 * half), cre = frac((y - SPY) / 10 - 1.3 * Math.sin(Math.PI * a) + 0.25 * vnoise(x / 14, y / 5, 746));
+      const a = (x - (cx - half)) / (2 * half), cre = frac((y - SPY) / (7 + 6 * vnoise(y / 18, 2, 745)) - 1.3 * Math.sin(Math.PI * a) + 0.25 * vnoise(x / 14, y / 5, 746));
       let c = pick('glac', 0.92 - 0.35 * a - 0.2 * u + 0.1 * (vnoise(x / 4, y / 3, 747) - 0.5), x, y, 0.6);
-      if (cre < 0.09 && a > 0.1 && a < 0.9 && vnoise(x / 16, y / 4, 748) > 0.45) c = R.glac[cre < 0.045 ? 0 : 1];
+      if (cre < 0.11 && a > 0.1 && a < 0.9 && vnoise(x / 16, y / 4, 748) > 0.5) c = R.glac[cre < 0.025 ? 5 : cre < 0.08 ? 0 : 1];
       // The icefall (TJs-Kubernetes-Service on the map): where the ice breaks over a rock step under
       // the towers it shatters into seracs, blocks lit on their west faces with blue shadow between.
       const fall = smooth(0.08, 0.16, u) * smooth(0.46, 0.36, u) * smooth(0.12, 0.28, a) * smooth(0.82, 0.66, a);
       if (fall > 0.3) {
-        // Columns of blocks, each column's joints at its own heights, so they stagger like a jumble.
-        const bx = (x + 3 * vnoise(y / 5, 2, 757)) / 8, col = Math.floor(bx), yy = (y - SPY + 7 * hash(col, 0, 755) + 2 * vnoise(x / 4, 1, 756)) / (6 + 3 * hash(col, 1, 755)), row = Math.floor(yy), i = frac(bx), j = frac(yy), h = hash(col, row, 754);
-        c = j > 0.78 || i > 0.84 ? R.glac[h < 0.5 ? 0 : 1] : R.glac[i < 0.25 || j < 0.18 ? 5 : h < 0.3 ? 2 : h < 0.65 ? 3 : 4];
+        // Seracs: each spot belongs to the nearest of a scatter of block centres, so the blocks come in
+        // every size and lean every way. Where two blocks meet, the edge is in blue shadow
+        // along a block's lower right and catches the sun along its top and west, so they read as stacked.
+        const sx = x / 13, sy = (y - SPY) / 9, gx = Math.floor(sx), gy = Math.floor(sy);
+        let n1 = 99, n2 = 99, id = 0, ox = 0, oy = 0;
+        for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) {
+          const cx = gx + i + 0.15 + 0.7 * hash(gx + i, gy + j, 754), cy = gy + j + 0.15 + 0.7 * hash(gx + i, gy + j, 755), dx = (sx - cx) * 13, dy = (sy - cy) * 9, dist = Math.hypot(dx, dy);
+          if (dist < n1) { n2 = n1; n1 = dist; id = hash(gx + i, gy + j, 756); ox = dx; oy = dy; } else if (dist < n2) n2 = dist;
+        }
+        const tilt = (id - 0.5) * 1.6, lit = -ox * (1 - Math.abs(tilt) * 0.3) - oy * 1.3 + tilt * ox * 0.4;
+        const edge = n2 - n1, shade = oy * 1.2 + ox * 0.6 + tilt * 2;
+        c = edge < 2.6 ? (shade > -1 ? R.glac[edge < 1.3 && shade > 2 ? 0 : 1] : R.glac[5]) : oy < -3 + id * 2 && lit > -2 ? R.glac[5] : lit > 1 ? R.glac[4] : lit > -3 ? R.glac[id < 0.4 ? 3 : 4] : R.glac[id < 0.5 ? 1 : 2];
       }
       if (SPH - y < 6 + 3 * vnoise(x / 5, 9, 749)) c = pick('rock', 0.5 + 0.3 * hash(x, y, 750), x, y);
       b.set(x, y, c);
@@ -341,7 +391,7 @@ function buildApproach() {
   // never on the snow or the stream; rocks and heather between. A marmot on a rock behind the trail
   // where a rib stands proud a little past the stream, and another below the trail near the snow.
   const things = [];
-  const spire = (seed, H) => makeConifer(seed, H, Math.max(5, Math.round(H * 0.28)), 'conifer', Math.max(5, Math.round(H / 4.5)), { ragged: seed & 1 });
+  const spire = (seed, H) => makeConifer(seed, H, Math.max(5, Math.round(H * 0.28)), 'conifer', Math.max(5, Math.round(H / 4.5)), { ragged: seed & 1, tufts: true });
   for (let x = 20; x < SW0 - 20; x += 12 + rand() * 36) {
     const back = rand() < 0.3, r = back ? -2 - Math.round(rand() * 3) : 12 + Math.round(rand() * 150);
     if (fbm(x / 80, back ? 2 : 3, 727, 2) < 0.45 || inSnow0(x, r) || Math.abs(x - STREAM) < 14 || mor(x) > 0.1 || (back && x > ICE0 - 20)) continue;

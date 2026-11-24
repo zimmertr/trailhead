@@ -1,7 +1,8 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
 import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
 import { breeze, veilTable } from './core.js';
-import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeBird, makeFlag, makeRegister } from './sprites.js';
+import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeFlag, makeRegister } from './sprites.js';
+import { speck } from './fauna.js';
 import { SIGNS, NAMES, DEST_NAMES, UI } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
@@ -496,7 +497,7 @@ export function makeWorld() {
   window.__rules = () => checkRules(W.things, crit.items, crit.collide);
   const ev = makeEvents(W, crit.collide);
   for (const it of crit.items) things.push(it);
-  const birds = [makeBird(0), makeBird(1)];
+  const birds = [speck(0), speck(1)];
   const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 330 + 40, y: 50 + (i & 1) * 70 + i * 18, v: 3 + (i % 4) }));
   const runner = makeRunner('trail');
   const kit = makeCats(); window.__cats = kit;

@@ -164,11 +164,11 @@ function crevasse(S, sx, x, y0, [g0, g1], seed) {
 function crag(x, y, sx, seed, base, dry) {
   const crack = Math.abs(frac((x + y * 0.55) / 27 + 0.9 * vnoise(x / 23, y / 17, seed + 47)) - 0.5) < 0.03 && vnoise(x / 8, y / 8, seed + 50) > 0.35;
   const ledge = frac(y / 15 + 0.9 * vnoise(x / 21, y / 30, seed + 48)), on = vnoise(x / 10, y / 14, seed + 51) > 0.5;
-  if (crack) return R.granite[0];
-  if (!on) return pick('granite', base + 0.28 * (fbm(x / 10, y / 7, seed + 42, 2) - 0.5), sx, y, 0.8);
-  if (ledge < 0.07) return !dry && vnoise(x / 5, y, seed + 49) > 0.45 ? R.snow[3] : R.granite[3];
-  if (ledge < 0.14) return R.granite[1];
-  return pick('granite', base + 0.28 * (fbm(x / 10, y / 7, seed + 42, 2) - 0.5) - ledge * 0.12, sx, y, 0.8);
+  if (crack) return R.rock[0];
+  if (!on) return pick('rock', base + 0.28 * (fbm(x / 10, y / 7, seed + 42, 2) - 0.5), sx, y, 0.8);
+  if (ledge < 0.07) return !dry && vnoise(x / 5, y, seed + 49) > 0.45 ? R.snow[3] : R.rock[3];
+  if (ledge < 0.14) return R.rock[1];
+  return pick('rock', base + 0.28 * (fbm(x / 10, y / 7, seed + 42, 2) - 0.5) - ledge * 0.12, sx, y, 0.8);
 }
 // The boulder he sits the rain out under (round 5, T50): a block the size of a small hut that leans out
 // over the slope on its uphill side, so the ground under its prow stays dry. `roofAt` is the underside
@@ -183,7 +183,7 @@ function shelter(S, cfg, seed) {
     const under = roof == null ? Math.round(hOf(pts, x)) + 3 : Math.round(roof + 1.5 * vnoise(x / 4, 5, seed + 97));
     for (let y = top; y <= under; y++) {
       const d = y - top, e = under - y;
-      S.set(x + OFF, y, d === 0 || x === x1 || x === x0 || (roof != null && e === 0) ? INK : roof != null && e < 6 ? R.granite[e < 3 ? 0 : 1] : d < 2 ? R.granite[4] : crag(x, y, x + OFF, seed + 131, 0.78 - 0.5 * d / (under - top + 1), true));
+      S.set(x + OFF, y, d === 0 || x === x1 || x === x0 || (roof != null && e === 0) ? INK : roof != null && e < 6 ? R.rock[e < 3 ? 0 : 1] : d < 2 ? R.rock[4] : crag(x, y, x + OFF, seed + 131, 0.78 - 0.5 * d / (under - top + 1), true));
     }
   }
 }
@@ -199,7 +199,7 @@ function talusField(S, cfg, seed) {
     for (let dx = -hw; dx <= hw; dx++) {
       const x = cx + dx, sx = x + OFF, edge = Math.max(0, Math.abs(dx) - (hw - 3)), t0 = Math.round(top + tilt * dx + edge * (1.2 + lean * Math.sign(dx) * 0.3) * edge * 0.6), bot = Math.round(hOf(cfg.pts, x)) + 4;
       for (let y = t0; y <= bot; y++) { const e = Math.abs(dx) === hw, k = 0.03 * (y - t0) + (far ? 0.2 : 0);
-        S.set(sx, y, y === t0 || e ? INK : y === t0 + 1 ? R.granite[far ? 3 : 4] : dx > hw - 3 ? R.granite[0] : pick('granite', 0.66 - 0.28 * (dx / hw) - k + 0.16 * (vnoise(x / 3, y / 3, seed + 855) - 0.5), sx, y, 0.8)); }
+        S.set(sx, y, y === t0 || e ? INK : y === t0 + 1 ? R.rock[far ? 3 : 4] : dx > hw - 3 ? R.rock[0] : pick('rock', 0.66 - 0.28 * (dx / hw) - k + 0.16 * (vnoise(x / 3, y / 3, seed + 855) - 0.5), sx, y, 0.8)); }
     }
   }
 }
@@ -209,7 +209,7 @@ function talusField(S, cfg, seed) {
 function gullyRock(S, cfg, seed) {
   for (let x = cfg.gully[0]; x <= cfg.gully[1]; x++) { const h = gullyWall(cfg, x); if (!h) continue; const y0 = Math.round(hOf(cfg.pts, x)), sx = x + OFF;
     for (let y = y0 - h; y < y0 - 1; y++) { const d = y - (y0 - h), crack = Math.abs(frac(x / 11 + 0.6 * vnoise(y / 9, x / 30, seed + 856)) - 0.5) < 0.05;
-      S.set(sx, y, d === 0 ? INK : d < 2 ? R.granite[3] : d < 4 ? R.granite[1] : crack || bayer(sx, y) < 0.25 + 0.2 * (y - (y0 - h)) / h ? INK : R.granite[0]); }
+      S.set(sx, y, d === 0 ? INK : d < 2 ? R.rock[3] : d < 4 ? R.rock[1] : crack || bayer(sx, y) < 0.25 + 0.2 * (y - (y0 - h)) / h ? INK : R.rock[0]); }
   }
 }
 
@@ -222,8 +222,8 @@ function couloirWalls(S, cfg, seed) {
     const u = (x - x0) / (x1 - x0), tower = vnoise(x / 17, 2, seed + 860), h = Math.round((38 + 34 * tower + 10 * vnoise(x / 5, 3, seed + 861)) * Math.sin(Math.PI * u) ** 0.6), y0 = Math.round(hOf(cfg.pts, x)), sx = x + OFF;
     if (h < 2) continue;
     for (let y = y0 - h; y < y0 - 1; y++) { const d = y - (y0 - h);
-      let c = d === 0 ? INK : d < 2 ? R.granite[3] : crag(x, y, sx, seed + 862, 0.42 - 0.3 * d / h, false);
-      if (d > 1 && bayer(sx, y) < 0.35 * d / h) c = R.granite[0];
+      let c = d === 0 ? INK : d < 2 ? R.rock[3] : crag(x, y, sx, seed + 862, 0.42 - 0.3 * d / h, false);
+      if (d > 1 && bayer(sx, y) < 0.35 * d / h) c = R.rock[0];
       S.set(sx, y, c); }
   }
 }
@@ -256,21 +256,21 @@ function paint(cfg, seed) {
       // The knife-edge is a thin fin: its face fades into the haze of the air under it.
       if (d > kd || (kw > 0 && d > kd - 30 && bayer(sx, y) > (kd - d) / 30)) { S.set(sx, y, hazeAt(x, y, sx, seed)); continue; }
       if (inGap && d < (cfg.dry ? 150 : 80)) { const e = Math.min(x - gap[0], gap[1] - x); if (e > 3 + d * 0.06 + 2 * vnoise(y / 5, x, seed + 1)) continue; c = pick('glac', 0.42 - d * 0.006 + (x - gap[0] < 6 ? 0.2 : -0.1), sx, y); }
-      else if (far && d > 3 + 5 * vnoise(sx / 5, y / 9, seed + 5) && vnoise(sx / 7, y / 26, seed + 10) > 0.3) c = Math.abs(frac(sx / 9 + vnoise(sx / 30, y / 30, seed + 11)) - 0.5) < 0.05 ? R.granite[0] : pick('granite', 0.34 + 0.3 * (vnoise(sx / 2.4, y / 14, seed + 6) - 0.5) - d * 0.0015, sx, y, 0.8);
-      else if (!far && d > 9 && kind !== 'wands' && fbm((sx + y * 1.6) / 46, (y - sx * 0.25) / 9, seed + 5, 3) > 0.63) c = pick('granite', 0.62 - 0.5 * frac((y - sx * 0.25) / 9) + 0.2 * (vnoise(sx / 3, y / 3, seed + 6) - 0.5), sx, y, 0.8);
+      else if (far && d > 3 + 5 * vnoise(sx / 5, y / 9, seed + 5) && vnoise(sx / 7, y / 26, seed + 10) > 0.3) c = Math.abs(frac(sx / 9 + vnoise(sx / 30, y / 30, seed + 11)) - 0.5) < 0.05 ? R.rock[0] : pick('rock', 0.34 + 0.3 * (vnoise(sx / 2.4, y / 14, seed + 6) - 0.5) - d * 0.0015, sx, y, 0.8);
+      else if (!far && d > 9 && kind !== 'wands' && fbm((sx + y * 1.6) / 46, (y - sx * 0.25) / 9, seed + 5, 3) > 0.63) c = pick('rock', 0.62 - 0.5 * frac((y - sx * 0.25) / 9) + 0.2 * (vnoise(sx / 3, y / 3, seed + 6) - 0.5), sx, y, 0.8);
       else c = d < 1 ? R.snow[far ? 3 : 4] : far ? pick('glac', 0.72 - d * 0.004 + 0.12 * (vnoise(sx / 9, y / 4, seed + 7) - 0.5), sx, y, 0.6) : (Math.abs(frac((y + sx * 0.3) / 13 + 0.4 * vnoise(sx / 20, y / 20, seed + 8)) - 0.5) < 0.03 && d > 4 ? R.snow[2] : pick('snow', 0.86 + Math.max(-3, slope) * 0.02 - Math.max(0, y - soft) * 0.002 + 0.14 * (vnoise(sx / 8, y / 5, seed + 9) - 0.5), sx, y, 0.5));
       // Dry rock: big slabs paler and darker by turns, lit along the top, with lichen here and there.
-      if (cfg.dry) c = d < 1 ? R.granite[3] : d < 2 ? R.granite[2] : vnoise(x / 2.2, y / 2.2, seed + 82) > 0.86 && vnoise(x / 20, y / 20, seed + 83) > 0.55 ? R.ochre[1] : crag(x, y, sx, seed + 80, 0.32 + 0.4 * fbm(x / 46, y / 30, seed + 81, 2) + (d < 10 ? 0.12 : 0), true);
+      if (cfg.dry) c = d < 1 ? R.rock[3] : d < 2 ? R.rock[2] : vnoise(x / 2.2, y / 2.2, seed + 82) > 0.86 && vnoise(x / 20, y / 20, seed + 83) > 0.55 ? R.ochre[1] : crag(x, y, sx, seed + 80, 0.32 + 0.4 * fbm(x / 46, y / 30, seed + 81, 2) + (d < 10 ? 0.12 : 0), true);
       // In the gully the rock lies in shade with loose stones on its floor; along the rib it catches the light.
-      if (cfg.gully && x > cfg.gully[0] && x < cfg.gully[1] && d >= 1 && d < 26 + 10 * vnoise(x / 9, 6, seed + 858) && bayer(sx, y) > (d - 16) / 14) c = d < 3 && hash(sx, y, seed + 853) < 0.3 ? R.granite[2] : crag(x, y, sx, seed + 80, 0.16 + 0.3 * fbm(x / 46, y / 30, seed + 81, 2), true);
-      if (cfg.rib && x > cfg.rib[0] && x < cfg.rib[1] && d >= 1 && d < 5) c = d < 2 ? R.granite[4] : R.granite[3];
+      if (cfg.gully && x > cfg.gully[0] && x < cfg.gully[1] && d >= 1 && d < 26 + 10 * vnoise(x / 9, 6, seed + 858) && bayer(sx, y) > (d - 16) / 14) c = d < 3 && hash(sx, y, seed + 853) < 0.3 ? R.rock[2] : crag(x, y, sx, seed + 80, 0.16 + 0.3 * fbm(x / 46, y / 30, seed + 81, 2), true);
+      if (cfg.rib && x > cfg.rib[0] && x < cfg.rib[1] && d >= 1 && d < 5) c = d < 2 ? R.rock[4] : R.rock[3];
       // Its face is fluted: ribs that catch the light and dark runnels between them, straight down.
-      if (kn > 0.3 && d >= 2) { const fl = vnoise(x / 3.2 + 0.6 * vnoise(y / 24, x / 9, seed + 71), y / 70, seed + 72); c = d < 3 && vnoise(x / 4, 9, seed + 63) > 0.5 ? R.snow[3] : fl > 0.74 ? R.granite[4] : fl < 0.24 ? R.granite[0] : pick('granite', 0.56 + 0.4 * (fl - 0.5) - 0.2 * d / kd, sx, y, 0.8); }
+      if (kn > 0.3 && d >= 2) { const fl = vnoise(x / 3.2 + 0.6 * vnoise(y / 24, x / 9, seed + 71), y / 70, seed + 72); c = d < 3 && vnoise(x / 4, 9, seed + 63) > 0.5 ? R.snow[3] : fl > 0.74 ? R.rock[4] : fl < 0.24 ? R.rock[0] : pick('rock', 0.56 + 0.4 * (fl - 0.5) - 0.2 * d / kd, sx, y, 0.8); }
       S.set(sx, y, c);
     }
     if (!inGap) S.set(sx, y0 - 1, INK);
     // Along the knife-edge the crest is broken into small blocks.
-    if (kn > 0.6) { const t = toothAt(cfg, x, seed), side = Math.min(toothAt(cfg, x - 1, seed), toothAt(cfg, x + 1, seed)); for (let j = 1; j <= t; j++) S.set(sx, y0 - j, j > side ? INK : R.granite[j === t ? 3 : 2]); if (t) S.set(sx, y0 - 1 - t, INK); }
+    if (kn > 0.6) { const t = toothAt(cfg, x, seed), side = Math.min(toothAt(cfg, x - 1, seed), toothAt(cfg, x + 1, seed)); for (let j = 1; j <= t; j++) S.set(sx, y0 - j, j > side ? INK : R.rock[j === t ? 3 : 2]); if (t) S.set(sx, y0 - 1 - t, INK); }
     if (xg) crevasse(S, sx, x, y0, xg, seed);
   }
   // A fall of ice hangs down the face of each step, WIDE pixels across, and he climbs it with his back to
@@ -301,7 +301,7 @@ function paint(cfg, seed) {
       const hw = 4 + rr() * 6, h = 7 + rr() * 9, y0 = Math.round(hOf(pts, x));
       for (let dx = -hw; dx <= hw; dx++) {
         const top = Math.round(y0 - h * Math.sqrt(1 - sq(dx / (hw + 0.5))) - rr()), sx = Math.round(x + dx + OFF);
-        for (let y = top; y <= y0 + 1; y++) S.set(sx, y, y === top ? R.granite[0] : pick('granite', 0.55 - dx / hw * 0.2 - (y - top) * 0.03, sx, y, 0.8));
+        for (let y = top; y <= y0 + 1; y++) S.set(sx, y, y === top ? R.rock[0] : pick('rock', 0.55 - dx / hw * 0.2 - (y - top) * 0.03, sx, y, 0.8));
       }
       for (let y = Math.round(y0 - h); y <= y0; y++) {
         const edge = Math.round(x + hw * Math.sqrt(Math.max(0, 1 - sq((y0 - y - h / 2) / (h / 2 + 0.5)))) + OFF), len = 2 + Math.round(hash(x, y, seed + 31) * 5);
@@ -731,14 +731,19 @@ export function makeClimb() {
   for (let x = 0; x < 900; x++) { const top = -70 - 110 * fbm(x / 60, 1.3, 240, 4) * (0.5 + 0.5 * Math.abs(Math.sin(x / 70))); for (let y = Math.round(top); y < 60; y++) far.set(x, y, y - top < 5 + 4 * vnoise(x / 5, 1, 241) ? R.farsnow[fbm((x + 2) / 60, 1.3, 240, 4) > fbm((x - 2) / 60, 1.3, 240, 4) ? 0 : 1] : pick('far', 0.5 + 0.4 * (vnoise(x / 5, y / 12, 242) - 0.5), x, y)); }
   // The rest of the massif stands behind whichever summit he is on.
   const mid = new Strip(900, 260, 80);
-  { const tops = []; for (let k = 0; k < 9; k++) tops.push({ cx: 30 + k * 104 + hash(k, 1, 260) * 40, top: -230 + hash(k, 2, 260) * 150, sl: 1.5 + hash(k, 3, 260) * 1.1 });
-    const sky = (s, i, x) => { const dx = Math.abs(x - s.cx); return s.top + dx * s.sl * (x < s.cx ? 1.1 : 0.92) + 6 * (1 - Math.exp(-dx / 2.5)) + 9 * (vnoise(x / 5, i * 3.1, 261) - 0.5) * Math.min(1, dx / 4) - 6 * Math.max(0, vnoise(x / 2.4, i, 262) - 0.62) / 0.38 * Math.min(1, dx / 5); };
+  // Broad, blunt towers of the same grey granite as the Spires at camp (C01), of uneven heights and widths:
+  // a rounded top breaking over into sheer sides, lit on the west, snow on the top, on a few ledges and in
+  // runnels down the gullies between them.
+  { const tops = []; for (let k = 0; k < 9; k++) tops.push({ cx: 30 + k * 104 + hash(k, 1, 260) * 40, top: -230 + hash(k, 2, 260) * 150, hw: 22 + hash(k, 3, 260) * 22 });
+    // Most step down to a lower shoulder on one side, so they do not read as a row of thumbs.
+    const sky = (s, i, x) => { const sd = hash(i, 4, 260) < 0.5 ? -1 : 1, sh = hash(i, 5, 260) > 0.3, w = Math.abs(x - s.cx) / s.hw, ws = Math.sign(x - s.cx) === sd && sh ? w * 0.62 : w, u = ws;
+      return s.top + 10 * Math.min(1, u) ** 2 + (sh && Math.sign(x - s.cx) === sd && w > 0.55 ? 16 + 8 * hash(i, 6, 260) : 0) + (u > 0.8 ? 60 * (u - 0.8) ** 1.5 * (1 + 0.5 * vnoise(x / 9, i, 261)) : 0) + 3 * (vnoise(x / 6, i * 3.1, 262) - 0.5); };
     const order = tops.map((s, i) => i).sort((a, c) => tops[a].top - tops[c].top);
     for (const i of order) { const s = tops[i]; for (let x = 0; x < 900; x++) { const t0 = Math.round(sky(s, i, x)); if (t0 >= 80) continue; for (let y = t0; y < 80; y++) {
-      const d = y - t0, face = x < s.cx ? 0.16 : -0.18, fr = frac((x - s.cx) / Math.max(3, y - s.top) * 2.6 + 0.3 * vnoise(x / 6, y / 6, 263 + i));
-      const rock = Math.abs(x - s.cx - 3 * Math.sin(y / 11 + i * 2)) < 2 + (y - s.top) * 0.09 + 3 * (vnoise(x / 3, y / 5, 264 + i) - 0.5);
-      const ice = (!rock && d > 12 + 9 * vnoise(x / 7, 4, 265)) || (fr > 0.62 && fr < 0.76 && d > 6 && !rock);
-      mid.set(x, y, ice ? pick('glac', 0.62 + face * 0.8 + 0.2 * (vnoise(x / 4, y / 4, 266) - 0.5), x, y, 0.6) : d < 1 ? R.granite[1] : pick('granite', 0.5 + face + (fr < 0.5 ? 0.1 : -0.1) + 0.16 * (vnoise(x / 3, y / 5, 267) - 0.5), x, y, 0.8)); } } }
+      const d = y - t0, u = (x - s.cx) / s.hw, plane = Math.floor(x / 9 + 0.5 * vnoise(y / 30, i, 263)), crack = Math.abs(frac((x + 1.2 * Math.sin(y / 9 + i)) / 13) - 0.5) < 0.05 && vnoise(x / 5, y / 7, 264 + i) > 0.35;
+      const runnel = vnoise((x + 3 * Math.sin(y / 7 + i)) / 2.2, y / 26, 265 + i) > 0.86 && d > 6 && d < 60, ledge = frac(y / 23 + 0.6 * vnoise(x / 20, i, 266)) < 0.05 && vnoise(x / 9, y / 4, 267) > 0.68 && !runnel;
+      const v = 0.6 - 0.32 * clamp(u + 0.2, -1, 1) - 0.25 * smooth(0, 160, d) + 0.1 * (hash(plane, i, 268) - 0.5);
+      mid.set(x, y, d < 1 ? R.rock[1] : d < 3 + 2 * vnoise(x / 4, i, 269) ? R.snow[u < 0.2 ? 4 : 3] : runnel || ledge ? R.snow[u < 0 ? 3 : 2] : crack ? R.rock[0] : pick('rock', v, x, y, 0.6)); } } }
   }
   // The seracs of the icefall, standing behind the route on its benches: where along it, how wide, how tall.
   // Spaced at random along the way to the summit, every third one leaning hard toward the line.

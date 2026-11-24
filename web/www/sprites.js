@@ -1,25 +1,51 @@
 // Scenery and animal sprites that more than one scene uses.
-import { TAU, clamp, lerp, sq, rng, hash, vnoise, bayer, R, INK, BM, outline, disc, thick, pick } from './core.js';
+import { TAU, clamp, lerp, sq, rng, hash, vnoise, bayer, R, INK, BM, outline, litBack, disc, thick, pick } from './core.js';
 
 // ---------------------------------------------------------------------------------------------
 // Trees. Each is a still trunk plus leaf clumps that move on their own, a pixel at a time, as in
 // the usual 2D wind technique: a wave runs along the wind, gusts widen it, and still air stops it.
 
-function clump(r, name, rand, hang) {
+// A clump of leaves (art pass D03): small clusters, each lit on its upper left, the lower laid over the upper.
+// shape: 'pad' (maple), 'tuft' (pine), 'tall' (aspen) or round (juniper). The clusters come from hash, never
+// rand, so the trees that share rand with their clumps draw the same trunks as before.
+function clump(r, name, rand, hang, shape = '') {
   const S = Math.ceil(r * 2.6) + 4, b = new BM(S, S + hang), c = S / 2;
   const blobs = [[0, 0, r]];
   for (let k = 0; k < 3; k++) { const a = rand() * TAU; blobs.push([Math.cos(a) * r * 0.62, Math.sin(a) * r * 0.5, r * (0.5 + rand() * 0.2)]); }
   // name is a ramp's name, or a list of colours from dark to light where one ramp does not hold them all.
-  const ramp = Array.isArray(name) ? name : R[name];
+  const ramp = Array.isArray(name) ? name : R[name], top = ramp.length - 1;
+  const seed = Math.round(blobs[1][0] * 977 + blobs[2][1] * 613 + r * 41) & 0xffff;
+  const inBlob = (dx, dy, g) => blobs.some(([bx, by, br]) => sq(dx - bx) + sq(dy - by) <= sq(br + g));
+  const flat = shape === 'pad' ? 0.62 : shape === 'tall' ? 1.35 : 1, lr0 = shape === 'pad' ? clamp(r * 0.46, 1.6, 3.2) : clamp(r * (shape === 'tuft' ? 0.3 : 0.36), 1.3, 2.7), lobes = [];
+  for (let k = 0, n = Math.round(r * r * (shape === 'tuft' ? 0.62 : shape === 'pad' ? 0.32 : 0.5)) + 4; k < n * 3 && lobes.length < n; k++) {
+    const a = hash(k, 1, seed) * TAU, d = Math.sqrt(hash(k, 2, seed)) * r * 1.15, lx = Math.cos(a) * d, ly = Math.sin(a) * d * (shape === 'tall' ? 1.1 : 0.9);
+    if (!inBlob(lx, ly, -0.6)) continue;
+    const lr = lr0 * (0.8 + 0.45 * hash(k, 3, seed));
+    lobes.push([lx, ly, lr, lr * flat]);
+  }
+  lobes.sort((p, q) => p[1] - q[1]);
   for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) {
     const dx = x - c, dy = y - c;
-    if (!blobs.some(([bx, by, br]) => sq(dx - bx) + sq(dy - by) <= br * br)) continue;
+    let own = -1;
+    for (let k = lobes.length - 1; k >= 0; k--) { const [lx, ly, lr, ry] = lobes[k]; if (sq((dx - lx) / lr) + sq((dy - ly) / ry) <= 1) { own = k; break; } }
+    if (own < 0) { if (inBlob(dx, dy, -1.8)) b.set(x, y, ramp[1]); continue; }
+    const [lx, ly, lr, ry] = lobes[own], ux = (dx - lx) / lr, uy = (dy - ly) / ry;
     const nx = dx / (r * 1.3), ny = dy / (r * 1.2);
-    let v = 0.52 + 0.46 * (-0.55 * nx - 0.78 * ny) + (hash(x, y, r * 13 | 0) - 0.5) * 0.36;
-    if (hash(x + 3, y, 9) < 0.1) v += 0.25;
-    b.set(x, y, ramp[clamp(Math.round(v * (ramp.length - 1) + (bayer(x, y) - 0.5) * 0.8), 1, ramp.length - 1)]);
+    let v = 0.42 + 0.3 * (-0.55 * nx - 0.78 * ny) + 0.44 * (-0.45 * ux - (shape === 'pad' ? 0.95 : 0.75) * uy) + (hash(x, y, seed + 7) - 0.5) * 0.14;
+    if (uy < -0.35 && ux < 0.3 && hash(x, y, seed + 9) < 0.4) v += 0.18;
+    // A maple's pad is dark along its underside, so each reads as a layer over the one below.
+    if (shape === 'pad' && uy > 0.55) v -= 0.28;
+    b.set(x, y, ramp[clamp(Math.round(v * top + (bayer(x, y) - 0.5) * 0.45), 1, top)]);
   }
-  outline(b, ramp[0]);
+  // A pine's needles stick out past each tuft's edge, up and to the sides.
+  if (shape === 'tuft') for (let y = 1; y < S - 1; y++) for (let x = 1; x < S - 1; x++) {
+    const v = b.get(x, y); if (!v || v === ramp[1]) continue;
+    for (const [ox, oy] of [[0, -1], [-1, 0], [1, 0], [-1, -1], [1, -1]]) if (!b.get(x + ox, y + oy) && hash(x * 3 + ox, y * 5 + oy, seed + 11) < 0.22) b.set(x + ox, y + oy, v);
+  }
+  // The dark edge goes only under and right of the clump; its lit top and left meet the sky.
+  const edge = [];
+  for (let y = 0; y < S; y++) for (let x = 0; x < S; x++) if (!b.get(x, y) && (b.get(x, y - 1) || b.get(x - 1, y) || (b.get(x + 1, y) && hash(x, y, seed + 13) < 0.5 && y > c))) edge.push([x, y]);
+  for (const [x, y] of edge) b.set(x, y, ramp[0]);
   // Moss hangs from the limbs of the rainforest maples.
   for (let k = 0; k < hang && k < 4; k++) {
     const x = Math.round(c + (rand() - 0.5) * r * 1.4); let y = S - 1; while (y > 0 && !b.get(x, y)) y--;
@@ -47,10 +73,10 @@ function makeMaple(seed) {
   for (let k = 0; k < n; k++) cs.push([top[0] + (rand() - 0.5) * 22, H * 0.3 + (rand() - 0.5) * 18, 5 + rand() * 2.5]);
   // A darker copy of the canopy sits behind the clumps, so a lifted clump shows shadowed leaves, not sky.
   const inside = new BM(W, H);
-  for (const [x, y, r] of cs) disc(inside, x, y, r - 0.5, () => R.moss[1]);
+  for (const [x, y, r] of cs) disc(inside, x, y, r - 2, () => R.moss[1]);
   parts.push({ bm: inside, x: -Math.round(bx), y: -H, sway: 0 });
   cs.sort((a, c) => a[1] - c[1]);
-  for (const [x, y, r] of cs) { const bm = clump(r, 'moss', rand, 6); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
+  for (const [x, y, r] of cs) { const bm = clump(r, 'moss', rand, 6, 'pad'); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
   return { parts, h: H, w: W };
 }
 // A conifer: a trunk and tiers of branches that sway. name is a ramp's name, or a list of colours from
@@ -67,6 +93,7 @@ function makeConifer(seed, H, W, name, tiers, o = {}) {
   for (let i = 0; i < tiers; i++) {
     if (o.ragged && i > 1 && i < tiers - 1 && rand() < 0.22) continue;
     const f = (i + 1) / tiers, hw = Math.max(1.5, W / 2 * Math.pow(f, 0.9) + (rand() - 0.5) * 1.5 * (1 + 2.5 * (o.ragged || 0))), th = 4 + (f > 0.5 ? 1 : 0), hang = Math.ceil(2.5 * droop);
+    if (o.tufts) { parts.push(tuftTier(seed, i, f, hw, th, droop, ramp, H, tiers, o, rand)); continue; }
     const bm = new BM(Math.ceil(hw * 2) + 5, th + 5 + hang), cx = bm.w / 2;
     for (let dx = -Math.floor(hw); dx <= Math.ceil(hw); dx++) {
       const a = Math.abs(dx) / hw; if (a > 1) continue;
@@ -83,14 +110,50 @@ function makeConifer(seed, H, W, name, tiers, o = {}) {
   }
   return { parts, h: H, w: W };
 }
+// One layer of branches for the scenes' big conifers (art pass D01): two drooping branches hung with uneven
+// tufts. `open` (the larches) shows the trunk. The map's small trees keep the plates, which read at their size.
+function tuftTier(seed, i, f, hw, th, droop, ramp, H, tiers, o, rand) {
+  const hl = Math.max(1.5, hw * (0.72 + 0.56 * rand())), hr = Math.max(1.5, hw * (0.72 + 0.56 * rand())), hang = Math.ceil(2.5 * droop) + 6;
+  // A larch is open: now and then a whole layer is missing and the trunk shows.
+  const skip = o.open && i > 0 && hash(i, 5, seed) < 0.3;
+  const bm = new BM(Math.ceil(Math.max(hl, hr) * 2) + 7, th + 8 + hang), cx = Math.floor(bm.w / 2), n = ramp.length - 1;
+  for (let dx = -Math.floor(hl); dx <= Math.ceil(hr); dx++) {
+    const hs = dx < 0 ? hl : hr, a = Math.abs(dx) / hs; if (skip || a > 1 || dx === 0 && o.open) continue;
+    if (a > 0.7 && hash(dx, i, seed + 1) < 0.35) continue;
+    const y0 = o.open ? 1 + Math.pow(a, 1.4) * 5 : 1 + a * a * 2.5 * droop;
+    if (o.open) {
+      // A larch's spray: a thin drooping twig, gold needles along it a pixel or two deep, more hanging at the tip.
+      const t = 1 + (hash(dx >> 1, i, seed) > 0.45 ? 1 : 0) + (a > 0.75 && hash(dx, i, seed + 4) < 0.5 ? 1 : 0);
+      for (let j = 0; j < t; j++) bm.set(cx + dx, Math.round(y0 + j + 1), ramp[clamp(Math.round((0.85 - j * 0.35 - dx / hs * 0.15 + 0.2 * (hash(dx, j + i, seed + 2) - 0.5)) * n), 1, n)]);
+      continue;
+    }
+    const t = Math.max(1, (th + 1.5) * (1 - a * 0.5) * (0.5 + 0.65 * hash(dx >> 1, i, seed)));
+    for (let j = 0; j < t; j++) {
+      const v = 0.82 - j / t * 0.65 - dx / hs * 0.18 + (j === 0 && dx <= 0 ? 0.12 : 0) + 0.26 * (hash(dx >> 1, (j + i * 7) >> 1, seed + 2) - 0.5);
+      bm.set(cx + dx, Math.round(y0 + j + 1), ramp[clamp(Math.round(v * n + (bayer(dx & 3, j) - 0.5) * 0.6), 1, n)]);
+    }
+    if (hash(dx, i, seed + 3) < 0.22) bm.set(cx + dx, Math.round(y0 + t + 1), ramp[1]);
+  }
+  if (i === 0) { bm.set(cx, 0, ramp[2]); bm.set(cx, 1, ramp[3]); }
+  // The dark edge only under and beside a layer, never along its top, so a layer runs into the one above
+  // instead of standing apart as a pill, and its underside is the shadow on the layer below.
+  const d = bm.d.slice();
+  for (let y = 0; y < bm.h; y++) for (let x = 0; x < bm.w; x++) {
+    if (d[y * bm.w + x]) continue;
+    const up = y > 0 && d[(y - 1) * bm.w + x], side = (x > 0 && d[y * bm.w + x - 1]) || (x < bm.w - 1 && d[y * bm.w + x + 1]);
+    if (up || (side && y > 1)) bm.d[y * bm.w + x] = ramp[0];
+  }
+  const y = -H + 2 + i * (H * 0.82 * (o.crown || 1)) / tiers;
+  return { bm, x: -cx, y: Math.round(y - 1), sway: 1 - f * 0.6, lx: 0 };
+}
 // The crown of a broadleaf or a pine: a dark copy of the canopy behind the clumps (so a lifted clump
 // shows shadowed leaves, not sky), then the clumps from the top down.
-function crown(parts, cs, colours, dark, W, H, bx, rand) {
+function crown(parts, cs, colours, dark, W, H, bx, rand, shape = '') {
   const inside = new BM(W, H);
-  for (const [x, y, r] of cs) disc(inside, x, y, r - 0.5, () => dark);
+  for (const [x, y, r] of cs) disc(inside, x, y, r - 2, () => dark);
   parts.push({ bm: inside, x: -bx, y: -H, sway: 0 });
   cs.sort((a, c) => a[1] - c[1]);
-  for (const [x, y, r] of cs) { const bm = clump(r, colours, rand, 0); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
+  for (const [x, y, r] of cs) { const bm = clump(r, colours, rand, 0, shape); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
 }
 // A quaking aspen in autumn: a thin white trunk with dark marks where limbs were, and a small round
 // crown of yellow leaves. They are planted in groves.
@@ -116,19 +179,25 @@ function makeTwisted(seed) {
   outline(trunk, INK);
   const parts = [{ bm: trunk, x: -Math.round(bx), y: -H, sway: 0 }], dark = [R.moss[0], R.moss[1], R.moss[2], R.moss[3]];
   const cs = [pts[3], ...ends.filter((_, n) => n & 1)].slice(0, 4).map(([x, y]) => [x + (rand() - 0.5) * 4, y - 2 - rand() * 3, 3 + rand() * 1.5]);
-  for (const [x, y, r] of cs) { const bm = clump(r, dark, rand, 5); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
+  for (const [x, y, r] of cs) { const bm = clump(r, dark, rand, 5, 'pad'); parts.push({ bm, x: Math.round(x - bm.cx - bx), y: Math.round(y - bm.cy - H), sway: 1, lx: x - bx }); }
   return { parts, h: H, w: W };
 }
-// A clump of wildflowers for the map (D5a): a few stems with a bloom on each, the blooms a part of their
-// own so they sway on still stems. kind: 'lupine' (a blue spike), 'red' (paintbrush), 'white', 'yellow'.
+// A clump of wildflowers for the map (D5a) on a mound of its own leaves (art pass D04), the blooms a part of
+// their own so they sway on still stems. kind: 'lupine', 'red' (paintbrush), 'white' or 'yellow'.
 function makeFlowers(kind, seed) {
-  const rand = rng(seed), stems = new BM(9, 7), blooms = new BM(9, 7), n = 3 + (rand() * 3 | 0);
-  const top = { lupine: [R.lupine[1], R.lupine[2]], red: [R.red[1], R.red[2]], white: [R.white[0], R.white[1]], yellow: [R.yellow[0], R.yellow[1]] }[kind];
+  const rand = rng(seed), stems = new BM(9, 7), blooms = new BM(9, 7), n = 3 + (rand() * 3 | 0), G = R.grass;
+  for (let x = 1; x < 8; x++) {
+    const tall = x > 1 && x < 7 ? 1 + (hash(x, 1, seed) < 0.55 ? 1 : 0) : hash(x, 2, seed) < 0.5 ? 1 : 0;
+    for (let j = 0; j < tall; j++) stems.set(x, 6 - j, j === 0 && x > 4 ? G[1] : x < 4 && j === tall - 1 && hash(x, 3, seed) < 0.6 ? G[4] : x < 5 ? G[3] : G[2]);
+  }
   for (let k = 0; k < n; k++) {
-    const x = 1 + Math.round(k * 7 / n + rand()), hgt = 2 + (rand() * 3 | 0);
-    for (let y = 6; y > 6 - hgt; y--) stems.set(x, y, R.grass[y === 6 ? 0 : 1]);
-    const y0 = 6 - hgt; blooms.set(x, y0, top[0]); if (kind === 'lupine' || kind === 'red' || rand() < 0.4) blooms.set(x, y0 - 1, top[1]);
-    if (kind === 'white' && rand() < 0.5) blooms.set(x + 1, y0, top[1]);
+    // Neighbouring stems alternate short and tall, so their heads never join into a dash.
+    const x = 1 + Math.round(k * 7 / n + rand()), hgt = 2 + (k & 1) + (rand() * 2 | 0) + (k & 1 && kind !== 'lupine' ? 1 : 0), y0 = 6 - hgt;
+    for (let y = 5; y > y0; y--) stems.set(x, y, G[2]);
+    if (kind === 'lupine') { blooms.set(x, y0, R.lupine[0]); blooms.set(x, y0 - 1, R.lupine[1]); if (rand() < 0.5) blooms.set(x, y0 - 2, R.lupine[2]); }
+    else if (kind === 'red') { blooms.set(x, y0, R.red[1]); blooms.set(x, y0 - 1, R.red[2]); if (rand() < 0.6) blooms.set(x + 1, y0, R.red[0]); }
+    else if (kind === 'white') { blooms.set(x, y0, R.white[1]); if (rand() < 0.5) blooms.set(x + 1, y0 + 1, R.white[0]); }
+    else { blooms.set(x, y0, R.yellow[1]); if (rand() < 0.4) blooms.set(x + 1, y0, R.yellow[0]); }
   }
   return { parts: [{ bm: stems, x: -4, y: -6, sway: 0 }, { bm: blooms, x: -4, y: -6, sway: 1, lx: 0 }], h: 7, w: 9, low: true };
 }
@@ -154,27 +223,18 @@ function swaying(bm, cut = Math.round(bm.h * 0.55)) {
   for (let y = 0; y < bm.h; y++) for (let x = 0; x < bm.w; x++) { const c = bm.d[y * bm.w + x]; if (c) (y < cut ? top : foot).set(x, y < cut ? y : y - cut, c); }
   return { parts: [{ bm: foot, x: -bm.ox, y: cut - bm.oy, sway: 0 }, { bm: top, x: -bm.ox, y: -bm.oy, sway: 0.8, lx: 0 }], h: bm.h, w: bm.w, low: true };
 }
-// The owl in the rainforest, on a broken stub: pose 'open', 'blink' or 'turn' (its head round to one side).
-function makeOwl(pose) {
-  const b = new BM(5, 15), F = R.fur, eye = pose === 'blink' ? F[1] : R.yellow[1];
-  for (let y = 6; y < 15; y++) for (let x = 1; x <= 2; x++) b.set(x, y, hash(x, y, 31) < 0.3 ? R.moss[2] : R.bark[x === 1 ? 0 : 1]);
-  b.set(2, 5, R.bark[1]);
-  b.set(1, 0, F[2]); b.set(3, 0, F[2]);
-  for (let x = 0; x <= 4; x++) { b.set(x, 1, F[2]); b.set(x, 2, x === 2 ? R.yellow[0] : F[3]); b.set(x, 3, x === 0 || x === 4 ? F[1] : F[2]); }
-  for (let x = 1; x <= 3; x++) b.set(x, 4, F[x === 2 ? 2 : 1]);
-  if (pose === 'turn') { b.set(3, 1, eye); b.set(4, 2, R.yellow[0]); b.set(2, 2, F[3]); } else { b.set(1, 1, eye); b.set(3, 1, eye); }
-  b.ox = 2; b.oy = 14;
-  return b;
-}
 function makeAspen(seed) {
   const rand = rng(seed), H = 23 + (rand() * 14 | 0), W = 22, bx = W >> 1, lean = (rand() - 0.5) * 3;
   const trunk = new BM(W, H + 2), tx = y => bx + Math.round(lean * (1 - y / H));
   for (let y = Math.round(H * 0.25); y <= H; y++) { trunk.set(tx(y), y, R.white[1]); trunk.set(tx(y) + 1, y, R.white[0]); }
   for (let y = H - 2 - (rand() * 3 | 0); y > H * 0.3; y -= 3 + (rand() * 4 | 0)) { const two = rand() < 0.35; trunk.set(tx(y) + (rand() < 0.5 || two ? 0 : 1), y, R.basalt[0]); if (two) trunk.set(tx(y) + 1, y, R.basalt[1]); }
   outline(trunk, INK);
-  const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }], cs = [[tx(H * 0.25) + 0.5, H * 0.2, 3.6 + rand() * 1.2]];
-  for (let k = 2 + (rand() * 3 | 0); k > 0; k--) cs.push([tx(H * 0.3) + 0.5 + (rand() - 0.5) * 9, H * (0.2 + rand() * 0.26), 2.8 + rand() * 1.6]);
-  crown(parts, cs, [R.mustard[0], R.mustard[1], R.aspen[0], R.aspen[1]], R.mustard[0], W, H, bx, rand);
+  // The crown is narrow and upright, after the aspen grove painted for D03: clusters stacked up the
+  // trunk, close to it, and a small one on top for the point.
+  const r0 = 3.6 + rand() * 1.2, parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }], cs = [[tx(H * 0.25) + 0.5, H * 0.22, r0 * 0.9]];
+  for (let k = 2 + (rand() * 3 | 0); k > 0; k--) cs.push([tx(H * 0.3) + 0.5 + (rand() - 0.5) * 5, H * (0.16 + rand() * 0.32), 2.6 + rand() * 1.4]);
+  cs.push([tx(H * 0.2) + 0.5, H * 0.22 - r0 * 1.1, r0 * 0.6]);
+  crown(parts, cs, [R.mustard[0], R.mustard[1], R.aspen[0], R.aspen[1]], R.mustard[0], W, H, bx, rand, 'tall');
   return { parts, h: H, w: 13 };
 }
 // A ponderosa pine: a tall straight trunk of orange-brown bark broken into plates, bare for half its
@@ -194,12 +254,12 @@ function makePonderosa(seed) {
   for (let k = 1 + (rand() * 2 | 0); k > 0; k--) { const y = H * (0.56 + rand() * 0.14), s = rand() < 0.5 ? -1 : 1; thick(trunk, bx, y, bx + s * (3 + rand() * 2), y - 1, 1, R.pbark[0]); }
   outline(trunk, INK);
   const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }];
-  crown(parts, cs, [R.conifer[0], R.pine[0], R.pine[1], R.pine[2], R.pine[3]], R.conifer[0], W, H, bx, rand);
+  crown(parts, cs, [R.conifer[0], R.pine[0], R.pine[1], R.pine[2], R.pine[3]], R.conifer[0], W, H, bx, rand, 'tuft');
   return { parts, h: H, w: 20 };
 }
 // The dry side's trees (E5g). A lodgepole pine: tall, straight and thin, crowded in stands, its needles
 // only in the top half with the trunk bare below.
-const makeLodgepole = seed => { const r = rng(seed); return makeConifer(seed, 34 + (r() * 14 | 0), 8 + (r() * 3 | 0), 'pine', 6, { crown: 0.55 }); };
+const makeLodgepole = (seed, tufts = false) => { const r = rng(seed); return makeConifer(seed, 34 + (r() * 14 | 0), 8 + (r() * 3 | 0), 'pine', 6, { crown: 0.55, tufts }); };
 // A western juniper: low and gnarled, a twisting trunk of shaggy grey-brown bark under dense clumps of
 // blue-grey foliage. It grows where the pines give out to sage.
 function makeJuniper(seed) {
@@ -208,8 +268,8 @@ function makeJuniper(seed) {
   for (let k = 1; k < pts.length; k++) thick(trunk, pts[k - 1][0], pts[k - 1][1], pts[k][0], pts[k][1], k === 1 ? 2 : 1, k === 1 ? R.ochre[0] : R.rock[1]);
   thick(trunk, pts[1][0], pts[1][1], pts[1][0] + lean * 5, pts[1][1] - 3, 1, R.ochre[0]);
   outline(trunk, INK);
-  const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }], cs = [[pts[2][0], H * 0.28, 3.4 + rand()], [pts[1][0] + lean * 5, pts[1][1] - 4, 2.8 + rand()]];
-  if (rand() < 0.6) cs.push([pts[2][0] - lean * 3, H * 0.42, 2.6 + rand()]);
+  const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }], cs = [[pts[2][0], H * 0.28, 4 + rand()], [pts[1][0] + lean * 5, pts[1][1] - 4, 3.4 + rand()]];
+  if (rand() < 0.6) cs.push([pts[2][0] - lean * 3, H * 0.42, 3.2 + rand()]);
   crown(parts, cs, [R.hill[0], R.hill[1], R.sage[1], R.sage[2], R.sage[3]], R.hill[0], W, H, bx, rand);
   return { parts, h: H, w: 14 };
 }
@@ -221,7 +281,7 @@ function makeWhitebark(seed) {
   for (let k = 0, n = 2 + (rand() * 2 | 0); k < n; k++) { const ex = bx + (k - (n - 1) / 2) * (5 + rand() * 3), ey = H * (0.18 + rand() * 0.2); thick(trunk, bx, H, ex, ey, k === 0 ? 2 : 1, R.rock[hash(k, seed, 3) < 0.5 ? 3 : 4]); cs.push([ex, ey - 1, 3 + rand() * 1.2]); }
   outline(trunk, INK);
   const parts = [{ bm: trunk, x: -bx, y: -H, sway: 0 }];
-  crown(parts, cs, [R.conifer[0], R.conifer[1], R.pine[1], R.pine[2], R.pine[3]], R.conifer[0], W, H, bx, rand);
+  crown(parts, cs, [R.conifer[0], R.conifer[1], R.pine[1], R.pine[2], R.pine[3]], R.conifer[0], W, H, bx, rand, 'tuft');
   return { parts, h: H, w: 18 };
 }
 // New growth in the burn (E5g): slide alder, a low tangle of bright fresh leaves along the water, and
@@ -240,27 +300,36 @@ function makeShrub(seed, kind) {
   outline(b, kind === 'alder' ? R.moss[2] : R.conifer[0]);
   return b;
 }
-const makeSpruce = seed => { const r = rng(seed); return makeConifer(seed, 52 + (r() * 16 | 0), 26 + (r() * 8 | 0), 'conifer', 9); };
-const makeFir = seed => { const r = rng(seed); return makeConifer(seed, 22 + (r() * 12 | 0), 9 + (r() * 4 | 0), 'conifer', 6); };
+// The scenes pass tufts (D01); the map keeps the plates.
+const makeSpruce = (seed, tufts = false) => { const r = rng(seed); return makeConifer(seed, 52 + (r() * 16 | 0), 26 + (r() * 8 | 0), 'conifer', 9, { tufts }); };
+const makeFir = (seed, tufts = false) => { const r = rng(seed); return makeConifer(seed, 22 + (r() * 12 | 0), 9 + (r() * 4 | 0), 'conifer', 6, { tufts }); };
 
+// A fern (art pass D08): five arching fronds, the outer ones drooping.
 function makeFern(seed) {
   const rand = rng(seed), b = new BM(11, 7); b.ox = 5; b.oy = 6;
   for (let k = 0; k < 5; k++) {
-    const a = -Math.PI / 2 + (k - 2) * 0.55 + (rand() - 0.5) * 0.2;
+    const a = -Math.PI / 2 + (k - 2) * 0.55 + (rand() - 0.5) * 0.2, out = Math.abs(k - 2);
     for (let j = 1; j <= 4 + (k === 2 ? 1 : 0); j++) {
-      const x = 5 + Math.cos(a) * j * 1.2, y = 6 + Math.sin(a) * j * 0.9 + (Math.abs(k - 2) > 1 ? j * 0.25 : 0);
+      const x = 5 + Math.cos(a) * j * 1.2, y = 6 + Math.sin(a) * j * 0.9 + (out > 1 ? j * 0.25 + j * j * 0.06 : out ? j * j * 0.05 : 0);
       b.set(x, y, j > 3 ? R.moss[5] : R.moss[4]);
+      if (j >= 2 && j < 4 + (k === 2 ? 1 : 0)) { const px = Math.round(x - Math.sin(a)), py = Math.round(y + Math.cos(a) * 0.6); if (!b.get(px, py)) b.set(px, py, out ? R.moss[3] : R.moss[5]); }
     }
   }
   return b;
 }
+// A granite boulder (art pass D08): a pale top, a lit west face and a dark east face, a crack and lichen.
 function makeBoulder(seed, r) {
   const rand = rng(seed), b = new BM(Math.ceil(r * 2.4) + 4, Math.ceil(r * 1.6) + 4); b.ox = b.w >> 1; b.oy = b.h - 2;
+  const tilt = (hash(seed, 1, 71) - 0.5) * 0.5, ridge = (hash(seed, 2, 71) - 0.5) * 0.4;
   for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) {
     const nx = (x - b.ox) / (r * 1.15), ny = (y - (b.oy - r * 0.6)) / (r * 0.7);
-    if (nx * nx + ny * ny > 1 + 0.25 * (vnoise(x / 2, y / 2, seed) - 0.5) || y > b.oy) continue;
-    b.set(x, y, pick('rock', 0.6 - nx * 0.25 - ny * 0.3 + (rand() - 0.5) * 0.15, x, y));
+    if (Math.abs(nx) ** 2.6 + Math.abs(ny) ** 2.4 > 1 + 0.25 * (vnoise(x / 2, y / 2, seed) - 0.5) || y > b.oy) continue;
+    const top = ny < -0.28 + tilt * nx, west = nx < ridge, n = (rand() - 0.5) * 0.15;
+    b.set(x, y, top ? pick('rock', 0.92 + n, x, y, 0.5) : west ? pick('rock', 0.62 - ny * 0.12 + n, x, y, 0.5) : pick('rock', 0.3 - ny * 0.1 + n, x, y, 0.5));
   }
+  // The crack, from the top's edge down the west face.
+  if (r >= 3.5) { let cx = b.ox + Math.round((ridge - 0.35) * r); for (let y = Math.round(b.oy - r * 0.95); y < b.oy - 1; y++) { if (b.get(cx, y)) b.set(cx, y, R.rock[1]); if (hash(cx, y, seed) < 0.35) cx += hash(y, cx, seed) < 0.5 ? -1 : 1; } }
+  for (let k = 0; k < 1 + (r > 5 ? 2 : 0); k++) { const x = b.ox + Math.round((hash(k, 3, seed) - 0.6) * r * 1.4), y = Math.round(b.oy - r * 1.05 + hash(k, 4, seed) * 2); if (b.get(x, y) && b.get(x, y) !== R.rock[1]) b.set(x, y, R.moss[k ? 5 : 6]); }
   outline(b, INK);
   return b;
 }
@@ -296,7 +365,10 @@ function makeDriftwood(seed = 0) {
     for (let y = y0; y <= y1; y++) {
       if (splinter && hash(t, y, seed + 71) < 0.5 * splinter) continue;
       const j = y - Math.round(c), grain = vnoise(t / 7 + j * 2.7, j * 5.3, seed + 72), knot = hash(t >> 1, j, seed + 73) < 0.04;
-      b.set(x0 + t, y, y === y1 ? G[2] : y === y0 ? G[6] : y === y1 - 1 && r > 1.8 ? G[3] : knot ? G[2] : grain > 0.62 ? G[4] : grain < 0.3 ? G[6] : G[5]);
+      // A16, after a picture of Olympic coast driftwood: silver where the sun catches its top, a warm brown-grey
+      // underneath, long dark cracks along the grain.
+      const crack = j < 0 && hash(Math.floor((t + 9 * hash(j, 1, seed + 74)) / 9), j, seed + 75) < 0.3 && t % 9 > 1;
+      b.set(x0 + t, y, y === y1 ? R.ochre[1] : y === y0 ? G[6] : y === y1 - 1 && r > 1.8 ? R.ochre[2] : crack ? G[2] : knot ? G[2] : j > 0 ? (grain > 0.5 ? G[3] : G[4]) : grain > 0.62 ? G[4] : grain < 0.3 ? G[6] : G[5]);
     }
   }
   // The crack: a dark line in from the broken end, along the grain.
@@ -310,60 +382,89 @@ function makeDriftwood(seed = 0) {
     // A root wad: the torn roots fan out from the butt, pale at their tips, with the dark of the hollow between.
     const c = cy(0);
     for (let k = 0, n = 5; k < n; k++) { const a = Math.PI + (k - (n - 1) / 2) * 0.52 + (rand() - 0.5) * 0.2, L = 3 + rand() * 2.5; for (let q = 0; q <= L; q++) b.set(x0 - 1 + Math.cos(a) * q, c + Math.sin(a) * q * 1.15, q < 1 ? G[2] : q > L - 1 ? G[6] : G[4]); }
-    b.set(x0 - 1, c, G[1]); b.set(x0, c, G[2]);
+    for (const [dx, dy] of [[-1, 0], [0, 0], [-1, -1], [0, 1], [-2, 0]]) b.set(x0 + dx, c + dy, dx === -1 && dy === 0 ? R.wood[0] : R.wood[2]);
   } else {
     // A snapped butt: the end grain a step darker, with its heart darker still.
     const c = cy(0), r = Math.round(rAt(0)); for (let dy = -r; dy <= r; dy++) b.set(x0 - 1, c + dy, dy === 0 ? G[2] : G[3]);
   }
   // Outlined in the wood's own dark, not in ink: ink round a log this thin is most of what shows.
   outline(b, G[1]);
-  // Its shadow, on the sand below and to the east of it.
-  { const solid = b.d.slice(); for (let x = 0; x < W - 1; x++) for (let y = H - 2; y >= 0; y--) if (solid[y * W + x]) { for (const dx of [0, 1]) if (!solid[(y + 1) * W + x + dx]) b.d[(y + 1) * W + x + dx] = R.sand[0]; break; } }
   b.ox = W >> 1; b.oy = Math.min(H - 1, Math.round(H / 2 + rad + 2));
   if (rand() < 0.5) { const d = b.d.slice(); for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) b.d[y * W + x] = d[y * W + W - 1 - x]; b.ox = W - 1 - b.ox; }
+  // Its shadow, on the sand below and to the east of it, drawn after any flip so it always falls away from
+  // the sun: a dark band under the log and a lighter one beyond it.
+  { const solid = b.d.slice(); for (let x = 0; x < W - 3; x++) for (let y = H - 4; y >= 0; y--) if (solid[y * W + x]) { for (const [dx, dy, c] of [[0, 1, R.ochre[0]], [1, 1, R.ochre[0]], [2, 1, R.ochre[1]], [1, 2, R.ochre[1]], [2, 2, R.ochre[1]], [3, 2, R.sand[0]], [2, 3, R.sand[0]]]) { const i = (y + dy) * W + x + dx; if (!solid[i] && !b.d[i]) b.d[i] = c; } break; } }
   return b;
 }
+// A fair-weather cumulus (art pass D10): rounded puffs on a flat blue-grey base, no outline.
 function makeCloud(seed) {
   const rand = rng(seed), b = new BM(56, 20); b.ox = 0; b.oy = 0;
-  const blobs = []; for (let k = 0; k < 6; k++) blobs.push([8 + k * 8 + rand() * 4, 12 - rand() * 6 - (k > 1 && k < 4 ? 4 : 0), 5 + rand() * 4]);
-  for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) {
-    if (!blobs.some(([bx, by, r]) => sq(x - bx) + sq((y - by) * 1.3) <= r * r) || y > 16) continue;
-    b.set(x, y, y > 12 ? R.sky[3] : (y > 10 && bayer(x, y) > 0.5) ? R.sky[4] : R.white[1]);
+  const n = 5 + (rand() * 3 | 0), base = 15, puffs = [];
+  for (let k = 0; k < n; k++) { const t = k / (n - 1), r = 2.8 + 6.6 * Math.sin(Math.PI * (0.1 + 0.8 * t)) ** 1.5 + rand() * 1.6; puffs.push([5 + t * 45 + (rand() - 0.5) * 3, base - r * 0.72 - rand() * 1.5, r]); }
+  puffs.sort((p, q) => p[1] - q[1]);
+  const own = new Int8Array(56 * 20).fill(-1);
+  for (let y = 0; y < 20; y++) for (let x = 0; x < 56; x++) {
+    if (y > base + 1) continue;
+    for (let k = puffs.length - 1; k >= 0; k--) { const [px, py, r] = puffs[k]; if (sq(x - px) + sq((y - py) * 1.25) <= r * r) { own[y * 56 + x] = k; break; } }
+  }
+  for (let y = 0; y < 20; y++) for (let x = 0; x < 56; x++) {
+    const k = own[y * 56 + x]; if (k < 0) continue;
+    const [px, py, r] = puffs[k], ux = (x - px) / r, uy = (y - py) * 1.25 / r, v = -0.5 * ux - 0.8 * uy;
+    const up = y > 0 ? own[(y - 1) * 56 + x] : -1, edge = up >= 0 && up !== k && puffs[up][1] < py;
+    b.set(x, y, y >= base ? R.sky[3] : y >= base - 1 || edge ? R.sky[4] : v > -0.28 ? R.white[1] : R.sky[4]);
   }
   return b;
 }
 
 // Signs and small built things.
+// Signs and small built things.
+// The junction sign (art pass D05): a post and two planks lit on top and west, each with a coloured dot.
 function makeSignpost() {
   const b = new BM(19, 22); b.ox = 9; b.oy = 21;
-  for (let y = 5; y < 22; y++) { b.set(8, y, R.wood[2]); b.set(9, y, R.wood[1]); }
+  for (let y = 5; y < 22; y++) { b.set(8, y, R.wood[3]); b.set(9, y, R.wood[1]); }
   const plank = (x0, x1, y, dir, dot) => {
-    for (let x = x0; x <= x1; x++) { b.set(x, y, R.wood[4]); b.set(x, y + 1, R.wood[3]); b.set(x, y + 2, R.wood[2]); }
-    const tip = dir < 0 ? x0 - 1 : x1 + 1; b.set(tip, y + 1, R.wood[3]);
+    for (let x = x0; x <= x1; x++) { b.set(x, y, R.wood[4]); b.set(x, y + 1, (x * 7) % 5 === 1 ? R.wood[2] : R.wood[3]); b.set(x, y + 2, R.wood[1]); }
+    const tip = dir < 0 ? x0 - 1 : x1 + 1; b.set(tip, y, R.wood[4]); b.set(tip, y + 1, R.wood[3]); b.set(tip + dir, y + 1, R.wood[3]); b.set(tip, y + 2, R.wood[1]);
     b.set(dir < 0 ? x1 - 1 : x0 + 1, y + 1, dot);
   };
-  plank(1, 8, 6, -1, R.water[3]);
-  plank(10, 17, 10, 1, R.snow[4]);
-  for (let y = 1; y < 5; y++) { b.set(8, y, R.wood[4]); b.set(9, y, R.wood[3]); }
+  plank(2, 8, 6, -1, R.water[3]);
+  plank(10, 16, 10, 1, R.snow[4]);
+  for (let y = 1; y < 5; y++) { b.set(8, y, R.wood[4]); b.set(9, y, R.wood[2]); }
   b.set(8, 0, R.wood[4]); b.set(9, 2, R.gold[5]);
+  for (const [x, y, c] of [[6, 21, 2], [7, 20, 3], [7, 21, 1], [10, 21, 2], [11, 21, 1], [10, 20, 3]]) b.set(x, y, R.rock[c]);
   outline(b, INK);
   return b;
 }
+// A small trail sign (art pass D05): a framed plank on a post.
 function makeSmallSign() {
   const b = new BM(13, 16); b.ox = 6; b.oy = 15;
-  for (let y = 6; y < 16; y++) { b.set(6, y, R.wood[2]); }
-  for (let y = 2; y < 7; y++) for (let x = 1; x < 12; x++) b.set(x, y, y === 6 ? R.wood[2] : R.wood[4]);
+  for (let y = 6; y < 16; y++) { b.set(6, y, R.wood[3]); b.set(7, y, R.wood[1]); }
+  for (let y = 2; y < 7; y++) for (let x = 1; x < 12; x++) b.set(x, y, y === 2 || x === 1 ? R.wood[4] : y === 6 || x === 11 ? R.wood[1] : R.wood[3]);
   for (let x = 3; x < 10; x += 2) b.set(x, 4, R.wood[1]);
+  for (let x = 3; x < 8; x += 2) b.set(x, 5, R.wood[2]);
+  b.set(5, 15, R.rock[3]); b.set(8, 15, R.rock[2]);
   outline(b, INK);
   return b;
 }
+// The Trailhead's kiosk (art pass D05): a shingled roof over a board of notes and a map. Size and foot as before.
 function makeKiosk() {
   const b = new BM(26, 26); b.ox = 13; b.oy = 25;
-  for (let y = 8; y < 26; y++) { b.set(4, y, R.wood[1]); b.set(21, y, R.wood[1]); }
-  for (let y = 9; y < 20; y++) for (let x = 5; x < 21; x++) b.set(x, y, R.wood[2]);
-  for (const [x0, y0, w, h] of [[6, 10, 5, 4], [12, 10, 7, 3], [7, 15, 4, 3], [13, 14, 6, 4]]) for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) b.set(x, y, x === x0 + w - 1 ? R.white[0] : R.white[1]);
-  b.set(15, 15, R.red[1]); b.set(16, 15, R.red[1]);
-  for (let j = 0; j < 7; j++) for (let x = 12 - j * 2; x <= 13 + j * 2; x++) b.set(x, j + 1, j > 4 ? R.wood[0] : R.red[j < 2 ? 2 : 1]);
+  for (const x0 of [3, 21]) for (let y = 9; y < 26; y++) { b.set(x0, y, R.wood[3]); b.set(x0 + 1, y, y % 5 === 2 ? R.wood[0] : R.wood[1]); }
+  // The board: a frame lit on its top and west, dark inside.
+  for (let y = 10; y < 21; y++) for (let x = 6; x < 20; x++) b.set(x, y, y === 10 || x === 6 ? R.wood[3] : y === 20 || x === 19 ? R.wood[1] : y === 11 ? R.wood[0] : R.wood[1]);
+  for (let x = 7; x < 19; x++) if (x % 3 === 0) b.set(x, 15, R.wood[0]);
+  const note = (x0, y0, w, h) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) b.set(x, y, x === x0 + w - 1 ? R.white[0] : (y - y0) % 2 === 1 && x > x0 && x < x0 + w - 1 ? R.rock[3] : R.white[1]); b.set(x0 + 1, y0, R.yellow[1]); };
+  note(7, 12, 4, 4); note(7, 17, 4, 3); note(16, 12, 3, 4); note(13, 17, 5, 3);
+  // The trail map: green ground, a tan trail across it and a red mark where you stand.
+  for (let y = 12; y < 16; y++) for (let x = 12; x < 15; x++) b.set(x, y, x === 14 || y === 15 ? R.grass[2] : R.grass[3]);
+  for (const [x, y] of [[12, 14], [13, 13], [14, 12]]) b.set(x, y, R.dirt[4]);
+  b.set(13, 14, R.red[1]);
+  // The roof: courses of shingles widening down from the ridge, the lower edge of each course darker.
+  for (let j = 0; j < 7; j++) { const x0 = 7 - j, x1 = 18 + j, w = x1 - x0;
+    for (let x = x0; x <= x1; x++) { const t = (x - x0) / w, lit = t < 0.34 ? 2 : t < 0.7 ? 1 : 0; b.set(x, j + 1, R.red[clamp(lit - (j % 2), 0, 2)]); }
+    b.set(x0, j + 1, R.red[2]); }
+  for (let x = 1; x <= 24; x++) { b.set(x, 8, R.wood[0]); if (x > 4 && x < 21) b.set(x, 9, R.wood[0]); }
+  for (const [x, y, c] of [[1, 25, 2], [2, 24, 3], [2, 25, 1], [5, 25, 2], [6, 25, 1], [20, 25, 3], [23, 25, 2], [24, 24, 3], [24, 25, 1]]) b.set(x, y, R.rock[c]);
   outline(b, INK);
   return b;
 }
@@ -391,18 +492,27 @@ function makeLookout() {
   for (let x = c - 5; x <= c + 5; x++) b.set(x, deck + 1, R.wood[0]);
   return b;
 }
+// A mountaineering tent (art pass D09): a low dome. The lines and stakes are ink, so at Dusk only the fabric glows.
 function makeTent(c) {
   const b = new BM(16, 11); b.ox = 8; b.oy = 10;
-  for (let y = 0; y < 10; y++) for (let x = 8 - y * 0.75; x <= 8 + y * 0.75; x++) b.set(x, y + 1, x < 8 ? R[c][2] : R[c][1]);
-  for (let y = 6; y < 10; y++) b.set(8, y + 1, R.ink[0]);
+  const T = R[c], inDome = (x, y, rx) => sq((x - 8) / rx) + sq((y - 10.5) / 7.4) <= 1;
+  for (let y = 1; y <= 10; y++) for (let x = 0; x < 16; x++) {
+    if (!inDome(x, y, 5.6)) continue;
+    const pole = inDome(x, y, 3) !== inDome(x + (x < 8 ? -1 : 1), y, 3);
+    b.set(x, y, pole ? T[0] : x < 7 - (10 - y) * 0.15 ? T[2] : x > 11 ? T[0] : T[1]);
+  }
+  // The door, and its flap tied back on the west side of it.
+  for (let y = 6; y <= 10; y++) for (let x = 9; x <= 11; x++) if (y > 6 || x === 10) b.set(x, y, INK);
+  b.set(9, 7, T[2]); b.set(9, 8, T[2]);
   outline(b, INK);
+  for (const [x, y] of [[1, 7], [0, 8], [0, 9], [0, 10], [14, 7], [15, 8], [15, 9], [15, 10]]) b.set(x, y, INK);
   return b;
 }
+// The trail journal (art pass D09): a red notebook on a boulder.
 function makeJournal() {
   const b = makeBoulder(81, 6);
-  const x = b.ox - 2, y = b.oy - 8;
-  for (let dx = 0; dx < 5; dx++) { b.set(x + dx, y, R.white[1]); b.set(x + dx, y + 1, R.red[1]); }
-  b.set(x + 2, y, R.white[0]);
+  const x = b.ox - 2, y = b.oy - 9;
+  for (let dx = 0; dx < 5; dx++) { b.set(x + dx, y, dx === 0 ? R.red[0] : R.red[2]); b.set(x + dx, y + 1, dx === 0 ? R.red[0] : dx === 4 ? R.white[1] : R.red[1]); b.set(x + dx, y + 2, dx === 0 ? R.red[0] : R.white[0]); }
   return b;
 }
 
@@ -423,6 +533,7 @@ function makeElk(headDown, step = 0, bull = true) {
   oval(10.5, 18.5, 2.4, 3.4, dark);
   oval(hx, hy, 2.8, 1.8, dark); b.set(hx - 3, hy + 1, R.bark[0]); b.set(hx, hy - 1, INK);
   if (!bull) { b.set(hx + 3, hy - 2, R.bark[2]); b.set(hx + 4, hy - 3, R.bark[2]); }
+  litBack(b);
   outline(b, INK);
   // The rack goes on after the outline, so it stays thin: the far antler a shade darker, then the near one.
   if (bull) {
@@ -445,7 +556,7 @@ function makeMoose(calf, headDown, step = 0) {
     const hx = headDown ? 5 : 4.5, hy = headDown ? 19 : 7;
     if (headDown) thick(b, 8, 12, 6, 17, 3, dark); else thick(b, 8, 10, 6, 8, 3, dark);
     oval(hx, hy, 2.6, 1.7, coat); b.set(hx - 2, hy + 1, dark); b.set(hx - 3, hy + 1, dark); b.set(hx - 1, hy - 1, INK); b.set(hx + 2, hy - 2, R.bark[2]); b.set(hx + 3, hy - 3, R.bark[2]);
-    outline(b, INK); return b;
+    litBack(b); outline(b, INK); return b;
   }
   // The legs: dark above the knee, pale below; the near and far ones swing opposite ways when it walks.
   for (const [lx, far] of [[12, 1], [15, 0], [26, 1], [29, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 21; y < 37; y++) b.set(lx + (y > 29 ? sw : 0), y, y > 28 ? sock : R.fur[far ? 0 : 1]); if (!far) for (let y = 21; y < 29; y++) b.set(lx - 1, y, R.fur[1]); }
@@ -455,56 +566,39 @@ function makeMoose(calf, headDown, step = 0) {
   oval(hx, hy, 3.6, 2.1, coat); oval(hx - 2.4, hy + 1.6, 2.2, 1.9, coat);
   b.set(hx + 1, hy - 1, INK); b.set(hx + 4, hy - 3, dark); b.set(hx + 5, hy - 3, dark);
   if (!headDown) { b.set(hx + 4, hy + 4, dark); b.set(hx + 4, hy + 5, dark); }
+  litBack(b);
   outline(b, INK);
   // The antlers go on after the outline, as the elk's do: a broad palm with points along its top, the far one a shade darker.
   const palm = [[3, -3], [4, -4], [2, -5], [3, -5], [4, -5], [5, -5], [6, -5], [7, -5], [8, -5], [3, -6], [4, -6], [5, -6], [6, -6], [7, -6], [8, -6], [9, -6], [3, -7], [5, -7], [7, -7], [9, -7], [10, -7], [1, -4], [0, -5]];
   for (const [dx, dy, c] of [[-4, 0, R.dirt[3]], [0, 0, R.white[0]]]) for (const [x, y] of palm) b.set(hx + x + dx, hy + y + dy, c);
   return b;
 }
-function makeSlug() {
-  const b = new BM(8, 4); b.ox = 4; b.oy = 3;
-  for (let x = 1; x < 7; x++) b.set(x, 2, R.yellow[1]);
-  for (let x = 2; x < 6; x++) b.set(x, 1, R.yellow[1]);
-  b.set(6, 1, R.yellow[0]); b.set(7, 0, R.yellow[0]);
-  outline(b, INK);
-  return b;
-}
-function makeBird(f) {
-  const b = new BM(7, 4); b.ox = 3; b.oy = 2;
-  const ys = f ? [0, 1, 2, 2, 2, 1, 0] : [2, 2, 1, 2, 1, 2, 2];
-  ys.forEach((y, x) => b.set(x, y, INK));
-  return b;
-}
-function makeCat(name, pose, seed) {
-  const b = new BM(16, 12); b.ox = 8; b.oy = 11;
-  const ramp = R[name], col = (x, y, v) => {
-    if (name === 'tortie') { const n = vnoise(x / 2.2, y / 2.2, seed); return n > 0.62 ? ramp[3] : n > 0.5 ? ramp[2] : ramp[v > 0.6 ? 1 : 0]; }
-    return ramp[clamp(Math.round(v * 3), 0, 3)];
-  };
-  const crouch = pose === 'crouch', leap = pose === 'leap';
-  const bodyY = crouch ? 8.5 : leap ? 6 : 7.5, bodyR = leap ? 4.2 : 3.4;
-  for (let y = 0; y < 12; y++) for (let x = 0; x < 16; x++) {
-    const nx = (x - 7) / (bodyR * (leap ? 1.4 : 1.15)), ny = (y - bodyY) / (bodyR * 0.85);
-    if (nx * nx + ny * ny <= 1) b.set(x, y, col(x, y, 0.65 - ny * 0.3 - nx * 0.1));
-  }
-  const hx = leap ? 12 : crouch ? 11 : 10, hy = crouch ? 7 : leap ? 4.5 : 4;
-  disc(b, hx, hy, 2.6, (nx, ny, x, y) => col(x, y, 0.75 - ny * 0.3));
-  b.set(hx - 2, hy - 3, ramp[name === 'tortie' ? 0 : 1]); b.set(hx + 1, hy - 3, ramp[name === 'tortie' ? 2 : 1]);
-  b.set(hx + 1, hy - 0.5, name === 'tortie' ? R.yellow[1] : R.yellow[1]);
-  const tail = pose === 'sitB' ? [[3, 9], [1, 7], [1, 5]] : pose === 'sitA' ? [[3, 9], [1, 9], [0, 7]] : [[3, bodyY], [1, bodyY - 1], [0, bodyY - 3]];
-  for (const [x, y] of tail) { b.set(x, y, col(x, y, 0.5)); b.set(x + 1, y, col(x + 1, y, 0.4)); }
-  if (!leap) for (const x of [5, 9]) b.set(x, 11, col(x, 11, 0.3));
-  outline(b, name === 'nebel' ? (x, y) => (hash(x, y, 2) < 0.3 ? R.nebel[1] : INK) : INK);
-  return b;
-}
 
 
-// A silver snag: a dead tree bleached grey, a few broken limbs.
-function makeSnag(seed) {
+// A dead tree of Postmortem Burn (A13, after a picture of a burned Cascade forest a few years on): a
+// straight, tapering trunk, two pixels wide below and one above, lit on its left by the sun in the upper
+// left and dark on its right. Silver ones are weathered grey with paler streaks, charred ones black with a
+// few patches of bronze bark left, bark ones still in their brown bark. The top is a fine spike, a snapped
+// jagged end or a crown of short stubs angled up; a few more stubs stand lower down. The dark edge is only
+// on the shaded right, so trunks standing close read one by one instead of as a tangle.
+function makeSnag(seed, kind = 'silver') {
   const rand = rng(seed), H = 20 + (rand() * 12 | 0), b = new BM(13, H + 2); b.ox = 6; b.oy = H;
-  for (let y = 1; y <= H; y++) { b.set(6, y, R.rock[y & 3 ? 3 : 2]); if (y > H * 0.5) b.set(5, y, R.rock[4]); }
-  for (let k = 0; k < 4; k++) { const y = 3 + k * (H * 0.2) + rand() * 2, s = k & 1 ? 1 : -1, len = 2 + rand() * 3; thick(b, 6, y + 2, 6 + s * len, y, 1, R.rock[3]); }
-  outline(b, INK);
+  const C = kind === 'char' ? [R.basalt[0], R.basalt[1], R.basalt[2], R.basalt[3]] : kind === 'bark' ? [R.bark[0], R.bark[1], R.bark[2], R.bark[3]] : [R.rock[1], R.rock[2], R.rock[3], R.rock[4]];
+  const top = rand(), spike = top < 0.4, snapped = top >= 0.4 && top < 0.75, cut = snapped ? Math.round(H * (0.12 + 0.12 * rand())) : 1, thin = Math.round(H * (spike ? 0.4 : 0.22));
+  for (let y = cut; y <= H; y++) {
+    const streak = hash(seed, y >> 2, 21) < 0.3, patch = kind === 'char' && hash(seed, y >> 1, 22) < 0.1;
+    b.set(6, y, patch ? R.bark[2] : y < thin ? C[2] : streak && kind === 'silver' ? C[3] : C[2]);
+    if (y >= thin) b.set(7, y, patch ? R.bark[1] : C[1]);
+    if (y >= thin) b.set(6, y, patch ? R.bark[3] : streak ? C[3] : C[2]);
+  }
+  if (snapped) { b.set(7, cut, C[1]); b.set(6, cut - 1, C[2]); }
+  // Stubs: short limbs angled up, more at the top of a crowned snag.
+  const stubs = 2 + (rand() * 3 | 0) + (!spike && !snapped ? 2 : 0);
+  for (let k = 0; k < stubs; k++) { const y = Math.round(cut + 2 + rand() * (H * 0.55)), s = k & 1 ? 1 : -1, len = 1 + (rand() * 2.5 | 0), x0 = s > 0 ? 7 : 6;
+    for (let d = 1; d <= len; d++) b.set(x0 + s * d, y - Math.floor(d * 0.7), s < 0 ? C[3] : C[1]); }
+  // The dark edge on the shaded right only.
+  const o = b.d.slice(); for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w - 1; x++) if (b.d[y * b.w + x] && !b.d[y * b.w + x + 1]) o[y * b.w + x + 1] = INK;
+  b.d = o;
   return b;
 }
 // A low shrub. Huckleberry going red, or heather in flower.
@@ -569,7 +663,8 @@ function makeRegister(mask, open = false) {
   for (let x = 2; x <= 12; x++) b.set(x, 2, x < 5 ? R.wood[4] : R.wood[3]);
   for (let x = 1; x <= 13; x++) b.set(x, 3, R.wood[1]);
   // The front (x 2 to 9) and its side in shade (x 10 to 12).
-  for (let y = 4; y <= 12; y++) for (let x = 2; x <= 12; x++) b.set(x, y, x > 9 ? (y === 12 ? R.wood[0] : R.wood[1]) : y === 12 ? R.wood[1] : x === 2 ? R.wood[3] : R.wood[2]);
+  // Planks with a dark seam between them (art pass D05) and a band of shade under the lid.
+  for (let y = 4; y <= 12; y++) for (let x = 2; x <= 12; x++) b.set(x, y, x > 9 ? (y === 12 || y === 4 ? R.wood[0] : R.wood[1]) : y === 12 || y === 4 ? R.wood[1] : x === 2 ? R.wood[3] : x === 6 ? R.wood[1] : R.wood[2]);
   // The plaque, lettered, and the hinge where the front folds down into a desk.
   for (let x = 3; x <= 8; x++) { b.set(x, 5, R.white[1]); b.set(x, 6, x % 2 ? R.wood[1] : R.white[0]); b.set(x, 7, R.white[0]); }
   for (let x = 2; x <= 9; x++) b.set(x, 10, R.wood[0]);
@@ -581,7 +676,7 @@ function makeRegister(mask, open = false) {
     b.set(1, 7, R.rock[3]); b.set(10, 7, R.rock[3]);
   }
   // The post and the rocks piled round its foot.
-  for (let y = 13; y <= 22; y++) { b.set(5, y, R.wood[3]); b.set(6, y, R.wood[1]); }
+  for (let y = 13; y <= 22; y++) { b.set(5, y, R.wood[3]); b.set(6, y, y % 4 === 1 ? R.wood[0] : R.wood[1]); }
   for (const [x, y, c] of [[2, 22, 2], [3, 21, 3], [3, 22, 1], [4, 22, 2], [7, 22, 2], [8, 22, 1], [8, 21, 3]]) b.set(x, y, R.rock[c]);
   outline(b, INK);
   // The pennants, after the outline so they stand clear of the post.
@@ -600,4 +695,4 @@ function makeFlag(f, ramp = R.red) {
 }
 
 export { makeRegister, makeMoose };
-export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeOwl, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk, makeSlug, makeBird, makeCat };
+export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk };
