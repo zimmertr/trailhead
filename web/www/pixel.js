@@ -24,6 +24,15 @@ const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb', 'offroute', 'larch
 // without loading the scene (asking them loaded every scene with the page, a fifth of its script). A
 // browser test holds these to the scenes' own numbers.
 const SECS = { wall: 132.3, larches: 12, approach: 21, camp: 1.4 };
+// What the timeline needs of the lake's two scenes before their code has arrived (round 8, A6): the route bar
+// at the start is the lake's, and its marks and its profile used to load both with the page. Each stands in
+// with its length, its stops, its sounds and its ups and downs (25 heights, start to end) until he sets off,
+// scrubs or jumps there. A browser test holds every number here to the scene's own.
+const LATER = {
+  forest: { dur: 14.13, stops: [{ id: 'who', at: 0.272 }], cues: [{ at: 0.3273, name: 'hop' }], elev: [10.5, 9, 4.5, 1.5, 3, 3, 0, -6, -12, -10.5, -4.5, 3, 4.5, 3, 3, 12, 43.5, 79.5, 114, 142.5, 168, 169.5, 175.5, 171, 168] },
+  lakeside: { dur: 9.75, stops: [{ id: 'mountains', at: 0.1645 }, { id: 'note', at: 0.575 }], cues: [], elev: [3, 3, 1.5, 1.5, 0, 0, -1.5, -1.5, -3, -3, -3, -3, -3, -1.5, -1.5, -1.5, 0, 0, 1.5, 1.5, 3, 3, 3, 3, 3] }
+};
+const standIn = n => { const T = LATER[n], k = T.elev.length - 1; return { name: n, later: true, dur: () => T.dur, stops: () => T.stops, cues: () => T.cues, elev: (arg, q) => { const f = clamp(q, 0, 1) * k, i = Math.min(k - 1, Math.floor(f)); return lerp(T.elev[i], T.elev[i + 1], f - i); } }; };
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
@@ -38,12 +47,19 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // A scene that cannot be built still gets a place on the route: it throws when he reaches it, and
   // from there it is handled like any other scene that throws.
   const stub = (name, err) => ({ name, dur: () => 1, stops: () => [], elev: () => 0, enter() {}, focus: () => ({ x: 0, y: 0 }), draw() { throw err; } });
-  async function need(names) {
-    for (const n of names) if (!scenes[n] && READY.includes(n)) {
+  // real: fetch a scene even if a stand-in would do (LATER), and hand it to the legs that held the stand-in.
+  async function need(names, real) {
+    for (const n of names) if (READY.includes(n) && (!scenes[n] || (real && scenes[n].later))) {
+      if (LATER[n] && !real) { scenes[n] = standIn(n); continue; }
       try { if (sabotage === 'load:' + n) throw new Error('Broken on purpose: loading ' + n); scenes[n] = await MAKERS[n](); }
       catch (err) { console.error(err); scenes[n] = stub(n, err); }
+      for (const l of legs) if (l.s === n) l.scene = scenes[n];
     }
   }
+  // Fetches whatever on his route is still a stand-in: called as he sets off, and before a scrub or a jump
+  // lands in one. Answers a promise while there is something to wait for, and nothing when there is not.
+  let waking = null;
+  const wake = () => waking || (legs.some(l => l.scene.later) ? (waking = need(legs.map(l => l.s), true).then(() => { waking = null; if (!running) setTimeout(warm, 0, ['forest', 'lakeside']); })) : null);
 
   // A route is a list of legs, each one scene drawing one stretch. Legs are weighted by how long
   // they take, so the timeline runs at an even pace across scene changes.
@@ -244,6 +260,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
 
   function step(dt) {
     if (!running || (tr && tr.phase === 'out' && !tr.to)) return;
+    wake();
     // A scene may keep him where he is while something plays out (he swims back before he runs on).
     if (!tr && drawn.scene.hold && drawn.scene.hold(env)) return;
     // A scene may have played on behind a card while it was read (the West Ridge's followers, H17):
@@ -278,15 +295,14 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   env.mapStill = (x, y) => world.still(scr, x, y, env);
   env.mapSize = [world.WW, world.WH];
 
-  // The forest's and the lake's pictures are made once the map has been on the screen for a frame,
-  // one scene to a turn so a click in between is not kept waiting for both.
-  let frames = 0;
+  // The forest's and the lake's pictures are made once their code has arrived while he stands still (wake,
+  // above), one scene to a turn so a click in between is not kept waiting for both. Arriving while he runs,
+  // each is made as he enters it, behind the closed window, as the other scenes are.
   const warm = names => { const s = scenes[names[0]]; if (s && s.warm) s.warm(); if (names.length > 1) setTimeout(warm, 0, names.slice(1)); };
   function draw(now) {
     if (!alive) return;
     requestAnimationFrame(draw);
     try { frame(now); } catch (err) { fail({ s: 'renderer' }, err); }
-    if (++frames === 2) setTimeout(warm, 0, ['forest', 'lakeside']);
   }
   function frame(now) {
     if (sabotage === 'renderer') throw new Error('Broken on purpose: the renderer');
@@ -317,8 +333,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // Under reduced motion the window does not close: the scene simply changes (F7).
     if (running && !tr && scrubbing <= 0 && drawn === legAt(p) && !calm.matches) {
       const nx = legs[legs.indexOf(drawn) + 1], left = (drawn.t1 - p) * total;
-      if (legs.includes(drawn) && nx && nx !== broken && !(nx.s === 'world' && drawn.s === 'world') && left > 0.12 && left <= 0.3 && !stops.some(s => s.at > p && s.at <= drawn.t1 + 1e-6)) { tr = { phase: 'out', k: 0, to: nx, lead: left }; emit({ type: 'sfx', name: 'iris' }); }
+      if (legs.includes(drawn) && nx && nx !== broken && !nx.scene.later && !(nx.s === 'world' && drawn.s === 'world') && left > 0.12 && left <= 0.3 && !stops.some(s => s.at > p && s.at <= drawn.t1 + 1e-6)) { tr = { phase: 'out', k: 0, to: nx, lead: left }; emit({ type: 'sfx', name: 'iris' }); }
     }
+    // His next stretch has not arrived yet (A6): he waits at the edge of this one until it has.
+    if (legAt(p).scene.later) { wake(); p = clamp(p, drawn.t0, drawn.t1 - 1e-6); }
     const want = legAt(p);
     if (want !== drawn && want !== broken && !tr) {
       if (want.s === 'world' && drawn.s === 'world') drawn = want;
@@ -462,7 +480,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     spawn: (kind, i) => world.spawn(kind, i),
     async jumpTo(name) {
       const r = Object.keys(ROUTES).find(k => !/back|home/.test(k) && ROUTES[k]().some(([n]) => n === name)); if (!r) return false;
-      await api.setRoute(r); const l = legs.find(g => g.s === name); if (l) api.scrub(l.t0 + 0.03 * (l.t1 - l.t0)); return true;
+      await api.setRoute(r); const l = legs.find(g => g.s === name); if (l) await api.scrub(l.t0 + 0.03 * (l.t1 - l.t0)); return true;
     },
     async setRoute(r) {
       if (!ROUTES[r]) return;
@@ -522,6 +540,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     onTrail: () => hereOnTrail(),
     progress: () => p,
     scrub(f) {
+      // Into a scene that has not arrived: it is fetched first, and the scrub lands when it has.
+      const w = legAt(clamp(f, 0, 1)).scene.later && wake();
+      if (w) { const r = route; return w.then(() => { if (route === r) api.scrub(f); }); }
       p = clamp(f, 0, 1); running = false; scrubbing = 0.16;
       const s = stopNear(p); if (s) { if (shown !== s) { shown = null; showStop(s); } } else leave();
     },
@@ -626,8 +647,11 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // Names to pin on the scene, in CSS pixels: the six summits at base camp, the four places on the map.
     labels() { const k = scr.S / (window.devicePixelRatio || 1); return drawn.scene.labels && !tr ? drawn.scene.labels().map(l => { const [x, y] = glidePoint(l.x * k, l.y * k); return { ...l, x, y }; }) : []; },
     // Puts him at a milestone by name, with its card open.
-    goto(id) { const s = stops.find(q => q.id === id); if (!s) return false; running = false; scrubbing = 0.16; p = s.at; shown = null; showStop(s); return true; },
+    goto(id) { const s = stops.find(q => q.id === id); if (!s) return false; if (s.leg.scene.later) { const r = route; wake().then(() => { if (route === r) api.goto(id); }); return true; } running = false; scrubbing = 0.16; p = s.at; shown = null; showStop(s); return true; },
     info: () => ({ lengths: world.lengths() }),
+    // What the timeline knows of a scene, loaded or standing in, with k heights along it: for the test that
+    // holds LATER to the scenes themselves.
+    facts(n, k = 25) { const s = scenes[n]; return s ? { later: !!s.later, dur: s.dur({}), stops: s.stops({}), cues: s.cues ? s.cues({}) : [], elev: Array.from({ length: k }, (_, i) => s.elev({}, i / (k - 1))) } : null; },
     // How long a route takes from the junction and back, in seconds, for the junction sign.
     async routeTime(r) { if (!ROUTES[r]) return 0; await need(ROUTES[r]().map(l => l[0]).filter(n => !(n in SECS))); return ROUTES[r]().reduce((a, [n, arg]) => a + (scenes[n] ? scenes[n].dur(arg) : SECS[n] || 0), 0); },
     dispose() { alive = false; removeEventListener('resize', onResize); }

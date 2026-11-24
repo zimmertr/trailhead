@@ -130,7 +130,7 @@ test('the Trailhead times every route without loading the scenes it does not nee
   const problems = await open(page, '/')
   await expect(page.locator('#signs button[data-route="stack"] small br')).toHaveCount(1)
   await watch(page)
-  for (const scene of ['ridge', 'approach', 'larches', 'camp', 'climb']) expect(loaded).not.toContain(`/${scene}.js`)
+  for (const scene of ['ridge', 'approach', 'larches', 'camp', 'climb', 'forest', 'lakeside', 'side']) expect(loaded).not.toContain(`/${scene}.js`)
   type Timer = { __api: { routeTime: (r: string) => Promise<number>; setRoute: (r: string) => Promise<void> } }
   for (const route of ['lake', 'stack', 'spires']) {
     const before = await page.evaluate((r) => (window as unknown as Timer).__api.routeTime(r), route)
@@ -138,6 +138,43 @@ test('the Trailhead times every route without loading the scenes it does not nee
     const after = await page.evaluate((r) => (window as unknown as Timer).__api.routeTime(r), route)
     expect(after).toBeCloseTo(before, 0)
   }
+  expect(problems).toEqual([])
+})
+
+// The lake's two scenes stand in on the timeline until he sets off (round 8, A6). What stands in for each
+// (its length, stops, sounds and heights, the table LATER in pixel.js) is the scene's own once it has loaded,
+// and it loads when he starts to run, well before he reaches it.
+test('the lake\'s scenes stand in on the timeline until he sets off, and match once they load', async ({ page }) => {
+  const loaded: string[] = []
+  page.on('request', (request) => loaded.push(new URL(request.url()).pathname))
+  const problems = await open(page, '/')
+  type Facts = { later: boolean; dur: number; stops: { id: string; at: number }[]; cues: { name: string; at: number }[]; elev: number[] }
+  type Teller = { __api: { facts: (n: string) => Facts; jumpTo: (n: string) => Promise<boolean>; setRoute: (r: string) => Promise<void> } }
+  const facts = (n: string) => page.evaluate((name) => (window as unknown as Teller).__api.facts(name), n)
+  const before = { forest: await facts('forest'), lakeside: await facts('lakeside') }
+  expect(before.forest.later).toBe(true)
+  expect(before.lakeside.later).toBe(true)
+  await page.locator('#run').click()
+  await expect.poll(() => loaded.includes('/forest.js') && loaded.includes('/lakeside.js'), { timeout: 5_000 }).toBe(true)
+  await expect.poll(async () => (await facts('lakeside')).later, { timeout: 10_000 }).toBe(false)
+  for (const name of ['forest', 'lakeside'] as const) {
+    const now = await facts(name), was = before[name]
+    expect(now.later, name).toBe(false)
+    expect(now.dur, name).toBeCloseTo(was.dur, 1)
+    expect(now.stops.map((x) => x.id), name).toEqual(was.stops.map((x) => x.id))
+    now.stops.forEach((x, i) => expect(x.at, `${name} ${x.id}`).toBeCloseTo(was.stops[i]!.at, 3))
+    expect(now.cues.map((x) => x.name), name).toEqual(was.cues.map((x) => x.name))
+    now.cues.forEach((x, i) => expect(x.at, `${name} ${x.name}`).toBeCloseTo(was.cues[i]!.at, 3))
+    now.elev.forEach((h, i) => expect(Math.abs(h - was.elev[i]!), `${name} height ${i}`).toBeLessThan(0.1))
+  }
+  expect(problems).toEqual([])
+})
+
+// A stop inside a scene that has not loaded opens from its address all the same: the scene is fetched first.
+test('an address inside the lake\'s scenes opens before they have loaded', async ({ page }) => {
+  const problems = await open(page, '/#reflection-lake/who')
+  await expect.poll(async () => (await info(page))?.scene, { timeout: 15_000 }).toBe('forest')
+  await expect(page.locator('#card')).toBeVisible()
   expect(problems).toEqual([])
 })
 
