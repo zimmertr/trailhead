@@ -43,7 +43,9 @@ function paintFog(scr, t, base, M, gx0, gy0) {
       const d = (y - base) / 60, n = fbm((x + t * 14) / 70, y / 26 + t * 0.05, 400, 3);
       let v = y < base ? 0.62 + 0.3 * n : 0.9 - 0.3 * clamp(d, 0, 1) + 0.14 * (n - 0.5);
       if (y < base) { const ridge = base - 60 - 50 * fbm(x / 90, 3, 403, 3), show = fbm(x / 140 + t * 0.03, 7, 404, 2); if (y > ridge && show > 0.5) v -= 0.16 * Math.min(1, (show - 0.5) * 6) * (1 - (y - ridge) / (base - ridge)); }
-      if (y >= base && fbm(x / 14, y / 2.5, 401, 2) > 0.62) v -= 0.12;
+      // Wind-carved ridges (art pass, E04): bands that widen toward you, each a lit crest over a blue lee,
+      // broken into lengths so they read as sastrugi, not stripes.
+      if (y >= base) { const d = y - base, s = 6 * Math.log(1 + d / 12) + d / 40 + 1.1 * fbm(x / 50, 1, 405, 2), r = frac(s); if (fbm(x / (12 + d / 3), Math.floor(s) * 1.7, 401, 2) > 0.48) v += r < 0.3 ? 0.07 : r < 0.6 ? -0.22 : 0; }
       if (inRows) { const mx = x - gx0 + M.gc; if (mx >= 0 && mx < M.w) { const g = M.d[my * M.w + mx]; if (g > 0) v -= 0.26 * g * (0.85 + 0.3 * n); } }
       const f = clamp(v, 0, 0.999) * 4, i = Math.floor(f);
       fb[y * VW + x] = snow[Math.min(4, i + (bayer(x, y) < f - i ? 1 : 0))];
@@ -54,7 +56,8 @@ function paintFog(scr, t, base, M, gx0, gy0) {
 export function makeOffroute() {
   const run = makeRunner('alpine'), idle = frontFig('alpine'), st = {}, focus = { x: 0, y: 0 }, at = { cx: -999, my: -999 };
   const sign = makeSmallSign();
-  const wand = (() => { const b = new BM(7, 26); b.ox = 1; b.oy = 25; for (let y = 4; y < 26; y++) b.set(1, y, R.wood[2]); for (let y = 0; y < 5; y++) for (let x = 2; x < 6 - (y & 1); x++) b.set(x, y + 1, R.blaze[y < 2 ? 2 : 1]); outline(b, INK); return b; })();
+  // A bamboo wand, darker at each joint; its flag is drawn each frame so it can stream.
+  const wand = (() => { const b = new BM(3, 24); b.ox = 1; b.oy = 23; for (let y = 0; y < 24; y++) b.set(1, y, R.dirt[y % 5 === 2 ? 1 : 3]); outline(b, INK); return b; })();
   return {
     name: 'offroute',
     dur: () => 1.6,
@@ -79,11 +82,20 @@ export function makeOffroute() {
       const top = 18, low = base - 70, gc = Math.max(6, Math.min(30, Math.floor((low - top) / 5.6), Math.floor(VW * 0.8 / 11)));
       const gx0 = Math.round((scr.narrow ? VW * 0.5 : VW * 0.36) - 5.5 * gc + 6 * Math.sin(t * 0.09)), gy0 = Math.round(Math.max(top + 4, (top + low) / 2 - 2.5 * gc) + 3 * Math.sin(t * 0.07 + 1));
       paintFog(scr, t, base, maskFor(gc), gx0, gy0);
-      // His own tracks, coming in from the left and stopping.
       const mx = cx - Math.round((1 - q) * 70), my = base + 6;
-      for (let x = cx - 150; x < mx - 3; x += 5) scr.set(x, my + ((x / 5) & 1), R.snow[0]);
+      // His own tracks, coming in from the left and stopping: pairs of prints, the older ones drifting in.
+      for (let x = cx - 150, k = 0; x < mx - 3; x += 6, k++) { const y = my + (k & 1) * 2 - 1, o = mx - x > 70 ? 1 : 0; scr.set(x, y, R.snow[o]); scr.set(x + 1, y, R.snow[o]); scr.set(x + 2, y, R.snow[o + 1]); scr.set(x + 1, y + 1, R.snow[2]); }
+      // Drifts heaped by the wind, gentle to windward, steep and blue in the lee.
+      for (const [x0, w] of [[-48, 9], [-14, 6], [17, 7], [38, 11]]) for (let i = 0; i <= w; i++) {
+        const u = i / w * 2 - 1, h = Math.round(4.2 * (1 - u * u) * (1 + 0.5 * u)), x = cx + x0 + i;
+        for (let j = 0; j < h; j++) scr.set(x, my + 1 - j, R.snow[j === h - 1 ? (u > 0.2 ? 3 : 4) : u > 0.2 ? (j ? 2 : 1) : 4]);
+        if (u > 0.2) scr.set(x + 2, my + 2, R.snow[2]);
+      }
+      // The wand and the sign throw short blue shadows down the wind.
+      for (let i = 0; i < 6; i++) { scr.set(cx + 27 + i, my - 1 + (i >> 2), R.snow[i < 3 ? 1 : 2]); scr.set(cx - 33 + i, my, R.snow[i < 3 ? 1 : 2]); }
       scr.put(wand, cx + 26, my - 2, false);
-      for (let k = 0; k < 3; k++) scr.set(cx + 29 + k + (Math.floor(t * 6) & 1), my - 23 + k, R.blaze[2]);
+      // The flag: a pennant tapering away from the pole, the wave running down it.
+      for (let i = 0; i < 11; i++) { const h = 4 - (i >> 2) - (i > 8 ? 1 : 0), w = Math.round(Math.sin(t * 9 - i * 0.7) * i / 8); for (let j = 0; j < h; j++) scr.set(cx + 28 + i, my - 25 + j + w + (i >> 2), R.blaze[j ? (j === h - 1 ? 0 : 1) : 2]); }
       scr.put(sign, cx - 34, my - 1, false);
       scr.shadow(mx, my, 5, 1);
       scr.put(q < 1 && env.moving ? run.side[Math.floor(q * 70 / 4.2) % 6] : idle, mx, my, false);

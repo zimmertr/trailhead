@@ -86,7 +86,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **E01 The Rainforest** - the giant trunks, ferns, moss and stream. `forest.js`.
 - [x] **E02 The Walk to Camp's Flower Slope** - `approach.js` (`paintFar`, `paintFloor`, `paintMain`).
 - [x] **E03 The Scenes' Animals** - elk, owl, jay, slug, pika, goats and the bluebird. `fauna.js`.
-- [ ] **E04 The Off-Route Page** - the whiteout, the wand and the sign. `offroute.js`.
+- [x] **E04 The Off-Route Page** - the whiteout, the wand and the sign. `offroute.js`.
 - [ ] **E05 TJ and the Other People** - `tj.js`, `people.js`. Last, and only if the rest is done: the figures carry every animation.
 
 <hr>
@@ -345,3 +345,9 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - E03, a call: `pika` is grey-brown (the warm grey ramp) with round ears edged pale on all three poses.
 - E03, a call: the elk first cost 1,322 bytes of gzipped script, and the page was 385 bytes under its budget after E02's fix, so it would have failed Lighthouse. I tried to move the budget to today's number plus 15% by docs/LIMITS.md's method; the session refused that change, since moving a budget is TJ's call. So instead: the elk's code was rewritten more compactly (the same pixels, checked on both palettes), `makeBird` in `sprites.js` was deleted because `speck` in `fauna.js` draws the same bird (critters.js and world.js now use `speck`), and the long art-pass comments from D01 to E02 were cut to the parts that say why. Lighthouse locally: 518,443 bytes of script, under the 520,000 budget. The budget itself is a decision for TJ: the remaining items will push against it again.
 - E03: frame time 11.2 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours; `ground.png` rebaked with identical pixels.
+- E04, the before: the off-route page's cloud and the 404 in it read well. Below them the snow was a flat band of blue streaks, his tracks a dotted line, the wand a brown stick with a square orange flag, and nothing cast a shadow, so the figures floated on white.
+- E04, the pictures: 10 in all. Qwen drew the page's own layout (prints from the left, the sign, him, a leaning jointed wand with a pennant) but left the snow blank, so its seed 4 was picked for the figure line and the style model's seed 3 was the reference for the wind-carved snow in front. The prompts are in `design/art/E04/log.jsonl`.
+- E04, a call: the snow below the horizon is carved into ridges (`paintFog`): bands that widen toward you, each a lit crest over a blue lee, wavy and broken into lengths. On the phone the bands first grew into big waves that read as water, then, capped too hard, into ruled stripes; they now widen gently.
+- E04, a call: his prints are pairs of ovals, the older ones paler as if drifting in; four small drifts heap along the line, gentle to windward and blue in the lee; the wand and the sign throw short blue shadows down the wind (the round shadow is invisible on white).
+- E04, a call: the wand is jointed bamboo, upright, since a one-pixel lean broke it in two; its flag is a pennant drawn each frame, tapering away from the pole with a ripple running down it. The cloud, the 404, the ghost ridge, the spindrift and where a click lands are unchanged.
+- E04: frame time 12.8 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours; `ground.png` is unchanged. `offroute.js` loads only when the page is off route, so the start page's script stays at 518,443 B (local Lighthouse).
