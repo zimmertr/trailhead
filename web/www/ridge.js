@@ -737,8 +737,9 @@ const UNDER = { out: 1.2, land: 3.0, unclip: 3.6, snag: 6.2, heave: [6.4, 9.4], 
 // seconds apart) walks to the ledge's outer end (`ledge` s), steps down onto the snow (`step` s), and
 // only once on it faces in and traverses down and across it at `v` px a second, in TJ's steps, until
 // `off` px out. The scene ends when the last of them is there: a few clear steps each, then the map
-// (round 6, note 22: round 5's took 21 s, most of it watching them cross).
-const SN = { gap: 1.0, ledge: 1.0, step: 0.5, v: 30, off: 140, order: { tj: 0, lead: 1, red: 2 } };
+// (round 6, note 22: round 5's took 21 s, most of it watching them cross; round 8, note 3: still a bit
+// long, so the last of them now goes 75 px out, not 140, before the cut, two seconds sooner).
+const SN = { gap: 1.0, ledge: 1.0, step: 0.5, v: 30, off: 75, order: { tj: 0, lead: 1, red: 2 } };
 const DESC_LEN = DESC.under + UNDER.walk + 2 * SN.gap + SN.ledge + SN.step + SN.off / SN.v + 0.5;
 function makeScript() {
   const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [], anc = [];

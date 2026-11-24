@@ -23,7 +23,7 @@ const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb', 'offroute', 'larch
 // How long the scenes the junction signs time take, in seconds, so a sign can say how long its route is
 // without loading the scene (asking them loaded every scene with the page, a fifth of its script). A
 // browser test holds these to the scenes' own numbers.
-const SECS = { wall: 134.5, larches: 12, approach: 21, camp: 1.4 };
+const SECS = { wall: 132.3, larches: 12, approach: 21, camp: 1.4 };
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
 
