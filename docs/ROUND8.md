@@ -145,7 +145,7 @@ Pick one, or write your own, for each. Nothing here ships until you have.
 ## 6. Links
 
 - The draft PR: https://github.com/zimmertr/trailhead/pull/66
-- The game artifact for this round: added at the first publish.
+- The game artifact for this round: https://claude.ai/artifact/WuMnWjDqffEseYPCS6zfPj (export with `git archive HEAD web/www`, set the copy's title to "Trailhead Pixel Round 8", publish `index.html` with every other file).
 
 ## 7. Log
 
