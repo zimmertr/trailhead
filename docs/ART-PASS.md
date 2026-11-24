@@ -87,7 +87,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - [x] **E02 The Walk to Camp's Flower Slope** - `approach.js` (`paintFar`, `paintFloor`, `paintMain`).
 - [x] **E03 The Scenes' Animals** - elk, owl, jay, slug, pika, goats and the bluebird. `fauna.js`.
 - [x] **E04 The Off-Route Page** - the whiteout, the wand and the sign. `offroute.js`.
-- [ ] **E05 TJ and the Other People** - `tj.js`, `people.js`. Last, and only if the rest is done: the figures carry every animation.
+- [x] **E05 TJ and the Other People** - `tj.js`, `people.js`. Last, and only if the rest is done: the figures carry every animation.
 
 <hr>
 
@@ -351,3 +351,7 @@ The before/after page for the whole pass: https://claude.ai/artifact/F2Gj2fFw5W1
 - E04, a call: his prints are pairs of ovals, the older ones paler as if drifting in; four small drifts heap along the line, gentle to windward and blue in the lee; the wand and the sign throw short blue shadows down the wind (the round shadow is invisible on white).
 - E04, a call: the wand is jointed bamboo, upright, since a one-pixel lean broke it in two; its flag is a pennant drawn each frame, tapering away from the pole with a ripple running down it. The cloud, the 404, the ghost ridge, the spindrift and where a click lands are unchanged.
 - E04: frame time 12.8 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours; `ground.png` is unchanged. `offroute.js` loads only when the page is off route, so the start page's script stays at 518,443 B (local Lighthouse).
+- E05, the before: the figures (`tj.js`, `people.js`) already read well as small 16-bit sprites. Up close, from the side his beard was a brown block on the chin, his torso was lit on the chest and dark on the back although the light comes from the upper left, and the sun hoody had no hood.
+- E05, the pictures: 7 in all. The style model drew big-headed cartoon runners, too far from the game's figure. Qwen's seed 3 was picked: a small runner with the beard along the jaw to the ear, wrap sunglasses, the hood bunched behind the neck and the light on his back. The prompts are in `design/art/E05/log.jsonl`.
+- E05, a call: every scene poses him through these functions, so no limb, pose, size or foot changed, and every animation runs as it did. Three changes inside the drawing: the beard runs up the jaw to a sideburn (`head`, side view, bearded people only, so Kayti and the crag pair are unchanged); the torso's lit column is on his back (`sideFig`); the sun hoody's hood bunches behind his neck (the trail and wall kits, which wear it). The front and back views already lit him from the left and were left as they are.
+- E05: frame time 12.2 ms zoomed out at Dusk; 36 browser tests pass; nothing on the map moved; no new colours; `ground.png` is unchanged. `tj.js` loads with the start page, which now carries 518,579 B of script (local Lighthouse), 1,421 B under the budget.
