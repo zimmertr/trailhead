@@ -52,8 +52,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // The larch basin runs the way the map's trail was heading over its last tenth (G1).
     stack: () => [['world', { path: 'stack', from: 0, to: 1 }], ['larches', { dir: [0.9, 0.93, 0.96, 0.99].reduce((s, q) => s + world.paths.stack.at(q).dx, 0) < 0 ? -1 : 1 }], ['wall', {}], ['world', { path: 'stack', from: 1, to: 0 }]],
     // The walk to base camp: the map up to the traverse, then the side-on walk (section J), then camp. It
-    // runs the way the map's trail was heading where it hands over.
-    spires: () => [['world', { path: 'spires', from: 0, to: world.spiresIn }], ['approach', { dir: [-0.03, -0.01, 0.01, 0.03].reduce((s, d) => s + world.paths.spires.at(clamp(world.spiresIn + d, 0, 1)).dx, 0) < 0 ? -1 : 1 }], ['camp', {}]],
+    // runs the way the map's trail heads over its last tenth, up the glacier to camp (round 8, note 4: where
+    // the map hands over, the trail is still crossing the meadow the other way, and the walk ran backwards).
+    spires: () => [['world', { path: 'spires', from: 0, to: world.spiresIn }], ['approach', { dir: [0.9, 0.93, 0.96, 0.99].reduce((s, q) => s + world.paths.spires.at(q).dx, 0) < 0 ? -1 : 1 }], ['camp', {}]],
     'spires-home': () => [['world', { path: 'spires', from: 1, to: 0 }]],
     'off-route': () => [['offroute', {}]],
     // The register (L2): he walks the few steps to the box (the first 55% of 1.3 s), stands at it while
