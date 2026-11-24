@@ -14,10 +14,9 @@ const NW = 1920, SH = 1080, VD = 740, SY = SH + 52;
 const rdg = n => 1 - Math.abs(2 * n - 1);
 const prof = pts => x => { if (x <= pts[0][0]) return pts[0][1]; for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [xa, ha] = pts[i - 1], [xb, hb] = pts[i]; return lerp(ha, hb, (x - xa) / (xb - xa)); } return pts[pts.length - 1][1]; };
 // Proficiency Peak's outline, after Prusik's south face (used below and drawn again in the larch basin, larches.js).
-// Art pass A04, after a picture of the peak from the south: the lower tower has a flat top and sheer
-// sides with a deep notch beyond it, the summit is a small block with a flat top, not a point, and the
-// ridge east of it steps down in teeth.
-const PP = prof([[-75, 0], [-72, 0.1], [-67, 0.3], [-63, 0.6], [-61, 0.68], [-49, 0.71], [-46, 0.69], [-44, 0.55], [-39, 0.52], [-35, 0.62], [-29, 0.76], [-22, 0.86], [-7, 0.9], [-6, 1], [5, 1], [6, 0.92], [9, 0.9], [12, 0.98], [14, 0.86], [18, 0.85], [21, 0.92], [23, 0.8], [27, 0.78], [30, 0.85], [32, 0.72], [36, 0.7], [39, 0.76], [41, 0.63], [45, 0.61], [48, 0.66], [50, 0.54], [54, 0.5], [57, 0.53], [59, 0.43], [62, 0.36], [66, 0.26], [70, 0.14], [75, 0]]);
+// The art pass's A04 gave it a blockier skyline and a face of warm planes; TJ found it blobby and less
+// pretty, so the skyline and the grey streaked face of round 6 are back (round 8, B1).
+const PP = prof([[-75, 0], [-70, 0.14], [-63, 0.2], [-58, 0.34], [-51, 0.4], [-46, 0.58], [-41, 0.63], [-31, 0.62], [-27, 0.53], [-22, 0.62], [-16, 0.8], [-9, 0.9], [-5, 0.97], [-3, 1], [3, 1], [5, 0.94], [10, 0.9], [15, 0.8], [21, 0.76], [24, 0.68], [29, 0.71], [33, 0.6], [39, 0.62], [44, 0.5], [50, 0.53], [55, 0.4], [61, 0.36], [66, 0.2], [75, 0]]);
 
 export { NW, SH as NH, VD, SY, PP as PROFICIENCY };
 // B is the bake (readBake, below): with it, the heights, the water and the picture are read, not worked out.
@@ -99,8 +98,6 @@ function spires(cu, cv, base, H, thin = 1, wide = 1) {
 // Proficiency Peak, after Prusik Peak's south face: a thin fin of granite that shows the camera its
 // wall. A lower flat-topped tower on the left, a prow to a small summit block, a serrated ridge right.
 let PF = null;
-// The corners that part the fin's face into planes (A04), in the profile's units: 16 to 30 apart, set once.
-const FIN_EDGES = (() => { const out = []; for (let x = -44.5, k = 0; x < 75; k++) { x += 16 + 14 * hash(k, 0, 961); out.push(x); } return out; })();
 function proficiency(cu, cv, base, w, hgt) {
   PF = { cu, cv, base, w, hgt };
   add('fin', cu - w / 2 - 2, cu + w / 2 + 2, cv - 12, cv + 62, (u, v) => { const p = PP((u - cu) * 150 / w), f = v < cv ? smooth(cv - 8, cv, v) : smooth(cv + 58, cv + 10, v); return p <= 0 || f <= 0 ? 0 : base * smooth(0, 0.4, f) + (hgt * p + 2 * (vnoise(u / 3, 4, 900) - 0.5)) * f; });
@@ -884,28 +881,8 @@ function colour(u, v, hh, x, y) {
       if (ta > 0.3 && snowPatch(u, v)) return hash(x, y, 908) < 0.1 ? R.snow[2] : R.snow[L > 0.4 ? 4 : 3];
       if (bayer(x, y) < ta * 1.6) { const yy = y + Math.floor(3 * hash(x >> 2, 0, 911)), by = (yy / 3) | 0, bx = ((x + 2.6 * hash(by, 1, 912)) / (3 + ((hash(by, 2, 913) * 3) | 0))) | 0, q = hash(bx, by, 909), row = yy - by * 3; if (q < 0.14) return R.rock[0]; return row === 2 ? R.rock[q < 0.5 ? 0 : 1] : R.rock[clamp(Math.round(1.4 + 2.2 * L + 1.2 * (q - 0.5) + (row === 0 ? 1 : 0)), 1, 4)]; }
     }
-    // Art pass A04: the fin is warm granite in tall planes, not the walls' grey. Each plane is lit; the
-    // corner on its east side, which turns away from the sun, is in cool shadow, and so is the east end
-    // of the ridge; the teeth on the ridge stand dark against the sky, the summit block catches the light
-    // on top, and a few thin cracks run down the face. fx is the place across the fin in the profile's
-    // units, dt how far below the fin's top a pixel is.
-    if (mat === 'fin' && PF) {
-      const fx = (u - PF.cu) * 150 / PF.w, dt = PF.base + PF.hgt * PP(fx) - hh, G = R.granite;
-      const east = smooth(28, 56, fx), foot = smooth(30, 4, hh - PF.base), tower = fx < -44.5;
-      const lx = fx - 0.05 * (hh - PF.base), k = FIN_EDGES.findIndex(e => e > lx), a0 = FIN_EDGES[k - 1] ?? -80, a1 = FIN_EDGES[k] ?? 80, pf = (lx - a0) / (a1 - a0), wide = a1 - a0;
-      // The fin's narrow top, seen from above: lit on the summit block and the tower, a step darker along
-      // the ridge east of the summit, where the teeth turn away from the sun.
-      if (v >= PF.cv && v < PF.cv + 10 && dt < 3) return fx >= -6 && fx <= 5 ? R.gold[6] : fx > 5 ? G[east > 0.5 ? 2 : 3] : G[5];
-      if (tower && fx > -47.5) return G[b2(x, y) < 0.5 ? 1 : 2];
-      const sh = 1 - (1.5 + 0.3 * wide * (0.3 + 0.7 * hash(k, 8, 971))) / wide;
-      const run = dt > 3 + 20 * hash(k, 5, 968);
-      if (!tower && pf > sh && run) return G[pf > 1 - 1.2 / wide ? 1 : east > 0.5 || pf > 1 - 0.45 * (1 - sh) ? 2 : 3];
-      if (!tower && run && pf < 0.9 / wide && east < 0.5) return dt < 30 ? R.gold[6] : G[5];
-      if (hash(k, 2, 963) < 0.35 && Math.abs(pf - 0.4 - 0.1 * hash(k, 3, 964)) < 0.5 / wide && dt > 6 && dt < 20 + 60 * hash(k, 4, 965)) return G[2];
-      const lit = 0.86 - 0.5 * east - 0.3 * foot + 0.16 * (vnoise(lx / 5, hh / 14, 966) - 0.5) - (tower ? 0.12 * smooth(-61, -47, fx) : 0.3 * pf * pf) + 0.2 * (hash(k, 7, 970) - 0.5) + 0.1 * smooth(60, 0, dt);
-      return G[clamp(Math.round(1 + 4.2 * lit + (b2(x, y) - 0.5) * 0.6), 1, 5)];
-    }
-    if (steep > 0.75 || mat === 'fin') return wallRock(x, y, hh, L, 1, R.grass[2]);
+    if (mat === 'fin') { const crack = vnoise(x / 2.2, hh / 26, 902), streak = vnoise(x / 5, hh / 40, 903); const k = clamp(Math.round(1.5 + 2.9 * L + (streak > 0.62 ? -1.1 : 0) + (crack > 0.74 ? -1.4 : crack < 0.2 ? 0.5 : 0) + (b2(x, y) - 0.5) * 0.9), 0, 5); return k === 5 ? R.gold[6] : R.rock[k]; }
+    if (steep > 0.75) return wallRock(x, y, hh, L, 1, R.grass[2]);
     // A05, after a picture of the Enchantments: the benches' tops are glacier-polished slabs of warm
     // granite, rounded pillows of every size, each lit on its upper left and a step darker toward its
     // lower right, parted by thin dark cracks. Heather fills the hollows where it grew before.
