@@ -121,6 +121,25 @@ test('the page shows the picture of the map and every card', async ({ page }) =>
   expect(problems).toEqual([])
 })
 
+// A scene's code loads when a route needs it (the art pass): the junction signs time the peak's and the
+// Spires' routes from the lengths in pixel.js, and those lengths are the scenes' own once they load.
+test('the Trailhead times every route without loading the scenes it does not need yet', async ({ page }) => {
+  const loaded: string[] = []
+  page.on('request', (request) => loaded.push(new URL(request.url()).pathname))
+  const problems = await open(page, '/')
+  await expect(page.locator('#signs button[data-route="stack"] small br')).toHaveCount(1)
+  await watch(page)
+  for (const scene of ['ridge', 'approach', 'larches', 'camp', 'climb']) expect(loaded).not.toContain(`/${scene}.js`)
+  type Timer = { __api: { routeTime: (r: string) => Promise<number>; setRoute: (r: string) => Promise<void> } }
+  for (const route of ['lake', 'stack', 'spires']) {
+    const before = await page.evaluate((r) => (window as unknown as Timer).__api.routeTime(r), route)
+    await page.evaluate((r) => (window as unknown as Timer).__api.setRoute(r), route)
+    const after = await page.evaluate((r) => (window as unknown as Timer).__api.routeTime(r), route)
+    expect(after).toBeCloseTo(before, 0)
+  }
+  expect(problems).toEqual([])
+})
+
 // A visitor who asked for reduced motion: AUTO holds Day even at an hour that would be Dusk (round 5, K1).
 // 330 s into the 390 s cycle is Dusk since round 6 (note 32), when the day became three quarters of it.
 test('reduced motion holds AUTO at Day', async ({ browser }) => {
