@@ -10,18 +10,18 @@ export const W = {
    "slug": "reflection-lake"
   },
   {
-   "route": "stack",
-   "sign": "Climb Proficiency Peak",
-   "about": "to learn more about his skills",
-   "dir": "right",
-   "slug": "proficiency-peak"
-  },
-  {
    "route": "spires",
    "sign": "Climb the Sideproject Spires",
    "about": "to see some of his personal projects",
    "dir": "up",
    "slug": "sideproject-spires"
+  },
+  {
+   "route": "stack",
+   "sign": "Climb Proficiency Peak",
+   "about": "to learn more about his skills",
+   "dir": "right",
+   "slug": "proficiency-peak"
   }
  ],
  "LINKS": {
