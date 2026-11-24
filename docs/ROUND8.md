@@ -57,7 +57,7 @@ Work top to bottom. An item marked **waits** is skipped until TJ has picked in s
 
 ### A. Fixes
 
-- [ ] **A1 The Debug Button on a Phone** (note 23). `style.css` hides `#b-help` and `#b-debug` on a narrow screen. Show Debug there; Keys stays hidden, since a phone has no keys. The top bar must still fit at 390 px.
+- [x] **A1 The Debug Button on a Phone** (note 23). `style.css` hides `#b-help` and `#b-debug` on a narrow screen. Show Debug there; Keys stays hidden, since a phone has no keys. The top bar must still fit at 390 px.
 - [ ] **A2 Music Only While the Page Is Active** (note 24). Suspend the audio when the tab is hidden, the window loses focus or the page is put away (`visibilitychange`, `blur`, `pagehide`), and resume it on return only if it was playing. `audio.js`, `app.js`. A browser test.
 - [ ] **A3 The Signs in Map Order** (note 17). The junction's buttons run Reflection Lake, Sideproject Spires, Proficiency Peak, as they lie left to right on the map. `DESTINATIONS` in `content/game/trailhead.yaml` (order only, no new words), `make words`.
 - [ ] **A4 The Snow Traverse Cuts Sooner** (note 3). On the West Ridge's walk-off after the last rappel, the scene still runs too long: cut to black a little sooner. `ridge.js` (the traverse at the end of `makeScript`). The `wall` length in `pixel.js`'s `SECS` changes with it; the browser test holds them together.
@@ -144,7 +144,7 @@ Pick one, or write your own, for each. Nothing here ships until you have.
 
 ## 6. Links
 
-- The draft PR: added at the first push.
+- The draft PR: https://github.com/zimmertr/trailhead/pull/66
 - The game artifact for this round: added at the first publish.
 
 ## 7. Log
@@ -154,3 +154,4 @@ Every call, one line each, newest last.
 - 2026-11-24: the plan written from TJ's 27 notes and his answers. Note 3's "snow traverse" read as the West Ridge's walk-off after the last rappel, which round 6's note 22 was about. Note 25's second "Observed" read as "Reported".
 - 2026-11-24, a finding for note 4: the Spires' trail heads left from 0.4 to 0.8 of its length (the meadow traverse) and right from 0.8 to its end (up the glacier). The scene takes over about half way, so it read "left". The peak's trail heads right throughout.
 - 2026-11-24, a finding for note 11: a clicked moose flips left and right six times a second for 1.3 s (`a.shake` in `critters.js`). It was meant as a head shake.
+- A1 done: Debug shows on a phone and Keys stays hidden. With five planks the music button's "Click for sound" wrapped to three lines, so on a phone the planks sit closer, under 390 px the bar uses the debug panel's 14 px lettering, and under 360 px the music button is its note alone, as it is once sound is on. Two lines tall at 390, 375, 360 and 320 px, as before. Three browser tests (390, 360, 320): every plank on screen, and Debug opens the panel. 40 browser tests pass; frame time 13.9 ms.

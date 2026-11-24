@@ -328,8 +328,10 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   .band h2 { font-size: 26px; }
   .band p { text-align: left; }
   #plain .band { display: flex; align-items: center; }
-  #top .plank { padding: calc(var(--px) * 1) calc(var(--px) * 3); }
-  #b-help, #b-debug { display: none; }
+  /* A phone has no keys, so Keys goes; Debug stays (round 8, note 23), and the planks sit closer to make room for it. */
+  #top { gap: calc(var(--px) * 1); }
+  #top .plank { padding: calc(var(--px) * 1) calc(var(--px) * 2); }
+  #b-help { display: none; }
   /* The music button keeps its words until sound is on, then shows only its note; the track is in its menu. */
   #b-track[data-state="playing"] span { display: none; }
   .name { font-size: 10px; }
@@ -337,6 +339,11 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   button.name { min-height: 24px; display: inline-flex; align-items: center; }
 }
 /* A phone on its side: the signs keep to the left two fifths so he stays in view beside them. */
+/* Narrower phones: the top bar in the debug panel's smaller lettering, so its five planks stay two lines tall.
+   The narrowest: the music button is its note alone, as it is once sound is on. */
+@media (max-width: 389px) { #top .plank { font-size: 14px; } }
+@media (max-width: 359px) { #b-track span { display: none; } }
+
 @media (max-height: 480px) and (orientation: landscape) {
   #fork, #card { width: min(456px, 46%); bottom: calc(var(--px) * 30 + env(safe-area-inset-bottom, 0px)); }
   #card { max-height: calc(100% - var(--px) * 40); padding: calc(var(--px) * 3) calc(var(--px) * 4); }

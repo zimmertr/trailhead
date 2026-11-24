@@ -213,6 +213,25 @@ test('the debug panel shows a map event where it happens, from a split button', 
   expect(problems).toEqual([])
 })
 
+// On a phone the Debug button stays in the top bar and opens its panel (round 8, note 23). The bar's planks
+// all fit across the screen at the widths phones come in.
+for (const width of [390, 360, 320]) {
+  test(`a phone ${width} wide keeps the Debug button, and it opens the panel`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 740 })
+    const problems = await open(page, '/')
+    for (const id of ['b-map', 'b-track', 'b-dusk', 'b-debug', 'b-page']) {
+      const box = await page.locator(`#${id}`).boundingBox()
+      expect(box, id).not.toBeNull()
+      expect(box!.x, id).toBeGreaterThanOrEqual(0)
+      expect(box!.x + box!.width, id).toBeLessThanOrEqual(width)
+    }
+    await expect(page.locator('#b-help')).toBeHidden()
+    await page.locator('#b-debug').click()
+    await expect(page.locator('#debug')).toBeVisible()
+    expect(problems).toEqual([])
+  })
+}
+
 // Round 4's address for it, which links may still carry.
 test('every start button with a place on the map moves the view there and keeps it on the map', async ({ page }) => {
   const problems = await open(page, '/')
