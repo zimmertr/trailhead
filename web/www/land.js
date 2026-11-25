@@ -1840,25 +1840,40 @@ function habitat() {
   const coulee = (u, v) => { let d = 1e9; for (const [a, b] of catmull(C.coulee)) d = Math.min(d, Math.hypot(a - u, b - v)); return d; };
   const signable = (u, v) => apartFrom(taken, u, v, 70) && firm(u, v, 0.9) && trailFar(u, v) >= 4 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2];
   const ring = (p, r0, r1) => GRID.filter(([u, v]) => { const d = Math.hypot(u - p[0], (v - p[1]) * 1.4); return d >= r0 && d <= r1; });
-  const sp = S.spires, vo = S.volc, tarn = S.C.lakes.find(l => l[4] === 'tarn'), wsum = [sp.cu + sp.west * sp.wide, sp.cv];
-  // The col: the lowest point on the line from Mount Monolith's summit to the west end of the Spires.
-  let col = null; for (let t = 0.25, lo = 1e9; t < 0.95; t += 0.01) { const u = lerp(vo.cu, wsum[0], t), v = lerp(vo.cv, wsum[1], t) - 60, h = S.hAt(u, v); if (h < lo) { lo = h; col = [u, v]; } }
+  const sp = S.spires, vo = S.volc, wsum = [sp.cu + sp.west * sp.wide, sp.cv];
+  // The col: the lowest point on the line from Mount Monolith's summit to the west end of the Spires, which
+  // is the saddle between the two (round 8, C9, TJ: the sign stood 60 down the slope in front of it).
+  let col = null; for (let t = 0.25, lo = 1e9; t < 0.95; t += 0.01) { const u = lerp(vo.cu, wsum[0], t), v = lerp(vo.cv, wsum[1], t), h = S.hAt(u, v); if (h < lo) { lo = h; col = [u, v]; } }
+  // The nearest spot to a point that keeps a rule, within a reach.
+  const nearest = (p, reach, rule = signable) => [best((u, v) => Math.hypot(u - p[0], (v - p[1]) * 1.4) <= reach && rule(u, v), (u, v) => -Math.hypot(u - p[0], (v - p[1]) * 1.4))].filter(Boolean);
+  // The woods' sign stands where it has stood since round 5: in the first deep forest along the lake's
+  // trail, 70 past the first spot at the forest's edge. Stack Trace Thicket stood on that edge spot; since
+  // round 8 (C9, TJ: too close) it stands on the far side of the woods, where the trail comes out of the
+  // big trees behind the beach, 150 or more from the woods' sign.
+  const yak = find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) < 0.1 && S.parkAmt(u, v) < 0.3, 0, beside(0, 0.12, 0.35));
+  const edge = beside(0, 0.2, 0.8).find(([u, v]) => signable(u, v) && S.forestAmt(u, v) > 0.45 && S.forestAmt(u, v) < 0.8);
+  const woods = find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && S.fogAmt(u, v) < 0.3 && (!edge || apartFrom([edge], u, v, 70)), 60, beside(0, 0.2, 0.9));
+  // The upper basin's three tarns, the milky ones on the top step: Feature Flag Tarns stands between them.
+  const milky = S.C.lakes.filter(l => l[4] === 'milk'), basin = milky.length ? [milky.reduce((s, l) => s + l[0], 0) / milky.length, milky.reduce((s, l) => s + l[1], 0) / milky.length] : null;
   const SIGNS = {
-    'yak-shave': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) < 0.1 && S.parkAmt(u, v) < 0.3, 0, beside(0, 0.12, 0.35)),
-    'stack-trace': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.45 && S.forestAmt(u, v) < 0.8, 0, beside(0, 0.2, 0.8)),
-    monorepo: find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && S.fogAmt(u, v) < 0.3, 60, beside(0, 0.2, 0.9)),
+    'yak-shave': yak,
+    'stack-trace': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.45 && apartFrom(woods, u, v, 150), 0, beside(0, 0.5, 1).reverse()),
+    monorepo: woods,
     'scope-creep': find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'moraine', 0, beside(1, 0.7, 1)),
-    'merge-conflict': col ? find(1, signable, 0, ring(col, 0, 50)) : [],
+    // On the saddle's own ground, not on the rock that rises behind it.
+    'merge-conflict': col ? nearest(col, 60, (u, v) => S.matAt(u, v) === 'land' && signable(u, v)) : [],
     // Rollback Basin is the bench with the pond, west of the burn. The Peak's trail crossed it until round 8
     // (C1); the place stayed when the trail moved, so its sign looks for the pond, not the trail.
     rollback: find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'land' && S.hAt(u, v) > 40 && S.hAt(u, v) < 66 && S.burnAmt(u, v) < 0.1, 0, ring([1438, 480], 16, 70)),
-    'feature-flag': tarn ? find(1, signable, 0, ring(tarn, tarn[2] + 6, tarn[2] + 24)) : [],
-    hotfix: find(1, (u, v) => S.burnAmt(u, v) > 0.6 && signable(u, v)),
-    postmortem: find(1, (u, v) => S.burnAmt(u, v) > 0.55 && signable(u, v), 70),
+    'feature-flag': basin ? nearest(basin, 50) : [],
+    // The burn has one sign since round 8 (C9, TJ), and it stands among the dead trees, not on the granite
+    // above them, which the burn's reach also covers.
+    hotfix: find(1, (u, v) => S.burnAmt(u, v) > 0.6 && S.matAt(u, v) === 'land' && signable(u, v)),
     'cron-job': find(1, (u, v) => S.dryAmt(u, v) > 0.3 && signable(u, v) && coulee(u, v) > 40 && coulee(u, v) < 56),
     'tech-debt': find(1, (u, v) => S.sageAmt(u, v) > 0.7 && signable(u, v) && coulee(u, v) > 90),
-    // Off By One Peak: the top of the highest of the forested foothills round Mount Monolith's foot.
-    'off-by-one': [best((u, v) => Math.hypot((u - vo.cu) / vo.ru, (v - vo.cv) / vo.rv) < 1.4 && S.matAt(u, v) === 'land' && S.hAt(u, v) < vo.H * 0.3 && signable(u, v), (u, v) => S.hAt(u, v))].filter(Boolean),
+    // Off By One Peak: on the summit that carries the lookout, beside the tower and clear of it (round 8, C9,
+    // TJ: it stood on a higher shoulder that does not look like the top).
+    'off-by-one': S.lookout ? nearest(S.lookout, 36, (u, v) => Math.abs(u - S.lookout[0]) >= 17 && signable(u, v)) : [],
     dependency: find(1, (u, v) => signable(u, v) && S.hAt(u, v) > 80, 0, beside(2, 0.85, 1)),
     // Segfault Scree stands on scree (note 14): the talus fan under Proficiency Peak's prow, the land's one field
     // of loose blocks, clear of the old snow on it, as near the Peak's trail as the fan allows.

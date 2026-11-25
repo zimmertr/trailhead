@@ -534,3 +534,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Snout Calves** (round 8, C7). Now and then a slab could drop off the ice cliff into the lake below Scope Creep Glacier: a splash, a wave that crosses the water, and one more berg that drifts out and melts.
 - **Bergs That Drift** (round 8, C7). The bergs are painted into the ground. As things of their own they could drift a few pixels with each gust and turn slowly.
 - **Wet Ground Has Its Own Plants** (round 8, C8). The rule that plants skunk cabbage by running water could plant the rest of a streamside too: monkeyflower and marsh marigold along the meadow's streams, devil's club along the forest's.
+- **A Signs Layer in the Debug Panel** (round 8, C9). A switch that rings every sign and prints its name beside it would make a check like this one a single look, and show at once when a sign stands where its name does not fit.
+- **A Climbers' Path to the Col** (round 8, C9). Merge Conflict Col now stands on a real saddle. A faint boot path up the meadow to it, as cols have, would lead the eye there.
