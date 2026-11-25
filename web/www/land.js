@@ -1175,10 +1175,11 @@ for (const br of BRIDGES) {
 // Wildflowers are not painted into the ground any more: they are things that stand up and sway (D5a,
 // below, with the trees).
 // Small driftwood along the beach: bleached branches, each with its shadow under it (round 5, T8: they were
-// the grey of rock).
+// the grey of rock). Fewer since round 8 (B4, TJ): the first 420 throws of the same dice, so those left lie
+// where they lay.
 {
   const rand = rng(44390);
-  for (let n = 0; n < 700; n++) {
+  for (let n = 0; n < 420; n++) {
     const x = (rand() * 700) | 0, y = 500 + ((rand() * (SH - 500)) | 0), v = zb[px(x, y)]; if (v >= VD) continue;
     const cs = coast(x, v); if (cs > -3 || cs < -13) continue;
     const len = 6 + rand() * 12, a = (rand() - 0.5) * 0.9 + 0.6;
@@ -1587,9 +1588,10 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   { const dr = rng(4730), drift = Array.from({ length: 8 }, (_, i) => makeDriftwood(i)); tag(drift, 'drift');
     for (let n = 0; n < 2600; n++) { const u = dr() * 700, v = dr() * VD, k = (dr() * 8) | 0, c = coast(u, v); if (c > -20 && c < -9 && dr() < 0.2 && !water[at(Math.round(u), Math.round(v))]) put(drift[k], u, v); }
     // More of it, on dice of their own: a Pacific beach is lined with driftwood. Each lies 26 px or more from
-    // the next, on dry sand in the same band above the high-water line.
+    // the next, on dry sand in the same band above the high-water line. Ten logs in all since round 8 (B4,
+    // TJ: sixteen was too many).
     const more = rng(4734), lie = things.filter(t => drift.includes(t.bm)).map(t => [t.u, t.v]);
-    for (let n = 0; n < 3000 && lie.length < 16; n++) { const u = more() * 700, v = more() * VD, k = (more() * 8) | 0, c = coast(u, v); if (c > -20 && c < -9 && !water[at(Math.round(u), Math.round(v))] && !lie.some(([p, q]) => Math.hypot(p - u, (q - v) * 1.5) < 26)) { put(drift[k], u, v); lie.push([u, v]); } } }
+    for (let n = 0; n < 3000 && lie.length < 10; n++) { const u = more() * 700, v = more() * VD, k = (more() * 8) | 0, c = coast(u, v); if (c > -20 && c < -9 && !water[at(Math.round(u), Math.round(v))] && !lie.some(([p, q]) => Math.hypot(p - u, (q - v) * 1.5) < 26)) { put(drift[k], u, v); lie.push([u, v]); } } }
   // Sea stacks stand well out from the beach (E5b, TJ: they had crept in against the shore), in four
   // small groups along the coast as on the Olympic coast: a tall one and one or two lower beside it.
   rand = rng(6114);

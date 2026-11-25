@@ -69,7 +69,7 @@ Work top to bottom. An item marked **waits** is skipped until TJ has picked in s
 - [x] **B1 Proficiency Peak** (note 7). Restore `proficiency` and `talusAt` in `land.js` from release `v0.4.4`, the last one before the art pass (`git show v0.4.4:web/www/land.js`). Then the retry: new pictures, the old drawing's colours, crisp planes instead of round lumps. Keep whichever is better and say which in the log.
 - [x] **B2 The Larch Basin's Cliffs** (note 8). The granite benches' faces on the map are too tall since A05 and A06. Bring their height back toward `v0.4.4`'s and keep the new texture.
 - [x] **B3 Huckleberry in the Larch Basin Scene** (note 2). `larches.js` (the shrubs of round 5, T65): deep crimson and wine instead of orange-red, fewer and lower clumps, blue berries on them.
-- [ ] **B4 Less Driftwood** (note 13). `land.js` near line 1568: tone the beach's driftwood down a touch.
+- [x] **B4 Less Driftwood** (note 13). `land.js` near line 1568: tone the beach's driftwood down a touch.
 - [ ] **B5 The Spires' Hover Shape** (note 16). The shape that lights when the pointer is over Sideproject Spires runs to a sharp point in the meadow. End it cleanly along the toe of the lake and the terminal moraine.
 - [ ] **B6 The Orcas' Click** (note 21). A clicked orca rises straight up like a periscope and it reads wrong. Redraw the spyhop after pictures (a third of the body, tilted, the pectoral fins showing, water running off) or replace the click's answer with one from D2's list.
 
@@ -175,3 +175,4 @@ Every call, one line each, newest last.
 - B3, a call: the shrub is one drawing (`makeHuckleberry` in `sprites.js`), so the West Ridge's huckleberry changed with it. Its clumps are as many as before.
 - B3, a call: three new colours, the ramp `huck`, at the end of the palette in `core.js`, because the baked ground stores colours by their number. The ground was baked again for the new signature; its picture did not change.
 - B3: 43 browser tests pass; frame time 9.9 ms; nothing moved.
+- B4 done, a call on how much: ten logs on the beach where there were sixteen, and three fifths of the small bleached branches painted on the sand. Both come off the end of their dice, so every log and branch that is left lies where it lay. No new drawing, so no pictures. 43 browser tests pass; frame time 9.8 ms; nothing moved.
