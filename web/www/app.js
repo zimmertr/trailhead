@@ -107,6 +107,8 @@ function noticeAt(B, k) {
   return [el('button', { class: 'notice', style: 'left:' + B.x * k + 'px;top:' + B.y * k + 'px;width:' + B.w * k + 'px;height:' + B.h * k + 'px', onclick: () => openSheet('kiosk') },
     el('b', { text: UI.kiosk.title }), el('span', { text: UI.kiosk.status[1] }), el('span', { text: UI.kiosk.checklist(ids.filter(i => found[i]).length, ids.length) }), el('span', { text: UI.kiosk.count(api.saw()) }))];
 }
+// The notice shows the lines its paper holds: on a small screen the last ones go, whole, and the board has them all.
+function fitNotice() { for (const n of book.querySelectorAll('.notice')) while (n.scrollHeight > n.clientHeight + 1 && n.children.length > 2) n.lastElementChild.remove(); }
 function fillKiosk(P) {
   const k = api.scale(), at = g => 'left:' + g.x * k + 'px;top:' + g.y * k + 'px;width:' + g.w * k + 'px;height:' + g.h * k + 'px;';
   const d = api.done(), B = P.book, mapName = $('b-map').textContent.trim();
@@ -115,6 +117,7 @@ function fillKiosk(P) {
     el('button', { class: 'spot map', style: at(P.map), 'aria-label': mapName, title: mapName, onclick: () => openSheet('map') }),
     el('button', { class: 'spot open', style: at(B) + clip, 'aria-label': UI.register.link + ', ' + (d.lake && d.stack && d.spires ? UI.register.canSign : UI.register.canRead), title: UI.register.link, onclick: openPage }),
     ...noticeAt(P.notice, k));
+  fitNotice();
 }
 function fillBook() {
   const P = api.pages(); if (!P) { book.replaceChildren(); return; }
@@ -126,7 +129,7 @@ function fillBook() {
   right.append(el('span', { class: 'head', style: 'left:' + 3 * k + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.date }), el('span', { class: 'head', style: 'left:' + (col + 3 * k) + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.who }));
   const left = page(P.left, 'left');
   book.replaceChildren(left, right);
-  book.append(...noticeAt(P.board, k));
+  book.append(...noticeAt(P.board, k)); fitNotice();
   // The left-hand page (L4): until the lake, the peak and one Spires summit are done, TJ's note of what is
   // still to do, ticked off as each is done. After that it is blank, and the close-up lays the pencil on it.
   const done = api.done(), T = UI.register.todo;
@@ -166,6 +169,9 @@ function fillBook() {
     right.append(el('span', { class: 'hand', style: st + 'white-space:nowrap;font-size:' + Math.min(pitch * 0.9 * fz, (col - 5 * k) / 2.7).toFixed(1) + 'px;left:' + 3 * k + 'px;width:' + (col - 5 * k) + 'px', text: shortDate(e.date) }), t);
     at += Math.max(1, Math.round(t.offsetHeight / pitch));
   });
+  // A page with more written on it than it holds scrolls (style.css), a paragraph at a time, and takes the keyboard.
+  // What shows of it ends on a rule, so no line is cut through.
+  for (const pg of [left, right]) if (pg.scrollHeight > pg.clientHeight + 1) { pg.classList.add('long'); pg.tabIndex = 0; pg.style.scrollPaddingTop = top + 'px'; pg.style.clipPath = 'inset(0 0 ' + (((pg.clientHeight - top - pitch * 0.14) % pitch + pitch) % pitch).toFixed(1) + 'px 0)'; }
 }
 addEventListener('resize', () => setTimeout(() => { if (!book.hidden) fillBook(); }, 60));
 async function walkOut() { audio.sfx('select'); hideCard(); await api.setRoute('spires-home'); buildMarks(); api.start(); }
@@ -461,6 +467,8 @@ addEventListener('pointerdown', e => { if (!music.hidden && !music.contains(e.ta
 const coarse = window.matchMedia ? matchMedia('(pointer: coarse)') : { matches: false };
 // The music button's spoken name carries the track it shows, so what is read matches what is seen.
 const trackLabel = $('b-track').getAttribute('aria-label');
+// How tall the top bar is, for what sits under it (the debug panel, a toast, a card on a phone on its side).
+function topHeight() { document.documentElement.style.setProperty('--top', $('top').offsetHeight + 'px'); }
 function syncTop() {
   document.documentElement.dataset.theme = api.theme();
   const said = audio.muted() ? UI.soundOff : audio.live() || soundAsked ? trackName() : UI.soundWaits[coarse.matches ? 1 : 0];
@@ -468,6 +476,7 @@ function syncTop() {
   $('b-track').dataset.state = audio.muted() ? 'off' : audio.live() || soundAsked ? 'playing' : 'waits';
   // The sun or the moon before the clock's word: what the sky is now, so AUTO says what it is for (note 30).
   const mode = api.clock().mode, dark = mode === 'dusk' || (mode === 'auto' && api.theme() === 'dark'); audio.dusk(dark);
+  topHeight();
   $('b-dusk').querySelector('.sky').className = 'sky ' + (dark ? 'moon' : 'sun'); $('b-dusk').querySelector('span').textContent = UI.theme[mode]; $('b-dusk').setAttribute('aria-label', UI.map.dusk + ': ' + UI.theme[mode]);
 }
 
@@ -507,7 +516,7 @@ try {
   buildMarks(); syncTop();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(nudgeMarks);
   document.documentElement.style.setProperty('--px', api.scale() + 'px');
-  addEventListener('resize', () => setTimeout(() => { document.documentElement.style.setProperty('--px', api.scale() + 'px'); nudgeMarks(); }, 0));
+  addEventListener('resize', () => setTimeout(() => { document.documentElement.style.setProperty('--px', api.scale() + 'px'); nudgeMarks(); topHeight(); }, 0));
   // For screenshots: ?route=stack&p=0.5 or ?stop=1 or ?dusk=1 or ?done=lake,stack,spires or ?look=-200,150
   const q = new URLSearchParams(location.search);
   if (q.get('done')) api.mark(q.get('done').split(','));

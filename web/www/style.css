@@ -107,11 +107,14 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #card .from, #card h2 { padding-right: max(calc(var(--px) * 8), 28px); }
 #fork h1 { padding-right: max(calc(var(--px) * 8), 28px); }
 /* What is left of a closed placard: a small tab at the bottom left that opens it again. */
-#tab { position: fixed; z-index: 2; left: max(18px, env(safe-area-inset-left, 0px)); bottom: calc(var(--px) * 38 + env(safe-area-inset-bottom, 0px)); min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); max-width: calc(100% - 36px); }
+#tab { position: fixed; z-index: 2; left: max(18px, env(safe-area-inset-left, 0px)); bottom: calc(var(--px) * 38 + env(safe-area-inset-bottom, 0px)); min-height: max(calc(var(--px) * 9), 24px); padding: calc(var(--px) * 1) calc(var(--px) * 3); max-width: calc(100% - 36px); }
 /* The register's close-up (L2): only the book and the way out of it. */
-#book-x { position: fixed; z-index: 3; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(var(--px) * 4 + env(safe-area-inset-bottom, 0px)); min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
+#book-x { position: fixed; z-index: 3; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(var(--px) * 4 + env(safe-area-inset-bottom, 0px)); min-height: max(calc(var(--px) * 9), 24px); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
 #book { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 #book .page { position: absolute; overflow: hidden; }
+/* On a small phone the pages are short and narrow and the hand needs more rows than there are (round 8, I2). */
+#book .page.long { overflow-y: auto; pointer-events: auto; scroll-snap-type: y mandatory; scrollbar-width: thin; overscroll-behavior: contain; }
+#book .page.long .hand { scroll-snap-align: start; }
 #book .head { position: absolute; top: 0; display: flex; align-items: flex-end; font-family: var(--small); font-size: 13px; color: #8a5a4a; }
 #book .hand { position: absolute; margin: 0; -webkit-font-smoothing: antialiased; transform: translateY(var(--drop)) rotate(var(--tilt)); transform-origin: 0 50%; }
 #book .who { margin-right: .3em; }
@@ -122,7 +125,7 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #book .field { position: absolute; margin: 0; padding: 0; border: 0; border-radius: 2px; background: transparent; resize: none; overflow: hidden; outline: none; -webkit-font-smoothing: antialiased; transform: translateY(var(--drop)); }
 #book .field::placeholder { color: #a8a094; }
 #book .field:focus-visible { box-shadow: 0 0 0 2px rgba(34, 64, 154, .35); }
-#book .sign { position: absolute; min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
+#book .sign { position: absolute; min-height: max(calc(var(--px) * 9), 24px); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
 /* The trail conditions notice pinned on the register box's back wall (note 23): a click opens the whole board. */
 #book .notice { position: absolute; pointer-events: auto; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 2px 8px; overflow: hidden; text-align: left; background: var(--paper); color: var(--paper-ink); border: var(--px) solid var(--ink); box-shadow: inset 0 0 0 var(--px) var(--paper-2), var(--px) var(--px) 0 var(--shade); font-family: var(--small); font-size: 12px; line-height: 1.1; cursor: pointer; }
 #book .notice b { font-family: var(--sign); font-size: 12px; font-weight: 400; color: var(--blaze-ink); }
@@ -149,6 +152,9 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 
 /* The card. Where it came from decides its paper. */
 #card { padding: calc(var(--px) * 5) calc(var(--px) * 6) calc(var(--px) * 4); max-height: calc(100% - var(--px) * 54); overflow: auto; }
+/* A card too tall for its place scrolls. Nothing in it gives way first: its button was squeezed to a sliver (round 8, I2). */
+#card > * { flex-shrink: 0; }
+#card-go { min-height: max(calc(var(--px) * 11), 24px); }
 .from { font-family: var(--small); font-size: 15px; color: var(--dim); display: flex; align-items: center; gap: calc(var(--px) * 2); }
 .from::before { content: ""; width: calc(var(--px) * 3); height: calc(var(--px) * 3); background: var(--blaze); box-shadow: 0 0 0 var(--px) var(--ink); margin: var(--px); }
 #card-body { display: flex; flex-direction: column; gap: calc(var(--px) * 2); }
@@ -156,7 +162,7 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 .draft { font-family: var(--small); font-size: 15px; color: var(--dim); align-self: flex-start; padding: 0 calc(var(--px) * 2); border: var(--px) dashed var(--dim); }
 .tools, .links { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 2); }
 .tools li { font-family: var(--small); font-size: 15px; padding: 0 calc(var(--px) * 2); border: var(--px) solid var(--paper-ink); background: var(--paper-2); }
-.links a { display: inline-flex; align-items: center; gap: calc(var(--px) * 2); text-decoration: none; border-bottom: var(--px) solid var(--blaze); }
+.links a { display: inline-flex; align-items: center; min-height: 24px; gap: calc(var(--px) * 2); text-decoration: none; border-bottom: var(--px) solid var(--blaze); }
 .links a:hover { background: var(--sun); }
 .facts { display: grid; grid-template-columns: repeat(3, auto); gap: 0 calc(var(--px) * 5); justify-content: start; }
 .facts dt { font-family: var(--small); font-size: 15px; color: var(--dim); }
@@ -201,7 +207,7 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 /* A split start button in the debug panel (note 27): the name starts one at random, the arrow lists each. */
 .split-row { display: flex; gap: var(--px); }
 #debug .split-row > .plank:first-child { flex: 1; width: auto; min-width: 0; }
-#debug .split-row > .more { flex: none; width: auto; padding: 0 calc(var(--px) * 3); }
+#debug .split-row > .more { flex: none; width: auto; min-width: 24px; justify-content: center; padding: 0 calc(var(--px) * 3); }
 #debug .split-list .plank { width: auto; }
 .split-list { display: flex; flex-direction: column; gap: var(--px); margin: var(--px) 0 0 calc(var(--px) * 6); }
 .arrow.down { transform: rotate(-90deg); }
@@ -222,29 +228,31 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 button.name { pointer-events: auto; }
 .name.away::after { display: none; }
 .no-labels #names, .no-labels #tip { display: none; }
-/* The debug panel: a narrow column down the right, under the top bar, so the world stays in view beside it. */
-#debug { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); top: calc(var(--px) * 13); width: min(260px, calc(100% - 28px)); max-height: calc(100% - var(--px) * 40); overflow: auto; padding: calc(var(--px) * 3) calc(var(--px) * 4); display: grid; gap: calc(var(--px) * 1.5); }
+/* The debug panel: a narrow column down the right, under the top bar, so the world stays in view beside it.
+   --under is where that is: the page measures the bar (--top), which on a phone is taller than 13 of the world's pixels. */
+:root { --under: max(calc(var(--px) * 13), calc(var(--top, 0px) + 2px)); }
+#debug { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); top: var(--under); width: min(260px, calc(100% - 28px)); max-height: calc(100% - var(--under) - var(--px) * 27); overflow: auto; padding: calc(var(--px) * 3) calc(var(--px) * 4); display: grid; gap: calc(var(--px) * 1.5); }
 #debug h2 { font-size: 24px; line-height: 1; display: flex; justify-content: space-between; align-items: center; }
 #debug h3 { font-family: var(--small); font-size: 15px; font-weight: 400; color: var(--dim); margin-top: calc(var(--px) * 1); }
-#debug .plank { min-height: calc(var(--px) * 8); padding: calc(var(--px) * 1) calc(var(--px) * 3); font-size: 14px; width: 100%; }
+#debug .plank { min-height: max(calc(var(--px) * 8), 24px); padding: calc(var(--px) * 1) calc(var(--px) * 3); font-size: 14px; width: 100%; }
 #debug .plank[aria-pressed="false"] { filter: saturate(.35) brightness(.82); }
 #debug .row { display: flex; gap: calc(var(--px) * 1.5); }
-#debug select { flex: 1; min-width: 0; font: inherit; font-family: var(--small); font-size: 15px; padding: calc(var(--px) * 1); background: var(--paper); color: var(--paper-ink); border: var(--px) solid var(--ink); }
-#debug .row .plank { width: auto; }
+#debug select { flex: 1; min-width: 0; min-height: 24px; font: inherit; font-family: var(--small); font-size: 15px; padding: calc(var(--px) * 1); background: var(--paper); color: var(--paper-ink); border: var(--px) solid var(--ink); }
+#debug .row .plank { width: auto; min-width: 24px; justify-content: center; }
 #debug .tune { align-items: center; } #debug .tune > span { flex: 1; font-family: var(--small); font-size: 15px; }
-#debug .chips { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 1.5); } #debug .chips .plank { width: auto; min-height: 0; padding: calc(var(--px) * 1) calc(var(--px) * 2); font-size: 13px; }
-#debug input[type=range] { display: block; width: 100%; box-sizing: border-box; margin: 0; accent-color: var(--wood-3); }
+#debug .chips { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 1.5); } #debug .chips .plank { width: auto; min-height: 24px; min-width: 24px; padding: calc(var(--px) * 1) calc(var(--px) * 2); font-size: 13px; }
+#debug input[type=range] { display: block; width: 100%; min-height: 24px; box-sizing: border-box; margin: 0; accent-color: var(--wood-3); }
 #debug .row:has(select + select) { flex-wrap: wrap; } #debug .row:has(select + select) select { flex-basis: 40%; }
 #debug .speeds { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--px) * 1.5); }
 .debug-sign { margin-top: calc(var(--px) * 4); opacity: .55; }
 .side .debug-sign.plank { display: inline-flex; min-height: 0; padding: 0 calc(var(--px) * 2); font-size: 12px; width: max-content; align-self: flex-start; }
 button.name:hover, .name.done { background: var(--moss); }
-#toast { position: fixed; z-index: 4; left: 50%; top: calc(var(--px) * 16); transform: translateX(-50%); max-width: calc(100% - 32px); padding: calc(var(--px) * 1) calc(var(--px) * 4); font-size: 20px; background: var(--paper); border: var(--px) solid var(--ink); box-shadow: var(--px) var(--px) 0 var(--shade); text-align: center; }
+#toast { position: fixed; z-index: 4; left: 50%; top: max(calc(var(--px) * 16), calc(var(--top, 0px) + 4px)); transform: translateX(-50%); max-width: calc(100% - 32px); padding: calc(var(--px) * 1) calc(var(--px) * 4); font-size: 20px; background: var(--paper); border: var(--px) solid var(--ink); box-shadow: var(--px) var(--px) 0 var(--shade); text-align: center; }
 
 /* The route along the bottom: its profile, a flag at each milestone, a marker for him. */
 #bar { position: fixed; z-index: 2; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px)); bottom: calc(var(--px) * 3 + env(safe-area-inset-bottom, 0px)); display: flex; align-items: stretch; gap: calc(var(--px) * 2); }
 #bar .plank { justify-content: center; min-width: calc(var(--px) * 26); }
-#line { position: relative; flex: 1; min-width: 0; height: calc(var(--px) * 22); cursor: pointer; touch-action: none; background: var(--wood-1); border: var(--px) solid var(--ink); box-shadow: inset 0 var(--px) 0 #1f1208, var(--px) calc(var(--px) * 2) 0 var(--shade); }
+#line { position: relative; flex: 1; min-width: 0; height: max(calc(var(--px) * 22), 26px); cursor: pointer; touch-action: none; background: var(--wood-1); border: var(--px) solid var(--ink); box-shadow: inset 0 var(--px) 0 #1f1208, var(--px) calc(var(--px) * 2) 0 var(--shade); }
 #prof { position: absolute; left: 0; top: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
 .mark { position: absolute; bottom: 100%; transform: translateX(-50%); margin-bottom: calc(var(--px) * 1); padding: 0 calc(var(--px) * 2); font-family: var(--small); font-size: 15px; line-height: 1.25; white-space: nowrap; color: var(--paper-ink); background: var(--paper); border: var(--px) solid var(--ink); pointer-events: none; }
 .mark.passed { background: var(--sun); }
@@ -263,6 +271,8 @@ button.name:hover, .name.done { background: var(--moss); }
 .mapbox { position: relative; border: var(--px) solid var(--ink); line-height: 0; background: #58993c; }
 .mapbox canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; }
 .dot { position: absolute; width: calc(var(--u) * 5); height: calc(var(--u) * 5); margin: calc(var(--u) * -2.5); background: var(--blaze); border: var(--u) solid var(--ink); box-shadow: 0 0 0 var(--u) var(--paper); }
+/* A dot is a few pixels across: what answers a finger or a pointer is wider than what shows (round 8, I2). */
+.dot::before { content: ""; position: absolute; inset: -8px; }
 .dot:hover, .dot:focus-visible { background: var(--sun); z-index: 2; }
 .dot span { position: absolute; left: 50%; bottom: calc(100% + var(--px) * 2); transform: translateX(-50%); padding: 0 calc(var(--px) * 2); font-family: var(--small); font-size: 15px; line-height: 1.25; white-space: nowrap; background: var(--paper); border: var(--px) solid var(--ink); display: none; }
 .dot:hover span, .dot:focus-visible span, .dot.big span { display: block; }
@@ -272,7 +282,7 @@ button.name:hover, .name.done { background: var(--moss); }
 .key small { display: block; font-family: var(--small); font-size: 15px; color: var(--dim); margin-bottom: calc(var(--px) * 2); }
 .key li { display: flex; align-items: baseline; gap: calc(var(--u) * 2); }
 .key li::before { content: ""; flex: none; width: calc(var(--u) * 2); height: calc(var(--u) * 2); background: var(--blaze); box-shadow: 0 0 0 var(--u) var(--ink); transform: translateY(calc(var(--u) * -1)); margin-left: var(--u); }
-.key button { border-bottom: var(--px) solid transparent; }
+.key button { min-height: 24px; text-align: left; border-bottom: var(--px) solid transparent; }
 .key button:hover, .key button:focus-visible { border-bottom-color: var(--blaze); }
 .side { display: flex; flex-direction: column; gap: calc(var(--px) * 2); }
 .side h3 { font-size: 30px; line-height: 1; margin-top: calc(var(--px) * 2); }
@@ -346,27 +356,32 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   .name { font-size: 10px; }
   /* A tag that can be tapped is at least 24 px tall, the touch target WCAG asks for. */
   button.name { min-height: 24px; display: inline-flex; align-items: center; }
+  .side .debug-sign.plank { min-height: 24px; }
 }
 /* A phone on its side: the signs keep to the left two fifths so he stays in view beside them. */
 /* Narrower phones: the top bar in the debug panel's smaller lettering, so its five planks stay two lines tall.
    The narrowest: the music button is its note alone, as it is once sound is on. */
 @media (max-width: 389px) { #top .plank { font-size: 14px; } }
-@media (max-width: 359px) { #b-track span { display: none; } }
+@media (max-width: 359px) { #b-track span { display: none; } .keys { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 
 @media (max-height: 480px) and (orientation: landscape) {
   #fork, #card { width: min(456px, 46%); bottom: calc(var(--px) * 30 + env(safe-area-inset-bottom, 0px)); }
-  #card { max-height: calc(100% - var(--px) * 40); padding: calc(var(--px) * 3) calc(var(--px) * 4); }
+  #card { max-height: calc(100% - var(--px) * 30 - var(--top, 0px) - 4px - env(safe-area-inset-bottom, 0px)); padding: calc(var(--px) * 3) calc(var(--px) * 4); }
   /* A project's licence goes on one row with its label here, so the card is a row shorter and its last
      line and button stay on the screen. */
   .facts dt:nth-of-type(4) { grid-column: 1; margin-top: 0; align-self: baseline; }
   .facts dd:nth-of-type(4) { grid-row: 3; grid-column: 2 / -1; align-self: baseline; }
   #fork .placard { padding: calc(var(--px) * 3) calc(var(--px) * 4); }
   .plank .where { display: none; }
-  #line { height: calc(var(--px) * 16); }
+  #line { height: max(calc(var(--px) * 16), 26px); }
+  .side .debug-sign.plank { min-height: 24px; }
+  #book .notice { font-size: 11px; padding: 1px 5px; gap: 0; } #book .notice b { font-size: 10px; }
   .mark { display: none; }
   #b-help { display: none; }
   #b-track[data-state="playing"] span { display: none; }
 }
+/* The smallest phone on its side: the junction's placard and its three signs are taller than what is left under the top bar, so they scroll. */
+@media (max-height: 340px) and (orientation: landscape) { #fork { max-height: calc(100% - var(--px) * 30 - var(--top, 0px) - 4px - env(safe-area-inset-bottom, 0px)); overflow-y: auto; } #fork > * { flex-shrink: 0; } }
 /* Signs drop into place in a few steps, the way a sprite moves, never a slide. */
 @keyframes drop { from { transform: translateY(calc(var(--px) * -5)); opacity: 0; } }
 @media (prefers-reduced-motion: no-preference) {

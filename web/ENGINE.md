@@ -71,6 +71,13 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - Rows added under a picture get their plants and stones from an `rng()` of their own, so nothing above them moves.
 - The view stays on the painted strip. A scene whose strip does not wrap clamps its camera between 0 and the strip's width less the window's (`climb.js`, `ridge.js`).
 
+## Phones
+
+- The world's pixels (`--px`) are 1 wide on a phone, so a size written in them is half or a third of what it is on a desktop. Anything that can be tapped has a floor: `min-height: max(calc(var(--px) * 9), 24px)`. Nothing to tap is under 24 by 24.
+- What sits under the top bar is placed with `--under`, never with a count of pixels: the page measures the bar (`topHeight()` in `app.js` sets `--top`), which can be two lines tall on a phone.
+- A card, a placard or a page that is too tall scrolls. Nothing in it shrinks to make room (`flex-shrink: 0` on what it holds).
+- A new card, sheet or menu is added to the browser test "on a phone ... every card, sheet and menu fits", which opens each at five phone sizes.
+
 ## Music
 
 - On Auto the tune and the set of instruments both follow the place: `PLACES` and `PLACE_SETS` in `audio.js`, with the scene's name as the key. A new scene gets a line in `PLACES`, and one in `PLACE_SETS` if it should not play the first set.

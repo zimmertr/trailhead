@@ -1105,3 +1105,65 @@ test('on a phone the forest, the lakeside and the West Ridge are painted to the 
     expect(problems).toEqual([])
   }
 })
+
+// What does not fit a window, among everything inside the given parts of the page that shows: something
+// that runs off a side or off the bottom, text cut off by its box, a thing to tap smaller than 24 by 24
+// (WCAG 2.2's minimum; a link in a line of text is exempt, as there), and the page scrolling sideways.
+const misfits = (page: Page, parts: string[]) => page.evaluate((sels) => {
+  const out: string[] = [], W = innerWidth, H = innerHeight
+  const name = (e: Element) => `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${typeof e.className === 'string' && e.className ? '.' + e.className.trim().split(/\s+/).join('.') : ''} "${(e.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 28)}"`
+  const shows = (e: Element) => { const r = e.getBoundingClientRect(), s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && !e.closest('[hidden]') }
+  // A box that scrolls may hold more than it shows: what is inside one is judged against that box, not the window.
+  const scroller = (e: Element) => { for (let p = e.parentElement; p; p = p.parentElement) { const s = getComputedStyle(p); if (/auto|scroll/.test(s.overflowY) || /auto|scroll/.test(s.overflowX)) return p } return null }
+  if (document.documentElement.scrollWidth > W + 1) out.push(`the page scrolls sideways (${document.documentElement.scrollWidth} wide)`)
+  for (const sel of sels) for (const root of document.querySelectorAll(sel)) {
+    if (!shows(root)) continue
+    const rr = root.getBoundingClientRect()
+    if (rr.top < -1 || rr.bottom > H + 1) out.push(`${sel} runs off the ${rr.top < -1 ? 'top' : 'bottom'} (${Math.round(rr.top)} to ${Math.round(rr.bottom)} of ${H})`)
+    for (const e of [root, ...root.querySelectorAll('*')]) {
+      if (!shows(e)) continue
+      const r = e.getBoundingClientRect(), s = getComputedStyle(e), box = scroller(e)
+      if (!box && (r.left < -1 || r.right > W + 1)) out.push(`off the side (${Math.round(r.left)} to ${Math.round(r.right)}): ${name(e)}`)
+      if (e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 1 && /hidden|clip/.test(s.overflowX)) out.push(`cut off sideways (${e.scrollWidth} in ${e.clientWidth}): ${name(e)}`)
+      if (e.clientHeight > 0 && e.scrollHeight > e.clientHeight + 1 && /hidden|clip/.test(s.overflowY)) out.push(`cut off below (${e.scrollHeight} in ${e.clientHeight}): ${name(e)}`)
+      const inLine = e.matches('a') && getComputedStyle(e).display === 'inline' && !!e.parentElement && [...e.parentElement.childNodes].some((n) => n.nodeType === 3 && (n.textContent ?? '').trim() !== '')
+      // What answers a tap can be wider than what shows: a ::before laid out past the element's own box counts.
+      const b = getComputedStyle(e, '::before'), past = (v: string) => (b.content !== 'none' && b.position === 'absolute' ? Math.max(0, -parseFloat(v) || 0) : 0)
+      const tw = r.width + past(b.left) + past(b.right), th = r.height + past(b.top) + past(b.bottom)
+      if (e.matches('button, a[href], select, input, summary, [role=menuitem], [role=menuitemradio], [role=slider]') && !inLine && (tw < 24 || th < 24)) out.push(`small to tap (${Math.round(tw)} by ${Math.round(th)}): ${name(e)}`)
+    }
+  }
+  return out
+}, parts)
+
+// Round 8, I2: every card, sheet and menu, on three phones held upright and two on their sides. Before the pass a
+// tall card squeezed its button to a sliver, the debug panel and a toast lay over the top bar, the register's
+// notice and pages cut their last lines through, and much of what can be tapped was 10 to 23 pixels tall.
+for (const [width, height] of [[320, 568], [360, 740], [390, 844], [844, 390], [568, 320]] as [number, number][]) {
+  test(`on a phone ${width} by ${height} every card, sheet and menu fits, and what can be tapped is big enough`, async ({ page }) => {
+    test.setTimeout(300_000)
+    await page.setViewportSize({ width, height })
+    const all: string[] = []
+    const note = async (what: string, parts: string[]) => { await page.waitForTimeout(400); for (const m of await misfits(page, [...parts, '#top', '#bar'])) all.push(`${what}: ${m}`) }
+    const problems = await open(page, '/')
+    const slugs = await page.evaluate(async () => {
+      const { W } = await import(new URL('./words.js', location.href).href) as { W: { CARDS: Record<string, { slug: string; title: string }>; PROJECTS: Record<string, { name: string }> } }
+      return [...Object.values(W.CARDS).filter((c) => c.slug).map((c) => [c.slug, c.title]), ...Object.entries(W.PROJECTS).map(([id, p]) => ['sideproject-spires/' + id, p.name])] as [string, string][]
+    })
+    expect(slugs.length).toBeGreaterThan(10)
+    await note('the junction', ['#fork'])
+    for (const [slug, title] of slugs) { await page.goto(`${origin}/#${slug}`); await expect(page.locator('#card-title')).toHaveText(title, { timeout: 20_000 }); await expect(page.locator('#card')).toBeVisible(); await note('card ' + slug, ['#card', '#tab']) }
+    await page.goto(`${origin}/#nowhere-at-all`); await expect(page.locator('#toast')).toBeVisible({ timeout: 20_000 }); await note('off route', ['#card', '#tab', '#toast'])
+    for (const sheet of ['map', 'keys', 'kiosk']) { await page.goto(`${origin}/#${sheet}`); await expect(page.locator('#sheet')).toBeVisible({ timeout: 20_000 }); await note('sheet ' + sheet, ['#sheet']) }
+    await page.goto(`${origin}/#register`); await expect(page.locator('#book .spot.open')).toBeVisible({ timeout: 20_000 }); await note('the register box', ['#book', '#book-x'])
+    await page.locator('#book .spot.open').click(); await expect(page.locator('#book .page.right')).toBeVisible(); await note('the register book', ['#book', '#book-x'])
+    // On the smallest phone the hand needs more rows than a page has: the page scrolls, and takes the keyboard.
+    if (width === 320) { await expect(page.locator('#book .page.long[tabindex="0"]')).toHaveCount(2); expect(await axe(page).then(found)).toEqual([]) }
+    await page.goto(`${origin}/#page`); await expect(page.locator('#plain')).toBeVisible(); await note('the page of text', ['#plain'])
+    await page.goto(`${origin}/`); await page.locator('#b-debug').click(); await expect(page.locator('#debug')).toBeVisible(); await note('the debug panel', ['#debug'])
+    await page.locator('#debug .plank', { hasText: 'Close' }).first().click(); await page.locator('#b-track').click(); if (await page.locator('#music').isHidden()) await page.locator('#b-track').click()
+    await expect(page.locator('#music')).toBeVisible(); await note('the music menu', ['#music'])
+    expect(all).toEqual([])
+    expect(problems).toEqual([])
+  })
+}
