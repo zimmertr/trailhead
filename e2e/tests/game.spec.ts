@@ -688,6 +688,35 @@ test('the cubs copy the sow: they dig when she digs and try the trunk she rubbed
   expect(problems).toEqual([])
 })
 
+// Round 8, H3: one goat lives on the grassy ledge halfway up the larch basin's wall, keeps to it whatever
+// it does, and breaks no engine rule there (the ledge is ground a land animal may stand on).
+test('a goat lives on the ledge of the larch basin wall and keeps to it', async ({ page }) => {
+  const problems = await open(page, '/?homes=0')
+  type Billy = { critter: string; x: number; y: number; spots?: [number, number][] }
+  type Wall = { __crit: { items: Billy[]; click: (id: string, x: number, y: number, t: number) => unknown }; __api: { now: () => number } }
+  const billy = () => page.evaluate(() => {
+    const w = window as unknown as Wall, i = w.__crit.items.findIndex((a) => a.spots), a = w.__crit.items[i]
+    if (!a || !a.spots) return null
+    w.__crit.click(`animal:${i}`, a.x, a.y - 4, w.__api.now())
+    return { kind: a.critter, x: a.x, on: a.spots.some(([x, y]) => Math.abs(x - a.x) <= 1 && Math.abs(y - a.y) <= 2), long: a.spots.length }
+  })
+  const first = await billy()
+  expect(first).not.toBeNull()
+  expect(first?.kind).toBe('goat')
+  expect(first?.long).toBeGreaterThanOrEqual(30)
+  // A click steps him through what he does, and one of those is to trot off: along the ledge, never off it.
+  const seen = new Set<number>()
+  for (let k = 0; k < 12; k++) {
+    await page.waitForTimeout(700)
+    const now = await billy()
+    expect(now?.on, `on the ledge at step ${k}`).toBe(true)
+    if (now) seen.add(now.x)
+    expect(await page.evaluate(() => window.__rules?.())).toEqual([])
+  }
+  expect(seen.size, 'places along the ledge he has stood').toBeGreaterThan(1)
+  expect(problems).toEqual([])
+})
+
 test('the homes the dice draw keep the engine rules and leave an animal to click', async ({ page }) => {
   for (const seed of [1, 2, 3, 4]) {
     const problems = await open(page, `/?homes=${seed}`)

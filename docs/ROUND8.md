@@ -120,7 +120,7 @@ TJ picked these from `docs/IDEAS.md` on 2026-11-24, for the night. Pictures firs
 
 - [x] **H1 Life by the Hour.** The clock leans on what animals do and where they are: the herd high by Day and down at the stream at Dusk, the marmots gone to ground at Dusk, the bears out, bugling towards Dusk, bedding at midday. TJ: "this should be built into the critter system so new animals that are later added integrate into this". So it is one rule in the animals' own system (each kind says what it does by the hour, in data), not code per animal.
 - [x] **H2 The Cubs Copy Her.** The cubs dig beside the sow when she digs and try the trunk she has just rubbed.
-- [ ] **H3 A Goat on the Ledge.** One mountain goat's home on the grassy ledge halfway up the larch basin's wall.
+- [x] **H3 A Goat on the Ledge.** One mountain goat's home on the grassy ledge halfway up the larch basin's wall.
 - [ ] **H4 Answers and Followers.** A second bull answers a bugle faintly from off the map. When one orca spyhops, the one behind it follows a second later.
 - [ ] **H5 Ice That Moves.** The bergs in Feature Creep Lake become things that drift a little with each gust and turn slowly; the upper tarns get a few small floes.
 - [ ] **H6 Rain Shows Everywhere.** In rain the map's lakes show rings in place of glints and no fish jump. At the lakeside the boulders and the trail stay dark after the drizzle and dry from the top down.
@@ -372,3 +372,11 @@ Every call, one line each, newest last.
 - H2, how it was tested: rendered by Day, at Dusk and on a phone with her dig and her rub started by name. A new browser test has her dig until a cub digs, then rub until a cub is up against the trunk, and reads the engine rules after each. It passed twice in a row.
 
 - H2, the numbers: 54 browser tests pass; check.sh reports nothing moved since H1; frame time 10.9 ms zoomed out at Dusk. CI on H1 (`84e3c9b`) was green.
+- H3, what was built: a billy by himself lives on the grassy ledge halfway up the wall under the Peak's larch bench. He looks about, grazes, beds down, hops and trots along it, and at midday he beds as the other goats do (H1).
+- H3, where: by rule. The ledge is read off the picture where `wallRock` painted it (a pixel of its lit top with its shadow right under it, on a granite wall), its level runs are followed, and of those 30 or longer the one nearest Proficiency Peak is his. The first rule took the longest run, which lay 120 from the map's east edge, where the page's buttons are.
+- H3, a call: he is one more goat, not one of the two nannies' homes. A nanny's kid stands 16 beside her, which on a ledge two pixels deep is the cliff.
+- H3, a call: the ledge is made ground. Its middle 40 pixels, and two above and below, are added to the land's own rule for where a land animal may stand (`open` in `land.js`), so `collide.js` and the engine rules treat him as any other animal. His country is the list of those pixels: he walks from one to another (`spots` on a walker, `spotNear()` in `critters.js`).
+- H3, the bake: the ledge is found once and goes into the bake with the homes, since finding it reads the whole picture.
+- H3, how it was tested: rendered at three moments by Day (walking, grazing, bedded); the engine rules read clean. A new browser test clicks him through his acts twelve times and reads that he is on the ledge each time and has moved along it.
+
+- H3, the numbers: 55 browser tests pass; check.sh reports nothing moved since H2 and the ledge as new (its 40 pixels are counted with the places, so the count reads 130 in 34 kinds); frame time 11.6 ms zoomed out at Dusk. CI on H2 (`ee1c7e5`) was green.

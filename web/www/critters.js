@@ -255,6 +255,11 @@ export function makeCritters(W, opts = {}) {
   // The herd keeps together: each elk strays only a little from its own place in it.
   spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look', does: n === 0 ? ['graze', 'bugle', 'bed', 'thrash', 'trot'] : ['graze', 'look', 'bed', 'bark', 'trot'] }));
   spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null, does: kid ? ['graze', 'hop', 'butt', 'bed', 'trot'] : ['look', 'graze', 'bed', 'hop', 'butt'] }));
+  // A goat on the ledge (round 8, H3): a billy by himself on the grassy ledge halfway up the larch basin's
+  // wall, where goats like to stand. The ledge's pixels are his country (spots: he walks from one of them to
+  // another), and land.js makes them ground a land animal may stand on.
+  if (spots.ledge && spots.ledge.length) { const run = spots.ledge, on = new Set(run.map(([x, y]) => y * NW + x)), [x, y] = run[run.length >> 1];
+    walker('goat', goats[0], x, y, { faces: 1, r: 18, v: 4, ok: (px, py) => { const i = Math.round(py) * NW + Math.round(px); return on.has(i) || on.has(i - NW) || on.has(i + NW); }, start: 'look', spots: run, does: ['look', 'graze', 'bed', 'hop', 'trot'] }); }
   spots.sheep.forEach(([x, y, d]) => walker('sheep', ram, x, y, { faces: 1, r: 34, v: 6, ok: clear, roam: 0.6, start: d ? 'graze' : 'look', does: ['graze', 'butt', 'bed', 'trot', 'look'] }));
   // The moose (T35): a bull and a calf that wander the riverside woods together, the calf at his heels (it
   // follows him as a kid follows its nanny). They keep off the trail.
@@ -440,8 +445,11 @@ export function makeCritters(W, opts = {}) {
   // The way the animal is turned: 1 to the right, -1 to the left.
   const dirOf = a => a.faces * (a.flip ? -1 : 1), turn = (a, dir) => { a.flip = dir !== a.faces; };
   // Off to another spot in its own country (or near its mother), by a straight way it may walk.
+  // A spot to walk to, within its range of a middle: anywhere about it, or, for an animal whose country is a
+  // list of spots (the ledge's goat), one of those.
+  const spotNear = (a, cx, cy) => { if (a.spots) { const near = a.spots.filter(([x, y]) => Math.hypot(x - cx, y - cy) <= a.r && Math.hypot(x - a.fx, y - a.fy) > 4); return near.length ? near[Math.floor(rand() * near.length)] : [a.fx, a.fy]; } const an = rand() * TAU, rr = a.r * (0.35 + 0.65 * rand()); return [cx + Math.cos(an) * rr, cy + Math.sin(an) * rr * 0.6]; };
   const stroll = a => { const far = a.mum && a.mum.st === 'walk', cx = a.mum ? (far ? a.mum.tx : a.mum.x) : a.hx, cy = a.mum ? (far ? a.mum.ty : a.mum.y) + 5 : a.hy;
-    for (let k = 0; k < 10; k++) { const an = rand() * TAU, rr = a.r * (0.35 + 0.65 * rand()), tx = cx + Math.cos(an) * rr, ty = cy + Math.sin(an) * rr * 0.6; if (a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return true; } }
+    for (let k = 0; k < 10; k++) { const [tx, ty] = spotNear(a, cx, cy); if (a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return true; } }
     return false; };
   // To a spot it may stand on, to begin an act there (goal) once it arrives. The spot need not be in its own
   // country (a trunk stands in the trees, a ledge is narrow): any ground a land animal may stand on will do,
@@ -532,7 +540,7 @@ export function makeCritters(W, opts = {}) {
       // further along that it can walk straight to, so it does not turn at every cell.
       if (a.homing && a.path && a.path.length) { let k = 0; while (k + 1 < a.path.length && k < 8 && way(pass, a.fx, a.fy, a.path[k + 1][0], a.path[k + 1][1])) k++; [a.tx, a.ty] = a.path[k]; a.path.splice(0, k + 1); a.st = 'walk'; return; }
       for (let k = 0; k < 10; k++) {
-        const an = rand() * TAU, rr = a.r * (0.35 + 0.65 * rand()), tx = cx + Math.cos(an) * rr, ty = cy + Math.sin(an) * rr * 0.6;
+        const [tx, ty] = spotNear(a, cx, cy);
         if (a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; }
       }
       // No straight way to her (a trunk or a bend of the creek between them): it works round, to any spot it can

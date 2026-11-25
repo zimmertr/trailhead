@@ -2021,6 +2021,20 @@ function habitat() {
   // Placed last for the same reason, and clear of the lines the tumbleweeds roll along, which must stay bare.
   // Among the spots that are all Palouse it takes the one furthest east, out in the hills and away from the burn's edge.
   SIGNS['rolling-release'] = [best((u, v) => u < NW - 130 && S.palAmt(u, v) > 0.5 && apartFrom(taken, u, v, 40) && firm(u, v, 0.9) && trailFar(u, v) >= 4 && shows(u, v, 20) && tumbles.every(([a, b]) => u < a - 14 || u > a + 175 || Math.abs(v - b) > 14), (u, v) => S.palAmt(u, v) + u / 400)].filter(Boolean);
+  // A goat's ledge (round 8, H3): the grassy ledge that runs halfway up the larch basin's walls (wallRock)
+  // is read off the picture, so it is where it was painted: a pixel of its lit top with its shadow right
+  // under it, on a granite wall. Of its level runs 30 or longer, the one nearest Proficiency Peak is one
+  // goat's home (the walls under the Peak's own benches are the ones most looked at), and its middle 40
+  // pixels are ground that goat may stand on. Found last: it is on a wall, where no other home or sign can be, so
+  // it moves none of them. It goes into the bake with the homes.
+  const LG = R.grass[2], LP = R.rock[4], LS = R.rock[1];
+  const ledgeTop = (x, y) => { const i = y * NW + x, c = S.g[i]; if ((c !== LG && c !== LP) || S.g[i + NW] !== LS) return false; const v = S.depth[i]; return v < VD && S.matAt(x, v) === 'gran' && S.slope(x, v) > 0.75; };
+  const ledgeFind = () => { let best = [], bd = 1e9; const seen = new Uint8Array(NW * SH), px = S.peak ? S.peak.cu : NW * 0.75;
+    for (let y = 2; y < SH - 3; y++) for (let x = 20; x < NW - 20; x++) { if (seen[y * NW + x] || !ledgeTop(x, y)) continue; const run = [[x, y]]; let cy = y;
+      for (let nx = x + 1; nx < NW - 20; nx++) { const ny = [cy, cy - 1, cy + 1].find(q => ledgeTop(nx, q)); if (ny === undefined) break; seen[ny * NW + nx] = 1; run.push([nx, ny]); cy = ny; }
+      const d = Math.abs(run[run.length >> 1][0] - px); if (run.length >= 30 && d < bd) { best = run; bd = d; } }
+    return best.length ? best.slice(Math.max(0, (best.length >> 1) - 20), (best.length >> 1) + 20) : []; };
+  const ledge = baked ? baked[found.length] || [] : ledgeFind(); found.push(ledge);
   taken.length = mark;
   const herdAt = herd ? out(...herd) : null;
   return {
@@ -2030,7 +2044,7 @@ function habitat() {
     // The marmots' own three are the first three homes, the very same lists, so the boulder buildTerrain puts
     // under a parkland home is under its marmot too.
     marmots: marmotHomes.slice(0, marmots.length),
-    homesFound: found,
+    homesFound: found, ledge,
     homes: { elk: elkHomes.map(p => out(...p)), moose: mooseHomes.map(p => out(...p)), goat: goatHomes.map(p => out(...p)), sheep: bands.map(b => b.map((p, n) => [...out(...p), n & 1])), marmot: marmotHomes, squirrel: squirrelHomes.map(p => out(...p)), bear: bearHomes.map(p => out(...p)), whale: whaleHomes.map(p => out(...p)) },
     goats: goats.flatMap(p => { const [x, y] = out(...p); return [[x, y, 0], [x + 16, y + 6, 1]]; }),
     sheep: sheep.map((p, n) => [...out(...p), n & 1]),
@@ -2105,7 +2119,7 @@ export function buildTerrain() {
       return picks.sort((a, b) => a[0] - b[0]); })(),
     flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
     // Signs and animals, each placed by its rule (habitat, above).
-    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, bearHome: H.bearHome, moose: H.moose, homes: H.homes, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
+    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, bearHome: H.bearHome, moose: H.moose, homes: H.homes, ledge: H.ledge, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
     // The fire lookout on its cleared summit (E5j).
     lookout: LAND.lookout ? sxy(...LAND.lookout) : null
   };
@@ -2172,7 +2186,9 @@ export function buildTerrain() {
     if (cs > -4 && cs < 8) SEA.shore[j] = 1 + Math.round((cs + 4) * 8);
     else if (cs >= 8 && wet.has(LAND.g[i]) && vnoise(x / 22, y / 9, 85) > (cs < 60 ? 0.4 : 0.54)) { SEA.gate[j] = cs < 40 ? 2 : 1; SEA.ph[j] = Math.floor(frac((cs + 7 * Math.sin(x / 37 + y / 61)) / 24) * 240); }
   }
-  const open = (x, y) => { const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
+  // The goat's ledge (H3) is ground too, though the wall it runs across is not: its own pixels and two above and below.
+  const LEDGE = new Set(), LB = [NW, 0, SH, 0]; for (const [x, y] of H.ledge) { for (let d = -2; d <= 2; d++) LEDGE.add((y + d) * NW + x); LB[0] = Math.min(LB[0], x); LB[1] = Math.max(LB[1], x); LB[2] = Math.min(LB[2], y - 2); LB[3] = Math.max(LB[3], y + 2); }
+  const open = (x, y) => { if (x >= LB[0] && x <= LB[1] && y >= LB[2] && y <= LB[3] && LEDGE.has(Math.round(y) * NW + Math.round(x))) return true; const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
   const nearTrail = (x, y, r) => { const v = vAt(x, y); return v < VD && H.tdist[Math.round(v) * NW + Math.round(x)] < r; };
   const flat = l => l.map(p => [p[0], p[1]]);
   // Where the marine layer lies when it is in (E5e), for each pixel of the picture, 0 to 255: over the sea

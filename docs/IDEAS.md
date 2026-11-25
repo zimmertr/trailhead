@@ -580,4 +580,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Cubs Copy More** (round 8, H2). They dig when she digs and try her trunk. They could also stand up when she stands up to look, and sniff where she has been grazing.
 - **Kids and Calves Copy Too** (round 8, H2). A kid could butt the air when the nanny butts, and the moose calf could put its head in the water when the bull dips. The same idea, one line in each young animal's row.
 - **What the Sow Dug** (round 8, H2). The hole could stay as a patch of turned earth for a few minutes, and a cub could come back to it.
+- **More Ledges, More Goats** (round 8, H3). One ledge has a goat. The other long runs could be homes the dice draw, so the goat is on a different wall on another visit, and the debug panel could list them.
+- **A Kid on the Ledge** (round 8, H3). A nanny and kid on a ledge would need the kid to keep behind her along the ledge and not beside her. A follower that keeps to a list of spots would do it.
+- **Ledges for Others** (round 8, H3). The same list-of-spots country would put a marmot on a wall's ledge, a raven on a tower's, or a pika on a talus block.
+- **He Looks Down** (round 8, H3). When the runner passes on the trail below, the goat on the ledge could stop and watch him go by.
 
