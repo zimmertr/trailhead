@@ -99,8 +99,32 @@ function riverOnFlat(SEA, g, EBB, csAt) {
   return CHAN;
 }
 // opts.bear: true or false puts the bear there or not, whatever the dice say (the block-in page asks for it).
+// opts.homes: 0 keeps every animal on its first home, a number above 0 seeds the draw of homes (see HOMES).
 export function makeCritters(W, opts = {}) {
-  const { spots, sea: SEA, g } = W, items = [];
+  const { sea: SEA, g } = W, items = [];
+  // Homes (round 8, D1, TJ): habitat in land.js finds about five homes for each map animal, and on each load
+  // they take theirs at random: the herd one, the bull moose one, each pair of goats its own, the band one,
+  // each marmot and each squirrel its own, the family that visits the forest's edge one, the whale one for
+  // its first breath, the osprey one place on the lake to fish, the eagle one sea stack. The family in the
+  // clearing below the fall is always at home (T34). homes=0 in the address keeps every animal on the first
+  // of its homes, the one it has had since it was added, for screenshots and the checks; homes=<n> draws the
+  // same homes every time. spots, below, is the map's own list with this visit's homes in it.
+  const HOMES = W.spots.homes || {}, homesAsked = typeof location !== 'undefined' && /[?&]homes=(\d+)/.exec(location.search), homesSeed = opts.homes != null ? opts.homes : homesAsked ? +homesAsked[1] : null;
+  const draw = homesSeed === 0 ? null : homesSeed ? rng(9000 + homesSeed) : Math.random;
+  // n of a list in an order the dice choose (all of it in its own order when nothing is drawn).
+  const some = (list, n) => { const a = [...list]; if (draw) for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(draw() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); };
+  const spots = (() => { const S = W.spots, has = k => HOMES[k] && HOMES[k].length; if (!draw) return S;
+    const N = { ...S };
+    if (has('elk') && S.elk.length) { const [x, y] = some(HOMES.elk, 1)[0], [x0, y0] = S.elk[0]; N.elk = S.elk.map(([a, b, d]) => [a + x - x0, b + y - y0, d]); }
+    if (has('moose') && S.moose) N.moose = some(HOMES.moose, 1)[0];
+    if (has('goat')) N.goats = some(HOMES.goat, S.goats.length / 2).flatMap(([x, y]) => [[x, y, 0], [x + 16, y + 6, 1]]);
+    if (has('sheep')) N.sheep = some(HOMES.sheep, 1)[0];
+    if (has('marmot')) N.marmots = some(HOMES.marmot, S.marmots.length);
+    if (has('squirrel')) N.squirrels = some(HOMES.squirrel, S.squirrels.length).map(([x, y], n) => [x, y, S.squirrels[n][2]]);
+    if (has('bear')) N.bear = some(HOMES.bear, 1)[0];
+    if (has('whale')) N.whale = some(HOMES.whale, 1)[0];
+    if (S.osprey && S.osprey.dives) N.osprey = { ...S.osprey, dive: some([S.osprey.dive, ...S.osprey.dives], 1)[0] };
+    return N; })();
   // The sea stacks, found among the things that stand in the water, for the white water round their feet.
   const stacks = W.things.filter(th => !th.tree && th.bm && th.bm.h >= 14 && th.x < SEA.w && W.coast(th.x, th.y) > 14).map(th => ({ x: th.x, y: th.y, half: th.bm.w / 2, tall: th.bm.h, bm: th.bm, cs: W.coast(th.x, th.y) }));
   // The tide (E6). Every 100 s the sea draws back off the beach and comes in again: out over 36 s, low for
@@ -145,7 +169,8 @@ export function makeCritters(W, opts = {}) {
   const onSea = (x, y) => onSeaAt(x, y);
   // The map animals the debug menu can place (C4), and the homes each one's own rule chose for it (habitat in land.js).
   const SPAWN = ['elk', 'moose', 'goat', 'sheep', 'bear', 'marmot', 'squirrel', 'eagle', 'osprey'];
-  const homesOf = k => k === 'eagle' ? TOPS.map(p => [p.x, p.s.y]) : k === 'osprey' ? (OSPREY ? [OSPREY.dive] : []) : k === 'elk' ? [spots.elk[0].slice(0, 2)] : k === 'moose' ? (spots.moose ? [spots.moose] : []) : k === 'goat' ? spots.goats.filter(g => !g[2]).map(g => g.slice(0, 2)) : k === 'bear' ? [...(spots.bearHome ? [spots.bearHome.slice(0, 2)] : []), spots.bear.slice(0, 2)] : (k === 'squirrel' ? spots.squirrels : spots[k === 'sheep' ? 'sheep' : 'marmots']).map(g => g.slice(0, 2));
+  // A band of sheep's home is where its first ram stands; the bears' first home is the clearing's family's.
+  const homesOf = k => k === 'eagle' ? TOPS.map(p => [p.x, p.s.y]) : k === 'osprey' ? (OSPREY ? OSPREY.dives : []) : k === 'bear' ? [...(spots.bearHome ? [spots.bearHome.slice(0, 2)] : []), ...(HOMES.bear || [])] : k === 'sheep' ? (HOMES.sheep || []).map(b => b[0].slice(0, 2)) : (HOMES[k] || []).map(h => h.slice(0, 2));
   // Where the trees stand, so a wandering animal goes round them, and the ground just behind anything
   // tall (a tree, a snag, a big rock), where it would stand hidden.
   const CELL = 8, GW = Math.ceil(NW / CELL), GH = Math.ceil(NH / CELL), wood = new Uint8Array(GW * GH), bole = new Uint8Array(GW * GH), hid = new Uint8Array(GW * GH);
@@ -333,7 +358,7 @@ export function makeCritters(W, opts = {}) {
   // top stands) and keep to it. Every 26 s, and when he comes near, a marmot sits up and whistles, then drops
   // down again; the whistle sounds if the marmot is on screen. None sets foot on ice or snow.
   const MAR = { cycle: 26, up: 2.6 }, sounds = [];
-  spots.marmots.forEach(([x, y0, perch = 0], n) => { const y = y0 + (perch ? 1 : 0); items.push({ critter: 'marmot', col: 'land', f: mar, bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: perch ? 0 : 16, perch, lift: perch, st: 'sun', until: 4 + rand() * 10 }); });
+  spots.marmots.forEach(([x, y0, perch = 0], n) => { const y = y0 + (perch ? 1 : 0); items.push({ critter: 'marmot', col: 'land', f: mar, bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: perch ? 0 : 16, perch, perch0: perch, lift: perch, st: 'sun', until: 4 + rand() * 10 }); });
   const offIce = (x, y) => { const k = RAMP_OF[g[Math.round(y) * NW + Math.round(x)]]; return k !== 'glac' && k !== 'snow' && k !== 'farsnow'; };
   function scurry(a, dt, t, here) {
     // Clicked, it whistles and dives into its burrow, and comes back up a few seconds later (note 10).
@@ -623,7 +648,7 @@ export function makeCritters(W, opts = {}) {
   // first. Its own is the tallest; the debug menu can move it to another.
   const TOPS = stacks.map(s => { const b = s.bm; for (let j = 0; j < b.h; j++) { let a = -1, z = -1; for (let i = 0; i < b.w; i++) if (b.d[j * b.w + i]) { if (a < 0) a = i; z = i; } if (a >= 0) return { s, x: s.x - b.ox + ((a + z) >> 1), y: s.y - b.oy + j, tall: b.oy - j }; } return null; })
     .filter(p => p && p.x > 44 && p.y > 20 && p.tall >= 28).sort((a, b) => b.tall - a.tall);
-  const eagles = TOPS.map(() => null);
+  const eagles = TOPS.map(() => null), eagleHome = draw && TOPS.length ? Math.floor(draw() * TOPS.length) : 0; eagleAt = eagleHome;
   const eagle = () => { const p = TOPS[eagleAt]; if (!p) return null; if (eagles[eagleAt]) return eagles[eagleAt];
     // It circles the tops of the stacks that stand round its own: a ring at the height of its own top, behind
     // it on the far side and across the stack's head on the near side.
@@ -678,14 +703,16 @@ export function makeCritters(W, opts = {}) {
   // comes from and goes back to the thickest forest within reach of the lake. It flies low enough over the
   // lake (OSP.high) that it is drawn over the water: the lake is a shallow oval on the picture, and a bird
   // high above it would be drawn over the meadow behind.
-  const OSPREY = (() => { const L = spots.osprey; if (!L) return null; const [cx, cy, rx, ry] = L.lake, dive = L.dive, FAR = 250;
+  const ospreyAt = dive => { const L = spots.osprey; if (!L) return null; const [cx, cy, rx, ry] = L.lake, FAR = 250;
     let best = -1e9, home = [-1, 0]; for (let a = 0; a < 16; a++) { const ux = Math.cos(a * TAU / 16), uy = Math.sin(a * TAU / 16) * 0.6; let f = 0; for (const r of [110, 160, 210]) { const x = cx + ux * r, y = cy + uy * r; f += x > 30 && y > 30 && x < NW - 30 && y < NH - 30 ? W.forestAmt(x, y) : -1; } if (f > best) { best = f; home = [ux, uy]; } }
     const far = [cx + home[0] * FAR, cy + home[1] * FAR], mid = [cx + home[0] * 110, cy + home[1] * 110], a0 = Math.atan2(home[1] / (ry * 0.4), home[0] / (rx * 0.55)), HI = OSP.high, HV = OSP.hang;
     const pt = j => [cx + rx * 0.55 * Math.cos(a0 + j * TAU / 8), cy + ry * 0.3 + ry * 0.4 * Math.sin(a0 + j * TAU / 8)];
     // Twice round, then on round to the point of the circle nearest its dive.
     let last = 16; for (let j = 17; j < 24; j++) if (Math.hypot(pt(j)[0] - dive[0], pt(j)[1] - dive[1]) < Math.hypot(pt(last)[0] - dive[0], pt(last)[1] - dive[1])) last = j;
     const way = [[...far, 64, 58], [...mid, 40, 52]]; for (let j = 0; j <= last; j++) way.push([...pt(j), HI, 30]); way.push([dive[0], dive[1], HV, 20]);
-    return { dive, lake: L.lake, home, inn: course(way), out: course([[dive[0], dive[1], 9, 30], [...mid, 36, 44], [...far, 64, 58]]), sc: (x, y) => smooth(FAR - 10, 130, Math.hypot(x - cx, (y - cy) / 0.6)) }; })();
+    return { dive, dives: [W.spots.osprey.dive, ...(W.spots.osprey.dives || [])], lake: L.lake, home, inn: course(way), out: course([[dive[0], dive[1], 9, 30], [...mid, 36, 44], [...far, 64, 58]]), sc: (x, y) => smooth(FAR - 10, 130, Math.hypot(x - cx, (y - cy) / 0.6)) }; };
+  // Where on the lake it fishes this visit (D1); the spawn menu can send it to another of its places.
+  let OSPREY = ospreyAt(spots.osprey && spots.osprey.dive);
   function ospreyFlies(scr, ox, oy, t) {
     seen.osprey = null;
     const O = OSPREY; if (!O) return; const [, s] = slotOf(OSP, t, ospAhead); if (s < 0) return;
@@ -979,7 +1006,9 @@ export function makeCritters(W, opts = {}) {
   // ---- birds that circle, each with its shadow on the ground --------------------------------
   const ink = [speck(0), speck(1)], gull = ink.map(b => tint(b, R.white[1]));
   // Where each flock circles comes from the land (land.js, habitat).
-  const FLOCKS = (W.flocks || []).map(F => ({ ...F, bm: F.gull ? gull : ink }));
+  // The birds that circle over the elk's parkland go where the herd has gone this visit (D1).
+  const herdMoved = spots.elk.length && W.spots.elk.length ? [spots.elk[0][0] - W.spots.elk[0][0], spots.elk[0][1] - W.spots.elk[0][1]] : [0, 0], overHerd = F => W.spots.elk.length && F.cx === W.spots.elk[0][0] && F.cy === W.spots.elk[0][1] + 40;
+  const FLOCKS = (W.flocks || []).map(F => ({ ...F, ...(overHerd(F) ? { cx: F.cx + herdMoved[0], cy: F.cy + herdMoved[1] } : {}), bm: F.gull ? gull : ink }));
 
   // ---- a click on an animal (round 6, note 10) --------------------------------------------------
   // Every animal on the map answers a click with something true to how it lives. Not finds: just for fun,
@@ -1104,17 +1133,27 @@ export function makeCritters(W, opts = {}) {
     spawn(kind, i) {
       // The eagle moves to that stack's top (every one of them, or "everywhere", is its own again); the osprey
       // is brought straight to its hover over the lake.
-      if (kind === 'eagle') { if (!TOPS.length) return false; eagleAt = i === 'all' ? 0 : clamp(i, 0, TOPS.length - 1); eagleSits(nowT); return true; }
-      if (kind === 'osprey') { if (!OSPREY) return false; ospAhead += startNow(OSP, nowT + ospAhead) + OSPREY.inn.len; return true; }
-      // The bears' homes are one family's each: the clearing's family first, then the one at the forest's edge,
-      // which is added if it is not about this visit. Each goes back to where it was first put (the roomy ground nearest its home).
+      if (kind === 'eagle') { if (!TOPS.length) return false; eagleAt = i === 'all' ? eagleHome : clamp(i, 0, TOPS.length - 1); eagleSits(nowT); return true; }
+      if (kind === 'osprey') { if (!OSPREY) return false; if (i !== 'all' && OSPREY.dives[i]) OSPREY = ospreyAt(OSPREY.dives[i]); ospAhead += startNow(OSP, nowT + ospAhead) + OSPREY.inn.len; return true; }
+      // The bears' first home is the clearing's family's own, and that family goes back to it. The others are
+      // the forest's edges the visiting family may take (D1): it is added if it is not about this visit, and
+      // put there. A marmot takes the home's boulder, or the ground if it has none; a band of sheep moves as
+      // one, each ram to his own place in it.
       const roamAt = spots.bearHome ? 1 : 0;
-      if (kind === 'bear' && (i === 'all' || i === roamAt) && !items.some(a => a.sow && a.roamer)) addBear();
+      if (kind === 'bear' && (i === 'all' || i >= roamAt) && !items.some(a => a.sow && a.roamer)) addBear();
       const all = items.filter(a => a.critter === kind && !a.mum);
-      const put = (a, x, y) => { const [sx, sy] = a.ok ? settle(a.ok, x, y) : [x, y], dx = sx - a.hx, dy = sy - a.hy; for (const b of [a, ...items.filter(k => k.mum === a)]) { b.hx += dx; b.hy += dy; b.fx = b.tx = b.x = b.hx; b.fy = b.ty = b.y = b.hy; if (b.walker) b.st = 'graze'; else if (b.cub) rest(b, nowT, 1); } };
-      if (i === 'all') { for (const a of all) put(a, a.h0[0], a.h0[1]); return all.length > 0; }
+      // Its young go with it, each to ground of its own beside her (the ground a kid had at the old home,
+      // moved over, may be a cliff at the new one).
+      const put = (a, x, y) => { const [sx, sy] = a.ok ? settle(a.ok, x, y) : [x, y], dx = sx - a.hx, dy = sy - a.hy; for (const b of [a, ...items.filter(k => k.mum === a)]) { [b.hx, b.hy] = b !== a && (b.ok || a.ok) ? settle(b.ok || a.ok, sx + clamp(b.hx - a.hx, -18, 18), sy + clamp(b.hy - a.hy, -10, 10)) : [b.hx + dx, b.hy + dy]; b.fx = b.tx = b.x = b.hx; b.fy = b.ty = b.y = b.hy; if (b.walker) b.st = 'graze'; else if (b.cub) rest(b, nowT, 1); } };
+      const perchOn = (a, lift) => { a.perch = a.lift = lift; a.r = lift ? 0 : 16; };
+      if (i === 'all') { for (const a of all) { if (kind === 'marmot') perchOn(a, a.perch0); put(a, a.h0[0], a.h0[1]); } return all.length > 0; }
       const h = homesOf(kind)[i]; if (!h || !all.length) return false;
-      if (kind === 'elk') { const lead = all[0], dx = h[0] - lead.hx, dy = h[1] - lead.hy; for (const a of all) put(a, a.hx + dx, a.hy + dy); } else if (kind === 'bear') { const sow = all.find(a => !!a.roamer === (i === roamAt)); if (!sow) return false; put(sow, sow.h0[0], sow.h0[1]); } else if (kind === 'marmot') { if (!all[i]) return false; put(all[i], all[i].h0[0], all[i].h0[1]); } else put(all[0], h[0], h[1]);
+      if (kind === 'elk') { const lead = all[0], dx = h[0] - lead.hx, dy = h[1] - lead.hy; for (const a of all) put(a, a.hx + dx, a.hy + dy); }
+      else if (kind === 'bear') { const sow = all.find(a => !!a.roamer === (i >= roamAt)); if (!sow) return false; if (i >= roamAt) put(sow, h[0], h[1]); else put(sow, sow.h0[0], sow.h0[1]); }
+      else if (kind === 'marmot') { const lift = HOMES.marmot[i][2], y = h[1] + (lift ? 1 : 0); if (!all.some(a => a.hx === h[0] && a.hy === y)) { perchOn(all[0], lift); put(all[0], h[0], y); } }
+      else if (kind === 'sheep') all.forEach((a, n) => { const p = HOMES.sheep[i][n]; if (p) put(a, p[0], p[1]); });
+      // A goat, a squirrel or the moose: the first of its kind goes, unless one of them lives there already.
+      else if (!all.some(a => Math.hypot(a.hx - h[0], a.hy - h[1]) < 40)) put(all[0], h[0], h[1]);
       return true;
     },
     drawHull,
@@ -1196,7 +1235,7 @@ export function makeCritters(W, opts = {}) {
       if (name === 'tide') { const p = FIND && FIND.p; return p ? [p.x, p.y] : spots.whale; }
       // The middle of its crossing: its west end is against the map's edge, past where the view can centre.
       if (name === 'ferry') { const [A, B] = spots.ferry; return [(A[0] + B[0]) >> 1, (A[1] + B[1]) >> 1]; }
-      if (name === 'eagle') return TOPS.length ? [TOPS[0].x, TOPS[0].y] : null;
+      if (name === 'eagle') return TOPS.length ? [TOPS[eagleAt].x, TOPS[eagleAt].y] : null;
       if (name === 'osprey') return OSPREY ? OSPREY.dive : null;
       if (name === 'cubplay' || name === 'cubclimb') return sow ? [sow.fx, sow.fy] : null;
       if (name === 'marmot') return mar ? [mar[0], mar[1]] : null;

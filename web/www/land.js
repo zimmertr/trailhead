@@ -1887,7 +1887,8 @@ function habitat() {
   // Round 5 (T6): the bottom trail passes them on its way to the forest, as the old lower trail did in round
   // 4, so among the roomy parkland flats they take the one nearest its western half.
   const B = C.bottom.slice(Math.floor(C.bottom.length / 3)), toB = (u, v) => Math.min(...B.map(p => Math.hypot(u - p[0], v - p[1])));
-  const herd = best((u, v) => S.parkAmt(u, v) > 0.5 && S.forestAmt(u, v) < 0.15 && fromT(u, v) > 120 && trailFar(u, v) > 16 && firm(u, v, 0.5) && shows(u, v, 12) && roomy(u, v), (u, v) => S.parkAmt(u, v) + 0.3 * rnd() - toB(u, v) / 60);
+  const elkOK = (u, v) => S.parkAmt(u, v) > 0.5 && S.forestAmt(u, v) < 0.15 && fromT(u, v) > 120 && trailFar(u, v) > 16 && firm(u, v, 0.5) && shows(u, v, 12) && roomy(u, v);
+  const herd = best(elkOK, (u, v) => S.parkAmt(u, v) + 0.3 * rnd() - toB(u, v) / 60);
   // Marmots sun on rocks: parkland or moraine with a steep bit of ground right beside them.
   const rocky = (u, v) => [[-6, 0], [6, 0], [0, 5], [0, -5]].some(([a, b]) => S.slope(u + a, v + b) > 0.9);
   // Two of them sun on boulders in the parkland between Reflection Lake and Mount Monolith (T43): flower
@@ -1903,7 +1904,8 @@ function habitat() {
   // Water the picture shows within 14 across and 6 up or down of the boulder's foot: a thin stream is a pixel or
   // two wide, and the ground's own water grid, read every 4, can step over it (C7: one marmot's tail touched one).
   const WET = new Set(['water', 'glint', 'tarn']), wetBeside = (u, v) => { const x0 = Math.round(u), y0 = S.toY(u, v); for (let y = y0 - 6; y <= y0 + 6; y++) for (let x = x0 - 14; x <= x0 + 14; x++) if (y >= 0 && y < SH && x >= 0 && x < NW && WET.has(RAMP_OF[S.g[y * NW + x]])) return true; return false; };
-  const parkMarmots = find(2, (u, v) => S.parkAmt(u, v) > 0.5 && (S.matAt(u, v) === 'land' || S.matAt(u, v) === 'volc') && v > lakeM[1] + lakeM[3] + 20 && v < lakeM[1] + lakeM[3] + 50 && Math.abs(u - lakeM[0]) < lakeM[2] + 20 && trailFar(u, v) > 14 && !streamNear(u, v) && !headNear(u, v) && !wetBeside(u, v) && firm(u, v, 2) && shows(u, v, 16) && !iceBehind(u, v), 60);
+  const parkOK = (deep, wide) => (u, v) => S.parkAmt(u, v) > 0.5 && (S.matAt(u, v) === 'land' || S.matAt(u, v) === 'volc') && v > lakeM[1] + lakeM[3] + 20 && v < lakeM[1] + lakeM[3] + deep && Math.abs(u - lakeM[0]) < lakeM[2] + wide && trailFar(u, v) > 14 && !streamNear(u, v) && !headNear(u, v) && !wetBeside(u, v) && firm(u, v, 2) && shows(u, v, 16) && !iceBehind(u, v);
+  const parkMarmots = find(2, parkOK(50, 20), 60);
   // The third keeps to the moraine's rocks, or failing that the parkland's.
   const onRocks = mor => (u, v) => (mor ? S.matAt(u, v) === 'moraine' : S.parkAmt(u, v) > 0.3) && firm(u, v, 1.2) && shows(u, v, 8) && rocky(u, v) && !iceBehind(u, v) && apartFrom(parkMarmots, u, v, 140);
   const rockMarmot = find(1, onRocks(true)), marmots = [...parkMarmots, ...(rockMarmot.length ? rockMarmot : find(1, onRocks(false)))];
@@ -1916,20 +1918,23 @@ function habitat() {
   const benchTop = (u, v) => S.mesa(u, v) > 10 && S.dryAmt(u, v) > 0.5 && firm(u, v, 0.8), onBench = (u, v) => benchTop(u, v) && shows(u, v, 12) && [-1, 1].some(sd => benchTop(u + sd * 8, v) && benchTop(u + sd * 16, v));
   const byEdge = (u, v) => onBench(u, v) && [[0, -6], [0, -12], [0, -16], [-12, 0], [12, 0], [0, 12]].some(([a, b]) => S.mesa(u + a, v + b) < S.mesa(u, v) - 8);
   const benchPts = GRID.filter(([u, v]) => byEdge(u, v)), headD = (u, v) => Math.hypot(u - C.coulee[0][0], (v - C.coulee[0][1]) * 1.4);
-  const lead = benchPts.filter(([u, v]) => { const near = benchPts.filter(([a, b]) => Math.hypot(a - u, (b - v) * 1.4) <= 70 && apartFrom(taken, a, b, 34)); const got = [[u, v]]; for (const p of near) if (apartFrom(got, p[0], p[1], 20)) got.push(p); return got.length >= 4 && apartFrom(taken, u, v, 34); }).sort((p, q) => headD(...p) - headD(...q))[0];
-  const sheep = lead ? find(4, byEdge, 20, [lead, ...ring(lead, 14, 70)]) : [];
+  const leads = benchPts.filter(([u, v]) => { const near = benchPts.filter(([a, b]) => Math.hypot(a - u, (b - v) * 1.4) <= 70 && apartFrom(taken, a, b, 34)); const got = [[u, v]]; for (const p of near) if (apartFrom(got, p[0], p[1], 20)) got.push(p); return got.length >= 4 && apartFrom(taken, u, v, 34); }).sort((p, q) => headD(...p) - headD(...q));
+  const lead = leads[0], bandAt = l => find(4, byEdge, 20, [l, ...ring(l, 14, 70)]), sheep = lead ? bandAt(lead) : [];
   // The moose (T35): a bull and a calf in the riverside woods, the aspen and pine country east of the Proficiency
   // trail and short of the dry ground, below the Enchantments' cliff, between the two rivers that come down off it
   // (one within 120 to the west and one within 120 to the east). Of the roomy spots there, well off the trail and
   // with six trees or more within 70, the one that stands most in the open (farthest from any tree's foot, up to
   // 26), so that they are seen among the trees and not lost behind them.
-  const rivers = (u, v) => [-1, 1].every(sd => { for (let d = 8; d <= 120; d += 4) if (S.water[at(u + sd * d, v)]) return true; return false; });
+  const rivers = (u, v, sides = 2) => [-1, 1].filter(sd => { for (let d = 8; d <= 120; d += 4) if (S.water[at(u + sd * d, v)]) return true; return false; }).length >= sides;
   const boles = S.things.filter(t => t.tree && !t.tree.low && S.eastAmt(t.x, t.v) > 0.4);
-  const moose = best((u, v) => S.eastAmt(u, v) > 0.6 && S.dryAmt(u, v) < 0.15 && S.burnAmt(u, v) < 0.1 && S.larchAmt(u, v) < 0.1 && S.hAt(u, v) < 36 && trailFar(u, v) > 30 && firm(u, v, 0.5) && shows(u, v, 18) && roomy(u, v) && rivers(u, v),
-    (u, v) => { let d = 26, n = 0; for (const t of boles) { const dd = Math.hypot(t.x - u, (t.v - v) * 1.4); if (dd < d) d = dd; if (dd < 70) n++; } return n >= 6 ? d + 0.01 * n : -1; });
+  const mooseOK = (u, v, sides) => S.eastAmt(u, v) > 0.6 && S.dryAmt(u, v) < 0.15 && S.burnAmt(u, v) < 0.1 && S.larchAmt(u, v) < 0.1 && S.hAt(u, v) < 36 && trailFar(u, v) > 30 && firm(u, v, 0.5) && shows(u, v, 18) && roomy(u, v) && rivers(u, v, sides),
+    mooseRoom = (u, v) => { let d = 26, n = 0; for (const t of boles) { const dd = Math.hypot(t.x - u, (t.v - v) * 1.4); if (dd < d) d = dd; if (dd < 70) n++; } return n >= 6 ? d + 0.01 * n : -1; };
+  const moose = best((u, v) => mooseOK(u, v), mooseRoom);
   // Squirrels and chipmunks in the open meadow near trees, a bear at the edge of the forest.
-  const squirrels = find(7, (u, v) => S.forestAmt(u, v) < 0.3 && S.dryAmt(u, v) < 0.3 && S.larchAmt(u, v) < 0.2 && S.hAt(u, v) < 45 && trailFar(u, v) > 6 && fromT(u, v) > 50 && firm(u, v) && shows(u, v, 6), 70);
-  const bear = find(1, (u, v) => S.forestAmt(u, v) > 0.12 && S.forestAmt(u, v) < 0.35 && S.hAt(u, v) < 35 && S.dryAmt(u, v) < 0.2 && fromT(u, v) > 160 && firm(u, v, 0.6) && shows(u, v, 12))[0];
+  const sqOK = (u, v) => S.forestAmt(u, v) < 0.3 && S.dryAmt(u, v) < 0.3 && S.larchAmt(u, v) < 0.2 && S.hAt(u, v) < 45 && trailFar(u, v) > 6 && fromT(u, v) > 50 && firm(u, v) && shows(u, v, 6);
+  const squirrels = find(7, sqOK, 70);
+  const bearOK = (u, v) => S.forestAmt(u, v) > 0.12 && S.forestAmt(u, v) < 0.35 && S.hAt(u, v) < 35 && S.dryAmt(u, v) < 0.2 && fromT(u, v) > 160 && firm(u, v, 0.6) && shows(u, v, 12);
+  const bear = find(1, bearOK)[0];
   // The black bear family's home (T34): the largest open patch inside the fir stand below the Spires' outflow
   // waterfall (the glacier's toe). Open: no tree's foot within 12. Inside the stand: a tree within 55 on every
   // one of the eight sides. Below the fall: 40 to 150 nearer the camera than its lip and up to 150 east of it,
@@ -1976,12 +1981,33 @@ function habitat() {
   const lane = Math.max(60, ...S.stacks.map(([u, v]) => S.coast(u, v))) + 46;
   const seaV = u => { for (let v = 0; v < VD; v++) if (S.coast(u, v) < lane) return v; return VD; }, seaU = v => { for (let u = 0; u < NW; u++) if (S.coast(u, v) < lane) return u; return 0; };
   const footV = S.toY(0, 0) - SH - 28, ferry = [[-30, S.toY(-30, seaV(-30))], [seaU(footV), SH + 28]];
+  // More homes (round 8, D1, TJ): every map animal has about five, each found by the animal's own rule and
+  // well apart from its others, and takes one at random on each load (critters.js). The first of each is the
+  // home it has always had. They are found here, after everything else, and the ground they take is given
+  // back afterwards, so nothing that was placed before them, or is placed after, moves.
+  const mark = taken.length, more = (n, rule, apart, have) => find(n, (u, v) => apartFrom(have, u, v, apart) && rule(u, v), apart);
+  const elkHomes = herd ? [herd, ...more(4, elkOK, 150, [herd])] : [];
+  // The bull's first home lies between two rivers; his others need one within reach, and a little less room.
+  const mooseHomes = moose ? [moose, ...more(4, (u, v) => mooseOK(u, v, 1) && mooseRoom(u, v) >= 8, 110, [moose])] : [];
+  const lowGoats = more(2, slab(74, 100), 100, goats), goatHomes = [...goats, ...lowGoats, ...more(2, slab(100, 160), 100, [...goats, ...lowGoats])];
+  const bands = sheep.length ? [sheep] : []; for (const l of leads.slice(1)) { if (bands.length >= 5) break; if (!bands.every(b => apartFrom(b, l[0], l[1], 80)) || !apartFrom(taken, l[0], l[1], 34)) continue; const b = bandAt(l); if (b.length === 4) bands.push(b); }
+  // A parkland marmot's boulder may lie anywhere in the flower meadow between the lake and the mountain's foot;
+  // the first two keep the narrow band they were given in round 5.
+  const parkMore = more(3, parkOK(110, 90), 80, marmots), rockMore = more(2, onRocks(true), 120, [...marmots, ...parkMore]);
+  const marmotHomes = [...marmots.map((p, n) => [p, n < parkMarmots.length]), ...parkMore.map(p => [p, true]), ...rockMore.map(p => [p, false])].map(([p, park]) => [...out(...p), park ? 1 : 0, Math.round(p[1])]);
+  const squirrelHomes = [...squirrels, ...more(5, sqOK, 70, squirrels)];
+  const bearHomes = bear ? [bear, ...more(4, bearOK, 150, [bear])] : [];
+  const whaleHomes = whale ? [whale, ...more(4, sea(90, 150), 90, [whale])] : [];
+  taken.length = mark;
   const herdAt = herd ? out(...herd) : null;
   return {
     tdist, firm,
     signs: Object.entries(SIGNS).filter(([, p]) => p && p.length).map(([k, p]) => [...out(...p[0]), k]),
     elk: herdAt ? [[herdAt[0], herdAt[1], 0], [herdAt[0] + 34, herdAt[1] + 14, 1], [herdAt[0] - 20, herdAt[1] + 26, 1], [herdAt[0] + 16, herdAt[1] + 40, 0]] : [],
-    marmots: marmots.map((p, n) => [...out(...p), n < parkMarmots.length ? 1 : 0, Math.round(p[1])]),
+    // The marmots' own three are the first three homes, the very same lists, so the boulder buildTerrain puts
+    // under a parkland home is under its marmot too.
+    marmots: marmotHomes.slice(0, marmots.length),
+    homes: { elk: elkHomes.map(p => out(...p)), moose: mooseHomes.map(p => out(...p)), goat: goatHomes.map(p => out(...p)), sheep: bands.map(b => b.map((p, n) => [...out(...p), n & 1])), marmot: marmotHomes, squirrel: squirrelHomes.map(p => out(...p)), bear: bearHomes.map(p => out(...p)), whale: whaleHomes.map(p => out(...p)) },
     goats: goats.flatMap(p => { const [x, y] = out(...p); return [[x, y, 0], [x + 16, y + 6, 1]]; }),
     sheep: sheep.map((p, n) => [...out(...p), n & 1]),
     squirrels: squirrels.map((p, n) => [...out(...p), n % 3 === 0 ? 1 : 0]),
@@ -2041,7 +2067,9 @@ export function buildTerrain() {
     // The osprey (round 5, T16): Reflection Lake as an oval on the picture, and where it dives: the middle of
     // the lake's widest open water, half way from the island to the east shore and a third of the way from
     // the lake's middle to its near shore.
-    osprey: { lake: [...sxy(lake[0], lake[1]), lake[2], lake[3]], dive: sxy((C.lakeIsle[0] + 7 + lake[0] + lake[2]) / 2, lake[1] - lake[3] / 3) },
+    osprey: { lake: [...sxy(lake[0], lake[1]), lake[2], lake[3]], dive: sxy((C.lakeIsle[0] + 7 + lake[0] + lake[2]) / 2, lake[1] - lake[3] / 3),
+      // Four more places on the lake where it may fish instead (round 8, D1), in open water either side of the island.
+      dives: [-0.66, -0.42, 0.2, 0.72].map(f => sxy(lake[0] + f * lake[2], lake[1] - lake[3] / 3)) },
     // Where each destination's name is pinned: on the lake, on Proficiency Peak's wall, on the ice under the Spires.
     places: { lake: [lake[0], LAND.toY(lake[0], lake[1]) - 8], stack: [peak.cu, topOf(peak.cu, 'fin') + 44], spires: [sp.cu + 10, LAND.toY(sp.cu, 598)] },
     // A flag for each finished destination: at the lake shore, on Proficiency Peak, on the Spires' highest summit.
@@ -2053,7 +2081,7 @@ export function buildTerrain() {
       return picks.sort((a, b) => a[0] - b[0]); })(),
     flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
     // Signs and animals, each placed by its rule (habitat, above).
-    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, bearHome: H.bearHome, moose: H.moose, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
+    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, bearHome: H.bearHome, moose: H.moose, homes: H.homes, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
     // The fire lookout on its cleared summit (E5j).
     lookout: LAND.lookout ? sxy(...LAND.lookout) : null
   };
@@ -2084,10 +2112,10 @@ export function buildTerrain() {
     const th = LAND.things[i], w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h;
     if (th.y > sy - 3 && th.y - h < sy + 1 && Math.abs(th.x - sx) < w / 2 + half) LAND.things.splice(i, 1);
   }
-  // A boulder under each parkland marmot (T43), with the flowers or heather that grew on the spot taken away.
+  // A boulder under each parkland marmot's home, lived in or not (T43; all its homes since round 8, D1), with the flowers or heather that grew on the spot taken away.
   // The marmot's third number becomes how high the boulder's top stands, so that it lies on it.
   { const rock = tagged(makeBoulder(531, 5.5), 'rock', true);
-    for (const mm of spots.marmots) if (mm[2]) {
+    for (const mm of spots.homes.marmot) if (mm[2]) {
       for (let i = LAND.things.length - 1; i >= 0; i--) { const th = LAND.things[i]; if (!(th.tree ? th.tree.low : th.bm.h < 14)) continue; const w = th.tree ? th.tree.w : th.bm.w; if (Math.abs(th.y - mm[1]) < 7 && Math.abs(th.x - mm[0]) < (w + rock.w) / 2) LAND.things.splice(i, 1); }
       LAND.things.push({ bm: rock, x: mm[0], y: mm[1], v: mm[3] }); mm[2] = rock.h - 5;
     } }

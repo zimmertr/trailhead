@@ -476,6 +476,33 @@ test('the map keeps the engine rules', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
+test('every home a map animal can take keeps the engine rules', async ({ page }) => {
+  // homes=0 puts every animal on its first home; the debug panel's spawn list then names every home there is.
+  type Homes = { __api: { spawnList: () => { kind: string; homes: string[] }[]; spawn: (kind: string, i: number) => boolean } }
+  const problems = await open(page, '/?homes=0')
+  const kinds = await page.evaluate(() => (window as unknown as Homes).__api.spawnList().map((k): [string, number] => [k.kind, k.homes.length]))
+  expect(kinds.length).toBeGreaterThanOrEqual(9)
+  for (const [kind, n] of kinds) {
+    expect(n, `the homes of ${kind}`).toBeGreaterThanOrEqual(3)
+    for (let i = 0; i < n; i++) {
+      expect(await page.evaluate(([k, j]) => (window as unknown as Homes).__api.spawn(k as string, j as number), [kind, i]), `${kind} to home ${i}`).toBe(true)
+      await page.waitForTimeout(100)
+      expect(await page.evaluate(() => window.__rules?.()), `${kind} at home ${i}`).toEqual([])
+    }
+  }
+  expect(problems).toEqual([])
+})
+
+test('the homes the dice draw keep the engine rules and leave an animal to click', async ({ page }) => {
+  for (const seed of [1, 2, 3, 4]) {
+    const problems = await open(page, `/?homes=${seed}`)
+    expect(await page.evaluate(() => window.__rules?.() ?? ['the map did not report its rules']), `homes=${seed}`).toEqual([])
+    await page.locator('#fork-x').click()
+    await expect.poll(() => page.evaluate(() => window.__api.hitAt('animal:')), { timeout: 15_000 }).not.toBeNull()
+    expect(problems).toEqual([])
+  }
+})
+
 test('an address that is off route still draws', async ({ page }) => {
   const problems = await open(page, '/#no-such-trail')
   await watch(page)
