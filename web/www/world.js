@@ -841,6 +841,10 @@ export function makeWorld() {
       w.gust = place => gustOver(PLACE[place][0], PLACE[place][1], t);
       w.shade = place => { for (let k = 0; k < 4; k++) { const u = (PLACE[place][0] - fairX(k, t) - 8) / (FAIR[k].cw * 2.2); if (u > -1 && u < 1) return u; } return null; };
       return w; },
+    // The mountain's clock while another scene is on screen (round 8, H15): the faces slide and the summit
+    // squall comes round as they do on the map, unseen and unheard, so the sky a high scene reads is the
+    // one the map would show. The view given is nowhere, so nothing is sounded or counted as observed.
+    tick(t) { avalancheStep(t, null, 1e9, 1e9, 0, 0); },
     // What the sky is doing, for the debug panel's one line (round 8, H13): the marine layer's part of its
     // round (rolling in, drizzling, breaking up, fog left in the trees, the ground drying, or clear), and the
     // summit's squall or the spindrift after it. The names are the keys of `debug.sky` in the words.

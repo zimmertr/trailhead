@@ -628,3 +628,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Set Follows the Weather** (round 8, H14). On Auto the Music box could come in with the marine layer's fog and the Quartet with the dead calm on the lake, so the weather is heard as well as seen.
 - **A Set on the Map by Country** (round 8, H14). The map is one place to the music. On Auto the set could change with where the view is: Winds over the rainforest, Mallets up at the Spires.
 - **The Sticky Comment Step Retries** (round 8, H14). The CI step that posts the coverage comment failed once on a 503 from GitHub and failed the whole check. A retry in `zimmertr/yggdrasil`'s `sticky-comment` action would stop one bad answer from failing a green run.
+- **Rain Is Heard Wherever It Falls** (round 8, H15). The lakeside sounds of rain now. The map under the marine layer and the forest's drip could use the same sound, quieter on the map and duller under the canopy.
+- **Wind as the Squall Arrives** (round 8, H15). When a squall starts while he is at camp or on a climb, the scene could sound its wind rising a few seconds before the first flakes.
+- **Every Clock Runs Everywhere** (round 8, H15). The mountain's clock runs off the map now. The serac falls, the whales and the ferry already keep time by the clock alone; a check could prove that nothing on the map waits for the map to be drawn.
+- **Fresh Snow on the Tent** (round 8, H15). After a squall at camp the tent and the boulders could keep a dusting that melts over a minute, as the lakeside boulders dry after rain.

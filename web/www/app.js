@@ -539,7 +539,7 @@ try {
   const tellCover = () => { if (!sheet.hidden || !plain.hidden) { api.cover([], true); return; } const out = []; for (const n of document.querySelectorAll(PANELS)) { const r = n.getBoundingClientRect(); if (r.width > 0 && r.height > 0) out.push(r); } api.cover(out, false); };
   setInterval(tellCover, 250); tellCover();
   // For screenshot scripts: the debug panel's controls (speed, start buttons) without clicking.
-  window.__api = api; window.__sound = () => audio.live(); window.__set = () => audio.set();
+  window.__api = api; window.__sound = () => audio.live(); window.__set = () => audio.set(); window.__rain = () => audio.rainLevel();
   window.__ready = true;
   try { console.log(...CONSOLE); } catch { /* no console */ }
 } catch (err) {
@@ -634,6 +634,8 @@ addEventListener('resize', () => { nameBox = null; });
   const atFork = !(running || p > 0.002 || shown != null || api.route() !== 'lake');
   if (!atFork) chosen = true;
   if (timeSlider && !debug.hidden && document.activeElement !== timeSlider) timeSlider.value = Math.round(api.clock().t);
+  // The lakeside sounds of rain while it drizzles there (round 8, H15).
+  audio.rain(api.scene() === 'lakeside' ? api.rainNow() : 0);
   if (skyLine && !debug.hidden) { const s = UI.debug.skyLine(api.skyNow()); if (skyLine.textContent !== s) skyLine.textContent = s; }
   fork.hidden = !atFork || forkShut;
   { const text = shown && cardShut ? LABELS[shown] || (PROJECTS[shown] ? PROJECTS[shown].name : CARDS[shown].title) : atFork && forkShut ? DEST_NAMES.trailhead : '';

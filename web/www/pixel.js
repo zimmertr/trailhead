@@ -385,7 +385,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       }
     } else if (scr.S !== scr.S0) scr.setScale(scr.S0);
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
-    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix; env.hour = hourNow(); env.sky = DEBUG.clouds ? world.sky(t) : null; if (env.sky && window.__sky) Object.assign(env.sky, window.__sky);
+    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix; env.hour = hourNow(); if (drawn.s !== 'world') world.tick(t); env.sky = DEBUG.clouds ? world.sky(t) : null; if (env.sky && window.__sky) Object.assign(env.sky, window.__sky);
     env.walkMark = route === 'walk' && p < 1 ? walkMark : null;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
     env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
@@ -509,6 +509,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     showActor(i) { const a = world.actors().find(q => q.i === i); if (!a || !drawn || drawn.s !== 'world' || tr) return 0; const [x, y] = world.lookFor(a.x, a.y); running = false; recentre = false; panTo = { x, y }; return calm.matches ? 0 : 900; },
     doAct: (i, name) => !!drawn && drawn.s === 'world' && !tr && world.doAct(i, name, simT),
     skyNow: () => world.skyNow(simT),
+    // How hard it is raining in the sky the scenes are shown, 0 to 1 (round 8, H15: the lakeside's rain is heard).
+    rainNow: () => env.sky ? env.sky.rain || 0 : 0,
     async jumpTo(name) {
       const r = Object.keys(ROUTES).find(k => !/back|home/.test(k) && ROUTES[k]().some(([n]) => n === name)); if (!r) return false;
       await api.setRoute(r); const l = legs.find(g => g.s === name); if (l) await api.scrub(l.t0 + 0.03 * (l.t1 - l.t0)); return true;

@@ -1046,3 +1046,34 @@ test('on Auto the set of instruments follows the place, and a set picked by hand
   await expect.poll(playing, { timeout: 8_000 }).toBe('Quartet')
   expect(problems).toEqual([])
 })
+
+// Round 8, H15: the mountain's clock runs in every scene, so the summit squall comes round while the map is
+// not on screen and a high scene is snowed on. And the lakeside sounds of rain while it drizzles there.
+test('the squall comes round off the map, and the lakeside sounds of rain when it drizzles', async ({ page }) => {
+  type High = { __sky?: Record<string, unknown> | undefined; __rain: () => number; __api: { skyNow: () => string[]; scene: () => string; trigger: (name: string) => boolean; jumpTo: (n: string) => Promise<boolean>; setSpeed: (k: number) => void; speeds: number[] } }
+  const problems = await open(page, '/')
+  // Every face of Mount Monolith slides, which makes the squall due 60 to 120 seconds later. He goes to base
+  // camp at once, and time runs at its fastest.
+  for (const face of ['ava0', 'ava1', 'ava2']) expect(await page.evaluate((f) => (window as unknown as High).__api.trigger(f), face), face).toBe(true)
+  expect(await page.evaluate(() => (window as unknown as High).__api.jumpTo('camp'))).toBe(true)
+  await expect.poll(() => page.evaluate(() => (window as unknown as High).__api.scene()), { timeout: 15_000 }).toBe('camp')
+  expect(await page.evaluate(() => (window as unknown as High).__api.skyNow())).not.toContain('squall')
+  await page.evaluate(() => { const a = (window as unknown as High).__api; a.setSpeed(Math.max(...a.speeds)) })
+  await expect.poll(() => page.evaluate(() => (window as unknown as High).__api.skyNow().includes('squall')), { timeout: 45_000 }).toBe(true)
+  expect(await page.evaluate(() => (window as unknown as High).__api.scene())).toBe('camp')
+  await page.evaluate(() => (window as unknown as High).__api.setSpeed(1))
+  // Rain is heard at the lakeside and nowhere else, as loud as it is heavy, and it stops with the rain.
+  const rain = (k: number) => page.evaluate((v) => { (window as unknown as High).__sky = { rain: v } }, k)
+  const heard = () => page.evaluate(() => (window as unknown as High).__rain())
+  await rain(1)
+  await page.waitForTimeout(500)
+  expect(await heard()).toBe(0)
+  expect(await page.evaluate(() => (window as unknown as High).__api.jumpTo('lakeside'))).toBe(true)
+  await expect.poll(heard, { timeout: 15_000 }).toBe(1)
+  await rain(0.4)
+  await expect.poll(heard, { timeout: 5_000 }).toBeCloseTo(0.4, 1)
+  await rain(0)
+  await expect.poll(heard, { timeout: 5_000 }).toBe(0)
+  await page.evaluate(() => { (window as unknown as High).__sky = undefined })
+  expect(problems).toEqual([])
+})

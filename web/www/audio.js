@@ -105,7 +105,7 @@ const PLACES = { world: [0, 4], out: [6, 0], forest: [1, 5], lakeside: [5, 1], l
 const PLACE_SETS = { forest: 5, lakeside: 4, wall: 3 }, CAMP_AT_DUSK = 2;
 
 export function makeAudio() {
-  let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, step = 0, nextAt = 0, cur = 0, set = 0, ownSet = null, dark = false, auto = true, place = 'world', turn = 0, loops = 0, level = 0.22, swap = null, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
+  let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, step = 0, nextAt = 0, cur = 0, set = 0, ownSet = null, dark = false, auto = true, place = 'world', turn = 0, loops = 0, level = 0.22, swap = null, pulse = null, ambName = '', ambNodes = [], ambTimer = null, rainG = null, rainK = 0;
   // The music follows the place unless the visitor has picked a track by hand, and a pick is kept between visits.
   try { muted = localStorage.getItem('trailhead.muted') === '1'; const own = localStorage.getItem('trailhead.track'); if (own != null && TRACKS[+own]) { auto = false; cur = +own; } const v = localStorage.getItem('trailhead.set'); if (v != null && SETS[+v]) set = ownSet = +v; } catch { /* private window */ }
 
@@ -337,6 +337,13 @@ export function makeAudio() {
     start,
     sfx(name) { if (!ctx || muted || !FX[name]) return; try { FX[name](ctx.currentTime + 0.005); } catch { /* a sound is never worth an error */ } },
     ambience,
+    // Rain on the lake (round 8, H15): a soft hiss with a lower patter under it, as loud as the drizzle is
+    // heavy (k, 0 to 1). It is built the first time it rains with the sound on, and is silent between showers.
+    rain(k) { k = Math.round(Math.max(0, Math.min(1, k || 0)) * 20) / 20; if (k === rainK && (rainG || !k || !ctx)) return; rainK = k; if (!ctx) return;
+      if (!rainG) { rainG = ctx.createGain(); rainG.gain.value = 0; rainG.connect(amb);
+        for (const [type, freq, q, vol] of [['highpass', 4500, 0.5, 0.05], ['bandpass', 1400, 0.8, 0.035]]) { const n = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(); n.buffer = noiseBuf; n.loop = true; f.type = type; f.frequency.value = freq; f.Q.value = q; g.gain.value = vol; n.connect(f); f.connect(g); g.connect(rainG); n.start(); } }
+      rainG.gain.setTargetAtTime(k, ctx.currentTime, 0.5); },
+    rainLevel: () => rainK,
     muted: () => muted,
     // Whether anything can be heard yet: a browser holds the sound back until the first click, tap or key.
     live: () => !!ctx && ctx.state === 'running',

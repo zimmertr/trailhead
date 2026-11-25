@@ -132,7 +132,7 @@ TJ picked these from `docs/IDEAS.md` on 2026-11-24, for the night. Pictures firs
 - [x] **H12 One Outline for the Pair.** Hovering the register or the board lights both with one outline, as a place on the map lifts.
 - [x] **H13 Debug Panel Layers.** Switches that ring every sign with its name and every animal home by kind, a list that starts any animal's act, and one line that says what the sky is doing.
 - [x] **H14 A Set for Each Place.** On Auto the music picks the instruments as well as the tune: winds in the rainforest, the quartet at the lake, mallets on the ridge, the music box at camp after Dusk.
-- [ ] **H15 Weather in the High Scenes.** The summit squall keeps its clock in every scene, so a climb is sometimes snowed on without the map having been open. The lakeside sounds of rain when it drizzles.
+- [x] **H15 Weather in the High Scenes.** The summit squall keeps its clock in every scene, so a climb is sometimes snowed on without the map having been open. The lakeside sounds of rain when it drizzles.
 
 ### I. Passes TJ Asked For
 
@@ -480,3 +480,10 @@ Every call, one line each, newest last.
 - H14, how it was tested: a new browser test starts the sound, goes to each scene and reads the set that is playing, turns Dusk on and off at camp, picks Handheld and sees it stay through a change of place, then picks Auto and hears the lake's Quartet. The older menu test counts sixteen entries now. I did not listen to it: the test reads which set the engine plays, not the sound.
 - H14, the numbers: 66 browser tests pass; check.sh reports nothing moved since H13; frame time 11.4 ms zoomed out at Dusk. No bake was needed.
 - H14, CI on H13 (`49a2a07`): Lint and PR Title passed. PR Checks failed in Unit Tests, in the step that posts the coverage comment: GitHub answered 503 ("No server is currently available"). The unit tests themselves passed with full coverage. Nothing in the repo to fix; the next push runs it again.
+- H15, what was built: two things. The mountain's clock (the faces sliding, and the summit squall that comes once every face is bare) now runs while any other scene is on screen, through `tick()` in `world.js`, so the snow a high scene reads from the sky can start without the map being open. And the lakeside has a rain sound, a soft hiss with a lower patter under it, as loud as the drizzle there is heavy and silent between showers (`rain()` in `audio.js`).
+- H15, a finding: the high scenes (the walk to camp, base camp, the climb, the West Ridge) already drew the squall's snow from the sky since E1. What was missing was only that the clock which starts a squall stood still off the map, so a squall came there only from the debug panel's button.
+- H15, a call: off the map the slides and the squall's start make no sound and count for nothing on the board, since nobody sees the mountain. The scene's own snow is what shows it.
+- H15, a call on the rain's sound: only at the lakeside, as the item says. The map's drizzle and the forest's are still silent (an idea below). It goes through the background sounds' own volume, so Sound off and a hidden tab silence it with the rest.
+- H15, no pictures: nothing is drawn anew. I did not take a render of a squall that came by itself at camp: its start falls anywhere in a minute, and it looks as the debug button's squall does, which E1 compared.
+- H15, how it was tested: a new browser test slides every face on the map, goes to base camp at once, runs time at its fastest and waits for the sky to report a squall while camp is still on screen. Then it sets the sky's rain and reads the rain sound's level: nothing on the way to the lake, full at the lakeside in full rain, 0.4 in lighter rain, nothing when it stops. I did not run the test against the build before H15 to see it fail, and I did not listen to the sound.
+- H15, the numbers: 67 browser tests pass; check.sh reports nothing moved since H14; frame time 10.9 ms zoomed out at Dusk. No bake was needed.

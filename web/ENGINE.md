@@ -22,6 +22,8 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - Every kind of weather has a start button under Weather in the debug panel, and the button works in every scene with a sky (`WEATHER` in `pixel.js`, `trigger` in `world.js`).
 - A new kind of weather goes into the sky report first, then onto the map, then into each scene, and gets its button.
 - Rain shows on what it falls on. Still water in the rain takes rings, loses its glints and holds its fish (`stillWater` in `world.js`, `rings` in `weather.js`). Ground and rock go a step darker while `sky.wet` lasts (the map's wet copy of the ground), and the lakeside's boulders and trail dry from the top down.
+- A clock that the sky depends on runs in every scene. `tick()` in `world.js` steps the mountain's (the slides and the squall) while another scene is on screen, with a view that is nowhere, so it sounds nothing and nothing counts as observed. Weather that starts from a clock gets its step there.
+- Rain that is heard is one sound whose level follows the sky (`rain()` in `audio.js`, set every frame from `app.js`), never a clip started and stopped.
 - The debug panel says what the sky is doing in one line (`skyNow()` in `world.js`, the words in `debug.sky`). New weather that lasts gets a name there.
 
 ## Events
