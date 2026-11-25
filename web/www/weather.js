@@ -19,6 +19,10 @@ const tables = () => T || (T = {
   // two of them landed on one much paler colour and left a stripe across the sky).
   grey: [0.22, 0.4, 0.56, 0.7].map((a, l) => { const g = mixTable(R.snow[2], a, ['snow', 'far', 'farsnow', 'ice', 'rock', 'granite', 'nebel', 'white']).slice(), sb = R.skyband; sb.forEach((c, i) => { g[c] = sb[Math.min(sb.length - 1, i + 2 * (l + 1))]; }); return g; }),
   white: [0.3, 0.55, 0.8].map(a => mixTable(R.snow[4], a)) });
+// They are made ahead, once the browser is idle after this module has arrived, which is long before he
+// reaches a scene that uses them (round 8, I5: made by the first frame that wanted them, they cost that
+// frame 20 to 28 ms on a phone four times slower than this machine, and it was dropped).
+(typeof requestIdleCallback === 'function' ? requestIdleCallback : f => setTimeout(f, 300))(() => tables());
 
 // Rain: steep streaks leaning a little east, as the forest's.
 export function rain(scr, t, k) {

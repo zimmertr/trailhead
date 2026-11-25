@@ -1,5 +1,5 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
-import { covered, DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
+import { covered, DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
 import { breeze, gustOver, askGust, veilTable, saw } from './core.js';
 import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeFlag, makeRegister } from './sprites.js';
 import { speck } from './fauna.js';
@@ -325,7 +325,14 @@ export function makeWorld() {
   // the forested foothills on the skyline stay dark.
   const skyTop = new Int16Array(WW).fill(-1), PEAK = new Uint8Array(256).map((_, c) => ['snow', 'farsnow', 'far', 'ice', 'glac', 'serac', 'granite', 'rock', 'white', 'ash', 'mauve'].includes(RAMP_OF[c]) ? 1 : 0);
   for (let x = 0; x < WW; x++) for (let y = 0; y < 330; y++) { const k = RAMP_OF[ground[y * WW + x]]; if (k !== 'sky' && k !== 'skyband') { skyTop[x] = y; break; } }
-  { const own = skyTop.slice(); for (let x = 0; x < WW; x++) { let m = 999; for (let i = Math.max(0, x - 48); i <= Math.min(WW - 1, x + 48); i++) if (own[i] >= 0 && own[i] < m) m = own[i]; skyTop[x] = own[x] < 0 ? -1 : m; } }
+  // tall: how far each column's mountain reaches down from the sky, to where its snow and rock give way to trees,
+  // so the light can cover the same share of a tall mountain as of a small one.
+  const skyOwn = skyTop.slice(), tall = new Int16Array(WW);
+  { const own = skyOwn; for (let x = 0; x < WW; x++) { let m = 999; for (let i = Math.max(0, x - 48); i <= Math.min(WW - 1, x + 48); i++) if (own[i] >= 0 && own[i] < m) m = own[i]; skyTop[x] = own[x] < 0 ? -1 : m; } }
+  for (let x = 0; x < WW; x++) { if (skyTop[x] < 0) continue; let y = skyOwn[x], miss = 0; while (y < WH - 1 && miss < 8) { y++; miss = PEAK[ground[y * WW + x]] ? 0 : miss + 1; } tall[x] = y - 8 - skyTop[x]; }
+  { const t = tall.slice(); for (let x = 0; x < WW; x++) { let m = 0; for (let i = Math.max(0, x - 48); i <= Math.min(WW - 1, x + 48); i++) m = Math.max(m, t[i]); tall[x] = m; } }
+  // How deep the skyline's alpenglow reaches in each column at its strongest (see the draw).
+  const glowH = Float32Array.from(tall, (h, x) => Math.max(84, 0.25 * h) * (1 + 0.35 * (fbm(x / 40, 2, 811, 3) - 0.5)));
   // The warm light on the hills: only the lit half of each colour (the sunny side of a crown, the lit
   // tips of the canopy) turns to ochre, so by Dusk the faces glint rust while the shade between stays
   // blue and the trees keep their shapes. Ink, water, sky and lit glass keep theirs.
@@ -959,11 +966,15 @@ export function makeWorld() {
       if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], warm = glow, H = Math.round(TIP_H[n] * (1 + 2.2 * warm)), k = 6 + n;
         for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = top[x]; if (y0 < 0) continue;
           for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { if (W.dest[y * WW + x] !== k) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8)) { const i = (y - oy) * VW + (x - ox); fb[i] = warm > 0 && bayer(x + 2, y + 1) < warm ? ALPEN[d < 0.3 ? 0 : 1][fb[i]] : GLOW[fb[i]]; } } } }
-      // The same light on Mount Monolith and the ranges: a band below the skyline, deeper than a tower's since
-      // these are whole mountains, thinning downward. The Spires and the Peak have had theirs above.
-      if (glow > 0.02 && env.mix > 0.02) { const H = Math.round(84 * glow);
-        for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = skyTop[x]; if (y0 < 0) continue;
-          for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { const i = (y - oy) * VW + (x - ox); if (!PEAK[fb[i]] || W.dest[y * WW + x] >= 6) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8) && bayer(x + 2, y + 1) < glow) fb[i] = ALPEN[d < 0.3 ? 0 : 1][fb[i]]; } } }
+      // The same light on Mount Monolith and the ranges: a band below the skyline, a quarter of each mountain's
+      // height (never under 84), thinning downward. The Spires and the Peak have had theirs above. It is measured
+      // from half way between the summit nearest the column and the column's own top, so on a broad dome it
+      // follows the slopes; its depth wanders a little along the skyline; and its orange gives way to rose
+      // through a dither (TJ, 25 November: on Mount Monolith it ended on a straight line, too shallow for so
+      // tall a mountain).
+      if (glow > 0.02 && env.mix > 0.02) {
+        for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { if (skyTop[x] < 0) continue; const y0 = Math.round((skyTop[x] + skyOwn[x]) / 2), H = Math.round(glowH[x] * glow);
+          for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { const i = (y - oy) * VW + (x - ox); if (!PEAK[fb[i]] || W.dest[y * WW + x] >= 6) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8) && bayer(x + 2, y + 1) < glow) fb[i] = ALPEN[bayer(x + 1, y + 3) < (d - 0.1) / 0.5 ? 1 : 0][fb[i]]; } } }
       crit.sea(scr, ox, oy, t); if (WWP) whiteWater(fb, VW, VH, ox, oy, WWP, WWF, t); stillWater(fb, VW, VH, ox, oy, STILL, t, 1 - 0.8 * env.mix, DEBUG.animals, life.lake, calm, DEBUG.clouds && sky.rain > 0.05 ? { k: sky.rain, front: y => frontAt(y, sky), light: life.lake } : null); life.ice(scr, ox, oy, t); crit.falls(scr, ox, oy, t);
       crit.update(dt, t, env.hideMe ? null : here, env.hour);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);

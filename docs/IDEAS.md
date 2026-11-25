@@ -671,3 +671,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Sky Turns With the Glow** (round 8, J14). While the peaks are lit the band of sky behind them could warm for the same seconds, and the lakes could carry the lit summits in their reflections.
 - **The Glow in the Side Scenes** (round 8, J14). The walk to camp and the larch basin look up at summits. A sunset that happens while he is there could light them too, by the same rule.
 - **The First Sunset Comes Sooner** (round 8, J14). A visit starts at the beginning of a 285 second day, so most visitors never see Dusk or the glow. The first day could be shorter, or the clock could start in the afternoon.
+- **A Real Phone** (round 8, I5). The slow-phone numbers are Chrome slowed four times. One afternoon with a mid-range Android phone over USB and Chrome's remote tools would say whether the canvas itself costs more there.
+- **Frames as a Number in CI** (round 8, I5). `slow.sh` could run in CI against the built image and fail when a scene's 95th passes 16.7 ms, as Lighthouse fails on the largest paint.
+- **The Sea Row by Row** (round 8, I5). The map's one slow frame now and then is spent drawing the sea's animals row by row (`seaRow` in `critters.js`). Drawing only the rows in view would take it off the limit.

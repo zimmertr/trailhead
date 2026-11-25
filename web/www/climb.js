@@ -518,14 +518,17 @@ function makeSerac(seed, w, h, tip) {
 // Two fields of drifting noise for the storms, worked out once a frame and only at every second column
 // (the shapes are long and low, so the missing columns cannot be seen): `n` says where cloud or blown snow
 // is, `m` how bright it is there. Streaks are the blown snow of the wanded route; banks are the cloud on the ridge.
+// The noise is worked out on every second row and the rows between are the mean of the two either side (round 8,
+// I5: the finest shapes are four rows tall, and asked for at every row the storm missed frames on a slow phone).
 const drift = { n: new Uint8Array(0), m: new Uint8Array(0), w: 0 };
 function blow(scr, t, banks) {
-  const w = (scr.VW >> 1) + 1, h = scr.VH; if (drift.n.length !== w * h) { drift.n = new Uint8Array(w * h); drift.m = new Uint8Array(w * h); } drift.w = w;
-  for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) {
+  const w = (scr.VW >> 1) + 1, h = scr.VH, N = drift.n, M = drift.m; if (N.length !== w * h) { drift.n = new Uint8Array(w * h); drift.m = new Uint8Array(w * h); return blow(scr, t, banks); } drift.w = w;
+  for (let y = 0; y < h; y += 2) for (let i = 0; i < w; i++) {
     const x = i * 2;
-    drift.n[y * w + i] = 255 * (banks ? 0.6 * vnoise((x + t * 25) / 46, y / 13, 256) + 0.4 * vnoise((x + t * 40) / 23, y / 7, 253) : 0.62 * vnoise((x + t * 96) / 64, y / 7, 257) + 0.38 * vnoise((x + t * 170) / 30, y / 4, 258));
-    drift.m[y * w + i] = 255 * vnoise((x + t * 60) / (banks ? 110 : 120), y / (banks ? 17 : 13), 259);
+    N[y * w + i] = 255 * (banks ? 0.6 * vnoise((x + t * 25) / 46, y / 13, 256) + 0.4 * vnoise((x + t * 40) / 23, y / 7, 253) : 0.62 * vnoise((x + t * 96) / 64, y / 7, 257) + 0.38 * vnoise((x + t * 170) / 30, y / 4, 258));
+    M[y * w + i] = 255 * vnoise((x + t * 60) / (banks ? 110 : 120), y / (banks ? 17 : 13), 259);
   }
+  for (let y = 1; y < h; y += 2) { const a = (y - 1) * w, b = y + 1 < h ? a + 2 * w : a, r = y * w; for (let i = 0; i < w; i++) { N[r + i] = (N[a + i] + N[b + i]) >> 1; M[r + i] = (M[a + i] + M[b + i]) >> 1; } }
 }
 // The storm's cloud and blown snow, laid over what has been drawn so far as long streaks that travel with
 // the wind. k is how much of the frame it hides; around (cx, cy) it thins so he can see his own feet. `keep` marks colours it leaves alone.
@@ -536,7 +539,7 @@ function veil(scr, k, tones, cx, cy, keep) {
     const row = y * VW, at = y * w;
     for (let x = 0; x < VW; x++) {
       let th = k * 1.2 - 0.12;
-      if (near) { const d = Math.hypot((x - cx) / 84, (y - cy) / 46); if (d < 1) th -= (1 - d) * 0.8; }
+      if (near) { const dx = (x - cx) / 84, dy = (y - cy) / 46, d2 = dx * dx + dy * dy; if (d2 < 1) th -= (1 - Math.sqrt(d2)) * 0.8; }
       if (th * 255 > drift.n[at + (x >> 1)] && !(keep && keep[fb[row + x]])) fb[row + x] = tones[drift.m[at + (x >> 1)] > 127 ? 1 : 0];
     }
   }

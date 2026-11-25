@@ -35,17 +35,30 @@ function maskFor(gc) {
 }
 // The cloud and the snow, every pixel: the cloud above with the ghost of a ridge that comes and goes and
 // the 404 in it, wind-packed snow below, the horizon somewhere between.
+// What does not change is worked out once for a size of picture (round 8, I5): how far the ridge stands under the
+// horizon in each column, and the snow's wind-carved bands by their depth below it. The cloud's drifting noise is
+// smooth, so each frame works it out on a grid (every 4 pixels across, every 2 down) and reads between the grid's
+// points. Asked for whole at every pixel, the page took 60 ms a frame on a slow phone.
+let FIELD = null;
+function fieldFor(VW, VH) {
+  if (FIELD && FIELD.VW === VW && FIELD.VH === VH) return FIELD;
+  const drop = new Float32Array(VW), carve = new Float32Array(VW * VH), gw = (VW >> 2) + 2, gh = (VH >> 1) + 2;
+  for (let x = 0; x < VW; x++) drop[x] = 60 + 50 * fbm(x / 90, 3, 403, 3);
+  // Wind-carved ridges (art pass, E04): bands that widen toward you, each a lit crest over a blue lee,
+  // broken into lengths so they read as sastrugi, not stripes.
+  for (let d = 0; d < VH; d++) for (let x = 0; x < VW; x++) { const sx = 6 * Math.log(1 + d / 12) + d / 40 + 1.1 * fbm(x / 50, 1, 405, 2), r = frac(sx); if (fbm(x / (12 + d / 3), Math.floor(sx) * 1.7, 401, 2) > 0.48) carve[d * VW + x] = r < 0.3 ? 0.07 : r < 0.6 ? -0.22 : 0; }
+  return (FIELD = { VW, VH, drop, carve, gw, gh, n: new Float32Array(gw * gh), show: new Float32Array(VW) });
+}
 function paintFog(scr, t, base, M, gx0, gy0) {
-  const { VW, VH, fb } = scr, snow = R.snow;
+  const { VW, VH, fb } = scr, snow = R.snow, F = fieldFor(VW, VH), { drop, carve, gw, gh, n: N, show } = F;
+  for (let gy = 0; gy < gh; gy++) for (let gx = 0; gx < gw; gx++) N[gy * gw + gx] = fbm((gx * 4 + t * 14) / 70, gy * 2 / 26 + t * 0.05, 400, 3);
+  for (let x = 0; x < VW; x++) show[x] = fbm(x / 140 + t * 0.03, 7, 404, 2);
   for (let y = 0; y < VH; y++) {
-    const my = y - gy0 + M.gc, inRows = y < base - 40 && my >= 0 && my < M.h;
+    const my = y - gy0 + M.gc, inRows = y < base - 40 && my >= 0 && my < M.h, r0 = (y >> 1) * gw, r1 = r0 + gw, ay = (y & 1) / 2, d = y - base;
     for (let x = 0; x < VW; x++) {
-      const d = (y - base) / 60, n = fbm((x + t * 14) / 70, y / 26 + t * 0.05, 400, 3);
-      let v = y < base ? 0.62 + 0.3 * n : 0.9 - 0.3 * clamp(d, 0, 1) + 0.14 * (n - 0.5);
-      if (y < base) { const ridge = base - 60 - 50 * fbm(x / 90, 3, 403, 3), show = fbm(x / 140 + t * 0.03, 7, 404, 2); if (y > ridge && show > 0.5) v -= 0.16 * Math.min(1, (show - 0.5) * 6) * (1 - (y - ridge) / (base - ridge)); }
-      // Wind-carved ridges (art pass, E04): bands that widen toward you, each a lit crest over a blue lee,
-      // broken into lengths so they read as sastrugi, not stripes.
-      if (y >= base) { const d = y - base, s = 6 * Math.log(1 + d / 12) + d / 40 + 1.1 * fbm(x / 50, 1, 405, 2), r = frac(s); if (fbm(x / (12 + d / 3), Math.floor(s) * 1.7, 401, 2) > 0.48) v += r < 0.3 ? 0.07 : r < 0.6 ? -0.22 : 0; }
+      const gx = x >> 2, ax = (x & 3) / 4, n0 = N[r0 + gx], n1 = N[r1 + gx], n = (n0 + (N[r0 + gx + 1] - n0) * ax) * (1 - ay) + (n1 + (N[r1 + gx + 1] - n1) * ax) * ay;
+      let v = d < 0 ? 0.62 + 0.3 * n : 0.9 - 0.3 * clamp(d / 60, 0, 1) + 0.14 * (n - 0.5) + carve[d * VW + x];
+      if (d < 0) { const ridge = base - drop[x], sh = show[x]; if (y > ridge && sh > 0.5) v -= 0.16 * Math.min(1, (sh - 0.5) * 6) * (1 - (y - ridge) / (base - ridge)); }
       if (inRows) { const mx = x - gx0 + M.gc; if (mx >= 0 && mx < M.w) { const g = M.d[my * M.w + mx]; if (g > 0) v -= 0.26 * g * (0.85 + 0.3 * n); } }
       const f = clamp(v, 0, 0.999) * 4, i = Math.floor(f);
       fb[y * VW + x] = snow[Math.min(4, i + (bayer(x, y) < f - i ? 1 : 0))];
