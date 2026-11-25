@@ -661,7 +661,28 @@ function palouse(u, v, hh, x, y, L, steep) {
   const k = clamp(Math.round(lv * 3 + (bayer(x, y) - 0.5) * 0.5), 0, 3);
   return k === 2 && strip ? R.mustard[2] : R.dry[k];
 }
-function wallRock(x, y, hh, L, seed, green) {
+// The lip and the foot of the face a spot is on: walk up the slope behind it and down the slope in front
+// of it until the ground goes flat.
+function faceSpan(u, v, hh) {
+  let top = hg[at(u, v)], foot = top;
+  for (let k = v + 1, n = 0; k < Math.min(VD, v + 60) && n < 3; k++) { const h = hg[at(u, k)]; if (h > top + 0.5) { top = h; n = 0; } else n++; }
+  for (let k = v - 1, n = 0; k > Math.max(0, v - 60) && n < 3; k--) { const h = hg[at(u, k)]; if (h < foot - 0.5) { foot = h; n = 0; } else n++; }
+  return [Math.max(top, hh), Math.min(foot, hh)];
+}
+// B2 (round 8), after a picture of a wall under a larch bench: unbroken corners from lip to foot made the
+// benches read taller than they are. So a tall face is two tiers parted by a ledge, each with its own
+// planes; level joints cut the planes into blocks; and cones of scree lie against the foot. Only the dry
+// side's walls are given u and v, and so only they are drawn this way: the rainforest's mossy steps are low.
+function wallRock(x, y, hh, L, seed, green, u, v) {
+  const dry = u !== undefined, [top, foot] = dry ? faceSpan(u, v, hh) : [hh, hh], H = Math.max(4, top - foot), t = (top - hh) / H;
+  if (H > 14) {
+    const tal = 0.84 - 0.22 * sq(vnoise(x / 9, 0, seed + 991)) - 0.03 * hash(x, 0, seed + 992);
+    if (t > tal) { const r = hash(x >> 1, Math.floor(hh / 1.5), seed + 993); return green && r > 0.94 ? green : R.rock[r < 0.3 ? 1 : r < 0.7 ? 2 : 3]; }
+  }
+  // The ledge keeps one drop below the lip, so it runs level along the wall as the lip does.
+  const ld = top - hh - Math.min(0.5 * H, 25 + 3 * (vnoise(x / 70, 0, seed + 994) - 0.5)), low = H > 40 && ld > 0;
+  if (H > 40 && ld > -1 && ld < 2.4) return ld < 0.6 ? (green && hash(x >> 1, 0, seed + 995) < 0.45 ? green : R.rock[4]) : R.rock[1];
+  if (low) seed += 31;
   const c = x + 1.2 * Math.sin(hh / 17 + seed), k = Math.floor(c / 9), edge = j => hash(j, seed, 981) < 0.42;
   let a = k; while (a > k - 4 && !edge(a)) a--; let b = k + 1; while (b < k + 5 && !edge(b)) b++;
   const w = (b - a) * 9, pf = (c - a * 9) / w, away = hash(a, seed, 982) < 0.38, cw = (2 + 0.42 * w * hash(a, seed, 983)) / w;
@@ -670,7 +691,8 @@ function wallRock(x, y, hh, L, seed, green) {
   if (wet) return R.rock[away ? 0 : 1];
   if (green && !away && frac(hh / (31 + 9 * hash(a, seed, 986)) + hash(a, seed, 987)) < 0.035 && hash(x >> 2, Math.floor(hh / 31), seed + 988) < 0.3) return green;
   if (pf < 1.1 / w && !away) return R.rock[4];
-  const lit = 0.8 + 0.5 * (L - 0.5) - (away ? 0.3 : 0.22 * pf * pf) + 0.12 * (vnoise(x / 4, hh / 12, seed + 989) - 0.5) + 0.12 * (hash(a, seed, 990) - 0.5);
+  { const jh = 11 + 9 * hash(a, seed, 996), j = frac(hh / jh + hash(a, seed, 997)) * jh; if (dry && hash(a, seed, 998) < 0.7 && j < 1 && pf > 0.12) return R.rock[away ? 1 : 2]; }
+  const lit = (dry ? 0.74 : 0.8) + 0.5 * (L - 0.5) - (away ? 0.3 : 0.22 * pf * pf) + 0.12 * (vnoise(x / 4, hh / 12, seed + 989) - 0.5) + 0.12 * (hash(a, seed, 990) - 0.5);
   return R.rock[clamp(Math.round(4.4 * lit + (bayer(x, y) - 0.5) * 0.4), 0, 4)];
 }
 // A08, after a picture of a scabland coulee: a basalt cliff is one or two lava flows stacked. Each flow
@@ -679,11 +701,7 @@ function wallRock(x, y, hh, L, seed, green) {
 // lighter broken rock lies against the foot. Where on the cliff a spot is comes from the ground just
 // behind it (the top) and just in front of it (the foot).
 function basaltWall(u, v, hh, x, y, L) {
-  // Walk up the slope behind and down the slope in front until the ground goes flat.
-  let top = hg[at(u, v)], foot = top;
-  for (let k = v + 1, n = 0; k < Math.min(VD, v + 60) && n < 3; k++) { const h = hg[at(u, k)]; if (h > top + 0.5) { top = h; n = 0; } else n++; }
-  for (let k = v - 1, n = 0; k > Math.max(0, v - 60) && n < 3; k--) { const h = hg[at(u, k)]; if (h < foot - 0.5) { foot = h; n = 0; } else n++; }
-  top = Math.max(top, hh); foot = Math.min(foot, hh);
+  const [top, foot] = faceSpan(u, v, hh);
   const H = Math.max(4, top - foot), d = top - hh, t = d / H, B = R.basalt, A = R.ash;
   if (d < 1) return hash(x >> 1, 0, 1201) < 0.5 ? A[3] : B[3];
   // The talus: its top is ragged and rises into fans here and there.
@@ -904,7 +922,7 @@ function colour(u, v, hh, x, y) {
       if (sun) return crack ? R.rock[2] : x1 - fx < 1.6 && dt < 70 ? R.gold[6] : streak ? R.rock[3] : pale ? R.gold[6] : R.rock[b2(x, y) < 0.3 - 0.6 * pf ? 3 : 4];
       return fx - x0 < 1.4 ? R.rock[1] : crack || streak ? R.rock[1] : R.rock[b2(x, y) < 0.75 - 1.5 * (fx - x0) / 8 ? 1 : b2(x, y) < pf - 0.5 ? 3 : 2];
     }
-    if (steep > 0.75) return wallRock(x, y, hh, L, 1, R.grass[2]);
+    if (steep > 0.75) return wallRock(x, y, hh, L, 1, R.grass[2], u, v);
     // A05, after a picture of the Enchantments: the benches' tops are glacier-polished slabs of warm
     // granite, rounded pillows of every size, each lit on its upper left and a step darker toward its
     // lower right, parted by thin dark cracks. Heather fills the hollows where it grew before.
@@ -930,7 +948,7 @@ function colour(u, v, hh, x, y) {
   // Land. A step in it shows the rock of its own country.
   // The golden hills' swells are grass to their crests, lit and shaded, never rock.
   if (steep > 1.05 && palAmt(u, v) > 0.3) return palouse(u, v, hh, x, y, L, steep);
-  if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? basaltWall(u, v, hh, x, y, L) : wallRock(x, y, hh, L, 2, u > 1190 ? null : R.moss[1]);
+  if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? basaltWall(u, v, hh, x, y, L) : (u > 1190 ? wallRock(x, y, hh, L, 2, null, u, v) : wallRock(x, y, hh, L, 2, R.moss[1]));
   const sh = (L - 0.5) * 0.5, blot = s => 0.5 + 0.85 * (fbm(u / 32, v / 21, s, 3) - 0.5) + 0.2 * n1;
   // The bog: bright sphagnum moss with dark peaty pools in it, the moss darker towards its edge.
   { const e = bogAt(u, v); if (e < 1) return fbm(u / 6, v / 4, 471, 2) > 0.52 && e < 0.85 ? (hash(u, v, 472) < 0.07 ? R.water[1] : R.moss[0]) : pick('moss', 0.62 + 0.3 * fbm(u / 5, v / 4, 473, 2) - 0.3 * e, x, y, 0.4); }
