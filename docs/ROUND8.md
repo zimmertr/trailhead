@@ -110,7 +110,7 @@ Work top to bottom. An item marked **waits** is skipped until TJ has picked in s
 
 ### F. The Trailhead
 
-- [ ] **F1 One Thing to Click** (note 6). The trail register and the conditions board are one click target on the map, which opens the register scene; the notebook, the conditions and the map open from there. One name tag, in words the game already shows.
+- [x] **F1 One Thing to Click** (note 6). The trail register and the conditions board are one click target on the map, which opens the register scene; the notebook, the conditions and the map open from there. One name tag, in words the game already shows.
 - [ ] **F2 Observed and Reported** (note 25). The conditions board's wildlife and events split in two: Observed lists what has happened in this session, Reported lists what has not yet, so a visitor learns what there is still to see. The two headings are TJ's own words.
 
 ### G. Closing
@@ -277,3 +277,9 @@ Every call, one line each, newest last.
 - E3, a call: no pictures, since there is nothing to draw. I cannot hear the result either, so I measured it: each set rendered offline for 20 s of two tunes. The first three sit at -29.3, -36.2 and -34.0 dB; the new ones at -33.4, -34.9 and -32.2 dB after balancing (the strings came out 5 dB too quiet at first). No sample clips, and no second drops out. How they sound is for TJ's ear.
 - E3, a call: the effects (a click, a flag, an animal's call) keep plain waves in the new sets, as in the music box, so nothing that answers a click changes its length.
 - E3, how it was tested: the music menu's test now counts 15 entries, and a new test picks each new set and lets it play a bar (48 tests pass). The menu still fits a 320 by 568 screen. `audio.js` grew by 1.4 kB gzipped; `make typecheck` and lint pass.
+- E3, CI green (24 checks).
+- F1 done: on the map the register's box and the conditions board beside it are one click target (`pick` in `world.js`): one box round the pair and the gap between them, 44 map pixels across, with one name tag over its middle. A click anywhere on it opens the register's scene. The notebook, the conditions and the map already opened from there (the book, the notice on the back wall and the map behind glass), so nothing in the scene changed.
+- F1, a call: the tag reads "Trail register", the name the box already had and the name the trail map's link uses. "Trail conditions" is no longer a name tag on the map; it is still the board's own title inside the scene. Its entry under `NAMES` in `content/game/names.yaml` had no other use and is removed.
+- F1, a call: the two things are still drawn as two (the box on its post and the roofed board). TJ asked for one click target, not one object, and nothing was redrawn, so there were no pictures to make.
+- F1, a call: the address `#kiosk` still opens the register's scene with the conditions sheet over it, so a link someone kept still works.
+- F1, how it was tested: a new browser test hovers both ends of the target, reads the same tag at each, clicks the board's end and finds the book, the map and the notice in the scene (49 tests pass). Checked on a phone by a tap. Frame time 11.9 ms; check.sh reports nothing moved; unit tests, type check and lint pass.

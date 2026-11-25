@@ -555,3 +555,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Hear a Set Before Picking It** (round 8, E3). The debug panel's sound test plays each tune's parts. It could play one bar through each set too, so the six can be compared in a few seconds.
 - **A Sound Check in CI** (round 8, E3). The offline render that measured the new sets could run as a test: every set within a few decibels of the others, and no clipped sample, so a new voice cannot come out twice as loud.
 - **A Solo Now and Then** (round 8, E3). On a tune's third play one voice could drop out for four bars and leave the others, as the drums already do on every second play.
+- **One Outline for the Pair** (round 8, F1). The register's box and the board answer as one now. Hovering either could light both with one outline, as a place on the map lifts, so the eye is told they are one thing before the click.
+- **A Roof Over Both** (round 8, F1). The two could be drawn as one small kiosk: the board under the roof and the register's box on the same posts, as trailheads often build them. A redraw, so pictures first, and TJ's call.
+- **The Board Says What Is New** (round 8, F1). The board on the map could show a small pinned note in a brighter colour when the conditions inside have changed since the last look: a new find, a new event seen.

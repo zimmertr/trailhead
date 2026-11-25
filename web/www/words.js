@@ -443,7 +443,6 @@ export const W = {
   "latency": "Latency Bay"
  },
  "NAMES": {
-  "kiosk": "Trail conditions",
   "register": "Trail register",
   "kayti": "Kayti",
   "lookout": "Observability Lookout",

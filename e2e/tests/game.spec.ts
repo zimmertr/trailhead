@@ -220,6 +220,27 @@ test('the music button opens its menu, and Sound off turns the sound off', async
   expect(problems).toEqual([])
 })
 
+// Round 8, F1: the register's box and the conditions board beside it are one thing to click on the map. Either
+// end of it carries the register's name and opens the register's scene, where the notebook, the conditions
+// and the map open from.
+test('the register and the conditions board are one click target that opens the register', async ({ page }) => {
+  const problems = await open(page, '/')
+  await page.locator('#fork-x').click()
+  await expect.poll(() => page.evaluate(() => window.__api.hitAt('register')), { timeout: 15_000 }).not.toBeNull()
+  expect(await page.evaluate(() => window.__api.hitAt('kiosk'))).toBeNull()
+  const [x, y] = (await page.evaluate(() => window.__api.hitAt('register'))) as [number, number]
+  const scale = await page.evaluate(() => (window.__info as unknown as { S: number }).S / (window.devicePixelRatio || 1))
+  // Its left end is the register's box, its right end the board: 44 map pixels across.
+  for (const dx of [3, 40]) {
+    await page.mouse.move(x + dx * scale, y + 12 * scale)
+    await expect(page.locator('#tip')).toHaveText('Trail register')
+  }
+  await page.mouse.click(x + 40 * scale, y + 12 * scale)
+  await expect(page.locator('#book')).toBeVisible({ timeout: 15_000 })
+  for (const part of ['.spot.open', '.spot.map', '.notice']) await expect(page.locator('#book ' + part)).toBeVisible()
+  expect(problems).toEqual([])
+})
+
 // Round 8, E3: three more sets of instruments, each picked from the music menu and each playing the tune.
 test('the three new sets of instruments can be picked and play', async ({ page }) => {
   const problems = await open(page, '/')

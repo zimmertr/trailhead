@@ -761,8 +761,11 @@ export function makeWorld() {
       // Every animal on the map answers a click (round 6, note 10); critters.js says which is under the point.
       { const a = crit.pick(wx, wy, last.ox, last.oy); if (a) { pokeAt = [wx, wy]; return { label: a.label, x: a.wx - last.ox, y: a.wy - last.oy, act: a.act }; } }
       if (spots.lookout) { const [lx, ly] = spots.lookout; if (Math.abs(wx - lx) < 9 && wy > ly - 30 && wy < ly + 2) return { label: NAMES.lookout, x: lx - last.ox, y: ly - 31 - last.oy }; }
-      { const [rx, ry] = spots.register; if (Math.abs(wx - rx) < 6 && wy > ry - 21 && wy < ry + 2) return { label: NAMES.register, x: rx - last.ox, y: ry - 21 - last.oy, act: 'register' }; }
-      { const [kx, ky] = spots.kiosk; if (Math.abs(wx - kx) < 14 && wy > ky - 27 && wy < ky + 3) return { label: NAMES.kiosk, x: kx - last.ox, y: ky - 27 - last.oy, act: 'kiosk' }; }
+      // The register's box and the conditions board beside it are one thing to click (round 8, F1; TJ's note 6):
+      // one box round the pair and the gap between them, one name tag over its middle in the register's own
+      // words. It opens the register's scene, where the notebook, the conditions and the map open from.
+      { const [rx, ry] = spots.register, [kx, ky] = spots.kiosk, x0 = Math.min(rx - 6, kx - 14), x1 = Math.max(rx + 6, kx + 14), y0 = Math.min(ry - 21, ky - 27), y1 = Math.max(ry + 2, ky + 3);
+        if (wx > x0 && wx < x1 && wy > y0 && wy < y1) return { label: NAMES.register, x: Math.round((x0 + x1) / 2) - last.ox, y: y0 - last.oy, act: 'register' }; }
       // The tide pool to find (E7), only while the low water has left it.
       { const p = crit.findPool(nowT); if (p && Math.abs(wx - p.x) <= p.rx + 3 && Math.abs(wy - p.y) <= p.ry + 3) return { label: NAMES.tidepool, x: p.x - last.ox, y: p.y - p.ry - 5 - last.oy, act: 'pool' }; }
       { const k = destUnder(wx, wy); if (k) return { label: DEST_NAMES[W.DEST[k]], named: true, x: sx, y: sy, act: 'dest:' + W.DEST[k] }; }

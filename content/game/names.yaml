@@ -42,7 +42,6 @@ SIGNS:
   latency: Latency Bay
 # The names of things you can point at inside a scene.
 NAMES:
-  kiosk: Trail conditions
   register: Trail register
   kayti: Kayti
   lookout: Observability Lookout
