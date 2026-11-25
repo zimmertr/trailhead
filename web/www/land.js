@@ -1088,7 +1088,8 @@ let MONO_OY = 0;
 {
   const paint = (x, y, c) => { if (x >= 0 && y >= 0 && x < NW && y < SH) { g[px(x, y)] = c; painted[px(x, y)] = 1; } };
   for (const t of TARNS) {
-    const e = t.end, hw = Math.round(clamp(e.room * 0.42, 14, 24)), rv = Math.max(4, Math.round(hw * 0.34)), xc = MONO_OX + e.mid;
+    // Larger since round 8 (C4, TJ): each fills the gap between its two cleavers.
+    const e = t.end, hw = Math.round(clamp(e.room * 0.46, 18, 32)), rv = Math.max(5, Math.round(hw * 0.42)), xc = MONO_OX + e.mid;
     // The water's top row at each column is the first row below the ice there, so the ice meets it.
     const topAt = x => MONO_OY + Math.floor(e.snout(x - MONO_OX)) + 1, yc = topAt(xc) + rv - 1;
     for (let dx = -hw - 2; dx <= hw + 2; dx++) { const x = xc + dx, f = Math.abs(dx) / hw;

@@ -71,10 +71,11 @@ export function glacierEnd(gi) {
 // The glacier whose foot is above picture column x: the one between the nearest cleavers either side on
 // the rows where the ice ends.
 export function glacierOver(x) { let best = null; for (let gi = 1; gi < SNOUT.length; gi++) { const e = glacierEnd(gi); if (e && Math.abs(e.mid - x) < e.room / 2 && (!best || Math.abs(e.mid - x) < Math.abs(best.mid - x))) best = e; } return best; }
-// The glaciers that end in moraine lakes (T30, TJ): the middle one, with the big icefall, whose lake is the
-// new river's source, and the one above the old stream under the east foot (picture column 466, where that
-// stream rose in round 4). The map (land.js) and the lake scene (lakeside.js) both read this list.
-export const moraineLakes = () => [glacierEnd(MID_FALL), glacierOver(466)].filter(Boolean);
+// The glaciers that end in moraine lakes (T30, TJ): the one west of the middle glacier's west cleaver, whose
+// lake is the new river's source (round 8, C4, TJ: it lay under the middle glacier, with the big icefall,
+// until then), and the one above the old stream under the east foot (picture column 466, where that stream
+// rose in round 4). The map (land.js) and the lake scene (lakeside.js) both read this list.
+export const moraineLakes = () => [glacierEnd(MID_FALL - 1), glacierOver(466)].filter(Boolean);
 
 export function paintMonolith() {
   // own marks the mountain proper; the meadow at its foot is only a stand-in for the mockup, and in the
