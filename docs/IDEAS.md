@@ -533,3 +533,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Osprey Takes the Trout** (round 8, C6). The fishing birds work the sea. One could come inland to Reflection Lake now and then and take the fish that just jumped.
 - **The Snout Calves** (round 8, C7). Now and then a slab could drop off the ice cliff into the lake below Scope Creep Glacier: a splash, a wave that crosses the water, and one more berg that drifts out and melts.
 - **Bergs That Drift** (round 8, C7). The bergs are painted into the ground. As things of their own they could drift a few pixels with each gust and turn slowly.
+- **Wet Ground Has Its Own Plants** (round 8, C8). The rule that plants skunk cabbage by running water could plant the rest of a streamside too: monkeyflower and marsh marigold along the meadow's streams, devil's club along the forest's.

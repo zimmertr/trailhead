@@ -1618,9 +1618,20 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   rand = rng(6113);
   for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && hills(u, v) < 3 && open(u, v, 0.8) && wooded(u, v) && bogAt(u, v) >= 1.2) put(any(logs), u, v); }
   // Skunk cabbage round the bog's pools, on the moss, never in the water (C3). Their own dice.
-  if (BOG) { const sc = rng(6121), cab = Array.from({ length: 4 }, (_, i) => makeSkunkCabbage(1050 + i)), took = new Set();
+  const cab = Array.from({ length: 4 }, (_, i) => makeSkunkCabbage(1050 + i));
+  if (BOG) { const sc = rng(6121), took = new Set();
     for (let n = 0; n < 400; n++) { const u = BOG[0] + (sc() * 2 - 1) * BOG[2], v = BOG[1] + (sc() * 2 - 1) * BOG[3], e = bogAt(u, v), cell = ((u / 5) | 0) * 1000 + ((v / 3) | 0);
       if (e > 0.95 || (fbm(u / 6, v / 4, 471, 2) > 0.5 && e < 0.87) || took.has(cell) || sc() > 0.22) continue; took.add(cell); plant(cab[(sc() * cab.length) | 0], u, v); } }
+  // More of it where TJ circled the map (round 8, C8): along the rainforest creek north of the maples, at the
+  // creek's mouth behind the beach, and by the footbridge below Reflection Lake. The rule is the plant's own:
+  // on the bank, two to seven from running water and never in it, on ground that is nearly level, off the
+  // sand and clear of the trail. Their own dice.
+  { const sc = rng(6124), took = new Set();
+    for (const [cu, cv, ru, rv, most] of [[402, 560, 34, 46, 16], [271, 436, 48, 24, 16], [664, 330, 20, 22, 8]]) { let k = 0;
+      for (let n = 0; n < 900 && k < most; n++) { const u = Math.round(cu + (sc() * 2 - 1) * ru), v = Math.round(cv + (sc() * 2 - 1) * rv), cell = ((u / 5) | 0) * 1000 + ((v / 3) | 0);
+        if (ell([cu, cv, ru, rv], u, v) > 1 || took.has(cell) || water[at(u, v)] || lakeAt(u, v) || coast(u, v) > -36 || slope(u, v) > 0.9 || nearTrail(u, v, 7) || !land(u, v)) continue;
+        let near = 99; for (let dv = -4; dv <= 4; dv++) for (let du = -7; du <= 7; du++) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) near = Math.min(near, Math.hypot(du, dv * 1.6));
+        if (near < 2 || near > 7) continue; took.add(cell); plant(cab[(sc() * cab.length) | 0], u, v); k++; } } }
   // The old-growth groves: three or four redcedars half as tall again as the forest round them, a little apart,
   // with sword ferns thick on the ground below (C3). Their own dice.
   { const gr = rng(6122), giants = [0, 1, 2].map(i => KINDS_NW.cedar(1080 + i * 7, 84 + i * 4));
