@@ -186,12 +186,12 @@ export function makeCritters(W, opts = {}) {
   // five points however long it was, and a bear could step over a creek between two of them.)
   // A straight line is clear if every pixel an animal would be drawn on along it is (two looks to the pixel:
   // until round 8, D1, it looked every 3, and a creek or a ledge a pixel or two wide slipped between two looks).
+  const way = (ok, x0, y0, x1, y1) => { const n = Math.max(5, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2)); for (let k = 1; k <= n; k++) if (!ok(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)) return false; return true; };
   // One step of an animal that walks on land (round 8, D1): it never sets foot on a pixel no land animal may
   // stand on. The look along the line before it set off (way) samples the line, and a line can clip the corner
   // of a pixel between two samples, so now and then one was drawn for a frame on a cliff's edge or a bank.
   // False means it did not move, and the caller stops it where it is.
   const step = (a, nx, ny) => { const X = Math.round(nx), Y = Math.round(ny); if ((X !== a.x || Y !== a.y) && !col.canBe('land', X, Y, 0) && col.canBe('land', a.x, a.y, 0)) return false; a.fx = nx; a.fy = ny; a.x = X; a.y = Y; return true; };
-  const way = (ok, x0, y0, x1, y1) => { const n = Math.max(5, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2)); for (let k = 1; k <= n; k++) if (!ok(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)) return false; return true; };
 
   // ---- the animals that graze and wander ----------------------------------------------------
   const elkBull = { look: makeElk(false), graze: makeElk(true), walk: [makeElk(false, 1), makeElk(false, 2)] };

@@ -1771,12 +1771,12 @@ async function readBake() {
   if (globalThis.__noBake) { BAKE.note = 'switched off'; return null; }
   try {
     const res = await fetch(new URL('./ground.png', import.meta.url)); if (!res.ok) { BAKE.note = 'ground.png answered ' + res.status; return null; }
-    const b = new Uint8Array(await res.arrayBuffer()), dv = new DataView(b.buffer), parts = []; let w = 0, h = 0, sig = '', falls = null;
+    const b = new Uint8Array(await res.arrayBuffer()), dv = new DataView(b.buffer), parts = []; let w = 0, h = 0, sig = '', falls = null, homes = null;
     for (let p = 8; p + 12 <= b.length;) {
       const n = dv.getUint32(p), type = String.fromCharCode(b[p + 4], b[p + 5], b[p + 6], b[p + 7]);
       if (type === 'IHDR') { w = dv.getUint32(p + 8); h = dv.getUint32(p + 12); }
       else if (type === 'IDAT') parts.push(b.subarray(p + 8, p + 8 + n));
-      else if (type === 'tEXt') { const t = String.fromCharCode(...b.subarray(p + 8, p + 8 + n)); if (t.startsWith('sig\0')) sig = t.slice(4); else if (t.startsWith('falls\0')) falls = JSON.parse(t.slice(6)); }
+      else if (type === 'tEXt') { const t = String.fromCharCode(...b.subarray(p + 8, p + 8 + n)); if (t.startsWith('sig\0')) sig = t.slice(4); else if (t.startsWith('falls\0')) falls = JSON.parse(t.slice(6)); else if (t.startsWith('homes\0')) homes = JSON.parse(t.slice(6)); }
       p += 12 + n;
     }
     const want = await sourceSig();
@@ -1790,7 +1790,7 @@ async function readBake() {
     for (let i = 0; i < zb.length; i++) { const q = zh[i] << 8 | zl[i]; zb[i] = q === 65535 ? 1e9 : q / 64; }
     for (let i = 0; i < hg.length; i++) hg[i] = (hh[i] << 8 | hl[i]) / 32;
     BAKE.used = true;
-    return { g, zb, mb, painted, hg, mg, water, bare, dest, fog, hillLight, deck, monoSnow, monoQ, mist, falls };
+    return { g, zb, mb, painted, hg, mg, water, bare, dest, fog, hillLight, deck, monoSnow, monoQ, mist, falls, homes };
   } catch (e) { BAKE.note = 'could not be read: ' + e.message; console.warn('ground.png could not be read', e); return null; }
 }
 // The bake is kept as well: buildTerrain takes the hills' evening light and the cloud deck from it (M3).
@@ -1985,7 +1985,11 @@ function habitat() {
   // well apart from its others, and takes one at random on each load (critters.js). The first of each is the
   // home it has always had. They are found here, after everything else, and the ground they take is given
   // back afterwards, so nothing that was placed before them, or is placed after, moves.
-  const mark = taken.length, more = (n, rule, apart, have) => find(n, (u, v) => apartFrom(have, u, v, apart) && rule(u, v), apart);
+  // Each search below looks over the whole map when it finds fewer than it was asked for, and five of them
+  // do: together they took a quarter of a second as the page opened. So what they find goes into the bake
+  // as text, as the lake's waterfall does, and is read back from it; without a bake they are worked out here.
+  const mark = taken.length, found = [], baked = BAKED && BAKED.homes;
+  const more = (n, rule, apart, have) => { const got = baked ? baked[found.length] : find(n, (u, v) => apartFrom(have, u, v, apart) && rule(u, v), apart); if (baked) taken.push(...got); found.push(got); return got; };
   const elkHomes = herd ? [herd, ...more(4, elkOK, 150, [herd])] : [];
   // The bull's first home lies between two rivers; his others need one within reach, and a little less room.
   const mooseHomes = moose ? [moose, ...more(4, (u, v) => mooseOK(u, v, 1) && mooseRoom(u, v) >= 8, 110, [moose])] : [];
@@ -2007,6 +2011,7 @@ function habitat() {
     // The marmots' own three are the first three homes, the very same lists, so the boulder buildTerrain puts
     // under a parkland home is under its marmot too.
     marmots: marmotHomes.slice(0, marmots.length),
+    homesFound: found,
     homes: { elk: elkHomes.map(p => out(...p)), moose: mooseHomes.map(p => out(...p)), goat: goatHomes.map(p => out(...p)), sheep: bands.map(b => b.map((p, n) => [...out(...p), n & 1])), marmot: marmotHomes, squirrel: squirrelHomes.map(p => out(...p)), bear: bearHomes.map(p => out(...p)), whale: whaleHomes.map(p => out(...p)) },
     goats: goats.flatMap(p => { const [x, y] = out(...p); return [[x, y, 0], [x + 16, y + 6, 1]]; }),
     sheep: sheep.map((p, n) => [...out(...p), n & 1]),
@@ -2178,7 +2183,7 @@ export function buildTerrain() {
     const out = Ls.map((l, n) => ({ kind: l[4], px: px[n] }));
     mor.sort((a, b) => a % NW - b % NW); let cur = null; for (const i of mor) { if (!cur || i % NW - cur.px[cur.px.length - 1] % NW > 12) out.push(cur = { kind: 'moraine', px: [] }); cur.px.push(i); }
     return out.filter(l => l.px.length > 20); })();
-  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, whiteWater: falls, still, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, homesFound: H.homesFound, whiteWater: falls, still, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the
