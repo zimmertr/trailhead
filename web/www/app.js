@@ -105,7 +105,7 @@ function noticeAt(B, k) {
   if (!B || B.w * k < 96 || B.h * k < 40) return [];
   const ids = Object.keys(FINDS), found = api.found();
   return [el('button', { class: 'notice', style: 'left:' + B.x * k + 'px;top:' + B.y * k + 'px;width:' + B.w * k + 'px;height:' + B.h * k + 'px', onclick: () => openSheet('kiosk') },
-    el('b', { text: UI.kiosk.title }), el('span', { text: UI.kiosk.status[1] }), el('span', { text: UI.kiosk.checklist(ids.filter(i => found[i]).length, ids.length) }))];
+    el('b', { text: UI.kiosk.title }), el('span', { text: UI.kiosk.status[1] }), el('span', { text: UI.kiosk.checklist(ids.filter(i => found[i]).length, ids.length) }), el('span', { text: UI.kiosk.count(api.saw()) }))];
 }
 function fillKiosk(P) {
   const k = api.scale(), at = g => 'left:' + g.x * k + 'px;top:' + g.y * k + 'px;width:' + g.w * k + 'px;height:' + g.h * k + 'px;';

@@ -613,3 +613,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Seen for a Moment** (round 8, H10). A thing counts on the first frame it is clear. It could have to stay clear for half a second, so a fast pan across the map does not fill the board.
 - **The Debug Panel Shows What Is Covered** (round 8, H10). A layer in the debug panel could tint what the panels cover, as the check render for H10 did, beside the layer for tap targets.
 - **A Glint When Something Is First Observed** (round 8, H10). The first time a thing counts, a small mark could flash beside it, so a visitor learns that looking is what fills the board.
+- **A Line for the Meadow's Ravens** (round 8, H11). The game reports the ravens over the meadow, and the board has no line for them. A line would make the count honest about everything that can be observed. The words would be TJ's.
+- **The Count on the Board Too** (round 8, H11). The board's Observed heading could carry the same count, so the number is in view while the two lists are read.
+- **A Note When the Count Is Full** (round 8, H11). When every thing has been observed, the notice could say so in a different hand, as the register opens when all three routes are done. The words would be TJ's.
+- **Tally Marks on the Card** (round 8, H11). The drawn card under the words could carry pencil tally marks, one for every five observed, so the picture itself shows progress.

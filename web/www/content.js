@@ -44,7 +44,9 @@ export const UI = {
     sightings: saw => { const out = [[], [], []], line = (S, ids) => { const n = ids.map(k => S.who[k]), s = [S.lead, n.length > 1 ? n.slice(0, -1).join(', ') + ' ' + M.and + ' ' + n[n.length - 1] : n[0], S.where].filter(Boolean).join(' '); return s[0].toUpperCase() + s.slice(1); };
       for (const S of K.sightings) { const ids = Object.keys(S.who), a = ids.filter(k => saw.has(k)), b = ids.filter(k => !saw.has(k)); if (a.length) out[0].push(line(S, a)); if (b.length) { out[1].push(line(S, b)); out[2].push(b); } }
       return out; },
-    checklist: (n, of) => fill(K.checklist, { n, of })
+    checklist: (n, of) => fill(K.checklist, { n, of }),
+    // How much of the board has been observed (round 8, H11): every name under `sightings` is one thing.
+    count: saw => { const ids = K.sightings.flatMap(S => Object.keys(S.who)); return fill(K.count, { n: ids.filter(k => saw.has(k)).length, of: ids.length }); }
   },
   register: { ...U.register, todo: { ...U.register.todo, spires: name => fill(U.register.todo.spires, { name }) } },
   plain: {

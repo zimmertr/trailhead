@@ -996,6 +996,7 @@ export const W = {
     }
    ],
    "checklist": "Field checklist: {n} of {of} found",
+   "count": "{n} of {of} observed",
    "notFound": "Not found yet",
    "got": "Found"
   },

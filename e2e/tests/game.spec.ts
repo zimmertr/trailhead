@@ -924,3 +924,35 @@ test('a thing behind one of the page\'s panels does not count as observed', asyn
   await expect.poll(() => seen('rockfall'), { timeout: 10_000 }).toBe(true)
   expect(problems).toEqual([])
 })
+
+// Round 8, H11: the notice in the register's scene says how much of the board has been observed, under the
+// checklist's count, and all of its lines fit on the card on a desktop and on a phone.
+test('the register\'s notice counts what has been observed, and its lines fit the card', async ({ page }) => {
+  type Board = { __api: { saw: () => Set<string> } }
+  for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(size)
+    const problems = await open(page, '/')
+    await page.keyboard.press('KeyC')
+    await expect(page.locator('#sheet .board')).toBeVisible()
+    await page.keyboard.press('Escape')
+    const notice = page.locator('#book .notice')
+    await expect(notice).toBeVisible({ timeout: 10_000 })
+    const lines = notice.locator('span')
+    await expect(lines).toHaveCount(3)
+    await expect(lines.nth(1)).toHaveText(/^Field checklist: \d+ of \d+ found$/)
+    const count = /^(\d+) of (\d+) observed$/.exec(await lines.nth(2).innerText())
+    expect(count, 'the count line').not.toBeNull()
+    // One thing for every name on the board, and those of them the game has reported are the observed ones
+    // (it also reports a few that the board does not list, the ravens over the meadow for one).
+    const [n, of] = await page.evaluate(async () => {
+      const { W } = await import(new URL('./words.js', location.href).href) as { W: { UI: { kiosk: { sightings: { who: Record<string, string> }[] } } } }
+      const names = W.UI.kiosk.sightings.flatMap((s) => Object.keys(s.who)), saw = (window as unknown as Board).__api.saw()
+      return [names.filter((k) => saw.has(k)).length, names.length]
+    })
+    expect([Number(count?.[1]), Number(count?.[2])]).toEqual([n, of])
+    expect(of).toBeGreaterThan(40)
+    // Nothing is cut off: the card is as tall as its words.
+    expect(await notice.evaluate((n) => n.scrollHeight - n.clientHeight), 'words cut off at ' + size.width).toBeLessThanOrEqual(0)
+    expect(problems).toEqual([])
+  }
+})

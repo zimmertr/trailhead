@@ -335,6 +335,9 @@ UI:
       - lead: 'At Dusk:'
         who: { star: shooting stars, aurora: the aurora, foxfire: foxfire in the forest, headlamps: headlamps on the Spires' glacier, alpenglow: alpenglow on the Spires, hoot: an owl calling in the rainforest }
     checklist: 'Field checklist: {n} of {of} found'
+    # On the notice in the register's scene, under the checklist's count (round 8, H11): how many of the
+    # things under `sightings` have been observed this visit. A draft for TJ.
+    count: '{n} of {of} observed'
     notFound: Not found yet
     got: Found
   # The trail register in the kiosk. The note and the thanks are in TJ's own voice.

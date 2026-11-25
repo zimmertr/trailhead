@@ -15,7 +15,7 @@ export const shortDate = d => { const m = /^\d{4}-(\d\d)-(\d\d)/.exec(d || ''); 
 
 // The picture's layout, measured on it (1024 by 640), and the phone's own tall layout (390 by 844).
 const PIC = { postL: 30, postR: 995, beam: 32, back: [140, 46, 832, 385], hinge: 605, map: [240, 104, 250, 212], notice: [530, 118, 136, 106], cup: [695, 268, 110, 118, 185], book: [368, 262, 772, 598, 150, 885] };
-const PHONE = { postL: 10, postR: 380, beam: 56, back: [44, 74, 346, 430], hinge: 700, map: [62, 96, 266, 170], notice: [62, 280, 140, 60], cup: [268, 316, 60, 114, 258], book: [462, 62, 328, 690, 16, 374], pencil: [90, 760] };
+const PHONE = { postL: 10, postR: 380, beam: 56, back: [44, 74, 346, 430], hinge: 700, map: [62, 96, 266, 170], notice: [62, 280, 140, 76], cup: [268, 316, 60, 114, 258], book: [462, 62, 328, 690, 16, 374], pencil: [90, 760] };
 
 // Where everything goes on a screen this size. On a wide screen the picture's layout is scaled to fit,
 // leaving room for the desk below; on a tall one the phone's layout is stretched to the screen.
