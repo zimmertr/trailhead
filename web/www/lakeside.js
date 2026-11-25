@@ -488,12 +488,13 @@ function buildLakeside() {
       // where it meets the lake.
       INFLOW.forEach((c, i) => { const x = ((c - Math.round(farX)) % farS.w + farS.w) % farS.w; if (x > -12 && x < VW + 12) inflowWater(scr, x, hor, t, beds[i]); });
       const tarn = R.tarn;
-      // Sun on the water, and now and then a trout rises.
+      // Sun on the water, and now and then a trout rises; rain takes the glints and holds the fish (ENGINE, Weather).
+      const dry = 1 - smooth(0, 0.3, rainK);
       for (let k = 0; k < 40; k++) {
         const sx = Math.round((hash(k, 1, 150) * 600 - camX * 0.7) % VW + VW) % VW, sy = hor + 8 + Math.round(hash(k, 2, 150) * (-FAR - 20));
-        if (frac(t * 0.8 + hash(k, 3, 150)) < 0.25 * sun && sy < base + shore(camX + sx) - 2) { scr.set(sx, sy, R.white[1]); scr.set(sx + 1, sy, tarn[5]); }
+        if (frac(t * 0.8 + hash(k, 3, 150)) < 0.25 * sun * dry && sy < base + shore(camX + sx) - 2) { scr.set(sx, sy, R.white[1]); scr.set(sx + 1, sy, tarn[5]); }
       }
-      { const k = Math.floor(t / 5.3), u = frac(t / 5.3) * 5.3, rx = Math.round(hash(k, 1, 151) * VW), ry = hor + 14 + Math.round(hash(k, 2, 151) * 18); if (u < 1.6) { const r = 1 + u * 5; for (let a = 0; a < 24; a++) { const x = rx + Math.round(Math.cos(a / 24 * 6.283) * r), y = ry + Math.round(Math.sin(a / 24 * 6.283) * r * 0.35); if (y < base + shore(camX + x) - 1 && y > hor + 2) scr.set(x, y, tarn[5]); } } }
+      { const k = Math.floor(t / 5.3), u = frac(t / 5.3) * 5.3, rx = Math.round(hash(k, 1, 151) * VW), ry = hor + 14 + Math.round(hash(k, 2, 151) * 18); if (u < 1.6 && dry > 0.95) { const r = 1 + u * 5; for (let a = 0; a < 24; a++) { const x = rx + Math.round(Math.cos(a / 24 * 6.283) * r), y = ry + Math.round(Math.sin(a / 24 * 6.283) * r * 0.35); if (y < base + shore(camX + x) - 1 && y > hor + 2) scr.set(x, y, tarn[5]); } } }
       // A loon and her chick paddle along the far side, leaving a wake.
       const ld = t - loonDive; if (ld > 3.4 && !loonUp) { loonUp = true; loonOff += 22; env.sfx('wail'); }
       for (let k = 0; k < 2; k++) {

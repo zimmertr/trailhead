@@ -26,6 +26,19 @@ declare global {
 // all the same (round 8, I7).
 const ENGINE_NOTES = [/^\[JavaScript Warning: "The execution of microtasks on this page was reordered to avoid unsafe execution\."/]
 
+// Headless Firefox in a container has no sound out, and its audio never leaves "suspended" whatever its settings
+// (round 8, I7). So in Firefox a test can check everything about the music but that it is heard; sound.sh
+// renders every set's sound offline, and Chromium runs these tests whole.
+const heard = (browserName: string) => browserName !== 'firefox'
+
+// Opens the page afresh at #hash. The kiosk's sheet stands over the register and leaves #register in the address,
+// and going to the address the page already has reloads it in Chromium but is only a jump within the page in
+// Firefox and WebKit, as the standard says (round 8, I7). So a test that wants the page new says so.
+async function fresh(page: Page, hash: string): Promise<void> {
+  await page.goto(`${origin}/`)
+  await page.goto(`${origin}/#${hash}`)
+}
+
 // Opens an address of the game and returns everything the page complained
 // about: a thrown error, a console error or warning, a file that isn't there.
 async function open(page: Page, address: string): Promise<string[]> {
@@ -386,7 +399,7 @@ test('the alpenglow comes back before sunrise, and a page opened at Dusk does no
 })
 
 // Round 8, E3: three more sets of instruments, each picked from the music menu and each playing the tune.
-test('the three new sets of instruments can be picked and play', async ({ page }) => {
+test('the three new sets of instruments can be picked and play', async ({ page, browserName }) => {
   const problems = await open(page, '/')
   const button = page.locator('#b-track'), menu = page.locator('#music')
   for (const name of ['Mallets', 'Quartet', 'Winds']) {
@@ -396,7 +409,7 @@ test('the three new sets of instruments can be picked and play', async ({ page }
     await expect(menu).toBeHidden()
     // Long enough for the scheduler to have played a bar of it through the set's voices.
     await page.waitForTimeout(1500)
-    expect(await page.evaluate(() => window.__sound()), name).toBe(true)
+    if (heard(browserName)) expect(await page.evaluate(() => window.__sound()), name).toBe(true)
     await button.click()
     await expect(menu.getByRole('menuitemradio', { name, exact: true })).toHaveAttribute('aria-checked', 'true')
     await page.keyboard.press('Escape')
@@ -406,7 +419,8 @@ test('the three new sets of instruments can be picked and play', async ({ page }
 
 // The sound plays only while the page is in front (round 8, note 24): it stops when the window loses focus or
 // the tab is hidden, and comes back when the visitor does. Sound that was never started stays off.
-test('the sound stops while the page is out of sight and comes back with it', async ({ page }) => {
+test('the sound stops while the page is out of sight and comes back with it', async ({ page, browserName }) => {
+  test.skip(!heard(browserName), 'this engine plays no sound here, so there is nothing to stop')
   const problems = await open(page, '/')
   const sound = () => page.evaluate(() => window.__sound())
   const hide = (hidden: boolean) => page.evaluate((h) => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => h }); document.dispatchEvent(new Event('visibilitychange')) }, hidden)
@@ -1134,7 +1148,7 @@ test('the debug panel has the sign and home rings, a list of animal acts and a l
 // Round 8, H14: on Auto the music picks the instruments by the place as it picks the tune: winds in the
 // rainforest, the quartet at the lake, mallets on the ridge and the music box at camp after Dusk. A set picked
 // by hand stays until Auto is picked again.
-test('on Auto the set of instruments follows the place, and a set picked by hand stays', async ({ page }) => {
+test('on Auto the set of instruments follows the place, and a set picked by hand stays', async ({ page, browserName }) => {
   type Band = { __set: () => { name: string; auto: boolean; autoName: string }; __api: { jumpTo: (n: string) => Promise<boolean> } }
   const problems = await open(page, '/')
   const button = page.locator('#b-track'), menu = page.locator('#music')
@@ -1143,7 +1157,7 @@ test('on Auto the set of instruments follows the place, and a set picked by hand
   // The sound is started, so every change goes through the fade that a visitor hears.
   await button.click()
   if (await menu.isVisible()) await page.keyboard.press('Escape')
-  await expect.poll(() => page.evaluate(() => window.__sound()), { timeout: 5_000 }).toBe(true)
+  if (heard(browserName)) await expect.poll(() => page.evaluate(() => window.__sound()), { timeout: 5_000 }).toBe(true)
   expect(await playing()).toBe('Console')
   for (const [scene, name] of [['forest', 'Winds'], ['lakeside', 'Quartet'], ['wall', 'Mallets'], ['camp', 'Console']] as [string, string][]) {
     expect(await go(scene), scene).toBe(true)
@@ -1162,8 +1176,9 @@ test('on Auto the set of instruments follows the place, and a set picked by hand
   const autoStyle = menu.getByRole('menuitemradio', { name: 'Auto: Winds', exact: true })
   await expect(autoStyle).toHaveAttribute('aria-checked', 'true')
   // A set picked by hand stays through a change of place.
+  // It comes in at the bottom of a fade, never in the middle of a bar (ENGINE.md, Music).
   await menu.getByRole('menuitemradio', { name: 'Handheld', exact: true }).click()
-  expect(await playing()).toBe('Handheld')
+  await expect.poll(playing, { timeout: 8_000 }).toBe('Handheld')
   await go('lakeside')
   await page.waitForTimeout(2500)
   expect(await playing()).toBe('Handheld')
@@ -1282,7 +1297,7 @@ for (const [width, height] of [[320, 568], [360, 740], [390, 844], [844, 390], [
     for (const [slug, title] of slugs) { await page.goto(`${origin}/#${slug}`); await expect(page.locator('#card-title')).toHaveText(title, { timeout: 20_000 }); await expect(page.locator('#card')).toBeVisible(); await note('card ' + slug, ['#card', '#tab']) }
     await page.goto(`${origin}/#nowhere-at-all`); await expect(page.locator('#toast')).toBeVisible({ timeout: 20_000 }); await note('off route', ['#card', '#tab', '#toast'])
     for (const sheet of ['map', 'keys', 'kiosk']) { await page.goto(`${origin}/#${sheet}`); await expect(page.locator('#sheet')).toBeVisible({ timeout: 20_000 }); await note('sheet ' + sheet, ['#sheet']) }
-    await page.goto(`${origin}/#register`); await expect(page.locator('#book .spot.open')).toBeVisible({ timeout: 20_000 }); await note('the register box', ['#book', '#book-x'])
+    await fresh(page, 'register'); await expect(page.locator('#book .spot.open')).toBeVisible({ timeout: 20_000 }); await note('the register box', ['#book', '#book-x'])
     await page.locator('#book .spot.open').click(); await expect(page.locator('#book .page.right')).toBeVisible(); await note('the register book', ['#book', '#book-x'])
     // On the smallest phone the hand needs more rows than a page has: the page scrolls, and takes the keyboard.
     if (width === 320) { await expect(page.locator('#book .page.long[tabindex="0"]')).toHaveCount(2); expect(await axe(page).then(found)).toEqual([]) }
@@ -1300,7 +1315,11 @@ for (const [width, height] of [[320, 568], [360, 740], [390, 844], [844, 390], [
 // and, while `inside` is open over the page, the focus leaving it for what lies behind.
 const tabWalk = async (page: Page, parts: string[], inside: string | null) => {
   const out: string[] = []
-  await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); for (const e of document.querySelectorAll('[data-kbd]')) e.removeAttribute('data-kbd') })
+  // The walk starts from a mark at the top of the page. Blurring what has the focus would start it there
+  // instead in Firefox, and in a sheet whose Close is all it holds, Tab would leave the page at once; headless
+  // Firefox has no address bar to come back from (round 8, I7). The mark itself never takes a Tab.
+  await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); for (const e of document.querySelectorAll('[data-kbd]')) e.removeAttribute('data-kbd'); const m = document.createElement('span'); m.id = 'tab-start'; m.tabIndex = -1; document.body.prepend(m); m.focus() })
+  let away = 0
   for (let i = 0; i < 300; i++) {
     await page.keyboard.press('Tab')
     const at = await page.evaluate((box) => {
@@ -1312,9 +1331,13 @@ const tabWalk = async (page: Page, parts: string[], inside: string | null) => {
       return { name, again, ring, left: !!box && !e.closest(box) }
     }, inside)
     if (at.again) break
+    // Out of the page and not back: in a browser with an address bar the next Tab would come round again.
+    if (!at.name && ++away >= 3) break
+    if (at.name) away = 0
     if (at.name && !at.ring) out.push(`takes the focus without showing it: ${at.name}`)
     if (at.left) out.push(`the focus leaves ${inside}: ${at.name}`)
   }
+  await page.evaluate(() => document.getElementById('tab-start')?.remove())
   for (const m of await page.evaluate((sels) => {
     const miss: string[] = []
     for (const sel of sels) for (const root of document.querySelectorAll(sel)) for (const e of root.querySelectorAll<HTMLElement>('button, a[href], select, input, textarea, summary, [role=menuitem], [role=menuitemradio], [role=slider], [tabindex="0"]')) {
@@ -1358,7 +1381,7 @@ test('every card, sheet and menu passes the accessibility checker by Day and at 
     for (const [slug, title] of slugs) { await page.goto(`${origin}/#${slug}`); await expect(page.locator('#card-title')).toHaveText(title, { timeout: 20_000 }); await note('card ' + slug, ['#card', '#top', '#bar']) }
     await page.goto(`${origin}/#nowhere-at-all`); await expect(page.locator('#card-title')).toHaveText(/off route/i, { timeout: 20_000 }); await note('off route', ['#card', '#top', '#bar'])
     for (const sheet of ['map', 'keys', 'kiosk']) { await page.goto(`${origin}/#${sheet}`); await expect(page.locator('#sheet')).toBeVisible({ timeout: 20_000 }); await expect(page.locator('#sheet')).toHaveAccessibleName(/\S/); await note('sheet ' + sheet, ['#sheet'], '#sheet'); await page.keyboard.press('Escape'); if (await page.locator('#sheet').isVisible()) all.push(`sheet ${sheet}: Escape does not close it`) }
-    await page.goto(`${origin}/#register`); await expect(page.locator('#book .spot.open')).toBeVisible({ timeout: 20_000 }); await note('the register box', ['#book', '#book-x'])
+    await fresh(page, 'register'); await expect(page.locator('#book .spot.open')).toBeVisible({ timeout: 20_000 }); await note('the register box', ['#book', '#book-x'])
     await page.locator('#book .spot.open').focus(); await page.keyboard.press('Enter'); await expect(page.locator('#book .page.right')).toBeVisible(); await note('the register book', ['#book', '#book-x'])
     await page.keyboard.press('Escape'); await page.waitForTimeout(1500); if (await page.locator('#book').isVisible()) all.push('the register book: Escape does not close the register')
     await page.goto(`${origin}/#page`); await expect(page.locator('#plain')).toBeVisible(); await note('the page of text', ['#plain'], '#plain')

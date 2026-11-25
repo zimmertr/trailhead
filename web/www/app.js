@@ -110,6 +110,10 @@ function noticeAt(B, k) {
 }
 // The notice shows the lines its paper holds: on a small screen the last ones go, whole, and the board has them all.
 function fitNotice() { for (const n of book.querySelectorAll('.notice')) while (n.scrollHeight > n.clientHeight + 1 && n.children.length > 2) n.lastElementChild.remove(); }
+// The book's heads and handwritten lines are set to a page as narrow as a phone's, and Firefox sets their fonts a
+// few pixels wider than Chromium, which ran a line past the page's edge (round 8, I7). A line that does not fit
+// is written a pixel smaller until it does, as it is put on the page and before the next line is placed under it.
+function fitLine(h, p) { for (let s = parseFloat(getComputedStyle(h).fontSize), n = 0; n < 4 && h.offsetLeft + Math.max(h.offsetWidth, h.scrollWidth) > p.clientWidth; n++) h.style.fontSize = --s + 'px'; }
 function fillKiosk(P) {
   const k = api.scale(), at = g => 'left:' + g.x * k + 'px;top:' + g.y * k + 'px;width:' + g.w * k + 'px;height:' + g.h * k + 'px;';
   const d = api.done(), B = P.book, mapName = $('b-map').textContent.trim();
@@ -129,7 +133,7 @@ function fillBook() {
   const right = page(R, 'right');
   right.append(el('span', { class: 'head', style: 'left:' + 3 * k + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.date }), el('span', { class: 'head', style: 'left:' + (col + 3 * k) + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.who }));
   const left = page(P.left, 'left');
-  book.replaceChildren(left, right);
+  book.replaceChildren(left, right); for (const h of right.querySelectorAll('.head')) fitLine(h, right);
   book.append(...noticeAt(P.board, k)); fitNotice();
   // The left-hand page (L4): until the lake, the peak and one Spires summit are done, TJ's note of what is
   // still to do, ticked off as each is done. After that it is blank, and the close-up lays the pencil on it.
@@ -155,7 +159,7 @@ function fillBook() {
   } else {
     const st = "font-family:'Caveat',cursive;font-size:" + (pitch * 0.95).toFixed(1) + 'px;line-height:' + pitch + 'px;color:#1c1a24;--tilt:-0.4deg;--drop:' + (pitch * 0.14).toFixed(1) + 'px;left:' + 14 * k + 'px;right:' + 6 * k + 'px;';
     let r = 0;
-    const line = (kids, cls = '') => { const p = el('p', { class: 'hand ' + cls, style: st + 'top:' + (top + r * pitch) + 'px' }, ...kids); left.append(p); r += Math.max(1, Math.round(p.offsetHeight / pitch)); };
+    const line = (kids, cls = '') => { const p = el('p', { class: 'hand ' + cls, style: st + 'top:' + (top + r * pitch) + 'px' }, ...kids); left.append(p); fitLine(p, left); r += Math.max(1, Math.round(p.offsetHeight / pitch)); };
     line([T.hi]); line([T.need]);
     for (const [id, name] of [['lake', DEST_NAMES.lake], ['stack', DEST_NAMES.stack], ['spires', T.spires(DEST_NAMES.spires)]]) line([el('span', { class: 'box' }), name], 'todo' + (done[id] ? ' done' : ''));
     r++; line([T.after]); line([T.sig], 'sig');
@@ -168,7 +172,7 @@ function fillBook() {
     if (e.pending) t.append(el('span', { class: 'pending', text: UI.register.pending }));
     // A date is kept to its column: on a phone the column is narrow, so the date is written smaller.
     right.append(el('span', { class: 'hand', style: st + 'white-space:nowrap;font-size:' + Math.min(pitch * 0.9 * fz, (col - 5 * k) / 2.7).toFixed(1) + 'px;left:' + 3 * k + 'px;width:' + (col - 5 * k) + 'px', text: shortDate(e.date) }), t);
-    at += Math.max(1, Math.round(t.offsetHeight / pitch));
+    fitLine(t, right); at += Math.max(1, Math.round(t.offsetHeight / pitch));
   });
   // A page with more written on it than it holds scrolls (style.css), a paragraph at a time, and takes the keyboard.
   // What shows of it ends on a rule, so no line is cut through.
@@ -631,7 +635,7 @@ addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input, textarea')) return;
   audio.start();
   if (e.code === 'Backquote' && !e.metaKey && !e.ctrlKey && !e.altKey) { openDebug(debug.hidden); e.preventDefault(); return; }
-  if (e.code === 'Escape' && !book.hidden && sheet.hidden) { closeBook(); e.preventDefault(); return; }
+  if (e.code === 'Escape' && !book.hidden && sheet.hidden && plain.hidden) { closeBook(); e.preventDefault(); return; }
   if (e.code === 'Escape') { if (!plain.hidden) leavePlain(); else if (!sheet.hidden) closeSheet(); else if (!debug.hidden) openDebug(false); else openSheet('map'); e.preventDefault(); return; }
   if (!sheet.hidden || !plain.hidden) return;
   // A key held with Command, Control or Alt belongs to the browser.

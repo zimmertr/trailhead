@@ -96,8 +96,9 @@ export function makeLife(W, STILL) {
     hoot: { slot: 70, first: 30, dur: 8, ok: () => FOREST.length > 1 && mix > 0.5 }
   };
   const { now, start } = makeClock(EV), heard = {};
-  // One started by its button happens where the debug panel looks (where() below): its count is -1 then.
-  const on = (k, t) => { const e = EV[k].ok() ? now(k, t) : null; if (e && e[2]) e[0] = -1; return e; }, nth = (n, len) => n < 0 ? 0 : n % len;
+  // One started by its button happens where the debug panel looks (where() below): its count is below 0 then,
+  // a different one for each press, so a second press makes its sound again (round 8 review).
+  const on = (k, t) => { const e = EV[k].ok() ? now(k, t) : null; if (e && e[2]) e[0] = -1 - e[0]; return e; }, nth = (n, len) => n < 0 ? 0 : n % len;
   // A sound once for each happening of an event, and only when it is in the view.
   const sound = (env, key, n, name, inSight) => { if (inSight && heard[key] !== n) { heard[key] = n; env.sfx(name); } };
   const RAVEN = [raven(0), raven(1)], G = R.granite, ROCKDUST = [R.white[0], R.sand[2], R.sand[1]];

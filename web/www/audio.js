@@ -116,8 +116,11 @@ export function makeAudio() {
 
   // held: the sound was running when the page went out of sight, and is waiting for it to come back.
   let held = false;
+  // A resume or suspend still waiting when the visitor leaves the page is refused (Firefox says "Navigated away
+  // from page"), and so is one on a machine with no sound out. Neither is anything to report.
+  const quietly = p => { if (p && p.catch) p.catch(() => {}); };
   function start() {
-    if (ctx) { held = false; if (ctx.state === 'suspended') ctx.resume(); return; }
+    if (ctx) { held = false; if (ctx.state === 'suspended') quietly(ctx.resume()); return; }
     const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
     ctx = new AC();
     // The page shows whether sound is running yet, so it is told when that changes.
@@ -149,7 +152,8 @@ export function makeAudio() {
   // The music fades out, changes and fades back in. What changes is the tune, the set of instruments, or
   // both: a tune that stays goes on from where it was, through the new instruments.
   function fadeTo(i, quick) {
-    loops = 0; if (i === cur && swap == null && set === wantSet()) return;
+    if (i === cur && swap == null && set === wantSet()) return;
+    loops = 0;
     if (!ctx) { cur = i; set = wantSet(); return; }
     const first = swap == null; swap = i; if (!first) return;
     music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(0.0001, ctx.currentTime, quick ? 0.06 : 0.3);
@@ -359,7 +363,7 @@ export function makeAudio() {
     live: () => !!ctx && ctx.state === 'running',
     // The page has gone out of sight, or come back (round 8, note 24): the sound stops with it and comes back
     // with it, if it was running when it went.
-    away(gone) { if (!ctx) return; if (gone) { if (ctx.state === 'running') { held = true; ctx.suspend(); } } else if (held) { held = false; ctx.resume(); } },
+    away(gone) { if (!ctx) return; if (gone) { if (ctx.state === 'running') { held = true; quietly(ctx.suspend()); } } else if (held) { held = false; quietly(ctx.resume()); } },
     setMuted(m) { muted = !!m; if (master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.05); try { localStorage.setItem('trailhead.muted', muted ? '1' : '0'); } catch { /* private window */ } },
     track: () => ({ index: swap == null ? cur : swap, name: TRACKS[swap == null ? cur : swap].name, count: TRACKS.length, auto }),
     // The scene has changed: in Auto the music changes with it.
@@ -380,7 +384,8 @@ export function makeAudio() {
     endPreview() { solo = null; auto = true; turn = 0; fadeTo(PLACES[place][0], true); },
     // The music menu's styles: -1 is Auto, which follows the place, and a set picked by its number stays.
     setSet(i) { if (i < 0) { ownSet = null; try { localStorage.removeItem('trailhead.set'); } catch { /* private window */ } fadeTo(swap == null ? cur : swap, true); return SETS[autoSet()].name; }
-      set = ownSet = ((i % SETS.length) + SETS.length) % SETS.length; trimTo(); try { localStorage.setItem('trailhead.set', String(set)); } catch { /* private window */ } return SETS[set].name; },
+      // A set picked by hand comes in at the bottom of a fade too, never in the middle of a bar (round 8 review).
+      ownSet = ((i % SETS.length) + SETS.length) % SETS.length; try { localStorage.setItem('trailhead.set', String(ownSet)); } catch { /* private window */ } fadeTo(swap == null ? cur : swap, true); return SETS[ownSet].name; },
     // How much the music steps back: 0 out in the world, 1 while a card is being read, 2 under a sheet.
     focus(lv) { if (!music) return; level = [0.22, 0.15, 0.13][lv] || 0.22; if (swap == null) { music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(level, ctx.currentTime, 0.25); } tone0.frequency.setTargetAtTime(lv === 2 ? 900 : 16000, ctx.currentTime, 0.2); }
   };

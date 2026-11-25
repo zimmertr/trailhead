@@ -34,13 +34,15 @@ const CASES = [
   ['the map, stood at the Trailhead', 'arrive=0', null],
   ['the map, running', 'arrive=0', run],
   ['the map, zoomed out, every event', 'arrive=0&' + EVENTS, () => { for (let i = 0; i < 6; i++) window.__api.zoom(-1); }],
-  ...['forest', 'lakeside', 'larches', 'wall', 'approach', 'camp'].map(s => ['the ' + s + ', running', 'arrive=0', new Function('return window.__api.jumpTo("' + s + '").then(() => window.__api.start())')]),
-  ['a spire, climbing', 'arrive=0', () => window.__api.setRoute('spire:' + window.__api.spires()[0]).then(() => window.__api.start())],
+  // A scene's case says which scene it times, and fails when another is on screen (a name the game does not know,
+  // or a scene over before the frames counted).
+  ...['forest', 'lakeside', 'larches', 'wall', 'approach', 'camp'].map(s => ['the ' + s + ', running', 'arrive=0', new Function('return window.__api.jumpTo("' + s + '").then(() => window.__api.start())'), s]),
+  ['a spire, climbing', 'arrive=0', () => window.__api.setRoute('spire:' + window.__api.spires()[0]).then(() => window.__api.start()), 'climb'],
   ['the register', 'arrive=0', () => window.__api.setRoute('register').then(() => window.__api.start())],
   ['off route', 'arrive=0#no-such-trail', null]
 ].filter(c => c[0].includes(only));
 
-async function time(name, query, before, dusk) {
+async function time(name, query, before, dusk, want) {
   const page = await browser.newPage({ viewport: { width: +w, height: +h }, deviceScaleFactor: 3, hasTouch: true, isMobile: true });
   const problems = [];
   page.on('pageerror', e => problems.push('pageerror: ' + e.message));
@@ -67,6 +69,7 @@ async function time(name, query, before, dusk) {
     hot = [...own].filter(([k]) => !k.startsWith('(idle)') && !k.startsWith('(program)')).sort((a, b) => b[1] - a[1]).slice(0, 10);
   }
   const { cost, scene, slow, gaps } = await page.evaluate(() => ({ cost: window.__cost.slice(), scene: window.__info && window.__info.scene, slow: window.__slow.slice(), gaps: window.__gaps.slice() }));
+  if (want && scene !== want) problems.push('timed ' + scene + ', not ' + want);
   await page.close();
   cost.sort((a, b) => a - b);
   const at = f => cost[Math.min(cost.length - 1, Math.floor(cost.length * f))] || 0, r = v => Math.round(v * 10) / 10;
@@ -74,7 +77,7 @@ async function time(name, query, before, dusk) {
 }
 
 const rows = [];
-for (const [name, query, before] of CASES) for (const dusk of [false, true]) rows.push(await time(name, query, before, dusk));
+for (const [name, query, before, want] of CASES) for (const dusk of [false, true]) rows.push(await time(name, query, before, dusk, want));
 await browser.close(); server.close();
 fs.mkdirSync('/out/slow', { recursive: true });
 fs.writeFileSync('/out/slow/' + label + '.json', JSON.stringify({ label, rate: +rate, w: +w, h: +h, rows }));

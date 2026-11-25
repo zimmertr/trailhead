@@ -466,7 +466,7 @@ export function makeCritters(W, opts = {}) {
   // A spot is free when no other land animal stands there or is walking there (round 8, I6: in an hour of the
   // soak two elk picked the same spot and stood one on top of the other). Two are kept apart by most of their
   // widths across, or 4 pixels of depth. What a cub does beside its twin or its mother has spots of its own.
-  const free = (a, x, y) => { const aw = a.bm ? a.bm.w : 10; for (const b of items) { if (b === a || b === a.with || b.col !== 'land') continue; const bw = b.bm ? b.bm.w : 10, gap = (aw + bw) * 0.35;
+  const free = (a, x, y, skip = null) => { const aw = a.bm ? a.bm.w : 10; for (const b of items) { if (b === a || b === a.with || b === skip || b.col !== 'land') continue; const bw = b.bm ? b.bm.w : 10, gap = (aw + bw) * 0.35;
     if (Math.abs(x - (b.fx ?? b.x)) < gap && Math.abs(y - (b.fy ?? b.y)) < 4) return false; if (b.st === 'walk' && b.tx != null && Math.abs(x - b.tx) < gap && Math.abs(y - b.ty) < 4) return false; } return true; };
   const stroll = a => { const far = a.mum && a.mum.st === 'walk', cx = a.mum ? (far ? a.mum.tx : a.mum.x) : a.hx, cy = a.mum ? (far ? a.mum.ty : a.mum.y) + 5 : a.hy;
     for (let k = 0; k < 10; k++) { const [tx, ty] = spotNear(a, cx, cy); if (a.ok(tx, ty) && free(a, tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return true; } }
@@ -474,7 +474,8 @@ export function makeCritters(W, opts = {}) {
   // To a spot it may stand on, to begin an act there (goal) once it arrives. The spot need not be in its own
   // country (a trunk stands in the trees, a ledge is narrow): any ground a land animal may stand on will do,
   // by a straight way it may walk, and it wanders home afterwards.
-  const goTo = (a, x, y, goal) => { if (!land(x, y) || !landWay(a.fx, a.fy, x, y)) return false; a.tx = x; a.ty = y; a.st = 'walk'; a.goal = goal; return true; };
+  // Like every other way of moving one, the spot must be clear of the others (round 8 review); skip: the one it walks to.
+  const goTo = (a, x, y, goal, skip = null) => { if (!land(x, y) || !free(a, x, y, skip) || !landWay(a.fx, a.fy, x, y)) return false; a.tx = x; a.ty = y; a.st = 'walk'; a.goal = goal; return true; };
   // Two of a kind meet head to head (a nanny and her kid): the other comes to a spot in front of this one,
   // which waits, and both begin when it is there.
   const meet = (a, name, t) => {
@@ -482,7 +483,7 @@ export function makeCritters(W, opts = {}) {
     if (!b) return false;
     const gap = a.f[name][0].w - a.f[name][0].ox + b.f[name][0].w - b.f[name][0].ox - 6;
     // The other comes to this one, or, where it cannot (a ledge between them), this one goes to the other.
-    for (const [p, q] of [[a, b], [b, a]]) for (const s of [q.fx >= p.fx ? 1 : -1, q.fx >= p.fx ? -1 : 1]) for (const dy of [0, -2, 2, -4, 4]) if (goTo(q, p.fx + s * gap, p.fy + dy, name)) { b.with = a; a.with = b; turn(p, s); p.st = 'look'; p.until = t + 14; p.bm = p.f.look; p.goal = null; return true; }
+    for (const [p, q] of [[a, b], [b, a]]) for (const s of [q.fx >= p.fx ? 1 : -1, q.fx >= p.fx ? -1 : 1]) for (const dy of [0, -2, 2, -4, 4]) if (goTo(q, p.fx + s * gap, p.fy + dy, name, p)) { b.with = a; a.with = b; turn(p, s); p.st = 'look'; p.until = t + 14; p.bm = p.f.look; p.goal = null; return true; }
     return false; };
   // A sow rubs against the nearest trunk she can walk up to: she stands beside its foot and leans in.
   const toTrunk = a => { let got = null, bd = 90;
@@ -515,6 +516,9 @@ export function makeCritters(W, opts = {}) {
   const arrive = (a, t) => { a.fx = a.tx; a.fy = a.ty; a.x = Math.round(a.fx); a.y = Math.round(a.fy); const g = a.goal; a.goal = null;
     // Come to rest on top of another (the end of a way home that another took too): a few steps aside first.
     if (!g && !free(a, a.fx, a.fy)) { const w = a.bm ? a.bm.w : 10; for (const [dx, dy] of [[w, 0], [-w, 0], [w * 0.6, 5], [-w * 0.6, 5], [w * 0.6, -5], [-w * 0.6, -5], [w * 1.5, 0], [-w * 1.5, 0]]) { const x = a.fx + dx, y = a.fy + dy; if (land(x, y) && free(a, x, y) && landWay(a.fx, a.fy, x, y)) { a.tx = x; a.ty = y; a.st = 'walk'; return; } } }
+    // A pair act begins only if the other is still waiting for it, in front of it: one that gave up and
+    // wandered off (it waits 14 seconds) leaves this one to graze instead (round 8 review).
+    const mate = a.with; if (g && ACTS[g] && ACTS[g].pair && (!mate || mate.with !== a || mate.st === 'walk' || Math.abs(mate.fy - a.fy) > 6 || Math.abs(mate.fx - a.fx) > a.f[g][0].w - a.f[g][0].ox + mate.f[g][0].w - mate.f[g][0].ox)) { if (mate && mate.with === a) mate.with = null; a.with = null; a.st = 'graze'; a.until = t + 5 + rand() * 10; return; }
     if (!g) { a.st = 'graze'; a.until = t + 5 + rand() * 10; return; }
     act(a, g, t);
     if (g === 'rub' || g === 'dip') { turn(a, a.lean[2]); a.push = a.lean[3]; }
@@ -530,7 +534,7 @@ export function makeCritters(W, opts = {}) {
   const endAct = (a, t) => {
     // Where she rubbed, for her cubs to try after her (H2): the trunk, and which side of it she stood.
     if (a.sow && a.st === 'act' && a.act === 'rub' && a.lean) a.rubbed = { x: a.lean[0] + a.lean[2] * (a.lean[3] + 8), y: a.lean[1] - 1, s: -a.lean[2], t };
-    const b = a.with; a.with = null; if (b) b.with = null; a.push = 0; a.hop = 0; a.st = 'look'; a.until = t + 1 + rand() * 2; a.bm = a.f.look;
+    const b = a.with; a.with = null; a.lead = false; if (b) { b.with = null; b.lead = false; } a.push = 0; a.hop = 0; a.st = 'look'; a.until = t + 1 + rand() * 2; a.bm = a.f.look;
     // Two that have butted heads back off from each other once it is over, so they do not graze and lie down
     // head to head for minutes after (round 8, I6).
     if (b && b.walker) for (const [p, q] of [[a, b], [b, a]]) { const s = p.fx >= q.fx ? 1 : -1, w = p.bm ? p.bm.w : 10; for (const d of [0.6, 0.9, 1.2]) { const x = p.fx + s * w * d, y = p.fy; if (land(x, y) && free(p, x, y) && landWay(p.fx, p.fy, x, y)) { p.tx = x; p.ty = y; p.st = 'walk'; p.goal = null; break; } } } };
@@ -597,7 +601,7 @@ export function makeCritters(W, opts = {}) {
     if (name !== 'climb') { sqAct(a, name, t); return true; }
     // To the foot of the nearest trunk it can run to, on whichever side of it has ground it may stand on.
     let got = null, bd = 60; for (const T of TRUNKS) { const d = Math.hypot(T.x - a.fx, (T.y - a.fy) / 0.6); if (d >= bd) continue; for (const s of [-1, 1]) for (const gap of [3, 5, 7]) { const x = T.x + s * gap, y = T.y + 1; if (land(x, y) && way(pass, a.fx, a.fy, x, y)) { got = [x, y, -s * gap]; bd = d; break; } } }
-    if (!got) return false; a.tx = got[0]; a.ty = got[1]; a.lean = got[2]; a.st = 'run'; a.goal = 'climb'; return true; };
+    if (!got || !free(a, got[0], got[1])) return false; a.tx = got[0]; a.ty = got[1]; a.lean = got[2]; a.st = 'run'; a.goal = 'climb'; return true; };
   // Up the trunk, a while clinging there, and down again: drawn on the trunk (ofx), its feet still on the ground beside it.
   const sqActing = (a, t) => { const [fps] = SQ_ACT[a.act], s = t - a.t0, left = a.until - t, fr = a.f[a.act];
     if (t >= a.until) { a.st = 'sit'; a.bm = a.f.sit; a.hop = 0; a.ofx = 0; a.until = t + 4 + rand() * 9; return; }
@@ -653,6 +657,7 @@ export function makeCritters(W, opts = {}) {
     if (name === 'whistle') { a.call = t; return true; }
     if (name === 'dash') { if (a.dive != null && t - a.dive < 4.6) return false; a.call = t; a.dive = t; return true; }
     let down = 0; if (a.perch) { for (let dy = 5; dy <= 9 && !down; dy++) if (grassAt(a.x, a.y + dy) && grassAt(a.x + (a.flip ? -11 : 11), a.y + dy)) down = dy; if (!down) return false; }
+    else if (!col.canBe('land', a.x + (a.flip ? -11 : 11), a.y, 0) || !offIce(a.x + (a.flip ? -11 : 11), a.y)) return false;
     const [, lo, hi] = MAR_ACT[name]; a.st = 'act'; a.act = name; a.t0 = t; a.len = lo + rand() * (hi - lo); a.down = down; a.drop = 0; a.hop = 0; return true; };
   // How far into its act it is: under 0 it is on its way down, over a.len on its way back up.
   const marAt = (a, t) => t - a.t0 - (a.down ? HOP : 0);
@@ -665,7 +670,9 @@ export function makeCritters(W, opts = {}) {
     // Clicked, it whistles and dives into its burrow, and comes back up a few seconds later (note 10).
     a.gone = (a.dive != null && t > a.dive + 1.2 && t < a.dive + 4.6) || (a.abed != null && t >= a.abed);
     const up = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / MAR.cycle + a.n * 0.37) < MAR.up / MAR.cycle || (a.call != null && t - a.call < MAR.up);
-    if (up && !a.wasUp) a.rose = t; else if (!up && a.wasUp && rand() < 0.5) a.flip = !a.flip;
+    // It turns round only between acts: turned in the middle of a wrestle, it and its partner would jump to
+    // the other side, onto ground nobody checked (round 8 review).
+    if (up && !a.wasUp) a.rose = t; else if (!up && a.wasUp && a.st !== 'act' && rand() < 0.5) a.flip = !a.flip;
     a.wasUp = up;
     if (a.st === 'act') { marActing(a, t); return; }
     if (a.perch) { a.bm = up ? mar.up : mar.sun; if (!up && t >= a.until) { a.until = t + 8 + rand() * 14; if (rand() < 0.4) marBegin(a, rand() < 0.5 ? 'wrestle' : 'dig', t); } return; }
@@ -1496,7 +1503,8 @@ export function makeCritters(W, opts = {}) {
   }
 
   // Each starts on one of its five things, picked by the same dice as its home (so not at all with homes=0).
-  if (draw) for (const a of items) if (a.does) { begin(a, a.does[Math.floor(draw() * a.does.length)], 0); a.say = null; }
+  // Silently: a bugle picked here makes no answer from off the map either, since nobody heard it (round 8 review).
+  if (draw) for (const a of items) if (a.does) { begin(a, a.does[Math.floor(draw() * a.does.length)], 0); a.say = null; a.answerAt = null; }
   return {
     items,
     // Sounds the animals made while they were drawn this frame; the map plays them and empties the list.
@@ -1515,7 +1523,7 @@ export function makeCritters(W, opts = {}) {
     draw(scr, a, ox, oy, t) {
       if (a.critter === 'whale') return drawWhale(scr, a, ox, oy, t);
       if (a.gone) return;
-      if (inClear(scr, a.x - ox, a.y - oy - (a.perch || 0))) saw(sawAs(a));
+      if (a.bm !== EAGLE_BM.none && inClear(scr, a.x - ox, a.y - oy - (a.perch || a.lift || 0))) saw(sawAs(a));
       if (a.walker || (a.critter === 'marmot' && !a.perch)) scr.shadow(a.x - ox, a.y - oy, a.critter === 'marmot' ? 5 : 7, 1);
       else if (a.cub && !a.lift) scr.shadow(a.x - ox, a.y - oy, 4, 1);
       // A marmot that has just sat up whistles, if it is being drawn (so only when it is on screen).

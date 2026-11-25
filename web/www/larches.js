@@ -458,7 +458,9 @@ function buildLarches() {
       const pn = t - poked.nanny, pkid = t - poked.kid, pb = t - poked.billy;
       const near = Math.abs(mx - nanny.x) < 70 || pn < 2.4, spring = pkid < 2.1 ? Math.abs(Math.sin(pkid * Math.PI / 0.7)) : 0, hop = spring > 0.2 || frac(t / 2.7) < 0.12;
       // The conditions board counts a goat or the pika as seen once one is in the view (round 8, F2).
-      if ([nanny, kidAt, billy].some(g => g.x - camX > 8 && g.x - camX < VW - 8 && !covered(g.x - camX, base + g.y))) saw('goat');
+      // The panels are asked where it is drawn: the frame is mirrored on a leg walked the other way (round 8 review).
+      const onScr = x => dir < 0 ? VW - 1 - (x - camX) : x - camX;
+      if ([nanny, kidAt, billy].some(g => g.x - camX > 8 && g.x - camX < VW - 8 && !covered(onScr(g.x), base + g.y))) saw('goat');
       list.push({ bm: near ? G.look : G.graze, x: nanny.x, y: nanny.y, flip: pn < 2.4 ? false : near && mx < nanny.x });
       list.push({ bm: hop ? G.hop : G.kid, x: kidAt.x, y: kidAt.y - (spring > 0 ? Math.round(7 * spring) : hop ? 2 : 0), z: kidAt.y, flip: pkid < 2.1 ? (Math.floor(pkid / 0.7) & 1) === 1 : false });
       // The billy bounds 18 along the verge and back over three seconds, hopping as he goes.
@@ -466,7 +468,7 @@ function buildLarches() {
       list.push({ bm: pb < 3 ? G.hop : Math.abs(mx - billy.x) < 160 ? G.look : G.stand, x: billy.x + billyOff, y: billy.y - (pb < 3 ? Math.round(3 * Math.abs(Math.sin(pb * 7))) : 0), z: billy.y, flip: pb < 3 ? pb > 1.5 : mx < billy.x });
       // The pika. At ease it goes about its haystack: a hop over, a pause with a mouthful of flowers, a hop back.
       // As he comes up it calls and bolts, from wherever it is, and comes back to its rock when he is well away.
-      { const a = shy.step(t, Math.abs(mx - px - 11)); if (a && px - camX > 8 && px - camX < VW - 8 && !covered(px - camX, base + py)) saw('pika');
+      { const a = shy.step(t, Math.abs(mx - px - 11)); if (a && px - camX > 8 && px - camX < VW - 8 && !covered(onScr(px), base + py)) saw('pika');
         if (shy.called) env.sfx('eep');
         if (a && a.sit) {
           if (!pk0.easy) pk0.t0 = t;
