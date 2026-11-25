@@ -1014,6 +1014,21 @@ for (const r of routes) {
   for (let n = end; n >= 0 && coast(P[n][0], P[n][1]) > -32; n--) MOUTHS.push([P[n][0], P[n][1], 0.3 + 0.7 * smooth(-14, -30, coast(P[n][0], P[n][1]))]);
 }
 const mouthFog = (u, v, cs) => { let f = 1; for (const [a, b, least] of MOUTHS) { const e = lerp(least, 1, smooth(4, 15, Math.hypot(a - u, b - v))); if (e < f) f = e; } return lerp(f, 1, smooth(-3, 5, cs)); };
+// Where driftwood gathers (round 8, H7): on a real beach the sea leaves its logs in jams at the creek
+// mouths, where a creek's own wood meets the tide's, and against the headlands, which catch what the swell
+// carries alongshore; the sand between is clean. JAMS is those spots as [u, v], found from the land: a
+// mouth is where a creek's water crosses the dry sand above the high-water line, and a headland is where
+// the shore stands farthest out from its own line (the lowest of the coast's wander): the two that stand
+// out most, each 110 or more from any other spot. jamAt answers how much driftwood a spot gets: all of it within 30 of a jam, none past 80.
+const JAMS = (() => {
+  const out = [], far = (u, v, d) => out.every(([a, b]) => Math.hypot(a - u, (b - v) * 1.5) > d), wet = [], dry = [];
+  for (let v = 2; v < VD - 2; v += 2) for (let u = 4; u < 700; u += 2) { const c = coast(u, v); if (c > -10 || c < -16) continue; if (water[at(u, v)]) wet.push([u, v]); else dry.push([u, v, fbm(u / 80, v / 80, 80, 3)]); }
+  for (const [u, v] of wet) if (far(u, v, 40)) { const near = wet.filter(([a, b]) => Math.hypot(a - u, b - v) < 20); out.push([near.reduce((t, q) => t + q[0], 0) / near.length, near.reduce((t, q) => t + q[1], 0) / near.length, 'mouth']); }
+  dry.sort((a, b) => a[2] - b[2]);
+  let heads = 0; for (const [u, v, n] of dry) { if (n > 0.38 || heads >= 2) break; if (far(u, v, 110)) { out.push([u, v, 'head']); heads++; } }
+  return out;
+})();
+const jamAt = (u, v) => { let k = 0; for (const [a, b] of JAMS) k = Math.max(k, smooth(80, 30, Math.hypot(a - u, (b - v) * 1.5))); return k; };
 if (B) { g.set(B.g); mb.set(B.mb); zb.set(B.zb); painted.set(B.painted); bare.set(B.bare); fogField.set(B.fog); } else {
 for (let y = 0; y < SH; y++) for (let x = 0; x < NW; x++) g[px(x, y)] = skyAt(x, y);
 // The far ranges, which really are a backdrop: pale, beyond the last of the ground.
@@ -1211,13 +1226,13 @@ for (const br of BRIDGES) {
 // Wildflowers are not painted into the ground any more: they are things that stand up and sway (D5a,
 // below, with the trees).
 // Small driftwood along the beach: bleached branches, each with its shadow under it (round 5, T8: they were
-// the grey of rock). Fewer since round 8 (B4, TJ): the first 420 throws of the same dice, so those left lie
-// where they lay.
+// the grey of rock). Fewer since round 8 (B4, TJ), and since H7 they lie round the jams, so the dice are
+// thrown more often for about as many branches as B4 left.
 {
   const rand = rng(44390);
-  for (let n = 0; n < 420; n++) {
+  for (let n = 0; n < 1100; n++) {
     const x = (rand() * 700) | 0, y = 500 + ((rand() * (SH - 500)) | 0), v = zb[px(x, y)]; if (v >= VD) continue;
-    const cs = coast(x, v); if (cs > -3 || cs < -13) continue;
+    const cs = coast(x, v); if (cs > -3 || cs < -13 || hash(n, 3, 44391) >= jamAt(x, v)) continue;
     const len = 6 + rand() * 12, a = (rand() - 0.5) * 0.9 + 0.6;
     for (let k = 0; k < len; k++) { const qx = Math.round(x + Math.cos(a) * k), qy = Math.round(y + Math.sin(a) * k * 0.5); if (qx > 0 && qy > 0 && qx < NW && qy < SH - 1 && !water[at(qx, Math.round(zb[px(qx, qy)]))] && sameGround(px(x, y), px(qx, qy))) { g[px(qx, qy)] = R.gold[k % 5 === 3 ? 4 : 6]; g[px(qx, qy + 1)] = R.sand[0]; } }
   }
@@ -1633,14 +1648,25 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
       for (let n = 0; n < 60 && stood.length < 4; n++) { const u = gu + (gr() * 2 - 1) * ru * 0.7, v = gv + (gr() * 2 - 1) * rv * 0.7; if (!open(u, v, 1.3) || !wooded(u, v) || stood.some(([a, b]) => Math.hypot(a - u, (b - v) * 1.6) < 16)) continue; stood.push([u, v]); plant(giants[(gr() * giants.length) | 0], u, v); }
       for (let n = 0; n < 40; n++) { const u = gu + (gr() * 2 - 1) * ru, v = gv + (gr() * 2 - 1) * rv; if (ell([gu, gv, ru, rv], u, v) > 1 || !open(u, v, 1.1)) continue; things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); } } }
   // Driftwood above the high-water line (round 5, T8): eight logs' worth of drawings, each at its own angle.
-  // The dice are rolled as they were, so every log lies where its blob lay.
-  { const dr = rng(4730), drift = Array.from({ length: 8 }, (_, i) => makeDriftwood(i)); tag(drift, 'drift');
-    for (let n = 0; n < 2600; n++) { const u = dr() * 700, v = dr() * VD, k = (dr() * 8) | 0, c = coast(u, v); if (c > -20 && c < -9 && dr() < 0.2 && !water[at(Math.round(u), Math.round(v))]) put(drift[k], u, v); }
-    // More of it, on dice of their own: a Pacific beach is lined with driftwood. Each lies 26 px or more from
-    // the next, on dry sand in the same band above the high-water line. Ten logs in all since round 8 (B4,
-    // TJ: sixteen was too many).
-    const more = rng(4734), lie = things.filter(t => drift.includes(t.bm)).map(t => [t.u, t.v]);
-    for (let n = 0; n < 3000 && lie.length < 10; n++) { const u = more() * 700, v = more() * VD, k = (more() * 8) | 0, c = coast(u, v); if (c > -20 && c < -9 && !water[at(Math.round(u), Math.round(v))] && !lie.some(([p, q]) => Math.hypot(p - u, (q - v) * 1.5) < 26)) { put(drift[k], u, v); lie.push([u, v]); } } }
+  // Ten logs in all since round 8 (B4, TJ: sixteen was too many). Since H7 they lie in the jams (JAMS), dealt
+  // out one at a time, the creek mouths first: each on dry sand above the high-water line. A log lies along the beach, so two of a jam show as two when one is 4
+  // or more up the sand from the other or 14 or more along it, and they make one heap when each is within
+  // 9 up and 22 along of another, and none lies more than 40 from its jam's spot. No log lies alone on the
+  // open sand. A jam takes each drawing once.
+  { const dr = rng(4730), drift = Array.from({ length: 8 }, (_, i) => makeDriftwood(i)), lie = JAMS.map(() => []); tag(drift, 'drift');
+    // A log lies beside the creek, never on it: no water under its length, nor within 4 up or down the sand.
+    const creek = (u, v) => { for (let e = -4; e <= 4; e += 2) for (let d = -13; d <= 13; d += 2) if (water[at(clamp(Math.round(u + d), 0, NW - 1), clamp(Math.round(v + e), 0, VD - 1))]) return true; return false; };
+    // Every log shows whole: none lies half behind nearer ground or off the map's edge.
+    const whole = (bm, u, v) => { const sx = Math.round(u) - bm.ox, sy = Math.round(SY - Math.round(v) - hAt(Math.round(u), Math.round(v))) - bm.oy; let n = 0, seen = 0;
+      for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { if (!bm.d[j * bm.w + i]) continue; n++; const x = sx + i, y = sy + j; if (x >= 0 && y >= 0 && x < NW && y < SH && zb[px(x, y)] >= Math.round(v) - 3) seen++; } return seen >= n * 0.97; };
+    // A log that finds no room in its own jam goes to the next one.
+    for (let n = 0; n < 10; n++) for (let o = 0, laid = false; o < JAMS.length && !laid; o++) { const j = (n + o) % JAMS.length, mine = lie[j], [ju, jv] = mine.length ? mine[mine.length - 1] : JAMS[j];
+      for (let k = 0; k < 1500; k++) { const u = ju + (dr() - 0.5) * 52, v = jv + (dr() - 0.5) * 30, c = coast(u, v); if (c > -6 || c < -17 || v < 2 || v > VD - 3 || u < 4 || Math.hypot(u - JAMS[j][0], v - JAMS[j][1]) > 40 || creek(u, v)) continue;
+        if (mine.some(([a, b]) => Math.abs(b - v) < 4 && Math.abs(a - u) < 14) || (mine.length && !mine.some(([a, b]) => Math.abs(b - v) <= 9 && Math.abs(a - u) <= 22))) continue;
+        const bm = drift[(j * 3 + mine.length) % 8]; if (!whole(bm, u, v)) continue;
+        put(bm, u, v); mine.push([u, v]); laid = true; break; } }
+    // How many logs each jam holds, for the checks.
+    JAMS.forEach((J, j) => { J[3] = lie[j].length; }); }
   // Sea stacks stand well out from the beach (E5b, TJ: they had crept in against the shore), in four
   // small groups along the coast as on the Olympic coast: a tall one and one or two lower beside it.
   rand = rng(6114);
@@ -1736,7 +1762,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { mesa, eastAmt, g, depth: zb, mat: mb, bare, fogField, mouthFog, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, palAmt, talusAt, snowPatch, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { mesa, eastAmt, g, depth: zb, mat: mb, bare, fogField, mouthFog, jams: JAMS, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, palAmt, talusAt, snowPatch, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -2226,7 +2252,8 @@ export function buildTerrain() {
     const out = Ls.map((l, n) => ({ kind: l[4], px: px[n] }));
     mor.sort((a, b) => a % NW - b % NW); let cur = null; for (const i of mor) { if (!cur || i % NW - cur.px[cur.px.length - 1] % NW > 12) out.push(cur = { kind: 'moraine', px: [] }); cur.px.push(i); }
     return out.filter(l => l.px.length > 20); })();
-  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, homesFound: H.homesFound, whiteWater: falls, still, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel, squirrelDoes } };
+  // jams: where the beach's driftwood gathers (H7), in the picture, each with its kind and how many logs it holds.
+  return { g: LAND.g, bare: LAND.bare, jams: LAND.jams.map(([u, v, k, n]) => [...sxy(u, v), k, n]), fog: LAND.fogField, hillLight, deck, homesFound: H.homesFound, whiteWater: falls, still, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel, squirrelDoes } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the

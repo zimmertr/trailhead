@@ -580,6 +580,8 @@ export function makeWorld() {
   // For the browser suite: every engine rule the map breaks (rules.js).
   window.__rules = () => checkRules(W.things, crit.items, crit.collide);
   const ev = makeEvents(W, crit.collide), life = makeLife(W, STILL); window.__life = life; window.__wet = Object.assign(WET, window.__wet);
+  // Where the beach's driftwood gathers and where its logs lie (H7), for the checks.
+  window.__jams = { spots: W.jams, logs: W.things.filter(th => th.bm && th.bm.what === 'drift').map(th => [th.x, th.y]) };
   for (const it of crit.items) things.push(it);
   const birds = [speck(0), speck(1)];
   const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 330 + 40, y: 50 + (i & 1) * 70 + i * 18, v: 3 + (i % 4) }));

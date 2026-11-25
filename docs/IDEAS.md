@@ -596,3 +596,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Wet Rock in Every Scene** (round 8, H6). The wall, the larches and the approach show the drizzle too. Their granite could darken and dry from the top down as the lakeside's boulders do, from one shared helper.
 - **Puddles on the Trail** (round 8, H6). After the drizzle a few low spots of the lakeside's trail could hold a puddle that mirrors the sky for a minute and takes a ring from the last drops.
 - **Drizzle Past the Deck's Edge** (round 8, H6). The map's lake shows rings while no streak of rain falls over it. A few thin streaks could carry past the deck's edge as far as the lake.
+- **A Jam Grows After a Storm** (round 8, H7). After the marine layer has been in, a jam could hold one more log for a while, left by the swell.
+- **Animals Use the Jams** (round 8, H7). An otter could den under a heap at a creek mouth and the eagle could perch on the top log, by the rule that finds a home.
+- **Wrack on the Sand** (round 8, H7). The clean sand between the jams could carry a thin line of kelp and shells at the high-water mark, which moves with the tide.
+- **Logs Afloat at High Tide** (round 8, H7). The lowest log of a creek-mouth heap could lift and rock when the tide is full, and settle back as it falls.

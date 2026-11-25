@@ -48,6 +48,7 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - The buildings, signs, tents and the register box are set down by `world.js`, so they are not on this list.
 - A sign's place is chosen by a rule in `habitat()` in `land.js`, as an animal's home is. A new sign is placed last (after the homes and the events' spots, before `taken.length = mark`), clear of all of them, so that it moves nothing that was there before it. After adding one, `check.sh` must report nothing moved but the new sign.
 - Ice that floats is a thing, not paint: the bergs and floes are placed and drawn by `life.js` (`BERGS`), drift with the shared gust (`gustOver()` in `core.js`) and keep to their own water.
+- Driftwood gathers. `JAMS` in `land.js` finds the creek mouths and the headlands from the land, and every log and bleached branch on the beach is laid by it: logs in heaps at those spots, beside a creek and never on it, each showing whole, and clean sand between. More driftwood goes onto a heap.
 
 ## Solid Things
 

@@ -828,3 +828,23 @@ test('rain rings the lake and no fish jumps, and the lakeside boulders dry from 
   await page.evaluate(() => { (window as unknown as Rain).__sky = undefined })
   expect(problems).toEqual([])
 })
+
+// Round 8, H7: the beach's driftwood lies in jams at the creek mouths and against the headlands, and the
+// sand between them is clean.
+test('the driftwood lies in heaps at the creek mouths and headlands, with clean sand between', async ({ page }) => {
+  type Jams = { __jams: { spots: [number, number, string, number][]; logs: [number, number][] } }
+  const problems = await open(page, '/')
+  const { spots, logs } = await page.evaluate(() => (window as unknown as Jams).__jams)
+  expect(spots.filter((s) => s[2] === 'mouth').length).toBeGreaterThanOrEqual(2)
+  expect(spots.filter((s) => s[2] === 'head').length).toBeGreaterThanOrEqual(1)
+  // Ten logs in all (B4), every one of them showing, and two or more in each jam.
+  expect(logs.length).toBe(10)
+  expect(spots.reduce((n, s) => n + s[3], 0)).toBe(10)
+  expect(spots.every((s) => s[3] >= 2)).toBe(true)
+  // Every log lies at a jam and beside another log; none lies alone on the open sand.
+  for (const [x, y] of logs) {
+    expect(Math.min(...spots.map(([a, b]) => Math.hypot(a - x, b - y))), `the log at ${x}, ${y} from its jam`).toBeLessThan(50)
+    expect(logs.filter(([a, b]) => Math.hypot(a - x, b - y) < 26).length, `logs round the one at ${x}, ${y}`).toBeGreaterThanOrEqual(2)
+  }
+  expect(problems).toEqual([])
+})
