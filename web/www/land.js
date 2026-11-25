@@ -297,7 +297,12 @@ C.coulee = [[1500, 232], [1556, 204], [1612, 176], [1662, 130], [1726, 106], [17
 C.trails = [
   [[880, 392], [830, 388], [770, 386], [725, 384], [700, 384], [668, 380], [630, 376], [590, 378], [540, 390], [490, 384], [440, 360], [390, 354], [340, 370], [300, 410], [270, 450], [262, 490], [290, 520], [330, 530], [380, 515], [420, 500], [460, 492], [496, 470], [530, 448], [560, 436], [590, 434], [640, 424], [676, 420], [712, 424], [748, 426], [772, 414], [800, 402], [840, 394], [880, 392]],
   [[978, 438], [962, 462], [984, 482], [1004, 498], [1018, 512], [1022, 526], [1040, 534], [1062, 540], C.island, [1080, 560], [1072, 578], [1068, 600]],
-  [[1340, 410], [1372, 436], [1392, 450], [1378, 462], [1402, 474], [1422, 500], [1434, 516], [1432, 524], [1432, 532], [1430, 546], [1432, 562], [1436, 578]]
+  // The Peak's trail (round 8, C1, read off the line TJ drew on the map): east out of the Trailhead along the
+  // forest's edge, north-east through the aspens to the edge of the dry side, over the creek and up its east
+  // bank, up the step into Postmortem Burn, past the burn's pond, up the granite by rungs east of the fall,
+  // and west across the larch plateau round the north of its tarn. It ends where the old trail did, which
+  // came north through the meadow and up the rungs from the south.
+  [[1139, 184], [1185, 171], [1240, 154], [1286, 142], [1311, 137], [1336, 155], [1368, 188], [1400, 207], [1423, 258], [1439, 278], [1464, 295], [1496, 311], [1524, 343], [1547, 370], [1574, 393], [1590, 418], [1600, 440], [1597, 448], [1581, 459], [1556, 476], [1542, 500], [1537, 516], [1534, 526], [1529, 538], [1522, 549], [1514, 562], [1498, 567], [1474, 568], [1452, 574], [1436, 578]]
 ];
 // The lake grew (T30), so the loop's points along its south shore step back to keep 5 clear of the water.
 { const [cu, cv, ru, rv] = C.lakes[0]; for (const p of C.trails[0]) { const x = (p[0] - cu) / ru; if (Math.abs(x) >= 1 || p[1] > cv) continue; const shore = cv - rv * Math.sqrt(1 - x * x) - 5; if (p[1] > shore) p[1] = Math.round(shore); } }
@@ -1796,7 +1801,9 @@ function habitat() {
     monorepo: find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && S.fogAmt(u, v) < 0.3, 60, beside(0, 0.2, 0.9)),
     'scope-creep': find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'moraine', 0, beside(1, 0.7, 1)),
     'merge-conflict': col ? find(1, signable, 0, ring(col, 0, 50)) : [],
-    rollback: find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'land' && S.hAt(u, v) > 40 && S.hAt(u, v) < 66, 0, beside(2, 0.4, 0.8)),
+    // Rollback Basin is the bench with the pond, west of the burn. The Peak's trail crossed it until round 8
+    // (C1); the place stayed when the trail moved, so its sign looks for the pond, not the trail.
+    rollback: find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'land' && S.hAt(u, v) > 40 && S.hAt(u, v) < 66 && S.burnAmt(u, v) < 0.1, 0, ring([1438, 480], 16, 70)),
     'feature-flag': tarn ? find(1, signable, 0, ring(tarn, tarn[2] + 6, tarn[2] + 24)) : [],
     hotfix: find(1, (u, v) => S.burnAmt(u, v) > 0.6 && signable(u, v)),
     postmortem: find(1, (u, v) => S.burnAmt(u, v) > 0.55 && signable(u, v), 70),
