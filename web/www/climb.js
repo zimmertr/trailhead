@@ -1008,7 +1008,10 @@ export function makeClimb() {
       const anchor = scr.narrow ? 0.5 : me.ph === 'up' ? 0.52 : 0.6, u = t - egg;
       // The rack is hit hard enough to shake the picture for a moment.
       const jolt = kind === 'icefall' && me.ph === 'up' && u > 0.36 && u < 0.86 ? 1 - (u - 0.36) / 0.5 : 0;
-      const camX = Math.round(cam.x + OFF - VW * anchor + env.look.x * 0.4 + 3 * jolt * Math.sin(u * 95)), base0 = baseline(scr, env.shown, st) - Math.round(cam.y) - (scr.narrow ? 0 : 20) + Math.round(2 * jolt * Math.cos(u * 70));
+      // The view stays on the painted rock (round 8, I1): on a wide window it ran past the picture's left edge at
+      // the foot of a climb, where the strip wraps, so the ground stopped short of the window's edge at the
+      // start and a column of the slope's far end stood there at the end.
+      const camX = clamp(Math.round(cam.x + OFF - VW * anchor + env.look.x * 0.4 + 3 * jolt * Math.sin(u * 95)), 0, Math.max(0, S.w - VW)), base0 = baseline(scr, env.shown, st) - Math.round(cam.y) - (scr.narrow ? 0 : 20) + Math.round(2 * jolt * Math.cos(u * 70));
       // A tall, narrow screen sees further down than the rock is painted, at the foot of the climb and
       // where the way down ends. The picture sits lower by what is missing, unless a card covers it.
       const short = scr.narrow && !env.shown ? Math.max(0, VH - DOWN - base0) : 0; st.lift = st.lift == null ? short : st.lift + (short - st.lift) * 0.12;

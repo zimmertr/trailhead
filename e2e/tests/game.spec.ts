@@ -1077,3 +1077,31 @@ test('the squall comes round off the map, and the lakeside sounds of rain when i
   await page.evaluate(() => { (window as unknown as High).__sky = undefined })
   expect(problems).toEqual([])
 })
+
+test('on a phone the forest, the lakeside and the West Ridge are painted to the bottom of the window', async ({ page }) => {
+  // Round 8, I1: each of the three stopped painting its ground above the bottom of a tall, narrow window,
+  // which showed as a band of one flat colour under the scene. The picture's last rows are read from the
+  // canvas: the rows, counted up from the bottom, that are all the colour of the bottom row.
+  await page.setViewportSize({ width: 390, height: 844 })
+  const flatRows = () => page.evaluate(() => {
+    const c = document.querySelector('#c') as HTMLCanvasElement, w = c.width, h = c.height
+    const d = (c.getContext('2d') as CanvasRenderingContext2D).getImageData(0, 0, w, h).data, last = (h - 1) * w * 4
+    const same = (a: number, b: number) => d[a] === d[b] && d[a + 1] === d[b + 1] && d[a + 2] === d[b + 2]
+    let n = 0
+    for (let y = h - 1; y >= 0; y--, n++) {
+      const o = y * w * 4
+      let flat = same(o, last)
+      for (let x = 3; x < w && flat; x += 3) flat = same(o, o + x * 4)
+      if (!flat) break
+    }
+    return n
+  })
+  const places: [string, string][] = [['/?route=lake&p=0.36', 'forest'], ['/?route=lake&p=0.72', 'lakeside'], ['/?route=stack&p=0.25', 'wall']]
+  for (const [address, scene] of places) {
+    const problems = await open(page, address)
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __api: { scene: () => string } }).__api.scene()), { timeout: 15_000 }).toBe(scene)
+    await page.waitForTimeout(800)
+    expect(await flatRows(), scene).toBeLessThan(12)
+    expect(problems).toEqual([])
+  }
+})

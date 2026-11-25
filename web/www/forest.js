@@ -9,7 +9,9 @@ import { elk, sasquatch, jay, slug, owl } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
 import { NAMES } from './content.js';
 
-const SW = 1640, UP = 480, DOWN = 240;
+// DOWN: how far below the trail the floor is painted. A tall, narrow window sees further down it than a
+// wide one (round 8, I1: on a phone the painting stopped at 240, above a band of one flat green).
+const SW = 1640, UP = 480, DOWN = 320;
 const X0 = SW - 500, LEN = 640;
 const D_SIGN = 300, D_SLUG = 372, D_ELK = 452, D_GIANT = 524, D_STUMP = 132;
 let sasquatchSeen = false;
@@ -643,6 +645,8 @@ function buildForest() {
     else { const dy = sq(rand()) * 150; things.push({ bm: ferns[Math.min(8, 3 + Math.round(dy / 30) + (rand() * 3 | 0))], x: Math.round(x), y: gy + nearBank(x) + 6 + Math.round(dy), sway: 0.6 }); }
   }
   for (let n = 0; n < 150; n++) { const x = rand() * SW, dy = 30 + rand() * 170; things.push({ bm: ferns[5 + (rand() * 4 | 0)], x: Math.round(x), y: g(x) + nearBank(x) + Math.round(dy), sway: 0.6 }); }
+  // The rows a tall window adds have ferns of their own, thrown by their own dice so nothing above moves.
+  { const lr = rng(4310); for (let n = 0; n < 70; n++) { const x = lr() * SW; things.push({ bm: ferns[5 + (lr() * 4 | 0)], x: Math.round(x), y: 238 + Math.round(lr() * (DOWN - 246)), sway: 0.6 }); } }
   const logs = [makeNurseLog(41, 92), makeNurseLog(42, 64)];
   const TRAIL_LOGS = [[590, 0, -12], [206, 1, -15], [-150, 0, -14], [840, 1, -11]];
   for (const [d, k, by] of TRAIL_LOGS) { const x = X0 - d; things.push({ bm: logs[k], x, y: g(x) + by }); }

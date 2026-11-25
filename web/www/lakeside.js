@@ -181,11 +181,13 @@ function buildLakeside() {
         else if (a <= 2 ? hash(i, y >> 1, 143 + c) < 0.75 : hash(i, y >> 1, 143 + c) < 0.3) farS.set(c + cx + i, y, pick('rock', 0.4 + 0.4 * hash(i >> 1, y >> 1, 144 + c), c + i, y, 0.5)); } }
     for (let i = -9; i <= 9; i++) for (let y = -3; y < 2; y++) if (Math.abs(i) > 2 && y > -4 + Math.abs(i) * 0.35 - hash(i, 3, 145 + c)) farS.set(c + i, y, hash(i, y, 146 + c) < 0.3 ? R.rock[3] : R.gold[5]);
     return bed; });
-  // The near shore: slabs and gravel at the water, the trail, then meadow down to the bottom.
-  const main = new Strip(SW, 24, 240);
+  // The near shore: slabs and gravel at the water, the trail, then meadow down to the bottom. A tall,
+  // narrow window sees much further down the meadow than a wide one does (round 8, I1: on a phone the
+  // painting stopped 240 rows down, above a band of one flat green), so the meadow goes on to DEEP.
+  const DEEP = 420, main = new Strip(SW, 24, DEEP);
   for (let x = 0; x < SW; x++) {
     const sy = shore(x), gy = g(x);
-    for (let y = sy; y < 240; y++) {
+    for (let y = sy; y < DEEP; y++) {
       const r = y - gy; let c;
       const sT = 0.62 - smooth(6, -8, r) * 0.22 + 0.09 * smooth(8, 30, r) * (1 - woodAt(x));
       const slab = fbm(x / 34, y / 15, 141, 3) > sT, gravel = fbm(x / 13, y / 7, 142, 3);
@@ -267,6 +269,25 @@ function buildLakeside() {
       }
     }
     for (let n = 0; n < 160; n++) { const x = X0 + 120 + cr() * (SW - X0 - 120), y = 8 + cr() * 228; if (driftAt(x, y) === 'heather') things.push({ bm: bushes[(cr() * 3) | 0], x: Math.round(x), y: Math.round(y) }); }
+  }
+  {
+    // The lower meadow, rows 236 to DEEP: the same tufts, flowers, stones, heather and firs, as thick as
+    // above, thrown by dice of their own so that the upper meadow stays as it was.
+    const lr = rng(598), rows = DEEP - 236, k = rows / 236, yy = () => 236 + lr() * (rows - 6);
+    for (let n = 0; n < 5000 * k; n++) { const x = (lr() * SW) | 0, y = yy() | 0; if (!isGrass(x, y) || !isGrass(x, y - 2)) continue; main.set(x, y - 2, R.grass[4]); main.set(x - 1, y - 1, R.grass[3]); main.set(x + 1, y - 1, R.grass[3]); main.set(x, y, R.grass[1]); }
+    for (let n = 0; n < 2860 * k; n++) {
+      const cx = X0 + 100 + lr() * (SW - X0 - 100), cy = yy(), dk = driftAt(cx, cy); if (!dk) continue;
+      for (let j = 0, m = 4 + (lr() * 7 | 0); j < m; j++) {
+        const x = Math.round(cx + (lr() - 0.5) * 14), y = Math.round(cy + (lr() - 0.5) * 6); if (!isGrass(x, y) || !isGrass(x, y - 1)) continue;
+        if (dk === 'lupine') { main.set(x, y - 2, R.lupine[2]); main.set(x, y - 1, R.lupine[1]); main.set(x, y, R.grass[1]); }
+        else if (dk === 'red') { main.set(x, y - 1, R.red[2]); main.set(x, y, R.red[1]); }
+        else if (dk === 'white') { main.set(x, y - 1, R.white[1]); main.set(x + (j & 1), y, R.white[0]); }
+        else { main.set(x, y, R.moss[1]); main.set(x + 1, y, R.moss[1]); main.set(x, y - 1, R.pink[1]); main.set(x + 1, y - 1, (j & 1) ? R.pink[2] : R.moss[2]); }
+      }
+    }
+    for (let n = 0; n < 60 * k; n++) { const x = Math.round(lr() * SW), y = Math.round(yy()); things.push(lr() < 0.45 ? { bm: boulders[3 + (lr() * 4 | 0)], x, y } : { bm: bushes[(lr() * 5) | 0], x, y }); }
+    for (let n = 0; n < 160 * k; n++) { const x = X0 + 120 + lr() * (SW - X0 - 120), y = yy(); if (driftAt(x, y) === 'heather') things.push({ bm: bushes[(lr() * 3) | 0], x: Math.round(x), y: Math.round(y) }); }
+    for (let n = 0; n < 34 * k; n++) { const x = lr() * SW, y = yy(), tr = lr() < 0.6 ? spruces[(lr() * 4) | 0] : firs[(lr() * 6) | 0]; things.push({ tree: woodAt(x) > 0.3 ? tr : spires[(lr() * 5) | 0], x: Math.round(x), y: Math.round(y) }); }
   }
   const marmotRock = rock(makeBoulder(161, 11)); things.push({ bm: marmotRock, x: xMarmot, y: shore(xMarmot) + 5 });
   // How far above its foot the rock's top is, so the marmot can lie on the rock itself: the picture of a rock has empty rows above it.

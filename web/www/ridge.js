@@ -17,7 +17,7 @@ import { makeCragPair, PAIR } from './people.js';
 import { NAMES } from './content.js';
 import { veil, flurry } from './weather.js';
 
-const W = 1500, UP = 520, DOWN = 380;
+const W = 1500, UP = 520, DOWN = 680;
 // The foot of the face: level with the start at the left, falling away to the right, so the drop
 // under the climbers grows as they go.
 const foot = x => x < 236 ? 8 : 8 - (x - 236) * 0.2 - 10 * vnoise(x / 40, 1, 700);
@@ -232,7 +232,9 @@ function paintRidge(S) {
 
 // The ground: the knob's heather and dwarf pine at the left, talus and larches under the face.
 function paintGround(S, things) {
-  const rand = rng(735), grass = {};
+  // Where the ground is grass, one cell for each pixel of the strip (a typed grid since round 8, I1: as an
+  // object keyed by a string for every pixel it took most of the painting's time).
+  const rand = rng(735), grass = new Uint8Array(W * (UP + DOWN + 1)), gi = (x, h) => (UP - h) * W + x, onGrass = (x, h) => x >= 0 && x < W && grass[gi(x, h)] === 1;
   for (let x = 0; x < W; x++) {
     const f = x < 236 ? knob(x) : lerp(knob(236) - 4, foot(x) - 30, smooth(236, 330, x));
     for (let h = Math.round(f); h > -DOWN; h--) {
@@ -241,7 +243,7 @@ function paintGround(S, things) {
       let c;
       if (hash(x >> 1, h >> 1, 736) < tal) c = pick('rock', 0.25 + 0.6 * hash(x >> 1, h >> 1, 737), x, h);
       else if (fbm(x / 26, h / 10, 748, 3) > 0.62) c = pick('rock', 0.5 + 0.3 * (fbm(x / 9, h / 5, 749, 2) - 0.5) - smooth(0, 300, depth) * 0.2, x, h, 0.6);
-      else { grass[x + '.' + h] = 1; c = pick(fbm(x / 20, h / 9, 738, 2) > 0.55 ? 'moss' : 'grass', 0.45 + 0.4 * (fbm(x / 22, h / 12, 739, 3) - 0.5) - smooth(0, 300, depth) * 0.25, x, h, 0.35); }
+      else { grass[gi(x, h)] = 1; c = pick(fbm(x / 20, h / 9, 738, 2) > 0.55 ? 'moss' : 'grass', 0.45 + 0.4 * (fbm(x / 22, h / 12, 739, 3) - 0.5) - smooth(0, 300, depth) * 0.25, x, h, 0.35); }
       if (depth < 1.5 && !(hash(x >> 1, h >> 1, 736) < tal)) c = R.moss[2];
       S.set(x, -h, c);
     }
@@ -249,7 +251,7 @@ function paintGround(S, things) {
   // Red huckleberry (round 5, T65): shrubs in clumps where the heather used to be painted red, and only
   // where a shrub's whole foot is on grass. The lower ones are nearer and bigger.
   const hucks = [0, 1, 2, 3, 4, 5].map(i => [0.8, 1.05, 1.35, 1.7].map(s => makeHuckleberry(680 + i, s)));
-  for (const p of huckClumps(0, W, -40, DOWN, (x, y) => fbm(x / 9, -y / 4, 747, 3), (x, y) => [-5, 0, 5].every(d => grass[(x + d) + '.' + (-y)] && grass[(x + d) + '.' + (-y + 3)]), 750))
+  for (const p of huckClumps(0, W, -40, DOWN, (x, y) => fbm(x / 9, -y / 4, 747, 3), (x, y) => [-5, 0, 5].every(d => onGrass(x + d, -y) && onGrass(x + d, -y + 3)), 750))
     S.stamp(hucks[p.v][p.s + (p.y > 120 ? 1 : 0)], p.x, p.y, p.flip);
   // Dwarf pine in knee-high mats on the knob and in the cracks low on the ridge; larches below.
   for (let n = 0; n < 40; n++) { const x = 20 + rand() * 240, h = (x < 236 ? knob(x) : along(LOW, x)) - rand() * 6; things.push({ pine: 3 + rand() * 5, x: Math.round(x), h: Math.round(h) }); }

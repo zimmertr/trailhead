@@ -241,17 +241,22 @@ function paintDry(S) {
   // It stands tall at its west end, drops below the top of the granite wall further east (`low`), and runs
   // out to nothing over its last stretch (`out`).
   const low = x => lerp(1, 0.46, smooth(520, 700, x)), out = x => smooth(DRY.end, DRY.end - 180, x), sc = x => low(x) * out(x);
-  const hA = x => sc(x) * Math.min(136, 122 + 44 * (fbm(x / 150, 2.1, 700, 2) - 0.5));
+  // The mesa does not come down along a ruled line (round 8, I1: where it drops below the granite wall its
+  // top read as a ramp laid over the domes): its shoulder breaks into benches and notches on the way down.
+  const lowA = x => { const o = smooth(520, 700, x); return lerp(1, 0.46, clamp(o + 2.2 * o * (1 - o) * (fbm(x / 34, 4.2, 714, 2) - 0.5 + 0.4 * (vnoise(x / 9, 6, 715) - 0.5)), 0, 1)); };
+  const hA = x => lowA(x) * out(x) * Math.min(136, 122 + 44 * (fbm(x / 150, 2.1, 700, 2) - 0.5));
   const hB = x => sc(x) * (92 + 22 * (vnoise(x / 90, 5, 703) - 0.5)) * lerp(0.5, 1, smooth(0.3, 0.44, vnoise(x / 140, 7, 704)));
   const HILLS = [[50, 20, 75], [36, 15, 55], [22, 11, 38]];
   const hC = (x, k) => sc(x) * (HILLS[k][0] + HILLS[k][1] * Math.sin(x / HILLS[k][2] + 2.3 * k + 1.4 * vnoise(x / 100, k, 705)));
   const BANDS = [R.ochre[2], R.mauve[3], R.ochre[3], R.mauve[2], R.ochre[1], R.ochre[2]];
   for (let x = 0; x < DRY.end; x++) {
-    // The rim caps the mesa only where its top is level; where the top falls away it is an eroded slope.
-    const a = Math.round(hA(x)), flat = Math.abs(hA(x + 3) - hA(x - 3)) < 1.6;
+    // The rim caps the mesa only where its top is level. Where the top falls away the beds are cut through
+    // and step down a bed at a time, under a thin lit edge: a lit band as thick as the rim, following the
+    // fall, read as a ribbon laid down the slope (round 8, I1).
+    const flat = Math.abs(hA(x + 3) - hA(x - 3)) < 1.6, a = flat ? Math.round(hA(x)) : Math.round(hA(x) / 6) * 6;
     for (let y = -a; y < 0; y++) { const d = y + a, gully = vnoise(x / 3.5, y / 70, 702) > 0.7, talus = -y < a * 0.3 + 6 * vnoise(x / 14, 1, 712);
       S.set(x, y, d < 5 && a > 30 && flat ? (d < 1 ? R.basalt[3] : x % 4 === 3 ? R.basalt[0] : R.basalt[1 + (hash(x >> 2, 0, 707) < 0.5 ? 1 : 0)])
-        : talus || (!flat && d < 9) ? R.ochre[bayer(x, y) < 0.35 ? 3 : 2] : gully ? R.mauve[1] : BANDS[Math.floor((y + 400 + 2.5 * vnoise(x / 30, 3, 701)) / 6) % 6]); }
+        : talus || (!flat && d < 2) ? R.ochre[bayer(x, y) < 0.35 ? 3 : 2] : gully ? R.mauve[1] : BANDS[Math.floor((y + 400 + 2.5 * vnoise(x / 30, 3, 701)) / 6) % 6]); }
     const b = Math.round(hB(x));
     for (let y = -b; y < 0; y++) { const d = y + b, cell = Math.floor(x / 3);
       S.set(x, y, d < 1 ? R.ash[3] : d < b * 0.5 ? (x % 3 === 2 ? R.basalt[0] : R.basalt[(x % 3 === 0 ? 3 : 2) - (hash(cell, 0, 708) < 0.3 ? 1 : 0)]) : hash(x, y, 709) < 0.3 ? R.basalt[1] : R.ash[hash(x >> 1, y >> 1, 710) < 0.5 ? 1 : 2]); }

@@ -65,6 +65,12 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - A solid thing is registered with `collide.js`. On land, these are the rocks, snags and logs that `land.js` tags as solid, the signs, the journal's post, the tents, and the clearance round the kiosk, the register and the lookout. At sea, they are the sea stacks (a distance field) and the tide's bared flats.
 - A land animal also keeps off water and off ground too steep to stand on (`W.open`). Trees are part of its own rule in `critters.js`: a walker goes round their trunks, and a cub may climb one.
 
+## Side Scenes
+
+- A side scene's ground is painted as deep as a tall, narrow window sees. On a narrow window the trail sits at 62% of the height (`baseline()` in `side.js`), so more than a third of the window is below it, and `drawStrip()` fills whatever lies below a strip with one flat colour. `tools/pixel/sweep.sh` on a phone notes a picture that ends in such a band, and a browser test fails on one in the forest, at the lakeside and on the West Ridge.
+- Rows added under a picture get their plants and stones from an `rng()` of their own, so nothing above them moves.
+- The view stays on the painted strip. A scene whose strip does not wrap clamps its camera between 0 and the strip's width less the window's (`climb.js`, `ridge.js`).
+
 ## Music
 
 - On Auto the tune and the set of instruments both follow the place: `PLACES` and `PLACE_SETS` in `audio.js`, with the scene's name as the key. A new scene gets a line in `PLACES`, and one in `PLACE_SETS` if it should not play the first set.
