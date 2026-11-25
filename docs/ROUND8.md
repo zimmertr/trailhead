@@ -45,15 +45,16 @@ The art pass merged as https://github.com/zimmertr/trailhead/pull/62 (squash com
 - **Note 7.** Proficiency Peak on the map goes back to how it was before the art pass's A04, then gets another try from new pictures. The retry ships only if it beats the old one.
 - **Note 4.** The walk to Spires base camp takes its direction from the end of the map's trail (up the glacier to camp, heading right), not from the point where the scene takes over (the meadow traverse, heading left).
 - **Note 2.** The red bushes in the larch basin are fall huckleberry: deep crimson, fewer and lower, with blue berries on them.
-- **Notes 10, 27 and 19.** New names and the new events are drafted in section 5; TJ picks before they ship.
+- **Notes 10, 27 and 19.** TJ picked the names and the events on 2026-11-24 (section 5). Every new event gets a start button in the debug panel ("All of those should be debug triggerable").
 - **Note 5.** Habitat rules find candidate spawn spots, and five well-spread ones are chosen per animal.
 - **Note 18.** One scene from the burn to the larches: the larch basin scene grows a first stretch in the burn.
 - **Note 12.** Each new set of instruments plays every tune the existing sets play.
+- **The night of 2026-11-24.** TJ asked for the loop to work all night. He added seven passes (section I) and signed off fifteen ideas from `docs/IDEAS.md` (section H); he did not pick the sound check in CI. Ideas are built only after he signs off a proposal ("I want to sign off on the ones you will implement").
 - **Scenes load when he sets off.** The forest and the lakeside stop loading with the page too.
 
 ## 4. The Checklist
 
-Work top to bottom. An item marked **waits** is skipped until TJ has picked in section 5.
+Work top to bottom. TJ picked in section 5 on 2026-11-24, so nothing waits any more.
 
 ### A. Fixes
 
@@ -81,10 +82,10 @@ Work top to bottom. An item marked **waits** is skipped until TJ has picked in s
 - [x] **C4 Monolith's Tarns** (note 26). Make the tarns at the foot of Mount Monolith's glaciers larger, and move the middle one to the left of the ridge on its left. `monolith.js` (`moraineLakes`), `land.js` (`TARNS`).
 - [x] **C5 Meltwater That Runs** (note 14). The rivers that leave Monolith's tarns do not move as the other rivers do. Give them the same moving water.
 - [x] **C6 Lakes That Move** (note 9). Reflection Lake and every tarn on the map: shimmer, small waves, a gust darkening the water as it crosses, and a fish jumping now and then. Drawn over the baked ground each frame, in its own small function; watch the frame time.
-- [x] **C7 The Lake Below Scope Creep Glacier** (note 27). The lake at the glacier's terminal moraine is substantial: raise its quality to Reflection Lake's (shore, shallows, ice floes, reflection). Pictures first. Its name tag **waits** (section 5).
+- [x] **C7 The Lake Below Scope Creep Glacier** (note 27). The lake at the glacier's terminal moraine is substantial: raise its quality to Reflection Lake's (shore, shallows, ice floes, reflection). Pictures first. Its name tag is Feature Creep Lake (section 5) and goes on with C10.
 - [x] **C8 More Skunk Cabbage** (note 20). Three more patches, by rule: along the rainforest creek north of the maples, at the creek mouth behind the beach, and by the footbridge below Reflection Lake's outlet (his screenshot: `~/Desktop/Screenshot 2026-11-22 at 12.53.37 PM.png`).
 - [x] **C9 Signs That Stand Where They Say** (note 10). Remove Postmortem Burn's sign. Feature Flag Tarns moves to the upper basin between the three tarns. Merge Conflict Col moves into a real col. Stack Trace Thicket moves well away from the woods' sign. Off By One Peak's sign goes onto the peak. All in `habitat()`.
-- [ ] **C10 New Signs and Names** (notes 10, 27). **Waits** for section 5: the woods' new name, and signs for the gold hills, the wildflower meadow below Mount Monolith and the deep rainforest south of Off By One Peak.
+- [x] **C10 New Signs and Names** (notes 10, 27). The woods' new name, signs for the gold hills, the wildflower meadow below Mount Monolith and the deep rainforest south of Off By One Peak, the name tag of the lake below Scope Creep Glacier, and the instrument sets' names, all as picked in section 5.
 
 ### D. Animals
 
@@ -105,7 +106,7 @@ Work top to bottom. An item marked **waits** is skipped until TJ has picked in s
 ### E. Weather, Events and Music
 
 - [x] **E1 Weather in Every Scene** (note 1). The rainforest scene follows the map's weather and light (rain while the marine layer is in, shafts of sun that fade at Dusk). Every other scene does the same in its own way: the lakeside, the larch basin, the West Ridge, the walk to camp, base camp and the six climbs each read the world's weather and the hour and show it (rain rings on the lake, snow flurries and spindrift up high, cloud shadow, wind in the larches). Log what each scene shows.
-- [ ] **E2 Life at Every Place** (note 19). **Waits** for TJ's picks in section 5. Each picked event: pictures first, a start button in the debug panel, and a line on the conditions board.
+- [ ] **E2 Life at Every Place** (note 19). The twelve events TJ picked in section 5. Each picked event: pictures first, a start button in the debug panel, and a line on the conditions board.
 - [x] **E3 Three More Sets of Instruments** (note 12). Drums and percussion, strings, woodwinds: three new sets in `audio.js`, each playing all seven tunes, chosen from the music menu like the others. Their names are drafts (section 5).
 
 ### F. The Trailhead
@@ -113,34 +114,68 @@ Work top to bottom. An item marked **waits** is skipped until TJ has picked in s
 - [x] **F1 One Thing to Click** (note 6). The trail register and the conditions board are one click target on the map, which opens the register scene; the notebook, the conditions and the map open from there. One name tag, in words the game already shows.
 - [x] **F2 Observed and Reported** (note 25). The conditions board's wildlife and events split in two: Observed lists what has happened in this session, Reported lists what has not yet, so a visitor learns what there is still to see. The two headings are TJ's own words.
 
+### H. Ideas TJ Signed Off
+
+TJ picked these from `docs/IDEAS.md` on 2026-11-24, for the night. Pictures first where art is new. They come before the passes in I, so the passes check them too.
+
+- [ ] **H1 Life by the Hour.** The clock leans on what animals do and where they are: the herd high by Day and down at the stream at Dusk, the marmots gone to ground at Dusk, the bears out, bugling towards Dusk, bedding at midday. TJ: "this should be built into the critter system so new animals that are later added integrate into this". So it is one rule in the animals' own system (each kind says what it does by the hour, in data), not code per animal.
+- [ ] **H2 The Cubs Copy Her.** The cubs dig beside the sow when she digs and try the trunk she has just rubbed.
+- [ ] **H3 A Goat on the Ledge.** One mountain goat's home on the grassy ledge halfway up the larch basin's wall.
+- [ ] **H4 Answers and Followers.** A second bull answers a bugle faintly from off the map. When one orca spyhops, the one behind it follows a second later.
+- [ ] **H5 Ice That Moves.** The bergs in Feature Creep Lake become things that drift a little with each gust and turn slowly; the upper tarns get a few small floes.
+- [ ] **H6 Rain Shows Everywhere.** In rain the map's lakes show rings in place of glints and no fish jump. At the lakeside the boulders and the trail stay dark after the drizzle and dry from the top down.
+- [ ] **H7 Driftwood Where It Gathers.** The beach's logs jam at the creek mouths and against the headlands, with clean sand between.
+- [ ] **H8 Streamside Plants.** Monkeyflower and marsh marigold along the meadow's streams, devil's club along the forest's, by the rule that plants skunk cabbage. New plants: pictures first.
+- [ ] **H9 Tap a Reported Line.** A tap on a line under Reported closes the board and moves the view to where that thing lives, without starting it.
+- [ ] **H10 Only What Is Clear Counts.** A thing counts as Observed only when it is clear of the page's own panels.
+- [ ] **H11 A Count on the Notice.** The notice in the register's scene says how much has been observed, beside the checklist's count. The words are a draft: "12 of 31 observed".
+- [ ] **H12 One Outline for the Pair.** Hovering the register or the board lights both with one outline, as a place on the map lifts.
+- [ ] **H13 Debug Panel Layers.** Switches that ring every sign with its name and every animal home by kind, a list that starts any animal's act, and one line that says what the sky is doing.
+- [ ] **H14 A Set for Each Place.** On Auto the music picks the instruments as well as the tune: winds in the rainforest, the quartet at the lake, mallets on the ridge, the music box at camp after Dusk.
+- [ ] **H15 Weather in the High Scenes.** The summit squall keeps its clock in every scene, so a climb is sometimes snowed on without the map having been open. The lakeside sounds of rain when it drizzles.
+
+### I. Passes TJ Asked For
+
+Slow checking and fixing, picked by TJ on 2026-11-24 for the night. Each pass ends with a list in the log of what was found and what was fixed, and anything left is said plainly.
+
+- [ ] **I1 Every-Route Sweep.** Step along all three routes, every scene and every climb, in Day, Dusk and on a phone. Compare with `v0.5.0`. Fix what looks wrong: clipping, things drawn in the wrong order, seams, popping.
+- [ ] **I2 Phone Pass on Every Sheet.** Every card, sheet and menu at three phone widths and in landscape: overflow, tap targets too small, text cut off.
+- [ ] **I3 Keyboard and Plain Page.** Everything by keyboard only and in the plain page, with reduced motion on; the accessibility checker on every sheet in Day and Dusk.
+- [ ] **I4 Sound Balance.** Every sound effect, and all six sets of instruments on all seven tunes, measured in the audio lab; loudness evened out, no clipping; each scene's ambience checked.
+- [ ] **I5 Speed on a Slow Phone.** Every scene measured with the processor slowed four times. Whatever misses a frame is made faster. No budget is widened.
+- [ ] **I6 Hour-Long Soak.** The map and each scene at high speed for a simulated hour with automatic checks: animals stuck, overlapping or in water, errors in the console, memory growing. Fix what it finds.
+- [ ] **I7 Safari and Firefox.** The browser tests run in WebKit and Firefox as well as Chromium, in CI. Fix what differs.
+
 ### G. Closing
 
 - [ ] **G1 The Numbers.** Frame time for every view, load time and the start page's bytes, `v0.5.0` then round 8, side by side.
 - [ ] **G2 The Docs.** The round's lasting rules into `docs/DEVELOPMENT.md` and `web/ENGINE.md`; `docs/ART-PASS.md` folded down to what is still worth keeping; `docs/IDEAS.md` tidied; this file deleted; the PR marked ready and TJ notified.
 
-## 5. For TJ to Pick
+## 5. What TJ Picked
 
-Pick one, or write your own, for each. Nothing here ships until you have.
+Picked on 2026-11-24.
 
 **Names** (notes 10, 27)
 
-| For | Drafts |
+| For | Name |
 |---|---|
-| Monorepo Woods, renamed | Binary Tree Grove, Git Blame Grove, Spaghetti Code Forest |
-| A sign in the gold hills | Golden Path Hills, Rolling Release Hills, Greenfield Prairie |
-| A sign in the wildflower meadow below Mount Monolith | Bloom Filter Meadow, Paintbrush Patch, Wildcard Meadow |
-| A sign in the deep rainforest south of Off By One Peak | Root Access Grove, Old Growth Backlog, Recursion Rainforest |
-| The lake below Scope Creep Glacier | Cold Storage Lake, Memory Leak Lake, Data Lake |
-| The three new sets of instruments | Percussion, Strings, Woodwinds |
+| Monorepo Woods, renamed | Git Blame Grove |
+| A sign in the gold hills | Rolling Release Hills |
+| A sign in the wildflower meadow below Mount Monolith | Wildcard Meadow |
+| A sign in the deep rainforest south of Off By One Peak | Old Growth Backlog |
+| The lake below Scope Creep Glacier | Feature Creep Lake (TJ asked for "a spinoff pun of scope creep glacier" and picked this one) |
+| The three new sets of instruments | Mallets, Quartet, Winds (were Percussion, Strings, Woodwinds) |
 
-**Events** (note 19). Pick any number for each place.
+**Words kept as drafted.** In the debug panel: Weather, Gust, Cloud shadow, Clear sky. On the conditions board: "Nothing yet", "Nothing left to see", "Some days a second bear family at the forest edge".
 
-| Place | Drafts |
-|---|---|
-| Sideproject Spires | Rockfall off a tower with a trail of dust. Ice calving off the glacier's snout into its lake. A banner of cloud pouring through the notches. Spindrift blowing off the summits. Alpenglow on the towers at Dusk. A pair of ravens riding the updraft |
-| Proficiency Peak | A gust shaking a shower of gold needles off the larches. Rocks rattling down the talus fan. A cloud's shadow sliding across the benches. A first flurry of snow over the summit. A band of goats crossing the talus |
-| Reflection Lake | A gust darkening the water as it runs across. Mist lifting off the water. A dead calm when the reflection turns sharp. A shower dimpling the surface with rings. A pair of ducks landing with a wake |
-| The rainforest | Fingers of fog threading through the canopy. A sunbreak with shafts of light over the trees. A tree falling far off, and birds lifting from the canopy. A rainbow over the forest after a shower. An owl calling at Dusk |
+**Events** (note 19). TJ picked every one that the weather work (E1) had not already built, and each gets a start button in the debug panel.
+
+| Place | Events to build | Already there |
+|---|---|---|
+| Sideproject Spires | Rockfall off a tower with a trail of dust. Ice calving off the glacier's snout into its lake. Alpenglow on the towers at Dusk. A pair of ravens riding the updraft | The banner of cloud through the notches, spindrift off the summits (E1) |
+| Proficiency Peak | Rocks rattling down the talus fan. A band of goats crossing the talus | The larch needle gust, a cloud's shadow on the benches, the snow flurry (E1) |
+| Reflection Lake | A dead calm when the reflection turns sharp. A pair of ducks landing with a wake | The gust on the water, the mist, the rain rings (E1) |
+| The rainforest | A tree falling far off, and birds lifting from the canopy. A rainbow over the forest after a shower. An owl calling at Dusk. A sunbreak with shafts of light over the trees | Fog in the trees with the marine layer (E1) |
 
 ## 6. Links
 
@@ -294,3 +329,12 @@ Every call, one line each, newest last.
 - F2, a lesson from the test: a serac falls from whichever icefall is bare, picked at random, so a test cannot wait for one in a given view. The test waits for the cap cloud, which forms in one known place.
 - F2, how it was tested: every hook was confirmed by a render with the list of what counts printed on it (Monolith, the coast, the sage, the forest, the wall, the larch basin, the approach, Day and Dusk). A new browser test checks that the cats are Observed at the start, that the cap cloud crosses over once the view goes to it, and that the owl stays Reported. Compared with v0.5.0 in Day, Dusk and on a phone.
 - F2, the numbers: 50 browser tests pass, frame time 11.2 ms, check.sh reports nothing moved; unit tests, type check and lint pass.
+- C10, what was built: Monorepo Woods is Git Blame Grove (the sign's key in `content/game/names.yaml` and `land.js` is now `git-blame`). Four new signs stand on the map: Rolling Release Hills out in the gold hills, Wildcard Meadow among the flowers halfway up the meadow below Mount Monolith, Old Growth Backlog in a clearing of the deep rainforest below the lookout of Off By One Peak, and Feature Creep Lake on the near shore of the lake at the foot of Scope Creep Glacier. The three new sets of instruments are Mallets, Quartet and Winds. No new art: the signs are the sign the map already draws.
+- C10, a call: Feature Creep Lake is a sign on the shore, as Feature Flag Tarns is, and not a plank like Reflection Lake's. The planks are the three destinations and each takes a click that sets off a route; a fourth plank that does nothing would read as a fourth route. TJ can ask for the plank.
+- C10, a call: the meadow below Mount Monolith is the mountain's own lower flank, steeper than the sign rule allows, so the rule's first answer was the lake's shore, under the lake's name. Wildcard Meadow alone may stand on a slope, 22 beyond the far shore (the flank is steep, so that is halfway up the meadow on the picture) and 60 west of the summit's line.
+- C10, a lesson: a sign placed early takes ground from what is placed after it. The first try moved a marmot's boulder and cost a tumbleweed its line. The meadow's sign and the hills' sign are now placed last, 40 clear of every home, and the hills' sign clear of the tumbleweeds' lines; check.sh reports nothing moved but the four new signs. Now a rule in `web/ENGINE.md`.
+- C10, a call: Rolling Release Hills stands 130 clear of the map's east edge (the first answer stood at the very edge, under the page's buttons) and takes the spot furthest east among those that are all Palouse, so it is out in the hills and not at the burn's edge.
+- C10, the frame time: the workstation was under other work during the check (load average 34 to 40), and the slowest view measured 22.8 ms on this build against 22.4 ms on `v0.5.0` in the same minute (11.2 ms an hour before, at F2). So the check's frame-time line failed for the machine, not for the build. It is measured again in G1.
+- C10, words: all picked or approved by TJ on 2026-11-24, so the comments that called the debug panel's, the board's and the instrument sets' words drafts are gone.
+- C10, how it was tested: a new browser test reads the five names in the trail map's legend and no longer the old one; the instrument test picks the three sets by their new names. Compared with `v0.5.0` on the whole map, with close-ups of each sign in Day and Dusk.
+- C10, the numbers: 51 browser tests and 140 unit tests pass; check.sh reports nothing moved but the four new signs (15 before, 19 now); frame time 16.6 ms with the machine still under load (41).

@@ -241,6 +241,18 @@ test('the register and the conditions board are one click target that opens the 
   expect(problems).toEqual([])
 })
 
+// Round 8, C10: the places TJ named stand on the map as signs, and the trail map's legend lists every sign's
+// name, so the five new names are there and the woods' old name is gone.
+test('the trail map lists the places named in round 8', async ({ page }) => {
+  const problems = await open(page, '/')
+  await page.locator('#b-map').click()
+  const sheet = page.locator('#sheet')
+  await expect(sheet).toBeVisible()
+  for (const name of ['Git Blame Grove', 'Rolling Release Hills', 'Wildcard Meadow', 'Old Growth Backlog', 'Feature Creep Lake']) await expect(sheet).toContainText(name)
+  await expect(sheet).not.toContainText('Monorepo Woods')
+  expect(problems).toEqual([])
+})
+
 // Round 8, F2: the conditions board sorts what lives and happens here in two lists. Observed holds what has
 // been on the screen this visit and Reported the rest, so each thing is in one of them and never in both.
 test('the conditions board lists what has been seen as Observed and the rest as Reported', async ({ page }) => {
@@ -270,7 +282,7 @@ test('the conditions board lists what has been seen as Observed and the rest as 
 test('the three new sets of instruments can be picked and play', async ({ page }) => {
   const problems = await open(page, '/')
   const button = page.locator('#b-track'), menu = page.locator('#music')
-  for (const name of ['Percussion', 'Strings', 'Woodwinds']) {
+  for (const name of ['Mallets', 'Quartet', 'Winds']) {
     await button.click()
     if (await menu.isHidden()) await button.click()
     await menu.getByRole('menuitemradio', { name, exact: true }).click()

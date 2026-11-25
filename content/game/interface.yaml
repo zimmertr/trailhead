@@ -265,7 +265,7 @@ UI:
     # the first heading what has been on the screen this visit, under the second the rest, which tells a
     # visitor what there is still to see. Each entry is one place: who is there, under the name the game knows
     # each by, and where. A line reads "Who, who and who where", after "lead" where there is one. The two
-    # headings are TJ's own words; the line after each, shown while its list is empty, is a draft.
+    # headings are TJ's own words. The line after each is shown while its list is empty.
     observed:
       - Observed
       - Nothing yet

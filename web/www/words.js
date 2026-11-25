@@ -438,9 +438,13 @@ export const W = {
   "off-by-one": "Off By One Peak",
   "dependency": "Dependency Range",
   "stack-trace": "Stack Trace Thicket",
-  "monorepo": "Monorepo Woods",
+  "git-blame": "Git Blame Grove",
   "cache-miss": "Cache Miss Cove",
-  "latency": "Latency Bay"
+  "latency": "Latency Bay",
+  "rolling-release": "Rolling Release Hills",
+  "wildcard": "Wildcard Meadow",
+  "old-growth": "Old Growth Backlog",
+  "feature-creep": "Feature Creep Lake"
  },
  "NAMES": {
   "register": "Trail register",
@@ -532,9 +536,9 @@ export const W = {
   "Console",
   "Handheld",
   "Music box",
-  "Percussion",
-  "Strings",
-  "Woodwinds"
+  "Mallets",
+  "Quartet",
+  "Winds"
  ],
  "UI": {
   "name": "TJ Zimmerman",

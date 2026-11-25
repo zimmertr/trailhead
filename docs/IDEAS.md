@@ -563,3 +563,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Tap a Reported Line** (round 8, F2). A tap on a line under Reported could close the board and move the view to where that thing lives, as the debug panel's start buttons do, without starting it.
 - **How Many of How Many** (round 8, F2). The notice in the register's scene could say how much has been observed ("12 of 31 observed") beside the checklist's count.
 - **The Board Remembers** (round 8, F2). Observed is this visit only, as TJ asked. A third mark could show what an earlier visit saw, kept as the finds are.
+- **The Legend Finds the Place** (round 8, C10). The trail map lists every sign's name. A tap on a name could close the map and move the view to that sign, so a name on the list becomes a place to go.
+- **A Plank for the Lake** (round 8, C10). Feature Creep Lake is a sign on its shore. It could have a plank like Reflection Lake's that shows only while the lake is hovered or when the view is close, so it reads as a named lake without looking like a fourth route.
+- **Signs Placed From a Table** (round 8, C10). Each sign's rule is a line of code in `habitat()`, and whether it is placed before or after the animals is where the line sits. A table (name, rule, aim, placed last or not) would make a new sign one row and keep the order from being a trap.
+

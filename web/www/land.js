@@ -1855,10 +1855,12 @@ function habitat() {
   const woods = find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && S.fogAmt(u, v) < 0.3 && (!edge || apartFrom([edge], u, v, 70)), 60, beside(0, 0.2, 0.9));
   // The upper basin's three tarns, the milky ones on the top step: Feature Flag Tarns stands between them.
   const milky = S.C.lakes.filter(l => l[4] === 'milk'), basin = milky.length ? [milky.reduce((s, l) => s + l[0], 0) / milky.length, milky.reduce((s, l) => s + l[1], 0) / milky.length] : null;
+  // The lake at the foot of Scope Creep Glacier, and Reflection Lake: [across, depth, half its width, half its depth].
+  const silt = S.C.lakes.find(l => l[4] === 'silt'), mirror = S.C.lakes[0];
   const SIGNS = {
     'yak-shave': yak,
     'stack-trace': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.45 && apartFrom(woods, u, v, 150), 0, beside(0, 0.5, 1).reverse()),
-    monorepo: woods,
+    'git-blame': woods,
     'scope-creep': find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'moraine', 0, beside(1, 0.7, 1)),
     // On the saddle's own ground, not on the rock that rises behind it.
     'merge-conflict': col ? nearest(col, 60, (u, v) => S.matAt(u, v) === 'land' && signable(u, v)) : [],
@@ -1880,7 +1882,13 @@ function habitat() {
     // It comes after Dependency, whose spot higher up the trail would otherwise lie too near it, and keeps 40 from it.
     segfault: [best((u, v) => S.talusAt(u, v) > 0.5 && !S.snowPatch(u, v) && apartFrom(taken, u, v, 40) && firm(u, v, 1.2) && trailFar(u, v) >= 4 && shows(u, v, 20), (u, v) => S.talusAt(u, v) - trailFar(u, v) / 40)].filter(Boolean),
     'cache-miss': find(1, (u, v) => { const c = S.coast(u, v); return c > -14 && c < -7 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2]; }),
-    latency: find(1, (u, v) => { const c = S.coast(u, v); return c > -14 && c < -7 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2]; }, 160)
+    latency: find(1, (u, v) => { const c = S.coast(u, v); return c > -14 && c < -7 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2]; }, 160),
+    // Round 8 (C10), the places TJ named. They come last, so no older sign moves to make room for them.
+    // (Rolling Release Hills and Wildcard Meadow are placed further down, after the animals' homes and the events' spots.)
+    // Old Growth Backlog: in the deep rainforest south of Off By One Peak, which on the map is below its lookout.
+    'old-growth': S.lookout ? [best((u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && Math.abs(u - S.lookout[0]) < 90 && v < S.lookout[1] - 60 && v > S.lookout[1] - 220, (u, v) => -Math.hypot(u - S.lookout[0], v - S.lookout[1] + 130))].filter(Boolean) : [],
+    // Feature Creep Lake: on the near shore of the lake at the foot of Scope Creep Glacier.
+    'feature-creep': silt ? [best((u, v) => apartFrom(taken, u, v, 40) && firm(u, v, 0.9) && trailFar(u, v) >= 4 && shows(u, v, 20) && Math.hypot(u - silt[0], v - silt[1] + silt[3] + 8) < 70, (u, v) => -Math.hypot(u - silt[0], v - silt[1] + silt[3] + 8))].filter(Boolean) : []
   };
   // The elk herd keeps to a roomy flat in the parkland well away from the Trailhead.
   const roomy = (u, v) => [[-26, 0], [26, 0], [0, -18], [0, 18]].every(([a, b]) => firm(u + a, v + b, 0.5));
@@ -2002,6 +2010,17 @@ function habitat() {
   const squirrelHomes = [...squirrels, ...more(5, sqOK, 70, squirrels)];
   const bearHomes = bear ? [bear, ...more(4, bearOK, 150, [bear])] : [];
   const whaleHomes = whale ? [whale, ...more(4, sea(90, 150), 90, [whale])] : [];
+  // Wildcard Meadow: among the flowers of the parkland below Mount Monolith, 22 beyond Reflection Lake's far
+  // shore (the flank is steep, so that is halfway up the meadow on the picture) and 60 west of the summit's
+  // line, clear of the marmots' boulders. So it reads as the meadow's sign and not the lake's. That meadow is the
+  // mountain's own lower flank, steeper than a sign otherwise stands on, so this one may stand on a slope.
+  // It is placed after every animal's home, 40 clear of each and of every sign, so that it moves none of them.
+  SIGNS.wildcard = [best((u, v) => apartFrom(taken, u, v, 40) && firm(u, v, 2.3) && trailFar(u, v) >= 4 && shows(u, v, 20) && S.flowerAmt(u, v) > 0.5 && S.parkAmt(u, v) > 0.6, (u, v) => -Math.hypot(u - vo.cu + 60, (v - mirror[1] - mirror[3] - 22) * 1.4))].filter(Boolean);
+  // Rolling Release Hills: on the open Palouse, the gold hills of the far corner, where they are most
+  // themselves but 130 clear of the map's east edge, which the page's own buttons and the camera's stop hide.
+  // Placed last for the same reason, and clear of the lines the tumbleweeds roll along, which must stay bare.
+  // Among the spots that are all Palouse it takes the one furthest east, out in the hills and away from the burn's edge.
+  SIGNS['rolling-release'] = [best((u, v) => u < NW - 130 && S.palAmt(u, v) > 0.5 && apartFrom(taken, u, v, 40) && firm(u, v, 0.9) && trailFar(u, v) >= 4 && shows(u, v, 20) && tumbles.every(([a, b]) => u < a - 14 || u > a + 175 || Math.abs(v - b) > 14), (u, v) => S.palAmt(u, v) + u / 400)].filter(Boolean);
   taken.length = mark;
   const herdAt = herd ? out(...herd) : null;
   return {

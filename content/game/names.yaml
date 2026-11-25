@@ -37,9 +37,13 @@ SIGNS:
   off-by-one: Off By One Peak
   dependency: Dependency Range
   stack-trace: Stack Trace Thicket
-  monorepo: Monorepo Woods
+  git-blame: Git Blame Grove
   cache-miss: Cache Miss Cove
   latency: Latency Bay
+  rolling-release: Rolling Release Hills
+  wildcard: Wildcard Meadow
+  old-growth: Old Growth Backlog
+  feature-creep: Feature Creep Lake
 # The names of things you can point at inside a scene.
 NAMES:
   register: Trail register
@@ -116,11 +120,11 @@ TRACK_NAMES:
   - Larch March
   - Tarn at Noon
   - Glissade
-# The sets of instruments. The last three are round 8's (E3); their names are drafts for TJ.
+# The sets of instruments. The last three are round 8's (E3), under the names TJ picked.
 SET_NAMES:
   - Console
   - Handheld
   - Music box
-  - Percussion
-  - Strings
-  - Woodwinds
+  - Mallets
+  - Quartet
+  - Winds
