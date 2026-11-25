@@ -486,7 +486,9 @@ export function makeCritters(W, opts = {}) {
     if (name === 'rub') return toTrunk(a);
     if (name === 'dip') return toWater(a);
     if (ACTS[name].pair) return meet(a, name, t);
-    if (name === 'bugle') { for (const b of items) if (b.critter === 'elk' && b !== a && b.st !== 'act') lookUp(b, t, 4); a.bugle = t; }
+    if (name === 'bugle') { for (const b of items) if (b.critter === 'elk' && b !== a && b.st !== 'act') lookUp(b, t, 4); a.bugle = t;
+      // A second bull answers from off the map, a moment after he has done (round 8, H4).
+      a.answerAt = t + 3.2 + rand() * 1.4; }
     if (name === 'upright') for (const c of items.filter(c => c.mum === a && c.cub && c.st !== 'climb')) { const T = trunkFor(c, 44); if (T) { c.trunk = T; c.tx = T.x; c.ty = T.y + 1; c.goal = 'trunk'; c.st = 'walk'; c.hop = c.lift = 0; } }
     act(a, name, t); return true; };
   // It has come to where it was going: the act it came for begins, or it grazes.
@@ -508,6 +510,10 @@ export function makeCritters(W, opts = {}) {
     if (a.sow && a.st === 'act' && a.act === 'rub' && a.lean) a.rubbed = { x: a.lean[0] + a.lean[2] * (a.lean[3] + 8), y: a.lean[1] - 1, s: -a.lean[2], t };
     const b = a.with; a.with = null; if (b) b.with = null; a.push = 0; a.hop = 0; a.st = 'look'; a.until = t + 1 + rand() * 2; a.bm = a.f.look; };
   function walk(a, dt, t) {
+    // The answer to his bugle comes (H4): faint, from beyond the nearer edge of the map, and every elk that
+    // is not busy lifts its head and turns that way. The bull listens too.
+    if (a.answerAt != null && t >= a.answerAt) { a.answerAt = null; a.far = t; const side = a.x < NW / 2 ? -1 : 1;
+      for (const b of items) if (b.critter === 'elk' && b.walker && b.st !== 'act' && b.st !== 'walk') { lookUp(b, t, 3.6); turn(b, side); } }
     // A kid springs straight up (round 6, note 10).
     a.hop = a.spring != null && t - a.spring < 1.4 ? Math.round(6 * Math.abs(Math.sin((t - a.spring) * Math.PI / 0.7))) : 0;
     if (a.st === 'walk') {
@@ -1087,8 +1093,9 @@ export function makeCritters(W, opts = {}) {
     if (hi[a] == null || hi[b] == null) return null;
     const f = (d - len[a]) / Math.max(1e-6, len[b] - len[a]), e = ebbAt(t) / EBB, at = r => lerp(hi[r], lo[r] == null ? -12 : lo[r], e), x = lerp(at(a), at(b), f), y = SEA.y0 + a + f;
     return col.canBe('swimmer', x, y, t, 4) ? [x, y] : null; };
+  const podNow = [];   // what each orca in the view is at, for the checks
   function orcas(scr, ox, oy, t) {
-    seen.orca.length = 0;
+    seen.orca.length = 0; podNow.length = 0;
     const T = t + orcaAhead - ORCA.first, n = Math.floor(T / ORCA.slot), s = T - n * ORCA.slot; if (T < 0 || s > ORCA.dur) return;
     // As the tide goes out the pod keeps the same depth under it, so its lanes move out with the water (T15).
     POD.forEach((o, i) => {
@@ -1100,7 +1107,11 @@ export function makeCritters(W, opts = {}) {
       const A = orcaAsk[i] && t - orcaAsk[i][1] < ORCA_DOES[orcaAsk[i][0]] ? orcaAsk[i] : null, own = k => { const who = Math.floor(hash(n, k, 6301) * POD.length), v = s - (22 + 60 * hash(n, k + 1, 6301)); return i === who && v > 0 ? v : -1; };
       let kind = A ? A[0] : null, v = A ? t - A[1] : 0;
       if (!A) for (const [k, name] of [[1, 'spyhop'], [11, 'breach'], [21, 'slap']]) { const w = own(k); if (w >= 0 && w < ORCA_DOES[name]) { kind = name; v = w; } }
+      // The one behind follows a spyhop a second later (round 8, H4): the next of the pod after the one that
+      // went up, whether by the pass's own order or after a click.
+      if (!kind && i > 0) { const B = orcaAsk[i - 1], wB = B && B[0] === 'spyhop' ? t - B[1] - 1 : -1, wN = Math.floor(hash(n, 1, 6301) * POD.length) === i - 1 ? s - (22 + 60 * hash(n, 2, 6301)) - 1 : -1, w = wB >= 0 && wB < ORCA_DOES.spyhop ? wB : wN; if (w >= 0 && w < ORCA_DOES.spyhop) { kind = 'spyhop'; v = w; } }
       if (!kind && s > 48 && s < 55) { kind = 'porpoise'; v = s - 48; }
+      podNow[i] = kind;
       if (kind && kind !== 'blow') { seen.orca[i] = [x, y]; if (inView(scr, x, y)) saw('orca');
         if (kind === 'spyhop') return spyhop(scr, x, y, v / ORCA_DOES.spyhop, t);
         if (kind === 'breach') return leap(scr, x, y, v / ORCA_DOES.breach, 11, 22, o.bull, t);
@@ -1494,6 +1505,8 @@ export function makeCritters(W, opts = {}) {
       // What it said as it began, or as two heads met: heard only when it is drawn, so only on screen.
       if (a.say) { sounds.push(a.say); a.say = null; }
       if (a.bugle != null && t - a.bugle < 2.4) breath(scr, a, ox, oy, t - a.bugle);
+      // The far bull's answer is heard where the herd is seen (H4).
+      if (a.far != null && a.farSung !== a.far && t - a.far < 0.6) { a.farSung = a.far; sounds.push('bugleFar'); }
     },
     // What is under a point of the map (world pixels; ox, oy: the view's corner, for what was drawn on screen
     // this frame): an animal's name and its act, or null. The nearest animal in front wins.
@@ -1513,6 +1526,7 @@ export function makeCritters(W, opts = {}) {
     },
     // A click on one of them, by the act pick() gave: what it does, and the sound it makes (or null).
     click(id, px, py, t) { return poke(id, px, py, t); },
+    podDoes: () => [...podNow],
     // One of a walker's own acts, by name, now: for the debug panel and the checks. Whether it began.
     doAct(i, name, t) { const a = items[i]; return !!a && !!a.walker && a.does.includes(name) && begin(a, name, t); },
     tideAt: t => ebbAt(t) / EBB,

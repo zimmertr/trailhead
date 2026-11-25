@@ -717,6 +717,26 @@ test('a goat lives on the ledge of the larch basin wall and keeps to it', async 
   expect(problems).toEqual([])
 })
 
+// Round 8, H4: answers and followers. A second bull answers a bugle from off the map and the herd turns to
+// listen, and when one orca spyhops the one behind it follows a second later.
+test('a far bull answers the bugle and the orca behind follows a spyhop', async ({ page }) => {
+  const problems = await open(page, '/?homes=0')
+  type Elk = { critter: string; walker?: boolean; does?: string[]; st: string; far?: number; flip?: boolean; faces?: number }
+  type Sea = { __crit: { items: Elk[]; doAct: (i: number, name: string, t: number) => boolean; click: (id: string, x: number, y: number, t: number) => unknown; podDoes: () => (string | null)[] }; __api: { now: () => number; showEvent: (id: string) => number; trigger: (id: string) => boolean } }
+  expect(await page.evaluate(() => { const w = window as unknown as Sea, i = w.__crit.items.findIndex((a) => a.critter === 'elk' && (a.does ?? []).includes('bugle')); return i >= 0 && w.__crit.doAct(i, 'bugle', w.__api.now()) })).toBe(true)
+  // The answer comes three to five seconds after he starts, and the cows that are free look up, all turned one way.
+  await expect.poll(() => page.evaluate(() => (window as unknown as Sea).__crit.items.some((a) => a.critter === 'elk' && a.far != null)), { timeout: 12_000 }).toBe(true)
+  const heads = await page.evaluate(() => (window as unknown as Sea).__crit.items.filter((a) => a.critter === 'elk' && a.st === 'look').map((a) => (a.faces ?? 1) * (a.flip ? -1 : 1)))
+  expect(heads.length).toBeGreaterThan(0)
+  expect(new Set(heads).size).toBe(1)
+  // The pod comes through. The first orca is clicked until it spyhops, and the second is up a second after it.
+  await page.evaluate(() => { const w = window as unknown as Sea; w.__api.showEvent('orcas'); w.__api.trigger('orcas') })
+  await expect.poll(() => page.evaluate(() => (window as unknown as Sea).__crit.podDoes().length), { timeout: 30_000 }).toBeGreaterThan(1)
+  await expect.poll(async () => page.evaluate(() => { const w = window as unknown as Sea; if (w.__crit.podDoes()[0] === 'spyhop') return true; w.__crit.click('orca:0', 0, 0, w.__api.now()); return w.__crit.podDoes()[0] === 'spyhop' }), { timeout: 20_000, intervals: [400] }).toBe(true)
+  await expect.poll(() => page.evaluate(() => (window as unknown as Sea).__crit.podDoes()[1]), { timeout: 4_000, intervals: [100] }).toBe('spyhop')
+  expect(problems).toEqual([])
+})
+
 test('the homes the dice draw keep the engine rules and leave an animal to click', async ({ page }) => {
   for (const seed of [1, 2, 3, 4]) {
     const problems = await open(page, `/?homes=${seed}`)

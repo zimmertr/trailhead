@@ -584,4 +584,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Kid on the Ledge** (round 8, H3). A nanny and kid on a ledge would need the kid to keep behind her along the ledge and not beside her. A follower that keeps to a list of spots would do it.
 - **Ledges for Others** (round 8, H3). The same list-of-spots country would put a marmot on a wall's ledge, a raven on a tower's, or a pika on a talus block.
 - **He Looks Down** (round 8, H3). When the runner passes on the trail below, the goat on the ledge could stop and watch him go by.
+- **The Bull Answers Back** (round 8, H4). The far bull answers once. The herd's bull could bugle again at the answer, a little longer, and the two could trade two or three calls as the light goes.
+- **Other Voices From Off the Map** (round 8, H4). A loon from a lake that is not drawn, a second owl answering the rainforest's, coyotes from the dry side at Dusk. Each is one faint sound and a head turned.
+- **The Pod Follows a Breach** (round 8, H4). After one orca breaches, a calf could try a small one of its own a moment later.
 

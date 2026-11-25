@@ -121,7 +121,7 @@ TJ picked these from `docs/IDEAS.md` on 2026-11-24, for the night. Pictures firs
 - [x] **H1 Life by the Hour.** The clock leans on what animals do and where they are: the herd high by Day and down at the stream at Dusk, the marmots gone to ground at Dusk, the bears out, bugling towards Dusk, bedding at midday. TJ: "this should be built into the critter system so new animals that are later added integrate into this". So it is one rule in the animals' own system (each kind says what it does by the hour, in data), not code per animal.
 - [x] **H2 The Cubs Copy Her.** The cubs dig beside the sow when she digs and try the trunk she has just rubbed.
 - [x] **H3 A Goat on the Ledge.** One mountain goat's home on the grassy ledge halfway up the larch basin's wall.
-- [ ] **H4 Answers and Followers.** A second bull answers a bugle faintly from off the map. When one orca spyhops, the one behind it follows a second later.
+- [x] **H4 Answers and Followers.** A second bull answers a bugle faintly from off the map. When one orca spyhops, the one behind it follows a second later.
 - [ ] **H5 Ice That Moves.** The bergs in Feature Creep Lake become things that drift a little with each gust and turn slowly; the upper tarns get a few small floes.
 - [ ] **H6 Rain Shows Everywhere.** In rain the map's lakes show rings in place of glints and no fish jump. At the lakeside the boulders and the trail stay dark after the drizzle and dry from the top down.
 - [ ] **H7 Driftwood Where It Gathers.** The beach's logs jam at the creek mouths and against the headlands, with clean sand between.
@@ -380,3 +380,11 @@ Every call, one line each, newest last.
 - H3, how it was tested: rendered at three moments by Day (walking, grazing, bedded); the engine rules read clean. A new browser test clicks him through his acts twelve times and reads that he is on the ledge each time and has moved along it.
 
 - H3, the numbers: 55 browser tests pass; check.sh reports nothing moved since H2 and the ledge as new (its 40 pixels are counted with the places, so the count reads 130 in 34 kinds); frame time 11.6 ms zoomed out at Dusk. CI on H2 (`ee1c7e5`) was green.
+- H4, what was built: three to five seconds after the bull starts a bugle, a second bull answers from beyond the nearer edge of the map: the whistle alone, quiet and a little lower (a new sound, `bugleFar` in `audio.js`). Every elk that is not busy lifts its head and turns that way. When an orca spyhops, by the pass's own order or after a click, the next one behind it in the pod comes up a second later.
+- H4, a call: the answer is heard only where the herd is seen, as the bugle is. The far bull is never drawn: he is off the map.
+- H4, a call: only the one directly behind follows, once. A spyhop that ran down the whole pod read as a routine and not as one whale copying another.
+- H4, no pictures: nothing new is drawn. The follower uses the spyhop of B6.
+- H4, added for the checks: `podDoes()` on the animals' system says what each orca in the view is at.
+- H4, how it was tested: a new browser test starts the bugle by name, waits for the answer and reads that every elk looking up faces one way; then it brings the pod through, clicks the first orca until it spyhops and reads the second up within four seconds. It passed twice in a row. One render of the pod with both up.
+
+- H4, the numbers: 56 browser tests pass; check.sh reports nothing moved since H3; frame time 10.8 ms zoomed out at Dusk. CI on H3 (`174ee2c`) was green.

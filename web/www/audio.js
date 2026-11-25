@@ -272,6 +272,8 @@ export function makeAudio() {
     // The animals' answers to a click (round 6, note 10). A bull elk's bugle: a low grunt that climbs to a long
     // high whistle and breaks off in grunts.
     bugle: t => { tone(fx, 'sawtooth', 160, t, 0.18, 0.06, 220); tone(fx, 'sine', 520, t + 0.15, 0.55, 0.12, 1900); tone(fx, 'sine', 1900, t + 0.7, 0.5, 0.1, 1700); for (let i = 0; i < 3; i++) tone(fx, 'sawtooth', 130, t + 1.25 + i * 0.16, 0.08, 0.06, 110); },
+    // Another bull answering from a long way off (round 8, H4): the whistle alone, quiet and a little lower, and two grunts barely there.
+    bugleFar: t => { tone(fx, 'sine', 470, t, 0.6, 0.035, 1700); tone(fx, 'sine', 1700, t + 0.6, 0.55, 0.03, 1500); for (let i = 0; i < 2; i++) tone(fx, 'sawtooth', 120, t + 1.2 + i * 0.18, 0.08, 0.014, 100); },
     // A goat's or a calf's bleat: one wavering note.
     bleat: t => { for (let i = 0; i < 5; i++) tone(fx, 'square', i & 1 ? 560 : 620, t + i * 0.05, 0.05, 0.08); },
     // A snort: a short blast of breath through the nose.
