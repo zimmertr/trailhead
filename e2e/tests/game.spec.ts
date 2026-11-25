@@ -21,10 +21,15 @@ declare global {
   }
 }
 
-// What an engine says about itself rather than about the page, passed over by name. Firefox says this
-// whenever a DecompressionStream is read, as land.js reads ground.png, and the bytes come out right
-// all the same (round 8, I7).
-const ENGINE_NOTES = [/^\[JavaScript Warning: "The execution of microtasks on this page was reordered to avoid unsafe execution\."/]
+// What an engine says about itself rather than about the page, passed over by name (round 8, I7).
+const ENGINE_NOTES = [
+  // Firefox says this whenever a DecompressionStream is read, as land.js reads ground.png, and the bytes
+  // come out right all the same.
+  /^\[JavaScript Warning: "The execution of microtasks on this page was reordered to avoid unsafe execution\."/,
+  // WebKit says this on the second page a tab loads with Cross-Origin-Opener-Policy: same-origin, a blank
+  // page as much as the game, and never on the first. The game needs no SharedArrayBuffer.
+  /^This document is not cross-origin isolated because the Cross-Origin-Embedder-Policy header is missing/,
+]
 
 // Opens an address of the game and returns everything the page complained
 // about: a thrown error, a console error or warning, a file that isn't there.
