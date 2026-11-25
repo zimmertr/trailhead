@@ -532,7 +532,10 @@ export const W = {
  "SET_NAMES": [
   "Console",
   "Handheld",
-  "Music box"
+  "Music box",
+  "Percussion",
+  "Strings",
+  "Woodwinds"
  ],
  "UI": {
   "name": "TJ Zimmerman",

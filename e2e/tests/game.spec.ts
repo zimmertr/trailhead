@@ -209,7 +209,7 @@ test('the music button opens its menu, and Sound off turns the sound off', async
   await button.click()
   if (await menu.isHidden()) await button.click()
   await expect(menu).toBeVisible()
-  await expect(menu.getByRole('menuitemradio')).toHaveCount(12)
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(15)
   await page.keyboard.press('Escape')
   await expect(menu).toBeHidden()
   await button.click()
@@ -217,6 +217,25 @@ test('the music button opens its menu, and Sound off turns the sound off', async
   await expect(menu).toBeHidden()
   await expect(button).toContainText('Sound off')
   expect(await axe(page).then(found)).toEqual([])
+  expect(problems).toEqual([])
+})
+
+// Round 8, E3: three more sets of instruments, each picked from the music menu and each playing the tune.
+test('the three new sets of instruments can be picked and play', async ({ page }) => {
+  const problems = await open(page, '/')
+  const button = page.locator('#b-track'), menu = page.locator('#music')
+  for (const name of ['Percussion', 'Strings', 'Woodwinds']) {
+    await button.click()
+    if (await menu.isHidden()) await button.click()
+    await menu.getByRole('menuitemradio', { name, exact: true }).click()
+    await expect(menu).toBeHidden()
+    // Long enough for the scheduler to have played a bar of it through the set's voices.
+    await page.waitForTimeout(1500)
+    expect(await page.evaluate(() => window.__sound()), name).toBe(true)
+    await button.click()
+    await expect(menu.getByRole('menuitemradio', { name, exact: true })).toHaveAttribute('aria-checked', 'true')
+    await page.keyboard.press('Escape')
+  }
   expect(problems).toEqual([])
 })
 

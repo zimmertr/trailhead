@@ -117,8 +117,11 @@ TRACK_NAMES:
   - Larch March
   - Tarn at Noon
   - Glissade
-# The three sets of instruments.
+# The sets of instruments. The last three are round 8's (E3); their names are drafts for TJ.
 SET_NAMES:
   - Console
   - Handheld
   - Music box
+  - Percussion
+  - Strings
+  - Woodwinds

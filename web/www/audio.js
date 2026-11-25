@@ -76,13 +76,21 @@ export const TRACKS = [
       drum: line('k - h - s - h - | k - h h s - h - | k - h - s - h - | k - h h s - h h | k - h - s - h - | k - h h s - h - | k - h - s - h - | k - s - s s s -') } }
 ];
 
-// The same notes through three different instruments. A set names the wave each voice uses, how
+// The same notes through six different sets of instruments. A set names the wave each voice uses, how
 // loud the drums are, and how the effects are pitched.
 export const SETS = [
   { lead: 'square', arp: 'square', bass: 'triangle', fx: { square: 'square', triangle: 'triangle' }, drums: 1, pitch: 1 },
   { lead: 'pulse', arp: 'pulse', bass: 'square', fx: { square: 'pulse', triangle: 'triangle' }, drums: 0.7, pitch: 1.5, bassVol: 0.4 },
-  { lead: 'sine', arp: 'triangle', bass: 'sine', fx: { square: 'sine', triangle: 'sine' }, drums: 0, pitch: 2, pluck: true, octave: 2 }
+  { lead: 'sine', arp: 'triangle', bass: 'sine', fx: { square: 'sine', triangle: 'sine' }, drums: 0, pitch: 2, pluck: true, octave: 2 },
+  // Round 8, E3 (TJ: drums and percussion, strings, woodwinds). The same notes again, each through voices
+  // that are built from more than one wave (voice() below). perc: a shaker, a woodblock and toms join the
+  // drums. still: no vibrato on a held note, since a struck bar has none.
+  { lead: 'mallet', arp: 'mallet', bass: 'tom', fx: { square: 'triangle', triangle: 'triangle' }, drums: 1.2, pitch: 1, perc: true, still: true },
+  { lead: 'bow', arp: 'pizz', bass: 'bow', fx: { square: 'triangle', triangle: 'sine' }, drums: 0, pitch: 1 },
+  { lead: 'flute', arp: 'reed', bass: 'bassoon', fx: { square: 'sine', triangle: 'sine' }, drums: 0.35, pitch: 1.5 }
 ];
+// How loud each built voice plays beside the plain waves, so the six sets sit at one level.
+const VOICES = { mallet: 1.5, tom: 1.3, bow: 0.9, pizz: 1.7, flute: 1.1, reed: 0.5, bassoon: 0.42 };
 
 // Their names are words on the page, so they live with the rest of the words.
 TRACKS.forEach((tr, i) => { tr.name = TRACK_NAMES[i]; }); SETS.forEach((st, i) => { st.name = SET_NAMES[i]; });
@@ -134,6 +142,7 @@ export function makeAudio() {
   // One note: a square, pulse or triangle wave with a quick attack and a falling tail.
   function tone(out, type, f0, t, dur, vol, f1) {
     if (!f0) return;
+    if (VOICES[type]) return voice(out, type, f0, t, dur, vol * VOICES[type]);
     const o = ctx.createOscillator(), g = ctx.createGain(), V = SETS[set];
     // Effects are written for the console; the other sets play them through their own voice.
     if (out === fx) { type = V.fx[type] || type; f0 *= V.pitch; if (f1) f1 *= V.pitch; if (type === 'sine') vol *= 1.5; }
@@ -143,6 +152,33 @@ export function makeAudio() {
     else { g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.008); g.gain.setValueAtTime(vol, t + dur * 0.55); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
     o.connect(g); g.connect(out); o.start(t); o.stop(t + dur + 0.02);
     return o;
+  }
+  // A note of one of the round 8 instruments (E3), each made after how the real thing sounds:
+  //   mallet   a marimba bar: a sine, with a bright partial two octaves up that is gone at once, struck and left to ring
+  //   tom      a tuned drum: a sine whose pitch settles from a little sharp as the skin does
+  //   bow      a bowed string: two saws a few cents apart behind a filter that opens as the bow bites, slow in and out
+  //   pizz     a plucked string: a saw whose filter closes as it rings
+  //   flute    a sine with a little of its octave, and a breath of noise as the note speaks
+  //   reed     a clarinet: a square (odd harmonics only) behind a filter, soft at its edges
+  //   bassoon  a narrow pulse, low down, behind a filter
+  // Answers the oscillator that carries the pitch, for the vibrato on a held note.
+  function voice(out, kind, f0, t, dur, vol) {
+    const g = ctx.createGain(), lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 0.7; lp.frequency.value = 18000; lp.connect(g); g.connect(out);
+    let end = t + dur;
+    const osc = (type, f, v, cents) => { const o = ctx.createOscillator(), og = ctx.createGain(); if (type === 'pulse') o.setPeriodicWave(pulse); else o.type = type; o.frequency.setValueAtTime(f, t); if (cents) o.detune.value = cents; og.gain.value = v; o.connect(og); og.connect(lp); o.start(t); return [o, og]; };
+    // struck: up at once and dying away over `ring` seconds. blown: in over `a` seconds, held, and out over `r`.
+    const struck = ring => { end = t + Math.max(dur, ring); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, end); };
+    const blown = (a, r) => { end = t + dur + r; g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol, t + Math.min(a, dur * 0.5)); g.gain.setValueAtTime(vol, t + dur * 0.8); g.gain.exponentialRampToValueAtTime(0.0001, end); };
+    let all;
+    if (kind === 'mallet') { const hi = osc('sine', f0 * 4, 0.3); hi[1].gain.setValueAtTime(0.3, t); hi[1].gain.exponentialRampToValueAtTime(0.0001, t + 0.07); all = [osc('sine', f0, 1), hi]; struck(0.55); noise(out, t, 0.012, vol * 0.25, 2600, 1, 'bandpass'); }
+    else if (kind === 'tom') { all = [osc('sine', f0, 1)]; all[0][0].frequency.setValueAtTime(f0 * 1.3, t); all[0][0].frequency.exponentialRampToValueAtTime(f0, t + 0.07); struck(0.4); noise(out, t, 0.03, vol * 0.2, 500, 0.8, 'lowpass'); }
+    else if (kind === 'bow') { all = [osc('sawtooth', f0, 0.5, -7), osc('sawtooth', f0, 0.5, 7)]; lp.frequency.setValueAtTime(f0 * 1.5, t); lp.frequency.linearRampToValueAtTime(Math.min(5200, f0 * 6), t + 0.12); blown(0.08, 0.14); }
+    else if (kind === 'pizz') { all = [osc('sawtooth', f0, 1)]; lp.frequency.setValueAtTime(Math.min(9000, f0 * 8), t); lp.frequency.exponentialRampToValueAtTime(f0 * 1.5, t + 0.16); struck(0.38); }
+    else if (kind === 'flute') { all = [osc('sine', f0, 1), osc('sine', f0 * 2, 0.16), osc('sine', f0 * 3, 0.05)]; blown(0.05, 0.08); noise(out, t, 0.07, vol * 0.12, f0 * 2, 1.5, 'bandpass'); }
+    else if (kind === 'reed') { all = [osc('square', f0, 1)]; lp.frequency.value = Math.min(6000, f0 * 5); blown(0.02, 0.05); }
+    else { all = [osc('pulse', f0, 1)]; lp.frequency.value = Math.min(3000, f0 * 4.5); blown(0.03, 0.07); }
+    for (const [o] of all) o.stop(end + 0.03);
+    return all[0][0];
   }
   function noise(out, t, dur, vol, freq = 4000, q = 0.7, type = 'highpass') {
     const n = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain();
@@ -165,12 +201,15 @@ export function makeAudio() {
         // When the first part comes back the melody is doubled an octave down, so the return sounds fuller than the start.
         if (sec === 2) tone(music, V.lead, hz(a) * up / 2, nextAt, dt * n * 0.95, 0.06);
         // A held note gets a little vibrato once it has settled.
-        if (o && n >= 3 && !V.pluck) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 5.6; lg.gain.setValueAtTime(0, nextAt + dt); lg.gain.linearRampToValueAtTime(hz(a) * up * 0.007, nextAt + dt * 2); l.connect(lg); lg.connect(o.frequency); l.start(nextAt); l.stop(nextAt + dt * n); }
+        if (o && n >= 3 && !V.pluck && !V.still) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 5.6; lg.gain.setValueAtTime(0, nextAt + dt); lg.gain.linearRampToValueAtTime(hz(a) * up * 0.007, nextAt + dt * 2); l.connect(lg); lg.connect(o.frequency); l.start(nextAt); l.stop(nextAt + dt * n); }
       }
       const b = P.arp[i]; if (b !== '.' && b !== '-') tone(music, V.arp, hz(b) * up, nextAt, dt * 0.8, V.arp === 'square' ? 0.045 : 0.07);
       const c = P.bass[i]; if (c !== '.' && c !== '-') tone(music, V.bass, hz(c) * up, nextAt, dt * hold(P.bass, i) * 0.9, V.bass === 'square' ? 0.1 : 0.3);
       // On every second play the drums sit out the first four bars, so a tune does not come round the same way twice.
       const dr = pass % 2 === 1 && sec === 0 && i < len / 2 ? '-' : P.drum[i]; if (!dv) { /* no drums in a music box */ } else if (dr === 'k') tone(music, 'triangle', 150, nextAt, 0.12, 0.4 * dv, 45); else if (dr === 's') noise(music, nextAt, 0.11, 0.16 * dv, 1800, 0.6, 'bandpass'); else if (dr === 'h') noise(music, nextAt, 0.035, 0.05 * dv, 7000);
+      // The percussion set's own (round 8, E3): a shaker on every step the drums leave empty, a woodblock with
+      // every second hat, a low tom under the kick and a high one before each fourth bar.
+      if (V.perc) { if (dr === '-') noise(music, nextAt, 0.025, 0.022, 9000); else if (dr === 'h' && i % 4 === 2) tone(music, 'sine', 1150, nextAt, 0.035, 0.07); else if (dr === 'k') voice(music, 'tom', 98, nextAt, 0.2, 0.22); if (i % 32 >= 29 && dr !== '-') voice(music, 'tom', [196, 165, 131][i % 32 - 29], nextAt, 0.15, 0.2); }
       step++; nextAt += dt;
       // After two plays of a tune, Auto moves on: the place's own tunes first, then every other one, and round again.
       // A tune picked by hand stays.

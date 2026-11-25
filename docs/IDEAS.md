@@ -551,3 +551,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Rainbow as It Lifts** (round 8, E1). When the marine layer thins with the sun out, the lakeside could show a faint bow over the far shore for a few seconds. It is one of the drafts for TJ's events, so it waits for him.
 - **Weather on the Conditions Board** (round 8, E1). The board could say what the sky is doing now, in the words a ranger would chalk up: marine layer in, clearing by noon, gusty on the ridge.
 - **A Weather Strip in the Debug Panel** (round 8, E1). Beside the buttons, one line that says what the sky report holds now (rain, fog, snow, the last gust), so a look tells why a scene is grey.
+- **A Set for Each Place** (round 8, E3). With six sets, Auto could pick the instruments as well as the tune: woodwinds in the rainforest, strings at the lake, percussion on the ridge, the music box at camp after Dusk.
+- **Hear a Set Before Picking It** (round 8, E3). The debug panel's sound test plays each tune's parts. It could play one bar through each set too, so the six can be compared in a few seconds.
+- **A Sound Check in CI** (round 8, E3). The offline render that measured the new sets could run as a test: every set within a few decibels of the others, and no clipped sample, so a new voice cannot come out twice as loud.
+- **A Solo Now and Then** (round 8, E3). On a tune's third play one voice could drop out for four bars and leave the others, as the drums already do on every second play.
