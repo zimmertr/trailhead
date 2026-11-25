@@ -1022,7 +1022,10 @@ const mouthFog = (u, v, cs) => { let f = 1; for (const [a, b, least] of MOUTHS) 
 // out most, each 110 or more from any other spot. jamAt answers how much driftwood a spot gets: all of it within 30 of a jam, none past 80.
 const JAMS = (() => {
   const out = [], far = (u, v, d) => out.every(([a, b]) => Math.hypot(a - u, (b - v) * 1.5) > d), wet = [], dry = [];
-  for (let v = 2; v < VD - 2; v += 2) for (let u = 4; u < 700; u += 2) { const c = coast(u, v); if (c > -10 || c < -16) continue; if (water[at(u, v)]) wet.push([u, v]); else dry.push([u, v, fbm(u / 80, v / 80, 80, 3)]); }
+  // The band lies within 18 below and 64 above the shore's own line (the coast wanders 20 either way), so
+  // only those rows are asked. The spots are then put in rows, as a walk over the whole map would find them.
+  for (let u = 4; u < 700; u += 2) { const line = SHV.V[u - SHV.lo] & ~1; for (let v = Math.max(2, line - 18); v < Math.min(VD - 2, line + 64); v += 2) { const c = coast(u, v); if (c > -10 || c < -16) continue; if (water[at(u, v)]) wet.push([u, v]); else dry.push([u, v, fbm(u / 80, v / 80, 80, 3)]); } }
+  wet.sort((a, b) => a[1] - b[1] || a[0] - b[0]); dry.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
   for (const [u, v] of wet) if (far(u, v, 40)) { const near = wet.filter(([a, b]) => Math.hypot(a - u, b - v) < 20); out.push([near.reduce((t, q) => t + q[0], 0) / near.length, near.reduce((t, q) => t + q[1], 0) / near.length, 'mouth']); }
   dry.sort((a, b) => a[2] - b[2]);
   let heads = 0; for (const [u, v, n] of dry) { if (n > 0.38 || heads >= 2) break; if (far(u, v, 110)) { out.push([u, v, 'head']); heads++; } }
@@ -1424,6 +1427,8 @@ const ridgeRow = (u, v) => coast(u, v) < -18 && forestAmt(u, v) > 0.3 && hillUp(
 }
 // ---- things that stand up -------------------------------------------------------------------------
 // put and plant still take where the fog lies (f) from their callers; since E5 nothing is paled by it for good.
+// STREAMSIDE: the streamside plants of H8 as [u, v, which drawing, how far from the water], for the bake.
+const STREAMSIDE = [];
 const STACKS = [], things = [], put = (bm, u, v, f, tree) => things.push({ bm, u: Math.round(u), v: Math.round(v), isTree: tree }), plant = (tree, u, v) => things.push({ tree, u: Math.round(u), v: Math.round(v) });
 const wet8 = (u, v) => { for (let dv = -3; dv <= 6; dv += 3) for (let du = -9; du <= 9; du += 3) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) return true; return false; };
 const slope = (u, v) => Math.hypot(hAt(u + 2, v) - hAt(u - 2, v), hAt(u, v + 2) - hAt(u, v - 2)) / 4;
@@ -1637,7 +1642,10 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   // sand and clear of the trail. Their own dice.
   // The streamside rule in two parts: how far a spot is from running water (99 if none is near), and whether
   // a plant may stand there at all (not in water, off the sand, on ground that is nearly level, clear of the trail).
-  const waterNear = (u, v) => { let near = 99; for (let dv = -4; dv <= 4; dv++) for (let du = -7; du <= 7; du++) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) near = Math.min(near, Math.hypot(du, dv * 1.6)); return near; };
+  const waterNear = (u, v) => { let near = 99;
+    // Away from the map's edge the spots round it are read straight from the grid.
+    if (u >= 7 && u < NW - 7 && v >= 4 && v < VD - 4) { for (let dv = -4; dv <= 4; dv++) for (let du = -7, r = (v + dv) * NW + u; du <= 7; du++) if (water[r + du]) near = Math.min(near, Math.hypot(du, dv * 1.6)); return near; }
+    for (let dv = -4; dv <= 4; dv++) for (let du = -7; du <= 7; du++) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) near = Math.min(near, Math.hypot(du, dv * 1.6)); return near; };
   const bankOk = (u, v) => !(water[at(u, v)] || lakeAt(u, v) || coast(u, v) > -36 || slope(u, v) > 0.9 || nearTrail(u, v, 7) || !land(u, v));
   { const sc = rng(6124), took = new Set();
     for (const [cu, cv, ru, rv, most] of [[402, 560, 34, 46, 16], [271, 436, 48, 24, 16], [664, 330, 20, 22, 8]]) { let k = 0;
@@ -1651,14 +1659,24 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   // whether it lands or not, so a plant keeps its place when another rule changes.
   { const sp = rng(6126), monkey = [0, 1, 2, 3].map(i => makeMonkeyflower(1090 + i)), marigold = [0, 1, 2].map(i => makeMarigold(1096 + i)), club = [0, 1, 2, 3].map(i => makeDevilsClub(1100 + i));
     tag(monkey, 'monkeyflower'); tag(marigold, 'marigold'); tag(club, 'club'); tag(cab, 'cabbage');
+    // The rule costs 9 ms and the page's first paint waits for it, so the plants it finds go into the bake
+    // with the ground and are read from there. Without a bake that has them, the rule runs.
+    const all = [...monkey, ...marigold, ...club];
+    if (B && B.plants) { STREAMSIDE.push(...B.plants); for (const [u, v, i, near] of B.plants) things.push({ tree: all[i], u, v, near }); } else {
+    // A coarse map of where the water is, in cells of 8 by 8, so that a throw far from every stream costs
+    // nine looks and no more (the page's first paint waits for this loop).
+    // The water is read four spots at a time (a row is 480 words), which is what makes the map cheap.
+    const CW = (NW >> 3) + 1, CH = (VD >> 3) + 1, wetCell = new Uint8Array(CW * CH), W4 = new Uint32Array(water.buffer, water.byteOffset, water.length >> 2), RW4 = NW >> 2;
+    for (let b = 0; b < VD; b++) for (let a = 0, r = b * RW4, c = (b >> 3) * CW; a < RW4; a++) if (W4[r + a]) wetCell[c + (a >> 1)] = 1;
+    const wetBy = (u, v) => { const cu = u >> 3, cv = v >> 3; for (let b = Math.max(0, cv - 1); b <= Math.min(CH - 1, cv + 1); b++) for (let a = Math.max(0, cu - 1); a <= Math.min(CW - 1, cu + 1); a++) if (wetCell[b * CW + a]) return true; return false; };
     const shown = (u, v) => SY - v - hAt(u, v), stood = things.filter(t => cab.includes(t.tree)).map(t => [t.u, shown(t.u, t.v)]);
     for (let n = 0; n < 40000; n++) { const u = Math.round(sp() * (NW - 1)), v = Math.round(sp() * (VD - 1)), k = sp();
-      const near = waterNear(u, v); if (near < 2 || near > 7) continue;
-      const wood = forestAmt(u, v) > 0.6; if ((!wood && !meadowy(u, v)) || fbm(u / 26, v / 18, 6127, 2) < 0.45 || !bankOk(u, v)) continue;
+      if (!wetBy(u, v)) continue; const near = waterNear(u, v); if (near < 2 || near > 7) continue;
+      if (fbm(u / 26, v / 18, 6127, 2) < 0.45) continue; const wood = forestAmt(u, v) > 0.6; if ((!wood && !meadowy(u, v)) || !bankOk(u, v)) continue;
       const y = shown(u, v); if (stood.some(([a, b]) => Math.abs(a - u) < 4 && Math.abs(b - y) < 3)) continue;
       stood.push([u, y]); const kinds = wood ? club : vnoise(u / 60, v / 40, 6128) < 0.55 ? monkey : marigold;
       // near: how far it stands from the water, for the checks.
-      things.push({ tree: kinds[(k * kinds.length) | 0], u, v, near }); } }
+      const tree = kinds[(k * kinds.length) | 0], d = Math.round(near * 100) / 100; things.push({ tree, u, v, near: d }); STREAMSIDE.push([u, v, all.indexOf(tree), d]); } } }
   // The old-growth groves: three or four redcedars half as tall again as the forest round them, a little apart,
   // with sword ferns thick on the ground below (C3). Their own dice.
   { const gr = rng(6122), giants = [0, 1, 2].map(i => KINDS_NW.cedar(1080 + i * 7, 84 + i * 4));
@@ -1780,7 +1798,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { mesa, eastAmt, g, depth: zb, mat: mb, bare, fogField, mouthFog, jams: JAMS, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, palAmt, talusAt, snowPatch, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { mesa, eastAmt, g, depth: zb, mat: mb, bare, fogField, mouthFog, jams: JAMS, plants: STREAMSIDE, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, palAmt, talusAt, snowPatch, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -1809,12 +1827,12 @@ async function readBake() {
   if (globalThis.__noBake) { BAKE.note = 'switched off'; return null; }
   try {
     const res = await fetch(new URL('./ground.png', import.meta.url)); if (!res.ok) { BAKE.note = 'ground.png answered ' + res.status; return null; }
-    const b = new Uint8Array(await res.arrayBuffer()), dv = new DataView(b.buffer), parts = []; let w = 0, h = 0, sig = '', falls = null, homes = null;
+    const b = new Uint8Array(await res.arrayBuffer()), dv = new DataView(b.buffer), parts = []; let w = 0, h = 0, sig = '', falls = null, homes = null, plants = null;
     for (let p = 8; p + 12 <= b.length;) {
       const n = dv.getUint32(p), type = String.fromCharCode(b[p + 4], b[p + 5], b[p + 6], b[p + 7]);
       if (type === 'IHDR') { w = dv.getUint32(p + 8); h = dv.getUint32(p + 12); }
       else if (type === 'IDAT') parts.push(b.subarray(p + 8, p + 8 + n));
-      else if (type === 'tEXt') { const t = String.fromCharCode(...b.subarray(p + 8, p + 8 + n)); if (t.startsWith('sig\0')) sig = t.slice(4); else if (t.startsWith('falls\0')) falls = JSON.parse(t.slice(6)); else if (t.startsWith('homes\0')) homes = JSON.parse(t.slice(6)); }
+      else if (type === 'tEXt') { const t = String.fromCharCode(...b.subarray(p + 8, p + 8 + n)); if (t.startsWith('sig\0')) sig = t.slice(4); else if (t.startsWith('falls\0')) falls = JSON.parse(t.slice(6)); else if (t.startsWith('homes\0')) homes = JSON.parse(t.slice(6)); else if (t.startsWith('plants\0')) plants = JSON.parse(t.slice(7)); }
       p += 12 + n;
     }
     const want = await sourceSig();
@@ -1828,7 +1846,7 @@ async function readBake() {
     for (let i = 0; i < zb.length; i++) { const q = zh[i] << 8 | zl[i]; zb[i] = q === 65535 ? 1e9 : q / 64; }
     for (let i = 0; i < hg.length; i++) hg[i] = (hh[i] << 8 | hl[i]) / 32;
     BAKE.used = true;
-    return { g, zb, mb, painted, hg, mg, water, bare, dest, fog, hillLight, deck, monoSnow, monoQ, mist, falls, homes };
+    return { g, zb, mb, painted, hg, mg, water, bare, dest, fog, hillLight, deck, monoSnow, monoQ, mist, falls, homes, plants };
   } catch (e) { BAKE.note = 'could not be read: ' + e.message; console.warn('ground.png could not be read', e); return null; }
 }
 // The bake is kept as well: buildTerrain takes the hills' evening light and the cloud deck from it (M3).
