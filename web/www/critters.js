@@ -1654,6 +1654,12 @@ export function makeCritters(W, opts = {}) {
     // The mist over the forest and the fog bank off the coast, laid over everything that stands. It parts
     // round him as it does round a sign.
     weather(sea, at) { fogSea = sea; fogAt = at; },
+    // Where a kind of animal is (round 8, H9), by the name the kiosk's board knows it by: the first of the
+    // kind, where it stands now, or at its home when it has gone to ground; a flock, where it circles; and
+    // the second bear family's edge of the forest on a day it is not out.
+    lives(key) { const a = items.find(q => q.critter && sawAs(q) === key); if (a) return a.gone ? [a.hx, a.hy] : [Math.round(a.x), Math.round(a.y)];
+      if (key === 'bear2' && spots.bear) return [spots.bear[0], spots.bear[1]];
+      const F = FLOCKS.find(q => (q.gull ? 'gull' : 'raven') === key); return F ? [F.cx, F.cy] : null; },
     // Where each of its events happens, in map pixels, for the debug panel to look there first (round 6, note 26).
     where(name) {
       const sow = items.find(a => a.sow), mar = spots.marmots && spots.marmots[0];

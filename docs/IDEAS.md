@@ -605,3 +605,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Streamside Plants in the Side Scenes** (round 8, H8). The lakeside's inlet and the forest scene's creek could carry the same three plants, drawn large after the same pictures.
 - **Yellow Monkeyflower at the Seeps** (round 8, H8). Where water runs down rock (the wall's wet streaks, the falls' spray) the yellow monkeyflower could grow in mats, by a rule that looks for wet rock.
 - **The Elk Browse the Bank** (round 8, H8). An elk at the water could nip a marigold, which would be gone until the next day.
+- **A Cue That Reported Lines Can Be Tapped** (round 8, H9). At rest a reported line looks like plain text. A small arrow at the end of the line, or one line of words under the heading, would say it can be tapped. The words would be TJ's.
+- **Tap an Observed Line Too** (round 8, H9). A line under Observed could take the view back to where the thing was last seen.
+- **A Ring Where the View Lands** (round 8, H9). When the view arrives, a ring could close on the spot for a second, so a small animal is found at once.
+- **The Board Says When** (round 8, H9). For a thing that keeps hours (the herd at water at Dusk, the alpenglow), the reported line could say when to look. The words would be TJ's.

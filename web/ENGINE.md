@@ -36,6 +36,7 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - The board lists what lives and happens in the world in two lists: Observed is what has been inside the view since the page opened, Reported is the rest. The words are `kiosk.sightings` in `content/game/interface.yaml`, one entry per place, each thing under a short name.
 - A thing on the board says so where it is drawn: `saw('name')` from `core.js`, only when it is inside the view (`inView()` in `events.js` on the map, the scene's own camera test in a side scene). The name is the one in `kiosk.sightings`.
 - A new animal or event that belongs on the board gets both: its words in `kiosk.sightings` and its `saw()`. A thing that is never reported stays under Reported for good, so check it with a render.
+- A reported line is a button that takes the view to the thing (`whereIs` in `world.js`, `showPlace` in `pixel.js`), and starts nothing. A new thing on the board gets a place there too: an animal has one by its kind, an event by its `where`, and anything else needs a line in `whereIs`.
 - What has been seen is kept in memory only (`SAW` in `core.js`, `__api.saw()` on the page), so every visit starts with nothing seen.
 
 - Every plant is a thing that stands and sways with the shared wind: `breeze()` on the map and `windAt()` in the side scenes, both in `core.js`. A plant is made of parts (`tree.parts`), and at least one part has a `sway` above 0. `swaying()` in `sprites.js` turns a still drawing into one.
@@ -49,7 +50,6 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - A sign's place is chosen by a rule in `habitat()` in `land.js`, as an animal's home is. A new sign is placed last (after the homes and the events' spots, before `taken.length = mark`), clear of all of them, so that it moves nothing that was there before it. After adding one, `check.sh` must report nothing moved but the new sign.
 - Ice that floats is a thing, not paint: the bergs and floes are placed and drawn by `life.js` (`BERGS`), drift with the shared gust (`gustOver()` in `core.js`) and keep to their own water.
 - A streamside plant is planted by one rule (`waterNear` and `bankOk` in `land.js`): on the bank, two to seven from running water and never in it, off the sand, on nearly level ground, clear of the trail. Skunk cabbage, monkeyflower, marsh marigold and devil's club all use it, and a new streamside plant is a drawing and a line in that rule.
-- What a rule finds over the whole map goes into the bake. The page's first paint waits for `land.js`, so a rule that throws dice over the map (the animals' homes, the streamside plants) writes what it found into `ground.png` as a text chunk and reads it back when the page opens. Time a new rule in the page before it ships: Lighthouse fails the build past 3,000 ms to the largest paint, with the processor slowed four times.
 - Driftwood gathers. `JAMS` in `land.js` finds the creek mouths and the headlands from the land, and every log and bleached branch on the beach is laid by it: logs in heaps at those spots, beside a creek and never on it, each showing whole, and clean sand between. More driftwood goes onto a heap.
 
 ## Solid Things
@@ -62,3 +62,4 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 
 - Every per-pixel loop goes in its own small function, outside the map's `draw()`.
 - The zoomed-out map at Dusk stays under 16.7 ms a frame. `tools/pixel/check.sh` measures it.
+- What a rule finds over the whole map goes into the bake. The page's first paint waits for `land.js`, so a rule that throws dice over the map (the animals' homes, the streamside plants) writes what it found into `ground.png` as a text chunk and reads it back when the page opens. Time a new rule in the page before it ships: Lighthouse fails the build past 3,000 ms to the largest paint, with the processor slowed four times.

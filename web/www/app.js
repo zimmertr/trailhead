@@ -351,10 +351,14 @@ function kiosk() {
   const done = api.done(), up = Math.round((Date.now() - BUILT) / 1000), found = api.found(), ids = Object.keys(FINDS);
   const cell = (k, v, cls) => el('div', {}, el('dt', { text: k }), el('dd', { class: cls || '', text: v }));
   // What lives and happens here, in two lists (round 8, F2): what has been on the screen this visit, and the rest.
-  const [seen, told] = UI.kiosk.sightings(api.saw()), list = (cls, [head, none], lines) => el('div', { class: 'wide ' + cls }, el('dt', { text: head }), el('dd', {}, lines.length ? el('ul', {}, ...lines.map(s => el('li', { text: s }))) : el('span', { text: none })));
+  // A line of the second list is a button where the map knows a place for what it names (round 8, H9): it
+  // closes the board, goes back out to the map if the board was up in the register's scene, and the view
+  // goes there. Nothing is started. The view is asked again until the map has come in.
+  const lookFor = async keys => { closeSheet(); if (api.scene() !== 'world') await home(); let n = 0; const go = () => { if (!api.showPlace(keys) && n++ < 50) setTimeout(go, 100); }; go(); };
+  const [seen, told, names] = UI.kiosk.sightings(api.saw()), list = (cls, [head, none], lines, keys) => el('div', { class: 'wide ' + cls }, el('dt', { text: head }), el('dd', {}, lines.length ? el('ul', {}, ...lines.map((s, i) => keys && api.hasPlace(keys[i]) ? el('li', {}, el('button', { text: s, onclick: () => lookFor(keys[i]) })) : el('li', { text: s }))) : el('span', { text: none })));
   return [el('div', { class: 'band' }, el('h2', { text: UI.kiosk.title }), el('p', { text: UI.kiosk.sub })),
     el('dl', { class: 'board' }, cell(UI.kiosk.version, VERSION), cell(UI.kiosk.deployed, BUILT.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })), cell(UI.kiosk.uptime, UI.kiosk.up(up)), cell(UI.kiosk.status[0], UI.kiosk.status[1], 'open'),
-      cell(UI.map.lake[0], done.lake ? UI.kiosk.lakeDone : UI.kiosk.open), cell(UI.map.stack[0], done.stack ? UI.kiosk.stackDone : UI.kiosk.open), cell(UI.map.spires[0], UI.kiosk.summits(SPIRE_ORDER.filter(s => done['spire:' + s]).length)), list('seen', UI.kiosk.observed, seen), list('told', UI.kiosk.reported, told)),
+      cell(UI.map.lake[0], done.lake ? UI.kiosk.lakeDone : UI.kiosk.open), cell(UI.map.stack[0], done.stack ? UI.kiosk.stackDone : UI.kiosk.open), cell(UI.map.spires[0], UI.kiosk.summits(SPIRE_ORDER.filter(s => done['spire:' + s]).length)), list('seen', UI.kiosk.observed, seen), list('told', UI.kiosk.reported, told, names)),
     el('h3', { text: UI.kiosk.checklist(ids.filter(k => found[k]).length, ids.length) }),
     el('ul', { class: 'checks' }, ...ids.map(k => el('li', { class: found[k] ? 'got' : '' }, el('b', { text: found[k] ? FINDS[k][0] : UI.kiosk.notFound }), el('span', { text: found[k] ? UI.kiosk.got : FINDS[k][1] }))))];
 }

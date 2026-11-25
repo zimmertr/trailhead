@@ -871,3 +871,26 @@ test('monkeyflower, marsh marigold and devil\'s club stand on the stream banks',
   expect(Math.max(...of('club').map((p) => p[1]))).toBeLessThan(900)
   expect(problems).toEqual([])
 })
+
+// Round 8, H9: a tap on a line under Reported closes the board and moves the view to where that thing lives
+// or happens, and starts nothing. The board is up in the register's scene, so the tap goes back out to the map first.
+test('a tap on a reported line closes the board and moves the view there, without starting anything', async ({ page }) => {
+  type Board = { __api: { saw: () => Set<string>; scene: () => string } }
+  const problems = await open(page, '/')
+  const view = async () => (await info(page))?.o ?? null
+  const before = await view()
+  await page.evaluate(() => { location.hash = 'kiosk' })
+  await expect.poll(() => page.evaluate(() => (window as unknown as Board).__api.scene()), { timeout: 15_000 }).toBe('register')
+  const told = page.locator('#sheet .board .told')
+  // The map knows a place for every reported line, so every one is a button.
+  await expect(told.locator('li button').first()).toBeVisible()
+  expect(await told.locator('li button').count()).toBe(await told.locator('li').count())
+  // The Spires' line: the board closes, the map comes back and the view goes up to the Spires.
+  await told.locator('li button').filter({ hasText: /at Sideproject Spires/ }).click()
+  await expect(page.locator('#sheet')).toBeHidden()
+  await expect.poll(() => page.evaluate(() => (window as unknown as Board).__api.scene()), { timeout: 15_000 }).toBe('world')
+  await expect.poll(async () => { const o = await view(); return o && before ? before.y - o.y : 0 }, { timeout: 10_000 }).toBeGreaterThan(100)
+  // Nothing was started: none of the line's events has been on the screen (the first comes 26 seconds in).
+  for (const id of ['rockfall', 'calve', 'pair']) expect(await page.evaluate((k) => (window as unknown as Board).__api.saw().has(k), id), id).toBe(false)
+  expect(problems).toEqual([])
+})

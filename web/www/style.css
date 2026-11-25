@@ -292,6 +292,9 @@ button.name:hover, .name.done { background: var(--moss); }
 .board > .wide li::before { content: ""; position: absolute; left: var(--u); top: .38em; width: calc(var(--u) * 3); height: calc(var(--u) * 3); border: var(--u) solid var(--paper-ink); }
 .board > .seen li::before { background: var(--moss); }
 .board > .wide dd > span, .board > .told li { color: color-mix(in srgb, var(--dim) 60%, var(--paper-ink)); }
+/* A reported line that the map can show (round 8, H9) is a button: underlined as the map key's are when pointed at. */
+.board > .told button { text-align: left; border-bottom: var(--px) solid transparent; }
+.board > .told button:hover, .board > .told button:focus-visible { color: var(--paper-ink); border-bottom-color: var(--blaze); }
 .open { color: var(--moss); }
 .board + h3 { font-size: 30px; line-height: 1; margin: calc(var(--px) * 6) 0 calc(var(--px) * 3); }
 .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: calc(var(--px) * 3) calc(var(--px) * 5); }

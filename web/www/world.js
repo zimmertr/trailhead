@@ -825,6 +825,17 @@ export function makeWorld() {
       w.gust = place => gustOver(PLACE[place][0], PLACE[place][1], t);
       w.shade = place => { for (let k = 0; k < 4; k++) { const u = (PLACE[place][0] - fairX(k, t) - 8) / (FAIR[k].cw * 2.2); if (u > -1 && u < 1) return u; } return null; };
       return w; },
+    // Where a thing on the kiosk's board lives or happens (round 8, H9), by the board's name for it: an animal
+    // where it is now, an event where it happens, the weather where it comes in, the cats at the kiosk, the
+    // sky's own (shooting stars, the aurora) over the volcano's summit, and what lives only in a side scene
+    // at that scene's place on the map.
+    whereIs(key) {
+      const as = { whale: 'breach', orca: 'orcas', rain: 'shower', marine: 'shower', owl: 'hoot', foxfire: 'hoot', star: 'lens', aurora: 'lens' };
+      if (key === 'cats') return spots.kiosk;
+      if (key === 'pika') return PLACE.peak;
+      if (key === 'headlamps') { const P = W.trackUp || []; return P.length ? [P[P.length >> 1][0], P[P.length >> 1][1]] : null; }
+      return crit.lives(key) || this.where(as[key] || key);
+    },
     lookFor: (x, y) => [x - cam.x, y - cam.y],
     // The debug panel's start buttons (E5f): each moves its event's clock so the event begins now.
     // The weather's own buttons work in every scene (round 8, E1; TJ: the weather is managed from the debug

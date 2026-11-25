@@ -481,6 +481,16 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       const [x, y] = s.lookFor(p[0], p[1]); running = false; recentre = false; panTo = { x, y };
       return calm.matches ? 0 : 900;
     },
+    // The view eases to where the first of these things lives or happens (round 8, H9: a tap on a line of the
+    // kiosk's board), and nothing is started. It needs the map on screen and says whether it had it; hasPlace
+    // says whether the map knows a place for any of them, whatever scene is up.
+    showPlace(keys) {
+      const s = drawn && drawn.scene; if (!s || drawn.s !== 'world' || tr || !s.whereIs) return false;
+      const p = keys.map(k => s.whereIs(k)).find(Boolean); if (!p) return false;
+      const [x, y] = s.lookFor(p[0], p[1]); running = false; recentre = false; panTo = { x, y };
+      return true;
+    },
+    hasPlace: keys => keys.some(k => world.whereIs(k)),
     // For the debug menu (C4): the scene on screen, the map animals and their homes, placing one, and a jump to
     // the start of any scene (the first route that has it, a little way in).
     scene: () => drawn ? drawn.s : null,

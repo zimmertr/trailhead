@@ -40,8 +40,9 @@ export const UI = {
     summits: n => fill(K.summits, { n }),
     // The board's two lists (round 8, F2): what has been on the screen this visit, and the rest. Each place
     // gives a line to either list, made of those of its own that belong there: "A, b and c where".
-    sightings: saw => { const out = [[], []], line = (S, ids) => { const n = ids.map(k => S.who[k]), s = [S.lead, n.length > 1 ? n.slice(0, -1).join(', ') + ' ' + M.and + ' ' + n[n.length - 1] : n[0], S.where].filter(Boolean).join(' '); return s[0].toUpperCase() + s.slice(1); };
-      for (const S of K.sightings) { const ids = Object.keys(S.who), a = ids.filter(k => saw.has(k)), b = ids.filter(k => !saw.has(k)); if (a.length) out[0].push(line(S, a)); if (b.length) out[1].push(line(S, b)); }
+    // Also answers, for each line of the second list, which things it names (round 8, H9: a tap on the line looks for them).
+    sightings: saw => { const out = [[], [], []], line = (S, ids) => { const n = ids.map(k => S.who[k]), s = [S.lead, n.length > 1 ? n.slice(0, -1).join(', ') + ' ' + M.and + ' ' + n[n.length - 1] : n[0], S.where].filter(Boolean).join(' '); return s[0].toUpperCase() + s.slice(1); };
+      for (const S of K.sightings) { const ids = Object.keys(S.who), a = ids.filter(k => saw.has(k)), b = ids.filter(k => !saw.has(k)); if (a.length) out[0].push(line(S, a)); if (b.length) { out[1].push(line(S, b)); out[2].push(b); } }
       return out; },
     checklist: (n, of) => fill(K.checklist, { n, of })
   },
