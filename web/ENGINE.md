@@ -100,6 +100,15 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - The tune and the set change only at the bottom of a fade (`fadeTo()`), never in the middle of a bar.
 - A tune or a set the visitor picked by hand stays until they pick Auto again, and is kept between visits.
 
+## Loudness
+
+- Loudness is measured, never guessed: `tools/pixel/sound.sh` plays `audio.js` into a buffer and reads it in LUFS, where the visitor hears it, after the mixer and the limiter. `check.sh` fails when the balance below is broken.
+- Every tune plays at one loudness through every set of instruments, within 1 LU. A set's `level` in `SETS` turns its music up to the first set's, and its `tunes` evens out tunes that the set itself plays unevenly. A new set or tune is measured and given its numbers before it ships.
+- An effect is as loud whichever set plays it, within 3 LU. `fxVol` in `SETS` is how loud an effect's square and triangle notes play through that set's voices.
+- Every effect can be heard: its peak is above -40 dBFS. Filtered noise is far quieter than its volume number suggests (a low rumble keeps a hundredth of the noise's power), so a noise effect's number may be well over 1.
+- A place's bed sits between -44 and -35 LUFS, under the music and never gone.
+- Nothing clips. The loudest tune, the loudest bed, heavy rain and the five loudest effects at once, three times over, stay under -1 dBFS.
+
 ## Cost
 
 - Every per-pixel loop goes in its own small function, outside the map's `draw()`.

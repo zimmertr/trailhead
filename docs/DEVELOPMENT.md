@@ -44,7 +44,8 @@ The game is in `web/www/` and runs in the browser as it is ([`web/CLAUDE.md`](..
 | `sweep.sh` | A still at every step along each route, on a fixed page clock, for comparing two builds; notes a side scene that ends in a band of one flat colour |
 | `refs.sh` | The standard set of views, for comparing two builds |
 | `bake.sh` | Writes `web/www/ground.png`, the baked map. Run it after any change to `land.js` or the palette |
-| `check.sh` | One item's check: every module parses, `make browser`, frame time, and what moved on the map |
+| `sound.sh` | The audio lab: how loud every tune through every set, every effect and every bed is, and whether anything clips. It runs `audio.js` itself into a buffer, about a minute for all of it |
+| `check.sh` | One item's check: every module parses, `make browser`, frame time, what moved on the map, and the sound's balance |
 
 ### How the code is laid out
 

@@ -78,16 +78,21 @@ export const TRACKS = [
 
 // The same notes through six different sets of instruments. A set names the wave each voice uses, how
 // loud the drums are, and how the effects are pitched.
+// level and fxVol even the sets out (round 8, I4), by the audio lab's numbers (tools/pixel/sound.sh). level is
+// how much the set's music is turned up so that all six play a tune at one loudness. fxVol is how loud an
+// effect's square and triangle notes play through the set's own voices, so that an effect is as loud
+// whichever set is on. tunes: struck bars ring for a fixed time, so a busy tune comes out louder through the
+// mallets than a slow one; these put its seven tunes level with each other.
 export const SETS = [
   { lead: 'square', arp: 'square', bass: 'triangle', fx: { square: 'square', triangle: 'triangle' }, drums: 1, pitch: 1 },
-  { lead: 'pulse', arp: 'pulse', bass: 'square', fx: { square: 'pulse', triangle: 'triangle' }, drums: 0.7, pitch: 1.5, bassVol: 0.4 },
-  { lead: 'sine', arp: 'triangle', bass: 'sine', fx: { square: 'sine', triangle: 'sine' }, drums: 0, pitch: 2, pluck: true, octave: 2 },
+  { lead: 'pulse', arp: 'pulse', bass: 'square', fx: { square: 'pulse', triangle: 'triangle' }, drums: 0.7, pitch: 1.5, bassVol: 0.4, level: 2.16, fxVol: { square: 2.63 } },
+  { lead: 'sine', arp: 'triangle', bass: 'sine', fx: { square: 'sine', triangle: 'sine' }, drums: 0, pitch: 2, pluck: true, octave: 2, level: 1.46, fxVol: { square: 0.73, triangle: 0.45 } },
   // Round 8, E3 (TJ: drums and percussion, strings, woodwinds). The same notes again, each through voices
   // that are built from more than one wave (voice() below). perc: a shaker, a woodblock and toms join the
   // drums. still: no vibrato on a held note, since a struck bar has none.
-  { lead: 'mallet', arp: 'mallet', bass: 'tom', fx: { square: 'triangle', triangle: 'triangle' }, drums: 1.2, pitch: 1, perc: true, still: true },
-  { lead: 'bow', arp: 'pizz', bass: 'bow', fx: { square: 'triangle', triangle: 'sine' }, drums: 0, pitch: 1 },
-  { lead: 'flute', arp: 'reed', bass: 'bassoon', fx: { square: 'sine', triangle: 'sine' }, drums: 0.35, pitch: 1.5 }
+  { lead: 'mallet', arp: 'mallet', bass: 'tom', fx: { square: 'triangle', triangle: 'triangle' }, drums: 1.2, pitch: 1, perc: true, still: true, level: 1.68, tunes: [0.99, 1.23, 0.86, 1.11, 0.81, 1.11, 0.94], fxVol: { square: 1.57 } },
+  { lead: 'bow', arp: 'pizz', bass: 'bow', fx: { square: 'triangle', triangle: 'sine' }, drums: 0, pitch: 1, level: 1.84, fxVol: { square: 1.57, triangle: 0.55 } },
+  { lead: 'flute', arp: 'reed', bass: 'bassoon', fx: { square: 'sine', triangle: 'sine' }, drums: 0.35, pitch: 1.5, level: 1.36, fxVol: { square: 0.78, triangle: 0.49 } }
 ];
 // How loud each built voice plays beside the plain waves, so the six sets sit at one level.
 const VOICES = { mallet: 1.5, tom: 1.3, bow: 0.9, pizz: 1.7, flute: 1.1, reed: 0.5, bassoon: 0.42 };
@@ -105,7 +110,7 @@ const PLACES = { world: [0, 4], out: [6, 0], forest: [1, 5], lakeside: [5, 1], l
 const PLACE_SETS = { forest: 5, lakeside: 4, wall: 3 }, CAMP_AT_DUSK = 2;
 
 export function makeAudio() {
-  let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, step = 0, nextAt = 0, cur = 0, set = 0, ownSet = null, dark = false, auto = true, place = 'world', turn = 0, loops = 0, level = 0.22, swap = null, pulse = null, ambName = '', ambNodes = [], ambTimer = null, rainG = null, rainK = 0;
+  let ctx = null, master, music, trim, tone0, fx, amb, noiseBuf, muted = false, step = 0, nextAt = 0, cur = 0, set = 0, ownSet = null, dark = false, auto = true, place = 'world', turn = 0, loops = 0, level = 0.22, swap = null, pulse = null, ambName = '', ambNodes = [], ambTimer = null, rainG = null, rainK = 0;
   // The music follows the place unless the visitor has picked a track by hand, and a pick is kept between visits.
   try { muted = localStorage.getItem('trailhead.muted') === '1'; const own = localStorage.getItem('trailhead.track'); if (own != null && TRACKS[+own]) { auto = false; cur = +own; } const v = localStorage.getItem('trailhead.set'); if (v != null && SETS[+v]) set = ownSet = +v; } catch { /* private window */ }
 
@@ -122,10 +127,12 @@ export function makeAudio() {
     master = ctx.createGain(); master.gain.value = muted ? 0 : 0.9; master.connect(limit);
     // The music passes a filter that closes while a sheet is open, and fades in rather than starting flat out.
     tone0 = ctx.createBiquadFilter(); tone0.type = 'lowpass'; tone0.frequency.value = 16000; tone0.connect(master);
-    music = ctx.createGain(); music.gain.setValueAtTime(0.0001, ctx.currentTime); music.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 1.8); music.connect(tone0);
+    music = ctx.createGain(); music.gain.setValueAtTime(0.0001, ctx.currentTime); music.gain.linearRampToValueAtTime(0.22, ctx.currentTime + 1.8);
+    // Each set's own level (I4), after the fades, so a fade is the same for every set.
+    trim = ctx.createGain(); trim.gain.value = trimOf(); music.connect(trim); trim.connect(tone0);
     fx = ctx.createGain(); fx.gain.value = 0.5; fx.connect(master);
     // The echo of a cartridge: one short delay fed back into itself, darker on every pass.
-    { const d = ctx.createDelay(0.5), fb = ctx.createGain(), lp = ctx.createBiquadFilter(), wet = ctx.createGain(), send = ctx.createGain(); d.delayTime.value = 0.19; fb.gain.value = 0.34; lp.type = 'lowpass'; lp.frequency.value = 2600; wet.gain.value = 0.2; send.gain.value = 0.6; music.connect(d); fx.connect(send); send.connect(d); d.connect(lp); lp.connect(fb); fb.connect(d); lp.connect(wet); wet.connect(master); }
+    { const d = ctx.createDelay(0.5), fb = ctx.createGain(), lp = ctx.createBiquadFilter(), wet = ctx.createGain(), send = ctx.createGain(); d.delayTime.value = 0.19; fb.gain.value = 0.34; lp.type = 'lowpass'; lp.frequency.value = 2600; wet.gain.value = 0.2; send.gain.value = 0.6; trim.connect(d); fx.connect(send); send.connect(d); d.connect(lp); lp.connect(fb); fb.connect(d); lp.connect(wet); wet.connect(master); }
     amb = ctx.createGain(); amb.gain.value = 0.25; amb.connect(master);
     // A narrow pulse wave (a quarter on, three quarters off): the reedy voice of a handheld.
     { const n = 32, re = new Float32Array(n), im = new Float32Array(n); for (let k = 1; k < n; k++) { re[k] = 2 / (k * Math.PI) * Math.sin(k * Math.PI * 0.25); im[k] = 2 / (k * Math.PI) * (1 - Math.cos(k * Math.PI * 0.25)); } pulse = ctx.createPeriodicWave(re, im); }
@@ -138,6 +145,7 @@ export function makeAudio() {
   // Changes the tune without a jolt: the one playing fades out, the next starts from its top and fades in.
   // The set that should be playing: the visitor's own pick, or on Auto the place's (H14).
   const autoSet = () => place === 'camp' && dark ? CAMP_AT_DUSK : PLACE_SETS[place] || 0, wantSet = () => ownSet == null ? autoSet() : ownSet;
+  const trimOf = () => (SETS[set].level || 1) * (SETS[set].tunes ? SETS[set].tunes[cur] || 1 : 1), trimTo = () => { if (trim) trim.gain.setTargetAtTime(trimOf(), ctx.currentTime, 0.03); };
   // The music fades out, changes and fades back in. What changes is the tune, the set of instruments, or
   // both: a tune that stays goes on from where it was, through the new instruments.
   function fadeTo(i, quick) {
@@ -145,7 +153,7 @@ export function makeAudio() {
     if (!ctx) { cur = i; set = wantSet(); return; }
     const first = swap == null; swap = i; if (!first) return;
     music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(0.0001, ctx.currentTime, quick ? 0.06 : 0.3);
-    setTimeout(() => { if (swap !== cur) step = 0; cur = swap; swap = null; set = wantSet(); if (out.onchange) out.onchange(); nextAt = Math.max(nextAt, ctx.currentTime + 0.05); music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(level, ctx.currentTime, quick ? 0.12 : 0.5); }, quick ? 220 : 1100);
+    setTimeout(() => { if (swap !== cur) step = 0; cur = swap; swap = null; set = wantSet(); trimTo(); if (out.onchange) out.onchange(); nextAt = Math.max(nextAt, ctx.currentTime + 0.05); music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(level, ctx.currentTime, quick ? 0.12 : 0.5); }, quick ? 220 : 1100);
   }
   // One note: a square, pulse or triangle wave with a quick attack and a falling tail.
   function tone(out, type, f0, t, dur, vol, f1) {
@@ -153,7 +161,7 @@ export function makeAudio() {
     if (VOICES[type]) return voice(out, type, f0, t, dur, vol * VOICES[type]);
     const o = ctx.createOscillator(), g = ctx.createGain(), V = SETS[set];
     // Effects are written for the console; the other sets play them through their own voice.
-    if (out === fx) { type = V.fx[type] || type; f0 *= V.pitch; if (f1) f1 *= V.pitch; if (type === 'sine') vol *= 1.5; }
+    if (out === fx) { const to = V.fx[type]; if (to) { vol *= (V.fxVol && V.fxVol[type]) || 1; type = to; } f0 *= V.pitch; if (f1) f1 *= V.pitch; if (type === 'sine') vol *= 1.5; }
     if (type === 'pulse') { o.setPeriodicWave(pulse); vol *= 0.8; } else o.type = type;
     o.frequency.setValueAtTime(f0, t); if (f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), t + dur);
     if (V.pluck && out === music) { dur = Math.max(dur, 0.5); g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(vol * 1.6, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + dur); }
@@ -238,14 +246,14 @@ export function makeAudio() {
     whistle: t => { tone(fx, 'square', 2100, t, 0.16, 0.12, 2500); tone(fx, 'square', 2100, t + 0.2, 0.16, 0.12, 2500); },
     eep: t => tone(fx, 'square', 1800, t, 0.09, 0.14, 2400),
     // Drizzle on rock: a few seconds of soft hiss with a patter in it.
-    drizzle: t => { noise(fx, t, 3.2, 0.06, 5200, 0.7, 'bandpass'); for (let i = 0; i < 9; i++) noise(fx, t + 0.2 + i * 0.33 + Math.random() * 0.2, 0.03, 0.05, 2600 + Math.random() * 1800, 5, 'bandpass'); },
+    drizzle: t => { noise(fx, t, 3.2, 0.095, 5200, 0.7, 'bandpass'); for (let i = 0; i < 9; i++) noise(fx, t + 0.2 + i * 0.33 + Math.random() * 0.2, 0.03, 0.08, 2600 + Math.random() * 1800, 5, 'bandpass'); },
     // A bluebird's song: three soft, slurred notes.
     warble: t => [[2300, 1900], [2000, 2500], [2400, 2050]].forEach(([a, b], i) => tone(fx, 'sine', a, t + i * 0.09, 0.08, 0.1, b)),
     // A phone's notice: two soft rising notes.
     chime: t => { tone(fx, 'sine', 880, t, 0.12, 0.16); tone(fx, 'sine', 1319, t + 0.11, 0.22, 0.16); },
     fall: t => { tone(fx, 'square', 900, t, 0.3, 0.2, 140); noise(fx, t, 0.1, 0.12, 2400, 1, 'bandpass'); },
     catch: t => { tone(fx, 'triangle', 110, t, 0.2, 0.5, 70); tone(fx, 'square', 330, t + 0.12, 0.08, 0.14); },
-    place: t => { noise(fx, t, 0.03, 0.14, 5000); tone(fx, 'square', 1400, t + 0.02, 0.04, 0.1); },
+    place: t => { noise(fx, t, 0.03, 0.25, 5000); tone(fx, 'square', 1400, t + 0.02, 0.04, 0.18); },
     glow: t => { tone(fx, 'square', 1320, t, 0.05, 0.08); tone(fx, 'square', 1760, t + 0.04, 0.08, 0.08); },
     flag: t => [523, 659, 784, 1047].forEach((f, i) => tone(fx, 'square', f, t + i * 0.09, i === 3 ? 0.34 : 0.09, 0.2)),
     summit: t => [392, 523, 659, 784, 1047, 1319].forEach((f, i) => { tone(fx, 'square', f, t + i * 0.08, i === 5 ? 0.5 : 0.09, 0.2); tone(fx, 'triangle', f / 2, t + i * 0.08, 0.12, 0.3); }),
@@ -255,23 +263,23 @@ export function makeAudio() {
     // The glacier settling: a deep, slow groan with a crack in it, far off.
     creak: t => { tone(fx, 'sawtooth', 70, t, 0.9, 0.05, 52); noise(fx, t + 0.5, 0.25, 0.08, 260, 1, 'lowpass'); },
     crack: t => { noise(fx, t, 0.35, 0.3, 500, 1, 'lowpass'); tone(fx, 'square', 160, t, 0.2, 0.18, 60); },
-    wind: t => noise(fx, t, 1.4, 0.12, 700, 1.4, 'bandpass'),
+    wind: t => noise(fx, t, 1.4, 0.6, 700, 1.4, 'bandpass'),
     // The same whoosh high on the West Ridge: louder, longer and lower.
-    windHi: t => { noise(fx, t, 2.2, 0.26, 520, 1.1, 'bandpass'); noise(fx, t + 0.3, 1.6, 0.12, 1100, 2, 'bandpass'); },
+    windHi: t => { noise(fx, t, 2.2, 0.82, 520, 1.1, 'bandpass'); noise(fx, t + 0.3, 1.6, 0.38, 1100, 2, 'bandpass'); },
     egg: t => [784, 988, 1175, 1568].forEach((f, i) => tone(fx, 'square', f, t + i * 0.06, 0.1, 0.16)),
     meow: t => { tone(fx, 'square', 620, t, 0.12, 0.16, 940); tone(fx, 'square', 940, t + 0.12, 0.2, 0.16, 520); },
     purr: t => { for (let i = 0; i < 14; i++) tone(fx, 'triangle', 52, t + i * 0.045, 0.03, 0.5); },
     chirp: t => { tone(fx, 'square', 2600, t, 0.05, 0.07, 3400); tone(fx, 'square', 3000, t + 0.08, 0.05, 0.07, 2400); },
-    bark: t => noise(fx, t, 0.2, 0.2, 300, 1, 'lowpass'),
+    bark: t => noise(fx, t, 0.2, 6.3, 300, 1, 'lowpass'),
     // A Clark's nutcracker in the larches: a harsh, drawn-out kraa, twice.
-    kraa: t => { for (let i = 0; i < 2; i++) { noise(fx, t + i * 0.3, 0.22, 0.1, 1300, 4, 'bandpass'); tone(fx, 'square', 520, t + i * 0.3, 0.2, 0.03, 430); } },
-    step: t => noise(fx, t, 0.02, 0.05, 1200, 1, 'bandpass'),
+    kraa: t => { for (let i = 0; i < 2; i++) { noise(fx, t + i * 0.3, 0.22, 0.22, 1300, 4, 'bandpass'); tone(fx, 'square', 520, t + i * 0.3, 0.2, 0.067, 430); } },
+    step: t => noise(fx, t, 0.02, 2.5, 1200, 1, 'bandpass'),
     // An ice tool biting: a short bright tick. And the server rack being hit: a low thump, a crunch and a ring of sheet metal.
     // Two hands meeting.
-    slap: t => { noise(fx, t, 0.035, 0.26, 2200, 1.1, 'bandpass'); noise(fx, t, 0.02, 0.1, 5200, 2, 'bandpass'); },
+    slap: t => { noise(fx, t, 0.035, 3.3, 2200, 1.1, 'bandpass'); noise(fx, t, 0.02, 1.25, 5200, 2, 'bandpass'); },
     // One stone set down on another: a short dry knock and its echo.
-    clack: t => { noise(fx, t, 0.03, 0.2, 1700, 2.5, 'bandpass'); tone(fx, 'triangle', 420, t, 0.04, 0.12, 300); noise(fx, t + 0.06, 0.02, 0.06, 2400, 2.5, 'bandpass'); },
-    tink: t => { noise(fx, t, 0.02, 0.09, 6200, 3, 'bandpass'); tone(fx, 'square', 2400, t, 0.03, 0.05, 1900); },
+    clack: t => { noise(fx, t, 0.03, 0.5, 1700, 2.5, 'bandpass'); tone(fx, 'triangle', 420, t, 0.04, 0.3, 300); noise(fx, t + 0.06, 0.02, 0.15, 2400, 2.5, 'bandpass'); },
+    tink: t => { noise(fx, t, 0.02, 0.36, 6200, 3, 'bandpass'); tone(fx, 'square', 2400, t, 0.03, 0.2, 1900); },
     bang: t => { tone(fx, 'triangle', 150, t, 0.3, 0.7, 42); noise(fx, t, 0.16, 0.4, 320, 0.8, 'lowpass'); noise(fx, t + 0.01, 0.07, 0.2, 2600, 2, 'bandpass'); tone(fx, 'square', 520, t + 0.03, 0.2, 0.08, 470); },
     // Ice breaking far off: a long low roll, a second wave of it, and a deep note under both (E4).
     rumble: t => { noise(fx, t, 1.8, 0.22, 150, 0.7, 'lowpass'); noise(fx, t + 0.25, 1.2, 0.12, 420, 0.8, 'lowpass'); tone(fx, 'triangle', 58, t, 1.4, 0.16, 36); },
@@ -283,25 +291,25 @@ export function makeAudio() {
     // Another bull answering from a long way off (round 8, H4): the whistle alone, quiet and a little lower, and two grunts barely there.
     bugleFar: t => { tone(fx, 'sine', 470, t, 0.6, 0.035, 1700); tone(fx, 'sine', 1700, t + 0.6, 0.55, 0.03, 1500); for (let i = 0; i < 2; i++) tone(fx, 'sawtooth', 120, t + 1.2 + i * 0.18, 0.08, 0.014, 100); },
     // A goat's or a calf's bleat: one wavering note.
-    bleat: t => { for (let i = 0; i < 5; i++) tone(fx, 'square', i & 1 ? 560 : 620, t + i * 0.05, 0.05, 0.08); },
+    bleat: t => { for (let i = 0; i < 5; i++) tone(fx, 'square', i & 1 ? 560 : 620, t + i * 0.05, 0.05, 0.12); },
     // A snort: a short blast of breath through the nose.
-    snort: t => { noise(fx, t, 0.16, 0.22, 700, 0.9, 'lowpass'); noise(fx, t + 0.05, 0.08, 0.1, 1800, 1.5, 'bandpass'); },
+    snort: t => { noise(fx, t, 0.16, 3.5, 700, 0.9, 'lowpass'); noise(fx, t + 0.05, 0.08, 1.6, 1800, 1.5, 'bandpass'); },
     // Two heads meeting, horn on horn (round 8, D2): a sharp crack over a low knock.
-    clash: t => { noise(fx, t, 0.05, 0.3, 2400, 1.2, 'bandpass'); tone(fx, 'triangle', 300, t, 0.12, 0.2, 140); },
+    clash: t => { noise(fx, t, 0.05, 0.67, 2400, 1.2, 'bandpass'); tone(fx, 'triangle', 300, t, 0.12, 0.45, 140); },
     // A black bear's huff: two quick, deep blows.
-    huff: t => { noise(fx, t, 0.12, 0.3, 380, 0.8, 'lowpass'); noise(fx, t + 0.2, 0.14, 0.26, 340, 0.8, 'lowpass'); },
+    huff: t => { noise(fx, t, 0.12, 3, 380, 0.8, 'lowpass'); noise(fx, t + 0.2, 0.14, 2.6, 340, 0.8, 'lowpass'); },
     // A cub's bawl: a short falling cry.
-    bawl: t => tone(fx, 'square', 760, t, 0.22, 0.09, 480),
+    bawl: t => tone(fx, 'square', 760, t, 0.22, 0.135, 480),
     // A squirrel's chatter: a fast run of dry ticks.
-    chatter: t => { for (let i = 0; i < 12; i++) tone(fx, 'square', 2300 + (i & 1) * 300, t + i * 0.045, 0.025, 0.05); },
+    chatter: t => { for (let i = 0; i < 12; i++) tone(fx, 'square', 2300 + (i & 1) * 300, t + i * 0.045, 0.025, 0.08); },
     // A bald eagle's cry: thin, high, piping notes that fall away.
     cry: t => [2600, 2500, 2350, 2200, 2050].forEach((f, i) => tone(fx, 'sine', f, t + i * 0.09, 0.06, 0.08, f - 300)),
     // A mallard hen's quack: a short run of flat, nasal notes, each a little lower and softer than the last.
-    quack: t => { for (let i = 0; i < 3; i++) { tone(fx, 'sawtooth', 560 - i * 30, t + i * 0.17, 0.11, 0.07 - i * 0.015, 430 - i * 30); noise(fx, t + i * 0.17, 0.05, 0.04, 1500, 3, 'bandpass'); } },
+    quack: t => { for (let i = 0; i < 3; i++) { tone(fx, 'sawtooth', 560 - i * 30, t + i * 0.17, 0.11, 0.22 - i * 0.047, 430 - i * 30); noise(fx, t + i * 0.17, 0.05, 0.126, 1500, 3, 'bandpass'); } },
     // An osprey's call: short whistled kews.
     kew: t => { for (let i = 0; i < 4; i++) tone(fx, 'sine', 1800, t + i * 0.13, 0.07, 0.08, 2300); },
     // A whale's or an orca's blow: a breathy rush of air.
-    blow: t => { noise(fx, t, 0.7, 0.2, 900, 0.6, 'bandpass'); noise(fx, t, 0.3, 0.1, 300, 0.8, 'lowpass'); },
+    blow: t => { noise(fx, t, 0.7, 0.9, 900, 0.6, 'bandpass'); noise(fx, t, 0.3, 0.45, 300, 0.8, 'lowpass'); },
     // A small thing slipping under the water.
     plop: t => tone(fx, 'sine', 900, t, 0.09, 0.12, 300),
     // Gulls' mewing and ravens' croaks.
@@ -321,15 +329,15 @@ export function makeAudio() {
     if (!ctx) return;
     for (const n of ambNodes) { try { n.stop(); } catch { /* already stopped */ } } ambNodes = []; clearInterval(ambTimer);
     const bed = (freq, q, vol, type = 'bandpass') => { const n = ctx.createBufferSource(), f = ctx.createBiquadFilter(), g = ctx.createGain(), l = ctx.createOscillator(), lg = ctx.createGain(); n.buffer = noiseBuf; n.loop = true; f.type = type; f.frequency.value = freq; f.Q.value = q; g.gain.value = vol; l.frequency.value = 0.13; lg.gain.value = vol * 0.5; l.connect(lg); lg.connect(g.gain); n.connect(f); f.connect(g); g.connect(amb); n.start(); l.start(); ambNodes.push(n, l); };
-    if (name === 'forest') { bed(2400, 0.4, 0.12); bed(500, 0.6, 0.06); }
+    if (name === 'forest') { bed(2400, 0.4, 0.095); bed(500, 0.6, 0.048); }
     else if (name === 'lakeside') { bed(900, 0.5, 0.07); bed(3000, 0.3, 0.03); }
-    else if (name === 'wall') bed(500, 1.2, 0.1);
+    else if (name === 'wall') bed(500, 1.2, 0.28);
     // The larch basin: wind over open granite and the cascade below the tarn, far off.
-    else if (name === 'larches') { bed(650, 1, 0.09); bed(2800, 0.6, 0.025); }
+    else if (name === 'larches') { bed(650, 1, 0.133); bed(2800, 0.6, 0.037); }
     // The walk to camp: wind on the open slope, and the river far below in the valley.
-    else if (name === 'approach') { bed(700, 0.9, 0.09); bed(1300, 0.4, 0.02); }
-    else if (name === 'camp' || name === 'climb' || name === 'offroute') { bed(420, 1.6, 0.2); bed(1500, 0.8, 0.05); }
-    else bed(1800, 0.3, 0.03);
+    else if (name === 'approach') { bed(700, 0.9, 0.127); bed(1300, 0.4, 0.028); }
+    else if (name === 'camp' || name === 'climb' || name === 'offroute') { bed(420, 1.6, 0.25); bed(1500, 0.8, 0.063); }
+    else bed(1800, 0.3, 0.048);
     if (name === 'world' || name === 'forest' || name === 'lakeside') ambTimer = setInterval(() => { if (ctx.state === 'running' && Math.random() < 0.5) FX.chirp(ctx.currentTime + Math.random() * 0.5); }, 2600);
     // Up in the basin no songbirds: now and then the pika eeps from its rocks (a hint that it is there) or a nutcracker calls.
     else if (name === 'larches') ambTimer = setInterval(() => { const r = Math.random(); if (ctx.state === 'running' && r < 0.35) FX[r < 0.2 ? 'eep' : 'kraa'](ctx.currentTime + Math.random() * 0.5); }, 3200);
@@ -372,7 +380,7 @@ export function makeAudio() {
     endPreview() { solo = null; auto = true; turn = 0; fadeTo(PLACES[place][0], true); },
     // The music menu's styles: -1 is Auto, which follows the place, and a set picked by its number stays.
     setSet(i) { if (i < 0) { ownSet = null; try { localStorage.removeItem('trailhead.set'); } catch { /* private window */ } fadeTo(swap == null ? cur : swap, true); return SETS[autoSet()].name; }
-      set = ownSet = ((i % SETS.length) + SETS.length) % SETS.length; try { localStorage.setItem('trailhead.set', String(set)); } catch { /* private window */ } return SETS[set].name; },
+      set = ownSet = ((i % SETS.length) + SETS.length) % SETS.length; trimTo(); try { localStorage.setItem('trailhead.set', String(set)); } catch { /* private window */ } return SETS[set].name; },
     // How much the music steps back: 0 out in the world, 1 while a card is being read, 2 under a sheet.
     focus(lv) { if (!music) return; level = [0.22, 0.15, 0.13][lv] || 0.22; if (swap == null) { music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(level, ctx.currentTime, 0.25); } tone0.frequency.setTargetAtTime(lv === 2 ? 900 : 16000, ctx.currentTime, 0.2); }
   };

@@ -4,7 +4,9 @@
 #   1. every file in www/ parses,
 #   2. the game opens on every route with nothing on its console (make browser, against the built web image),
 #   3. the slowest view there is, the whole map zoomed out at Dusk with every event running, draws inside a frame,
-#   4. where every trail, sign and animal is, written to out/check/<item>.json and compared with the check before.
+#   4. where every trail, sign and animal is, written to out/check/<item>.json and compared with the check before,
+#   5. the sound is in balance: every tune through every set at one loudness, every effect heard and as loud
+#      whichever set plays it, no bed too loud or too quiet, and nothing clips (sound.mjs has the numbers).
 # It ends with one line, "check <item>: passed" or what failed, and its exit code says the same.
 D="$(cd "$(dirname "$0")" && pwd)"; G="$(cd "$D/../../web/www" && pwd)"; ITEM="$1"
 [ -n "$ITEM" ] || { echo "usage: check.sh <item> [earlier item]"; exit 2; }
@@ -28,5 +30,8 @@ case "$MS" in
 esac
 
 docker run --rm --ipc=host -v "$G:/www:ro" -v "$D/out:/out" -v "$D/check.mjs:/lab/check.mjs:ro" --entrypoint node trailhead-pixel-lab /lab/check.mjs "$@" || FAILED="$FAILED places"
+
+SOUND=$(docker run --rm --ipc=host -v "$G:/www:ro" -v "$D/out:/out" -v "$D/sound.mjs:/lab/sound.mjs:ro" --entrypoint node trailhead-pixel-lab /lab/sound.mjs "$@" 2>&1) || FAILED="$FAILED sound"
+echo "$SOUND" | sed -n '/^sound:/,$p'
 
 if [ -z "$FAILED" ]; then echo "check $ITEM: passed"; else echo "check $ITEM: FAILED ($(echo "$FAILED" | sed 's/ /, /g'))"; exit 1; fi

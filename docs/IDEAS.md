@@ -661,3 +661,9 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **In by Headlamp** (round 8, J13). Opened at Dusk, he could come up the trail behind a small pool of light.
 - **Out the Way He Came** (round 8, J13). After the last route of a visit he could head back down the south trail when the page is left idle for a long while, and come back in on the next click.
 - **Every Cut Ends in a Slope, Checked** (round 8, J12). The line in the meadow was a wall left by a square cut. `rules.js` could look for any column where the ground drops more than a few units between two meadow pixels and say where.
+- **A Roll on a Long Note** (round 8, I4). A marimba player rolls a held note. The mallets could repeat a long note softly while it lasts, which would also even its tunes out without a number for each.
+- **The Lab Saves a Clip** (round 8, I4). `sound.sh` could write any render as a WAV file, so one tune through one set, or the pile-up, can be listened to without opening the game.
+- **A Volume Slider** (round 8, I4). The music menu has Sound off and nothing between. Two sliders, music and effects, kept between visits.
+- **Sounds From Where They Happen** (round 8, I4). An effect at the edge of the view could play quieter and to that side, so a bugle across the valley is not as loud as one beside him.
+- **A Soft Ceiling** (round 8, I4). The limiter holds the lab's pile-up under full scale by 1.4 dB. A soft clipper after it would hold any pile-up at all.
+- **Loudness in CI** (round 8, I4). The lab runs in `check.sh` on the workstation. As a CI job it would catch a new effect or tune that was never measured.
