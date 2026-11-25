@@ -18,6 +18,13 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - Every kind of weather has a start button under Weather in the debug panel, and the button works in every scene with a sky (`WEATHER` in `pixel.js`, `trigger` in `world.js`).
 - A new kind of weather goes into the sky report first, then onto the map, then into each scene, and gets its button.
 
+## The Conditions Board
+
+- The board lists what lives and happens in the world in two lists: Observed is what has been inside the view since the page opened, Reported is the rest. The words are `kiosk.sightings` in `content/game/interface.yaml`, one entry per place, each thing under a short name.
+- A thing on the board says so where it is drawn: `saw('name')` from `core.js`, only when it is inside the view (`inView()` in `events.js` on the map, the scene's own camera test in a side scene). The name is the one in `kiosk.sightings`.
+- A new animal or event that belongs on the board gets both: its words in `kiosk.sightings` and its `saw()`. A thing that is never reported stays under Reported for good, so check it with a render.
+- What has been seen is kept in memory only (`SAW` in `core.js`, `__api.saw()` on the page), so every visit starts with nothing seen.
+
 - Every plant is a thing that stands and sways with the shared wind: `breeze()` on the map and `windAt()` in the side scenes, both in `core.js`. A plant is made of parts (`tree.parts`), and at least one part has a `sway` above 0. `swaying()` in `sprites.js` turns a still drawing into one.
 - A fern is a single drawing with `fern: true`, and the map sways it whole.
 - Colour in the ground is not a plant. A pixel or a 2 by 2 speck of flower, sage or grass colour in the baked ground (`ground.png`) is the turf's own colour, and it stays in the ground. Anything with a shape (a stalk, a bloom on a stem, a bush, a crown) is a plant, so it is a swaying thing and never painted into the ground.

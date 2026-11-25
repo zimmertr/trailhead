@@ -558,3 +558,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **One Outline for the Pair** (round 8, F1). The register's box and the board answer as one now. Hovering either could light both with one outline, as a place on the map lifts, so the eye is told they are one thing before the click.
 - **A Roof Over Both** (round 8, F1). The two could be drawn as one small kiosk: the board under the roof and the register's box on the same posts, as trailheads often build them. A redraw, so pictures first, and TJ's call.
 - **The Board Says What Is New** (round 8, F1). The board on the map could show a small pinned note in a brighter colour when the conditions inside have changed since the last look: a new find, a new event seen.
+- **Clear of the Panels** (round 8, F2). The board counts a thing as observed once it is inside the view, even behind the junction's card or an open sheet. The page could tell the game which part of the view its panels leave open, and only that part would count.
+- **More on the Board** (round 8, F2). The board lists what round 6 listed. The world also has ravens, moon jellies, the summit squall, deer eyeshine at Dusk, gusts and cloud shadows, each of which could be a line. The words are TJ's.
+- **Tap a Reported Line** (round 8, F2). A tap on a line under Reported could close the board and move the view to where that thing lives, as the debug panel's start buttons do, without starting it.
+- **How Many of How Many** (round 8, F2). The notice in the register's scene could say how much has been observed ("12 of 31 observed") beside the checklist's count.
+- **The Board Remembers** (round 8, F2). Observed is this visit only, as TJ asked. A third mark could show what an earlier visit saw, kept as the finds are.

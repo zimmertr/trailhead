@@ -530,7 +530,7 @@ function buildApproach() {
       for (const th of things) if (th.x > camX - 40 && th.x < camX + VW + 40) list.push(th);
       // The marmots sun themselves and sit up to whistle as he comes near (or when clicked).
       for (let k = 0; k < M.length; k++) {
-        const m = M[k], near = Math.abs(mx - m.x) < 60;
+        const m = M[k], near = Math.abs(mx - m.x) < 60; if (m.x - camX > 8 && m.x - camX < VW - 8) saw('marmot');
         if (near && env.running && t - m.seen > 6) { m.seen = t; env.sfx('whistle'); }
         // Clicked, it whistles and dives behind its rock, and is back up a few seconds later (round 6, note 10).
         if (!(t - m.dive > 1.2 && t - m.dive < 4.6)) list.push({ bm: near || t - m.seen < 1.6 ? marm.up : marm.sun, x: m.x + 1, y: m.y - m.top + 3, z: m.y + 0.5, flip: mx > m.x });

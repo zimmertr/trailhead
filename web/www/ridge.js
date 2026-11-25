@@ -8,7 +8,7 @@
 // line against the sky. The lower ridge (pitches 1 to 4) is dark granite blotched with black lichen,
 // with lime and rust patches; the tower is pale cream with long vertical cracks. Every landmark of the
 // pitch list in ROUND4.md section 5 is one or more blocks below, in the order the route meets them.
-import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, DEBUG } from './core.js';
+import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, DEBUG, saw } from './core.js';
 import { goat } from './fauna.js';
 import { Strip, drawStrip, baseline, shell } from './side.js';
 import { makeConifer, makeCloud, makeHuckleberry, huckClumps } from './sprites.js';
@@ -1602,7 +1602,7 @@ function buildRidge() {
       if (dv >= DESC.under + 0.5) underRope(scr, dv - DESC.under, P, cx, rowOf);
       goatSeen = null;
       if (DEBUG.animals) { const gx = goatAt.x - cx, near = Math.abs(P.tj.x - goatAt.x) < 160, pg = t - poked.goat, leap = pg < 1.6 ? Math.round(8 * Math.abs(Math.sin(pg * Math.PI / 0.8))) : 0;
-        if (gx > -30 && gx < VW + 30) { const gy = rowOf(goatAt.h) + 1; scr.put(near || pg < 1.6 ? GOAT.look : GOAT.stand, gx, gy - leap, pg < 1.6 ? pg > 0.8 : P.tj.x < goatAt.x); goatSeen = [gx, gy]; } }
+        if (gx > -30 && gx < VW + 30) { const gy = rowOf(goatAt.h) + 1; scr.put(near || pg < 1.6 ? GOAT.look : GOAT.stand, gx, gy - leap, pg < 1.6 ? pg > 0.8 : P.tj.x < goatAt.x); goatSeen = [gx, gy]; if (gx > 8 && gx < VW - 8) saw('goat'); } }
       for (const w of WHO) if (P[w].where !== 'n') draw1(w);
       // Jackets snap downwind and loose hair streams from under a helmet once there is wind.
       if (wnd > 0.15) for (const w of WHO) {
