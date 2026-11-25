@@ -122,7 +122,7 @@ TJ picked these from `docs/IDEAS.md` on 2026-11-24, for the night. Pictures firs
 - [x] **H2 The Cubs Copy Her.** The cubs dig beside the sow when she digs and try the trunk she has just rubbed.
 - [x] **H3 A Goat on the Ledge.** One mountain goat's home on the grassy ledge halfway up the larch basin's wall.
 - [x] **H4 Answers and Followers.** A second bull answers a bugle faintly from off the map. When one orca spyhops, the one behind it follows a second later.
-- [ ] **H5 Ice That Moves.** The bergs in Feature Creep Lake become things that drift a little with each gust and turn slowly; the upper tarns get a few small floes.
+- [x] **H5 Ice That Moves.** The bergs in Feature Creep Lake become things that drift a little with each gust and turn slowly; the upper tarns get a few small floes.
 - [ ] **H6 Rain Shows Everywhere.** In rain the map's lakes show rings in place of glints and no fish jump. At the lakeside the boulders and the trail stay dark after the drizzle and dry from the top down.
 - [ ] **H7 Driftwood Where It Gathers.** The beach's logs jam at the creek mouths and against the headlands, with clean sand between.
 - [ ] **H8 Streamside Plants.** Monkeyflower and marsh marigold along the meadow's streams, devil's club along the forest's, by the rule that plants skunk cabbage. New plants: pictures first.
@@ -388,3 +388,11 @@ Every call, one line each, newest last.
 - H4, how it was tested: a new browser test starts the bugle by name, waits for the answer and reads that every elk looking up faces one way; then it brings the pod through, clicks the first orca until it spyhops and reads the second up within four seconds. It passed twice in a row. One render of the pod with both up.
 
 - H4, the numbers: 56 browser tests pass; check.sh reports nothing moved since H3; frame time 10.8 ms zoomed out at Dusk. CI on H3 (`174ee2c`) was green.
+- H5, what was built: the nine bergs in Feature Creep Lake are no longer painted into the ground. They are things in `life.js`, placed by the rule that painted them (thick against the ice, few farther out, never touching), drawn as C7 drew them. A gust pushes each a little way east for a second and a half after its front goes by, and the berg eases back to where it lies. Each turns slowly, so its lit side grows and shrinks and its cap shifts. The upper half of the tarns (by height) have three small floes each that drift the same way and further.
+- H5, a call: a berg moves no more than 8 east or 4 west of its home and stops where its next step would touch a shore or leave the water. Every gust blows east, so a berg left to drift freely would end against the east shore. Free drifting was not tried.
+- H5, a call: the brash between the bergs stays painted. It is single pixels, and the engine rule about colour in the ground covers it.
+- H5, no pictures: the bergs keep the drawing they got from pictures in C7, and a floe is a white plate two or three pixels wide.
+- H5, the bake: the ground changed (the bergs are out of it), so `ground.png` is rewritten.
+- H5, how it was tested: the lake rendered by Day, at Dusk and on a phone, and the tarns by Day; the bergs' places dumped before and after a gust (eight of nine one or two east two and a half seconds after it, all on water). A new browser test sends a gust over the lake and reads that some bergs move east and every berg and floe stays on its water for ten seconds.
+- H5, the numbers: 57 browser tests pass; check.sh reports nothing moved since H4; frame time 10.3 ms zoomed out at Dusk. CI on H4 (`9589a86`) was green.
+- H5, not compared with `v0.5.0`: that build's lake had the bergs of before C7, so the before for this item is C7's own picture, which the things reproduce by the same recipe.

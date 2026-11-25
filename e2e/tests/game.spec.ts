@@ -737,6 +737,30 @@ test('a far bull answers the bugle and the orca behind follows a spyhop', async 
   expect(problems).toEqual([])
 })
 
+// Round 8, H5: ice that moves. The bergs in the glacier's lake and the floes on the upper tarns are things:
+// a gust pushes them a little way east, and they never leave their water.
+test('the bergs and floes drift with a gust and stay on their water', async ({ page }) => {
+  const problems = await open(page, '/?homes=0')
+  type Berg = { x: number; y: number; w: number; home: number; floe: boolean; wet: boolean }
+  type Ice = { __life: { bergs: () => Berg[] }; __api: { showEvent: (id: string) => number; trigger: (id: string) => boolean } }
+  const ice = () => page.evaluate(() => (window as unknown as Ice).__life.bergs())
+  const still = await ice()
+  expect(still.filter((b) => !b.floe).length).toBeGreaterThanOrEqual(6)
+  expect(still.filter((b) => b.floe).length).toBeGreaterThanOrEqual(2)
+  expect(still.every((b) => b.wet)).toBe(true)
+  // A gust is sent over the lake. Within a few seconds some of the bergs have moved east of where they lie.
+  await page.evaluate(() => { const w = window as unknown as Ice; w.__api.showEvent('calve'); w.__api.trigger('gustnow') })
+  let moved = 0
+  for (let k = 0; k < 20; k++) {
+    await page.waitForTimeout(500)
+    const now = await ice()
+    expect(now.every((b) => b.wet), `every berg on water at step ${k}`).toBe(true)
+    moved = Math.max(moved, now.filter((b) => b.x > b.home).length)
+  }
+  expect(moved).toBeGreaterThan(2)
+  expect(problems).toEqual([])
+})
+
 test('the homes the dice draw keep the engine rules and leave an animal to click', async ({ page }) => {
   for (const seed of [1, 2, 3, 4]) {
     const problems = await open(page, `/?homes=${seed}`)

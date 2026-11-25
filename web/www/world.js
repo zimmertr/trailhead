@@ -563,7 +563,7 @@ export function makeWorld() {
   let pokeAt = [0, 0];   // where the last animal under the pointer was, so a click on it knows which way to flee
   // For the browser suite: every engine rule the map breaks (rules.js).
   window.__rules = () => checkRules(W.things, crit.items, crit.collide);
-  const ev = makeEvents(W, crit.collide), life = makeLife(W, STILL);
+  const ev = makeEvents(W, crit.collide), life = makeLife(W, STILL); window.__life = life;
   for (const it of crit.items) things.push(it);
   const birds = [speck(0), speck(1)];
   const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 330 + 40, y: 50 + (i & 1) * 70 + i * 18, v: 3 + (i % 4) }));
@@ -887,7 +887,7 @@ export function makeWorld() {
       if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], warm = n ? glow : 0, H = Math.round(TIP_H[n] * (1 + 2.2 * warm)), k = 6 + n;
         for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = top[x]; if (y0 < 0) continue;
           for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { if (W.dest[y * WW + x] !== k) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8)) { const i = (y - oy) * VW + (x - ox); fb[i] = warm > 0 && bayer(x + 2, y + 1) < warm ? ALPEN[d < 0.3 ? 0 : 1][fb[i]] : GLOW[fb[i]]; } } } }
-      crit.sea(scr, ox, oy, t); if (WWP) whiteWater(fb, VW, VH, ox, oy, WWP, WWF, t); stillWater(fb, VW, VH, ox, oy, STILL, t, 1 - 0.8 * env.mix, DEBUG.animals, life.lake, calm); crit.falls(scr, ox, oy, t);
+      crit.sea(scr, ox, oy, t); if (WWP) whiteWater(fb, VW, VH, ox, oy, WWP, WWF, t); stillWater(fb, VW, VH, ox, oy, STILL, t, 1 - 0.8 * env.mix, DEBUG.animals, life.lake, calm); life.ice(scr, ox, oy, t); crit.falls(scr, ox, oy, t);
       crit.update(dt, t, env.hideMe ? null : here, env.hour);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
       if (DEBUG.clouds) lenticular(scr, ox, oy, t);

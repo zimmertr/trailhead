@@ -587,4 +587,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Bull Answers Back** (round 8, H4). The far bull answers once. The herd's bull could bugle again at the answer, a little longer, and the two could trade two or three calls as the light goes.
 - **Other Voices From Off the Map** (round 8, H4). A loon from a lake that is not drawn, a second owl answering the rainforest's, coyotes from the dry side at Dusk. Each is one faint sound and a head turned.
 - **The Pod Follows a Breach** (round 8, H4). After one orca breaches, a calf could try a small one of its own a moment later.
+- **Bergs That Calve Stay** (round 8, H5). The berg a calving leaves is gone when the event ends. It could join the drifting bergs, and the oldest one could melt away to make room.
+- **Ice on the Wall Scene's Tarn** (round 8, H5). The larches and the approach have water too. The same floes could drift there, seen from the side.
+- **The Bergs Meet the Ducks' Wake** (round 8, H5). A wave (a calving, a fish, a landing duck) could rock a berg for a moment as a gust pushes it.
+- **Brash as Things** (round 8, H5). The brash near the cliff is paint. As a few dozen single pixels that drift with the bergs it would make the whole lake move.
 

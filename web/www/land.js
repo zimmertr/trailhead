@@ -1157,17 +1157,11 @@ let MONO_OY = 0;
   for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) { let y = 0; while (y < SH && !silt(x, y)) y++; if (y >= SH || RAMP_OF[g[px(x, y - 1)]] !== 'serac') continue;
     const len = 2 + Math.round(4 * hash(x >> 1, 1, 483)), c = hash(x >> 1, 0, 482) < 0.45 ? T[5] : T[4];
     for (let j = 0; j <= len && silt(x, y + j); j++) g[px(x, y + j)] = !j ? T[1] : j === 1 && hash(x, 2, 483) < 0.5 ? T[2] : c; }
-  // Ice broken off the snout floats in the lake (E8c, TJ's photograph; redrawn in round 8, C7): small bergs,
-  // each a white top over a blue side, lit from the upper left, with its shadow on the water under it. They
-  // lie thick against the ice and few farther out, with brash between them near the cliff.
+  // Ice broken off the snout floats in the lake (E8c, TJ's photograph; redrawn in round 8, C7). The bergs are
+  // things that drift now (round 8, H5: life.js places and draws them), so only the brash between them, thick
+  // near the cliff, is painted into the water here.
   const spots = []; for (let y = 1; y < SH - 3; y++) for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) if (silt(x, y) && RAMP_OF[g[px(x, y)]] === 'tarn') spots.push([x, y]);
-  const rand = rng(4872), bergs = [], far = (x, y) => { const v = zb[px(x, y)]; return v < VD ? clamp((v - (PRO.cv - PRO.rv)) / (2 * PRO.rv), 0, 1) : 0; };
-  for (let n = 0; n < 900 && bergs.length < 9 && spots.length; n++) { const [x, y] = spots[Math.floor(rand() * spots.length)], f = far(x, y), w = rand() < 0.35 ? 5 + Math.floor(rand() * 3) : 3 + Math.floor(rand() * 2);
-    if (rand() > 0.05 + 0.9 * f * f || bergs.some(([a, b, bw]) => Math.abs(y - b) < 5 && x < a + bw + 6 && a < x + w + 6)) continue;
-    let ok = true; for (let dx = -1; dx <= w && ok; dx++) for (let dy = -1; dy <= 2; dy++) if (!silt(x + dx, y + dy) || g[px(x + dx, y + dy)] === T[1]) { ok = false; break; }
-    if (ok) bergs.push([x, y, w]); }
-  for (const [x, y, w] of bergs) { for (let dx = 0; dx < w; dx++) { g[px(x + dx, y)] = R.white[1]; g[px(x + dx, y + 1)] = dx < w / 2 ? R.serac[4] : R.serac[2]; g[px(x + dx + 1, y + 2)] = bayer(x + dx, y) < 0.7 ? T[2] : T[3]; }
-    if (w >= 5) for (let dx = 1; dx < w - 2; dx++) g[px(x + dx, y - 1)] = R.white[1]; }
+  const far = (x, y) => { const v = zb[px(x, y)]; return v < VD ? clamp((v - (PRO.cv - PRO.rv)) / (2 * PRO.rv), 0, 1) : 0; };
   for (const [x, y] of spots) { const f = far(x, y); if (hash(x, y, 481) < 0.07 * f * f * f * f && RAMP_OF[g[px(x, y)]] === 'tarn' && g[px(x, y)] !== T[1]) g[px(x, y)] = R.white[1]; } }
 
 // ---- detail on the ground, as round 3 had it ------------------------------------------------------

@@ -46,6 +46,7 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - Only rocks, snags, logs, driftwood, sea stacks, ferns and footbridge rails stand still on the map. `land.js` tags each drawing with `tag()` (`bm.what`), and an untagged still drawing breaks the rules.
 - The buildings, signs, tents and the register box are set down by `world.js`, so they are not on this list.
 - A sign's place is chosen by a rule in `habitat()` in `land.js`, as an animal's home is. A new sign is placed last (after the homes and the events' spots, before `taken.length = mark`), clear of all of them, so that it moves nothing that was there before it. After adding one, `check.sh` must report nothing moved but the new sign.
+- Ice that floats is a thing, not paint: the bergs and floes are placed and drawn by `life.js` (`BERGS`), drift with the shared gust (`gustOver()` in `core.js`) and keep to their own water.
 
 ## Solid Things
 

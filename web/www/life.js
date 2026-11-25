@@ -2,10 +2,10 @@
 // Peak, Reflection Lake and the rainforest, as Mount Monolith has its avalanches and its cap cloud. Each runs
 // on the scenes' clock (so the speed buttons work on it), has a start button in the debug panel and a line on
 // the conditions board. Where each happens is read off the land (spots.life in land.js, the lakes' own water).
-import { TAU, smooth, hash, bayer, frac, lerp, R, INK, BM, saw } from './core.js';
+import { TAU, smooth, hash, bayer, frac, lerp, rng, gustOver, R, INK, BM, saw } from './core.js';
 import { makeClock, inView, blitA } from './events.js';
 import { goat } from './fauna.js';
-import { NH } from './land.js';
+import { NH, LAND } from './land.js';
 
 // A soaring raven seen from the side and a little below: a black bar of wing with the tips fingered and
 // lifted, the body a pixel deeper in the middle. f 0: wings flat. f 1: wings in a shallow V.
@@ -43,6 +43,36 @@ export function makeLife(W, STILL) {
   // A fir that stands out of the canopy, as [across, up, colour]: a trunk's foot, then tiers that narrow to the tip, lit from the west.
   const FIR = (() => { const out = [], C = R.conifer; for (let j = 0; j < 38; j++) { const hw = j < 3 ? 0 : Math.max(0, Math.round(6.4 * (1 - (j - 3) / 35) + (j % 5 === 3 ? 1 : j % 5 === 2 ? -0.6 : 0))); for (let i = -hw; i <= hw; i++) out.push([i, j, j < 3 ? R.bark[1] : j % 5 === 2 ? C[i < 0 ? 1 : 0] : i === -hw && hw ? C[4] : i < 0 ? C[3] : i === hw && hw ? C[0] : i > 0 ? C[1] : C[2]]); } return out; })();
   const BOW = [R.red[1], R.blaze[2], R.yellow[1], R.kit[2], R.jay[3], R.lupine[1]], MOTE = [R.mist[5], R.mist[4], R.mist[3]];
+  // ---- ice that moves (round 8, H5) ----------------------------------------------------------
+  // The bergs in the glacier's lake, as land.js painted them until now: each a white top over a blue side
+  // with its shadow on the water, three to seven wide, thick against the ice at the lake's far side and few
+  // farther out. And a few small floes on the upper tarns (the higher half of them). Each is a thing with a
+  // home on the water: a gust pushes it east a little way and it eases back, and it turns slowly, so its lit
+  // side and its cap change.
+  const roomAt = (l, x, y, w) => { for (let dx = -1; dx <= w; dx++) for (let dy = -2; dy <= 3; dy++) if (!wetAt(l, x + dx, y + dy)) return false; return true; };
+  const BERGS = (() => { const out = [], rnd = rng(4872), put = (l, n, wide, thick) => { let got = 0; for (let k = 0; k < 900 && got < n; k++) { const x = l.x0 + Math.floor(rnd() * l.w), y = l.y0 + Math.floor(rnd() * (l.y1 - l.y0 + 1)), f = 1 - (y - l.y0) / Math.max(1, l.y1 - l.y0), w = wide(rnd());
+        if (rnd() > (thick ? 0.05 + 0.9 * f * f : 1) || !roomAt(l, x, y, w) || out.some(b => Math.abs(y - b.y) < 5 && x < b.x + b.w + 6 && b.x < x + w + 6)) continue;
+        out.push({ l, x, y, w, hx: x, off: 0, v: 0, ph: rnd() * TAU, slow: 34 + 26 * rnd(), floe: !thick }); got++; } };
+    if (SILT) put(SILT, 9, r => r < 0.35 ? 5 + Math.floor(r / 0.35 * 3) : 3 + Math.floor((r - 0.35) / 0.65 * 2), true);
+    const tarns = STILL.filter(l => l.kind === 'tarn').map(l => ({ l, h: LAND.hAt((l.x0 + l.x1) >> 1, W.vAt((l.x0 + l.x1) >> 1, (l.y0 + l.y1) >> 1)) })).sort((a, b) => b.h - a.h);
+    for (const { l } of tarns.slice(0, Math.ceil(tarns.length / 2))) put(l, 3, r => 2 + Math.floor(r * 2), false);
+    return out; })();
+  let iceT = null;
+  function ice(scr, ox, oy, t) {
+    const dt = iceT == null ? 0 : Math.max(0, Math.min(0.1, t - iceT)); iceT = t;
+    for (const b of BERGS) {
+      // The push of a gust for a second and a half after its front goes by, a pull back toward home, and the water's drag.
+      const G = gustOver(b.hx, b.y, t, 1.5), push = G ? G[2] * (1 - G[0] / 1.5) : 0;
+      b.v += (push * (b.floe ? 9 : 6) - b.off * 0.22 - b.v * 0.9) * dt; const off = Math.max(-4, Math.min(8, b.off + b.v * dt)), nx = Math.round(b.hx + off);
+      if (nx === b.x || roomAt(b.l, nx, b.y, b.w)) { b.off = off; b.x = nx; } else b.v = 0;
+      const x = b.x - ox, y = b.y - oy; if (x < -10 || y < -4 || x > scr.VW + 2 || y > scr.VH + 4) continue;
+      const turn = Math.sin(t / b.slow + b.ph), lit = b.w * (0.5 + 0.38 * turn);
+      for (let dx = 0; dx < b.w; dx++) { scr.set(x + dx, y, R.white[1]);
+        if (b.floe) { if (bayer(b.hx + dx, b.y) < 0.6) scr.set(x + dx, y + 1, R.tarn[2]); continue; }
+        scr.set(x + dx, y + 1, dx < lit ? R.serac[4] : R.serac[2]); scr.set(x + dx + 1, y + 2, bayer(b.hx + dx, b.y) < 0.7 ? R.tarn[2] : R.tarn[3]); }
+      if (!b.floe && b.w >= 5) for (let dx = turn > 0.5 ? 2 : 1; dx < b.w - (turn < -0.5 ? 3 : 2); dx++) scr.set(x + dx, y - 1, R.white[1]);
+    }
+  }
   let mix = 0;
   // slot: one in each so many seconds. first: when the first slot ends. dur: how long it lasts. ok: whether it can happen now.
   const EV = {
@@ -261,6 +291,8 @@ export function makeLife(W, STILL) {
     // How still Reflection Lake lies, 0 to 1: the wind drops over a few seconds, the water is glass, and it picks up again.
     calm(t) { const e = on('calm', t); return e ? smooth(0, 5, e[1]) * smooth(EV.calm.dur, EV.calm.dur - 5, e[1]) : 0; },
     lake: LAKE,
+    // The drifting ice, drawn on the water before anything that stands in front of it. bergs: for the checks.
+    ice, bergs: () => BERGS.map(b => ({ x: b.x, y: b.y, w: b.w, home: b.hx, floe: b.floe, wet: roomAt(b.l, b.x, b.y, b.w) })),
     // The sunbreak: where the gap in the cloud lets the sun onto the canopy now, drifting east, and how bright.
     sunbreak(t) { const e = on('sunbreak', t); if (!e) return null; const S = spot(e[0], 7370); return { x: S[0] - 54 + 4.5 * e[1], y: S[1] + 0.7 * e[1], a: smooth(0, 4, e[1]) * smooth(EV.sunbreak.dur, EV.sunbreak.dur - 5, e[1]) }; },
     // Where each happens, for the debug panel to look there first.
