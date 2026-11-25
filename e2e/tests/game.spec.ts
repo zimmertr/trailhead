@@ -670,6 +670,9 @@ test('a broken world leaves the page of text with a way back to the Trailhead', 
   await expect(back).toBeVisible({ timeout: 30_000 })
   await expect(back).toHaveText('Back to the Trailhead')
   await back.click()
+  // The broken page is __ready too, so wait for the address to change first: WebKit can still be on the
+  // broken page when the click returns (round 8, I7).
+  await page.waitForURL((url) => url.search === '', { timeout: 30_000 })
   await page.waitForFunction(() => window.__ready === true, null, { timeout: 30_000 })
   expect(new URL(page.url()).search).toBe('')
   await expect(page.locator('#plain')).toBeHidden()
