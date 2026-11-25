@@ -593,6 +593,8 @@ export function makeWorld() {
   let pokeAt = [0, 0];   // where the last animal under the pointer was, so a click on it knows which way to flee
   // For the browser suite: every engine rule the map breaks (rules.js).
   window.__rules = () => checkRules(W.things, crit.items, crit.collide);
+  // For the soak (tools/pixel/soak.sh): where every map animal is and what it is doing.
+  window.__animals = () => crit.items.map(a => ({ k: a.critter, col: a.col, x: a.x, y: a.y, st: (a.st || '') + (a.act ? ':' + a.act : '') + (a.goal ? '>' + a.goal : '') + (a.homing ? ' homing' : ''), w: a.bm ? a.bm.w : 0, walker: !!a.walker, perch: !!a.perch, mum: a.mum ? crit.items.indexOf(a.mum) : -1, with: a.with ? crit.items.indexOf(a.with) : -1 }));
   const ev = makeEvents(W, crit.collide), life = makeLife(W, STILL); window.__life = life; window.__wet = Object.assign(WET, window.__wet);
   // The streamside plants by kind, each with its spot and how far it stands from the water (H8), for the checks.
   window.__plants = () => W.things.filter(th => th.tree && th.tree.what).map(th => [th.tree.what, th.x, th.y, th.near || 0]);

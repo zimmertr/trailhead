@@ -45,6 +45,7 @@ The game is in `web/www/` and runs in the browser as it is ([`web/CLAUDE.md`](..
 | `refs.sh` | The standard set of views, for comparing two builds |
 | `bake.sh` | Writes `web/www/ground.png`, the baked map. Run it after any change to `land.js` or the palette |
 | `slow.sh` | How long a frame takes on a slow phone: every scene, by Day and at Dusk, in a phone's window with the processor slowed four times, and where any slow frame fell. `PROFILE=1` names the functions the time went to |
+| `soak.sh` | Leaves the map and every scene running at eight times speed for an hour of game time each, and fails on animals stuck, on top of each other or where they may not stand, console errors, a scene that broke, or a growing heap. `crowd` puts every animal on every home first |
 | `sound.sh` | The audio lab: how loud every tune through every set, every effect and every bed is, and whether anything clips. It runs `audio.js` itself into a buffer, about a minute for all of it |
 | `check.sh` | One item's check: every module parses, `make browser`, frame time, what moved on the map, and the sound's balance |
 

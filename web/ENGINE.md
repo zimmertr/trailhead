@@ -68,6 +68,7 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 
 - Nothing that moves passes through anything solid. One shared module, `collide.js`, decides this for every mover.
 - A solid thing is registered with `collide.js`. On land, these are the rocks, snags and logs that `land.js` tags as solid, the signs, the journal's post, the tents, and the clearance round the kiosk, the register and the lookout. At sea, they are the sea stacks (a distance field) and the tide's bared flats.
+- Two land animals never stand on top of each other. A spot a walker picks for itself, and a place it is given for the hour, keeps clear of the others where they stand and where they are going (`free()` in `critters.js`). A new way of moving an animal asks `free()` too. `tools/pixel/soak.sh` checks it over game hours.
 - A land animal also keeps off water and off ground too steep to stand on (`W.open`). Trees are part of its own rule in `critters.js`: a walker goes round their trunks, and a cub may climb one.
 
 ## The Land and Its Trails

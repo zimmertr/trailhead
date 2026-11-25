@@ -674,3 +674,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Real Phone** (round 8, I5). The slow-phone numbers are Chrome slowed four times. One afternoon with a mid-range Android phone over USB and Chrome's remote tools would say whether the canvas itself costs more there.
 - **Frames as a Number in CI** (round 8, I5). `slow.sh` could run in CI against the built image and fail when a scene's 95th passes 16.7 ms, as Lighthouse fails on the largest paint.
 - **The Sea Row by Row** (round 8, I5). The map's one slow frame now and then is spent drawing the sea's animals row by row (`seaRow` in `critters.js`). Drawing only the rows in view would take it off the limit.
+- **The Soak in CI** (round 8, I6). A game hour of the map and the crowded map takes about three minutes. Run nightly against the built image, it would catch an animal that wanders into water after a change to the land.
+- **The Side Scenes' Animals in the Soak** (round 8, I6). The forest's deer, the larch basin's pika and the ridge's ravens live in their scenes. If each scene said where its animals are, as `window.__animals` does for the map, the soak could check them too.
+- **A Herd That Spreads Out to Drink** (round 8, I6). At the water each animal now keeps its own spot. They could also face the water and lower their heads in turn, one always looking up.
