@@ -600,3 +600,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Animals Use the Jams** (round 8, H7). An otter could den under a heap at a creek mouth and the eagle could perch on the top log, by the rule that finds a home.
 - **Wrack on the Sand** (round 8, H7). The clean sand between the jams could carry a thin line of kelp and shells at the high-water mark, which moves with the tide.
 - **Logs Afloat at High Tide** (round 8, H7). The lowest log of a creek-mouth heap could lift and rock when the tide is full, and settle back as it falls.
+- **A Darker Leaf for the Skunk Cabbage** (round 8, H8). In the meadow the skunk cabbage's leaves are the grass's own greens. The moss ramp's dark steps, as the monkeyflower has, would make it show by the footbridge.
+- **Bees on the Monkeyflower** (round 8, H8). A bumblebee could work a run of monkeyflower by Day, one flower after the next, and a hummingbird could visit at Dusk.
+- **Streamside Plants in the Side Scenes** (round 8, H8). The lakeside's inlet and the forest scene's creek could carry the same three plants, drawn large after the same pictures.
+- **Yellow Monkeyflower at the Seeps** (round 8, H8). Where water runs down rock (the wall's wet streaks, the falls' spray) the yellow monkeyflower could grow in mats, by a rule that looks for wet rock.
+- **The Elk Browse the Bank** (round 8, H8). An elk at the water could nip a marigold, which would be gone until the next day.

@@ -6,7 +6,7 @@ import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, m
 import { paintMonolith, monolithSky, moraineLakes, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
 import { ferry, whale, sheep, squirrel, squirrelDoes } from './mapfauna.js';
-import { makeDriftwood, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
+import { makeDriftwood, makeFlowers, makeFireweed, makeSkunkCabbage, makeMonkeyflower, makeMarigold, makeDevilsClub, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
 // What a drawing that stands still is, and whether it is solid (ENGINE.md; collide.js reads solid).
 const tag = (bms, what, solid = false) => { for (const b of bms) { b.what = what; if (solid) b.solid = true; } }, tagged = (b, what, solid) => { tag([b], what, solid); return b; };
 
@@ -1635,12 +1635,30 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   // creek's mouth behind the beach, and by the footbridge below Reflection Lake. The rule is the plant's own:
   // on the bank, two to seven from running water and never in it, on ground that is nearly level, off the
   // sand and clear of the trail. Their own dice.
+  // The streamside rule in two parts: how far a spot is from running water (99 if none is near), and whether
+  // a plant may stand there at all (not in water, off the sand, on ground that is nearly level, clear of the trail).
+  const waterNear = (u, v) => { let near = 99; for (let dv = -4; dv <= 4; dv++) for (let du = -7; du <= 7; du++) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) near = Math.min(near, Math.hypot(du, dv * 1.6)); return near; };
+  const bankOk = (u, v) => !(water[at(u, v)] || lakeAt(u, v) || coast(u, v) > -36 || slope(u, v) > 0.9 || nearTrail(u, v, 7) || !land(u, v));
   { const sc = rng(6124), took = new Set();
     for (const [cu, cv, ru, rv, most] of [[402, 560, 34, 46, 16], [271, 436, 48, 24, 16], [664, 330, 20, 22, 8]]) { let k = 0;
       for (let n = 0; n < 900 && k < most; n++) { const u = Math.round(cu + (sc() * 2 - 1) * ru), v = Math.round(cv + (sc() * 2 - 1) * rv), cell = ((u / 5) | 0) * 1000 + ((v / 3) | 0);
-        if (ell([cu, cv, ru, rv], u, v) > 1 || took.has(cell) || water[at(u, v)] || lakeAt(u, v) || coast(u, v) > -36 || slope(u, v) > 0.9 || nearTrail(u, v, 7) || !land(u, v)) continue;
-        let near = 99; for (let dv = -4; dv <= 4; dv++) for (let du = -7; du <= 7; du++) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) near = Math.min(near, Math.hypot(du, dv * 1.6));
-        if (near < 2 || near > 7) continue; took.add(cell); plant(cab[(sc() * cab.length) | 0], u, v); k++; } } }
+        if (ell([cu, cv, ru, rv], u, v) > 1 || took.has(cell)) continue;
+        if (!bankOk(u, v)) continue; const near = waterNear(u, v); if (near < 2 || near > 7) continue; took.add(cell); plant(cab[(sc() * cab.length) | 0], u, v); k++; } } }
+  // The rest of a streamside, by the same rule, over the whole map (round 8, H8): along the meadow's streams
+  // monkeyflower and marsh marigold, each in runs of its own kind, and along the forest's, devil's club. They
+  // come in patches with bare bank between, and each stands clear of every other streamside plant, the skunk
+  // cabbage too, by where it shows in the picture (4 across or 3 up). Their own dice, three to a throw
+  // whether it lands or not, so a plant keeps its place when another rule changes.
+  { const sp = rng(6126), monkey = [0, 1, 2, 3].map(i => makeMonkeyflower(1090 + i)), marigold = [0, 1, 2].map(i => makeMarigold(1096 + i)), club = [0, 1, 2, 3].map(i => makeDevilsClub(1100 + i));
+    tag(monkey, 'monkeyflower'); tag(marigold, 'marigold'); tag(club, 'club'); tag(cab, 'cabbage');
+    const shown = (u, v) => SY - v - hAt(u, v), stood = things.filter(t => cab.includes(t.tree)).map(t => [t.u, shown(t.u, t.v)]);
+    for (let n = 0; n < 40000; n++) { const u = Math.round(sp() * (NW - 1)), v = Math.round(sp() * (VD - 1)), k = sp();
+      const near = waterNear(u, v); if (near < 2 || near > 7) continue;
+      const wood = forestAmt(u, v) > 0.6; if ((!wood && !meadowy(u, v)) || fbm(u / 26, v / 18, 6127, 2) < 0.45 || !bankOk(u, v)) continue;
+      const y = shown(u, v); if (stood.some(([a, b]) => Math.abs(a - u) < 4 && Math.abs(b - y) < 3)) continue;
+      stood.push([u, y]); const kinds = wood ? club : vnoise(u / 60, v / 40, 6128) < 0.55 ? monkey : marigold;
+      // near: how far it stands from the water, for the checks.
+      things.push({ tree: kinds[(k * kinds.length) | 0], u, v, near }); } }
   // The old-growth groves: three or four redcedars half as tall again as the forest round them, a little apart,
   // with sword ferns thick on the ground below (C3). Their own dice.
   { const gr = rng(6122), giants = [0, 1, 2].map(i => KINDS_NW.cedar(1080 + i * 7, 84 + i * 4));
@@ -1714,7 +1732,7 @@ for (const th of things) {
     if (seen < n * 0.12) continue;
     const hz = th.tree && th.tree.haze ? HAZE[clamp(Math.floor(th.tree.haze * 5.5) - 1, 0, 3)] : null, veil = bm => { if (!hz) return bm; const o = new BM(bm.w, bm.h); o.ox = bm.ox; o.oy = bm.oy; for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (c) o.d[j * bm.w + i] = hz[c]; } return o; };
     const clip = seen < n;
-    if (th.tree) live.push({ tree: hz ? { ...th.tree, parts: th.tree.parts.map(p => ({ ...p, bm: veil(p.bm) })) } : th.tree, x: th.u, y: fy, v: th.v, clip });
+    if (th.tree) live.push({ tree: hz ? { ...th.tree, parts: th.tree.parts.map(p => ({ ...p, bm: veil(p.bm) })) } : th.tree, x: th.u, y: fy, v: th.v, clip, near: th.near });
     else live.push({ bm: veil(th.bm), x: th.u, y: fy, v: th.v, isTree: true, clip });
     continue;
   }

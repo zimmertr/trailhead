@@ -580,6 +580,8 @@ export function makeWorld() {
   // For the browser suite: every engine rule the map breaks (rules.js).
   window.__rules = () => checkRules(W.things, crit.items, crit.collide);
   const ev = makeEvents(W, crit.collide), life = makeLife(W, STILL); window.__life = life; window.__wet = Object.assign(WET, window.__wet);
+  // The streamside plants by kind, each with its spot and how far it stands from the water (H8), for the checks.
+  window.__plants = () => W.things.filter(th => th.tree && th.tree.what).map(th => [th.tree.what, th.x, th.y, th.near || 0]);
   // Where the beach's driftwood gathers and where its logs lie (H7), for the checks.
   window.__jams = { spots: W.jams, logs: W.things.filter(th => th.bm && th.bm.what === 'drift').map(th => [th.x, th.y]) };
   for (const it of crit.items) things.push(it);

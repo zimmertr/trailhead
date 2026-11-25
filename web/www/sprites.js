@@ -209,6 +209,49 @@ function makeSkunkCabbage(seed) {
   const fx = 3 + (rand() * 3 | 0); b.set(fx, 4, R.yellow[0]); b.set(fx, 3, R.yellow[1]); b.set(fx + 1, 3, R.yellow[0]); b.set(fx, 2, R.yellow[1]);
   return swaying(b, 4);
 }
+// The rest of a streamside (round 8, H8), each drawn after pictures (design/art/R8-H8).
+// Lewis's monkeyflower: a low dome of leaves, darker than the meadow's grass and lit on the west, with three
+// or four magenta flowers held above it on their own stems at different heights, the tallest with yellow in
+// its throat. (The heather's flowers are the paler pink, on a pale mound with an outline.)
+function makeMonkeyflower(seed) {
+  const rand = rng(seed), b = new BM(9, 8), G = R.moss, P = [R.fireweed[0], R.fireweed[1], R.pink[2]]; b.ox = 4; b.oy = 7;
+  for (let x = 2; x <= 6; x++) b.set(x, 7, G[1]);
+  for (let x = 1; x <= 7; x++) b.set(x, 6, x === 1 || x === 7 ? G[1] : x < 4 ? G[3] : G[2]);
+  for (let x = 2; x <= 6; x++) b.set(x, 5, x === 2 ? G[3] : hash(x, 1, seed) < 0.5 ? G[2] : G[1]);
+  const at = [[1, 4], [3, 2], [5, 3], [7, 4]], skip = rand() < 0.5 ? (rand() < 0.5 ? 0 : 3) : -1, tall = rand() < 0.5 ? 1 : 2;
+  at.forEach(([x, y], k) => { if (k === skip) return; const y0 = y - (k === tall ? 1 : 0);
+    for (let j = y0 + 1; j < 5; j++) b.set(x, j, G[2]);
+    b.set(x, y0, P[1]); b.set(x + (k < 2 ? -1 : 1), y0, k === tall ? P[2] : P[0]); if (k === tall) { b.set(x, y0 - 1, P[2]); b.set(x, y0 + 1, R.yellow[1]); } });
+  return swaying(b, 5);
+}
+// Marsh marigold (the white one of the high meadows): a low rosette of round glossy leaves, dark with a lit
+// spot on each, and two white flowers with yellow centres just above it.
+function makeMarigold(seed) {
+  const rand = rng(seed), b = new BM(9, 6), G = R.moss, W = R.white; b.ox = 4; b.oy = 5;
+  for (let x = 1; x <= 7; x++) { b.set(x, 5, G[1]); b.set(x, 4, x % 3 === 1 ? G[3] : x % 3 === 2 ? G[2] : G[1]); }
+  b.set(0, 5, G[2]); b.set(8, 5, G[1]);
+  const flip = rand() < 0.5;
+  for (const [x, y] of flip ? [[2, 2], [6, 1]] : [[2, 1], [6, 2]]) {
+    for (let j = y + 1; j < 4; j++) b.set(x, j, G[2]);
+    b.set(x, y, R.yellow[1]); b.set(x - 1, y, W[1]); b.set(x + 1, y, W[1]); b.set(x, y - 1, W[1]); if (y < 2) b.set(x, y + 1, W[0]); }
+  return swaying(b, 3);
+}
+// Devil's club: two or three thin canes taller than a fern, each with a flat whorl of big pale leaves near
+// its top, a smaller leaf or two lower down, and a cone of red berries standing above the whorl.
+function makeDevilsClub(seed) {
+  const rand = rng(seed), b = new BM(13, 16), G = R.grass, n = 2 + (rand() < 0.5 ? 1 : 0); b.ox = 6; b.oy = 15;
+  for (let k = 0; k < n; k++) { const x = n === 2 ? 3 + k * 6 : 2 + k * 4 + (k === 1 ? 1 : 0), top = 2 + (rand() * 4 | 0) + (k & 1 ? 2 : 0);
+    for (let y = top + 3; y <= 15; y++) b.set(x, y, y > 11 ? R.wood[2] : (y & 1) ? R.moss[3] : R.wood[3]);
+    // A lower leaf, to one side.
+    const side = (k + (rand() < 0.5 ? 1 : 0)) & 1 ? 1 : -1, ly = top + 7 + (rand() * 2 | 0); if (ly < 14) { b.set(x + side, ly, G[3]); b.set(x + 2 * side, ly, G[2]); b.set(x + side, ly + 1, G[1]); }
+    // The whorl: pale on top, a darker row under it.
+    for (let i = -2; i <= 2; i++) b.set(x + i, top + 3, Math.abs(i) === 2 ? G[3] : G[4]);
+    for (let i = -1; i <= 1; i++) b.set(x + i, top + 4, i ? G[2] : G[1]);
+    // The berries.
+    b.set(x, top, R.red[2]); b.set(x, top + 1, R.red[1]); b.set(x, top + 2, R.red[1]); b.set(x + (k & 1 ? -1 : 1), top + 2, R.red[0]);
+  }
+  return swaying(b, 9);
+}
 // Fireweed (round 6, I1): two to four tall stalks, green at the foot and magenta above, the tip of each
 // paler, as the burn's ground used to have them painted in. The top sways.
 function makeFireweed(seed) {
@@ -737,4 +780,4 @@ function makeFlag(f, ramp = R.red) {
 }
 
 export { makeRegister, makeMoose };
-export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk };
+export { makeMonkeyflower, makeMarigold, makeDevilsClub, makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk };

@@ -848,3 +848,26 @@ test('the driftwood lies in heaps at the creek mouths and headlands, with clean 
   }
   expect(problems).toEqual([])
 })
+
+// Round 8, H8: monkeyflower and marsh marigold along the meadow's streams and devil's club along the
+// forest's, planted by the rule that plants skunk cabbage: on the bank, two to seven from running water.
+test('monkeyflower, marsh marigold and devil\'s club stand on the stream banks', async ({ page }) => {
+  type Plants = { __plants: () => [string, number, number, number][] }
+  const problems = await open(page, '/')
+  const plants = await page.evaluate(() => (window as unknown as Plants).__plants())
+  const of = (kind: string) => plants.filter((p) => p[0] === kind)
+  expect(of('monkeyflower').length).toBeGreaterThanOrEqual(40)
+  expect(of('marigold').length).toBeGreaterThanOrEqual(40)
+  expect(of('club').length).toBeGreaterThanOrEqual(20)
+  // The skunk cabbage is where it was (C3 and C8).
+  expect(of('cabbage').length).toBe(56)
+  // Every new plant is on a bank, and no two stand on the same spot.
+  for (const [kind, x, y, near] of plants.filter((p) => p[0] !== 'cabbage')) {
+    expect(near, `${kind} at ${x}, ${y} from the water`).toBeGreaterThanOrEqual(2)
+    expect(near, `${kind} at ${x}, ${y} from the water`).toBeLessThanOrEqual(7)
+    expect(plants.filter(([, a, b]) => Math.abs(a - x) < 2 && Math.abs(b - y) < 2).length, `plants at ${x}, ${y}`).toBe(1)
+  }
+  // Devil's club keeps to the forest in the west, and the two meadow plants to the open ground east of it.
+  expect(Math.max(...of('club').map((p) => p[1]))).toBeLessThan(900)
+  expect(problems).toEqual([])
+})
