@@ -29,7 +29,7 @@ function weed(f) {
   return b;
 }
 // A sprite seen only in part: each pixel shows where the dither is under a, so it can fade in and out.
-function blitA(scr, bm, x, y, a, flip) {
+export function blitA(scr, bm, x, y, a, flip) {
   for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + (flip ? bm.w - 1 - i : i)]; if (!c) continue; const X = x + i, Y = y + j; if (a < 1 && bayer(X, Y) >= a) continue; scr.set(X, Y, c); }
 }
 
@@ -59,6 +59,24 @@ export function drawLens(scr, sx, sy, t, k = 1, ox = 0, oy = 0) {
         const f = (y - (y0 - top)) / Math.max(1, top + bot); scr.fb[vy * scr.VW + vx] = y === y0 + bot && bot > 0 ? R.sky[3] : f > 0.45 && bayer(x + 1, y) < (f - 0.45) * 1.6 ? R.sky[4] : R.white[1]; } } }
 }
 
+// The clock of a table of timed events (shared with life.js since round 8, E2). Each entry says how long a
+// slot is, when the first falls, and how long the event lasts: one happens in every slot, starting at a
+// point of it the dice pick. start(k, t) is a start button: a start time of its own, which runs once and
+// then gives way to the clock again. now(k, t) says which one of event k is on at t and how far into it:
+// [number, seconds in], or null.
+export function makeClock(EV) {
+  const manual = {};
+  return {
+    start(k, t) { manual[k] = t; },
+    now(k, t) {
+      const e = EV[k];
+      if (manual[k] !== undefined) { const s = t - manual[k]; if (s >= 0 && s < e.dur) return [manual[k] * 7 | 0, s, true]; if (s >= e.dur) delete manual[k]; }
+      const T = t - e.first + e.slot, n = Math.floor(T / e.slot), s = T - n * e.slot - (e.slot - e.dur) * 0.6 * hash(n, 1, 7110);
+      return n > 0 && s >= 0 && s < e.dur ? [n, s] : null;
+    }
+  };
+}
+
 export function makeEvents(W, col) {
   const { spots } = W, D = W.depth;
   const weeds = [0, 1, 2, 3].map(weed);
@@ -69,15 +87,8 @@ export function makeEvents(W, col) {
     devil: { slot: 55, first: 30, dur: 12, ok: () => spots.devils.length > 0 },
     star: { slot: 50, first: 20, dur: 1.1, ok: () => lastMix > 0.5 }
   };
-  const manual = {};
+  const { now, start } = makeClock(EV);
   let lastMix = 0;
-  // Which one of the event is on at t, and how far into it: [number, seconds in], or null.
-  const now = (k, t) => {
-    const e = EV[k];
-    if (manual[k] !== undefined) { const s = t - manual[k]; if (s >= 0 && s < e.dur) return [manual[k] * 7 | 0, s]; if (s >= e.dur) delete manual[k]; }
-    const T = t - e.first + e.slot, n = Math.floor(T / e.slot), s = T - n * e.slot - (e.slot - e.dur) * 0.6 * hash(n, 1, 7110);
-    return n > 0 && s >= 0 && s < e.dur ? [n, s] : null;
-  };
 
   // A tumbleweed rolls east about 170 pixels on a gust, bouncing, turning as it goes, and fades out.
   // How far each tumbleweed may roll before ground a land thing may not cross (collide.js) stops it.
@@ -134,7 +145,7 @@ export function makeEvents(W, col) {
     // The debug panel's start buttons. The shooting star only shows at Dusk, so its button says no by Day.
     trigger(name, t) {
       if (!EV[name] || !EV[name].ok()) return false;
-      manual[name] = t; return true;
+      start(name, t); return true;
     }
   };
 }

@@ -752,12 +752,28 @@ export const W = {
     "devil": "Dust devil",
     "star": "Shooting star (Dusk)",
     "sasquatch": "Sasquatch",
-    "eyeshine": "Deer eyeshine (Dusk)"
+    "eyeshine": "Deer eyeshine (Dusk)",
+    "rockfall": "Rockfall off a tower",
+    "calve": "Glacier calves",
+    "pair": "Ravens ride the updraft",
+    "alpenglow": "Alpenglow (Dusk)",
+    "talus": "Rocks down the talus",
+    "band": "Goats cross the talus",
+    "calm": "Dead calm",
+    "ducks": "Ducks land",
+    "treefall": "Tree falls",
+    "rainbow": "Rainbow (Day)",
+    "hoot": "Owl calls (Dusk)",
+    "sunbreak": "Sunbreak (Day)"
    },
    "families": {
     "humpback": "Humpback",
     "cubs": "Bear cubs",
-    "avalanche": "Avalanche"
+    "avalanche": "Avalanche",
+    "spires": "Sideproject Spires",
+    "peak": "Proficiency Peak",
+    "lake": "Reflection Lake",
+    "rainforest": "Rainforest"
    },
    "pick": "Pick one",
    "cameraLines": [
@@ -938,12 +954,44 @@ export const W = {
      "where": "in the sage"
     },
     {
+     "who": {
+      "rockfall": "rockfall",
+      "calve": "the glacier calving",
+      "pair": "ravens riding the updraft"
+     },
+     "where": "at Sideproject Spires"
+    },
+    {
+     "who": {
+      "talus": "rocks coming down the talus",
+      "band": "goats crossing it"
+     },
+     "where": "under Proficiency Peak"
+    },
+    {
+     "who": {
+      "calm": "a dead calm",
+      "ducks": "mallards landing"
+     },
+     "where": "on Reflection Lake"
+    },
+    {
+     "who": {
+      "treefall": "a tree falling",
+      "rainbow": "a rainbow after a shower",
+      "sunbreak": "a sunbreak"
+     },
+     "where": "in the rainforest"
+    },
+    {
      "lead": "At Dusk:",
      "who": {
       "star": "shooting stars",
       "aurora": "the aurora",
       "foxfire": "foxfire in the forest",
-      "headlamps": "headlamps on the Spires' glacier"
+      "headlamps": "headlamps on the Spires' glacier",
+      "alpenglow": "alpenglow on the Spires",
+      "hoot": "an owl calling in the rainforest"
      }
     }
    ],

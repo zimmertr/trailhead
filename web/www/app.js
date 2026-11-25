@@ -270,7 +270,7 @@ function openDebug(on) {
   const fillPlaces = () => { const k = kinds[+animal.value]; place.replaceChildren(...k.homes.map((h, n) => el('option', { value: n, text: h })), el('option', { value: 'all', text: D.spawnAll })); };
   animal.addEventListener('change', fillPlaces); fillPlaces();
   // The timed events of the scene on screen (E5f): the map's, or the scene's own.
-  const SCENE_EVENTS = { world: ['breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'lens', 'tumble', 'devil', 'star'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
+  const SCENE_EVENTS = { world: ['breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'lens', 'tumble', 'devil', 'star', 'rockfall', 'calve', 'pair', 'alpenglow', 'talus', 'band', 'calm', 'ducks', 'treefall', 'rainbow', 'hoot', 'sunbreak'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
   const here = api.scene(), events = SCENE_EVENTS[here] || [];
   // The weather (round 8, E1): the same buttons in every scene that has a sky, since every scene shows it.
   const weather = ['world', 'forest', 'lakeside', 'larches', 'wall', 'approach', 'camp', 'climb'].includes(here) ? ['shower', 'squall', 'gustnow', 'shade', 'clear'] : [];
@@ -278,7 +278,9 @@ function openDebug(on) {
   const fire = id => { const ms = api.showEvent(id); setTimeout(() => audio.sfx(api.trigger(id) ? 'step' : 'close'), ms); };
   // Related events share one split button (note 27): its name starts one of them at random (the avalanche picks
   // its own face), and the arrow opens a list of each.
-  const FAMILIES = { humpback: ['breach', 'blow'], cubs: ['cubplay', 'cubclimb'], avalanche: ['ava0', 'ava1', 'ava2'] };
+  const FAMILIES = { humpback: ['breach', 'blow'], cubs: ['cubplay', 'cubclimb'], avalanche: ['ava0', 'ava1', 'ava2'],
+    // Life at every place (round 8, E2): one button for each place, its events in the list.
+    spires: ['rockfall', 'calve', 'pair', 'alpenglow'], peak: ['talus', 'band'], lake: ['calm', 'ducks'], rainforest: ['treefall', 'rainbow', 'hoot', 'sunbreak'] };
   const one = id => el('button', { class: 'plank', onclick: () => fire(id) }, el('span', { text: D.events[id] }));
   const split = (fam, ids) => {
     const list = el('div', { class: 'split-list', role: 'menu', hidden: '' }, ...ids.map(id => el('button', { class: 'plank', role: 'menuitem', onclick: () => { list.hidden = true; more.setAttribute('aria-expanded', 'false'); fire(id); } }, el('span', { text: D.events[id] }))));

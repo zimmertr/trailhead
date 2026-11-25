@@ -18,6 +18,15 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - Every kind of weather has a start button under Weather in the debug panel, and the button works in every scene with a sky (`WEATHER` in `pixel.js`, `trigger` in `world.js`).
 - A new kind of weather goes into the sky report first, then onto the map, then into each scene, and gets its button.
 
+## Events
+
+- A timed event on the map lives in `events.js` (Mount Monolith's and the dry side's) or `life.js` (the Spires', the Peak's, Reflection Lake's and the rainforest's). Each is a row in an `EV` table (`slot`, `first`, `dur`, `ok`) on the shared clock `makeClock()`, and a function that draws it from how far into it the clock is.
+- Where an event happens is read off the land: `spots.life` in `land.js`, a lake's own water in `STILL`, the canopy from `forestAmt`. Never a written position.
+- Every event has a start button in the debug panel: its name in `SCENE_EVENTS` in `app.js` (and in a family in `FAMILIES` when its place has a button), its words under `debug.events` in `content/game/interface.yaml`, and a place in `where()`. A button's start happens where `where()` sends the view.
+- An event that changes how the ground is drawn (the alpenglow, the dead calm, the sunbreak) gives `world.js` an amount from 0 to 1, and `world.js` draws it in the pass that owns those pixels.
+- A sound plays once per happening and only when the event is in the view (`sound()` in `life.js`).
+- Every event calls `saw()` and has its words on the conditions board.
+
 ## The Conditions Board
 
 - The board lists what lives and happens in the world in two lists: Observed is what has been inside the view since the page opened, Reported is the rest. The words are `kiosk.sightings` in `content/game/interface.yaml`, one entry per place, each thing under a short name.

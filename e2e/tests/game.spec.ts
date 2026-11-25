@@ -278,6 +278,33 @@ test('the conditions board lists what has been seen as Observed and the rest as 
   expect(problems).toEqual([])
 })
 
+// Round 8, E2: life at every place. Each of the twelve events TJ picked for the Spires, the Peak, Reflection
+// Lake and the rainforest has a start button in the debug panel, happens where the view is sent, and counts
+// as seen for the conditions board.
+test('the events at the Spires, the Peak, the lake and the rainforest start from the debug panel', async ({ page }) => {
+  const problems = await open(page, '/')
+  type Life = { __api: { saw: () => Set<string>, trigger: (id: string) => boolean, showEvent: (id: string) => number } }
+  const saw = (name: string) => page.evaluate((n) => (window as unknown as Life).__api.saw().has(n), name)
+  const start = (name: string) => page.evaluate((n) => { const a = (window as unknown as Life).__api; a.showEvent(n); return a.trigger(n) }, name)
+  await expect.poll(() => saw('cats'), { timeout: 15_000 }).toBe(true)
+  // By Day ten of them can happen. The alpenglow and the owl's call wait for Dusk, and their buttons say no.
+  for (const id of ['rockfall', 'calve', 'pair', 'talus', 'band', 'calm', 'ducks', 'treefall', 'rainbow']) expect(await start(id), id).toBe(true)
+  for (const id of ['alpenglow', 'hoot']) expect(await start(id), id).toBe(false)
+  expect(await saw('sunbreak')).toBe(false)
+  expect(await start('sunbreak')).toBe(true)
+  await expect.poll(() => saw('sunbreak'), { timeout: 20_000 }).toBe(true)
+  // One button for each place, its events in the list under it.
+  await page.locator('#b-debug').click()
+  for (const place of ['Sideproject Spires', 'Proficiency Peak', 'Reflection Lake', 'Rainforest']) await expect(page.locator('#debug .split-row .plank').filter({ hasText: place })).toHaveCount(1)
+  for (const name of ['Rockfall off a tower', 'Glacier calves', 'Ravens ride the updraft', 'Alpenglow (Dusk)', 'Rocks down the talus', 'Goats cross the talus', 'Dead calm', 'Ducks land', 'Tree falls', 'Rainbow (Day)', 'Owl calls (Dusk)', 'Sunbreak (Day)']) await expect(page.locator('#debug .split-list .plank').filter({ hasText: name })).toHaveCount(1)
+  await page.evaluate(() => { location.hash = 'kiosk' })
+  const seen = page.locator('#sheet .board .seen'), told = page.locator('#sheet .board .told')
+  await expect(seen.locator('li').filter({ hasText: /sunbreak/i })).toHaveCount(1)
+  await expect(told.locator('li').filter({ hasText: /sunbreak/i })).toHaveCount(0)
+  await expect(told.locator('li').filter({ hasText: /an owl calling in the rainforest/i })).toHaveCount(1)
+  expect(problems).toEqual([])
+})
+
 // Round 8, E3: three more sets of instruments, each picked from the music menu and each playing the tune.
 test('the three new sets of instruments can be picked and play', async ({ page }) => {
   const problems = await open(page, '/')

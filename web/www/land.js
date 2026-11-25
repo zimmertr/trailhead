@@ -2109,6 +2109,20 @@ export function buildTerrain() {
     // The fire lookout on its cleared summit (E5j).
     lookout: LAND.lookout ? sxy(...LAND.lookout) : null
   };
+  // Life at every place (round 8, E2): where each of the events TJ picked happens, read off the picture.
+  spots.life = (() => {
+    const WALL = LAND.MATS.indexOf('wall'), matAt = (x, y) => LAND.mat[y * NW + x];
+    // Rockfall: down the face under each of the Spires' six summits, from 12 below the top for as far as the
+    // picture shows the wall under it. A face shorter than 30 is left out.
+    const rock = spots.spireTops.map(([x, y]) => { let n = 0; while (y + 12 + n < SH - 1 && matAt(x, y + 12 + n) === WALL) n++; return [x, y + 12, n]; }).filter(r => r[2] >= 30);
+    // Rocks down the talus: three lines from the top of the fan under Proficiency Peak's prow to its toe,
+    // spreading as the fan does. The goats' crossing: one line across the fan, half way down it.
+    const fan = (u, v) => LAND.talusAt(u, v) > 0.2 && !LAND.snowPatch(u, v);
+    // A rock's line down the fan stops where the blocks thin out, well short of the larches at its foot.
+    const talus = peak ? [-0.3, 0.05, 0.4].map(f => { const line = []; for (let d = 2; d <= 46; d += 2) { const u = peak.cu - 8 + f * (peak.w * 0.19 + d * 0.5), v = peak.cv - 7 - d; if (fan(u, v) && LAND.talusAt(u, v) > 0.85) line.push(sxy(u, v)); } return line; }).filter(l => l.length > 8) : [];
+    const cross = []; if (peak) for (let u = peak.cu - 110; u <= peak.cu + 110; u += 3) if (fan(u, peak.cv - 31)) cross.push(sxy(u, peak.cv - 31));
+    return { rock, talus, cross };
+  })();
   // The light on the foothills at Dusk (E5j), after the evening light in TJ's photographs: the sun is low
   // in the west, so a hill's crest and the west end of its skyline catch it and the rest is in shade.
   // For each pixel of the picture: how much of that warm rim it catches (1 to 15: the few pixels below a
