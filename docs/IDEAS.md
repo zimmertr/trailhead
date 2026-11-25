@@ -528,3 +528,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Morels** (round 8, C2). The year after a fire the burnt ground is full of morels. A small find for someone who looks down among the fireweed. The find and its words would be TJ's.
 - **A Far Layer for the Dry Side** (round 8, C2). If the larch scene's far layer could cross-fade, the burn could open under a big dry-country sky with no snowy range, and the range could rise as he climbs.
 - **Ice in the Tarns** (round 8, C4). Now that the tarns are large enough to read, a few small floes could drift in each, calved from the snout above, and a wall of blue ice could show where the glacier meets the water.
+- **Melt Water by the Hour** (round 8, C5). Glacier streams run low in the morning and high in the late afternoon. The tarns' streams could run whiter and a pixel wider towards Dusk, and thin again by night.

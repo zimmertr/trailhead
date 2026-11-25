@@ -2066,9 +2066,12 @@ export function buildTerrain() {
   // Every waterfall and rapid (E8a): the white water painted where a stream falls (white, or the pale blue
   // beside white within two rows), over running water, found from the finished picture so it holds
   // whether the ground was baked or worked out. fall: its pixels; foot: those with plain water below, where
-  // it churns.
-  const falls = (() => { const W1 = R.white[1], W4 = R.water[4], N = NW * SH, M = new Uint8Array(N);
-    for (let i = NW * 2; i < N - NW * 2; i++) { const c = LAND.g[i]; if (c !== W1 && c !== W4) continue; const v = LAND.depth[i]; if (v >= VD || !LAND.water[Math.round(v) * NW + (i % NW)]) continue;
+  // it churns. The melt water out of Mount Monolith's tarns is painted, not in the water grid, so its white
+  // is found by what lies beside it: painted stream blue (round 8, C5, TJ: it did not move).
+  const falls = (() => { const W1 = R.white[1], W4 = R.water[4], N = NW * SH, M = new Uint8Array(N), blue = j => LAND.painted[j] && (LAND.g[j] === R.water[1] || LAND.g[j] === R.water[2] || LAND.g[j] === R.water[3]);
+    for (let i = NW * 2; i < N - NW * 2; i++) { const c = LAND.g[i]; if (c !== W1 && c !== W4) continue;
+      if (c === W1 && LAND.painted[i] && (blue(i - 1) || blue(i - 2)) && (blue(i + 1) || blue(i + 2))) { M[i] = 1; continue; }
+      const v = LAND.depth[i]; if (v >= VD || !LAND.water[Math.round(v) * NW + (i % NW)]) continue;
       if (c === W4 && ![-2, -1, 1, 2].some(d => LAND.g[i + d * NW] === W1)) continue; M[i] = 1; }
     const fall = [], foot = []; for (let i = 0; i < N - NW; i++) if (M[i]) { fall.push(i); if (!M[i + NW]) { const v = LAND.depth[i + NW]; if (v < VD && LAND.water[Math.round(v) * NW + (i % NW)]) foot.push(i + NW); } }
     return { fall: Int32Array.from(fall), foot: Int32Array.from(foot) }; })();
