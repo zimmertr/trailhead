@@ -792,3 +792,39 @@ test('the sign on the off-route page names itself and leads back to the Trailhea
   await expect.poll(async () => (await info(page))?.scene, { timeout: 10_000 }).toBe('world')
   expect(problems).toEqual([])
 })
+
+// Round 8, H6: rain shows on the map's lake as rings, with no fish jumping, and at the lakeside the boulders
+// and the trail are dark while they are wet and dry from the top down.
+test('rain rings the lake and no fish jumps, and the lakeside boulders dry from the top down', async ({ page }) => {
+  type Wet = { rings: number; fish: boolean; rock: number; crown: number; trail: number }
+  type Rain = { __wet: Wet; __sky?: Record<string, unknown> | undefined; __api: { showEvent: (id: string) => number; trigger: (id: string) => boolean; scene: () => string; jumpTo: (n: string) => Promise<boolean> } }
+  const wet = () => page.evaluate(() => ({ ...(window as unknown as Rain).__wet }))
+  // Half a minute into the marine layer the drizzle is at its hardest, and it carries to Reflection Lake.
+  const problems = await open(page, '/?rain=40')
+  await page.evaluate(() => (window as unknown as Rain).__api.showEvent('calm'))
+  await expect.poll(async () => (await wet()).rings, { timeout: 10_000 }).toBeGreaterThan(0)
+  expect((await wet()).fish).toBe(false)
+  // The sky clears: no rings, and the fish may jump again.
+  await page.evaluate(() => (window as unknown as Rain).__api.trigger('clear'))
+  await expect.poll(async () => (await wet()).rings, { timeout: 5_000 }).toBe(0)
+  expect((await wet()).fish).toBe(true)
+  // At the lakeside, soaked: every boulder is dark to its crown, and the trail is dark.
+  await page.evaluate(() => (window as unknown as Rain).__api.jumpTo('lakeside'))
+  await expect.poll(() => page.evaluate(() => (window as unknown as Rain).__api.scene()), { timeout: 15_000 }).toBe('lakeside')
+  await page.evaluate(() => { (window as unknown as Rain).__sky = { wet: 1, s: 70 } })
+  await expect.poll(async () => (await wet()).crown, { timeout: 5_000 }).toBeGreaterThan(0)
+  const soaked = await wet()
+  expect(soaked.trail).toBeGreaterThan(0)
+  // Half dry: the crowns are dry and the feet still dark, and less of the trail is dark.
+  await page.evaluate(() => { (window as unknown as Rain).__sky = { wet: 0.4, s: 105 } })
+  await expect.poll(async () => (await wet()).crown, { timeout: 5_000 }).toBe(0)
+  const half = await wet()
+  expect(half.rock).toBeGreaterThan(0)
+  expect(half.rock).toBeLessThan(soaked.rock)
+  expect(half.trail).toBeLessThan(soaked.trail)
+  // Dry again.
+  await page.evaluate(() => { (window as unknown as Rain).__sky = { wet: 0, s: 130 } })
+  await expect.poll(async () => { const w = await wet(); return w.rock + w.trail }, { timeout: 5_000 }).toBe(0)
+  await page.evaluate(() => { (window as unknown as Rain).__sky = undefined })
+  expect(problems).toEqual([])
+})

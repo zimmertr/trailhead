@@ -234,16 +234,23 @@ function whiteWater(fb, VW, VH, ox, oy, P, F, t) {
     for (let d = 0; d < 3; d++) { const h = hash(F.x[k] * 3 + d, beat, 5201); if (h < 0.45) fb[(sy + (d >> 1)) * VW + sx + (d === 1 ? 1 : d === 2 ? -1 : 0)] = h < 0.3 ? W1 : W4; } }
 }
 
+const RING_W = 7, RING_H = 4;
+// What the rain did to the lakes in the last frame, for the checks: the rings it drew, and whether a fish may jump.
+const WET = { rings: 0, fish: true };
 // Still water moves too (round 8, C6, TJ), drawn over the ground each frame after pictures of a calm alpine
 // lake in a breeze: short level ripples that drift east and come and go, a few glints in patches where the
 // light catches, now and then a gust that crosses from the west as a darker, ruffled band and wipes the
 // reflection out as it goes, and in the clear lakes a fish that jumps and leaves two rings.
 // L: the lakes, each with its pixels (x, y), its box, a mask of its water over that box, and the spots a
 // fish can rise at. glint: how much the water glitters (less at Dusk). fish: whether the animals show.
-function stillWater(fb, VW, VH, ox, oy, L, t, glint, fish, calmL, calm) {
+// rain (round 8, H6): how hard it rains (k), where the weather's edge is in each row (front), and the lake
+// the drizzle carries to at half strength (light: Reflection Lake, as its lakeside shows). Water in the
+// rain loses its glints to the grey sky, drops open rings on it, and no fish jumps there.
+function stillWater(fb, VW, VH, ox, oy, L, t, glint, fish, calmL, calm, rain) {
   const W = R.water, WHITE = R.white[1], beat = Math.floor(t * 4);
+  WET.rings = 0; WET.fish = true;
   for (let n = 0; n < L.length; n++) { const l = L[n]; if (l.x1 < ox || l.x0 >= ox + VW || l.y1 < oy || l.y0 >= oy + VH) continue;
-    const lake = l.kind === 'lake', w = l.x1 - l.x0 + 1, ym = (l.y0 + l.y1) / 2;
+    const lake = l.kind === 'lake', w = l.x1 - l.x0 + 1, ym = (l.y0 + l.y1) / 2, edge = !rain ? -1e9 : l === rain.light ? 1e9 : rain.front(ym), rk = l.x0 >= edge ? 0 : l === rain.light ? 0.5 * rain.k : rain.k, dull = glint * (1 - rk);
     // The gust: one every 16 to 26 s, a slanted band about a third of the lake wide, patchy inside.
     const every = 16 + 10 * hash(n, 0, 6101), tg = t + every * hash(n, 1, 6101), gk = Math.floor(tg / every), gu = tg - gk * every, cross = 3.5 + w / 30, bw = Math.max(7, 0.32 * w);
     const front = gu < cross ? Math.floor(l.x0 - bw + (w + 2 * bw) * gu / cross) : null;
@@ -257,9 +264,18 @@ function stillWater(fb, VW, VH, ox, oy, L, t, glint, fish, calmL, calm) {
       // A ripple: a dash two or three long in a cell of four that slides east, each row at its own pace.
       const xs = x + Math.floor(t * (1.5 + (y % 3))), h = hash(xs >> 2, y, 6110 + n);
       if (h < 0.065 && (xs & 3) < 2 + (h * 1000 & 1) && frac(h * 211 + t * 0.3) < 0.55) fb[i] = lake ? (wet ? W[3] : W[2]) : LIGHT[c];
-      else if (glint > 0 && hash(x, y, 6120 + beat) < glint * 0.012 && vnoise(x / 13, y / 4, 6121 + n) > 0.62) fb[i] = WHITE;
+      else if (glint > 0 && hash(x, y, 6120 + beat) < (x < edge ? dull : glint) * 0.012 && vnoise(x / 13, y / 4, 6121 + n) > 0.62) fb[i] = WHITE;
     }
-    if (!fish || !l.spots.length) continue;
+    // Rain rings: each drop lands in its own patch of the lake (RING_W by RING_H), a white dot that opens to
+    // a pale pair two apart, then four apart, thinner and dimmer, and is gone in half a second.
+    if (rk > 0.05) for (let gy = Math.floor(Math.max(l.y0, oy) / RING_H); gy * RING_H <= Math.min(l.y1, oy + VH - 1); gy++) for (let gx = Math.floor(Math.max(l.x0, ox) / RING_W); gx * RING_W <= Math.min(l.x1, ox + VW - 1, edge); gx++) {
+      const id = gy * 311 + gx, age = t / 0.5 + hash(id, 1, 6150), c = Math.floor(age), q = age - c; if (hash(id, c, 6151) > rk * 0.55) continue;
+      const x = gx * RING_W + Math.floor(hash(id, c, 6152) * RING_W), y = gy * RING_H + Math.floor(hash(id, c, 6153) * RING_H), r = q < 0.3 ? 0 : q < 0.65 ? 1 : 2; if (x + 2 >= edge) continue;
+      for (const dx of r ? [-r, r] : [0]) { const X = x + dx, a = X - l.x0, b = y - l.y0, sx = X - ox, sy = y - oy;
+        if (a < 0 || a >= w || b < 0 || y > l.y1 || !l.m[b * w + a] || sx < 0 || sy < 0 || sx >= VW || sy >= VH || (r === 2 && hash(X, c, 6154) < 0.4)) continue;
+        const i = sy * VW + sx, v = fb[i]; WET.rings++; fb[i] = !r ? WHITE : lake ? (r === 1 ? W[4] : RAMP_OF[v] === 'water' ? W[3] : W[2]) : r === 1 ? LIGHT[LIGHT[v]] : LIGHT[v]; } }
+    if (rk > 0.3) WET.fish = false;
+    if (!fish || !l.spots.length || rk > 0.3) continue;
     // The fish: every 9 to 20 s it leaves the water at one of the lake's spots, arcs five pixels up and six
     // along, head first up and head first down, and drops back with a splash. A ring spreads from where it
     // left and another from where it landed: pale on dark water, dark where the water is pale with the
@@ -563,7 +579,7 @@ export function makeWorld() {
   let pokeAt = [0, 0];   // where the last animal under the pointer was, so a click on it knows which way to flee
   // For the browser suite: every engine rule the map breaks (rules.js).
   window.__rules = () => checkRules(W.things, crit.items, crit.collide);
-  const ev = makeEvents(W, crit.collide), life = makeLife(W, STILL); window.__life = life;
+  const ev = makeEvents(W, crit.collide), life = makeLife(W, STILL); window.__life = life; window.__wet = Object.assign(WET, window.__wet);
   for (const it of crit.items) things.push(it);
   const birds = [speck(0), speck(1)];
   const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 330 + 40, y: 50 + (i & 1) * 70 + i * 18, v: 3 + (i % 4) }));
@@ -887,7 +903,7 @@ export function makeWorld() {
       if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], warm = n ? glow : 0, H = Math.round(TIP_H[n] * (1 + 2.2 * warm)), k = 6 + n;
         for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = top[x]; if (y0 < 0) continue;
           for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { if (W.dest[y * WW + x] !== k) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8)) { const i = (y - oy) * VW + (x - ox); fb[i] = warm > 0 && bayer(x + 2, y + 1) < warm ? ALPEN[d < 0.3 ? 0 : 1][fb[i]] : GLOW[fb[i]]; } } } }
-      crit.sea(scr, ox, oy, t); if (WWP) whiteWater(fb, VW, VH, ox, oy, WWP, WWF, t); stillWater(fb, VW, VH, ox, oy, STILL, t, 1 - 0.8 * env.mix, DEBUG.animals, life.lake, calm); life.ice(scr, ox, oy, t); crit.falls(scr, ox, oy, t);
+      crit.sea(scr, ox, oy, t); if (WWP) whiteWater(fb, VW, VH, ox, oy, WWP, WWF, t); stillWater(fb, VW, VH, ox, oy, STILL, t, 1 - 0.8 * env.mix, DEBUG.animals, life.lake, calm, DEBUG.clouds && sky.rain > 0.05 ? { k: sky.rain, front: y => frontAt(y, sky), light: life.lake } : null); life.ice(scr, ox, oy, t); crit.falls(scr, ox, oy, t);
       crit.update(dt, t, env.hideMe ? null : here, env.hour);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
       if (DEBUG.clouds) lenticular(scr, ox, oy, t);

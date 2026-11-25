@@ -591,4 +591,8 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Ice on the Wall Scene's Tarn** (round 8, H5). The larches and the approach have water too. The same floes could drift there, seen from the side.
 - **The Bergs Meet the Ducks' Wake** (round 8, H5). A wave (a calving, a fish, a landing duck) could rock a berg for a moment as a gust pushes it.
 - **Brash as Things** (round 8, H5). The brash near the cliff is paint. As a few dozen single pixels that drift with the bergs it would make the whole lake move.
-
+- **Wet Slabs and Gravel** (round 8, H6). The lakeside's boulders and trail go dark in the rain, and the slabs and gravel painted into its ground do not. They could darken and dry the same way.
+- **Rain on the Sea** (round 8, H6). The drizzle falls on the sea under the deck, and the sea shows no rings. The lake's rings could fall there between the swells.
+- **Wet Rock in Every Scene** (round 8, H6). The wall, the larches and the approach show the drizzle too. Their granite could darken and dry from the top down as the lakeside's boulders do, from one shared helper.
+- **Puddles on the Trail** (round 8, H6). After the drizzle a few low spots of the lakeside's trail could hold a puddle that mirrors the sky for a minute and takes a ring from the last drops.
+- **Drizzle Past the Deck's Edge** (round 8, H6). The map's lake shows rings while no streak of rain falls over it. A few thin streaks could carry past the deck's edge as far as the lake.

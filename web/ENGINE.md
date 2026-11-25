@@ -20,6 +20,7 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - A side scene keeps no weather clock of its own, except as what it falls back to when the Clouds layer is off, and a climb's storm, which belongs to its route. `COUNTRY` in `pixel.js` says which country's sky each scene is under.
 - Every kind of weather has a start button under Weather in the debug panel, and the button works in every scene with a sky (`WEATHER` in `pixel.js`, `trigger` in `world.js`).
 - A new kind of weather goes into the sky report first, then onto the map, then into each scene, and gets its button.
+- Rain shows on what it falls on. Still water in the rain takes rings, loses its glints and holds its fish (`stillWater` in `world.js`, `rings` in `weather.js`). Ground and rock go a step darker while `sky.wet` lasts (the map's wet copy of the ground), and the lakeside's boulders and trail dry from the top down.
 
 ## Events
 
