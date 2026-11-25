@@ -1,7 +1,7 @@
 // Reflection Lake, part two: out of the trees at the lake itself, turquoise under a huge sweeping
 // peak. He runs left to right along the near shore, stops for the view with the map out, and
 // again at the boulder where his journal lies open.
-import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, windAt, veilTable, SHADE } from './core.js';
+import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, windAt, veilTable, SHADE, saw } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
 import { makeTrunk, makeLimb, swordFern } from './forest.js';
 import { makeConifer, makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush, makeMaple } from './sprites.js';
@@ -431,6 +431,7 @@ function buildLakeside() {
       // water while the deck is in, and the mist lingering as it lifts. The map's gusts cross the water as a
       // dark ruffled band, its clouds' shadows cross the far shore, and the sun's glints go with the sun.
       const sky = env.sky, rainK = sky ? 0.5 * sky.rain : 0, fogK = sky ? Math.max(sky.deck, sky.fog * 0.8) : 0, sun = (1 - smooth(0.55, 0.9, env.mix)) * (1 - 0.8 * fogK);
+      if (sky && sky.deck > 0.5) saw('marine'); if (sky && sky.rain > 0.5) saw('rain');
       const gu = sky ? sky.gust('lake') : null, cs = sky ? sky.shade('lake') : null;
       // Sky, lightest at the horizon.
       const sb = R.skyband, hor = base + FAR;

@@ -241,6 +241,31 @@ test('the register and the conditions board are one click target that opens the 
   expect(problems).toEqual([])
 })
 
+// Round 8, F2: the conditions board sorts what lives and happens here in two lists. Observed holds what has
+// been on the screen this visit and Reported the rest, so each thing is in one of them and never in both.
+test('the conditions board lists what has been seen as Observed and the rest as Reported', async ({ page }) => {
+  const problems = await open(page, '/')
+  type Seer = { __api: { saw: () => Set<string> } }
+  const saw = (name: string) => page.evaluate((n) => (window as unknown as Seer).__api.saw().has(n), name)
+  // The two cats live at the kiosk, in the first view. The forest's owl is a scene away, and the cap cloud
+  // that forms on Mount Monolith in the first seconds is across the map until the view goes there.
+  await expect.poll(() => saw('cats'), { timeout: 15_000 }).toBe(true)
+  expect(await saw('lens')).toBe(false)
+  expect(await saw('owl')).toBe(false)
+  await page.evaluate(() => window.__api.showEvent('lens'))
+  await expect.poll(() => saw('lens'), { timeout: 20_000 }).toBe(true)
+  await page.evaluate(() => { location.hash = 'kiosk' })
+  const seen = page.locator('#sheet .board .seen'), told = page.locator('#sheet .board .told')
+  await expect(seen.locator('dt')).toHaveText('Observed')
+  await expect(told.locator('dt')).toHaveText('Reported')
+  await expect(seen.locator('li').filter({ hasText: 'Two cats at this kiosk' })).toHaveCount(1)
+  await expect(seen.locator('li').filter({ hasText: /cap cloud/i })).toHaveCount(1)
+  await expect(told.locator('li').filter({ hasText: /cap cloud/i })).toHaveCount(0)
+  await expect(told.locator('li').filter({ hasText: 'An owl in the forest' })).toHaveCount(1)
+  await expect(seen.locator('li').filter({ hasText: /owl/i })).toHaveCount(0)
+  expect(problems).toEqual([])
+})
+
 // Round 8, E3: three more sets of instruments, each picked from the music menu and each playing the tune.
 test('the three new sets of instruments can be picked and play', async ({ page }) => {
   const problems = await open(page, '/')

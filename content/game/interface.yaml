@@ -260,13 +260,54 @@ UI:
     lakeDone: Run. Flag flying.
     stackDone: Climbed. Flag flying.
     summits: '{n} of 6 summits'
-    # What the board says lives here and happens here, kept to what the world really has.
-    wildlife:
-      - Wildlife
-      - Elk in the meadow, a bull moose and a calf in the riverside woods, squirrels and chipmunks by the trail. Mountain goats, bighorn sheep and marmots up high, and a pika in the larch talus. A humpback and an orca pod offshore, gulls and a bald eagle on the sea stacks. An osprey fishing at Reflection Lake. A black bear and her two cubs in the firs below the Spires waterfall, and some days a second family at the forest edge. An owl in the forest and two cats at this kiosk
-    seen:
-      - Also seen
-      - "Serac falls, an avalanche and a cap cloud on Mount Monolith, rain showers over the hills, the marine layer off the sea, low tide, the ferry, tumbleweeds and dust devils in the sage. At Dusk: shooting stars, the aurora, foxfire in the forest and headlamps on the Spires' glacier"
+    # What lives and happens here, kept to what the world really has. Round 6 said it in two blurbs ("Wildlife"
+    # and "Also seen"); round 8 (F2) cuts them into their parts, so that the board can sort them in two: under
+    # the first heading what has been on the screen this visit, under the second the rest, which tells a
+    # visitor what there is still to see. Each entry is one place: who is there, under the name the game knows
+    # each by, and where. A line reads "Who, who and who where", after "lead" where there is one. The two
+    # headings are TJ's own words; the line after each, shown while its list is empty, is a draft.
+    observed:
+      - Observed
+      - Nothing yet
+    reported:
+      - Reported
+      - Nothing left to see
+    sightings:
+      - who: { elk: elk }
+        where: in the meadow
+      - who: { moose: a bull moose, calf: a calf }
+        where: in the riverside woods
+      - who: { squirrel: squirrels, chipmunk: chipmunks }
+        where: by the trail
+      - who: { goat: mountain goats, sheep: bighorn sheep, marmot: marmots }
+        where: up high
+      - who: { pika: a pika }
+        where: in the larch talus
+      - who: { whale: a humpback, orca: an orca pod }
+        where: offshore
+      - who: { gull: gulls, eagle: a bald eagle }
+        where: on the sea stacks
+      - who: { osprey: an osprey fishing }
+        where: at Reflection Lake
+      - who: { bear: a black bear and her two cubs }
+        where: in the firs below the Spires waterfall
+      - who: { bear2: some days a second bear family }
+        where: at the forest edge
+      - who: { owl: an owl }
+        where: in the forest
+      - who: { cats: two cats }
+        where: at this kiosk
+      - who: { serac: serac falls, avalanche: an avalanche, lens: a cap cloud }
+        where: on Mount Monolith
+      - who: { rain: rain showers }
+        where: over the hills
+      - who: { marine: the marine layer }
+        where: off the sea
+      - who: { tide: low tide, ferry: the ferry }
+      - who: { tumble: tumbleweeds, devil: dust devils }
+        where: in the sage
+      - lead: 'At Dusk:'
+        who: { star: shooting stars, aurora: the aurora, foxfire: foxfire in the forest, headlamps: headlamps on the Spires' glacier }
     checklist: 'Field checklist: {n} of {of} found'
     notFound: Not found yet
     got: Found

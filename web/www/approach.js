@@ -6,7 +6,7 @@
 // picture is drawn left to right and mirrored when needed, as in the larch basin. Part two follows the
 // moraine's crest beside the glacier. In part three he steps off the moraine onto the ice and walks up
 // the glacier to camp on its rock island, the Spires and the walls beside them growing as he nears.
-import { clamp, lerp, smooth, frac, sq, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, windAt, veilTable } from './core.js';
+import { clamp, lerp, smooth, frac, sq, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, windAt, veilTable, saw } from './core.js';
 import { Strip, drawStrip, baseline, shell, blitScaled, paintPeaks } from './side.js';
 import { paintSpires, dome, stove, tower, wallTall } from './camp.js';
 import { makeKayti } from './people.js';
@@ -540,6 +540,7 @@ function buildApproach() {
         if (p.x < camX - 60 || p.x > camX + VW + 60) continue;
         const a = p.shy.step(t, Math.abs(mx - p.x));
         if (p.shy.called) env.sfx('eep');
+        if (a && p.x - camX > 8 && p.x - camX < VW - 8) saw('pika');
         if (a) list.push({ bm: a.bm, x: Math.round(lerp(p.x, p.hx, a.go)), y: Math.round(lerp(p.y - p.top + 2, p.y, a.go) - 2 * a.hop) - (a.peek ? 1 : 0), z: p.y + (a.peek ? 1.5 : 0.6), flip: !!a.back });
       }
       // Camp comes into view on its island ahead in the last seconds: the tent just behind the trail, smoke

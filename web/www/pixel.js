@@ -2,7 +2,7 @@
 // that says how far along a route he is, and the cut from one scene to the next. Each scene lives
 // in its own file and only has to draw itself for a given place along its stretch of the route.
 
-import { clamp, lerp, Screen, DEBUG, R } from './core.js';
+import { clamp, lerp, Screen, DEBUG, R, SAW } from './core.js';
 import { makeWorld } from './world.js';
 import { BAKE } from './land.js';
 
@@ -465,7 +465,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     breakScene() { sabotage = drawn.s; },
     // For the debug panel (E5f): the scenes' clock, its speed, and starting a timed event now in the
     // scene he is in (false if that scene has no such event).
-    now: () => simT, speeds: SPEEDS, speed: () => speed, setSpeed(k) { if (SPEEDS.includes(k)) speed = k; },
+    now: () => simT, saw: () => SAW, speeds: SPEEDS, speed: () => speed, setSpeed(k) { if (SPEEDS.includes(k)) speed = k; },
     // The weather is the world's, so its buttons work from a side scene too (the marine layer since round 6,
     // note 13; the rest since round 8, E1, now that every scene shows the weather): each is started on the
     // map's clocks, over the country the scene is in.

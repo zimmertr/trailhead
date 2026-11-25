@@ -2,7 +2,7 @@
 // stand on the bank behind the trail, a dark stream mirrors them in front of it, and the light
 // comes down through the canopy in slanting shafts. He runs right to left, the way the map sends him
 // in: west, away from the Trailhead.
-import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, SHADE, pick, BM, outline, disc, windAt, veilTable } from './core.js';
+import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, SHADE, pick, BM, outline, disc, windAt, veilTable, saw } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell, puffs } from './side.js';
 import { makeMaple, makeSpruce, makeFir, makeConifer, makeBoulder } from './sprites.js';
 import { elk, sasquatch, jay, slug, owl } from './fauna.js';
@@ -808,6 +808,7 @@ function buildForest() {
       // Near the lake the far trees give way to open light, in clumps, and the lake shows low down.
       lakeLight(scr, camX, base, t);
       const sky = env.sky, fogK = sky ? Math.max(sky.deck, sky.fog * 0.8) : 0, rainK = sky ? sky.rain : 0;
+      if (sky && sky.deck > 0.5) saw('marine'); if (sky && sky.rain > 0.5) saw('rain');
       fogVeil(scr, fogK, FOGV);
       drawCrag(scr, crag.S, camX, base);
       fallWater(scr, camX, base, t, crag.F);
@@ -845,7 +846,7 @@ function buildForest() {
       slime(scr, slugX - camX, base, camX, t);
       // The owl turns its head to follow him: looking right as he comes, at you as he passes under, then left.
       // Clicked, it turns its head to face you, blinks twice slowly and hoots.
-      if (perch) { const rel = mx - perch.x, o = t - poked.owl, f = o < 2.6 ? 'f' : rel > 26 ? 'r' : rel < -26 ? 'l' : 'f', blink = o < 2.6 ? (o > 0.5 && o < 0.75) || (o > 1.3 && o < 1.55) : frac(t / 4.3) < 0.04; list.push({ bm: owlBM[blink ? f + 'b' : f], x: perch.x, y: perch.y, z: perch.z }); }
+      if (perch) { const rel = mx - perch.x, o = t - poked.owl, f = o < 2.6 ? 'f' : rel > 26 ? 'r' : rel < -26 ? 'l' : 'f', blink = o < 2.6 ? (o > 0.5 && o < 0.75) || (o > 1.3 && o < 1.55) : frac(t / 4.3) < 0.04; list.push({ bm: owlBM[blink ? f + 'b' : f], x: perch.x, y: perch.y, z: perch.z }); if (perch.x - camX > 8 && perch.x - camX < VW - 8) saw('owl'); }
       // He hops the slug.
       const ds = d - D_SLUG, hop = Math.abs(ds) < 16 ? Math.round(15 * Math.cos(ds / 16 * Math.PI / 2)) : 0;
       const snack = !env.running && env.still > 60;
@@ -870,7 +871,7 @@ function buildForest() {
       if (bugle) puffs(scr, elkX - camX + 14, base + elkY - Math.round(elkBM.up.oy * 0.76), 1, t - poked.elk);
       // At Dusk the foxfire glows on its log, each cluster swelling and fading at its own pace, with a faint
       // green light on the wood round it; only where the log still shows, not over a fern in front of it.
-      if (env.mix > 0.3) foxfireGlow(scr, fox, foxX - camX, base + foxY, t, smooth(0.3, 0.8, env.mix));
+      if (env.mix > 0.3) { foxfireGlow(scr, fox, foxX - camX, base + foxY, t, smooth(0.3, 0.8, env.mix)); if (env.mix > 0.6 && foxX - camX > 8 && foxX - camX < VW - 8) saw('foxfire'); }
       // And a deer's eyes shine between the trunks, now and then blinking or turning away.
       // Clicked, they blink out: the deer has bounded off, and comes back with the next slot.
       eyesAt = null;

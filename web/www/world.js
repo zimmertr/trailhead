@@ -1,13 +1,13 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
 import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
-import { breeze, gustOver, askGust, veilTable } from './core.js';
+import { breeze, gustOver, askGust, veilTable, saw } from './core.js';
 import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeFlag, makeRegister } from './sprites.js';
 import { speck } from './fauna.js';
 import { SIGNS, NAMES, DEST_NAMES, UI } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
 import { checkRules } from './rules.js';
-import { makeEvents, drawLens, startLens } from './events.js';
+import { makeEvents, drawLens, startLens, inView } from './events.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, NW as WW, NH as WH, T } from './land.js';
 import { faceSnow } from './monolith.js';
@@ -334,6 +334,7 @@ export function makeWorld() {
     const [sx, sy] = SER[sk], fall = 40, path = q => [sx + Math.round(2 * Math.sin(q * 5 + n)), sy + Math.round(fall * Math.pow(q, 1.6))];
     const on = sx - ox > -20 && sx - ox < scr.VW + 20 && sy - oy > -40 && sy - oy < scr.VH + 10;
     if (on && a > 0.9 && rumbled !== n) { rumbled = n; env.sfx('rumble'); }
+    if (a > 0.2 && a < 3 && inView(scr, sx - ox, sy - oy)) saw('serac');
     const dot = (x, y, c) => { const vx = x - ox, vy = y - oy; if (vx >= 0 && vy >= 0 && vx < scr.VW && vy < scr.VH) scr.fb[vy * scr.VW + vx] = c; };
     // The puffs: one where each stretch of the fall was passed, growing and fading from when it was made.
     for (let k = 0; k < 5; k++) { const age = a - 0.3 - k * 0.25; if (age < 0) continue; const [px, py] = path(Math.min(1, k / 4)), r = 2 + 8 * Math.min(1, age / 3), al = smooth(4.2, 0.6, age);
@@ -380,6 +381,7 @@ export function makeWorld() {
     if (!AVS.length) return;
     if (t >= AVA.next) { const snowy = snowyFaces(); if (snowy.length) slide(snowy[Math.floor(hash(AVA.count, 5, 4792) * snowy.length)], t); }
     FACE.forEach((F, f) => { if (F.phase !== 'falling') return; const a = t - F.start, A = AVS[f];
+      if (a >= AV_RELEASE && A.cx - ox > 8 && A.cx - ox < VW - 8 && A.y0 - oy > 0 && A.y0 - oy < VH - 8) saw('avalanche');
       if (a >= AV_RELEASE && !F.gone) { F.gone = true; F.cover = 0; if (A.cx - ox > -40 && A.cx - ox < VW + 40 && A.y0 - oy > -60 && A.y0 - oy < VH) env.sfx('avalanche'); }
       if (a > AV_LONG) F.phase = 'bare'; });
     // Every face bare: the squall is due 60 to 120 s after the last slide began.
@@ -544,7 +546,7 @@ export function makeWorld() {
     for (let k = 0; k < GAP.length; k++) { const d = lead - GAP[k]; if (d < 0 || d > TRK.L) continue; const [x, y, v] = lampAt(d), sx = Math.round(x) - ox, sy = Math.round(y) - 2 - oy;
       if (sx < 0 || sy < 0 || sx >= scr.VW || sy >= scr.VH || W.depth[Math.round(y) * WW + Math.round(x)] < v - 4) continue;
       const fade = smooth(TRK.L, TRK.L - 20, d) * smooth(0, 6, d) * smooth(0.5, 0.75, mix); if (bayer(sx + ox, sy + oy) > fade) continue;
-      const dim = hash(k, Math.floor(t * 1.3), 4901) < 0.12; scr.set(sx, sy + 1, INK); scr.set(sx, sy + 2, INK); scr.set(sx, sy, dim ? R.lamp[0] : R.lamp[1]); if (!dim) { const [ax, ay] = lampAt(Math.min(TRK.L, d + 3)); scr.set(Math.round(ax) - ox, Math.round(ay) - 2 - oy, R.lamp[0]); } }
+      const dim = hash(k, Math.floor(t * 1.3), 4901) < 0.12; scr.set(sx, sy + 1, INK); scr.set(sx, sy + 2, INK); scr.set(sx, sy, dim ? R.lamp[0] : R.lamp[1]); if (fade > 0.8 && inView(scr, sx, sy)) saw('headlamps'); if (!dim) { const [ax, ay] = lampAt(Math.min(TRK.L, d + 3)); scr.set(Math.round(ax) - ox, Math.round(ay) - 2 - oy, R.lamp[0]); } }
   }
   // The animals look after themselves: see critters.js. Where each one lives comes from land.js.
   const crit = makeCritters(W); window.__crit = crit;
@@ -886,7 +888,7 @@ export function makeWorld() {
       if (!still) { still = things.filter(th => !th.critter).sort((a, b) => a.y - b.y); moves = things.filter(th => th.critter); }
       mov.length = 0;
       if (!env.hideMe) mov.push({ me: true, x: here.x, y: here.y });
-      { const fh = crit.ferryHull(t, ox, oy, VW, VH); if (fh) mov.push({ ferryHull: true, y: fh.y }); }
+      { const fh = crit.ferryHull(t, ox, oy, VW, VH); if (fh) { mov.push({ ferryHull: true, y: fh.y }); if (inView(scr, fh.x0 - ox + 12, fh.y - oy)) saw('ferry'); } }
       kit.update(env, here, scr.narrow && !env.fixed, env.home && !env.fixed ? oy + (scr.narrow ? VH * 0.56 : VH - 38) : 0);
       for (const it of kit.items()) mov.push(it);
       // Once he is at the box, its front is down (L2).
@@ -938,6 +940,10 @@ export function makeWorld() {
       if (DEBUG.clouds && sky.deck > 0.06) deckPass(fb, VW, VH, ox, oy, W.deck, VEIL, CHURN, sky, t, sky.deck * 7.4 / 255 / 255, DX0, DX1);
       if (DEBUG.mist) crit.mist(scr, ox, oy, t, env.hideMe ? null : here);
       if (DEBUG.clouds && sky.rain > 0.02) drizzle(scr, ox, oy, t, sky, W.fog, W.deck, frontAt, STREAK);
+      // The conditions board's weather, the tide and the cats, when they are in the view (round 8, F2).
+      if (DEBUG.clouds && frontAt(oy + VH / 2, sky) > ox + 40) { if (sky.deck > 0.5) saw('marine'); if (sky.rain > 0.5) saw('rain'); }
+      { const p = crit.findPool(t); if (p && inView(scr, p.x - ox, p.y - oy, -60)) saw('tide'); }
+      if (kit.items().some(c => inView(scr, c.x - ox, c.y - oy))) saw('cats');
       if (DEBUG.clouds && sky.drip > 0.02) drip(scr, ox, oy, t, sky, DRIPS, frontAt);
       if (DEBUG.clouds) { for (let k = 0; k < 4; k++) scr.blit(FAIR[k].bm, Math.round(fairX(k, t)) - FAIR[k].bm.ox - ox, FAIR[k].y - FAIR_ALT - FAIR[k].bm.oy - oy); }
       kit.drawOver(scr, ox, oy, t);

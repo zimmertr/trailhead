@@ -362,7 +362,7 @@ class Screen {
       for (let y = Math.max(0, Math.round(base - len)); y <= base && y < VH; y++) {
         const i = y * VW + x; if (!SKY[fb[i]]) continue;
         const v = on * (1 - (base - y) / len) * (0.6 + 0.4 * vnoise(wx / 3, t * 0.8 + k, 304));
-        if (bayer(wx, y + oy) < v * 1.25) fb[i] = R.aurora[v > 0.62 ? 2 : v > 0.3 ? 1 : 0];
+        if (bayer(wx, y + oy) < v * 1.25) { fb[i] = R.aurora[v > 0.62 ? 2 : v > 0.3 ? 1 : 0]; if (v > 0.62 && mix > 0.6) saw('aurora'); }
       }
     }
     for (const [sx, sy, ph, big] of this.stars) {
@@ -406,8 +406,13 @@ const BLACK = 255;
 // rest are outlines that can be turned on. The scenes read it as they draw.
 const DEBUG = { snap: true, trees: true, clouds: true, mist: true, labels: true, animals: true, roam: false, taps: false, trails: false, camera: false, collide: '' };
 
+// What has been on the screen since the page opened, by the names the conditions board lists them under
+// (round 8, F2): each thing that draws one of them says so here. Kept in memory only, so every visit starts
+// with nothing seen.
+const SAW = new Set(), saw = id => { SAW.add(id); };
+
 export {
-  DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
+  SAW, saw, DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
   DAY, DUSK, R, RAMP_OF, STEP_OF, INK, N, SHADE, LIGHT, KIND, BLACK, pick, ramp,
   BM, outline, litBack, disc, thick, catmull, makePath, windAt, breeze, gustOver, askGust, Screen
 };
