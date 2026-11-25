@@ -433,7 +433,6 @@ export const W = {
   "rollback": "Rollback Basin",
   "feature-flag": "Feature Flag Tarns",
   "hotfix": "Hotfix Burn",
-  "postmortem": "Postmortem Burn",
   "cron-job": "Cron Job Coulee",
   "tech-debt": "Tech Debt Badlands",
   "off-by-one": "Off By One Peak",
