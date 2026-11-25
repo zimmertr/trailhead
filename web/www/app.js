@@ -519,6 +519,13 @@ try {
   // Where a browser lets a page make sound unasked (Firefox says so), the music starts with the page.
   try { if (navigator.getAutoplayPolicy && navigator.getAutoplayPolicy('audiocontext') === 'allowed') audio.start(); } catch { /* not every browser can say */ }
   status.hidden = true;
+  // The game is told four times a second which parts of the window the page's own panels cover (round 8,
+  // H10), so that a thing behind one does not count as observed: the junction's placard and signs, a card,
+  // the debug panel, the music menu, the buttons along the top, the route bar and a message. While a sheet
+  // or the plain page is up, nothing behind it counts.
+  const PANELS = '#fork .placard, #fork .post, #card, #debug, #music, #bar, #toast, #tab, #top .plank';
+  const tellCover = () => { if (!sheet.hidden || !plain.hidden) { api.cover([], true); return; } const out = []; for (const n of document.querySelectorAll(PANELS)) { const r = n.getBoundingClientRect(); if (r.width > 0 && r.height > 0) out.push(r); } api.cover(out, false); };
+  setInterval(tellCover, 250); tellCover();
   // For screenshot scripts: the debug panel's controls (speed, start buttons) without clicking.
   window.__api = api; window.__sound = () => audio.live();
   window.__ready = true;

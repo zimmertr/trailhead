@@ -2,8 +2,8 @@
 // Peak, Reflection Lake and the rainforest, as Mount Monolith has its avalanches and its cap cloud. Each runs
 // on the scenes' clock (so the speed buttons work on it), has a start button in the debug panel and a line on
 // the conditions board. Where each happens is read off the land (spots.life in land.js, the lakes' own water).
-import { TAU, smooth, hash, bayer, frac, lerp, rng, gustOver, R, INK, BM, saw } from './core.js';
-import { makeClock, inView, blitA } from './events.js';
+import { covered, TAU, smooth, hash, bayer, frac, lerp, rng, gustOver, R, INK, BM, saw } from './core.js';
+import { makeClock, inView, inClear, blitA } from './events.js';
 import { goat } from './fauna.js';
 import { NH, LAND } from './land.js';
 
@@ -105,7 +105,7 @@ export function makeLife(W, STILL) {
   function rockfall(scr, ox, oy, n, s, env) {
     const [x0, y0, len] = L.rock[nth(n, L.rock.length)], fall = Math.min(3.2, 1.6 + len / 50), q = Math.min(1, s / fall), d = len * q * q;
     const wob = k => Math.round(2.5 * Math.sin(d / 9 + k * 2.1) + k * 2 - 2), sx = x0 - ox, sy = y0 - oy, seen = inView(scr, sx, sy + len / 2, 4);
-    if (seen && s > 0.3) saw('rockfall');
+    if (seen && s > 0.3 && !covered(sx, sy + len / 2)) saw('rockfall');
     sound(env, 'rockfall', n, 'clack', seen); if (q >= 1) sound(env, 'rockfall2', n, 'rumble', seen);
     // The trail: a puff every 5 down the face behind the block, each older than the one below it.
     for (let k = 0; k * 5 < d; k++) { const at = Math.sqrt(k * 5 / len) * fall, age = s - at, a = smooth(3.3, 0.6, age); if (a > 0.02) puff(scr, sx + wob(1) + Math.round(age * 5 + 2 * Math.sin(k)), sy + k * 5 - Math.round(age * 2), 2 + Math.min(4, Math.round(age * 2.5)), a, 7301 + k); }
@@ -119,7 +119,7 @@ export function makeLife(W, STILL) {
   // spray, a ring that spreads over the water, and a new berg that rocks where it fell and drifts out.
   function calve(scr, ox, oy, n, s, env) {
     const [x0, y0] = CALVE[nth(n, CALVE.length)], sx = x0 - ox, sy = y0 - oy, seen = inView(scr, sx, sy, 6), ICE = [R.white[1], R.serac[4], R.serac[3], R.serac[2]];
-    if (seen && s > 0.6) saw('calve');
+    if (seen && s > 0.6 && !covered(sx, sy)) saw('calve');
     sound(env, 'calve', n, 'crack', seen); if (s > 1.5) sound(env, 'calve2', n, 'splash', seen);
     const slab = (x, y, lean) => { for (let j = 0; j < 8; j++) for (let i = 0; i < 6; i++) scr.set(x + i + Math.round(lean * (7 - j) / 3), y - 7 + j, j === 0 ? ICE[0] : i < 2 ? ICE[1] : i < 4 ? ICE[2] : ICE[3]); };
     if (s < 0.9) { for (let j = 0; j < 9; j++) if (j < s * 14) scr.set(sx - 4, sy - 2 - j, R.serac[0]); slab(sx - 3, sy - 2, 0); }
@@ -145,7 +145,7 @@ export function makeLife(W, STILL) {
       const ride = Math.min(u, 12.5), an = ride * 1.25 + k * Math.PI, r = 15 - 0.5 * ride, away = Math.max(0, u - 12.5);
       const x = Math.round(cx + Math.cos(an) * r + away * away * 9), y = Math.round(base - ride * 4.6 + Math.sin(an) * r * 0.35 - away * 3);
       const a = smooth(0, 0.8, u) * smooth(4.2, 3.2, away); if (bayer(x, y) >= a) continue;
-      const seen = inView(scr, x - ox, y - oy, 4); if (seen && u > 1) saw('pair');
+      const seen = inView(scr, x - ox, y - oy, 4); if (seen && u > 1 && !covered(x - ox, y - oy)) saw('pair');
       if (away > 0) sound(env, 'pair', n, 'croak', seen);
       scr.put(RAVEN[frac(u / 2.3 + k * 0.4) < 0.18 || away > 0 ? 1 : 0], x - ox, y - oy, Math.sin(an) > 0);
     }
@@ -159,7 +159,7 @@ export function makeLife(W, STILL) {
       const u = (s - k * 0.35) / (FALL + 0.4 * k); if (u <= 0) continue;
       const q = Math.min(1, u), d = P.len * (0.15 * q + 0.85 * q * q * (k ? 0.8 + 0.1 * k : 1)), [px, py] = P.at(d), ph = q * HOPS, hop = q < 1 ? Math.abs(Math.sin(ph * Math.PI)) * (k ? 3 : 5) * (1 - 0.6 * q) : 0;
       const x = Math.round(px) - ox, y = Math.round(py - hop) - oy, seen = inView(scr, x, y, 4);
-      if (!k && seen && s > 0.4) saw('talus');
+      if (!k && seen && s > 0.4 && !covered(x, y)) saw('talus');
       if (!k && q < 1) sound(env, 'talus' + Math.floor(ph), n, Math.floor(ph) % 2 ? 'tink' : 'clack', seen && Math.floor(ph) > 0);
       // The dust of the last landing, left behind where it hit.
       if (!k) for (let h = Math.max(1, Math.floor(ph) - 1); h <= Math.floor(ph) && h < HOPS; h++) { const qh = h / HOPS, [hx, hy] = P.at(P.len * (0.15 * qh + 0.85 * qh * qh)), age = (ph - h) / HOPS * FALL; if (age < 1.7) puff(scr, Math.round(hx) - ox + Math.round(age * 2), Math.round(hy) - 2 - Math.round(age * 3) - oy, 3 + Math.round(age * 2.5), smooth(1.7, 0.2, age), 7330 + h); }
@@ -177,7 +177,7 @@ export function makeLife(W, STILL) {
     BAND.forEach((kid, k) => {
       const d = s * PACE - k * GAP; if (d < 0 || d > CROSS.len) return;
       const [px, py] = CROSS.at(east ? d : CROSS.len - d), x = Math.round(px) - ox, y = Math.round(py) - oy, a = smooth(0, 8, d) * smooth(CROSS.len, CROSS.len - 8, d), bm = GOAT[kid ? 1 : 0][Math.floor(d / 3 + k) & 1];
-      const seen = inView(scr, x, y, 4); if (seen && a > 0.9) saw('band');
+      const seen = inView(scr, x, y, 4); if (seen && a > 0.9 && !covered(x, y)) saw('band');
       if (k === 1 && d > CROSS.len / 2) sound(env, 'band', n, 'bleat', seen);
       if (a > 0.9) scr.shadow(x, y, kid ? 3 : 5, 1);
       blitA(scr, bm, east ? x - bm.ox : x - (bm.w - 1 - bm.ox), y - bm.oy, a, !east);
@@ -218,7 +218,7 @@ export function makeLife(W, STILL) {
         for (let j = 1; j <= 5; j++) { const qj = q - j * 0.07; if (qj > 0) wet(Math.round(hx - 26.64 - 26 * qj * qj), hy + (j & 1), j < 3 ? Wc : R.water[4]); } }
       else { const w = u - 19.6; x = hx - 52.64 - w * 34; h = 3 + 8 * w + 3 * w * w; pose = 'fly'; f = Math.floor(u * 9) & 1; a = smooth(4.2, 2.4, w); }
       const X = Math.round(x), Y = Math.round(hy - h), seen = inView(scr, X - ox, Y - oy, 4);
-      if (seen && u > 4 && u < 18) saw('ducks');
+      if (seen && u > 4 && u < 18 && !covered(X - ox, Y - oy)) saw('ducks');
       if (!k && u >= 4) sound(env, 'ducks', n, 'splash', seen); if (!k && u >= 18) sound(env, 'ducks2', n, 'slap', seen);
       if (bayer(X, Y) >= a) continue;
       // On the water: a wake that opens behind, and a ring round a duck that has tipped up.
@@ -233,7 +233,7 @@ export function makeLife(W, STILL) {
   // slowly and then all at once. Needles and dust rise where it came down, and the birds of that wood go up.
   function treefall(scr, ox, oy, n, s, env) {
     const [fx, fy] = spot(n, 7350), dir = hash(n, 2, 7350) < 0.5 ? -1 : 1, seen = inView(scr, fx - ox, fy - oy - 10, 8), DOWN = 3.5;
-    if (seen && s > 1.7 && s < 5) saw('treefall');
+    if (seen && s > 1.7 && s < 5 && !covered(fx - ox, fy - oy - 10)) saw('treefall');
     if (s > 0.4) sound(env, 'tree', n, 'creak', seen); if (s > 1.7) sound(env, 'tree2', n, 'crack', seen); if (s > DOWN) sound(env, 'tree3', n, 'bang', seen);
     if (s < DOWN) {
       const q = Math.max(0, (s - 1.7) / (DOWN - 1.7)), an = 1.54 * q * q, sn = Math.sin(an), cs = Math.cos(an), shake = s > 0.6 && s < 1.7 ? Math.round(Math.sin(s * 34) * 0.8) : 0, a = smooth(0, 0.5, s) * smooth(1.5, 1.05, an), sink = 12 * smooth(0.7, 1.5, an);
@@ -252,7 +252,7 @@ export function makeLife(W, STILL) {
   // thinning to nothing before its feet reach the trees. a: how much of it shows.
   function rainbow(scr, ox, oy, a) {
     const [cx, cy, r] = ARC, W = BOW.length * 2, x0 = Math.max(0, cx - r - W - ox), x1 = Math.min(scr.VW - 1, cx + r + W - ox), y0 = Math.max(0, cy - r - W - oy), y1 = Math.min(scr.VH - 1, cy - oy);
-    if (a > 0.6 && inView(scr, cx - ox, cy - r - oy, 0)) saw('rainbow');
+    if (a > 0.6 && inClear(scr, cx - ox, cy - r - oy, 0)) saw('rainbow');
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) { const wx = x + ox, wy = y + oy, d = Math.hypot(wx - cx, wy - cy) - r; if (d < 0 || d >= W) continue; if (bayer(wx, wy) < a * 0.62 * smooth(0.08, 0.5, (cy - wy) / r)) scr.set(x, y, BOW[BOW.length - 1 - (d >> 1)]); }
   }
 
@@ -265,7 +265,7 @@ export function makeLife(W, STILL) {
     if (s < 1.4) return eyes(A[0], A[1] - 6);
     if (s > 4.8) return eyes(B[0], B[1] - 6);
     const q = smooth(1.4, 4.8, s), x = Math.round(lerp(A[0], B[0], q)), y = Math.round(lerp(A[1], B[1], q) - 6 + 7 * Math.sin(q * Math.PI)), flap = q < 0.2 || q > 0.85 ? Math.floor(s * 6) & 1 : 0, sx = x - ox, sy = y - oy;
-    if (inView(scr, sx, sy, 4)) saw('hoot');
+    if (inClear(scr, sx, sy, 4)) saw('hoot');
     // From above and behind: a broad pale back, the wings a little raised at the tips or drawn down on a beat.
     for (let i = -5; i <= 5; i++) { const d = Math.abs(i), wy = sy + (flap ? (d > 2 ? 1 : 0) : d > 3 ? -1 : 0); scr.set(sx + i, wy, P[d < 2 ? 0 : d < 4 ? 1 : 2]); if (d > 0 && d < 5) scr.set(sx + i, wy + 1, P[2]); }
     scr.set(sx, sy + 1, P[1]); scr.set(sx - 1, sy + 1, P[2]); scr.set(sx + 1, sy + 1, P[2]);

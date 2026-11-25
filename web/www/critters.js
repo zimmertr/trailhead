@@ -6,7 +6,7 @@ import { makeElk, makeMoose } from './sprites.js';
 import { ell, goat, marmot, speck } from './fauna.js';
 import { NW, NH } from './land.js';
 import { makeCollide } from './collide.js';
-import { inView } from './events.js';
+import { inClear } from './events.js';
 import { NAMES } from './content.js';
 
 // A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass. Its shoulders
@@ -700,7 +700,7 @@ export function makeCritters(W, opts = {}) {
     if (a.slot !== n) { a.slot = n; [a.x, a.y] = n ? pickOpen(n, ox, oy, scr.VW, scr.VH) : spots.whale; a.blows = [null, null]; }
     const wx = a.x - ox, wy = a.y - oy;
     seen.whale = wx > -30 && wx < scr.VW + 30 && wy > -30 && wy < scr.VH + 10 ? [wx - 10, wy] : null;
-    if (u >= 0.3 && u < IMPACT + 2.9 && inView(scr, wx - 10, wy)) saw('whale');
+    if (u >= 0.3 && u < IMPACT + 2.9 && inClear(scr, wx - 10, wy)) saw('whale');
     const white = R.white[1], pale = R.sea[5], ease = v => v * v * (3 - 2 * v);
     // The foam it leaves lies on the water, so it goes down first: a patch where it landed that thins
     // out, and a ring that spreads from it and breaks up. A small ring marks where it came out.
@@ -905,7 +905,7 @@ export function makeCritters(W, opts = {}) {
   };
   const fishAt = (scr, x, y, face) => { scr.set(x - 2 * face, y, R.shoe[0]); for (let i = -1; i <= 1; i++) { scr.set(x + i, y, R.shoe[1]); scr.set(x + i, y + 1, R.shoe[2]); } scr.set(x + 2 * face, y, R.shoe[2]); };
   function raptor(scr, x, y, K, up, face, bank = 0, sc = 1, carry = null) {
-    seen[K === BIRD.eagle ? 'eagle' : 'osprey'] = [x, y]; if (inView(scr, x, y)) saw(K === BIRD.eagle ? 'eagle' : 'osprey');
+    seen[K === BIRD.eagle ? 'eagle' : 'osprey'] = [x, y]; if (inClear(scr, x, y)) saw(K === BIRD.eagle ? 'eagle' : 'osprey');
     const half = Math.max(2, Math.round(K.half * sc)), small = sc < 0.6;
     for (const s of [-1, 1]) { const lift = up + s * bank;
       for (let i = 2; i <= half + 1; i++) { const f = (i - 1) / half, dy = Math.round(K.wrist ? (f < K.wrist ? -(lift + 1.5) * f / K.wrist : -(lift + 1.5) + (f - K.wrist) / (1 - K.wrist) * (2.5 + 0.4 * lift)) : -lift * f);
@@ -1071,7 +1071,7 @@ export function makeCritters(W, opts = {}) {
     // To the treetop with its fish, a while bent over it there, and home.
     if (kind === 'eat') { const e = q - O.toPerch.len, P = O.perch;
       if (e < 0) aloft(scr, ox, oy, O.toPerch, q, K, 4 * Math.sin(q * TAU * 3.6), 1, 'fish');
-      else if (e < OSP_EATS) { const X = Math.round(P.x) - ox, Y = Math.round(P.y - P.tall) - oy; seen.osprey = [X, Y - 5]; if (inView(scr, X, Y - 5)) saw('osprey'); scr.put(OSP_BM[e > 1 && frac(e / 1.7) < 0.5 ? 1 : 0], X, Y, hash(n, 6, OSP.seed) < 0.5); }
+      else if (e < OSP_EATS) { const X = Math.round(P.x) - ox, Y = Math.round(P.y - P.tall) - oy; seen.osprey = [X, Y - 5]; if (inClear(scr, X, Y - 5)) saw('osprey'); scr.put(OSP_BM[e > 1 && frac(e / 1.7) < 0.5 ? 1 : 0], X, Y, hash(n, 6, OSP.seed) < 0.5); }
       else if (e - OSP_EATS < O.fromPerch.len) { const w = e - OSP_EATS, [x, y] = O.fromPerch.at(w); aloft(scr, ox, oy, O.fromPerch, w, K, frac(w / 2.1) < 0.6 ? 4 * Math.sin(w * TAU * 3.6) : 0, O.sc(x, y), null); }
       return; }
     if (q < O.out.len) { const [x, y] = O.out.at(q); aloft(scr, ox, oy, O.out, q, K, frac(q / 2.1) < 0.6 ? 4 * Math.sin(q * TAU * 3.6) : 0, O.sc(x, y), 'fish'); }
@@ -1112,7 +1112,7 @@ export function makeCritters(W, opts = {}) {
       if (!kind && i > 0) { const B = orcaAsk[i - 1], wB = B && B[0] === 'spyhop' ? t - B[1] - 1 : -1, wN = Math.floor(hash(n, 1, 6301) * POD.length) === i - 1 ? s - (22 + 60 * hash(n, 2, 6301)) - 1 : -1, w = wB >= 0 && wB < ORCA_DOES.spyhop ? wB : wN; if (w >= 0 && w < ORCA_DOES.spyhop) { kind = 'spyhop'; v = w; } }
       if (!kind && s > 48 && s < 55) { kind = 'porpoise'; v = s - 48; }
       podNow[i] = kind;
-      if (kind && kind !== 'blow') { seen.orca[i] = [x, y]; if (inView(scr, x, y)) saw('orca');
+      if (kind && kind !== 'blow') { seen.orca[i] = [x, y]; if (inClear(scr, x, y)) saw('orca');
         if (kind === 'spyhop') return spyhop(scr, x, y, v / ORCA_DOES.spyhop, t);
         if (kind === 'breach') return leap(scr, x, y, v / ORCA_DOES.breach, 11, 22, o.bull, t);
         if (kind === 'slap') return tailSlap(scr, x, y, v, t, i);
@@ -1120,7 +1120,7 @@ export function makeCritters(W, opts = {}) {
       const ph = kind ? v / ORCA_DOES.blow * 0.55 : frac(s / 4.2 + i * 0.31), q = ph / 0.55; if (q >= 1) return; const h = Math.sin(Math.PI * q);
       if (h > 0.3) seen.orca[i] = [x, y];
       orcaBack(scr, x, y, h, o.bull, t, i);
-      if (h > 0.3 && inView(scr, x, y)) saw('orca');
+      if (h > 0.3 && inClear(scr, x, y)) saw('orca');
       // A blow as it comes up, now and then.
       if (q < 0.45 && (kind || hash(Math.floor(s / 4.2), i, 6302) < 0.35)) { const k = q / 0.45, hgt = Math.round(3 + 4 * k); for (let j = 0; j < hgt; j++) { if (k > 0.6 && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 3 ? 1 : 0; scr.set(x + 3 - sp, y - 3 - j, R.white[1]); if (sp) scr.set(x + 3 + sp, y - 3 - j, R.white[1]); } }
     });
@@ -1484,7 +1484,7 @@ export function makeCritters(W, opts = {}) {
     draw(scr, a, ox, oy, t) {
       if (a.critter === 'whale') return drawWhale(scr, a, ox, oy, t);
       if (a.gone) return;
-      if (inView(scr, a.x - ox, a.y - oy - (a.perch || 0))) saw(sawAs(a));
+      if (inClear(scr, a.x - ox, a.y - oy - (a.perch || 0))) saw(sawAs(a));
       if (a.walker || (a.critter === 'marmot' && !a.perch)) scr.shadow(a.x - ox, a.y - oy, a.critter === 'marmot' ? 5 : 7, 1);
       else if (a.cub && !a.lift) scr.shadow(a.x - ox, a.y - oy, 4, 1);
       // A marmot that has just sat up whistles, if it is being drawn (so only when it is on screen).
@@ -1765,7 +1765,7 @@ export function makeCritters(W, opts = {}) {
         const an = t * F.w + k * TAU / F.n + 0.5 * Math.sin(t * 0.3 + k * 2) + 2.2 * smooth(0, 3, sc) * (sc < 9 ? 1 : 0) + k * 0.4 * burst, wob = (1 + 0.14 * Math.sin(t * 0.21 + k * 3)) * (1 + 0.6 * burst);
         const x = Math.round(F.cx + Math.cos(an) * F.rx * wob - ox), y = Math.round(F.cy + Math.sin(an) * F.ry * wob - oy);
         if (x < -8 || x > VW + 8 || y < -8 || y - F.lift > VH + 8) continue;
-        seen.flock[fi].push([x, y - F.lift]); if (inView(scr, x, y - F.lift)) saw(F.gull ? 'gull' : 'raven');
+        seen.flock[fi].push([x, y - F.lift]); if (inClear(scr, x, y - F.lift)) saw(F.gull ? 'gull' : 'raven');
         for (let dx = -2; dx <= 2; dx++) { const sx = x + dx; if (sx >= 0 && sx < VW && y >= 0 && y < VH) fb[y * VW + sx] = SHADE[fb[y * VW + sx]]; }
         // They mostly hold their wings out, and beat them in short bursts.
         const f = burst > 0.1 ? (Math.floor(t * 9) + k) & 1 : F.glide ? (frac(t * 0.23 + k) < 0.12 ? Math.floor(t * 5) & 1 : 1) : frac(t * 0.17 + k * 0.37) < 0.4 ? (Math.floor(t * 3.5) + k) & 1 : 1;

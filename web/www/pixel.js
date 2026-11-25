@@ -2,7 +2,7 @@
 // that says how far along a route he is, and the cut from one scene to the next. Each scene lives
 // in its own file and only has to draw itself for a given place along its stretch of the route.
 
-import { clamp, lerp, Screen, DEBUG, R, SAW } from './core.js';
+import { clamp, lerp, Screen, DEBUG, R, SAW, COVER, covered } from './core.js';
 import { makeWorld } from './world.js';
 import { BAKE } from './land.js';
 
@@ -491,6 +491,12 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       return true;
     },
     hasPlace: keys => keys.some(k => world.whereIs(k)),
+    // The page says which parts of the window its panels cover (round 8, H10), as rectangles in the window's
+    // own pixels; they are kept in view pixels, where the game asks whether a thing is clear of them. all:
+    // a sheet or the plain page is up, and nothing behind it counts. coveredAt answers for a spot of the window.
+    cover(rects, all) { const b = canvas.getBoundingClientRect(), kx = scr.VW / (b.width || 1), ky = scr.VH / (b.height || 1); COVER.length = 0;
+      if (all) COVER.push([0, 0, scr.VW, scr.VH]); else for (const r of rects) COVER.push([Math.floor((r.left - b.left) * kx), Math.floor((r.top - b.top) * ky), Math.ceil((r.right - b.left) * kx), Math.ceil((r.bottom - b.top) * ky)]); },
+    coveredAt(x, y) { const b = canvas.getBoundingClientRect(); return covered((x - b.left) * scr.VW / (b.width || 1), (y - b.top) * scr.VH / (b.height || 1)); },
     // For the debug menu (C4): the scene on screen, the map animals and their homes, placing one, and a jump to
     // the start of any scene (the first route that has it, a little way in).
     scene: () => drawn ? drawn.s : null,

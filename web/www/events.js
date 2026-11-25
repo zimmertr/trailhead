@@ -2,7 +2,7 @@
 // devils spinning up on the dry flats and a shooting star on the Dusk sky. (The float plane left in round 5,
 // T12.) Where each happens comes from land.js (habitat); each runs on the
 // scenes' clock, so the speed buttons work on it, and each can be started now from the debug panel.
-import { TAU, smooth, hash, bayer, R, BM, outline, saw } from './core.js';
+import { TAU, smooth, hash, bayer, R, BM, outline, saw, covered } from './core.js';
 import { NW } from './land.js';
 
 // A tumbleweed, 15 across (note 5: the 9 of round 5 was lost on the hills): a see-through ball of stems
@@ -35,6 +35,8 @@ export function blitA(scr, bm, x, y, a, flip) {
 
 // Whether a spot of the screen is well inside it, m from every edge: what counts as seen (round 8, F2).
 export const inView = (scr, x, y, m = 8) => x >= m && y >= m && x < scr.VW - m && y < scr.VH - m;
+// Inside the view and clear of the page's own panels (round 8, H10): what counts as seen for the kiosk's board.
+export const inClear = (scr, x, y, m = 8) => inView(scr, x, y, m) && !covered(x, y);
 
 // The lenticular cloud (E3): a stack of smooth lenses standing still over Mount Monolith's summit, the
 // sign of a strong wind up high. It forms over fifteen seconds, sits half a minute, thins and is gone,
@@ -50,7 +52,7 @@ export const startLens = t => { LENS.ahead = (((-(t + LENS.cycle - 5)) % LENS.cy
 const LAYERS = [[0, 1, 7], [-8, 0.8, 6], [-14, 0.56, 4]];
 export function drawLens(scr, sx, sy, t, k = 1, ox = 0, oy = 0) {
   const ph = lensPhase(t), a = ph < LENS.form ? smooth(0, LENS.form, ph) : ph < LENS.sit ? 1 : ph < LENS.gone ? smooth(LENS.gone, LENS.sit, ph) : 0; if (a <= 0) return;
-  if (a > 0.6 && inView(scr, sx - ox, sy - oy - 9 * k, 20)) saw('lens');
+  if (a > 0.6 && inClear(scr, sx - ox, sy - oy - 9 * k, 20)) saw('lens');
   const W0 = k * 66 * (0.55 + 0.45 * Math.min(1, ph / LENS.form)) * (ph > LENS.sit ? 1 + 0.12 * (ph - LENS.sit) / (LENS.gone - LENS.sit) : 1), cy = sy - Math.round(9 * k);
   for (const [dy, wk, T0] of LAYERS) { const w = W0 * wk, y0 = cy + Math.round(dy * k), T = T0 * k;
     for (let x = Math.round(sx - w); x <= sx + w; x++) { const q = (x - sx) / w, th = T * Math.pow(Math.max(0, 1 - q * q), 0.7), top = Math.round(th), bot = Math.round(th * 0.3);
@@ -98,7 +100,7 @@ export function makeEvents(W, col) {
     const hop = Math.abs(Math.sin(s * 2.7)) * 7 * (1 - s / 9), a = smooth(0, 0.6, s) * smooth(8, 6.8, s), bm = weeds[Math.floor(d / 3) & 3];
     // Its shadow on the ground, shrinking as it bounces up, then the weed over it.
     const sw = Math.round(5 - hop * 0.3); for (let i = -sw; i <= sw; i++) if (bayer(i, y) < a * 0.9) { scr.set(Math.round(T.x + d + i - ox), y - oy, R.wood[0]); if (Math.abs(i) < sw - 1) scr.set(Math.round(T.x + d + i - ox), y + 1 - oy, R.wood[1]); }
-    blitA(scr, bm, Math.round(T.x + d - bm.ox - ox), Math.round(y - hop - bm.oy - oy), a); if (a > 0.6 && inView(scr, T.x + d - ox, y - oy)) saw('tumble');
+    blitA(scr, bm, Math.round(T.x + d - bm.ox - ox), Math.round(y - hop - bm.oy - oy), a); if (a > 0.6 && inClear(scr, T.x + d - ox, y - oy)) saw('tumble');
     // A puff of dust behind it each time it lands, spreading and thinning over a third of a second.
     const land = (s * 2.7 / Math.PI) % 1, puff = land < 0.3 ? 1 - land / 0.3 : 0;
     if (puff > 0) for (let k = 0; k < 7; k++) { const px = Math.round(T.x + d - 6 - k * (1.2 + 1.6 * (1 - puff)) - ox), py = y - (k & 1) - Math.round((1 - puff) * 2) - oy; if (hash(k, Math.floor(s * 10), 7104) < puff * a) scr.set(px, py, k & 2 ? R.sand[2] : R.sand[1]); }
@@ -109,7 +111,7 @@ export function makeEvents(W, col) {
     const [x0, y0] = spots.devils[n % spots.devils.length], a = smooth(0, 2.2, s) * smooth(12, 9, s), cx = x0 + 18 * Math.sin(s * 0.45) + 3 * s, cy = y0 + 5 * Math.sin(s * 0.6), H = 8 + 34 * a;
     // Row by row up the column: as wide as the funnel there, dust through a dither that thins with
     // height, and bands that wind round it as it spins, pale on the lit west side, shaded on the east.
-    if (a > 0.6 && inView(scr, cx - ox, cy - oy)) saw('devil');
+    if (a > 0.6 && inClear(scr, cx - ox, cy - oy)) saw('devil');
     for (let j = 0; j <= H; j++) {
       const hk = j / H, r = 1.5 + 9 * Math.pow(hk, 1.2) * (0.5 + 0.5 * a), lean = hk * H * 0.22 + 1.2 * Math.sin(t * 3 + j * 0.3), y = Math.round(cy - j - oy), dens = a * (0.75 - 0.45 * hk), F = Math.floor(t * 12);
       for (let dx = -Math.ceil(r); dx <= r; dx++) {
@@ -127,7 +129,7 @@ export function makeEvents(W, col) {
   function star(scr, ox, oy, n, s) {
     const x0 = ox + 60 + hash(n, 2, 7130) * (scr.VW - 120), y0 = Math.max(4, oy + 6 + hash(n, 3, 7130) * 40), dir = hash(n, 4, 7130) < 0.5 ? -1 : 1, q = s / 1.1, hx = x0 + dir * 150 * q, hy = y0 + 60 * q, fade = smooth(1.1, 0.75, s);
     for (let k = 0; k < 34; k++) { const x = Math.round(hx - dir * k * 0.92), y = Math.round(hy - k * 0.37); if (y < 0 || x < 0 || x >= NW || D[y * NW + x] < 1e8) continue; if (k > 8 && bayer(x, y) >= fade * (1 - (k - 8) / 26) * 1.3) continue;
-      if (!k && inView(scr, x - ox, y - oy, 2)) saw('star');
+      if (!k && inClear(scr, x - ox, y - oy, 2)) saw('star');
       scr.set(x - ox, y - oy, k < 3 && fade > 0.5 ? R.white[1] : k < 12 ? R.star[2] : R.star[1]); if (k < 2) scr.set(x - ox, y - oy - 1, R.star[2]); }
   }
   return {

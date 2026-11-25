@@ -894,3 +894,33 @@ test('a tap on a reported line closes the board and moves the view there, withou
   for (const id of ['rockfall', 'calve', 'pair']) expect(await page.evaluate((k) => (window as unknown as Board).__api.saw().has(k), id), id).toBe(false)
   expect(problems).toEqual([])
 })
+
+// Round 8, H10: a thing counts as observed only when it is clear of the page's own panels.
+test('a thing behind one of the page\'s panels does not count as observed', async ({ page }) => {
+  type Cover = { __api: { coveredAt: (x: number, y: number) => boolean; saw: () => Set<string>; trigger: (id: string) => boolean; showEvent: (id: string) => number } }
+  const problems = await open(page, '/')
+  const covered = (x: number, y: number) => page.evaluate(([a, b]) => (window as unknown as Cover).__api.coveredAt(a ?? 0, b ?? 0), [x, y])
+  const seen = (id: string) => page.evaluate((k) => (window as unknown as Cover).__api.saw().has(k), id)
+  const start = (id: string) => page.evaluate((k) => { const w = window as unknown as Cover; w.__api.showEvent(k); return w.__api.trigger(k) }, id)
+  // The junction's placard covers its own part of the view, and the middle of the view is clear.
+  const box = await page.locator('#fork .placard').boundingBox()
+  const size = page.viewportSize()
+  if (!box || !size) throw new Error('the junction\'s placard is not on the page')
+  const mid: [number, number] = [size.width / 2, size.height / 2 - 40]
+  await expect.poll(() => covered(box.x + box.width / 2, box.y + box.height / 2), { timeout: 5_000 }).toBe(true)
+  expect(await covered(...mid)).toBe(false)
+  // With the Keys sheet up nothing behind it counts: a rockfall in the middle of the view comes and goes unobserved.
+  await page.keyboard.press('KeyK')
+  await expect(page.locator('#sheet')).toBeVisible()
+  await expect.poll(() => covered(...mid), { timeout: 5_000 }).toBe(true)
+  expect(await start('rockfall')).toBe(true)
+  await page.waitForTimeout(7500)
+  expect(await seen('rockfall')).toBe(false)
+  // The sheet closed, the next one is observed.
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#sheet')).toBeHidden()
+  await expect.poll(() => covered(...mid), { timeout: 5_000 }).toBe(false)
+  expect(await start('rockfall')).toBe(true)
+  await expect.poll(() => seen('rockfall'), { timeout: 10_000 }).toBe(true)
+  expect(problems).toEqual([])
+})

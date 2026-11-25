@@ -362,7 +362,7 @@ class Screen {
       for (let y = Math.max(0, Math.round(base - len)); y <= base && y < VH; y++) {
         const i = y * VW + x; if (!SKY[fb[i]]) continue;
         const v = on * (1 - (base - y) / len) * (0.6 + 0.4 * vnoise(wx / 3, t * 0.8 + k, 304));
-        if (bayer(wx, y + oy) < v * 1.25) { fb[i] = R.aurora[v > 0.62 ? 2 : v > 0.3 ? 1 : 0]; if (v > 0.62 && mix > 0.6) saw('aurora'); }
+        if (bayer(wx, y + oy) < v * 1.25) { fb[i] = R.aurora[v > 0.62 ? 2 : v > 0.3 ? 1 : 0]; if (v > 0.62 && mix > 0.6 && !covered(x, y)) saw('aurora'); }
       }
     }
     for (const [sx, sy, ph, big] of this.stars) {
@@ -410,9 +410,12 @@ const DEBUG = { snap: true, trees: true, clouds: true, mist: true, labels: true,
 // (round 8, F2): each thing that draws one of them says so here. Kept in memory only, so every visit starts
 // with nothing seen.
 const SAW = new Set(), saw = id => { SAW.add(id); };
+// The parts of the view that the page's own panels cover (round 8, H10), each as [x0, y0, x1, y1] in view
+// pixels. A thing counts as seen only clear of them. The page tells pixel.js, which keeps the list.
+const COVER = [], covered = (x, y) => { for (const r of COVER) if (x >= r[0] && y >= r[1] && x < r[2] && y < r[3]) return true; return false; };
 
 export {
-  SAW, saw, DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
+  SAW, saw, COVER, covered, DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
   DAY, DUSK, R, RAMP_OF, STEP_OF, INK, N, SHADE, LIGHT, KIND, BLACK, pick, ramp,
   BM, outline, litBack, disc, thick, catmull, makePath, windAt, breeze, gustOver, askGust, Screen
 };

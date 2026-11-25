@@ -609,3 +609,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Tap an Observed Line Too** (round 8, H9). A line under Observed could take the view back to where the thing was last seen.
 - **A Ring Where the View Lands** (round 8, H9). When the view arrives, a ring could close on the spot for a second, so a small animal is found at once.
 - **The Board Says When** (round 8, H9). For a thing that keeps hours (the herd at water at Dusk, the alpenglow), the reported line could say when to look. The words would be TJ's.
+- **Mostly Clear Counts** (round 8, H10). A thing counts by one spot, its middle. A whale half under the route bar counts while a marmot one pixel under it does not. The test could ask for most of the thing's own outline to be clear.
+- **Seen for a Moment** (round 8, H10). A thing counts on the first frame it is clear. It could have to stay clear for half a second, so a fast pan across the map does not fill the board.
+- **The Debug Panel Shows What Is Covered** (round 8, H10). A layer in the debug panel could tint what the panels cover, as the check render for H10 did, beside the layer for tap targets.
+- **A Glint When Something Is First Observed** (round 8, H10). The first time a thing counts, a small mark could flash beside it, so a visitor learns that looking is what fills the board.
