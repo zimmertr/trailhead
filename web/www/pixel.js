@@ -23,7 +23,7 @@ const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb', 'offroute', 'larch
 // How long the scenes the junction signs time take, in seconds, so a sign can say how long its route is
 // without loading the scene (asking them loaded every scene with the page, a fifth of its script). A
 // browser test holds these to the scenes' own numbers.
-const SECS = { wall: 132.3, larches: 12, approach: 21, camp: 1.4 };
+const SECS = { wall: 132.3, larches: 18.5, approach: 21, camp: 1.4 };
 // What the timeline needs of the lake's two scenes before their code has arrived (round 8, A6): the route bar
 // at the start is the lake's, and its marks and its profile used to load both with the page. Each stands in
 // with its length, its stops, its sounds and its ups and downs (25 heights, start to end) until he sets off,
@@ -65,8 +65,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // they take, so the timeline runs at an even pace across scene changes.
   const ROUTES = {
     lake: () => [['world', { path: 'lake', from: 0, to: world.lakeIn }], ['forest', {}], ['lakeside', {}], ['world', { path: 'lake', from: world.lakeOut, to: 1 }]],
-    // The larch basin runs the way the map's trail was heading over its last tenth (G1).
-    stack: () => [['world', { path: 'stack', from: 0, to: 1 }], ['larches', { dir: [0.9, 0.93, 0.96, 0.99].reduce((s, q) => s + world.paths.stack.at(q).dx, 0) < 0 ? -1 : 1 }], ['wall', {}], ['world', { path: 'stack', from: 1, to: 0 }]],
+    // The map hands over where the trail comes up into the burn (round 8, C2), and the larch basin's scene,
+    // which begins in the burn, runs the way the trail heads from there.
+    stack: () => [['world', { path: 'stack', from: 0, to: world.stackIn }], ['larches', { dir: [0.01, 0.03, 0.05, 0.07].reduce((s, q) => s + world.paths.stack.at(world.stackIn + q).dx, 0) < 0 ? -1 : 1 }], ['wall', {}], ['world', { path: 'stack', from: 1, to: 0 }]],
     // The walk to base camp: the map up to the traverse, then the side-on walk (section J), then camp. It
     // runs the way the map's trail heads over its last tenth, up the glacier to camp (round 8, note 4: where
     // the map hands over, the trail is still crossing the meadow the other way, and the walk ran backwards).

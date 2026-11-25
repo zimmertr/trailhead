@@ -524,3 +524,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Pod Looks Too** (round 8, B6). When one orca spyhops, the one behind it could follow a second later, as a pod does when something on the shore has its attention.
 - **Trails Drawn on the Map** (round 8, C1). TJ drew this trail as a line on a screenshot, and it took a calibration by hand to turn it into points. The debug panel could have a pen: draw on the map, and it prints the points of the line as the land file wants them.
 - **The Old Trail's Trace** (round 8, C1). Where the old trail climbed through the meadow there could be a faint, grown-over tread and a "trail closed for restoration" stake, as rerouted trails have. The words would be TJ's.
+- **A Woodpecker in the Burn** (round 8, C2). A black-backed woodpecker working one of the dead trees, drumming as he passes, and flying to the next when clicked. Burns are where they live.
+- **Morels** (round 8, C2). The year after a fire the burnt ground is full of morels. A small find for someone who looks down among the fireweed. The find and its words would be TJ's.
+- **A Far Layer for the Dry Side** (round 8, C2). If the larch scene's far layer could cross-fade, the burn could open under a big dry-country sky with no snowy range, and the range could rise as he climbs.

@@ -1,10 +1,11 @@
-// The larch basin (section G): off the map on the way to Proficiency Peak, side-on. He walks in to the
-// climb up granite benches in their autumn gold, the Enchantments' spires and a blue glacier far
-// behind, and the peak itself growing ahead of him. He goes the way the map's trail was going when
+// The larch basin (section G): off the map on the way to Proficiency Peak, side-on. He comes in through
+// Postmortem Burn with the dry country behind him (round 8, C2), climbs the rungs onto the granite benches
+// in their autumn gold, the Enchantments' spires and a blue glacier far behind, and the peak itself
+// growing ahead of him. He goes the way the map's trail was going when
 // it handed him over (arg.dir), so the whole picture is drawn left to right and mirrored when needed.
 import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, DAY, INK, pick, BM, outline, windAt } from './core.js';
 import { Strip, drawStrip, baseline, shell, blitScaled, paintPeaks } from './side.js';
-import { makeConifer, makeBoulder, makeCloud, makeHuckleberry, huckClumps } from './sprites.js';
+import { makeConifer, makeBoulder, makeCloud, makeHuckleberry, huckClumps, swaying } from './sprites.js';
 import { makeRunner, sideFig } from './tj.js';
 import { goat, pika, shyPika } from './fauna.js';
 import { NAMES } from './content.js';
@@ -16,14 +17,27 @@ const SW = 1500, X0 = 320, LEN = 700, WALK = 9;
 // opens with him on a granite slab that stands `rise` high over `run`, its top where the walk begins. He
 // climbs it in `secs`, a rung every `step` of height.
 const RUNG = { top: X0, run: 24, rise: 52, secs: 3, step: 5 };
-const DUR = RUNG.secs + WALK;
+// The burn (round 8, C2, TJ: start the scene in the burn, with the golden hills, the coulee and the badlands
+// behind): before the rungs he walks `len` of the lower ground in `secs`, through dead trees and fireweed.
+// The strip of near ground begins OFF left of the old scene's x = 0, so nothing that was drawn has moved.
+// The granite wall the rungs climb stands behind the lower ground from WALL0 on; left of it the dry country
+// shows, in a strip of its own (DRY: its width, how much of his movement it follows, and where it sits).
+const BURN = { len: 520, secs: 6.5 }, OFF = 1100, WALL0 = 40, XB = RUNG.top - RUNG.run - BURN.len;
+const DRY = { w: 2100, end: 1000, p: 0.7, k: 520, y: 60 };
+const DUR = BURN.secs + RUNG.secs + WALK;
 // The trail climbs the slabs in steps: a short rise every 110 or so, flat between. `bench` is that ground
 // alone, and `g` is the ground with the slab below its first bench.
 const bench = x => { const u = (x - X0) / 112 + 0.3 * vnoise(x / 60, 1, 600); return -Math.round(4 * (Math.floor(u) + smooth(0.72, 1, frac(u))) + 1.5 * Math.sin(x / 23)); };
 const g = x => bench(x) + Math.round(RUNG.rise * clamp((RUNG.top - x) / RUNG.run, 0, 1));
 const onSlab = x => x >= RUNG.top - RUNG.run && x < RUNG.top;
 // Where he is at each moment: up the rungs first (`rung` is how far up them, 0 to 1), then along the trail.
-const at = q => { const tau = q * DUR; if (tau < RUNG.secs) { const u = tau / RUNG.secs; return { x: RUNG.top - RUNG.run * (1 - u), y: bench(RUNG.top) + RUNG.rise * (1 - u), rung: u }; } const x = X0 + (tau - RUNG.secs) / WALK * LEN; return { x, y: g(x), rung: 1 }; };
+// `low`: still in the burn, below the rungs. `d`: how far he has walked on this stretch, for his stride.
+const at = q => {
+  const tau = q * DUR, foot = RUNG.top - RUNG.run, y0 = bench(RUNG.top) + RUNG.rise;
+  if (tau < BURN.secs) { const x = XB + tau / BURN.secs * BURN.len; return { x, y: lerp(g(x), y0, smooth(foot - 30, foot, x)), rung: 0, low: true, d: x - XB }; }
+  if (tau < BURN.secs + RUNG.secs) { const u = (tau - BURN.secs) / RUNG.secs; return { x: foot + RUNG.run * u, y: y0 - RUNG.rise * u, rung: u, d: 0 }; }
+  const x = X0 + (tau - BURN.secs - RUNG.secs) / WALK * LEN; return { x, y: g(x), rung: 1, d: x - X0 };
+};
 // How far back each layer sits: the share of his movement it follows.
 const P_FAR = 0.05, P_PEAK = 0.12, P_MID = 0.42;
 
@@ -165,21 +179,24 @@ const slabAt = (x, r) => fbm(x / 34, (g(x) + r) / 12, 630, 3) > 0.66 - 0.08 * sm
 const huckAt = (x, y) => fbm(x / 9, y / 4, 639, 3);
 // The slab the rungs climb, which carries on below the trail.
 const onRungs = (x, r) => x >= RUNG.top - RUNG.run - 14 && x <= RUNG.top + 10 + 12 * vnoise((g(x) + r) / 5, 5, 602) && r < 30 + 16 * vnoise(x / 9, 3, 601);
+// How burnt the near ground is: all of it well left of the rungs, none of it by their foot.
+const burnt = x => smooth(RUNG.top - RUNG.run - 16, RUNG.top - RUNG.run - 150, x);
 function paintMain(S, near) {
-  for (let x = 0; x < S.w; x++) {
-    const gy = g(x), step = g(x + 1) < gy && !onSlab(x);
+  for (let x = -OFF; x < SW; x++) {
+    const gy = g(x), step = g(x + 1) < gy && !onSlab(x), bu = burnt(x);
     // Left of the rungs the lower ground has the cliff they climb standing behind it, as high as the first
     // bench: jointed granite, darker than the slab, in shade at its foot, with turf along its top.
-    if (x < RUNG.top) for (let y = bench(x) - 14; y < gy - 14; y++) {
-      const dy = y - (bench(x) - 14), foot = gy - 14 - y, joint = vnoise(x / 3, y / 40, 642) > 0.78, sheet = frac(y / 13 + 0.5 * vnoise(x / 40, y / 40, 643)) < 0.08;
-      let c = joint || sheet ? R.rock[1] : pick('rock', 0.8 - 0.2 * smooth(4, 40, dy) + 0.14 * (fbm(x / 16, y / 26, 644, 3) - 0.5) - (foot < 3 ? 0.2 : 0), x, y, 0.25);
+    // The wall ends at WALL0 in a corner: its last few columns are the side that turns away, in shade.
+    if (x < RUNG.top && x >= WALL0) for (let y = bench(x) - 14; y < gy - 14; y++) {
+      const dy = y - (bench(x) - 14), foot = gy - 14 - y, joint = vnoise(x / 3, y / 40, 642) > 0.78, sheet = frac(y / 13 + 0.5 * vnoise(x / 40, y / 40, 643)) < 0.08, side = x - WALL0 < 7 + 3 * vnoise(y / 9, 2, 647);
+      let c = x === WALL0 ? R.rock[0] : joint || sheet ? R.rock[1] : pick('rock', (side ? 0.42 : 0.8) - 0.2 * smooth(4, 40, dy) + 0.14 * (fbm(x / 16, y / 26, 644, 3) - 0.5) - (foot < 3 ? 0.2 : 0), x, y, 0.25);
       // Turf on its top, hanging over the edge in places.
       if (dy < 3 + 2 * vnoise(x / 5, 9, 645)) c = pick('grass', 0.45 + 0.3 * hash(x, y, 646), x, y, 0.4);
       S.set(x, y, c);
     }
     for (let y = gy - 14; y < S.h - S.up; y++) {
       // A sliver one row deep reads as a dash, not a slab, so it stays turf.
-      const r = y - gy, slab = (slabAt(x, r) && (slabAt(x, r - 1) || slabAt(x, r + 1))) || onRungs(x, r), n = hash(x, y, 638);
+      const r = y - gy, slab = (bu < 0.5 && slabAt(x, r) && (slabAt(x, r - 1) || slabAt(x, r + 1))) || onRungs(x, r), n = hash(x, y, 638);
       let c;
       if (slab) {
         // A slab bulges out of the turf like the benches behind: its top edge catches the sun, its foot is
@@ -189,12 +206,19 @@ function paintMain(S, near) {
           : frac(inner * 55 + 0.4 * vnoise(x / 20, y / 6, 634)) < 0.12 && inner > 0.03 ? R.granite[2] : pick('granite', 0.58 + 2.2 * Math.min(inner, 0.12) + 0.08 * (vnoise(x / 9, y / 4, 635) - 0.5) + (n < 0.03 ? -0.2 : 0), x, y, 0.5);
       }
       else if (r >= -2 && r <= 3) c = n < 0.08 ? R.rock[2] : pick('dirt', 0.6 - Math.abs(r - 0.5) * 0.06 + 0.25 * (vnoise(x / 5, y / 2, 633) - 0.5), x, y, 0.7);
+      else if (hash(x >> 1, y >> 1, 650) < bu) {
+        // Burnt ground: grey ash and black duff in patches, green coming back through it in drifts, bits of
+        // charcoal lying about, and now and then a bleached stick.
+        const green = fbm(x / 30, y / 10, 651, 3), ashy = fbm(x / 17, y / 7, 652, 2);
+        c = green > 0.56 ? pick('grass', 0.42 + 0.5 * (green - 0.56) * 4 + 0.14 * (hash(x >> 1, y >> 1, 653) - 0.5) - smooth(40, 200, r) * 0.2, x, y, 0.4) : ashy > 0.5 ? pick('ash', 0.45 + 0.9 * (ashy - 0.5) + 0.2 * (n - 0.5), x, y, 0.5) : fbm(x / 11, y / 5, 654, 2) > 0.6 ? R.basalt[n < 0.5 ? 0 : 1] : R.ash[n < 0.6 ? 0 : 1];
+        if (n < 0.025) c = R.ink[0]; else if (n > 0.99 && green < 0.56) c = R.rock[3];
+      }
       else {
         c = pick(fbm(x / 24, y / 9, 637, 2) > 0.52 ? 'moss' : 'grass', 0.52 + 0.3 * (fbm(x / 22, y / 12, 648, 3) - 0.5) + 0.12 * (hash(x >> 1, y >> 1, 649) - 0.5) - smooth(40, 200, r) * 0.25, x, y, 0.35);
         if (n < 0.1 * near(x, r)) c = R.larch[n < 0.04 * near(x, r) ? 3 : 2];
       }
       if (slab && r >= -2 && r <= 3) c = pick('granite', 0.86, x, y, 0.5);
-      if (r < -2 && y - (gy - 14) < 1 && x >= RUNG.top) c = R.moss[1];
+      if (r < -2 && y - (gy - 14) < 1 && (x >= RUNG.top || x < WALL0)) c = x < WALL0 ? R.basalt[0] : R.moss[1];
       if (step && r >= 0 && r < 3) c = R.rock[1];
       S.set(x, y, c);
     }
@@ -205,6 +229,73 @@ function paintMain(S, near) {
     for (let i = -3; i <= 3; i++) { S.set(x + i, y, R.rock[0]); S.set(x + i, y + 1, R.rock[2]); }
     S.set(x - 3, y + 1, R.rock[0]); S.set(x + 3, y + 1, R.rock[0]);
   }
+}
+
+// The dry country behind the burn (round 8, C2, after a picture): far back, mesas with a dark rim of basalt
+// over banded slopes of ochre and mauve, the badlands; in front of them the coulee's wall, a row of basalt
+// columns over its talus, broken by gaps; nearer, two rows of golden swells, lit on the side turned to the sun
+// and striped as the wheat is; and sage on the flat at their feet. It all runs down to nothing at its east
+// end (`DRY.end`), where the granite takes over.
+function paintDry(S) {
+  // It stands tall at its west end, drops below the top of the granite wall further east (`low`), and runs
+  // out to nothing over its last stretch (`out`).
+  const low = x => lerp(1, 0.46, smooth(520, 700, x)), out = x => smooth(DRY.end, DRY.end - 180, x), sc = x => low(x) * out(x);
+  const hA = x => sc(x) * Math.min(136, 122 + 44 * (fbm(x / 150, 2.1, 700, 2) - 0.5));
+  const hB = x => sc(x) * (92 + 22 * (vnoise(x / 90, 5, 703) - 0.5)) * lerp(0.5, 1, smooth(0.3, 0.44, vnoise(x / 140, 7, 704)));
+  const HILLS = [[50, 20, 75], [36, 15, 55], [22, 11, 38]];
+  const hC = (x, k) => sc(x) * (HILLS[k][0] + HILLS[k][1] * Math.sin(x / HILLS[k][2] + 2.3 * k + 1.4 * vnoise(x / 100, k, 705)));
+  const BANDS = [R.ochre[2], R.mauve[3], R.ochre[3], R.mauve[2], R.ochre[1], R.ochre[2]];
+  for (let x = 0; x < DRY.end; x++) {
+    // The rim caps the mesa only where its top is level; where the top falls away it is an eroded slope.
+    const a = Math.round(hA(x)), flat = Math.abs(hA(x + 3) - hA(x - 3)) < 1.6;
+    for (let y = -a; y < 0; y++) { const d = y + a, gully = vnoise(x / 3.5, y / 70, 702) > 0.7, talus = -y < a * 0.3 + 6 * vnoise(x / 14, 1, 712);
+      S.set(x, y, d < 5 && a > 30 && flat ? (d < 1 ? R.basalt[3] : x % 4 === 3 ? R.basalt[0] : R.basalt[1 + (hash(x >> 2, 0, 707) < 0.5 ? 1 : 0)])
+        : talus || (!flat && d < 9) ? R.ochre[bayer(x, y) < 0.35 ? 3 : 2] : gully ? R.mauve[1] : BANDS[Math.floor((y + 400 + 2.5 * vnoise(x / 30, 3, 701)) / 6) % 6]); }
+    const b = Math.round(hB(x));
+    for (let y = -b; y < 0; y++) { const d = y + b, cell = Math.floor(x / 3);
+      S.set(x, y, d < 1 ? R.ash[3] : d < b * 0.5 ? (x % 3 === 2 ? R.basalt[0] : R.basalt[(x % 3 === 0 ? 3 : 2) - (hash(cell, 0, 708) < 0.3 ? 1 : 0)]) : hash(x, y, 709) < 0.3 ? R.basalt[1] : R.ash[hash(x >> 1, y >> 1, 710) < 0.5 ? 1 : 2]); }
+    for (const k of [0, 1, 2]) { const c = Math.round(hC(x, k)), slope = clamp((hC(x + 3, k) - hC(x - 3, k)) / 6, -0.5, 0.5);
+      for (let y = -c; y < 0; y++) { const d = y + c, v = clamp(Math.round(1.5 + 2.4 * slope + 0.8 * (0.5 - d / Math.max(1, c)) + (bayer(x, y) - 0.5) * 0.9), 0, 3), strip = d > 2 && (Math.floor(d / 3 + 0.6 * vnoise(x / 40, k, 706)) & 1) === 1;
+        S.set(x, y, d < 1 ? R.dry[3] : v === 2 && strip ? R.mustard[2] : R.dry[v]); } }
+    if (out(x) > 0.02) for (let y = -2; y < S.h - S.up; y++) { const n = hash(x >> 1, y >> 1, 711); S.set(x, y, n < 0.26 ? R.sage[1] : n < 0.36 ? R.sage[2] : n > 0.93 ? R.dry[0] : R.dry[1]); }
+  }
+}
+
+// A dead tree of the burn, at the scene's size (round 8, C2, after a picture): a straight, tapering trunk
+// with a small lean, black with flecks of silver where the char has flaked and a little bronze bark left, or
+// all weathered silver; lit on its left, dark on its right; a snapped or a spiked top; and stub limbs
+// angled up, alternately left and right.
+function makeBurnSnag(seed, H, silver) {
+  const rand = rng(seed), cx = 14, b = new BM(29, H + 3); b.ox = cx; b.oy = H + 1;
+  const C = silver ? [R.rock[1], R.rock[2], R.rock[3], R.rock[4]] : [R.ink[0], R.basalt[0], R.basalt[1], R.basalt[2]];
+  const w0 = H > 70 ? 6 : H > 48 ? 5 : 4, lean = (rand() - 0.5) * 3, snapped = rand() < 0.6, cut = snapped ? 2 + Math.round(H * 0.08 * rand()) : 1;
+  const wAt = y => Math.max(1, Math.round(w0 * (0.35 + 0.65 * y / H))), xAt = y => cx + Math.round(lean * (1 - y / H)) - (wAt(y) >> 1);
+  for (let y = cut; y <= H; y++) { const w = wAt(y), x0 = xAt(y);
+    for (let i = 0; i < w; i++) { const f = hash(seed + i, y, 23); let c = i === 0 ? C[3] : i === w - 1 ? C[0] : C[1 + (hash(seed, y >> 2, 21) < 0.4 ? 1 : 0)];
+      if (!silver && f < 0.07) c = R.rock[3]; else if (!silver && f > 0.97) c = R.bark[2];
+      b.set(x0 + i, y, c); } }
+  if (snapped) { b.set(xAt(cut), cut - 1, C[3]); b.set(xAt(cut), cut - 2, C[2]); }
+  for (let k = 0, n = 4 + (rand() * 5 | 0); k < n; k++) { const y = Math.round(cut + 3 + rand() * H * 0.7), sd = k & 1 ? 1 : -1, len = 3 + (rand() * H / 8 | 0), x0 = sd > 0 ? xAt(y) + wAt(y) - 1 : xAt(y);
+    for (let d = 1; d <= len; d++) b.set(x0 + sd * d, y - Math.floor(d * (d > len * 0.6 ? 0.9 : 0.5)), sd < 0 ? C[3] : C[1]); }
+  return b;
+}
+// Fireweed at the scene's size: a few tall stalks, leaves in pairs up the lower half, the upper half a spike
+// of magenta flowers set to either side in turn, the buds at the tip palest. The spike sways.
+function makeBurnFireweed(seed) {
+  const rand = rng(seed), b = new BM(13, 20), n = 2 + (rand() * 3 | 0); b.ox = 6; b.oy = 19;
+  for (let k = 0; k < n; k++) { const x = clamp(Math.round(1 + k * 10 / Math.max(1, n - 1) + (rand() - 0.5) * 2), 1, 11), tall = 10 + (rand() * 9 | 0), bloom = Math.round(tall * 0.55);
+    for (let j = 0; j < tall; j++) { const y = 19 - j, f = j - (tall - bloom);
+      if (f < 0) { b.set(x, y, R.grass[1]); if (j & 1) b.set(x + (j % 4 === 1 ? -1 : 1), y, R.grass[j % 4 === 1 ? 3 : 2]); }
+      else { b.set(x, y, j === tall - 1 ? R.pink[2] : R.fireweed[0]); if (j < tall - 1) b.set(x + (f & 1 ? 1 : -1), y, R.fireweed[f > bloom - 4 || hash(seed + k, j, 24) < 0.4 ? 1 : 0]); } } }
+  return b;
+}
+// A burnt log on the ground: black, a line of silver along its top, a stub or two standing off it.
+function makeBurnLog(seed) {
+  const rand = rng(seed), len = 26 + (rand() * 20 | 0), tilt = (rand() - 0.5) * 3, b = new BM(len + 6, 11); b.ox = b.w >> 1; b.oy = 9;
+  for (let t = 0; t < len; t++) { const y = Math.round(6 + tilt * (t / len - 0.5));
+    b.set(3 + t, y - 1, hash(t, seed, 25) < 0.3 ? R.rock[3] : R.basalt[2]); b.set(3 + t, y, R.basalt[t === len - 1 ? 3 : 1]); b.set(3 + t, y + 1, R.basalt[0]); b.set(3 + t, y + 2, R.ink[0]); }
+  for (let k = 0; k < 2; k++) { const t = Math.round(len * (0.2 + 0.5 * rand())), y = Math.round(6 + tilt * (t / len - 0.5)); for (let d = 1; d <= 2 + (rand() * 2 | 0); d++) b.set(3 + t + (k ? d >> 1 : -(d >> 1)), y - 1 - d, R.basalt[1]); }
+  return b;
 }
 
 // A cairn: flat stones stacked smaller toward the top.
@@ -235,14 +326,32 @@ function buildLarches() {
   }
   // Nothing stands on the slab with the rungs, or in front of it.
   const offSlab = th => !(th.x > RUNG.top - RUNG.run - 22 && th.x < RUNG.top + 18 && th.y - g(th.x) < 76);
-  for (let i = things.length - 1; i >= 0; i--) if (!offSlab(things[i])) things.splice(i, 1);
+  // No larch stands in the burn either.
+  for (let i = things.length - 1; i >= 0; i--) if (!offSlab(things[i]) || things[i].x < RUNG.top - RUNG.run - 16) things.splice(i, 1);
   const trees = things.map(th => [th.x, th.y - g(th.x), th.tree.w]);
   // The near ground's strip reaches as high as the ground does. It used to stop 20 rows above the start's
   // level, and the benches climb twice that by the end, so the last of the trail, with its cairns, rocks and
   // larches, stood in the air above a ground that had been cut off (round 5, T67).
   let high = 0; for (let x = 0; x < SW; x++) high = Math.max(high, 16 - Math.min(g(x), bench(x)));
-  const main = new Strip(SW, high, 600); paintMain(main, (x, r) => { let a = 0; for (const [tx, ty, tw] of trees) { const d = Math.abs(x - tx) / (tw + 6) + Math.abs(r - ty) / 14; if (d < 1) a = Math.max(a, 1 - d); } return a; });
+  const strip = new Strip(SW + OFF, high, 600), main = { h: strip.h, up: strip.up, set: (x, y, c) => strip.set(x + OFF, y, c), stamp: (bm, x, y, flip) => strip.stamp(bm, x + OFF, y, flip) };
+  paintMain(main, (x, r) => { let a = 0; for (const [tx, ty, tw] of trees) { const d = Math.abs(x - tx) / (tw + 6) + Math.abs(r - ty) / 14; if (d < 1) a = Math.max(a, 1 - d); } return a; });
   for (let n = 0; n < 26; n++) { const x = Math.round(rand() * SW), y = (rand() < 0.5 ? -6 : 10 + rand() * 90) | 0; things.push({ bm: makeBoulder(660 + n, 3 + rand() * 6), x, y: g(x) + y }); }
+  // The burn (round 8, C2), on dice of its own so the basin's things stay where they were: dead trees behind
+  // the trail on the verge and in front of it down the slope, nearer ones bigger, thinning out toward the
+  // rungs; fireweed in drifts between them; and a few burnt logs.
+  const dry = new Strip(DRY.w, 150, 24); paintDry(dry);
+  { const br = rng(62), FWB = Array.from({ length: 8 }, (_, i) => makeBurnFireweed(720 + i)), FW = FWB.map(b => swaying(b, 10)), edge = RUNG.top - RUNG.run;
+    for (let x = -OFF + 30, n = 0; x < edge - 14; x += 9 + br() * 26) { const front = br() < 0.55, y = front ? 10 + Math.round(br() * br() * 150) : -5 - Math.round(br() * 7), roll = br(), silver = br() < 0.15, tall = br(), flip = br() < 0.5;
+      if (roll > burnt(x) || fbm(x / 90, front ? 4 : 5, 655, 2) < 0.36) continue;
+      things.push({ bm: makeBurnSnag(700 + n++, Math.round((44 + tall * 48) * (front ? 1 + y / 220 : 0.85)), silver), x: Math.round(x), y: g(x) + y, flip }); }
+    for (let x = -OFF + 10; x < edge + 6; x += 3 + br() * 9) { const front = br() < 0.6, y = front ? 5 + Math.round(br() * br() * 130) : -3 - Math.round(br() * 8), roll = br(), v = (br() * FW.length) | 0;
+      if ((y >= -4 && y <= 8) || fbm(x / 26, y / 12, 656, 2) < 0.46 || roll > 0.25 + burnt(x)) continue;
+      things.push({ tree: FW[v], x: Math.round(x), y: g(x) + y }); }
+    for (let n = 0; n < 7; n++) { const x = Math.round(XB - 300 + br() * (BURN.len + 300)), y = br() < 0.5 ? -6 : 14 + Math.round(br() * 70); things.push({ bm: makeBurnLog(740 + n), x, y: g(x) + y, flip: br() < 0.5 }); }
+    // Far down the slope, which only a tall screen shows: fireweed painted into the ground, as the far
+    // huckleberry is, and a few big dead trees.
+    for (let n = 0; n < 150; n++) { const x = Math.round(-OFF + br() * (edge + OFF)), y = 135 + Math.round(br() * 420), v = (br() * FWB.length) | 0; if (fbm(x / 26, y / 12, 656, 2) > 0.46 && br() < burnt(x)) main.stamp(FWB[v], x, g(x) + y, false); }
+    for (let n = 0; n < 16; n++) { const x = Math.round(-OFF + 30 + br() * (edge - 60 + OFF)), y = 170 + Math.round(br() * 330), tall = br(), flip = br() < 0.5; things.push({ bm: makeBurnSnag(760 + n, Math.round(110 + tall * 60), n % 6 === 0), x, y: g(x) + y, flip }); } }
   for (let x = X0 - 60; x < SW; x += 1) if (bench(x + 1) < bench(x) && bench(x) >= bench(x - 3)) { things.push({ bm: makeCairn(670 + x), x: x + 6, y: g(x + 6) - 3 + bench(x) - bench(x + 6) }); x += 60; }
   // Goats (G5). A nanny and her kid (behind her, facing her) on the first broad slab below the trail past the scene's first third;
   // a billy on the verge above it past two thirds, who turns to watch him go by.
@@ -262,7 +371,7 @@ function buildLarches() {
   const hucks = [0, 1, 2, 3, 4, 5].map(i => [0.8, 1.05, 1.35, 1.7].map(s => makeHuckleberry(680 + i, s)));
   // The ones far down the slope, which only a tall screen shows, are painted into the ground: nothing they
   // could stand in front of is that low.
-  for (const p of huckClumps(0, SW, -12, 590, (x, r) => huckAt(x, g(x) + r), (x, r) => !(r >= -5 && r <= 7) && !(x < RUNG.top + 4 && r < 0) && !slabAt(x, r) && !slabAt(x - 5, r) && !slabAt(x + 5, r), 681, 0.6)) {
+  for (const p of huckClumps(0, SW, -12, 590, (x, r) => huckAt(x, g(x) + r), (x, r) => x > RUNG.top - RUNG.run - 30 && !(r >= -5 && r <= 7) && !(x < RUNG.top + 4 && r < 0) && !slabAt(x, r) && !slabAt(x - 5, r) && !slabAt(x + 5, r), 681, 0.6)) {
     const bm = hucks[p.v][p.s + (p.y > 90 ? 1 : 0)];
     if (p.y > 200) main.stamp(bm, p.x, g(p.x) + p.y, p.flip); else things.push({ bm, x: p.x, y: g(p.x) + p.y, flip: p.flip, huck: true });
   }
@@ -308,7 +417,7 @@ function buildLarches() {
     },
     draw(scr, env, arg, q) {
       const { VW, VH, fb } = scr, { t, tq } = env, dir = arg.dir < 0 ? -1 : 1;
-      const me = at(q), mx = me.x, d = Math.max(0, mx - X0), my = me.y, up = RUNG.rise * me.rung;
+      const me = at(q), mx = me.x, d = me.d, my = me.y, up = RUNG.rise * me.rung;
       cam += (mx - cam) * (env.calm ? 1 : Math.min(1, env.dt * 8));
       const camX = Math.round(cam - VW * (scr.narrow ? 0.5 : 0.4) + env.look.x * 0.5 * dir), base = baseline(scr, env.shown, st) - Math.round(0.8 * (my - bench(RUNG.top)) * (me.rung < 1 ? 1 : 0)), hor = base - 64;
 
@@ -330,7 +439,8 @@ function buildLarches() {
       const tx = TX0 - Math.round(midX), surf = base - 30 + benchTop(TX0) + 2;
       for (let n = 0; n < 6; n++) { const x = tx + Math.round(hash(n, 1, 680) * (TX1 - TX0)); if (frac(t * 0.7 + hash(n, 2, 680)) < 0.3 && x >= 0 && x < VW) scr.set(x, surf + 1 + (n & 1), R.white[1]); }
       for (let y = surf + 6; y < base; y++) if (frac((y - t * 30) / 6) < 0.3) scr.set(TX1 + 4 + Math.round(Math.sin((y - base + 30) / 5)) - Math.round(midX), y, R.white[1]);
-      drawStrip(scr, main, camX, base, false, R.moss[1]);
+      drawStrip(scr, dry, camX * DRY.p + DRY.k, base + DRY.y);
+      drawStrip(scr, strip, camX + OFF, base, false, R.moss[1]);
 
       list.length = 0;
       for (const th of things) if (th.x > camX - 40 && th.x < camX + VW + 40) list.push(th);
@@ -364,14 +474,14 @@ function buildLarches() {
         const sx = th.x - camX, sy = base + th.y;
         if (th.me) {
           focus.x = Math.round(sx); focus.y = Math.round(base + my) - 14;
-          if (me.rung >= 0.94) scr.shadow(Math.round(sx), Math.round(base + my), 5, 1);
-          if (me.rung < 0.94) { scr.put(rungFig[Math.floor(up / RUNG.step) & 1], Math.round(sx) - 4, Math.round(base + my) + 1, false); const k = Math.floor(up / (2 * RUNG.step)); if (env.moving && k > st.rung) env.sfx('tink'); st.rung = k; }
+          if (me.low || me.rung >= 0.94) scr.shadow(Math.round(sx), Math.round(base + my), 5, 1);
+          if (!me.low && me.rung < 0.94) { scr.put(rungFig[Math.floor(up / RUNG.step) & 1], Math.round(sx) - 4, Math.round(base + my) + 1, false); const k = Math.floor(up / (2 * RUNG.step)); if (env.moving && k > st.rung) env.sfx('tink'); st.rung = k; }
           else scr.put(env.moving ? run.side[Math.floor(d / 4.2) % 6] : run.sideIdle[0], sx, base + my, false);
         } else if (th.tree) {
           for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway * (1 + 2.5 * ge)); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
         } else scr.put(th.bm, sx, sy, !!th.flip);
       }
-      if (gu) needles(scr, gu[0], gu[1], base);
+      if (gu && !me.low) needles(scr, gu[0], gu[1], base);
       last = { camX, base, dir, VW };
       if (dir < 0) { mirror(fb, VW, VH); focus.x = VW - 1 - focus.x; }
     }

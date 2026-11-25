@@ -520,6 +520,9 @@ export function makeWorld() {
   // two fifths of its climb: from there on it is the high traverse and the moraine. Height on the map is
   // read the way the land lays it out: a pixel's row plus its depth, less for higher ground.
   const spiresIn = (() => { const P = paths.spires, h = q => { const a = P.at(q); return -(W.vAt(a.x, a.y) + a.y); }, h0 = h(0), h1 = h(1); for (let q = 0; q < 1; q += 0.002) if (h(q) - h0 >= 0.4 * (h1 - h0)) return q; return 0.5; })();
+  // The Peak's trail leaves the map where it comes up the step into Postmortem Burn (round 8, C2), a quarter
+  // of its climb done: the larch basin's scene begins in the burn.
+  const stackIn = (() => { const P = paths.stack, h = q => { const a = P.at(q); return -(W.vAt(a.x, a.y) + a.y); }, h0 = h(0), h1 = h(1); for (let q = 0; q < 1; q += 0.002) if (h(q) - h0 >= 0.25 * (h1 - h0)) return q; return 0.6; })();
   const lakeOut = (() => { const P = paths.lake; let best = 0, bd = 1e9; for (let q = 0.5; q < 1; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - spots.lakeShore[0], a.y - spots.lakeShore[1]); if (d < bd) { bd = d; best = q; } } return best; })();
   // Between the two the map is not shown: the forest scene stands for the trail from lakeIn to the lake's outlet
   // (lakeMid: where the trail comes nearest the lake's west end) and the lakeshore scene for the rest (round 5, F5).
@@ -656,7 +659,7 @@ export function makeWorld() {
     return { kind, name: UI.debug.animals[kind] || kind, homes: names.map(n => names.filter(m => m === n).length > 1 ? n + ' ' + (seen[n] = (seen[n] || 0) + 1) : n) }; });
 
   return {
-    name: 'world', paths, spawnList, spawn: (kind, i) => { const ok = crit.spawn(kind, i); for (const it of crit.items) if (!things.includes(it)) { things.push(it); still = null; } return ok; }, lakeIn, lakeMid, lakeOut, spiresIn, T, WW, WH,
+    name: 'world', paths, spawnList, spawn: (kind, i) => { const ok = crit.spawn(kind, i); for (const it of crit.items) if (!things.includes(it)) { things.push(it); still = null; } return ok; }, lakeIn, lakeMid, lakeOut, spiresIn, stackIn, T, WW, WH,
     // For the trail map sheet (L9): the peak's summit and the six Spires summits on the map, and the picture's
     // frame: the box round the Trailhead and the three destinations' countries with a margin, widened to the
     // sheet's shape (8 by 5) and kept on the map.
