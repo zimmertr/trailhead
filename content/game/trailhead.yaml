@@ -3,22 +3,23 @@
 # After an edit, npm run words (make words) writes web/www/words.js.
 
 INTRO: is a principal platform engineer based out of Seattle, WA. When he's not playing in the mountains, he's usually hacking on computers. Choose a destination to learn more!
+# In the order they lie on the map, left to right (round 8, note 17).
 DESTINATIONS:
   - route: lake
     sign: Run to Reflection Lake
     about: to learn more about TJ
     dir: left
     slug: reflection-lake
-  - route: stack
-    sign: Climb Proficiency Peak
-    about: to learn more about his skills
-    dir: right
-    slug: proficiency-peak
   - route: spires
     sign: Climb the Sideproject Spires
     about: to see some of his personal projects
     dir: up
     slug: sideproject-spires
+  - route: stack
+    sign: Climb Proficiency Peak
+    about: to learn more about his skills
+    dir: right
+    slug: proficiency-peak
 LINKS:
   github:
     - GitHub

@@ -1,7 +1,7 @@
 // Reflection Lake, part two: out of the trees at the lake itself, turquoise under a huge sweeping
 // peak. He runs left to right along the near shore, stops for the view with the map out, and
 // again at the boulder where his journal lies open.
-import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, windAt, veilTable, SHADE } from './core.js';
+import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, pick, BM, outline, windAt, veilTable, SHADE, RAMP_OF, saw } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell } from './side.js';
 import { makeTrunk, makeLimb, swordFern } from './forest.js';
 import { makeConifer, makeFir, makeSpruce, makeBoulder, makeCloud, makeSmallSign, makeBush, makeMaple } from './sprites.js';
@@ -10,6 +10,7 @@ import { makeRunner, sideFig, cheerFig, swimFig } from './tj.js';
 import { NAMES } from './content.js';
 import { drawLens, startLens } from './events.js';
 import { paintMonolith, moraineLakes, faceSnow, MW as PMW, MH as PMH, TOPY as PTOPY } from './monolith.js';
+import { rain, rings, veil, mist, shadow } from './weather.js';
 
 // Round 5 (T30): the lake on the map is about 1.6 times as wide, so the shore he runs along is longer
 // than round 4's (624 over 8 s), at the same pace.
@@ -180,11 +181,13 @@ function buildLakeside() {
         else if (a <= 2 ? hash(i, y >> 1, 143 + c) < 0.75 : hash(i, y >> 1, 143 + c) < 0.3) farS.set(c + cx + i, y, pick('rock', 0.4 + 0.4 * hash(i >> 1, y >> 1, 144 + c), c + i, y, 0.5)); } }
     for (let i = -9; i <= 9; i++) for (let y = -3; y < 2; y++) if (Math.abs(i) > 2 && y > -4 + Math.abs(i) * 0.35 - hash(i, 3, 145 + c)) farS.set(c + i, y, hash(i, y, 146 + c) < 0.3 ? R.rock[3] : R.gold[5]);
     return bed; });
-  // The near shore: slabs and gravel at the water, the trail, then meadow down to the bottom.
-  const main = new Strip(SW, 24, 240);
+  // The near shore: slabs and gravel at the water, the trail, then meadow down to the bottom. A tall,
+  // narrow window sees much further down the meadow than a wide one does (round 8, I1: on a phone the
+  // painting stopped 240 rows down, above a band of one flat green), so the meadow goes on to DEEP.
+  const DEEP = 420, main = new Strip(SW, 24, DEEP);
   for (let x = 0; x < SW; x++) {
     const sy = shore(x), gy = g(x);
-    for (let y = sy; y < 240; y++) {
+    for (let y = sy; y < DEEP; y++) {
       const r = y - gy; let c;
       const sT = 0.62 - smooth(6, -8, r) * 0.22 + 0.09 * smooth(8, 30, r) * (1 - woodAt(x));
       const slab = fbm(x / 34, y / 15, 141, 3) > sT, gravel = fbm(x / 13, y / 7, 142, 3);
@@ -228,7 +231,11 @@ function buildLakeside() {
     }
   }
   const things = [];
-  const boulders = [3, 4, 5, 6, 8, 10, 12].map((r, i) => makeBoulder(150 + i, r));
+  // A boulder, marked with the row its crown is in; and its stone a step darker, for when it is wet, made
+  // the first time it rains on it (what lies on it, the journal, keeps its colours).
+  const rock = bm => { let top = 0; while (top < bm.h - 1 && !bm.d.subarray(top * bm.w, (top + 1) * bm.w).some(c => c)) top++; bm.rock = top + 1; return bm; };
+  const wetRock = bm => bm.wet || (bm.wet = bm.d.map(c => RAMP_OF[c] === 'rock' ? SHADE[c] : 0));
+  const boulders = [3, 4, 5, 6, 8, 10, 12].map((r, i) => rock(makeBoulder(150 + i, r)));
   const firs = Array.from({ length: 6 }, (_, i) => makeFir(310 + i, true)), spruces = Array.from({ length: 4 }, (_, i) => makeSpruce(230 + i, true));
   const bushes = [0, 1, 2].map(i => makeBush(740 + i, 'heather')).concat([0, 1].map(i => makeBush(750 + i, 'huck')));
   const xMap = X0 + D_MAP, xNote = X0 + D_NOTE, xMarmot = X0 + D_MARMOT;
@@ -247,7 +254,7 @@ function buildLakeside() {
     let bx = 0, best = -1;
     for (let x = X0 + 200; x < X0 + LEN - 60; x += 3) { if (stopsX.some(sx => Math.abs(x - sx) < 44)) continue; const v = vnoise(x / 80, 4, 595); if (v > best) { best = v; bx = x; } }
     // Low enough in the meadow that its top stays under the trail, so it never hides his feet.
-    const by = g(bx) + 37; things.push({ bm: makeBoulder(163, 15), x: bx, y: by });
+    const by = g(bx) + 37; things.push({ bm: rock(makeBoulder(163, 15)), x: bx, y: by });
     for (let n = 0; n < 70; n++) { const x = Math.round(bx + (cr() - 0.5) * 60), y = Math.round(by + (cr() - 0.2) * 10); if (isGrass(x, y) && isGrass(x, y - 1)) { main.set(x, y - 1, R.white[1]); main.set(x, y, n & 1 ? R.white[0] : R.grass[1]); } }
     // Clumps of them where a slow field says so: the tallest in the middle, smaller ones round it.
     // None in front of the trail where he stops, and none on the boulder.
@@ -263,11 +270,30 @@ function buildLakeside() {
     }
     for (let n = 0; n < 160; n++) { const x = X0 + 120 + cr() * (SW - X0 - 120), y = 8 + cr() * 228; if (driftAt(x, y) === 'heather') things.push({ bm: bushes[(cr() * 3) | 0], x: Math.round(x), y: Math.round(y) }); }
   }
-  const marmotRock = makeBoulder(161, 11); things.push({ bm: marmotRock, x: xMarmot, y: shore(xMarmot) + 5 });
+  {
+    // The lower meadow, rows 236 to DEEP: the same tufts, flowers, stones, heather and firs, as thick as
+    // above, thrown by dice of their own so that the upper meadow stays as it was.
+    const lr = rng(598), rows = DEEP - 236, k = rows / 236, yy = () => 236 + lr() * (rows - 6);
+    for (let n = 0; n < 5000 * k; n++) { const x = (lr() * SW) | 0, y = yy() | 0; if (!isGrass(x, y) || !isGrass(x, y - 2)) continue; main.set(x, y - 2, R.grass[4]); main.set(x - 1, y - 1, R.grass[3]); main.set(x + 1, y - 1, R.grass[3]); main.set(x, y, R.grass[1]); }
+    for (let n = 0; n < 2860 * k; n++) {
+      const cx = X0 + 100 + lr() * (SW - X0 - 100), cy = yy(), dk = driftAt(cx, cy); if (!dk) continue;
+      for (let j = 0, m = 4 + (lr() * 7 | 0); j < m; j++) {
+        const x = Math.round(cx + (lr() - 0.5) * 14), y = Math.round(cy + (lr() - 0.5) * 6); if (!isGrass(x, y) || !isGrass(x, y - 1)) continue;
+        if (dk === 'lupine') { main.set(x, y - 2, R.lupine[2]); main.set(x, y - 1, R.lupine[1]); main.set(x, y, R.grass[1]); }
+        else if (dk === 'red') { main.set(x, y - 1, R.red[2]); main.set(x, y, R.red[1]); }
+        else if (dk === 'white') { main.set(x, y - 1, R.white[1]); main.set(x + (j & 1), y, R.white[0]); }
+        else { main.set(x, y, R.moss[1]); main.set(x + 1, y, R.moss[1]); main.set(x, y - 1, R.pink[1]); main.set(x + 1, y - 1, (j & 1) ? R.pink[2] : R.moss[2]); }
+      }
+    }
+    for (let n = 0; n < 60 * k; n++) { const x = Math.round(lr() * SW), y = Math.round(yy()); things.push(lr() < 0.45 ? { bm: boulders[3 + (lr() * 4 | 0)], x, y } : { bm: bushes[(lr() * 5) | 0], x, y }); }
+    for (let n = 0; n < 160 * k; n++) { const x = X0 + 120 + lr() * (SW - X0 - 120), y = yy(); if (driftAt(x, y) === 'heather') things.push({ bm: bushes[(lr() * 3) | 0], x: Math.round(x), y: Math.round(y) }); }
+    for (let n = 0; n < 34 * k; n++) { const x = lr() * SW, y = yy(), tr = lr() < 0.6 ? spruces[(lr() * 4) | 0] : firs[(lr() * 6) | 0]; things.push({ tree: woodAt(x) > 0.3 ? tr : spires[(lr() * 5) | 0], x: Math.round(x), y: Math.round(y) }); }
+  }
+  const marmotRock = rock(makeBoulder(161, 11)); things.push({ bm: marmotRock, x: xMarmot, y: shore(xMarmot) + 5 });
   // How far above its foot the rock's top is, so the marmot can lie on the rock itself: the picture of a rock has empty rows above it.
   let rockTop = 0; while (rockTop < marmotRock.h && !marmotRock.d[rockTop * marmotRock.w + marmotRock.ox]) rockTop++;
   rockTop = marmotRock.oy - rockTop;
-  const noteRock = makeBoulder(162, 9);
+  const noteRock = rock(makeBoulder(162, 9));
   { const b = noteRock, x = b.ox - 1, y = b.oy - 13; for (let dx = 0; dx < 7; dx++) { b.set(x + dx, y, dx === 3 ? R.white[0] : R.white[1]); b.set(x + dx, y + 1, dx === 3 ? R.red[0] : R.white[0]); } b.set(x - 1, y + 1, R.red[1]); b.set(x + 7, y + 1, R.red[1]); b.set(x + 5, y - 1, R.navy[1]); }
   things.push({ bm: noteRock, x: xNote + 15, y: g(xNote) - 4 });
   const clouds = [0, 1, 2, 3].map(i => ({ bm: makeCloud(610 + i), x: i * 210, y: 30 + (i & 1) * 34 + i * 9, v: 2.5 + i }));
@@ -425,6 +451,14 @@ function buildLakeside() {
       }
       last = { camX, base, reach, isle: [ix, base + ISLE_Y], me: at ? [Math.round(at.x), Math.round(base + at.y)] : [X, base + my] };
 
+      // The world's weather here (round 8, E1). The marine layer stops short of the lake on the map, so the
+      // lake has its fringe: half the drizzle, a thin grey over the far view and mist thickening on the
+      // water while the deck is in, and the mist lingering as it lifts. The map's gusts cross the water as a
+      // dark ruffled band, its clouds' shadows cross the far shore, and the sun's glints go with the sun.
+      // wetK: how wet the rock and the trail are; soaking: while the drizzle is still setting in.
+      const sky = env.sky, wetK = sky ? sky.wet || 0 : 0, soaking = !!sky && sky.s < 40, rainK = sky ? 0.5 * sky.rain : 0, fogK = sky ? Math.max(sky.deck, sky.fog * 0.8) : 0, sun = (1 - smooth(0.55, 0.9, env.mix)) * (1 - 0.8 * fogK);
+      if (sky && sky.deck > 0.5) saw('marine'); if (sky && sky.rain > 0.5) saw('rain');
+      const gu = sky ? sky.gust('lake') : null, cs = sky ? sky.shade('lake') : null;
       // Sky, lightest at the horizon.
       const sb = R.skyband, hor = base + FAR;
       for (let y = 0; y < Math.min(VH, hor + 2); y++) {
@@ -444,6 +478,8 @@ function buildLakeside() {
       if (DEBUG.clouds) drawLens(scr, 600 - Math.round(peakX), hor + sink - PH + 2, t, MS);
       const farX = camX * 0.45 + 200;
       drawStrip(scr, farS, farX, hor);
+      if (cs !== null) shadow(scr, cs, hor - 22, hor + 1);
+      veil(scr, 0.45 * fogK, 0, hor + 1);
 
       // The lake, with the far shore and Monolith upside down in it.
       const sw = at && (at.k === 'swim' || (at.k === 'wade' && at.depth >= 1)) ? [at.x, base + at.y] : null;
@@ -452,12 +488,13 @@ function buildLakeside() {
       // where it meets the lake.
       INFLOW.forEach((c, i) => { const x = ((c - Math.round(farX)) % farS.w + farS.w) % farS.w; if (x > -12 && x < VW + 12) inflowWater(scr, x, hor, t, beds[i]); });
       const tarn = R.tarn;
-      // Sun on the water, and now and then a trout rises.
+      // Sun on the water, and now and then a trout rises; rain takes the glints and holds the fish (ENGINE, Weather).
+      const dry = 1 - smooth(0, 0.3, rainK);
       for (let k = 0; k < 40; k++) {
         const sx = Math.round((hash(k, 1, 150) * 600 - camX * 0.7) % VW + VW) % VW, sy = hor + 8 + Math.round(hash(k, 2, 150) * (-FAR - 20));
-        if (frac(t * 0.8 + hash(k, 3, 150)) < 0.25 && sy < base + shore(camX + sx) - 2) { scr.set(sx, sy, R.white[1]); scr.set(sx + 1, sy, tarn[5]); }
+        if (frac(t * 0.8 + hash(k, 3, 150)) < 0.25 * sun * dry && sy < base + shore(camX + sx) - 2) { scr.set(sx, sy, R.white[1]); scr.set(sx + 1, sy, tarn[5]); }
       }
-      { const k = Math.floor(t / 5.3), u = frac(t / 5.3) * 5.3, rx = Math.round(hash(k, 1, 151) * VW), ry = hor + 14 + Math.round(hash(k, 2, 151) * 18); if (u < 1.6) { const r = 1 + u * 5; for (let a = 0; a < 24; a++) { const x = rx + Math.round(Math.cos(a / 24 * 6.283) * r), y = ry + Math.round(Math.sin(a / 24 * 6.283) * r * 0.35); if (y < base + shore(camX + x) - 1 && y > hor + 2) scr.set(x, y, tarn[5]); } } }
+      { const k = Math.floor(t / 5.3), u = frac(t / 5.3) * 5.3, rx = Math.round(hash(k, 1, 151) * VW), ry = hor + 14 + Math.round(hash(k, 2, 151) * 18); if (u < 1.6 && dry > 0.95) { const r = 1 + u * 5; for (let a = 0; a < 24; a++) { const x = rx + Math.round(Math.cos(a / 24 * 6.283) * r), y = ry + Math.round(Math.sin(a / 24 * 6.283) * r * 0.35); if (y < base + shore(camX + x) - 1 && y > hor + 2) scr.set(x, y, tarn[5]); } } }
       // A loon and her chick paddle along the far side, leaving a wake.
       const ld = t - loonDive; if (ld > 3.4 && !loonUp) { loonUp = true; loonOff += 22; env.sfx('wail'); }
       for (let k = 0; k < 2; k++) {
@@ -487,13 +524,26 @@ function buildLakeside() {
         scr.put(isle, ix, iy, false);
         for (const part of isleFir.parts) { const [wx, wy] = windAt(ISLE_X + (part.lx || 0), ISLE_Y - 5 + part.y, tq, part.sway); scr.blit(part.bm, ix + FIR_DX + part.x + wx, iy - 5 + part.y + wy); }
       }
+      // Rain rings, and a gust: a band of water ruffled a step darker that crosses the lake in three seconds,
+      // wider and faster the nearer it is, with a white crest here and there.
+      const wet = (x, y) => y > hor + 3 && y < base + shore(camX + x) - 2;
+      rings(scr, t, rainK * 1.6, hor + 6, base - 10, wet);
+      if (gu) for (let y = hor + 6; y < Math.min(VH, base - 8); y++) { const dy = y - hor, w = 14 + dy * 0.9, cx = -w + (VW + 2 * w + 60) * gu[0] / 3 + dy * 1.4 + 9 * Math.sin(y * 0.7), beat = Math.floor(t * 7);
+        for (let x = Math.max(0, Math.round(cx - w)); x < Math.min(VW, Math.round(cx + w)); x++) { if (!wet(x, y) || (x + 2 * y + beat) % 3 === 0) continue; const q = y * VW + x; fb[q] = hash(x >> 2, y + beat, 153) < 0.03 * gu[2] ? R.white[1] : SHADE[fb[q]]; } }
       if (DEBUG.mist) lakeMist(scr, camX, hor, base + 2, t, mistV);
+      mist(scr, t, 0.9 * fogK, hor + 5, 13);
       // The wall of the forest, over the water and the far shore.
       for (let x = Math.max(0, WX - camX), x1 = Math.min(VW, WX + WW - camX); x < x1; x++) {
         const col = camX + x - WX;
         for (let y = 0, y1 = Math.min(VH, base + 10); y < y1; y++) { const c = woods.d[Math.max(0, y - base + WUP) * WW + col]; if (c) fb[y * VW + x] = c; }
       }
       drawStrip(scr, main, camX, base, false, R.grass[1]);
+      // What is wet in this frame, for the checks: pixels of boulder, those above a boulder's middle, and of trail.
+      const seen = window.__wet || (window.__wet = {}); seen.rock = seen.crown = seen.trail = 0;
+      // The trail's dirt, wet (round 8, H6): a step darker, and drying from its upper edge down in ragged patches.
+      if (wetK > 0.02) for (let x = 0; x < VW; x++) { const wx = camX + x, gy = base + g(wx);
+        for (let r = -3; r <= 4; r++) { const y = gy + r; if (y < 0 || y >= VH) continue; const q = y * VW + x, c = fb[q];
+          if (RAMP_OF[c] === 'dirt' && (soaking ? hash(wx, r, 172) < wetK : (r + 3) / 8 + 0.6 * (vnoise(wx / 14, r / 2, 171) - 0.5) >= (1 - wetK) * 1.6 - 0.3)) { fb[q] = SHADE[c]; seen.trail++; } } }
 
       list.length = 0;
       for (const th of things) { const w = th.tree ? 30 : th.bm.w; if (th.x + w > camX && th.x - w < camX + VW) list.push(th); }
@@ -555,8 +605,13 @@ function buildLakeside() {
         } else if (th.tree) {
           for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
         } else if (th.tall) blitTall(scr, th.bm, sx - th.bm.ox, sy - th.bm.oy);
-        else scr.put(th.bm, sx, sy, th.flip);
+        else { scr.put(th.bm, sx, sy, th.flip);
+          // A boulder in the rain (round 8, H6): drops speckle it darker as the drizzle sets in, it stays dark
+          // while the ground is wet, and then it dries from the top down, its crown first.
+          if (wetK > 0.02 && th.bm.rock) { const b = th.bm, D = wetRock(b), x0 = th.flip ? sx - (b.w - 1 - b.ox) : sx - b.ox, y0 = sy - b.oy, line = b.rock - 1 + (1 - wetK) * (b.h - b.rock);
+            for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) { const c = D[j * b.w + (th.flip ? b.w - 1 - i : i)]; if (c && (soaking ? hash(i + th.x, j, 173) < wetK : j >= line + (bayer(i, j) < 0.5 ? 1 : 0))) { scr.set(x0 + i, y0 + j, c); seen.rock++; if (j < (b.rock - 1 + b.h) / 2 - 1) seen.crown++; } } } }
       }
+      rain(scr, t, rainK);
     }
   };
 }

@@ -8,6 +8,7 @@ import { ell, speck } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
 import { makeKayti } from './people.js';
 import { NAMES } from './content.js';
+import { veil, flurry, spindrift, shadow } from './weather.js';
 
 // The six projects, west to east along the wall (where each summit stands is in paintSpires).
 export const SPIRES = [
@@ -276,6 +277,9 @@ export function makeCamp() {
   ['.XX.XX.', 'XoXXXXX', 'XXXXXXx', '.XXXXx.', '..XXx..', '...x...'].forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') heart.set(x + 1, y + 1, ch === 'o' ? R.red[2] : ch === 'x' ? R.red[0] : R.red[1]); }));
   outline(heart, INK);
   const tent = dome('tent'), pot = stove(), flags = [makeFlag(0), makeFlag(1)];
+  // At Dusk the tent glows from inside, as the map's does (round 8, E1): the fabric warm, brightest low down
+  // and at the door.
+  const tentLit = dome('tent'); for (let j = 0; j < tentLit.h; j++) for (let i = 0; i < tentLit.w; i++) { const k = j * tentLit.w + i, v = tentLit.d[k]; if (v && v !== INK) tentLit.d[k] = v === R.navy[0] || (j > tentLit.h * 0.55 && bayer(i, j) < (j / tentLit.h - 0.4) * 1.6) ? R.lamp[1] : R.lamp[0]; }
   const goats = { stand: farGoat('stand'), look: farGoat('look'), graze: farGoat('graze'), kid: farGoat('stand', true) }, bird = [speck(0), speck(1)];
   const clouds = [0, 1, 2, 3].map(i => ({ bm: makeCloud(630 + i), x: i * 170, y: 0.1 + (i % 3) * 0.22 + i * 0.04, v: 3 + i * 1.6 }));
   const focus = { x: 0, y: 0 };
@@ -316,17 +320,24 @@ export function makeCamp() {
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (VW + 140)) - 70, c.y * yh * 0.8);
       for (let k = 0; k < 3; k++) { const bx = ((t * 14 + k * 17) % (VW + 120)) - 60; scr.put(bird[(Math.floor(t * 4) + k) & 1], bx + [0, 9, -7][k], yh * 0.3 + [0, 5, 9][k], false); }
       scr.blit(pic.front, 0, 0);
+      // The world's weather over the Spires (round 8, E1): the volcano's squall greys the towers and the ice
+      // and sends its snow across camp, the shadow of one of the map's clouds crosses the ice, and each of
+      // the map's gusts takes more snow off the tops, bends the stove's smoke and snaps the flags.
+      const sky = env.sky, gu = sky ? sky.gust('spires') : null, ge = gu ? Math.sin(Math.PI * gu[0] / 3) * gu[2] : 0, snowK = sky ? sky.snow : 0, blow = Math.max(0.8 * ge, sky ? sky.banner : 0);
+      veil(scr, 0.5 * snowK, 0, scr.VH, true);
+      { const cs = sky ? sky.shade('spires') : null; if (cs !== null) shadow(scr, cs, yh + 6, scr.VH); }
       // The wind takes snow off the three highest tops.
       const hi = Math.max(...geo.map(g => g.h));
+      spindrift(scr, t, blow, geo.filter(g => g.h > hi * 0.78).map(g => [g.x + 2, g.top + 1]), 46, 1);
       for (const g of geo) if (g.h > hi * 0.78) for (let k = 0; k < 14; k++) {
         const age = frac(t * 0.42 + k / 14 + g.x * 0.01), x = Math.round(g.x + 2 + age * (20 + (k % 4) * 5)), y = Math.round(g.top + 1 - Math.sin(age * 2.6) * 3 + (k % 3) - age * 2);
         if (age < 0.55 || bayer(x, y) > (age - 0.55) / 0.45) scr.set(x, y, age < 0.3 ? R.snow[4] : R.snow[3]);
       }
       // The tent, the stove and its smoke, flags on the tops he has stood on.
       const [cx, cy] = camp;
-      scr.put(tent, cx - 12, cy, false); scr.put(pot, cx + 9, cy + 3, false);
-      for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx + 9 + age * 9 + Math.sin(age * 6 + k)), Math.round(cy - 4 - age * 24), age < 0.5 ? R.white[1] : R.white[0]); }
-      for (const g of geo) if (env.done['spire:' + g.id]) scr.blit(flags[Math.floor(t * 5) & 1], g.x - 2, g.top - 14);
+      scr.put(env.mix > 0.5 ? tentLit : tent, cx - 12, cy, false); scr.put(pot, cx + 9, cy + 3, false);
+      for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx + 9 + age * (9 + 16 * ge) + Math.sin(age * 6 + k)), Math.round(cy - 4 - age * (24 - 8 * ge)), age < 0.5 ? R.white[1] : R.white[0]); }
+      for (const g of geo) if (env.done['spire:' + g.id]) scr.blit(flags[Math.floor(t * (5 + 7 * ge)) & 1], g.x - 2, g.top - 14);
       // The goats on their knoll out on the ice: the nanny looks about, the billy grazes at the lichen, and
       // every few seconds the kid bounces twice on the spot.
       { const [gx, gy] = pic.knoll, g = t - goatsGo, up = g < 1.6 ? Math.round(4 * Math.abs(Math.sin(g * Math.PI / 0.8))) : 0;
@@ -348,6 +359,7 @@ export function makeCamp() {
         const k = (u - 0.5) / 2.7, hx = Math.round((kx + sx) / 2 + Math.sin(k * 7) * 1.6) - 4, hy = ky - 26 - Math.round(k * 22);
         for (let j = 0; j < heart.h; j++) for (let i = 0; i < heart.w; i++) { const c = heart.d[j * heart.w + i]; if (c && (k < 0.7 || bayer(hx + i, hy + j) > (k - 0.7) / 0.3)) scr.set(hx + i, hy + j, c); }
       }
+      flurry(scr, t, snowK, 1);
       focus.x = mx; focus.y = my - 14;
     }
   };

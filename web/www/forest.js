@@ -2,14 +2,16 @@
 // stand on the bank behind the trail, a dark stream mirrors them in front of it, and the light
 // comes down through the canopy in slanting shafts. He runs right to left, the way the map sends him
 // in: west, away from the Trailhead.
-import { TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, SHADE, pick, BM, outline, disc, windAt, veilTable } from './core.js';
+import { covered, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, INK, LIGHT, SHADE, pick, BM, outline, disc, windAt, veilTable, saw } from './core.js';
 import { Strip, drawStrip, blitTall, baseline, shell, puffs } from './side.js';
 import { makeMaple, makeSpruce, makeFir, makeConifer, makeBoulder } from './sprites.js';
 import { elk, sasquatch, jay, slug, owl } from './fauna.js';
 import { makeRunner, sideFig } from './tj.js';
 import { NAMES } from './content.js';
 
-const SW = 1640, UP = 480, DOWN = 240;
+// DOWN: how far below the trail the floor is painted. A tall, narrow window sees further down it than a
+// wide one (round 8, I1: on a phone the painting stopped at 240, above a band of one flat green).
+const SW = 1640, UP = 480, DOWN = 320;
 const X0 = SW - 500, LEN = 640;
 const D_SIGN = 300, D_SLUG = 372, D_ELK = 452, D_GIANT = 524, D_STUMP = 132;
 let sasquatchSeen = false;
@@ -643,6 +645,8 @@ function buildForest() {
     else { const dy = sq(rand()) * 150; things.push({ bm: ferns[Math.min(8, 3 + Math.round(dy / 30) + (rand() * 3 | 0))], x: Math.round(x), y: gy + nearBank(x) + 6 + Math.round(dy), sway: 0.6 }); }
   }
   for (let n = 0; n < 150; n++) { const x = rand() * SW, dy = 30 + rand() * 170; things.push({ bm: ferns[5 + (rand() * 4 | 0)], x: Math.round(x), y: g(x) + nearBank(x) + Math.round(dy), sway: 0.6 }); }
+  // The rows a tall window adds have ferns of their own, thrown by their own dice so nothing above moves.
+  { const lr = rng(4310); for (let n = 0; n < 70; n++) { const x = lr() * SW; things.push({ bm: ferns[5 + (lr() * 4 | 0)], x: Math.round(x), y: 238 + Math.round(lr() * (DOWN - 246)), sway: 0.6 }); } }
   const logs = [makeNurseLog(41, 92), makeNurseLog(42, 64)];
   const TRAIL_LOGS = [[590, 0, -12], [206, 1, -15], [-150, 0, -14], [840, 1, -11]];
   for (const [d, k, by] of TRAIL_LOGS) { const x = X0 - d; things.push({ bm: logs[k], x, y: g(x) + by }); }
@@ -759,6 +763,8 @@ function buildForest() {
     enter(scr, arg, q) { cam = along(q * TOTAL)[0]; st.y = null; sasGo = null; },
     focus: () => focus,
     // The debug panel's start button (E5f): Sasquatch steps out at the far edge of the view, even if he has been seen this visit.
+    // The deer's eyes shine only at Dusk, so by Day their button is greyed out.
+    can: name => name !== 'eyeshine' || last.mix > 0.5,
     trigger(name, t) {
       if (name === 'eyeshine') { eyeGo = t; return true; }
       if (name === 'sasquatch') { sasquatchSeen = false; sasGo = t; sasX = Math.max(last.camX - 12, giant ? giant.x : 0); sasOn = 0; return true; }
@@ -791,7 +797,7 @@ function buildForest() {
       cam += (mx - cam) * (env.calm ? 1 : Math.min(1, env.dt * 8));
       // The view stops at the strip's west edge, so the rock band never wraps round.
       const camX = Math.max(0, Math.round(cam - VW * anchor + env.look.x * 0.5)), base = baseline(scr, env.shown, st) - Math.round(my * 0.5);
-      last = { camX, base };
+      last = { camX, base, mix: env.mix };
 
       // The light behind the trees: pale mist, dimmer up under the canopy, and brightest in the wide
       // gaps where the sky comes through. The gaps drift across slower than any tree.
@@ -808,6 +814,7 @@ function buildForest() {
       // Near the lake the far trees give way to open light, in clumps, and the lake shows low down.
       lakeLight(scr, camX, base, t);
       const sky = env.sky, fogK = sky ? Math.max(sky.deck, sky.fog * 0.8) : 0, rainK = sky ? sky.rain : 0;
+      if (sky && sky.deck > 0.5) saw('marine'); if (sky && sky.rain > 0.5) saw('rain');
       fogVeil(scr, fogK, FOGV);
       drawCrag(scr, crag.S, camX, base);
       fallWater(scr, camX, base, t, crag.F);
@@ -845,7 +852,7 @@ function buildForest() {
       slime(scr, slugX - camX, base, camX, t);
       // The owl turns its head to follow him: looking right as he comes, at you as he passes under, then left.
       // Clicked, it turns its head to face you, blinks twice slowly and hoots.
-      if (perch) { const rel = mx - perch.x, o = t - poked.owl, f = o < 2.6 ? 'f' : rel > 26 ? 'r' : rel < -26 ? 'l' : 'f', blink = o < 2.6 ? (o > 0.5 && o < 0.75) || (o > 1.3 && o < 1.55) : frac(t / 4.3) < 0.04; list.push({ bm: owlBM[blink ? f + 'b' : f], x: perch.x, y: perch.y, z: perch.z }); }
+      if (perch) { const rel = mx - perch.x, o = t - poked.owl, f = o < 2.6 ? 'f' : rel > 26 ? 'r' : rel < -26 ? 'l' : 'f', blink = o < 2.6 ? (o > 0.5 && o < 0.75) || (o > 1.3 && o < 1.55) : frac(t / 4.3) < 0.04; list.push({ bm: owlBM[blink ? f + 'b' : f], x: perch.x, y: perch.y, z: perch.z }); if (perch.x - camX > 8 && perch.x - camX < VW - 8 && !covered(perch.x - camX, base + perch.y)) saw('owl'); }
       // He hops the slug.
       const ds = d - D_SLUG, hop = Math.abs(ds) < 16 ? Math.round(15 * Math.cos(ds / 16 * Math.PI / 2)) : 0;
       const snack = !env.running && env.still > 60;
@@ -870,7 +877,7 @@ function buildForest() {
       if (bugle) puffs(scr, elkX - camX + 14, base + elkY - Math.round(elkBM.up.oy * 0.76), 1, t - poked.elk);
       // At Dusk the foxfire glows on its log, each cluster swelling and fading at its own pace, with a faint
       // green light on the wood round it; only where the log still shows, not over a fern in front of it.
-      if (env.mix > 0.3) foxfireGlow(scr, fox, foxX - camX, base + foxY, t, smooth(0.3, 0.8, env.mix));
+      if (env.mix > 0.3) { foxfireGlow(scr, fox, foxX - camX, base + foxY, t, smooth(0.3, 0.8, env.mix)); if (env.mix > 0.6 && foxX - camX > 8 && foxX - camX < VW - 8 && !covered(foxX - camX, base + foxY)) saw('foxfire'); }
       // And a deer's eyes shine between the trunks, now and then blinking or turning away.
       // Clicked, they blink out: the deer has bounded off, and comes back with the next slot.
       eyesAt = null;

@@ -118,16 +118,30 @@ function whale(p) {
   return b;
 }
 
-function sheep(grazing, step = 0) {
+function sheep(grazing, step = 0, pose = null) {
   // A bighorn ram: sandy brown, white rump and muzzle, and a heavy horn curling round the ear. The horn is
   // a thick ridged C, back over the ear and round under it toward the eye, outlined with the rest so it
   // reads at a glance (art pass D06, after a ram painted for the game).
-  const b = new BM(24, 19); b.ox = 11; b.oy = 18;
+  // pose (round 8, D2, after pictures): 'rear', up on his hind legs with his forelegs tucked, before two
+  // rams come together; 'butt', his head down to meet the other's; 'lie', down on folded legs with his head up.
+  const rear = pose === 'rear', lie = pose === 'lie', b = new BM(24, rear ? 26 : 19); b.ox = 11; b.oy = b.h - 1;
   const coat = (nx, ny, x, y) => pick('dirt', 0.5 - ny * 0.3 - nx * 0.05, x, y, 0.5);
-  for (const lx of [6, 8, 15, 17]) { const sw = step ? (lx % 2 ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 12, lx + sw, 17, 1, R.dirt[lx % 2 ? 1 : 0]); b.set(lx + sw, 18, INK); }
-  ell(b, 11, 10, 7, 4, coat); ell(b, 4.6, 9.6, 2.2, 2.8, nx => nx < 0.4 ? R.white[1] : R.white[0]);
-  const hx = grazing ? 19 : 18, hy = grazing ? 12 : 6;
-  thick(b, 16, 9, hx, hy + 1, 3, R.dirt[1]); ell(b, hx + 1, hy, 2.4, 2, coat); b.set(hx + 3, hy + 1, R.white[1]); b.set(hx + 4, hy + 1, R.white[0]);
+  let hx = grazing ? 19 : 18, hy = grazing ? 12 : 6;
+  if (rear) {
+    for (const [lx, far] of [[6, 1], [9, 0]]) { thick(b, lx, 19, lx + 1, 24, 1.6, R.dirt[far ? 0 : 1]); b.set(lx + 1, 25, INK); }
+    for (let k = 0; k <= 8; k++) ell(b, 7.5 + k * 0.8, 18.6 - k * 0.95, 3.6, 3.4, coat);
+    ell(b, 4.4, 19.6, 2, 2.6, nx => nx < 0.4 ? R.white[1] : R.white[0]);
+    thick(b, 14, 13, 17, 15, 1, R.dirt[1]); thick(b, 17, 15, 16, 17, 1, R.dirt[0]); thick(b, 13, 15, 15, 17, 1, R.dirt[0]);
+    hx = 17; hy = 6; thick(b, 14, 10, hx, hy + 1, 3, R.dirt[1]);
+  } else {
+    const L = lie ? 4 : 0;
+    if (lie) { for (let x = 13; x <= 18; x++) b.set(x, 18, x > 16 ? INK : R.dirt[1]); for (let x = 4; x <= 8; x++) b.set(x, 18, x < 6 ? INK : R.dirt[0]); }
+    else for (const lx of [6, 8, 15, 17]) { const sw = step ? (lx % 2 ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 12, lx + sw, 17, 1, R.dirt[lx % 2 ? 1 : 0]); b.set(lx + sw, 18, INK); }
+    ell(b, 11, 10 + L, 7, 4, coat); ell(b, 4.6, 9.6 + L, 2.2, 2.8, nx => nx < 0.4 ? R.white[1] : R.white[0]);
+    if (pose === 'butt') { hx = 20; hy = 9; } else if (lie) { hx = 18; hy = 8; }
+    thick(b, 16, 9 + L, hx, hy + 1, 3, R.dirt[1]);
+  }
+  ell(b, hx + 1, hy, 2.4, 2, coat); b.set(hx + 3, hy + 1, R.white[1]); b.set(hx + 4, hy + 1, R.white[0]);
   const ex = hx - 0.6, ey = hy - 0.3;
   for (let y = Math.floor(ey - 4); y <= Math.ceil(ey + 4); y++) for (let x = Math.floor(ex - 4); x <= Math.ceil(ex + 4); x++) {
     const dx = x - ex, dy = y - ey, d = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
@@ -176,5 +190,36 @@ function squirrel(chip, run) {
   outline(b, INK);
   return b;
 }
+// What a squirrel or a chipmunk does besides sitting and darting (round 8, D2, each after a picture), facing
+// right. 'eat': sitting up with a cone in its paws (step 1: the cone at its mouth). 'scold': on all fours
+// with its tail straight up, flicking (step 0 and 1). 'bury': nose and paws in the ground, a cone before
+// it. 'climb': seen from behind on a trunk, its tail hanging below it (step 0 and 1).
+function squirrelDoes(chip, pose, step = 0) {
+  const c = chip ? R.dirt : R.wood, BODY = c[3], TAIL = c[chip ? 1 : 2], CONE = R.bark[1];
+  if (pose === 'eat') { const b = squirrel(chip, false), x = chip ? 8 : 10, y = (chip ? 6 : 5) - step; b.set(x, y, CONE); b.set(x, y + 1, R.bark[0]); if (x + 1 < b.w) b.set(x + 1, y, R.bark[0]); return b; }
+  const up = pose === 'climb', b = up ? new BM(10, 13) : new BM(12, 10); b.ox = up ? 4 : 6; b.oy = b.h - 1;
+  const along = (pts, r0, r1, col) => { for (let n = 0; n <= 40; n++) { const t = n / 40, q = t * (pts.length - 1), i = Math.min(pts.length - 2, Math.floor(q)), u = q - i, r = r0 + (r1 - r0) * Math.sin(Math.PI * t); ell(b, pts[i][0] + (pts[i + 1][0] - pts[i][0]) * u, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * u, r, r, () => col); } };
+  if (up) {
+    along([[4.4, 7], [6, 8.4], [6.8, 10.2], [6 + (step ? 0.8 : 0), 11.6]], 0.8, 1.7, TAIL);
+    ell(b, 4, 4.8, 1.5, 2.3, () => BODY); ell(b, 4, 1.8, 1.7, 1.4, () => BODY);
+    b.set(2, 0, c[1]); b.set(6, 0, c[1]); for (const [x, y] of [[1, step ? 3 : 4], [7, step ? 4 : 3], [2, step ? 7 : 6], [6, step ? 6 : 7]]) b.set(x, y, c[1]);
+    if (chip) for (let y = 3; y <= 6; y++) { b.set(3, y, c[0]); b.set(4, y, R.white[1]); }
+  } else if (pose === 'scold') {
+    along([[3.6, 6.6], [2.6, 5], [2.4, 3], [2.8 + (step ? 1 : -0.6), 1.3]], 0.7, 1.4, TAIL);
+    ell(b, 6.2, 7, 3, 1.5, () => BODY); ell(b, 9.3, 5.6, 1.5, 1.3, () => BODY);
+    b.set(4, 9, c[2]); b.set(8, 9, c[2]); b.set(8, 4, c[2]); b.set(10, 6, INK); b.set(11, 6, c[1]);
+    if (chip) for (let x = 4; x <= 8; x++) { b.set(x, 6, c[0]); b.set(x, 7, R.white[1]); }
+  } else {
+    along([[3.4, 6.4], [2.4, 4.8], [2.2, 3], [3, 1.4]], 0.7, 1.4, TAIL);
+    ell(b, 6, 7.2, 2.8, 1.7, () => BODY); ell(b, 9, 8 + step * 0.5, 1.4, 1.2, () => BODY);
+    b.set(4, 9, c[2]); b.set(8, 6, c[2]); b.set(9, 7, INK); b.set(11, 9, CONE); b.set(11, 8, R.bark[0]);
+    if (chip) for (let x = 4; x <= 7; x++) { b.set(x, 6, c[0]); b.set(x, 7, R.white[1]); }
+  }
+  // Light from the upper left on every part, the tail kept apart from the body by its own darker ramp.
+  const o = b.d.slice(), at = (x, y) => x < 0 || y < 0 || x >= b.w || y >= b.h ? 0 : o[y * b.w + x];
+  for (let y = 0; y < b.h; y++) for (let x = 0; x < b.w; x++) { const v = o[y * b.w + x]; if (v !== BODY && v !== TAIL) continue; const lit = !at(x - 1, y) || !at(x, y - 1), dn = !at(x + 1, y) || !at(x, y + 1); b.set(x, y, lit && !dn ? LIGHT[v] : dn && !lit ? SHADE[v] : v); }
+  outline(b, INK);
+  return b;
+}
 
-export { ferry, whale, sheep, squirrel };
+export { ferry, whale, sheep, squirrel, squirrelDoes };

@@ -209,6 +209,49 @@ function makeSkunkCabbage(seed) {
   const fx = 3 + (rand() * 3 | 0); b.set(fx, 4, R.yellow[0]); b.set(fx, 3, R.yellow[1]); b.set(fx + 1, 3, R.yellow[0]); b.set(fx, 2, R.yellow[1]);
   return swaying(b, 4);
 }
+// The rest of a streamside (round 8, H8), each drawn after pictures (design/art/R8-H8).
+// Lewis's monkeyflower: a low dome of leaves, darker than the meadow's grass and lit on the west, with three
+// or four magenta flowers held above it on their own stems at different heights, the tallest with yellow in
+// its throat. (The heather's flowers are the paler pink, on a pale mound with an outline.)
+function makeMonkeyflower(seed) {
+  const rand = rng(seed), b = new BM(9, 8), G = R.moss, P = [R.fireweed[0], R.fireweed[1], R.pink[2]]; b.ox = 4; b.oy = 7;
+  for (let x = 2; x <= 6; x++) b.set(x, 7, G[1]);
+  for (let x = 1; x <= 7; x++) b.set(x, 6, x === 1 || x === 7 ? G[1] : x < 4 ? G[3] : G[2]);
+  for (let x = 2; x <= 6; x++) b.set(x, 5, x === 2 ? G[3] : hash(x, 1, seed) < 0.5 ? G[2] : G[1]);
+  const at = [[1, 4], [3, 2], [5, 3], [7, 4]], skip = rand() < 0.5 ? (rand() < 0.5 ? 0 : 3) : -1, tall = rand() < 0.5 ? 1 : 2;
+  at.forEach(([x, y], k) => { if (k === skip) return; const y0 = y - (k === tall ? 1 : 0);
+    for (let j = y0 + 1; j < 5; j++) b.set(x, j, G[2]);
+    b.set(x, y0, P[1]); b.set(x + (k < 2 ? -1 : 1), y0, k === tall ? P[2] : P[0]); if (k === tall) { b.set(x, y0 - 1, P[2]); b.set(x, y0 + 1, R.yellow[1]); } });
+  return swaying(b, 5);
+}
+// Marsh marigold (the white one of the high meadows): a low rosette of round glossy leaves, dark with a lit
+// spot on each, and two white flowers with yellow centres just above it.
+function makeMarigold(seed) {
+  const rand = rng(seed), b = new BM(9, 6), G = R.moss, W = R.white; b.ox = 4; b.oy = 5;
+  for (let x = 1; x <= 7; x++) { b.set(x, 5, G[1]); b.set(x, 4, x % 3 === 1 ? G[3] : x % 3 === 2 ? G[2] : G[1]); }
+  b.set(0, 5, G[2]); b.set(8, 5, G[1]);
+  const flip = rand() < 0.5;
+  for (const [x, y] of flip ? [[2, 2], [6, 1]] : [[2, 1], [6, 2]]) {
+    for (let j = y + 1; j < 4; j++) b.set(x, j, G[2]);
+    b.set(x, y, R.yellow[1]); b.set(x - 1, y, W[1]); b.set(x + 1, y, W[1]); b.set(x, y - 1, W[1]); if (y < 2) b.set(x, y + 1, W[0]); }
+  return swaying(b, 3);
+}
+// Devil's club: two or three thin canes taller than a fern, each with a flat whorl of big pale leaves near
+// its top, a smaller leaf or two lower down, and a cone of red berries standing above the whorl.
+function makeDevilsClub(seed) {
+  const rand = rng(seed), b = new BM(13, 16), G = R.grass, n = 2 + (rand() < 0.5 ? 1 : 0); b.ox = 6; b.oy = 15;
+  for (let k = 0; k < n; k++) { const x = n === 2 ? 3 + k * 6 : 2 + k * 4 + (k === 1 ? 1 : 0), top = 2 + (rand() * 4 | 0) + (k & 1 ? 2 : 0);
+    for (let y = top + 3; y <= 15; y++) b.set(x, y, y > 11 ? R.wood[2] : (y & 1) ? R.moss[3] : R.wood[3]);
+    // A lower leaf, to one side.
+    const side = (k + (rand() < 0.5 ? 1 : 0)) & 1 ? 1 : -1, ly = top + 7 + (rand() * 2 | 0); if (ly < 14) { b.set(x + side, ly, G[3]); b.set(x + 2 * side, ly, G[2]); b.set(x + side, ly + 1, G[1]); }
+    // The whorl: pale on top, a darker row under it.
+    for (let i = -2; i <= 2; i++) b.set(x + i, top + 3, Math.abs(i) === 2 ? G[3] : G[4]);
+    for (let i = -1; i <= 1; i++) b.set(x + i, top + 4, i ? G[2] : G[1]);
+    // The berries.
+    b.set(x, top, R.red[2]); b.set(x, top + 1, R.red[1]); b.set(x, top + 2, R.red[1]); b.set(x + (k & 1 ? -1 : 1), top + 2, R.red[0]);
+  }
+  return swaying(b, 9);
+}
 // Fireweed (round 6, I1): two to four tall stalks, green at the foot and magenta above, the tip of each
 // paler, as the burn's ground used to have them painted in. The top sways.
 function makeFireweed(seed) {
@@ -520,24 +563,46 @@ function makeJournal() {
 // outlined in one pass.
 // An elk for the map, facing left: a buff body, a dark neck, head and legs, a pale rump, and on a bull
 // a rack swept back over the shoulders. step 1 and 2 are the two walking frames.
-function makeElk(headDown, step = 0, bull = true) {
+// pose (round 8, D2, each after a picture): 'bugle', the neck stretched up and forward, the nose to the sky
+// and the rack laid back along the shoulders; 'bed', lying on folded legs with the head up (step 1: the
+// head a pixel lower, chewing); 'thrash', the head at the ground and the rack raking it (step 0 and 1).
+function makeElk(headDown, step = 0, bull = true, pose = null) {
   const b = new BM(30, 30); b.ox = 15; b.oy = 29;
   const oval = (cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
   const buff = (nx, ny, x, y) => pick('dirt', 0.66 - ny * 0.3 + nx * 0.05, x, y, 0.5), dark = (nx, ny, x, y) => pick('bark', 0.5 - ny * 0.35, x, y, 0.5);
-  // Long thin legs; the near and far ones swing opposite ways when it walks.
-  for (const [lx, far] of [[9, 1], [12, 0], [19, 1], [22, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0, c = R.bark[far ? 0 : 1]; for (let y = 19; y < 29; y++) b.set(lx + (y > 23 ? sw : 0), y, c); if (!far) for (let y = 19; y < 24; y++) b.set(lx - 1, y, c); }
-  oval(15.5, 17.5, 8, 4, buff); oval(13, 20, 4, 2, buff);
-  oval(22.4, 16.5, 2.2, 2.8, nx => nx > -0.1 ? R.white[0] : 0);
-  const hx = headDown ? 5 : 4, hy = headDown ? 25 : 9;
-  if (headDown) thick(b, 10, 18, 7, 23, 3, R.bark[1]); else thick(b, 10, 16, 6, 10, 3, R.bark[1]);
-  oval(10.5, 18.5, 2.4, 3.4, dark);
-  oval(hx, hy, 2.8, 1.8, dark); b.set(hx - 3, hy + 1, R.bark[0]); b.set(hx, hy - 1, INK);
-  if (!bull) { b.set(hx + 3, hy - 2, R.bark[2]); b.set(hx + 4, hy - 3, R.bark[2]); }
+  const bed = pose === 'bed', thrash = pose === 'thrash', D = bed ? 5 : 0;
+  if (bed) {
+    // Folded under it: the forelegs tucked in front of the chest, a hock and a hoof showing at the back.
+    for (let x = 7; x <= 12; x++) b.set(x, 28, R.bark[x < 9 ? 0 : 1]); for (let x = 8; x <= 11; x++) b.set(x, 27, R.bark[1]);
+    for (let x = 18; x <= 23; x++) b.set(x, 28, R.bark[x > 21 ? 0 : 1]);
+    oval(15.5, 23, 8.5, 4.2, buff); oval(20, 24.6, 4, 2.6, buff);
+  } else {
+    // Long thin legs; the near and far ones swing opposite ways when it walks.
+    const walk = thrash ? 0 : step;
+    for (const [lx, far] of [[9, 1], [12, 0], [19, 1], [22, 0]]) { const sw = walk ? (far ? 1 : -1) * (walk === 1 ? 1 : -1) : thrash && lx === 12 ? (step ? -2 : -1) : 0, c = R.bark[far ? 0 : 1]; for (let y = 19; y < 29; y++) b.set(lx + (y > 23 ? sw : 0), y, c); if (!far) for (let y = 19; y < 24; y++) b.set(lx - 1, y, c); }
+    oval(15.5, 17.5, 8, 4, buff); oval(13, 20, 4, 2, buff);
+  }
+  oval(22.4 + (bed ? 0.8 : 0), 16.5 + D, 2.2, 2.8, nx => nx > -0.1 ? R.white[0] : 0);
+  let hx = headDown ? 5 : 4, hy = headDown ? 25 : 9;
+  if (pose === 'bugle') { hx = 5; hy = 9; thick(b, 10, 16, 8, 11, 3, R.bark[1]); }
+  else if (bed) { hx = 4; hy = 14 + (step ? 1 : 0); thick(b, 10, 21, 6, hy + 1, 3, R.bark[1]); }
+  else if (thrash) { hx = step ? 4 : 5; hy = step ? 26 : 25; thick(b, 10, 18, hx + 2, hy - 2, 3, R.bark[1]); }
+  else if (headDown) thick(b, 10, 18, 7, 23, 3, R.bark[1]); else thick(b, 10, 16, 6, 10, 3, R.bark[1]);
+  oval(10.5, 18.5 + D, 2.4, 3.4, dark);
+  if (pose === 'bugle') {
+    // The head tipped right back: the muzzle points up and forward, the mouth open.
+    thick(b, hx + 2, hy, hx - 1, hy - 2, 2.4, R.bark[1]); thick(b, hx - 1, hy - 2, hx - 3, hy - 4, 1.4, R.bark[1]); b.set(hx - 4, hy - 5, R.bark[0]); b.set(hx - 2, hy - 1, R.bark[0]); b.set(hx - 3, hy - 1, 0); b.set(hx + 1, hy - 2, INK);
+  } else {
+    oval(hx, hy, 2.8, 1.8, dark); b.set(hx - 3, hy + 1, R.bark[0]); b.set(hx, hy - 1, INK);
+    if (!bull) { b.set(hx + 3, hy - 2, R.bark[2]); b.set(hx + 4, hy - 3, R.bark[2]); }
+  }
   litBack(b);
   outline(b, INK);
   // The rack goes on after the outline, so it stays thin: the far antler a shade darker, then the near one.
   if (bull) {
-    const rack = headDown ? [[2, -2], [3, -3], [3, -4], [4, -5], [4, -6], [5, -7], [5, -8], [2, -5], [1, -6], [3, -7], [2, -8], [4, -9]] : [[2, -2], [3, -3], [3, -4], [4, -5], [5, -5], [6, -6], [7, -6], [8, -7], [3, -6], [3, -7], [5, -7], [5, -8], [9, -8], [7, -8]];
+    const rack = pose === 'bugle' ? [[3, -2], [4, -2], [5, -2], [6, -1], [7, -1], [8, 0], [9, 0], [10, 1], [5, -3], [5, -4], [7, -2], [7, -3], [9, -1], [9, -2], [11, 1], [11, 0]]
+      : thrash ? (step ? [[0, -1], [-1, -2], [-2, -2], [-3, -3], [-4, -3], [-5, -4], [-1, -3], [-1, -4], [-3, -4], [-3, -5], [1, -3], [-5, -5]] : [[-1, -2], [-1, -3], [-2, -4], [-2, -5], [-3, -6], [-3, -7], [0, -4], [1, -5], [-4, -5], [-5, -6], [-1, -6], [-4, -8]])
+      : headDown ? [[2, -2], [3, -3], [3, -4], [4, -5], [4, -6], [5, -7], [5, -8], [2, -5], [1, -6], [3, -7], [2, -8], [4, -9]] : [[2, -2], [3, -3], [3, -4], [4, -5], [5, -5], [6, -6], [7, -6], [8, -7], [3, -6], [3, -7], [5, -7], [5, -8], [9, -8], [7, -8]];
     for (const [dx, c] of [[2, R.dirt[3]], [0, R.white[0]]]) for (const [x, y] of rack) b.set(hx + x + dx, hy + y, c);
   }
   return b;
@@ -545,32 +610,44 @@ function makeElk(headDown, step = 0, bull = true) {
 // A moose, facing left like the elk and a head taller: a dark body on long pale legs, a hump over the shoulders,
 // a long head with a drooping nose and a bell under the throat. The bull carries broad palmate antlers (T35, TJ: "so
 // that one can have antlers"). The calf is small, red-brown and all legs.
-function makeMoose(calf, headDown, step = 0) {
+// pose (round 8, D2, each after a picture): 'bed', lying on folded legs with the head up (step 1: the head a
+// pixel lower); 'shake', the head swung one way (step 1) and the other (step 2), the palms tipping and the
+// bell swinging with it (TJ's note 11: the old shake flipped the whole animal from side to side);
+// 'weeds', the head lifted from the water with a mouthful of green weed hanging from it.
+function makeMoose(calf, headDown, step = 0, pose = null) {
   const b = calf ? new BM(26, 24) : new BM(40, 38); b.ox = calf ? 13 : 20; b.oy = b.h - 1;
   const oval = (cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
   const coat = calf ? (nx, ny, x, y) => pick('bark', 0.68 - ny * 0.3 + nx * 0.05, x, y, 0.5) : (nx, ny, x, y) => pick('fur', 0.42 - ny * 0.34 + 0.16 * (hash(x, y, 14) - 0.5), x, y, 0.6);
-  const dark = calf ? R.bark[1] : R.fur[1], sock = calf ? R.bark[2] : R.dirt[3];
+  const dark = calf ? R.bark[1] : R.fur[1], sock = calf ? R.bark[2] : R.dirt[3], bed = pose === 'bed', walk = pose ? 0 : step;
   if (calf) {
-    for (const [lx, far] of [[8, 1], [10, 0], [16, 1], [18, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 13; y < 23; y++) b.set(lx + (y > 18 ? sw : 0), y, y > 17 ? sock : R.bark[far ? 0 : 1]); }
-    oval(13, 11.5, 5.4, 3, coat);
-    const hx = headDown ? 5 : 4.5, hy = headDown ? 19 : 7;
-    if (headDown) thick(b, 8, 12, 6, 17, 3, dark); else thick(b, 8, 10, 6, 8, 3, dark);
+    const D = bed ? 8 : 0;
+    if (bed) { for (let x = 6; x <= 10; x++) b.set(x, 22, R.bark[1]); for (let x = 15; x <= 19; x++) b.set(x, 22, x > 17 ? sock : R.bark[0]); }
+    else for (const [lx, far] of [[8, 1], [10, 0], [16, 1], [18, 0]]) { const sw = walk ? (far ? 1 : -1) * (walk === 1 ? 1 : -1) : 0; for (let y = 13; y < 23; y++) b.set(lx + (y > 18 ? sw : 0), y, y > 17 ? sock : R.bark[far ? 0 : 1]); }
+    oval(13, 11.5 + D, 5.4, 3, coat);
+    const hx = headDown ? 5 : 4.5, hy = headDown ? 19 : bed ? 13 + step : 7;
+    if (headDown) thick(b, 8, 12, 6, 17, 3, dark); else thick(b, 8, 10 + D, 6, hy + 1, 3, dark);
     oval(hx, hy, 2.6, 1.7, coat); b.set(hx - 2, hy + 1, dark); b.set(hx - 3, hy + 1, dark); b.set(hx - 1, hy - 1, INK); b.set(hx + 2, hy - 2, R.bark[2]); b.set(hx + 3, hy - 3, R.bark[2]);
     litBack(b); outline(b, INK); return b;
   }
+  const D = bed ? 11 : 0, sw2 = pose === 'shake' ? (step === 1 ? -1 : step === 2 ? 1 : 0) : 0;
+  if (bed) {
+    // Folded under it: the forelegs tucked before the chest with a pale sock showing, a hock behind.
+    for (let x = 9; x <= 15; x++) { b.set(x, 36, x < 12 ? sock : R.fur[1]); if (x > 10) b.set(x, 35, R.fur[1]); } for (let x = 25; x <= 31; x++) b.set(x, 36, x > 28 ? sock : R.fur[0]);
+  } else for (const [lx, far] of [[12, 1], [15, 0], [26, 1], [29, 0]]) { const sw = walk ? (far ? 1 : -1) * (walk === 1 ? 1 : -1) : 0; for (let y = 21; y < 37; y++) b.set(lx + (y > 29 ? sw : 0), y, y > 28 ? sock : R.fur[far ? 0 : 1]); if (!far) for (let y = 21; y < 29; y++) b.set(lx - 1, y, R.fur[1]); }
   // The legs: dark above the knee, pale below; the near and far ones swing opposite ways when it walks.
-  for (const [lx, far] of [[12, 1], [15, 0], [26, 1], [29, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 21; y < 37; y++) b.set(lx + (y > 29 ? sw : 0), y, y > 28 ? sock : R.fur[far ? 0 : 1]); if (!far) for (let y = 21; y < 29; y++) b.set(lx - 1, y, R.fur[1]); }
-  oval(21, 19.5, 9.5, 4.6, coat); oval(14.5, 17, 4.6, 5, coat); oval(28, 19, 3.4, 4.4, coat);
-  const hx = headDown ? 6 : 6, hy = headDown ? 30 : 14;
-  if (headDown) thick(b, 12, 19, 9, 27, 5, dark); else thick(b, 12, 16, 9, 14, 5, dark);
+  oval(21, 19.5 + D, 9.5, 4.6, coat); oval(14.5, 17 + D, 4.6, 5, coat); oval(28, 19 + D, 3.4, 4.4, coat);
+  const hx = 6 + (sw2 > 0 ? 1 : 0), hy = headDown ? 30 : bed ? 23 + step : 14 + (sw2 ? 1 : 0);
+  if (headDown) thick(b, 12, 19, 9, 27, 5, dark); else thick(b, 12, 16 + D, 9, hy, 5, dark);
   oval(hx, hy, 3.6, 2.1, coat); oval(hx - 2.4, hy + 1.6, 2.2, 1.9, coat);
   b.set(hx + 1, hy - 1, INK); b.set(hx + 4, hy - 3, dark); b.set(hx + 5, hy - 3, dark);
-  if (!headDown) { b.set(hx + 4, hy + 4, dark); b.set(hx + 4, hy + 5, dark); }
+  if (!headDown) { b.set(hx + 4 + sw2, hy + 4, dark); b.set(hx + 4 + 2 * sw2, hy + 5, dark); }
   litBack(b);
   outline(b, INK);
+  // A mouthful of weed, hanging from the muzzle and dripping.
+  if (pose === 'weeds') for (const [x, y, c] of [[-4, 3, R.grass[4]], [-3, 3, R.grass[3]], [-4, 4, R.grass[3]], [-3, 4, R.grass[4]], [-5, 5, R.grass[4]], [-3, 5, R.grass[3]], [-4, 6, R.grass[3]], [-3, 7, R.grass[4]], [-5, 7, R.grass[3]]]) b.set(hx + x, hy + y + (step ? 1 : 0) * (y > 5 ? 1 : 0), c);
   // The antlers go on after the outline, as the elk's do: a broad palm with points along its top, the far one a shade darker.
   const palm = [[3, -3], [4, -4], [2, -5], [3, -5], [4, -5], [5, -5], [6, -5], [7, -5], [8, -5], [3, -6], [4, -6], [5, -6], [6, -6], [7, -6], [8, -6], [9, -6], [3, -7], [5, -7], [7, -7], [9, -7], [10, -7], [1, -4], [0, -5]];
-  for (const [dx, dy, c] of [[-4, 0, R.dirt[3]], [0, 0, R.white[0]]]) for (const [x, y] of palm) b.set(hx + x + dx, hy + y + dy, c);
+  for (const [dx, dy, c] of [[-4, -sw2, R.dirt[3]], [0, sw2, R.white[0]]]) for (const [x, y] of palm) b.set(hx + x + dx, hy + y + dy + (sw2 && x > 6 ? sw2 * (dx ? -1 : 1) : 0), c);
   return b;
 }
 
@@ -613,14 +690,15 @@ function makeBush(seed, kind) {
   outline(b, R.moss[1]);
   return b;
 }
-// Red huckleberry in autumn (round 5, T65): a low shrub. A heap of leaves in its own shade, stems fanning
-// out of it with leaves in pairs up to their tips, crimson below and orange where the light catches them (it
-// comes from the upper left), and a dark line under it where it meets the ground. size scales it: nearer
-// the viewer it is bigger.
+// Huckleberry in autumn (round 5, T65; round 8, B3, after a picture): a low, spreading shrub. A heap of
+// leaves in its own shade, stems fanning out of it with leaves in pairs up to their tips, wine below and
+// crimson where the light catches them (it comes from the upper left), a leaf here and there still green,
+// and blue berries among them, which is how you know the shrub. A dark line lies under it where it meets
+// the ground. size scales it: nearer the viewer it is bigger.
 function makeHuckleberry(seed, size = 1) {
-  const rand = rng(seed), w = Math.round((9 + rand() * 6) * size), h = Math.round((5 + rand() * 3) * size), b = new BM(w + 8, h + 5); b.ox = (w + 8) >> 1; b.oy = h + 3;
+  const rand = rng(seed), w = Math.round((10 + rand() * 6) * size), h = Math.round((3.6 + rand() * 2.2) * size), b = new BM(w + 8, h + 5); b.ox = (w + 8) >> 1; b.oy = h + 3;
   const cx = b.ox, by = b.oy;
-  const tone = (x, y, o) => { const lit = (cx - x) / w + (by - y) / h + 0.25 * (o - 0.5); return lit > 0.78 ? (o < 0.6 ? R.blaze[1] : R.red[1]) : lit > 0.36 ? (o < 0.2 ? R.blaze[1] : R.red[1]) : R.red[0]; };
+  const tone = (x, y, o) => { const lit = (cx - x) / w + (by - y) / h + 0.25 * (o - 0.5); return o > 0.56 && o < 0.6 ? R.moss[4] : lit > 0.78 ? R.huck[o < 0.55 ? 2 : 1] : lit > 0.36 ? R.huck[o < 0.15 ? 2 : 1] : R.huck[0]; };
   for (let y = by - 1; y > by - h * 0.6; y--) { const half = (w / 2) * Math.sqrt(Math.max(0, 1 - sq((by - y) / (h * 0.6)))); for (let x = Math.ceil(cx - half); x <= cx + half; x++) if (rand() < (y === by - 1 ? 0.6 : 0.9)) b.set(x, y, tone(x, y, rand() * 0.6)); }
   const n = 4 + Math.round(w / 4);
   for (let k = 0; k < n; k++) {
@@ -630,20 +708,27 @@ function makeHuckleberry(seed, size = 1) {
       if (s < L * 0.35) { if (!b.get(x, y)) b.set(x, y, R.bark[1]); continue; }
       b.set(x, y, tone(x, y, o)); if (s % 2 < 1) b.set(x + (k & 1 ? 1 : -1), y, tone(x, y, o));
     }
-    b.set(x0 + Math.sin(a) * L, by - 1 - Math.cos(a) * L, a < 0.4 ? R.red[2] : R.blaze[1]);
+    b.set(x0 + Math.sin(a) * L, by - 1 - Math.cos(a) * L, R.huck[a < 0.4 ? 2 : 1]);
+  }
+  // The berries: on leaves, never two touching. A big shrub's berry is two pixels with the light on top.
+  for (let k = 0, n = 2 + Math.round(w / 4), tries = 0; k < n && tries < 80; tries++) {
+    const x = Math.round(cx + (rand() - 0.5) * w * 0.8), y = Math.round(by - 1 - rand() * h * 0.8), berry = c => c === R.jay[1] || c === R.jay[2] || c === R.jay[3];
+    if (!b.get(x, y) || b.get(x, y) === R.bark[1] || [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]].some(([dx, dy]) => berry(b.get(x + dx, y + dy)))) continue;
+    if (size > 1.2 && b.get(x, y + 1)) { b.set(x, y, R.jay[3]); b.set(x, y + 1, R.jay[1]); } else b.set(x, y, R.jay[2]);
+    k++;
   }
   for (let x = 0; x < b.w; x++) for (let y = by; y >= by - 2; y--) if (b.get(x, y)) { b.set(x, y + 1, INK); break; }
   return b;
 }
 // Where huckleberry grows, in clumps: each cell of a coarse grid may hold one clump, at a spot of its own
 // inside it, if `grows` is high there. A clump is a big shrub with two to four smaller ones close round it.
-// `ok` says whether a shrub may stand at a spot. Returns the shrubs as { x, y, v: which drawing, s: 0 small
+// `ok` says whether a shrub may stand at a spot, and `least` how high `grows` must be: raise it for fewer clumps. Returns the shrubs as { x, y, v: which drawing, s: 0 small
 // to 2 big, flip }, sorted so the upper ones come first. Nothing here throws a scene's own dice.
-function huckClumps(x0, x1, y0, y1, grows, ok, seed) {
+function huckClumps(x0, x1, y0, y1, grows, ok, seed, least = 0.55) {
   const out = [];
   for (let gx = x0; gx < x1; gx += 46) for (let gy = y0; gy < y1; gy += 22) {
     const cx = gx + Math.floor(hash(gx, gy, seed) * 46), cy = gy + Math.floor(hash(gx, gy, seed + 1) * 22);
-    if (grows(cx, cy) < 0.55) continue;
+    if (grows(cx, cy) < least) continue;
     for (let k = 0, n = 3 + Math.floor(hash(gx, gy, seed + 2) * 3); k < n; k++) {
       const x = cx + (k ? Math.round((hash(gx + k, gy, seed + 3) - 0.5) * 34) : 0), y = cy + (k ? Math.round((hash(gx + k, gy, seed + 4) - 0.5) * 12) : 0);
       if (ok(x, y)) out.push({ x, y, v: Math.floor(hash(gx + k, gy, seed + 5) * 6), s: k ? (hash(gx + k, gy, seed + 6) < 0.5 ? 0 : 1) : 2, flip: hash(gx + k, gy, seed + 7) < 0.5 });
@@ -695,4 +780,4 @@ function makeFlag(f, ramp = R.red) {
 }
 
 export { makeRegister, makeMoose };
-export { makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk };
+export { makeMonkeyflower, makeMarigold, makeDevilsClub, makeDriftwood, makeSnag, makeBush, makeHuckleberry, huckClumps, makeLodgepole, makeJuniper, makeWhitebark, makeShrub, makeFlag, clump, makeMaple, makeTwisted, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeAspen, makePonderosa, makeConifer, makeSpruce, makeFir, makeFern, makeBoulder, makeLog, makeCloud, makeSignpost, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeElk };

@@ -5,8 +5,8 @@
 import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, mixTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
 import { paintMonolith, monolithSky, moraineLakes, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
-import { ferry, whale, sheep, squirrel } from './mapfauna.js';
-import { makeDriftwood, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
+import { ferry, whale, sheep, squirrel, squirrelDoes } from './mapfauna.js';
+import { makeDriftwood, makeFlowers, makeFireweed, makeSkunkCabbage, makeMonkeyflower, makeMarigold, makeDevilsClub, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
 // What a drawing that stands still is, and whether it is solid (ENGINE.md; collide.js reads solid).
 const tag = (bms, what, solid = false) => { for (const b of bms) { b.what = what; if (solid) b.solid = true; } }, tagged = (b, what, solid) => { tag([b], what, solid); return b; };
 
@@ -14,10 +14,9 @@ const NW = 1920, SH = 1080, VD = 740, SY = SH + 52;
 const rdg = n => 1 - Math.abs(2 * n - 1);
 const prof = pts => x => { if (x <= pts[0][0]) return pts[0][1]; for (let i = 1; i < pts.length; i++) if (x <= pts[i][0]) { const [xa, ha] = pts[i - 1], [xb, hb] = pts[i]; return lerp(ha, hb, (x - xa) / (xb - xa)); } return pts[pts.length - 1][1]; };
 // Proficiency Peak's outline, after Prusik's south face (used below and drawn again in the larch basin, larches.js).
-// Art pass A04, after a picture of the peak from the south: the lower tower has a flat top and sheer
-// sides with a deep notch beyond it, the summit is a small block with a flat top, not a point, and the
-// ridge east of it steps down in teeth.
-const PP = prof([[-75, 0], [-72, 0.1], [-67, 0.3], [-63, 0.6], [-61, 0.68], [-49, 0.71], [-46, 0.69], [-44, 0.55], [-39, 0.52], [-35, 0.62], [-29, 0.76], [-22, 0.86], [-7, 0.9], [-6, 1], [5, 1], [6, 0.92], [9, 0.9], [12, 0.98], [14, 0.86], [18, 0.85], [21, 0.92], [23, 0.8], [27, 0.78], [30, 0.85], [32, 0.72], [36, 0.7], [39, 0.76], [41, 0.63], [45, 0.61], [48, 0.66], [50, 0.54], [54, 0.5], [57, 0.53], [59, 0.43], [62, 0.36], [66, 0.26], [70, 0.14], [75, 0]]);
+// The art pass's A04 gave it a blockier skyline and a face of warm planes; TJ found it blobby and less
+// pretty, so the skyline and the grey streaked face of round 6 are back (round 8, B1).
+const PP = prof([[-75, 0], [-70, 0.14], [-63, 0.2], [-58, 0.34], [-51, 0.4], [-46, 0.58], [-41, 0.63], [-31, 0.62], [-27, 0.53], [-22, 0.62], [-16, 0.8], [-9, 0.9], [-5, 0.97], [-3, 1], [3, 1], [5, 0.94], [10, 0.9], [15, 0.8], [21, 0.76], [24, 0.68], [29, 0.71], [33, 0.6], [39, 0.62], [44, 0.5], [50, 0.53], [55, 0.4], [61, 0.36], [66, 0.2], [75, 0]]);
 
 export { NW, SH as NH, VD, SY, PP as PROFICIENCY };
 // B is the bake (readBake, below): with it, the heights, the water and the picture are read, not worked out.
@@ -99,8 +98,9 @@ function spires(cu, cv, base, H, thin = 1, wide = 1) {
 // Proficiency Peak, after Prusik Peak's south face: a thin fin of granite that shows the camera its
 // wall. A lower flat-topped tower on the left, a prow to a small summit block, a serrated ridge right.
 let PF = null;
-// The corners that part the fin's face into planes (A04), in the profile's units: 16 to 30 apart, set once.
-const FIN_EDGES = (() => { const out = []; for (let x = -44.5, k = 0; x < 75; k++) { x += 16 + 14 * hash(k, 0, 961); out.push(x); } return out; })();
+// The fin's planes, west to east (B1): where each starts in the profile's units, whether it is in the sun,
+// which way its western edge leans as it drops, and whether it is the tower's front, which faces the camera.
+const FIN_PLANES = [[-76, 1, 0], [-50, 0, -0.25, 1], [-31, 0, 0.1], [-27, 1, -0.1], [-2, 0, 0.55], [18, 1, 0.3], [29, 0, 0.55], [33, 1, 0.35], [39, 0, 0.6], [44, 1, 0.45], [50, 0, 0.7]];
 function proficiency(cu, cv, base, w, hgt) {
   PF = { cu, cv, base, w, hgt };
   add('fin', cu - w / 2 - 2, cu + w / 2 + 2, cv - 12, cv + 62, (u, v) => { const p = PP((u - cu) * 150 / w), f = v < cv ? smooth(cv - 8, cv, v) : smooth(cv + 58, cv + 10, v); return p <= 0 || f <= 0 ? 0 : base * smooth(0, 0.4, f) + (hgt * p + 2 * (vnoise(u / 3, 4, 900) - 0.5)) * f; });
@@ -297,7 +297,12 @@ C.coulee = [[1500, 232], [1556, 204], [1612, 176], [1662, 130], [1726, 106], [17
 C.trails = [
   [[880, 392], [830, 388], [770, 386], [725, 384], [700, 384], [668, 380], [630, 376], [590, 378], [540, 390], [490, 384], [440, 360], [390, 354], [340, 370], [300, 410], [270, 450], [262, 490], [290, 520], [330, 530], [380, 515], [420, 500], [460, 492], [496, 470], [530, 448], [560, 436], [590, 434], [640, 424], [676, 420], [712, 424], [748, 426], [772, 414], [800, 402], [840, 394], [880, 392]],
   [[978, 438], [962, 462], [984, 482], [1004, 498], [1018, 512], [1022, 526], [1040, 534], [1062, 540], C.island, [1080, 560], [1072, 578], [1068, 600]],
-  [[1340, 410], [1372, 436], [1392, 450], [1378, 462], [1402, 474], [1422, 500], [1434, 516], [1432, 524], [1432, 532], [1430, 546], [1432, 562], [1436, 578]]
+  // The Peak's trail (round 8, C1, read off the line TJ drew on the map): east out of the Trailhead along the
+  // forest's edge, north-east through the aspens to the edge of the dry side, over the creek and up its east
+  // bank, up the step into Postmortem Burn, past the burn's pond, up the granite by rungs east of the fall,
+  // and west across the larch plateau round the north of its tarn. It ends where the old trail did, which
+  // came north through the meadow and up the rungs from the south.
+  [[1139, 184], [1185, 171], [1240, 154], [1286, 142], [1311, 137], [1336, 155], [1368, 188], [1400, 207], [1423, 258], [1439, 278], [1464, 295], [1496, 311], [1524, 343], [1547, 370], [1574, 393], [1590, 418], [1600, 440], [1597, 448], [1581, 459], [1556, 476], [1542, 500], [1537, 516], [1534, 526], [1529, 538], [1522, 549], [1514, 562], [1498, 567], [1474, 568], [1452, 574], [1436, 578]]
 ];
 // The lake grew (T30), so the loop's points along its south shore step back to keep 5 clear of the water.
 { const [cu, cv, ru, rv] = C.lakes[0]; for (const p of C.trails[0]) { const x = (p[0] - cu) / ru; if (Math.abs(x) >= 1 || p[1] > cv) continue; const shore = cv - rv * Math.sqrt(1 - x * x) - 5; if (p[1] > shore) p[1] = Math.round(shore); } }
@@ -330,10 +335,14 @@ if (!B) for (const { d, w, line } of C.dig) {
 }
 // Then each is cut to an even grade from its start to its end, so the way out never climbs: this is
 // what takes the west river through the forest's ridges.
-if (!B) for (const { line, end } of C.dig) {
-  const all = line, h0 = hAt(all[0][0], all[0][1]), last = all[all.length - 1], h1 = end ?? hAt(last[0], last[1]);
+// GRADE keeps the ground as it was before and after, for the valleys' sides to be put right once the water has
+// found its way (below, where the heights are rounded).
+const GRADE = B ? null : { pre: hg.slice(), post: null };
+if (!B) for (const dug of C.dig) {
+  const { line, end } = dug, all = line, h0 = hAt(all[0][0], all[0][1]), last = all[all.length - 1], h1 = end ?? hAt(last[0], last[1]); dug.bed = [h0, h1];
   all.forEach(([pu, pv], n) => { if (n % 2) return; const bed = lerp(h0, h1, n / (all.length - 1)); for (let dv = -56; dv <= 56; dv++) for (let du = -56; du <= 56; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v); if (MATS[mg[i]] !== 'land' || hg[i] <= 0) continue; const t = Math.max(0.5, bed + Math.max(0, Math.hypot(du, dv) - 12) * 0.2); if (hg[i] > t) hg[i] = t; } });
 }
+if (GRADE) GRADE.post = hg.slice();
 // The coulee: a flat floor, a cliff, a bench, a second cliff. It deepens as the tableland rises.
 if (!B) { const all = catmull(C.coulee); all.forEach(([pu, pv], n) => { const floor = lerp(11, 2.5, n / (all.length - 1)); for (let dv = -44; dv <= 44; dv++) for (let du = -44; du <= 44; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const d = Math.hypot(du, dv) + 9 * (fbm(u / 23, v / 23, 440, 2) - 0.5), rise = d < 13 ? 0 : d < 18 ? 14 * (d - 13) / 5 : d < 33 ? 14 + (d - 18) * 0.07 : d < 39 ? 15 + 15 * (d - 33) / 6 : 1e9; if (hg[at(u, v)] > floor + rise) hg[at(u, v)] = floor + rise; } }); }
 // The lake at the snout: its level a little above the ground in front, the ice let down to meet it, no
@@ -462,6 +471,18 @@ if (!B) for (const [cu, cv, ru, rv] of C.lakes.slice(1)) {
   box((u, v, i) => { const d = e(u, v); if (d < 1) { hg[i] = lo; return; } const out = (d - 1) * lerp(rv, ru, Math.abs((u - cu) / ru) / d), m = MATS[mg[i]]; if (out < 22 && (m === 'land' || m === 'moraine' || m === 'gran')) hg[i] = Math.min(hg[i], lo + 0.4 + out * 0.55); }, 24);
 }
 // The heights are kept to 32nds of a pixel, baked or not, so the map read from a bake is the same map.
+// The even grade above is cut in a square 56 either way from each point of a valley's line, its floor rising
+// only a fifth of a step for each step out. Where the valley is cut deep, the square ended in a wall as high
+// as what was left over: east of Reflection Lake one showed as a dark line straight up the meadow (TJ, round
+// 8). So the sides of a deep cut are given back what a straight slope from the valley's floor (12 from the
+// line) to the old ground at the square's edge would have left them. A shallow cut is as it was. It is done
+// here, after the water has found its way, so no stream moves; and never beside a lake, whose shore keeps its
+// level.
+if (GRADE) { const { pre, post } = GRADE, want = new Float32Array(NW * VD).fill(Infinity), byLake = (u, v) => C.lakes.some(([cu, cv, ru, rv]) => Math.hypot((u - cu) / (ru + 30), (v - cv) / (rv + 30)) < 1);
+  for (const { line, bed: [h0, h1] } of C.dig) line.forEach(([pu, pv], n) => { if (n % 2) return; const bed = lerp(h0, h1, n / (line.length - 1));
+    for (let dv = -56; dv <= 56; dv++) for (let du = -56; du <= 56; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v);
+      const t = Math.max(0.5, bed + Math.max(0, Math.hypot(du, dv) - 12) * 0.2, bed + (pre[i] - bed) * clamp((Math.max(Math.abs(du), Math.abs(dv)) - 12) / 44, 0, 1)); if (t < want[i]) want[i] = t; } });
+  for (let v = 0; v < VD; v++) for (let u = 0; u < NW; u++) { const i = at(u, v), up = Math.min(pre[i], want[i]) - post[i]; if (up > 0.03 && MATS[mg[i]] === 'land' && hg[i] > 0 && !lakeAt(u, v) && !byLake(u, v)) hg[i] += up; } }
 if (!B) for (let i = 0; i < hg.length; i++) hg[i] = Math.round(hg[i] * 32) / 32;
 // The waterfall off the lake's lip, in picture terms: its column, where it leaves the lip and where it lands.
 // The lip is found on the ground as it was before the stream cut its bed, which a bake does not keep, so
@@ -510,7 +531,7 @@ C.lead = [];
   const join = (...parts) => parts.reduce((all, p, n) => n ? [...all.slice(0, -1), ...p] : [...p], []).filter((p, n, a) => n === a.length - 1 || Math.hypot(a[n + 1][0] - p[0], a[n + 1][1] - p[1]) >= 5);
   const loop0 = C.trails[0], spires0 = C.trails[1], ci0 = spires0.findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]);
   C.loop0 = loop0;
-  const oldLead = route(C.T, loop0[0]), stackLead = route(C.T, C.trails[2][0]);
+  const oldLead = route(C.T, loop0[0]);
   // Where the old trail goes into the forest on its way west: its first point west of the forest's edge.
   // (Corrected 2026-11-16: this was the trail's low point 200 further west, deep in the forest, and the new
   // trail hugged the bottom of the map to reach it. TJ's line crosses the meadow to the forest's edge.)
@@ -518,9 +539,13 @@ C.lead = [];
   const iF = loop0.findIndex((p, n) => n > 0 && n < westEnd && p[0] < forestEdge(p[1])), F = loop0[iF];
   // TJ's line leaves the Trailhead going west nearly level and then climbs north-west: a point a little short
   // of halfway, set toward the camera by a third of the whole climb, bows it that way.
-  const foot = [Math.round(lerp(TU, F[0], 0.45)), Math.round(lerp(TV, F[1], 0.45) - 0.3 * (F[1] - TV))];
+  // Round 8 (TJ, 25 November): a trail comes up to the Trailhead from the bottom of the map, so the two trails
+  // that dipped south on their way out (this one and the Peak's) leave level on the picture, west and east.
+  // level: the ground under a place on the picture, du across from the Trailhead and dy below its own row.
+  const yT = SY - TV - hAt(TU, TV), level = (du, dy) => { const u = TU + du; let best = TV, bd = 1e9; for (let v = Math.max(1, TV - 120); v < Math.min(VD - 1, TV + 160); v++) { const d = Math.abs(SY - v - hAt(u, v) - yT - dy); if (d < bd) { bd = d; best = v; } } return [u, best]; };
+  const foot = level(-132, 5);
   const bottom = route(foot, F, true); C.bottom = bottom;
-  C.trails[0] = join(route(C.T, foot, true), bottom, loop0.slice(iF), oldLead.slice().reverse());
+  C.trails[0] = join([C.T, level(-42, 0), level(-88, 4), foot], bottom, loop0.slice(iF), oldLead.slice().reverse());
   C.lead[0] = 0;
   // The big stand of firs: where the fir clumps' own noise (as they are planted below) runs thick. Halfway up
   // between the Trailhead and camp, its east edge is where that noise falls off east of the straight line.
@@ -533,7 +558,13 @@ C.lead = [];
   const iA = Math.max(0, ci0 - 2);
   C.trails[1] = join(route(C.T, w1, true), route(w1, w2, true), route(w2, spires0[iA], true), spires0.slice(iA));
   C.lead[1] = 0;
-  C.trails[2] = join(stackLead, C.trails[2]); C.lead[2] = stackLead.length - 1; }
+  // The Peak's trail keeps TJ's line from where it turns north-east (C1). Its first stretch, which ran down
+  // the picture to get there, is level now.
+  { const t2 = C.trails[2], k = t2.findIndex(p => p[0] >= TU + 262), east = [level(41, 0), level(87, -1), level(142, 2), level(196, 5), level(238, 4)];
+    C.trails[2] = join([C.T, ...east, t2[k]], t2.slice(k)); C.lead[2] = 0; }
+  // The way in (TJ: "so that TJ comes from somewhere"): from off the bottom of the map up to the Trailhead,
+  // bending as a worn path does. He runs in along it when the page opens.
+  C.trails[3] = join(route([TU - 20, 0], [TU - 6, 62], true), route([TU - 6, 62], [TU + 16, 116], true), route([TU + 16, 116], C.T, true)); C.lead[3] = 0; }
 // The Spires trail's tread ends on the moraine, where it meets the ice (C.camp, where the tents stood until
 // round 5). Beyond it the way goes on as a boot track: straight across the tongue to base camp on its
 // island (C.island), and from there up the ice (D13), as in round 3: it switches back and forth up the fall
@@ -661,7 +692,28 @@ function palouse(u, v, hh, x, y, L, steep) {
   const k = clamp(Math.round(lv * 3 + (bayer(x, y) - 0.5) * 0.5), 0, 3);
   return k === 2 && strip ? R.mustard[2] : R.dry[k];
 }
-function wallRock(x, y, hh, L, seed, green) {
+// The lip and the foot of the face a spot is on: walk up the slope behind it and down the slope in front
+// of it until the ground goes flat.
+function faceSpan(u, v, hh) {
+  let top = hg[at(u, v)], foot = top;
+  for (let k = v + 1, n = 0; k < Math.min(VD, v + 60) && n < 3; k++) { const h = hg[at(u, k)]; if (h > top + 0.5) { top = h; n = 0; } else n++; }
+  for (let k = v - 1, n = 0; k > Math.max(0, v - 60) && n < 3; k--) { const h = hg[at(u, k)]; if (h < foot - 0.5) { foot = h; n = 0; } else n++; }
+  return [Math.max(top, hh), Math.min(foot, hh)];
+}
+// B2 (round 8), after a picture of a wall under a larch bench: unbroken corners from lip to foot made the
+// benches read taller than they are. So a tall face is two tiers parted by a ledge, each with its own
+// planes; level joints cut the planes into blocks; and cones of scree lie against the foot. Only the dry
+// side's walls are given u and v, and so only they are drawn this way: the rainforest's mossy steps are low.
+function wallRock(x, y, hh, L, seed, green, u, v) {
+  const dry = u !== undefined, [top, foot] = dry ? faceSpan(u, v, hh) : [hh, hh], H = Math.max(4, top - foot), t = (top - hh) / H;
+  if (H > 14) {
+    const tal = 0.84 - 0.22 * sq(vnoise(x / 9, 0, seed + 991)) - 0.03 * hash(x, 0, seed + 992);
+    if (t > tal) { const r = hash(x >> 1, Math.floor(hh / 1.5), seed + 993); return green && r > 0.94 ? green : R.rock[r < 0.3 ? 1 : r < 0.7 ? 2 : 3]; }
+  }
+  // The ledge keeps one drop below the lip, so it runs level along the wall as the lip does.
+  const ld = top - hh - Math.min(0.5 * H, 25 + 3 * (vnoise(x / 70, 0, seed + 994) - 0.5)), low = H > 40 && ld > 0;
+  if (H > 40 && ld > -1 && ld < 2.4) return ld < 0.6 ? (green && hash(x >> 1, 0, seed + 995) < 0.45 ? green : R.rock[4]) : R.rock[1];
+  if (low) seed += 31;
   const c = x + 1.2 * Math.sin(hh / 17 + seed), k = Math.floor(c / 9), edge = j => hash(j, seed, 981) < 0.42;
   let a = k; while (a > k - 4 && !edge(a)) a--; let b = k + 1; while (b < k + 5 && !edge(b)) b++;
   const w = (b - a) * 9, pf = (c - a * 9) / w, away = hash(a, seed, 982) < 0.38, cw = (2 + 0.42 * w * hash(a, seed, 983)) / w;
@@ -670,7 +722,8 @@ function wallRock(x, y, hh, L, seed, green) {
   if (wet) return R.rock[away ? 0 : 1];
   if (green && !away && frac(hh / (31 + 9 * hash(a, seed, 986)) + hash(a, seed, 987)) < 0.035 && hash(x >> 2, Math.floor(hh / 31), seed + 988) < 0.3) return green;
   if (pf < 1.1 / w && !away) return R.rock[4];
-  const lit = 0.8 + 0.5 * (L - 0.5) - (away ? 0.3 : 0.22 * pf * pf) + 0.12 * (vnoise(x / 4, hh / 12, seed + 989) - 0.5) + 0.12 * (hash(a, seed, 990) - 0.5);
+  { const jh = 11 + 9 * hash(a, seed, 996), j = frac(hh / jh + hash(a, seed, 997)) * jh; if (dry && hash(a, seed, 998) < 0.7 && j < 1 && pf > 0.12) return R.rock[away ? 1 : 2]; }
+  const lit = (dry ? 0.74 : 0.8) + 0.5 * (L - 0.5) - (away ? 0.3 : 0.22 * pf * pf) + 0.12 * (vnoise(x / 4, hh / 12, seed + 989) - 0.5) + 0.12 * (hash(a, seed, 990) - 0.5);
   return R.rock[clamp(Math.round(4.4 * lit + (bayer(x, y) - 0.5) * 0.4), 0, 4)];
 }
 // A08, after a picture of a scabland coulee: a basalt cliff is one or two lava flows stacked. Each flow
@@ -679,11 +732,7 @@ function wallRock(x, y, hh, L, seed, green) {
 // lighter broken rock lies against the foot. Where on the cliff a spot is comes from the ground just
 // behind it (the top) and just in front of it (the foot).
 function basaltWall(u, v, hh, x, y, L) {
-  // Walk up the slope behind and down the slope in front until the ground goes flat.
-  let top = hg[at(u, v)], foot = top;
-  for (let k = v + 1, n = 0; k < Math.min(VD, v + 60) && n < 3; k++) { const h = hg[at(u, k)]; if (h > top + 0.5) { top = h; n = 0; } else n++; }
-  for (let k = v - 1, n = 0; k > Math.max(0, v - 60) && n < 3; k--) { const h = hg[at(u, k)]; if (h < foot - 0.5) { foot = h; n = 0; } else n++; }
-  top = Math.max(top, hh); foot = Math.min(foot, hh);
+  const [top, foot] = faceSpan(u, v, hh);
   const H = Math.max(4, top - foot), d = top - hh, t = d / H, B = R.basalt, A = R.ash;
   if (d < 1) return hash(x >> 1, 0, 1201) < 0.5 ? A[3] : B[3];
   // The talus: its top is ragged and rises into fans here and there.
@@ -714,6 +763,22 @@ function lakeWater(u, v, x, y) {
   if (d < 0.14) return bayer(x, y) < smooth(0.14, 0.06, d) ? W[3] : W[2];
   return vnoise(u / 8, v / 3, 1403) > 0.62 && bayer(x, y) < 0.5 ? W[2] : W[1];
 }
+// The Spires' lake (round 8, C7, TJ, after a picture of a lake at a glacier's foot): milky turquoise melt
+// water, a little deeper in the middle, pale in the shallows along the near shore and round the ends. The
+// ice cliff's reflection, its shadow at the waterline and the floes are laid over it further down.
+function siltWater(u, v, x, y) {
+  const T = R.tarn, d = lakeIn(u, v), near = v < PRO.cv + 0.3 * PRO.rv;
+  if (near && d < 0.1) return T[5];
+  if (near && d < 0.24) return bayer(x, y) < smooth(0.24, 0.1, d) ? T[5] : T[4];
+  // Calm water in flat tones, as the picture has it: a pale band inside the shallows, then the lake's own
+  // turquoise with a few level dashes, paler or deeper, where the surface catches the light or does not.
+  if (d < 0.4) return T[4];
+  if (d < 0.5 && bayer(x, y) < smooth(0.5, 0.4, d)) return T[4];
+  const h = hash(x >> 2, y, 4873);
+  return h < 0.07 ? T[4] : h > 0.9 && vnoise(u / 9, v / 3, 8) > 0.5 ? T[2] : T[3];
+}
+// Its near shore (C7): a strand of grey moraine gravel a few pixels deep, with a stone here and there.
+const siltShore = (u, v) => { const d = Math.hypot((u - PRO.cu) / PRO.ru, (v - PRO.cv) / PRO.rv), w = 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); return v < PRO.cv + 2 && d + w >= 1 && Math.hypot((u - PRO.cu) / (PRO.ru + 4), (v - PRO.cv) / (PRO.rv + 3)) + w < 1; };
 // A11, after a picture of the lateral moraines below the real volcano's glaciers: a moraine's steep bank is
 // loose till cut by fine gullies running down it, each lit on its west edge and dark in its east seam,
 // the whole bank darker where it faces away from the sun, with a pale crest along its top. On the flat the
@@ -769,13 +834,14 @@ function colour(u, v, hh, x, y) {
   const lk = lakeAt(u, v);
   if (lk === 'lake' && isle(u, v) < 1) return pick('grass', 0.55 + 0.3 * n1, x, y);
   if (lk === 'tarn' || lk === 'milk') { const dep = lakeIn(u, v); if (dep < 0.13) return lk === 'tarn' ? R.tarn[5] : R.glac[4]; if (dep < 0.28 && lk === 'tarn') return R.tarn[4]; }
-  if (lk) return lk === 'tarn' ? pick('tarn', 0.62 - 0.5 * lakeIn(u, v) + 0.14 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : lk === 'lake' ? lakeWater(u, v, x, y) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
+  if (lk) return lk === 'tarn' ? pick('tarn', 0.62 - 0.5 * lakeIn(u, v) + 0.14 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? siltWater(u, v, x, y) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : lk === 'lake' ? lakeWater(u, v, x, y) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
   // Where a trail crosses water there is a footbridge: a deck of planks with a dark edge.
   if (water[i] && trail[i] && mat !== 'ice') return trail[i] === 2 ? ((u + 2 * v) % 3 === 0 ? R.dirt[1] : R.dirt[2]) : R.dirt[0];
   // White water where the stream itself falls, read from the water's own surface, not from its banks,
   // so a low river between high banks near the sea stays blue (D11).
   const wh = (a, b) => water[at(a, b)] ? hg[at(a, b)] : hg[at(uu, vv)], fall = water[i] ? Math.hypot(wh(uu + 1, vv) - wh(uu - 1, vv), wh(uu, vv + 1) - wh(uu, vv - 1)) / 2 : 0;
   if (water[i]) return streamColour(u, v, hh, x, y, i, fall);
+  if (!trail[i] && siltShore(u, v)) { const h = hash(x, y, 4871), K = R.rock; return h < 0.08 ? K[1] : h < 0.36 ? K[2] : h > 0.9 ? K[4] : K[3]; }
   const rim = lakeRim(u, v); if (rim) return rim === 'lake' ? R.dirt[hash(x, y, 3) < 0.3 ? 3 : 4] : R.rock[hash(x >> 1, y >> 1, 3) < 0.5 ? 2 : 3];
   // The boot track up the ice: a trench with its floor in shade; where it crosses rock, a worn line.
   if (track[i] && !trail[i] && !printGap(i)) return mat === 'ice' ? (track[i] === 1 ? R.glac[3] : hash(x, y, 16) < 0.3 ? R.glac[2] : R.glac[1]) : track[i] === 1 ? R.rock[1] : R.rock[hash(x, y, 6) < 0.3 ? 4 : 3];
@@ -884,28 +950,27 @@ function colour(u, v, hh, x, y) {
       if (ta > 0.3 && snowPatch(u, v)) return hash(x, y, 908) < 0.1 ? R.snow[2] : R.snow[L > 0.4 ? 4 : 3];
       if (bayer(x, y) < ta * 1.6) { const yy = y + Math.floor(3 * hash(x >> 2, 0, 911)), by = (yy / 3) | 0, bx = ((x + 2.6 * hash(by, 1, 912)) / (3 + ((hash(by, 2, 913) * 3) | 0))) | 0, q = hash(bx, by, 909), row = yy - by * 3; if (q < 0.14) return R.rock[0]; return row === 2 ? R.rock[q < 0.5 ? 0 : 1] : R.rock[clamp(Math.round(1.4 + 2.2 * L + 1.2 * (q - 0.5) + (row === 0 ? 1 : 0)), 1, 4)]; }
     }
-    // Art pass A04: the fin is warm granite in tall planes, not the walls' grey. Each plane is lit; the
-    // corner on its east side, which turns away from the sun, is in cool shadow, and so is the east end
-    // of the ridge; the teeth on the ridge stand dark against the sky, the summit block catches the light
-    // on top, and a few thin cracks run down the face. fx is the place across the fin in the profile's
-    // units, dt how far below the fin's top a pixel is.
+    // Round 8, B1, after a picture: the face in crisp planes on the old greys. Ribs drop from the tower's
+    // corners, the summit and the teeth; the side of each that turns west is in the sun and the side that
+    // turns east is in shadow, darkest under the rib, with a few long cracks. fx is the place across the fin
+    // in the profile's units, dt how far below the skyline a pixel is; each edge wanders a little in steps.
     if (mat === 'fin' && PF) {
-      const fx = (u - PF.cu) * 150 / PF.w, dt = PF.base + PF.hgt * PP(fx) - hh, G = R.granite;
-      const east = smooth(28, 56, fx), foot = smooth(30, 4, hh - PF.base), tower = fx < -44.5;
-      const lx = fx - 0.05 * (hh - PF.base), k = FIN_EDGES.findIndex(e => e > lx), a0 = FIN_EDGES[k - 1] ?? -80, a1 = FIN_EDGES[k] ?? 80, pf = (lx - a0) / (a1 - a0), wide = a1 - a0;
-      // The fin's narrow top, seen from above: lit on the summit block and the tower, a step darker along
-      // the ridge east of the summit, where the teeth turn away from the sun.
-      if (v >= PF.cv && v < PF.cv + 10 && dt < 3) return fx >= -6 && fx <= 5 ? R.gold[6] : fx > 5 ? G[east > 0.5 ? 2 : 3] : G[5];
-      if (tower && fx > -47.5) return G[b2(x, y) < 0.5 ? 1 : 2];
-      const sh = 1 - (1.5 + 0.3 * wide * (0.3 + 0.7 * hash(k, 8, 971))) / wide;
-      const run = dt > 3 + 20 * hash(k, 5, 968);
-      if (!tower && pf > sh && run) return G[pf > 1 - 1.2 / wide ? 1 : east > 0.5 || pf > 1 - 0.45 * (1 - sh) ? 2 : 3];
-      if (!tower && run && pf < 0.9 / wide && east < 0.5) return dt < 30 ? R.gold[6] : G[5];
-      if (hash(k, 2, 963) < 0.35 && Math.abs(pf - 0.4 - 0.1 * hash(k, 3, 964)) < 0.5 / wide && dt > 6 && dt < 20 + 60 * hash(k, 4, 965)) return G[2];
-      const lit = 0.86 - 0.5 * east - 0.3 * foot + 0.16 * (vnoise(lx / 5, hh / 14, 966) - 0.5) - (tower ? 0.12 * smooth(-61, -47, fx) : 0.3 * pf * pf) + 0.2 * (hash(k, 7, 970) - 0.5) + 0.1 * smooth(60, 0, dt);
-      return G[clamp(Math.round(1 + 4.2 * lit + (b2(x, y) - 0.5) * 0.6), 1, 5)];
+      const fx = (u - PF.cu) * 150 / PF.w, dt = PF.base + PF.hgt * PP(fx) - hh, D = PF.base + PF.hgt - hh, row = Math.floor(hh / 5);
+      const edge = n => FIN_PLANES[n][0] + 0.13 * D * FIN_PLANES[n][2] + 1.6 * (hash(row, n, 961) - 0.5);
+      let k = 0; while (k < FIN_PLANES.length - 1 && fx >= edge(k + 1)) k++;
+      const [, sun, , front] = FIN_PLANES[k], x0 = k ? edge(k) : -76, x1 = k + 1 < FIN_PLANES.length ? edge(k + 1) : 76, wide = Math.max(1, x1 - x0), pf = clamp((fx - x0) / wide, 0, 1);
+      // A crack: one pixel wide, a length of the wall long.
+      const crack = hash(x, 3, 902) < 0.1 && frac(hh / 46 + hash(x, 4, 902)) < 0.4 && dt > 4;
+      // Water streaks down the face, a step darker, as the old drawing had them, but fewer.
+      const streak = vnoise(x / 4, hh / 44, 903) > 0.66 && b2(x, y) < 0.7;
+      if (dt < 1.5 && v >= PF.cv) return sun || front ? R.gold[6] : R.rock[3];
+      // The palest granite, thick near the skyline and thinning down the wall: it is what takes the pink at Dusk.
+      const pale = b2(x, y) < 0.95 * smooth(75, 8, dt) * (0.4 + 0.6 * smooth(0.7 * PF.hgt, 0.25 * PF.hgt, D));
+      if (front) return crack || streak ? R.rock[2] : pale && b2(x + 1, y) < 0.5 ? R.gold[6] : R.rock[b2(x, y) < 0.22 ? 4 : 3];
+      if (sun) return crack ? R.rock[2] : x1 - fx < 1.6 && dt < 70 ? R.gold[6] : streak ? R.rock[3] : pale ? R.gold[6] : R.rock[b2(x, y) < 0.3 - 0.6 * pf ? 3 : 4];
+      return fx - x0 < 1.4 ? R.rock[1] : crack || streak ? R.rock[1] : R.rock[b2(x, y) < 0.75 - 1.5 * (fx - x0) / 8 ? 1 : b2(x, y) < pf - 0.5 ? 3 : 2];
     }
-    if (steep > 0.75 || mat === 'fin') return wallRock(x, y, hh, L, 1, R.grass[2]);
+    if (steep > 0.75) return wallRock(x, y, hh, L, 1, R.grass[2], u, v);
     // A05, after a picture of the Enchantments: the benches' tops are glacier-polished slabs of warm
     // granite, rounded pillows of every size, each lit on its upper left and a step darker toward its
     // lower right, parted by thin dark cracks. Heather fills the hollows where it grew before.
@@ -931,7 +996,7 @@ function colour(u, v, hh, x, y) {
   // Land. A step in it shows the rock of its own country.
   // The golden hills' swells are grass to their crests, lit and shaded, never rock.
   if (steep > 1.05 && palAmt(u, v) > 0.3) return palouse(u, v, hh, x, y, L, steep);
-  if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? basaltWall(u, v, hh, x, y, L) : wallRock(x, y, hh, L, 2, u > 1190 ? null : R.moss[1]);
+  if (steep > 1.05) return dryAmt0(u, v) > 0.3 ? basaltWall(u, v, hh, x, y, L) : (u > 1190 ? wallRock(x, y, hh, L, 2, null, u, v) : wallRock(x, y, hh, L, 2, R.moss[1]));
   const sh = (L - 0.5) * 0.5, blot = s => 0.5 + 0.85 * (fbm(u / 32, v / 21, s, 3) - 0.5) + 0.2 * n1;
   // The bog: bright sphagnum moss with dark peaty pools in it, the moss darker towards its edge.
   { const e = bogAt(u, v); if (e < 1) return fbm(u / 6, v / 4, 471, 2) > 0.52 && e < 0.85 ? (hash(u, v, 472) < 0.07 ? R.water[1] : R.moss[0]) : pick('moss', 0.62 + 0.3 * fbm(u / 5, v / 4, 473, 2) - 0.3 * e, x, y, 0.4); }
@@ -975,6 +1040,24 @@ for (const r of routes) {
   for (let n = end; n >= 0 && coast(P[n][0], P[n][1]) > -32; n--) MOUTHS.push([P[n][0], P[n][1], 0.3 + 0.7 * smooth(-14, -30, coast(P[n][0], P[n][1]))]);
 }
 const mouthFog = (u, v, cs) => { let f = 1; for (const [a, b, least] of MOUTHS) { const e = lerp(least, 1, smooth(4, 15, Math.hypot(a - u, b - v))); if (e < f) f = e; } return lerp(f, 1, smooth(-3, 5, cs)); };
+// Where driftwood gathers (round 8, H7): on a real beach the sea leaves its logs in jams at the creek
+// mouths, where a creek's own wood meets the tide's, and against the headlands, which catch what the swell
+// carries alongshore; the sand between is clean. JAMS is those spots as [u, v], found from the land: a
+// mouth is where a creek's water crosses the dry sand above the high-water line, and a headland is where
+// the shore stands farthest out from its own line (the lowest of the coast's wander): the two that stand
+// out most, each 110 or more from any other spot. jamAt answers how much driftwood a spot gets: all of it within 30 of a jam, none past 80.
+const JAMS = (() => {
+  const out = [], far = (u, v, d) => out.every(([a, b]) => Math.hypot(a - u, (b - v) * 1.5) > d), wet = [], dry = [];
+  // The band lies within 18 below and 64 above the shore's own line (the coast wanders 20 either way), so
+  // only those rows are asked. The spots are then put in rows, as a walk over the whole map would find them.
+  for (let u = 4; u < 700; u += 2) { const line = SHV.V[u - SHV.lo] & ~1; for (let v = Math.max(2, line - 18); v < Math.min(VD - 2, line + 64); v += 2) { const c = coast(u, v); if (c > -10 || c < -16) continue; if (water[at(u, v)]) wet.push([u, v]); else dry.push([u, v, fbm(u / 80, v / 80, 80, 3)]); } }
+  wet.sort((a, b) => a[1] - b[1] || a[0] - b[0]); dry.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
+  for (const [u, v] of wet) if (far(u, v, 40)) { const near = wet.filter(([a, b]) => Math.hypot(a - u, b - v) < 20); out.push([near.reduce((t, q) => t + q[0], 0) / near.length, near.reduce((t, q) => t + q[1], 0) / near.length, 'mouth']); }
+  dry.sort((a, b) => a[2] - b[2]);
+  let heads = 0; for (const [u, v, n] of dry) { if (n > 0.38 || heads >= 2) break; if (far(u, v, 110)) { out.push([u, v, 'head']); heads++; } }
+  return out;
+})();
+const jamAt = (u, v) => { let k = 0; for (const [a, b] of JAMS) k = Math.max(k, smooth(80, 30, Math.hypot(a - u, (b - v) * 1.5))); return k; };
 if (B) { g.set(B.g); mb.set(B.mb); zb.set(B.zb); painted.set(B.painted); bare.set(B.bare); fogField.set(B.fog); } else {
 for (let y = 0; y < SH; y++) for (let x = 0; x < NW; x++) g[px(x, y)] = skyAt(x, y);
 // The far ranges, which really are a backdrop: pale, beyond the last of the ground.
@@ -1066,7 +1149,8 @@ let MONO_OY = 0;
 {
   const paint = (x, y, c) => { if (x >= 0 && y >= 0 && x < NW && y < SH) { g[px(x, y)] = c; painted[px(x, y)] = 1; } };
   for (const t of TARNS) {
-    const e = t.end, hw = Math.round(clamp(e.room * 0.42, 14, 24)), rv = Math.max(4, Math.round(hw * 0.34)), xc = MONO_OX + e.mid;
+    // Larger since round 8 (C4, TJ): each fills the gap between its two cleavers.
+    const e = t.end, hw = Math.round(clamp(e.room * 0.46, 18, 32)), rv = Math.max(5, Math.round(hw * 0.42)), xc = MONO_OX + e.mid;
     // The water's top row at each column is the first row below the ice there, so the ice meets it.
     const topAt = x => MONO_OY + Math.floor(e.snout(x - MONO_OX)) + 1, yc = topAt(xc) + rv - 1;
     for (let dx = -hw - 2; dx <= hw + 2; dx++) { const x = xc + dx, f = Math.abs(dx) / hw;
@@ -1107,9 +1191,22 @@ let MONO_OY = 0;
 // ice cliff, streaked down its height, darker where it meets the lake.
 { const II = MATS.indexOf('ice'); for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) { let y = 0; while (y < SH && !(zb[px(x, y)] < VD && lakeAt(x, Math.round(zb[px(x, y)])) === 'silt')) y++; if (y >= SH) continue;
   for (let k = 1; k <= 12; k++) { const i = px(x, y - k); if (mb[i] !== II || zb[i] > GL.toe + 7) break; const top = k === 12 || mb[px(x, y - k - 1)] !== II || zb[px(x, y - k - 1)] > GL.toe + 7; g[i] = top ? R.white[1] : k === 1 ? R.serac[0] : hash(x, 0, 482) < 0.3 ? R.serac[1] : (x & 1) ? R.serac[3] : R.serac[2]; } } }
-// Ice broken off the snout floats in the Spires' lake, thickest against the ice (E8c, TJ's photograph).
-for (let y = 0; y < SH - 1; y++) for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) { const i = px(x, y), v = zb[i]; if (v >= VD || lakeAt(x, Math.round(v)) !== 'silt') continue;
-  const near = (v - (PRO.cv - PRO.rv)) / (2 * PRO.rv); if (hash(x >> 1, y, 481) > 0.2 * near * near) continue; g[i] = R.white[1]; if (lakeAt(x + 1, Math.round(v))) g[px(x + 1, y)] = R.white[1]; g[px(x, y + 1)] = R.water[4]; }
+// The lake mirrors the ice cliff (round 8, C7, after a picture of a glacier ending in its lake): a dark line
+// of shadow where ice meets water, and under it the cliff's own streaks, column for column, pale and
+// fading into the turquoise a few rows out.
+{ const T = R.tarn, silt = (x, y) => { const v = zb[px(x, y)]; return v < VD && lakeAt(x, Math.round(v)) === 'silt'; };
+  // The melt water that falls off the ice cliff is painted down the face and on across the lake: on the
+  // water it goes back to lake.
+  for (let y = 1; y < SH - 3; y++) for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) { const i = px(x, y); if (silt(x, y) && RAMP_OF[g[i]] !== 'tarn') g[i] = siltWater(x, Math.round(zb[i]), x, y); }
+  for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) { let y = 0; while (y < SH && !silt(x, y)) y++; if (y >= SH || RAMP_OF[g[px(x, y - 1)]] !== 'serac') continue;
+    const len = 2 + Math.round(4 * hash(x >> 1, 1, 483)), c = hash(x >> 1, 0, 482) < 0.45 ? T[5] : T[4];
+    for (let j = 0; j <= len && silt(x, y + j); j++) g[px(x, y + j)] = !j ? T[1] : j === 1 && hash(x, 2, 483) < 0.5 ? T[2] : c; }
+  // Ice broken off the snout floats in the lake (E8c, TJ's photograph; redrawn in round 8, C7). The bergs are
+  // things that drift now (round 8, H5: life.js places and draws them), so only the brash between them, thick
+  // near the cliff, is painted into the water here.
+  const spots = []; for (let y = 1; y < SH - 3; y++) for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) if (silt(x, y) && RAMP_OF[g[px(x, y)]] === 'tarn') spots.push([x, y]);
+  const far = (x, y) => { const v = zb[px(x, y)]; return v < VD ? clamp((v - (PRO.cv - PRO.rv)) / (2 * PRO.rv), 0, 1) : 0; };
+  for (const [x, y] of spots) { const f = far(x, y); if (hash(x, y, 481) < 0.07 * f * f * f * f && RAMP_OF[g[px(x, y)]] === 'tarn' && g[px(x, y)] !== T[1]) g[px(x, y)] = R.white[1]; } }
 
 // ---- detail on the ground, as round 3 had it ------------------------------------------------------
 // These work on the finished picture. A pixel belongs to the ground at one spot (zb, its depth), so
@@ -1158,12 +1255,13 @@ for (const br of BRIDGES) {
 // Wildflowers are not painted into the ground any more: they are things that stand up and sway (D5a,
 // below, with the trees).
 // Small driftwood along the beach: bleached branches, each with its shadow under it (round 5, T8: they were
-// the grey of rock).
+// the grey of rock). Fewer since round 8 (B4, TJ), and since H7 they lie round the jams, so the dice are
+// thrown more often for about as many branches as B4 left.
 {
   const rand = rng(44390);
-  for (let n = 0; n < 700; n++) {
+  for (let n = 0; n < 1100; n++) {
     const x = (rand() * 700) | 0, y = 500 + ((rand() * (SH - 500)) | 0), v = zb[px(x, y)]; if (v >= VD) continue;
-    const cs = coast(x, v); if (cs > -3 || cs < -13) continue;
+    const cs = coast(x, v); if (cs > -3 || cs < -13 || hash(n, 3, 44391) >= jamAt(x, v)) continue;
     const len = 6 + rand() * 12, a = (rand() - 0.5) * 0.9 + 0.6;
     for (let k = 0; k < len; k++) { const qx = Math.round(x + Math.cos(a) * k), qy = Math.round(y + Math.sin(a) * k * 0.5); if (qx > 0 && qy > 0 && qx < NW && qy < SH - 1 && !water[at(qx, Math.round(zb[px(qx, qy)]))] && sameGround(px(x, y), px(qx, qy))) { g[px(qx, qy)] = R.gold[k % 5 === 3 ? 4 : 6]; g[px(qx, qy + 1)] = R.sand[0]; } }
   }
@@ -1257,13 +1355,15 @@ if (!B) { const box = (P, fn) => { for (let v = Math.max(0, Math.floor(P.v0)); v
     const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { let n = 0; const kl = key[last]; for (;;) { const l = 2 * n + 1, r = l + 1; let m = -1, km = kl; if (l < heap.length && key[heap[l]] < km) { m = l; km = key[heap[l]]; } if (r < heap.length && key[heap[r]] < km) m = r; if (m < 0) break; heap[n] = heap[m]; n = m; } heap[n] = last; } return top; };
     for (let b = 0; b < h; b++) for (let a = 0; a < w; a++) if (a === 0 || b === 0 || a === w - 1 || b === h - 1) { const k = b * w + a; key[k] = hg[at(X0 + a, Y0 + b)]; done[k] = 1; push(k); }
     while (heap.length) { const k = pop(), a = k % w, b = (k - a) / w; order.push(k); for (let db = -1; db <= 1; db++) for (let da = -1; da <= 1; da++) { const aa = a + da, bb = b + db; if (aa < 0 || bb < 0 || aa >= w || bb >= h) continue; const n = bb * w + aa; if (done[n]) continue; done[n] = 1; from[n] = k; key[n] = Math.max(hg[at(X0 + aa, Y0 + bb)], key[k] + 1e-4); push(n); } }
-    // The bowl's mouth: from the tarn's lowest spot, follow the water down until it is 60 nearer the camera
-    // than the tarn. A spot belongs if it drains, sooner or later, to the mouth: walked in the order the
-    // flood reached them, each spot after the one it drains to.
+    // The bowl's mouth is the tarn's lowest spot, where its water leaves. A spot belongs if it drains,
+    // sooner or later, to the mouth: walked in the order the flood reached them, each spot after the one it
+    // drains to. The area ends there (round 8, B5, TJ: it used to follow the outlet 60 further down, and ran
+    // to a sharp point in the meadow), wrapped round the whole tarn and the moraine at its toe, 6 beyond the
+    // water, whichever way a bit of the tarn sheds.
     let mouth = -1; for (const k of order) { const a = k % w, b = (k - a) / w; if (lakeAt(X0 + a, Y0 + b) === 'silt') { mouth = k; break; } }
-    while (mouth >= 0 && from[mouth] >= 0 && Y0 + Math.floor(mouth / w) > tarn[1] - 60) mouth = from[mouth];
     const inn = new Uint8Array(w * h);
     for (const k of order) { const a = k % w, b = (k - a) / w; inn[k] = k === mouth || (from[k] >= 0 && inn[from[k]]) ? 1 : 0; if (inn[k] && !reg[at(X0 + a, Y0 + b)]) reg[at(X0 + a, Y0 + b)] = 3; }
+    { const [tu, tv, tru, trv] = tarn; for (let v = Math.max(0, Math.floor(tv - trv - 6)); v <= Math.min(VD - 1, Math.ceil(tv + trv + 6)); v++) for (let u = Math.max(0, Math.floor(tu - tru - 6)); u <= Math.min(NW - 1, Math.ceil(tu + tru + 6)); u++) if (!reg[at(u, v)] && (lakeAt(u, v) === 'silt' || Math.hypot((u - tu) / (tru + 6), (v - tv) / (trv + 6)) < 1)) reg[at(u, v)] = 3; }
     for (let i = 0; i < reg.length; i++) if (mg[i] === WALL) reg[i] = 3;
     // The bowl's bare ground goes with it too (ice, moraine and the arms' rock between the wall's two ends,
     // above the mouth), so a face of an arm that sheds its water the other way does not stay behind.
@@ -1353,6 +1453,8 @@ const ridgeRow = (u, v) => coast(u, v) < -18 && forestAmt(u, v) > 0.3 && hillUp(
 }
 // ---- things that stand up -------------------------------------------------------------------------
 // put and plant still take where the fog lies (f) from their callers; since E5 nothing is paled by it for good.
+// STREAMSIDE: the streamside plants of H8 as [u, v, which drawing, how far from the water], for the bake.
+const STREAMSIDE = [];
 const STACKS = [], things = [], put = (bm, u, v, f, tree) => things.push({ bm, u: Math.round(u), v: Math.round(v), isTree: tree }), plant = (tree, u, v) => things.push({ tree, u: Math.round(u), v: Math.round(v) });
 const wet8 = (u, v) => { for (let dv = -3; dv <= 6; dv += 3) for (let du = -9; du <= 9; du += 3) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) return true; return false; };
 const slope = (u, v) => Math.hypot(hAt(u + 2, v) - hAt(u - 2, v), hAt(u, v + 2) - hAt(u, v - 2)) / 4;
@@ -1556,9 +1658,51 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
   rand = rng(6113);
   for (let n = 0; n < 120; n++) { const u = rand() * 720, v = rand() * VD; if (forestAmt(u, v) > 0.7 && fogAmt(u, v) < 0.25 && hills(u, v) < 3 && open(u, v, 0.8) && wooded(u, v) && bogAt(u, v) >= 1.2) put(any(logs), u, v); }
   // Skunk cabbage round the bog's pools, on the moss, never in the water (C3). Their own dice.
-  if (BOG) { const sc = rng(6121), cab = Array.from({ length: 4 }, (_, i) => makeSkunkCabbage(1050 + i)), took = new Set();
+  const cab = Array.from({ length: 4 }, (_, i) => makeSkunkCabbage(1050 + i));
+  if (BOG) { const sc = rng(6121), took = new Set();
     for (let n = 0; n < 400; n++) { const u = BOG[0] + (sc() * 2 - 1) * BOG[2], v = BOG[1] + (sc() * 2 - 1) * BOG[3], e = bogAt(u, v), cell = ((u / 5) | 0) * 1000 + ((v / 3) | 0);
       if (e > 0.95 || (fbm(u / 6, v / 4, 471, 2) > 0.5 && e < 0.87) || took.has(cell) || sc() > 0.22) continue; took.add(cell); plant(cab[(sc() * cab.length) | 0], u, v); } }
+  // More of it where TJ circled the map (round 8, C8): along the rainforest creek north of the maples, at the
+  // creek's mouth behind the beach, and by the footbridge below Reflection Lake. The rule is the plant's own:
+  // on the bank, two to seven from running water and never in it, on ground that is nearly level, off the
+  // sand and clear of the trail. Their own dice.
+  // The streamside rule in two parts: how far a spot is from running water (99 if none is near), and whether
+  // a plant may stand there at all (not in water, off the sand, on ground that is nearly level, clear of the trail).
+  const waterNear = (u, v) => { let near = 99;
+    // Away from the map's edge the spots round it are read straight from the grid.
+    if (u >= 7 && u < NW - 7 && v >= 4 && v < VD - 4) { for (let dv = -4; dv <= 4; dv++) for (let du = -7, r = (v + dv) * NW + u; du <= 7; du++) if (water[r + du]) near = Math.min(near, Math.hypot(du, dv * 1.6)); return near; }
+    for (let dv = -4; dv <= 4; dv++) for (let du = -7; du <= 7; du++) if (water[at(clamp(u + du, 0, NW - 1), clamp(v + dv, 0, VD - 1))]) near = Math.min(near, Math.hypot(du, dv * 1.6)); return near; };
+  const bankOk = (u, v) => !(water[at(u, v)] || lakeAt(u, v) || coast(u, v) > -36 || slope(u, v) > 0.9 || nearTrail(u, v, 7) || !land(u, v));
+  { const sc = rng(6124), took = new Set();
+    for (const [cu, cv, ru, rv, most] of [[402, 560, 34, 46, 16], [271, 436, 48, 24, 16], [664, 330, 20, 22, 8]]) { let k = 0;
+      for (let n = 0; n < 900 && k < most; n++) { const u = Math.round(cu + (sc() * 2 - 1) * ru), v = Math.round(cv + (sc() * 2 - 1) * rv), cell = ((u / 5) | 0) * 1000 + ((v / 3) | 0);
+        if (ell([cu, cv, ru, rv], u, v) > 1 || took.has(cell)) continue;
+        if (!bankOk(u, v)) continue; const near = waterNear(u, v); if (near < 2 || near > 7) continue; took.add(cell); plant(cab[(sc() * cab.length) | 0], u, v); k++; } } }
+  // The rest of a streamside, by the same rule, over the whole map (round 8, H8): along the meadow's streams
+  // monkeyflower and marsh marigold, each in runs of its own kind, and along the forest's, devil's club. They
+  // come in patches with bare bank between, and each stands clear of every other streamside plant, the skunk
+  // cabbage too, by where it shows in the picture (4 across or 3 up). Their own dice, three to a throw
+  // whether it lands or not, so a plant keeps its place when another rule changes.
+  { const sp = rng(6126), monkey = [0, 1, 2, 3].map(i => makeMonkeyflower(1090 + i)), marigold = [0, 1, 2].map(i => makeMarigold(1096 + i)), club = [0, 1, 2, 3].map(i => makeDevilsClub(1100 + i));
+    tag(monkey, 'monkeyflower'); tag(marigold, 'marigold'); tag(club, 'club'); tag(cab, 'cabbage');
+    // The rule costs 9 ms and the page's first paint waits for it, so the plants it finds go into the bake
+    // with the ground and are read from there. Without a bake that has them, the rule runs.
+    const all = [...monkey, ...marigold, ...club];
+    if (B && B.plants) { STREAMSIDE.push(...B.plants); for (const [u, v, i, near] of B.plants) things.push({ tree: all[i], u, v, near }); } else {
+    // A coarse map of where the water is, in cells of 8 by 8, so that a throw far from every stream costs
+    // nine looks and no more (the page's first paint waits for this loop).
+    // The water is read four spots at a time (a row is 480 words), which is what makes the map cheap.
+    const CW = (NW >> 3) + 1, CH = (VD >> 3) + 1, wetCell = new Uint8Array(CW * CH), W4 = new Uint32Array(water.buffer, water.byteOffset, water.length >> 2), RW4 = NW >> 2;
+    for (let b = 0; b < VD; b++) for (let a = 0, r = b * RW4, c = (b >> 3) * CW; a < RW4; a++) if (W4[r + a]) wetCell[c + (a >> 1)] = 1;
+    const wetBy = (u, v) => { const cu = u >> 3, cv = v >> 3; for (let b = Math.max(0, cv - 1); b <= Math.min(CH - 1, cv + 1); b++) for (let a = Math.max(0, cu - 1); a <= Math.min(CW - 1, cu + 1); a++) if (wetCell[b * CW + a]) return true; return false; };
+    const shown = (u, v) => SY - v - hAt(u, v), stood = things.filter(t => cab.includes(t.tree)).map(t => [t.u, shown(t.u, t.v)]);
+    for (let n = 0; n < 40000; n++) { const u = Math.round(sp() * (NW - 1)), v = Math.round(sp() * (VD - 1)), k = sp();
+      if (!wetBy(u, v)) continue; const near = waterNear(u, v); if (near < 2 || near > 7) continue;
+      if (fbm(u / 26, v / 18, 6127, 2) < 0.45) continue; const wood = forestAmt(u, v) > 0.6; if ((!wood && !meadowy(u, v)) || !bankOk(u, v)) continue;
+      const y = shown(u, v); if (stood.some(([a, b]) => Math.abs(a - u) < 4 && Math.abs(b - y) < 3)) continue;
+      stood.push([u, y]); const kinds = wood ? club : vnoise(u / 60, v / 40, 6128) < 0.55 ? monkey : marigold;
+      // near: how far it stands from the water, for the checks.
+      const tree = kinds[(k * kinds.length) | 0], d = Math.round(near * 100) / 100; things.push({ tree, u, v, near: d }); STREAMSIDE.push([u, v, all.indexOf(tree), d]); } } }
   // The old-growth groves: three or four redcedars half as tall again as the forest round them, a little apart,
   // with sword ferns thick on the ground below (C3). Their own dice.
   { const gr = rng(6122), giants = [0, 1, 2].map(i => KINDS_NW.cedar(1080 + i * 7, 84 + i * 4));
@@ -1566,13 +1710,25 @@ const open = (u, v, max = 0.8) => u > 2 && u < NW - 2 && v > 1 && v < VD - 2 && 
       for (let n = 0; n < 60 && stood.length < 4; n++) { const u = gu + (gr() * 2 - 1) * ru * 0.7, v = gv + (gr() * 2 - 1) * rv * 0.7; if (!open(u, v, 1.3) || !wooded(u, v) || stood.some(([a, b]) => Math.hypot(a - u, (b - v) * 1.6) < 16)) continue; stood.push([u, v]); plant(giants[(gr() * giants.length) | 0], u, v); }
       for (let n = 0; n < 40; n++) { const u = gu + (gr() * 2 - 1) * ru, v = gv + (gr() * 2 - 1) * rv; if (ell([gu, gv, ru, rv], u, v) > 1 || !open(u, v, 1.1)) continue; things.push({ bm: any(ferns), u: Math.round(u), v: Math.round(v), fern: true }); } } }
   // Driftwood above the high-water line (round 5, T8): eight logs' worth of drawings, each at its own angle.
-  // The dice are rolled as they were, so every log lies where its blob lay.
-  { const dr = rng(4730), drift = Array.from({ length: 8 }, (_, i) => makeDriftwood(i)); tag(drift, 'drift');
-    for (let n = 0; n < 2600; n++) { const u = dr() * 700, v = dr() * VD, k = (dr() * 8) | 0, c = coast(u, v); if (c > -20 && c < -9 && dr() < 0.2 && !water[at(Math.round(u), Math.round(v))]) put(drift[k], u, v); }
-    // More of it, on dice of their own: a Pacific beach is lined with driftwood. Each lies 26 px or more from
-    // the next, on dry sand in the same band above the high-water line.
-    const more = rng(4734), lie = things.filter(t => drift.includes(t.bm)).map(t => [t.u, t.v]);
-    for (let n = 0; n < 3000 && lie.length < 16; n++) { const u = more() * 700, v = more() * VD, k = (more() * 8) | 0, c = coast(u, v); if (c > -20 && c < -9 && !water[at(Math.round(u), Math.round(v))] && !lie.some(([p, q]) => Math.hypot(p - u, (q - v) * 1.5) < 26)) { put(drift[k], u, v); lie.push([u, v]); } } }
+  // Ten logs in all since round 8 (B4, TJ: sixteen was too many). Since H7 they lie in the jams (JAMS), dealt
+  // out one at a time, the creek mouths first: each on dry sand above the high-water line. A log lies along the beach, so two of a jam show as two when one is 4
+  // or more up the sand from the other or 14 or more along it, and they make one heap when each is within
+  // 9 up and 22 along of another, and none lies more than 40 from its jam's spot. No log lies alone on the
+  // open sand. A jam takes each drawing once.
+  { const dr = rng(4730), drift = Array.from({ length: 8 }, (_, i) => makeDriftwood(i)), lie = JAMS.map(() => []); tag(drift, 'drift');
+    // A log lies beside the creek, never on it: no water under its length, nor within 4 up or down the sand.
+    const creek = (u, v) => { for (let e = -4; e <= 4; e += 2) for (let d = -13; d <= 13; d += 2) if (water[at(clamp(Math.round(u + d), 0, NW - 1), clamp(Math.round(v + e), 0, VD - 1))]) return true; return false; };
+    // Every log shows whole: none lies half behind nearer ground or off the map's edge.
+    const whole = (bm, u, v) => { const sx = Math.round(u) - bm.ox, sy = Math.round(SY - Math.round(v) - hAt(Math.round(u), Math.round(v))) - bm.oy; let n = 0, seen = 0;
+      for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { if (!bm.d[j * bm.w + i]) continue; n++; const x = sx + i, y = sy + j; if (x >= 0 && y >= 0 && x < NW && y < SH && zb[px(x, y)] >= Math.round(v) - 3) seen++; } return seen >= n * 0.97; };
+    // A log that finds no room in its own jam goes to the next one.
+    for (let n = 0; n < 10; n++) for (let o = 0, laid = false; o < JAMS.length && !laid; o++) { const j = (n + o) % JAMS.length, mine = lie[j], [ju, jv] = mine.length ? mine[mine.length - 1] : JAMS[j];
+      for (let k = 0; k < 1500; k++) { const u = ju + (dr() - 0.5) * 52, v = jv + (dr() - 0.5) * 30, c = coast(u, v); if (c > -6 || c < -17 || v < 2 || v > VD - 3 || u < 4 || Math.hypot(u - JAMS[j][0], v - JAMS[j][1]) > 40 || creek(u, v)) continue;
+        if (mine.some(([a, b]) => Math.abs(b - v) < 4 && Math.abs(a - u) < 14) || (mine.length && !mine.some(([a, b]) => Math.abs(b - v) <= 9 && Math.abs(a - u) <= 22))) continue;
+        const bm = drift[(j * 3 + mine.length) % 8]; if (!whole(bm, u, v)) continue;
+        put(bm, u, v); mine.push([u, v]); laid = true; break; } }
+    // How many logs each jam holds, for the checks.
+    JAMS.forEach((J, j) => { J[3] = lie[j].length; }); }
   // Sea stacks stand well out from the beach (E5b, TJ: they had crept in against the shore), in four
   // small groups along the coast as on the Olympic coast: a tall one and one or two lower beside it.
   rand = rng(6114);
@@ -1620,7 +1776,7 @@ for (const th of things) {
     if (seen < n * 0.12) continue;
     const hz = th.tree && th.tree.haze ? HAZE[clamp(Math.floor(th.tree.haze * 5.5) - 1, 0, 3)] : null, veil = bm => { if (!hz) return bm; const o = new BM(bm.w, bm.h); o.ox = bm.ox; o.oy = bm.oy; for (let j = 0; j < bm.h; j++) for (let i = 0; i < bm.w; i++) { const c = bm.d[j * bm.w + i]; if (c) o.d[j * bm.w + i] = hz[c]; } return o; };
     const clip = seen < n;
-    if (th.tree) live.push({ tree: hz ? { ...th.tree, parts: th.tree.parts.map(p => ({ ...p, bm: veil(p.bm) })) } : th.tree, x: th.u, y: fy, v: th.v, clip });
+    if (th.tree) live.push({ tree: hz ? { ...th.tree, parts: th.tree.parts.map(p => ({ ...p, bm: veil(p.bm) })) } : th.tree, x: th.u, y: fy, v: th.v, clip, near: th.near });
     else live.push({ bm: veil(th.bm), x: th.u, y: fy, v: th.v, isTree: true, clip });
     continue;
   }
@@ -1668,7 +1824,7 @@ for (const br of BRIDGES) {
   rail(-1, Math.floor(Math.min(ay, by)) - 3, br.v1); rail(1, Math.ceil(Math.max(ay, by)) + 4, br.v0);
 }
 const toY = (u, v) => Math.round(SY - v - hAt(u, v));
-return { mesa, eastAmt, g, depth: zb, mat: mb, bare, fogField, mouthFog, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, palAmt, talusAt, snowPatch, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
+return { mesa, eastAmt, g, depth: zb, mat: mb, bare, fogField, mouthFog, jams: JAMS, plants: STREAMSIDE, stacks: STACKS, dest, destBox, DEST, hg, mg, painted, falls: FALLS, glFall: GL.fall, monoCover: MONO_COVER, trackUp: TRACK_UP, MATS, hAt, toY, things: live, C, lookout: LOOK, hills, hillUp, hillList, forestEdge, volc: VOLC, spires: SP, peak: PF, routes, water, trail, coast, forestAmt, fogAmt, dryAmt, sageAmt, palAmt, talusAt, snowPatch, parkAmt, flowerAmt, larchAmt, burnAmt, lakeAt, slope, matAt: (u, v) => MATS[mg[at(clamp(Math.round(u), 0, NW - 1), clamp(Math.round(v), 0, VD - 1))]] };
 }
 
 // ---- for the scene --------------------------------------------------------------------------------
@@ -1697,12 +1853,12 @@ async function readBake() {
   if (globalThis.__noBake) { BAKE.note = 'switched off'; return null; }
   try {
     const res = await fetch(new URL('./ground.png', import.meta.url)); if (!res.ok) { BAKE.note = 'ground.png answered ' + res.status; return null; }
-    const b = new Uint8Array(await res.arrayBuffer()), dv = new DataView(b.buffer), parts = []; let w = 0, h = 0, sig = '', falls = null;
+    const b = new Uint8Array(await res.arrayBuffer()), dv = new DataView(b.buffer), parts = []; let w = 0, h = 0, sig = '', falls = null, homes = null, plants = null;
     for (let p = 8; p + 12 <= b.length;) {
       const n = dv.getUint32(p), type = String.fromCharCode(b[p + 4], b[p + 5], b[p + 6], b[p + 7]);
       if (type === 'IHDR') { w = dv.getUint32(p + 8); h = dv.getUint32(p + 12); }
       else if (type === 'IDAT') parts.push(b.subarray(p + 8, p + 8 + n));
-      else if (type === 'tEXt') { const t = String.fromCharCode(...b.subarray(p + 8, p + 8 + n)); if (t.startsWith('sig\0')) sig = t.slice(4); else if (t.startsWith('falls\0')) falls = JSON.parse(t.slice(6)); }
+      else if (type === 'tEXt') { const t = String.fromCharCode(...b.subarray(p + 8, p + 8 + n)); if (t.startsWith('sig\0')) sig = t.slice(4); else if (t.startsWith('falls\0')) falls = JSON.parse(t.slice(6)); else if (t.startsWith('homes\0')) homes = JSON.parse(t.slice(6)); else if (t.startsWith('plants\0')) plants = JSON.parse(t.slice(7)); }
       p += 12 + n;
     }
     const want = await sourceSig();
@@ -1716,7 +1872,7 @@ async function readBake() {
     for (let i = 0; i < zb.length; i++) { const q = zh[i] << 8 | zl[i]; zb[i] = q === 65535 ? 1e9 : q / 64; }
     for (let i = 0; i < hg.length; i++) hg[i] = (hh[i] << 8 | hl[i]) / 32;
     BAKE.used = true;
-    return { g, zb, mb, painted, hg, mg, water, bare, dest, fog, hillLight, deck, monoSnow, monoQ, mist, falls };
+    return { g, zb, mb, painted, hg, mg, water, bare, dest, fog, hillLight, deck, monoSnow, monoQ, mist, falls, homes, plants };
   } catch (e) { BAKE.note = 'could not be read: ' + e.message; console.warn('ground.png could not be read', e); return null; }
 }
 // The bake is kept as well: buildTerrain takes the hills' evening light and the cloud deck from it (M3).
@@ -1766,37 +1922,63 @@ function habitat() {
   const coulee = (u, v) => { let d = 1e9; for (const [a, b] of catmull(C.coulee)) d = Math.min(d, Math.hypot(a - u, b - v)); return d; };
   const signable = (u, v) => apartFrom(taken, u, v, 70) && firm(u, v, 0.9) && trailFar(u, v) >= 4 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2];
   const ring = (p, r0, r1) => GRID.filter(([u, v]) => { const d = Math.hypot(u - p[0], (v - p[1]) * 1.4); return d >= r0 && d <= r1; });
-  const sp = S.spires, vo = S.volc, tarn = S.C.lakes.find(l => l[4] === 'tarn'), wsum = [sp.cu + sp.west * sp.wide, sp.cv];
-  // The col: the lowest point on the line from Mount Monolith's summit to the west end of the Spires.
-  let col = null; for (let t = 0.25, lo = 1e9; t < 0.95; t += 0.01) { const u = lerp(vo.cu, wsum[0], t), v = lerp(vo.cv, wsum[1], t) - 60, h = S.hAt(u, v); if (h < lo) { lo = h; col = [u, v]; } }
+  const sp = S.spires, vo = S.volc, wsum = [sp.cu + sp.west * sp.wide, sp.cv];
+  // The col: the lowest point on the line from Mount Monolith's summit to the west end of the Spires, which
+  // is the saddle between the two (round 8, C9, TJ: the sign stood 60 down the slope in front of it).
+  let col = null; for (let t = 0.25, lo = 1e9; t < 0.95; t += 0.01) { const u = lerp(vo.cu, wsum[0], t), v = lerp(vo.cv, wsum[1], t), h = S.hAt(u, v); if (h < lo) { lo = h; col = [u, v]; } }
+  // The nearest spot to a point that keeps a rule, within a reach.
+  const nearest = (p, reach, rule = signable) => [best((u, v) => Math.hypot(u - p[0], (v - p[1]) * 1.4) <= reach && rule(u, v), (u, v) => -Math.hypot(u - p[0], (v - p[1]) * 1.4))].filter(Boolean);
+  // The woods' sign stands where it has stood since round 5: in the first deep forest along the lake's
+  // trail, 70 past the first spot at the forest's edge. Stack Trace Thicket stood on that edge spot; since
+  // round 8 (C9, TJ: too close) it stands on the far side of the woods, where the trail comes out of the
+  // big trees behind the beach, 150 or more from the woods' sign.
+  const yak = find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) < 0.1 && S.parkAmt(u, v) < 0.3, 0, beside(0, 0.12, 0.35));
+  const edge = beside(0, 0.2, 0.8).find(([u, v]) => signable(u, v) && S.forestAmt(u, v) > 0.45 && S.forestAmt(u, v) < 0.8);
+  const woods = find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && S.fogAmt(u, v) < 0.3 && (!edge || apartFrom([edge], u, v, 70)), 60, beside(0, 0.2, 0.9));
+  // The upper basin's three tarns, the milky ones on the top step: Feature Flag Tarns stands between them.
+  const milky = S.C.lakes.filter(l => l[4] === 'milk'), basin = milky.length ? [milky.reduce((s, l) => s + l[0], 0) / milky.length, milky.reduce((s, l) => s + l[1], 0) / milky.length] : null;
+  // The lake at the foot of Scope Creep Glacier, and Reflection Lake: [across, depth, half its width, half its depth].
+  const silt = S.C.lakes.find(l => l[4] === 'silt'), mirror = S.C.lakes[0];
   const SIGNS = {
-    'yak-shave': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) < 0.1 && S.parkAmt(u, v) < 0.3, 0, beside(0, 0.12, 0.35)),
-    'stack-trace': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.45 && S.forestAmt(u, v) < 0.8, 0, beside(0, 0.2, 0.8)),
-    monorepo: find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && S.fogAmt(u, v) < 0.3, 60, beside(0, 0.2, 0.9)),
+    'yak-shave': yak,
+    'stack-trace': find(1, (u, v) => signable(u, v) && S.forestAmt(u, v) > 0.45 && apartFrom(woods, u, v, 150), 0, beside(0, 0.5, 1).reverse()),
+    'git-blame': woods,
     'scope-creep': find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'moraine', 0, beside(1, 0.7, 1)),
-    'merge-conflict': col ? find(1, signable, 0, ring(col, 0, 50)) : [],
-    rollback: find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'land' && S.hAt(u, v) > 40 && S.hAt(u, v) < 66, 0, beside(2, 0.4, 0.8)),
-    'feature-flag': tarn ? find(1, signable, 0, ring(tarn, tarn[2] + 6, tarn[2] + 24)) : [],
-    hotfix: find(1, (u, v) => S.burnAmt(u, v) > 0.6 && signable(u, v)),
-    postmortem: find(1, (u, v) => S.burnAmt(u, v) > 0.55 && signable(u, v), 70),
+    // On the saddle's own ground, not on the rock that rises behind it.
+    'merge-conflict': col ? nearest(col, 60, (u, v) => S.matAt(u, v) === 'land' && signable(u, v)) : [],
+    // Rollback Basin is the bench with the pond, west of the burn. The Peak's trail crossed it until round 8
+    // (C1); the place stayed when the trail moved, so its sign looks for the pond, not the trail.
+    rollback: find(1, (u, v) => signable(u, v) && S.matAt(u, v) === 'land' && S.hAt(u, v) > 40 && S.hAt(u, v) < 66 && S.burnAmt(u, v) < 0.1, 0, ring([1438, 480], 16, 70)),
+    'feature-flag': basin ? nearest(basin, 50) : [],
+    // The burn has one sign since round 8 (C9, TJ), and it stands among the dead trees, not on the granite
+    // above them, which the burn's reach also covers.
+    hotfix: find(1, (u, v) => S.burnAmt(u, v) > 0.6 && S.matAt(u, v) === 'land' && signable(u, v)),
     'cron-job': find(1, (u, v) => S.dryAmt(u, v) > 0.3 && signable(u, v) && coulee(u, v) > 40 && coulee(u, v) < 56),
     'tech-debt': find(1, (u, v) => S.sageAmt(u, v) > 0.7 && signable(u, v) && coulee(u, v) > 90),
-    // Off By One Peak: the top of the highest of the forested foothills round Mount Monolith's foot.
-    'off-by-one': [best((u, v) => Math.hypot((u - vo.cu) / vo.ru, (v - vo.cv) / vo.rv) < 1.4 && S.matAt(u, v) === 'land' && S.hAt(u, v) < vo.H * 0.3 && signable(u, v), (u, v) => S.hAt(u, v))].filter(Boolean),
+    // Off By One Peak: on the summit that carries the lookout, beside the tower and clear of it (round 8, C9,
+    // TJ: it stood on a higher shoulder that does not look like the top).
+    'off-by-one': S.lookout ? nearest(S.lookout, 36, (u, v) => Math.abs(u - S.lookout[0]) >= 17 && signable(u, v)) : [],
     dependency: find(1, (u, v) => signable(u, v) && S.hAt(u, v) > 80, 0, beside(2, 0.85, 1)),
     // Segfault Scree stands on scree (note 14): the talus fan under Proficiency Peak's prow, the land's one field
     // of loose blocks, clear of the old snow on it, as near the Peak's trail as the fan allows.
     // It comes after Dependency, whose spot higher up the trail would otherwise lie too near it, and keeps 40 from it.
     segfault: [best((u, v) => S.talusAt(u, v) > 0.5 && !S.snowPatch(u, v) && apartFrom(taken, u, v, 40) && firm(u, v, 1.2) && trailFar(u, v) >= 4 && shows(u, v, 20), (u, v) => S.talusAt(u, v) - trailFar(u, v) / 40)].filter(Boolean),
     'cache-miss': find(1, (u, v) => { const c = S.coast(u, v); return c > -14 && c < -7 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2]; }),
-    latency: find(1, (u, v) => { const c = S.coast(u, v); return c > -14 && c < -7 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2]; }, 160)
+    latency: find(1, (u, v) => { const c = S.coast(u, v); return c > -14 && c < -7 && shows(u, v, 20) && S.g[S.toY(u, v) * NW + Math.round(u)] !== R.fog[2]; }, 160),
+    // Round 8 (C10), the places TJ named. They come last, so no older sign moves to make room for them.
+    // (Rolling Release Hills and Wildcard Meadow are placed further down, after the animals' homes and the events' spots.)
+    // Old Growth Backlog: in the deep rainforest south of Off By One Peak, which on the map is below its lookout.
+    'old-growth': S.lookout ? [best((u, v) => signable(u, v) && S.forestAmt(u, v) > 0.85 && Math.abs(u - S.lookout[0]) < 90 && v < S.lookout[1] - 60 && v > S.lookout[1] - 220, (u, v) => -Math.hypot(u - S.lookout[0], v - S.lookout[1] + 130))].filter(Boolean) : [],
+    // Feature Creep Lake: on the near shore of the lake at the foot of Scope Creep Glacier.
+    'feature-creep': silt ? [best((u, v) => apartFrom(taken, u, v, 40) && firm(u, v, 0.9) && trailFar(u, v) >= 4 && shows(u, v, 20) && Math.hypot(u - silt[0], v - silt[1] + silt[3] + 8) < 70, (u, v) => -Math.hypot(u - silt[0], v - silt[1] + silt[3] + 8))].filter(Boolean) : []
   };
   // The elk herd keeps to a roomy flat in the parkland well away from the Trailhead.
   const roomy = (u, v) => [[-26, 0], [26, 0], [0, -18], [0, 18]].every(([a, b]) => firm(u + a, v + b, 0.5));
   // Round 5 (T6): the bottom trail passes them on its way to the forest, as the old lower trail did in round
   // 4, so among the roomy parkland flats they take the one nearest its western half.
   const B = C.bottom.slice(Math.floor(C.bottom.length / 3)), toB = (u, v) => Math.min(...B.map(p => Math.hypot(u - p[0], v - p[1])));
-  const herd = best((u, v) => S.parkAmt(u, v) > 0.5 && S.forestAmt(u, v) < 0.15 && fromT(u, v) > 120 && trailFar(u, v) > 16 && firm(u, v, 0.5) && shows(u, v, 12) && roomy(u, v), (u, v) => S.parkAmt(u, v) + 0.3 * rnd() - toB(u, v) / 60);
+  const elkOK = (u, v) => S.parkAmt(u, v) > 0.5 && S.forestAmt(u, v) < 0.15 && fromT(u, v) > 120 && trailFar(u, v) > 16 && firm(u, v, 0.5) && shows(u, v, 12) && roomy(u, v);
+  const herd = best(elkOK, (u, v) => S.parkAmt(u, v) + 0.3 * rnd() - toB(u, v) / 60);
   // Marmots sun on rocks: parkland or moraine with a steep bit of ground right beside them.
   const rocky = (u, v) => [[-6, 0], [6, 0], [0, 5], [0, -5]].some(([a, b]) => S.slope(u + a, v + b) > 0.9);
   // Two of them sun on boulders in the parkland between Reflection Lake and Mount Monolith (T43): flower
@@ -1812,7 +1994,8 @@ function habitat() {
   // Water the picture shows within 14 across and 6 up or down of the boulder's foot: a thin stream is a pixel or
   // two wide, and the ground's own water grid, read every 4, can step over it (C7: one marmot's tail touched one).
   const WET = new Set(['water', 'glint', 'tarn']), wetBeside = (u, v) => { const x0 = Math.round(u), y0 = S.toY(u, v); for (let y = y0 - 6; y <= y0 + 6; y++) for (let x = x0 - 14; x <= x0 + 14; x++) if (y >= 0 && y < SH && x >= 0 && x < NW && WET.has(RAMP_OF[S.g[y * NW + x]])) return true; return false; };
-  const parkMarmots = find(2, (u, v) => S.parkAmt(u, v) > 0.5 && (S.matAt(u, v) === 'land' || S.matAt(u, v) === 'volc') && v > lakeM[1] + lakeM[3] + 20 && v < lakeM[1] + lakeM[3] + 50 && Math.abs(u - lakeM[0]) < lakeM[2] + 20 && trailFar(u, v) > 14 && !streamNear(u, v) && !headNear(u, v) && !wetBeside(u, v) && firm(u, v, 2) && shows(u, v, 16) && !iceBehind(u, v), 60);
+  const parkOK = (deep, wide) => (u, v) => S.parkAmt(u, v) > 0.5 && (S.matAt(u, v) === 'land' || S.matAt(u, v) === 'volc') && v > lakeM[1] + lakeM[3] + 20 && v < lakeM[1] + lakeM[3] + deep && Math.abs(u - lakeM[0]) < lakeM[2] + wide && trailFar(u, v) > 14 && !streamNear(u, v) && !headNear(u, v) && !wetBeside(u, v) && firm(u, v, 2) && shows(u, v, 16) && !iceBehind(u, v);
+  const parkMarmots = find(2, parkOK(50, 20), 60);
   // The third keeps to the moraine's rocks, or failing that the parkland's.
   const onRocks = mor => (u, v) => (mor ? S.matAt(u, v) === 'moraine' : S.parkAmt(u, v) > 0.3) && firm(u, v, 1.2) && shows(u, v, 8) && rocky(u, v) && !iceBehind(u, v) && apartFrom(parkMarmots, u, v, 140);
   const rockMarmot = find(1, onRocks(true)), marmots = [...parkMarmots, ...(rockMarmot.length ? rockMarmot : find(1, onRocks(false)))];
@@ -1825,20 +2008,23 @@ function habitat() {
   const benchTop = (u, v) => S.mesa(u, v) > 10 && S.dryAmt(u, v) > 0.5 && firm(u, v, 0.8), onBench = (u, v) => benchTop(u, v) && shows(u, v, 12) && [-1, 1].some(sd => benchTop(u + sd * 8, v) && benchTop(u + sd * 16, v));
   const byEdge = (u, v) => onBench(u, v) && [[0, -6], [0, -12], [0, -16], [-12, 0], [12, 0], [0, 12]].some(([a, b]) => S.mesa(u + a, v + b) < S.mesa(u, v) - 8);
   const benchPts = GRID.filter(([u, v]) => byEdge(u, v)), headD = (u, v) => Math.hypot(u - C.coulee[0][0], (v - C.coulee[0][1]) * 1.4);
-  const lead = benchPts.filter(([u, v]) => { const near = benchPts.filter(([a, b]) => Math.hypot(a - u, (b - v) * 1.4) <= 70 && apartFrom(taken, a, b, 34)); const got = [[u, v]]; for (const p of near) if (apartFrom(got, p[0], p[1], 20)) got.push(p); return got.length >= 4 && apartFrom(taken, u, v, 34); }).sort((p, q) => headD(...p) - headD(...q))[0];
-  const sheep = lead ? find(4, byEdge, 20, [lead, ...ring(lead, 14, 70)]) : [];
+  const leads = benchPts.filter(([u, v]) => { const near = benchPts.filter(([a, b]) => Math.hypot(a - u, (b - v) * 1.4) <= 70 && apartFrom(taken, a, b, 34)); const got = [[u, v]]; for (const p of near) if (apartFrom(got, p[0], p[1], 20)) got.push(p); return got.length >= 4 && apartFrom(taken, u, v, 34); }).sort((p, q) => headD(...p) - headD(...q));
+  const lead = leads[0], bandAt = l => find(4, byEdge, 20, [l, ...ring(l, 14, 70)]), sheep = lead ? bandAt(lead) : [];
   // The moose (T35): a bull and a calf in the riverside woods, the aspen and pine country east of the Proficiency
   // trail and short of the dry ground, below the Enchantments' cliff, between the two rivers that come down off it
   // (one within 120 to the west and one within 120 to the east). Of the roomy spots there, well off the trail and
   // with six trees or more within 70, the one that stands most in the open (farthest from any tree's foot, up to
   // 26), so that they are seen among the trees and not lost behind them.
-  const rivers = (u, v) => [-1, 1].every(sd => { for (let d = 8; d <= 120; d += 4) if (S.water[at(u + sd * d, v)]) return true; return false; });
+  const rivers = (u, v, sides = 2) => [-1, 1].filter(sd => { for (let d = 8; d <= 120; d += 4) if (S.water[at(u + sd * d, v)]) return true; return false; }).length >= sides;
   const boles = S.things.filter(t => t.tree && !t.tree.low && S.eastAmt(t.x, t.v) > 0.4);
-  const moose = best((u, v) => S.eastAmt(u, v) > 0.6 && S.dryAmt(u, v) < 0.15 && S.burnAmt(u, v) < 0.1 && S.larchAmt(u, v) < 0.1 && S.hAt(u, v) < 36 && trailFar(u, v) > 30 && firm(u, v, 0.5) && shows(u, v, 18) && roomy(u, v) && rivers(u, v),
-    (u, v) => { let d = 26, n = 0; for (const t of boles) { const dd = Math.hypot(t.x - u, (t.v - v) * 1.4); if (dd < d) d = dd; if (dd < 70) n++; } return n >= 6 ? d + 0.01 * n : -1; });
+  const mooseOK = (u, v, sides) => S.eastAmt(u, v) > 0.6 && S.dryAmt(u, v) < 0.15 && S.burnAmt(u, v) < 0.1 && S.larchAmt(u, v) < 0.1 && S.hAt(u, v) < 36 && trailFar(u, v) > 30 && firm(u, v, 0.5) && shows(u, v, 18) && roomy(u, v) && rivers(u, v, sides),
+    mooseRoom = (u, v) => { let d = 26, n = 0; for (const t of boles) { const dd = Math.hypot(t.x - u, (t.v - v) * 1.4); if (dd < d) d = dd; if (dd < 70) n++; } return n >= 6 ? d + 0.01 * n : -1; };
+  const moose = best((u, v) => mooseOK(u, v), mooseRoom);
   // Squirrels and chipmunks in the open meadow near trees, a bear at the edge of the forest.
-  const squirrels = find(7, (u, v) => S.forestAmt(u, v) < 0.3 && S.dryAmt(u, v) < 0.3 && S.larchAmt(u, v) < 0.2 && S.hAt(u, v) < 45 && trailFar(u, v) > 6 && fromT(u, v) > 50 && firm(u, v) && shows(u, v, 6), 70);
-  const bear = find(1, (u, v) => S.forestAmt(u, v) > 0.12 && S.forestAmt(u, v) < 0.35 && S.hAt(u, v) < 35 && S.dryAmt(u, v) < 0.2 && fromT(u, v) > 160 && firm(u, v, 0.6) && shows(u, v, 12))[0];
+  const sqOK = (u, v) => S.forestAmt(u, v) < 0.3 && S.dryAmt(u, v) < 0.3 && S.larchAmt(u, v) < 0.2 && S.hAt(u, v) < 45 && trailFar(u, v) > 6 && fromT(u, v) > 50 && firm(u, v) && shows(u, v, 6);
+  const squirrels = find(7, sqOK, 70);
+  const bearOK = (u, v) => S.forestAmt(u, v) > 0.12 && S.forestAmt(u, v) < 0.35 && S.hAt(u, v) < 35 && S.dryAmt(u, v) < 0.2 && fromT(u, v) > 160 && firm(u, v, 0.6) && shows(u, v, 12);
+  const bear = find(1, bearOK)[0];
   // The black bear family's home (T34): the largest open patch inside the fir stand below the Spires' outflow
   // waterfall (the glacier's toe). Open: no tree's foot within 12. Inside the stand: a tree within 55 on every
   // one of the eight sides. Below the fall: 40 to 150 nearer the camera than its lip and up to 150 east of it,
@@ -1885,12 +2071,63 @@ function habitat() {
   const lane = Math.max(60, ...S.stacks.map(([u, v]) => S.coast(u, v))) + 46;
   const seaV = u => { for (let v = 0; v < VD; v++) if (S.coast(u, v) < lane) return v; return VD; }, seaU = v => { for (let u = 0; u < NW; u++) if (S.coast(u, v) < lane) return u; return 0; };
   const footV = S.toY(0, 0) - SH - 28, ferry = [[-30, S.toY(-30, seaV(-30))], [seaU(footV), SH + 28]];
+  // More homes (round 8, D1, TJ): every map animal has about five, each found by the animal's own rule and
+  // well apart from its others, and takes one at random on each load (critters.js). The first of each is the
+  // home it has always had. They are found here, after everything else, and the ground they take is given
+  // back afterwards, so nothing that was placed before them, or is placed after, moves.
+  // Each search below looks over the whole map when it finds fewer than it was asked for, and five of them
+  // do: together they took a quarter of a second as the page opened. So what they find goes into the bake
+  // as text, as the lake's waterfall does, and is read back from it; without a bake they are worked out here.
+  const mark = taken.length, found = [], baked = BAKED && BAKED.homes;
+  const more = (n, rule, apart, have) => { const got = baked ? baked[found.length] : find(n, (u, v) => apartFrom(have, u, v, apart) && rule(u, v), apart); if (baked) taken.push(...got); found.push(got); return got; };
+  const elkHomes = herd ? [herd, ...more(4, elkOK, 150, [herd])] : [];
+  // The bull's first home lies between two rivers; his others need one within reach, and a little less room.
+  const mooseHomes = moose ? [moose, ...more(4, (u, v) => mooseOK(u, v, 1) && mooseRoom(u, v) >= 8, 110, [moose])] : [];
+  const lowGoats = more(2, slab(74, 100), 100, goats), goatHomes = [...goats, ...lowGoats, ...more(2, slab(100, 160), 100, [...goats, ...lowGoats])];
+  const bands = sheep.length ? [sheep] : []; for (const l of leads.slice(1)) { if (bands.length >= 5) break; if (!bands.every(b => apartFrom(b, l[0], l[1], 80)) || !apartFrom(taken, l[0], l[1], 34)) continue; const b = bandAt(l); if (b.length === 4) bands.push(b); }
+  // A parkland marmot's boulder may lie anywhere in the flower meadow between the lake and the mountain's foot;
+  // the first two keep the narrow band they were given in round 5.
+  const parkMore = more(3, parkOK(110, 90), 80, marmots), rockMore = more(2, onRocks(true), 120, [...marmots, ...parkMore]);
+  const marmotHomes = [...marmots.map((p, n) => [p, n < parkMarmots.length]), ...parkMore.map(p => [p, true]), ...rockMore.map(p => [p, false])].map(([p, park]) => [...out(...p), park ? 1 : 0, Math.round(p[1])]);
+  const squirrelHomes = [...squirrels, ...more(5, sqOK, 70, squirrels)];
+  const bearHomes = bear ? [bear, ...more(4, bearOK, 150, [bear])] : [];
+  const whaleHomes = whale ? [whale, ...more(4, sea(90, 150), 90, [whale])] : [];
+  // Wildcard Meadow: among the flowers of the parkland below Mount Monolith, 22 beyond Reflection Lake's far
+  // shore (the flank is steep, so that is halfway up the meadow on the picture) and 60 west of the summit's
+  // line, clear of the marmots' boulders. So it reads as the meadow's sign and not the lake's. That meadow is the
+  // mountain's own lower flank, steeper than a sign otherwise stands on, so this one may stand on a slope.
+  // It is placed after every animal's home, 40 clear of each and of every sign, so that it moves none of them.
+  SIGNS.wildcard = [best((u, v) => apartFrom(taken, u, v, 40) && firm(u, v, 2.3) && trailFar(u, v) >= 4 && shows(u, v, 20) && S.flowerAmt(u, v) > 0.5 && S.parkAmt(u, v) > 0.6, (u, v) => -Math.hypot(u - vo.cu + 60, (v - mirror[1] - mirror[3] - 22) * 1.4))].filter(Boolean);
+  // Rolling Release Hills: on the open Palouse, the gold hills of the far corner, where they are most
+  // themselves but 130 clear of the map's east edge, which the page's own buttons and the camera's stop hide.
+  // Placed last for the same reason, and clear of the lines the tumbleweeds roll along, which must stay bare.
+  // Among the spots that are all Palouse it takes the one furthest east, out in the hills and away from the burn's edge.
+  SIGNS['rolling-release'] = [best((u, v) => u < NW - 130 && S.palAmt(u, v) > 0.5 && apartFrom(taken, u, v, 40) && firm(u, v, 0.9) && trailFar(u, v) >= 4 && shows(u, v, 20) && tumbles.every(([a, b]) => u < a - 14 || u > a + 175 || Math.abs(v - b) > 14), (u, v) => S.palAmt(u, v) + u / 400)].filter(Boolean);
+  // A goat's ledge (round 8, H3): the grassy ledge that runs halfway up the larch basin's walls (wallRock)
+  // is read off the picture, so it is where it was painted: a pixel of its lit top with its shadow right
+  // under it, on a granite wall. Of its level runs 30 or longer, the one nearest Proficiency Peak is one
+  // goat's home (the walls under the Peak's own benches are the ones most looked at), and its middle 40
+  // pixels are ground that goat may stand on. Found last: it is on a wall, where no other home or sign can be, so
+  // it moves none of them. It goes into the bake with the homes.
+  const LG = R.grass[2], LP = R.rock[4], LS = R.rock[1];
+  const ledgeTop = (x, y) => { const i = y * NW + x, c = S.g[i]; if ((c !== LG && c !== LP) || S.g[i + NW] !== LS) return false; const v = S.depth[i]; return v < VD && S.matAt(x, v) === 'gran' && S.slope(x, v) > 0.75; };
+  const ledgeFind = () => { let best = [], bd = 1e9; const seen = new Uint8Array(NW * SH), px = S.peak ? S.peak.cu : NW * 0.75;
+    for (let y = 2; y < SH - 3; y++) for (let x = 20; x < NW - 20; x++) { if (seen[y * NW + x] || !ledgeTop(x, y)) continue; const run = [[x, y]]; let cy = y;
+      for (let nx = x + 1; nx < NW - 20; nx++) { const ny = [cy, cy - 1, cy + 1].find(q => ledgeTop(nx, q)); if (ny === undefined) break; seen[ny * NW + nx] = 1; run.push([nx, ny]); cy = ny; }
+      const d = Math.abs(run[run.length >> 1][0] - px); if (run.length >= 30 && d < bd) { best = run; bd = d; } }
+    return best.length ? best.slice(Math.max(0, (best.length >> 1) - 20), (best.length >> 1) + 20) : []; };
+  const ledge = baked ? baked[found.length] || [] : ledgeFind(); found.push(ledge);
+  taken.length = mark;
   const herdAt = herd ? out(...herd) : null;
   return {
     tdist, firm,
     signs: Object.entries(SIGNS).filter(([, p]) => p && p.length).map(([k, p]) => [...out(...p[0]), k]),
     elk: herdAt ? [[herdAt[0], herdAt[1], 0], [herdAt[0] + 34, herdAt[1] + 14, 1], [herdAt[0] - 20, herdAt[1] + 26, 1], [herdAt[0] + 16, herdAt[1] + 40, 0]] : [],
-    marmots: marmots.map((p, n) => [...out(...p), n < parkMarmots.length ? 1 : 0, Math.round(p[1])]),
+    // The marmots' own three are the first three homes, the very same lists, so the boulder buildTerrain puts
+    // under a parkland home is under its marmot too.
+    marmots: marmotHomes.slice(0, marmots.length),
+    homesFound: found, ledge,
+    homes: { elk: elkHomes.map(p => out(...p)), moose: mooseHomes.map(p => out(...p)), goat: goatHomes.map(p => out(...p)), sheep: bands.map(b => b.map((p, n) => [...out(...p), n & 1])), marmot: marmotHomes, squirrel: squirrelHomes.map(p => out(...p)), bear: bearHomes.map(p => out(...p)), whale: whaleHomes.map(p => out(...p)) },
     goats: goats.flatMap(p => { const [x, y] = out(...p); return [[x, y, 0], [x + 16, y + 6, 1]]; }),
     sheep: sheep.map((p, n) => [...out(...p), n & 1]),
     squirrels: squirrels.map((p, n) => [...out(...p), n % 3 === 0 ? 1 : 0]),
@@ -1920,7 +2157,7 @@ export function buildTerrain() {
   // ends at base camp on its island; what lies beyond is the boot track up the ice.
   // The lake loop runs from the Trailhead round to the Trailhead (T6), so it needs no way home added.
   const camp = C.trails[1].findIndex(p => p[0] === C.island[0] && p[1] === C.island[1]) + 1;
-  const lines = { lake: line(C.trails[0]), stack: line(C.trails[2]), spires: line(C.trails[1].slice(0, camp)) };
+  const lines = { lake: line(C.trails[0]), stack: line(C.trails[2]), spires: line(C.trails[1].slice(0, camp)), south: line(C.trails[3]) };
   const H = habitat(), lake = C.lakes[0], peak = LAND.peak, sp = LAND.spires, shore = sxy(lake[0] + lake[2] + 8, lake[1] + 2);
   const flagOn = (x, v, kind) => { const y = LAND.toY(x, v); return { x: Math.round(x), y, lift: y - topOf(x, kind) }; };
   const spots = {
@@ -1950,7 +2187,9 @@ export function buildTerrain() {
     // The osprey (round 5, T16): Reflection Lake as an oval on the picture, and where it dives: the middle of
     // the lake's widest open water, half way from the island to the east shore and a third of the way from
     // the lake's middle to its near shore.
-    osprey: { lake: [...sxy(lake[0], lake[1]), lake[2], lake[3]], dive: sxy((C.lakeIsle[0] + 7 + lake[0] + lake[2]) / 2, lake[1] - lake[3] / 3) },
+    osprey: { lake: [...sxy(lake[0], lake[1]), lake[2], lake[3]], dive: sxy((C.lakeIsle[0] + 7 + lake[0] + lake[2]) / 2, lake[1] - lake[3] / 3),
+      // Four more places on the lake where it may fish instead (round 8, D1), in open water either side of the island.
+      dives: [-0.66, -0.42, 0.2, 0.72].map(f => sxy(lake[0] + f * lake[2], lake[1] - lake[3] / 3)) },
     // Where each destination's name is pinned: on the lake, on Proficiency Peak's wall, on the ice under the Spires.
     places: { lake: [lake[0], LAND.toY(lake[0], lake[1]) - 8], stack: [peak.cu, topOf(peak.cu, 'fin') + 44], spires: [sp.cu + 10, LAND.toY(sp.cu, 598)] },
     // A flag for each finished destination: at the lake shore, on Proficiency Peak, on the Spires' highest summit.
@@ -1962,10 +2201,24 @@ export function buildTerrain() {
       return picks.sort((a, b) => a[0] - b[0]); })(),
     flags: { lake: { x: shore[0], y: shore[1], lift: 0 }, stack: flagOn(peak.cu, peak.cv - 9, 'fin'), spires: flagOn(sp.top, sp.cv - 34, 'wall') },
     // Signs and animals, each placed by its rule (habitat, above).
-    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, bearHome: H.bearHome, moose: H.moose, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
+    signs: H.signs, elk: H.elk, goats: H.goats, sheep: H.sheep, marmots: H.marmots, squirrels: H.squirrels, bear: H.bear, bearHome: H.bearHome, moose: H.moose, homes: H.homes, ledge: H.ledge, jelly: H.jelly, whale: H.whale, ferry: H.ferry, tumbles: H.tumbles, devils: H.devils,
     // The fire lookout on its cleared summit (E5j).
     lookout: LAND.lookout ? sxy(...LAND.lookout) : null
   };
+  // Life at every place (round 8, E2): where each of the events TJ picked happens, read off the picture.
+  spots.life = (() => {
+    const WALL = LAND.MATS.indexOf('wall'), matAt = (x, y) => LAND.mat[y * NW + x];
+    // Rockfall: down the face under each of the Spires' six summits, from 12 below the top for as far as the
+    // picture shows the wall under it. A face shorter than 30 is left out.
+    const rock = spots.spireTops.map(([x, y]) => { let n = 0; while (y + 12 + n < SH - 1 && matAt(x, y + 12 + n) === WALL) n++; return [x, y + 12, n]; }).filter(r => r[2] >= 30);
+    // Rocks down the talus: three lines from the top of the fan under Proficiency Peak's prow to its toe,
+    // spreading as the fan does. The goats' crossing: one line across the fan, half way down it.
+    const fan = (u, v) => LAND.talusAt(u, v) > 0.2 && !LAND.snowPatch(u, v);
+    // A rock's line down the fan stops where the blocks thin out, well short of the larches at its foot.
+    const talus = peak ? [-0.3, 0.05, 0.4].map(f => { const line = []; for (let d = 2; d <= 46; d += 2) { const u = peak.cu - 8 + f * (peak.w * 0.19 + d * 0.5), v = peak.cv - 7 - d; if (fan(u, v) && LAND.talusAt(u, v) > 0.85) line.push(sxy(u, v)); } return line; }).filter(l => l.length > 8) : [];
+    const cross = []; if (peak) for (let u = peak.cu - 110; u <= peak.cu + 110; u += 3) if (fan(u, peak.cv - 31)) cross.push(sxy(u, peak.cv - 31));
+    return { rock, talus, cross };
+  })();
   // The light on the foothills at Dusk (E5j), after the evening light in TJ's photographs: the sun is low
   // in the west, so a hill's crest and the west end of its skyline catch it and the rest is in shade.
   // For each pixel of the picture: how much of that warm rim it catches (1 to 15: the few pixels below a
@@ -1993,10 +2246,10 @@ export function buildTerrain() {
     const th = LAND.things[i], w = th.tree ? th.tree.w : th.bm.w, h = th.tree ? th.tree.h : th.bm.h;
     if (th.y > sy - 3 && th.y - h < sy + 1 && Math.abs(th.x - sx) < w / 2 + half) LAND.things.splice(i, 1);
   }
-  // A boulder under each parkland marmot (T43), with the flowers or heather that grew on the spot taken away.
+  // A boulder under each parkland marmot's home, lived in or not (T43; all its homes since round 8, D1), with the flowers or heather that grew on the spot taken away.
   // The marmot's third number becomes how high the boulder's top stands, so that it lies on it.
   { const rock = tagged(makeBoulder(531, 5.5), 'rock', true);
-    for (const mm of spots.marmots) if (mm[2]) {
+    for (const mm of spots.homes.marmot) if (mm[2]) {
       for (let i = LAND.things.length - 1; i >= 0; i--) { const th = LAND.things[i]; if (!(th.tree ? th.tree.low : th.bm.h < 14)) continue; const w = th.tree ? th.tree.w : th.bm.w; if (Math.abs(th.y - mm[1]) < 7 && Math.abs(th.x - mm[0]) < (w + rock.w) / 2) LAND.things.splice(i, 1); }
       LAND.things.push({ bm: rock, x: mm[0], y: mm[1], v: mm[3] }); mm[2] = rock.h - 5;
     } }
@@ -2015,7 +2268,9 @@ export function buildTerrain() {
     if (cs > -4 && cs < 8) SEA.shore[j] = 1 + Math.round((cs + 4) * 8);
     else if (cs >= 8 && wet.has(LAND.g[i]) && vnoise(x / 22, y / 9, 85) > (cs < 60 ? 0.4 : 0.54)) { SEA.gate[j] = cs < 40 ? 2 : 1; SEA.ph[j] = Math.floor(frac((cs + 7 * Math.sin(x / 37 + y / 61)) / 24) * 240); }
   }
-  const open = (x, y) => { const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
+  // The goat's ledge (H3) is ground too, though the wall it runs across is not: its own pixels and two above and below.
+  const LEDGE = new Set(), LB = [NW, 0, SH, 0]; for (const [x, y] of H.ledge) { for (let d = -2; d <= 2; d++) LEDGE.add((y + d) * NW + x); LB[0] = Math.min(LB[0], x); LB[1] = Math.max(LB[1], x); LB[2] = Math.min(LB[2], y - 2); LB[3] = Math.max(LB[3], y + 2); }
+  const open = (x, y) => { if (x >= LB[0] && x <= LB[1] && y >= LB[2] && y <= LB[3] && LEDGE.has(Math.round(y) * NW + Math.round(x))) return true; const v = vAt(x, y); return v < VD && H.firm(x, v, 1.0); };
   const nearTrail = (x, y, r) => { const v = vAt(x, y); return v < VD && H.tdist[Math.round(v) * NW + Math.round(x)] < r; };
   const flat = l => l.map(p => [p[0], p[1]]);
   // Where the marine layer lies when it is in (E5e), for each pixel of the picture, 0 to 255: over the sea
@@ -2037,13 +2292,30 @@ export function buildTerrain() {
   // Every waterfall and rapid (E8a): the white water painted where a stream falls (white, or the pale blue
   // beside white within two rows), over running water, found from the finished picture so it holds
   // whether the ground was baked or worked out. fall: its pixels; foot: those with plain water below, where
-  // it churns.
-  const falls = (() => { const W1 = R.white[1], W4 = R.water[4], N = NW * SH, M = new Uint8Array(N);
-    for (let i = NW * 2; i < N - NW * 2; i++) { const c = LAND.g[i]; if (c !== W1 && c !== W4) continue; const v = LAND.depth[i]; if (v >= VD || !LAND.water[Math.round(v) * NW + (i % NW)]) continue;
+  // it churns. The melt water out of Mount Monolith's tarns is painted, not in the water grid, so its white
+  // is found by what lies beside it: painted stream blue (round 8, C5, TJ: it did not move).
+  const falls = (() => { const W1 = R.white[1], W4 = R.water[4], N = NW * SH, M = new Uint8Array(N), blue = j => LAND.painted[j] && (LAND.g[j] === R.water[1] || LAND.g[j] === R.water[2] || LAND.g[j] === R.water[3]);
+    for (let i = NW * 2; i < N - NW * 2; i++) { const c = LAND.g[i]; if (c !== W1 && c !== W4) continue;
+      if (c === W1 && LAND.painted[i] && (blue(i - 1) || blue(i - 2)) && (blue(i + 1) || blue(i + 2))) { M[i] = 1; continue; }
+      const v = LAND.depth[i]; if (v >= VD || !LAND.water[Math.round(v) * NW + (i % NW)]) continue;
       if (c === W4 && ![-2, -1, 1, 2].some(d => LAND.g[i + d * NW] === W1)) continue; M[i] = 1; }
     const fall = [], foot = []; for (let i = 0; i < N - NW; i++) if (M[i]) { fall.push(i); if (!M[i + NW]) { const v = LAND.depth[i + NW]; if (v < VD && LAND.water[Math.round(v) * NW + (i % NW)]) foot.push(i + NW); } }
     return { fall: Int32Array.from(fall), foot: Int32Array.from(foot) }; })();
-  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, whiteWater: falls, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  // Still water (round 8, C6, TJ): the pixels of every lake and tarn that show water, found from the finished
+  // picture as the falls are, so the map can move them (stillWater in world.js). A lake's island, its ice
+  // and what stands in it are left out by their colours. The two moraine tarns are painted into the
+  // mountain's picture, so they are found by their colour and told apart by the gap between them.
+  const still = (() => { const OK = { lake: ['water', 'ice', 'snow', 'glac', 'far'], silt: ['tarn'], milk: ['glac', 'tarn'], tarn: ['tarn'], pond: ['water'] }, Ls = LAND.C.lakes, px = Ls.map(() => []), mor = [];
+    for (let i = 0; i < NW * SH; i++) { const c = LAND.g[i], x = i % NW;
+      if (LAND.painted[i]) { if (RAMP_OF[c] === 'tarn') mor.push(i); continue; }
+      const v = LAND.depth[i]; if (v >= VD) continue; const vi = Math.round(v); let b = -1, bd = 1.3;
+      for (let n = 0; n < Ls.length; n++) { const du = (x - Ls[n][0]) / Ls[n][2], dv = (vi - Ls[n][1]) / Ls[n][3]; if (du > -bd && du < bd && dv > -bd && dv < bd) { const d = Math.hypot(du, dv); if (d < bd) { bd = d; b = n; } } }
+      if (b >= 0 && LAND.lakeAt(x, vi) === Ls[b][4] && OK[Ls[b][4]].includes(RAMP_OF[c])) px[b].push(i); }
+    const out = Ls.map((l, n) => ({ kind: l[4], px: px[n] }));
+    mor.sort((a, b) => a % NW - b % NW); let cur = null; for (const i of mor) { if (!cur || i % NW - cur.px[cur.px.length - 1] % NW > 12) out.push(cur = { kind: 'moraine', px: [] }); cur.px.push(i); }
+    return out.filter(l => l.px.length > 20); })();
+  // jams: where the beach's driftwood gathers (H7), in the picture, each with its kind and how many logs it holds.
+  return { g: LAND.g, bare: LAND.bare, jams: LAND.jams.map(([u, v, k, n]) => [...sxy(u, v), k, n]), fog: LAND.fogField, hillLight, deck, homesFound: H.homesFound, whiteWater: falls, still, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires), south: flat(lines.south) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel, squirrelDoes } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the

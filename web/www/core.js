@@ -125,6 +125,9 @@ ramp('mauve', ['#3a2f40', '#55465a', '#75627a', '#957f96', '#b8a4b6']);
 ramp('lamp', ['#3a4a66', '#7090b8'], ['#f0a040', '#ffe08a']);
 // Round 4, E5d: foxfire, the fungus that glows on rotting wood, only seen once the light has gone.
 ramp('foxfire', ['#4f7a52', '#8fd6a0'], ['#3fb58a', '#b4ffd8']);
+// Huckleberry leaves in autumn (round 8, B3): wine in the shade, crimson, and a brighter crimson in the sun.
+// New ramps go at the end: the baked ground stores colours by their number.
+ramp('huck', ['#54142a', '#8a1c30', '#b83242']);
 const INK = R.ink[0];
 const N = DAY.length;
 // One step darker or lighter within an entry's own ramp, for shadows drawn onto finished pixels.
@@ -237,12 +240,17 @@ function windAt(x, y, t, amt) {
 // back, on its own slow beat, so the map is never quite still and no two plants move together. The forest and lake scenes keep windAt: there the trees are close and never quite stop.
 const STILL = [0, 0], LEAN = [1, 0], BACK = [-1, 0], GUST = { every: 11, speed: 180, wide: 230 };
 let gustT = -1, gustNow = [];
+// A gust the debug panel asked for (round 8, E1): one more front, set off so that it reaches a spot now and
+// carries on east from there, on the map and in the side scenes alike.
+let gustAsk = -1e9;
+function askGust(x, y, t) { gustAsk = t - (x + 0.25 * y + 60) / GUST.speed; }
 function breeze(x, y, t, amt) {
   if (!amt) return STILL;
   if (t !== gustT) {
     // Two gusts can be on the map at once: the one that set off last and the one before it.
     gustT = t; gustNow = [];
     for (let k = 0; k < 2; k++) { const n = Math.floor(t / GUST.every) - k, t0 = n * GUST.every + 3 * hash(n, 7, 400); if (t >= t0) gustNow.push([(t - t0) * GUST.speed - 60, n, hash(n, 8, 400) < 0.45 ? 0.75 : 1]); }
+    if (t - gustAsk < 16) gustNow.push([(t - gustAsk) * GUST.speed - 60, -1, 1]);
   }
   const along = x + 0.25 * y;
   for (const [front, n, strength] of gustNow) {
@@ -354,7 +362,7 @@ class Screen {
       for (let y = Math.max(0, Math.round(base - len)); y <= base && y < VH; y++) {
         const i = y * VW + x; if (!SKY[fb[i]]) continue;
         const v = on * (1 - (base - y) / len) * (0.6 + 0.4 * vnoise(wx / 3, t * 0.8 + k, 304));
-        if (bayer(wx, y + oy) < v * 1.25) fb[i] = R.aurora[v > 0.62 ? 2 : v > 0.3 ? 1 : 0];
+        if (bayer(wx, y + oy) < v * 1.25) { fb[i] = R.aurora[v > 0.62 ? 2 : v > 0.3 ? 1 : 0]; if (v > 0.62 && mix > 0.6 && !covered(x, y)) saw('aurora'); }
       }
     }
     for (const [sx, sy, ph, big] of this.stars) {
@@ -396,13 +404,29 @@ const BLACK = 255;
 
 // What the hidden debug panel has switched: the first five are layers that can be turned off, the
 // rest are outlines that can be turned on. The scenes read it as they draw.
-const DEBUG = { snap: true, trees: true, clouds: true, mist: true, labels: true, animals: true, roam: false, taps: false, trails: false, camera: false, collide: '' };
+const DEBUG = { snap: true, trees: true, clouds: true, mist: true, labels: true, animals: true, roam: false, taps: false, trails: false, camera: false, signs: false, homes: false, collide: '' };
+
+// What has been on the screen since the page opened, by the names the conditions board lists them under
+// (round 8, F2): each thing that draws one of them says so here. Kept in memory only, so every visit starts
+// with nothing seen.
+const SAW = new Set(), saw = id => { SAW.add(id); };
+// The parts of the view that the page's own panels cover (round 8, H10), each as [x0, y0, x1, y1] in view
+// pixels. A thing counts as seen only clear of them. The page tells pixel.js, which keeps the list.
+const COVER = [], covered = (x, y) => { for (const r of COVER) if (x >= r[0] && y >= r[1] && x < r[2] && y < r[3]) return true; return false; };
 
 export {
-  DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
+  SAW, saw, COVER, covered, DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
   DAY, DUSK, R, RAMP_OF, STEP_OF, INK, N, SHADE, LIGHT, KIND, BLACK, pick, ramp,
-  BM, outline, litBack, disc, thick, catmull, makePath, windAt, breeze, Screen
+  BM, outline, litBack, disc, thick, catmull, makePath, windAt, breeze, gustOver, askGust, Screen
 };
+// When the map's last gust reached a spot: [the seconds since its front went by, which gust, its strength], or
+// null once the air there has been still for `len` seconds. For the side scenes, which show the same gusts.
+function gustOver(x, y, t, len = 3) {
+  const along = x + 0.25 * y + 60, ua = t - gustAsk - along / GUST.speed;
+  if (ua >= 0 && ua < len) return [ua, -5 - Math.round(Math.abs(gustAsk) * 10) % 1000, 1];
+  for (let k = 0; k < 3; k++) { const n = Math.floor(t / GUST.every) - k, u = t - n * GUST.every - 3 * hash(n, 7, 400) - along / GUST.speed; if (u >= 0 && u < len) return [u, n, hash(n, 8, 400) < 0.45 ? 0.75 : 1]; }
+  return null;
+}
 
 // What each colour looks like through mist: the palette entry nearest to it mixed toward fog by this
 // much. Nearest is judged in Day and in Dusk together, so a veil holds in either light. The neutral

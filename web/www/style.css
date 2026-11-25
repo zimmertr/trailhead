@@ -107,11 +107,13 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #card .from, #card h2 { padding-right: max(calc(var(--px) * 8), 28px); }
 #fork h1 { padding-right: max(calc(var(--px) * 8), 28px); }
 /* What is left of a closed placard: a small tab at the bottom left that opens it again. */
-#tab { position: fixed; z-index: 2; left: max(18px, env(safe-area-inset-left, 0px)); bottom: calc(var(--px) * 38 + env(safe-area-inset-bottom, 0px)); min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); max-width: calc(100% - 36px); }
+#tab { position: fixed; z-index: 2; left: max(18px, env(safe-area-inset-left, 0px)); bottom: calc(var(--px) * 38 + env(safe-area-inset-bottom, 0px)); min-height: max(calc(var(--px) * 9), 24px); padding: calc(var(--px) * 1) calc(var(--px) * 3); max-width: calc(100% - 36px); }
 /* The register's close-up (L2): only the book and the way out of it. */
-#book-x { position: fixed; z-index: 3; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(var(--px) * 4 + env(safe-area-inset-bottom, 0px)); min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
+#book-x { position: fixed; z-index: 3; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(var(--px) * 4 + env(safe-area-inset-bottom, 0px)); min-height: max(calc(var(--px) * 9), 24px); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
 #book { position: fixed; inset: 0; z-index: 1; pointer-events: none; }
 #book .page { position: absolute; overflow: hidden; }
+#book .page.long { overflow-y: auto; pointer-events: auto; scroll-snap-type: y mandatory; scrollbar-width: thin; }
+#book .page.long .hand { scroll-snap-align: start; }
 #book .head { position: absolute; top: 0; display: flex; align-items: flex-end; font-family: var(--small); font-size: 13px; color: #8a5a4a; }
 #book .hand { position: absolute; margin: 0; -webkit-font-smoothing: antialiased; transform: translateY(var(--drop)) rotate(var(--tilt)); transform-origin: 0 50%; }
 #book .who { margin-right: .3em; }
@@ -122,16 +124,15 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #book .field { position: absolute; margin: 0; padding: 0; border: 0; border-radius: 2px; background: transparent; resize: none; overflow: hidden; outline: none; -webkit-font-smoothing: antialiased; transform: translateY(var(--drop)); }
 #book .field::placeholder { color: #a8a094; }
 #book .field:focus-visible { box-shadow: 0 0 0 2px rgba(34, 64, 154, .35); }
-#book .sign { position: absolute; min-height: calc(var(--px) * 9); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
+#book .sign { position: absolute; min-height: max(calc(var(--px) * 9), 24px); padding: calc(var(--px) * 1) calc(var(--px) * 3); }
 /* The trail conditions notice pinned on the register box's back wall (note 23): a click opens the whole board. */
 #book .notice { position: absolute; pointer-events: auto; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 2px 8px; overflow: hidden; text-align: left; background: var(--paper); color: var(--paper-ink); border: var(--px) solid var(--ink); box-shadow: inset 0 0 0 var(--px) var(--paper-2), var(--px) var(--px) 0 var(--shade); font-family: var(--small); font-size: 12px; line-height: 1.1; cursor: pointer; }
 #book .notice b { font-family: var(--sign); font-size: 12px; font-weight: 400; color: var(--blaze-ink); }
 #book .notice span { overflow-wrap: anywhere; }
-@media (max-width: 760px) { #book .notice { font-size: 11px; padding: 2px 5px; gap: 1px; } #book .notice b { font-size: 10px; } }
 #book .notice:hover, #book .notice:focus-visible { background: var(--paper-2); }
 /* The book and the map on the box (B01): see-through buttons over the picture that glow a little under the pointer. */
 #book .spot { position: absolute; pointer-events: auto; margin: 0; padding: 0; border: 0; background: transparent; cursor: pointer; }
-#book .spot:hover, #book .spot:focus-visible { background: rgba(255, 252, 238, .16); outline: none; }
+#book .spot:hover, #book .spot:focus-visible { background: rgba(255, 252, 238, .16); outline-offset: calc(var(--px) * -2); }
 #book .legend { position: absolute; margin: 0; font-family: var(--small); font-size: 12px; color: #8a5a4a; }
 #book .sig { text-align: right; padding-right: 1.5em; }
 #book .pending { font-family: var(--small); font-size: 12px; margin-left: .6em; color: #b0502c; white-space: nowrap; }
@@ -149,6 +150,8 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 
 /* The card. Where it came from decides its paper. */
 #card { padding: calc(var(--px) * 5) calc(var(--px) * 6) calc(var(--px) * 4); max-height: calc(100% - var(--px) * 54); overflow: auto; }
+#card > * { flex-shrink: 0; }
+#card-go { min-height: max(calc(var(--px) * 11), 24px); }
 .from { font-family: var(--small); font-size: 15px; color: var(--dim); display: flex; align-items: center; gap: calc(var(--px) * 2); }
 .from::before { content: ""; width: calc(var(--px) * 3); height: calc(var(--px) * 3); background: var(--blaze); box-shadow: 0 0 0 var(--px) var(--ink); margin: var(--px); }
 #card-body { display: flex; flex-direction: column; gap: calc(var(--px) * 2); }
@@ -156,7 +159,7 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 .draft { font-family: var(--small); font-size: 15px; color: var(--dim); align-self: flex-start; padding: 0 calc(var(--px) * 2); border: var(--px) dashed var(--dim); }
 .tools, .links { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 2); }
 .tools li { font-family: var(--small); font-size: 15px; padding: 0 calc(var(--px) * 2); border: var(--px) solid var(--paper-ink); background: var(--paper-2); }
-.links a { display: inline-flex; align-items: center; gap: calc(var(--px) * 2); text-decoration: none; border-bottom: var(--px) solid var(--blaze); }
+.links a { display: inline-flex; align-items: center; min-height: 24px; gap: calc(var(--px) * 2); text-decoration: none; border-bottom: var(--px) solid var(--blaze); }
 .links a:hover { background: var(--sun); }
 .facts { display: grid; grid-template-columns: repeat(3, auto); gap: 0 calc(var(--px) * 5); justify-content: start; }
 .facts dt { font-family: var(--small); font-size: 15px; color: var(--dim); }
@@ -172,7 +175,7 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #card[data-kind="map"] { background: linear-gradient(90deg, transparent calc(33.3% - var(--px)), rgba(44, 32, 48, .1) 33.3%, transparent calc(33.3% + var(--px)), transparent calc(66.6% - var(--px)), rgba(44, 32, 48, .1) 66.6%, transparent calc(66.6% + var(--px))), repeating-radial-gradient(circle at 78% 18%, rgba(70, 122, 48, 0) 0 calc(var(--px) * 5), rgba(70, 122, 48, .2) calc(var(--px) * 5) calc(var(--px) * 6)), var(--paper); }
 #card[data-kind="journal"] { background: linear-gradient(90deg, transparent calc(var(--px) * 12), rgba(224, 88, 36, .45) calc(var(--px) * 12), rgba(224, 88, 36, .45) calc(var(--px) * 13), transparent calc(var(--px) * 13)), repeating-linear-gradient(0deg, transparent 0 calc(1.12em - var(--px)), rgba(26, 118, 136, .28) calc(1.12em - var(--px)) 1.12em), var(--paper); padding-left: calc(var(--px) * 16); }
 #card[data-kind="watch"] { background: #17241c; color: var(--lcd); border-radius: calc(var(--px) * 4); box-shadow: inset 0 0 0 var(--px) #17241c, inset 0 0 0 calc(var(--px) * 2) #2f4a30, calc(var(--px) * 2) calc(var(--px) * 2) 0 var(--shade); }
-#card[data-kind="watch"] .from, #card[data-kind="watch"] .draft { color: #6d8a3a; border-color: #6d8a3a; }
+#card[data-kind="watch"] .from, #card[data-kind="watch"] .draft { color: #7a9a40; border-color: #7a9a40; }
 #card[data-kind="watch"] .rule { background: repeating-linear-gradient(90deg, var(--lcd) 0 calc(var(--px) * 2), transparent calc(var(--px) * 2) calc(var(--px) * 4)); }
 #card[data-kind="watch"] .tools li { background: none; border-color: var(--lcd); }
 .gauges { display: grid; grid-template-columns: auto 1fr auto; gap: calc(var(--px) * 1) calc(var(--px) * 3); align-items: center; font-family: var(--small); font-size: 15px; }
@@ -201,7 +204,7 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 /* A split start button in the debug panel (note 27): the name starts one at random, the arrow lists each. */
 .split-row { display: flex; gap: var(--px); }
 #debug .split-row > .plank:first-child { flex: 1; width: auto; min-width: 0; }
-#debug .split-row > .more { flex: none; width: auto; padding: 0 calc(var(--px) * 3); }
+#debug .split-row > .more { flex: none; width: auto; min-width: 24px; justify-content: center; padding: 0 calc(var(--px) * 3); }
 #debug .split-list .plank { width: auto; }
 .split-list { display: flex; flex-direction: column; gap: var(--px); margin: var(--px) 0 0 calc(var(--px) * 6); }
 .arrow.down { transform: rotate(-90deg); }
@@ -215,7 +218,7 @@ button.plank:active { transform: translateY(var(--px)); box-shadow: inset 0 var(
 #music { position: fixed; z-index: 6; display: flex; flex-direction: column; gap: var(--px); padding: calc(var(--px) * 3); width: max-content; max-width: calc(100vw - 16px); max-height: calc(100vh - 80px); overflow: auto; }
 #music .from { margin-top: calc(var(--px) * 1); }
 #music .plank { justify-content: flex-start; min-height: 24px; padding: 0 calc(var(--px) * 3); font-size: 16px; white-space: nowrap; }
-#music .plank[aria-checked="true"] { background: var(--moss); }
+#music .plank[aria-checked="true"] { background: #3d6c2a; }
 #music .rule { margin: calc(var(--px) * 2) 0; }
 .name { position: fixed; z-index: 1; transform: translate(-50%, calc(-100% - var(--lift, 0) * 1px)); filter: brightness(calc(1 + var(--lift, 0) * 0.035)); padding: 0 calc(var(--px) * 2); font-family: var(--small); font-size: 15px; line-height: 1.2; white-space: nowrap; color: var(--routed); background: var(--wood-2); border: var(--px) solid var(--ink); box-shadow: 0 var(--px) 0 var(--shade); pointer-events: none; }
 .name::after { content: ""; position: absolute; left: 50%; top: 100%; width: var(--px); height: calc(var(--px) * 3); margin-left: calc(var(--px) * -.5); background: var(--ink); }
@@ -223,28 +226,29 @@ button.name { pointer-events: auto; }
 .name.away::after { display: none; }
 .no-labels #names, .no-labels #tip { display: none; }
 /* The debug panel: a narrow column down the right, under the top bar, so the world stays in view beside it. */
-#debug { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); top: calc(var(--px) * 13); width: min(260px, calc(100% - 28px)); max-height: calc(100% - var(--px) * 40); overflow: auto; padding: calc(var(--px) * 3) calc(var(--px) * 4); display: grid; gap: calc(var(--px) * 1.5); }
+:root { --under: max(calc(var(--px) * 13), calc(var(--top, 0px) + 2px)); --room: calc(100% - var(--px) * 30 - var(--top, 0px) - 4px - env(safe-area-inset-bottom, 0px)); }
+#debug { position: fixed; z-index: 5; right: max(14px, env(safe-area-inset-right, 0px)); top: var(--under); width: min(260px, calc(100% - 28px)); max-height: calc(100% - var(--under) - var(--px) * 27); overflow: auto; padding: calc(var(--px) * 3) calc(var(--px) * 4); display: grid; gap: calc(var(--px) * 1.5); }
 #debug h2 { font-size: 24px; line-height: 1; display: flex; justify-content: space-between; align-items: center; }
 #debug h3 { font-family: var(--small); font-size: 15px; font-weight: 400; color: var(--dim); margin-top: calc(var(--px) * 1); }
-#debug .plank { min-height: calc(var(--px) * 8); padding: calc(var(--px) * 1) calc(var(--px) * 3); font-size: 14px; width: 100%; }
+#debug .plank { min-height: max(calc(var(--px) * 8), 24px); padding: calc(var(--px) * 1) calc(var(--px) * 3); font-size: 14px; width: 100%; }
 #debug .plank[aria-pressed="false"] { filter: saturate(.35) brightness(.82); }
 #debug .row { display: flex; gap: calc(var(--px) * 1.5); }
-#debug select { flex: 1; min-width: 0; font: inherit; font-family: var(--small); font-size: 15px; padding: calc(var(--px) * 1); background: var(--paper); color: var(--paper-ink); border: var(--px) solid var(--ink); }
-#debug .row .plank { width: auto; }
+#debug select { flex: 1; min-width: 0; min-height: 24px; font: inherit; font-family: var(--small); font-size: 15px; padding: calc(var(--px) * 1); background: var(--paper); color: var(--paper-ink); border: var(--px) solid var(--ink); }
+#debug .row .plank { width: auto; min-width: 24px; justify-content: center; }
 #debug .tune { align-items: center; } #debug .tune > span { flex: 1; font-family: var(--small); font-size: 15px; }
-#debug .chips { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 1.5); } #debug .chips .plank { width: auto; min-height: 0; padding: calc(var(--px) * 1) calc(var(--px) * 2); font-size: 13px; }
-#debug input[type=range] { display: block; width: 100%; box-sizing: border-box; margin: 0; accent-color: var(--wood-3); }
+#debug .chips { display: flex; flex-wrap: wrap; gap: calc(var(--px) * 1.5); } #debug .chips .plank { width: auto; min-height: 24px; min-width: 24px; padding: calc(var(--px) * 1) calc(var(--px) * 2); font-size: 13px; }
+#debug input[type=range] { display: block; width: 100%; min-height: 24px; box-sizing: border-box; margin: 0; accent-color: var(--wood-3); }
 #debug .row:has(select + select) { flex-wrap: wrap; } #debug .row:has(select + select) select { flex-basis: 40%; }
 #debug .speeds { display: grid; grid-template-columns: repeat(3, 1fr); gap: calc(var(--px) * 1.5); }
 .debug-sign { margin-top: calc(var(--px) * 4); opacity: .55; }
 .side .debug-sign.plank { display: inline-flex; min-height: 0; padding: 0 calc(var(--px) * 2); font-size: 12px; width: max-content; align-self: flex-start; }
 button.name:hover, .name.done { background: var(--moss); }
-#toast { position: fixed; z-index: 4; left: 50%; top: calc(var(--px) * 16); transform: translateX(-50%); max-width: calc(100% - 32px); padding: calc(var(--px) * 1) calc(var(--px) * 4); font-size: 20px; background: var(--paper); border: var(--px) solid var(--ink); box-shadow: var(--px) var(--px) 0 var(--shade); text-align: center; }
+#toast { position: fixed; z-index: 4; left: 50%; top: max(calc(var(--px) * 16), calc(var(--top, 0px) + 4px)); transform: translateX(-50%); max-width: calc(100% - 32px); padding: calc(var(--px) * 1) calc(var(--px) * 4); font-size: 20px; background: var(--paper); border: var(--px) solid var(--ink); box-shadow: var(--px) var(--px) 0 var(--shade); text-align: center; }
 
 /* The route along the bottom: its profile, a flag at each milestone, a marker for him. */
 #bar { position: fixed; z-index: 2; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px)); bottom: calc(var(--px) * 3 + env(safe-area-inset-bottom, 0px)); display: flex; align-items: stretch; gap: calc(var(--px) * 2); }
 #bar .plank { justify-content: center; min-width: calc(var(--px) * 26); }
-#line { position: relative; flex: 1; min-width: 0; height: calc(var(--px) * 22); cursor: pointer; touch-action: none; background: var(--wood-1); border: var(--px) solid var(--ink); box-shadow: inset 0 var(--px) 0 #1f1208, var(--px) calc(var(--px) * 2) 0 var(--shade); }
+#line { position: relative; flex: 1; min-width: 0; height: max(calc(var(--px) * 22), 26px); cursor: pointer; touch-action: none; background: var(--wood-1); border: var(--px) solid var(--ink); box-shadow: inset 0 var(--px) 0 #1f1208, var(--px) calc(var(--px) * 2) 0 var(--shade); }
 #prof { position: absolute; left: 0; top: 0; width: 100%; height: 100%; image-rendering: pixelated; image-rendering: crisp-edges; }
 .mark { position: absolute; bottom: 100%; transform: translateX(-50%); margin-bottom: calc(var(--px) * 1); padding: 0 calc(var(--px) * 2); font-family: var(--small); font-size: 15px; line-height: 1.25; white-space: nowrap; color: var(--paper-ink); background: var(--paper); border: var(--px) solid var(--ink); pointer-events: none; }
 .mark.passed { background: var(--sun); }
@@ -263,6 +267,7 @@ button.name:hover, .name.done { background: var(--moss); }
 .mapbox { position: relative; border: var(--px) solid var(--ink); line-height: 0; background: #58993c; }
 .mapbox canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; image-rendering: crisp-edges; }
 .dot { position: absolute; width: calc(var(--u) * 5); height: calc(var(--u) * 5); margin: calc(var(--u) * -2.5); background: var(--blaze); border: var(--u) solid var(--ink); box-shadow: 0 0 0 var(--u) var(--paper); }
+.dot::before { content: ""; position: absolute; inset: -8px; }
 .dot:hover, .dot:focus-visible { background: var(--sun); z-index: 2; }
 .dot span { position: absolute; left: 50%; bottom: calc(100% + var(--px) * 2); transform: translateX(-50%); padding: 0 calc(var(--px) * 2); font-family: var(--small); font-size: 15px; line-height: 1.25; white-space: nowrap; background: var(--paper); border: var(--px) solid var(--ink); display: none; }
 .dot:hover span, .dot:focus-visible span, .dot.big span { display: block; }
@@ -272,7 +277,7 @@ button.name:hover, .name.done { background: var(--moss); }
 .key small { display: block; font-family: var(--small); font-size: 15px; color: var(--dim); margin-bottom: calc(var(--px) * 2); }
 .key li { display: flex; align-items: baseline; gap: calc(var(--u) * 2); }
 .key li::before { content: ""; flex: none; width: calc(var(--u) * 2); height: calc(var(--u) * 2); background: var(--blaze); box-shadow: 0 0 0 var(--u) var(--ink); transform: translateY(calc(var(--u) * -1)); margin-left: var(--u); }
-.key button { border-bottom: var(--px) solid transparent; }
+.key button { min-height: 24px; text-align: left; border-bottom: var(--px) solid transparent; }
 .key button:hover, .key button:focus-visible { border-bottom-color: var(--blaze); }
 .side { display: flex; flex-direction: column; gap: calc(var(--px) * 2); }
 .side h3 { font-size: 30px; line-height: 1; margin-top: calc(var(--px) * 2); }
@@ -286,6 +291,15 @@ button.name:hover, .name.done { background: var(--moss); }
 .board dd { font-family: var(--title); font-size: 30px; line-height: 1; }
 .board > .wide { grid-column: 1 / -1; transform: rotate(-.25deg); }
 .board > .wide dd { font-family: var(--read); font-size: 22px; line-height: 1.35; }
+/* The board's two lists (round 8, F2): a filled mark beside what has been seen, an empty one beside the rest. */
+.board > .wide ul { columns: 2 330px; column-gap: calc(var(--px) * 6); margin-top: var(--px); }
+.board > .wide li { position: relative; padding-left: calc(var(--u) * 9); break-inside: avoid; }
+.board > .wide li::before { content: ""; position: absolute; left: var(--u); top: .38em; width: calc(var(--u) * 3); height: calc(var(--u) * 3); border: var(--u) solid var(--paper-ink); }
+.board > .seen li::before { background: var(--moss); }
+.board > .wide dd > span, .board > .told li { color: color-mix(in srgb, var(--dim) 60%, var(--paper-ink)); }
+/* A reported line that the map can show (round 8, H9) is a button: underlined as the map key's are when pointed at. */
+.board > .told button { text-align: left; border-bottom: var(--px) solid transparent; }
+.board > .told button:hover, .board > .told button:focus-visible { color: var(--paper-ink); border-bottom-color: var(--blaze); }
 .open { color: var(--moss); }
 .board + h3 { font-size: 30px; line-height: 1; margin: calc(var(--px) * 6) 0 calc(var(--px) * 3); }
 .checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: calc(var(--px) * 3) calc(var(--px) * 5); }
@@ -312,8 +326,8 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
 #plain .aside { color: var(--dim); }
 #plain .draft { align-self: flex-start; }
 #plain h1:focus { outline: none; }
-#plain h3 { font-size: 30px; margin-top: 26px; padding-bottom: 4px; border-bottom: var(--px) solid var(--ink); }
-#plain h4 { font-family: var(--read); font-size: 20px; color: var(--blaze-ink); margin: 12px 0 0; }
+.wrap h2 { font-size: 30px; margin-top: 26px; padding-bottom: 4px; border-bottom: var(--px) solid var(--ink); }
+.wrap h3 { font-family: var(--read); font-size: 20px; color: var(--blaze-ink); margin: 12px 0 0; }
 #plain .links { margin-top: 4px; gap: 6px 18px; }
 
 @media (max-width: 760px) {
@@ -328,8 +342,10 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   .band h2 { font-size: 26px; }
   .band p { text-align: left; }
   #plain .band { display: flex; align-items: center; }
-  #top .plank { padding: calc(var(--px) * 1) calc(var(--px) * 3); }
-  #b-help, #b-debug { display: none; }
+  /* A phone has no keys, so Keys goes; Debug stays (round 8, note 23), and the planks sit closer to make room for it. */
+  #top { gap: calc(var(--px) * 1); }
+  #top .plank { padding: calc(var(--px) * 1) calc(var(--px) * 2); }
+  #b-help { display: none; }
   /* The music button keeps its words until sound is on, then shows only its note; the track is in its menu. */
   #b-track[data-state="playing"] span { display: none; }
   .name { font-size: 10px; }
@@ -337,20 +353,27 @@ input, textarea { font: inherit; color: var(--paper-ink); background: #fffcee; b
   button.name { min-height: 24px; display: inline-flex; align-items: center; }
 }
 /* A phone on its side: the signs keep to the left two fifths so he stays in view beside them. */
+/* Narrower phones: the top bar in the debug panel's smaller lettering, so its five planks stay two lines tall.
+   The narrowest: the music button is its note alone, as it is once sound is on. */
+@media (max-width: 389px) { #top .plank { font-size: 14px; } }
+@media (max-width: 359px) { #b-track span { display: none; } .keys { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+
 @media (max-height: 480px) and (orientation: landscape) {
   #fork, #card { width: min(456px, 46%); bottom: calc(var(--px) * 30 + env(safe-area-inset-bottom, 0px)); }
-  #card { max-height: calc(100% - var(--px) * 40); padding: calc(var(--px) * 3) calc(var(--px) * 4); }
+  #card { max-height: var(--room); padding: calc(var(--px) * 3) calc(var(--px) * 4); }
   /* A project's licence goes on one row with its label here, so the card is a row shorter and its last
      line and button stay on the screen. */
   .facts dt:nth-of-type(4) { grid-column: 1; margin-top: 0; align-self: baseline; }
   .facts dd:nth-of-type(4) { grid-row: 3; grid-column: 2 / -1; align-self: baseline; }
   #fork .placard { padding: calc(var(--px) * 3) calc(var(--px) * 4); }
   .plank .where { display: none; }
-  #line { height: calc(var(--px) * 16); }
+  #line { height: max(calc(var(--px) * 16), 26px); }
   .mark { display: none; }
   #b-help { display: none; }
   #b-track[data-state="playing"] span { display: none; }
 }
+@media (max-height: 340px) and (orientation: landscape) { #fork { max-height: var(--room); overflow-y: auto; } #fork > * { flex-shrink: 0; } }
+@media (max-width: 760px), (max-height: 480px) { #book .notice { font-size: 11px; padding: 1px 5px; gap: 0; } #book .notice b { font-size: 10px; } .side .debug-sign.plank { min-height: 24px; } }
 /* Signs drop into place in a few steps, the way a sprite moves, never a slide. */
 @keyframes drop { from { transform: translateY(calc(var(--px) * -5)); opacity: 0; } }
 @media (prefers-reduced-motion: no-preference) {

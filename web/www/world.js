@@ -1,13 +1,14 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
-import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
-import { breeze, veilTable } from './core.js';
+import { covered, DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
+import { breeze, gustOver, askGust, veilTable, saw } from './core.js';
 import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeFlag, makeRegister } from './sprites.js';
 import { speck } from './fauna.js';
 import { SIGNS, NAMES, DEST_NAMES, UI } from './content.js';
 import { makeCats } from './cats.js';
 import { makeCritters } from './critters.js';
 import { checkRules } from './rules.js';
-import { makeEvents, drawLens, startLens } from './events.js';
+import { makeEvents, drawLens, startLens, inClear } from './events.js';
+import { makeLife } from './life.js';
 import { makeRunner } from './tj.js';
 import { buildTerrain, NW as WW, NH as WH, T } from './land.js';
 import { faceSnow } from './monolith.js';
@@ -233,19 +234,83 @@ function whiteWater(fb, VW, VH, ox, oy, P, F, t) {
     for (let d = 0; d < 3; d++) { const h = hash(F.x[k] * 3 + d, beat, 5201); if (h < 0.45) fb[(sy + (d >> 1)) * VW + sx + (d === 1 ? 1 : d === 2 ? -1 : 0)] = h < 0.3 ? W1 : W4; } }
 }
 
+const RING_W = 7, RING_H = 4;
+// What the rain did to the lakes in the last frame, for the checks: the rings it drew, and whether a fish may jump.
+const WET = { rings: 0, fish: true };
+// Still water moves too (round 8, C6, TJ), drawn over the ground each frame after pictures of a calm alpine
+// lake in a breeze: short level ripples that drift east and come and go, a few glints in patches where the
+// light catches, now and then a gust that crosses from the west as a darker, ruffled band and wipes the
+// reflection out as it goes, and in the clear lakes a fish that jumps and leaves two rings.
+// L: the lakes, each with its pixels (x, y), its box, a mask of its water over that box, and the spots a
+// fish can rise at. glint: how much the water glitters (less at Dusk). fish: whether the animals show.
+// rain (round 8, H6): how hard it rains (k), where the weather's edge is in each row (front), and the lake
+// the drizzle carries to at half strength (light: Reflection Lake, as its lakeside shows). Water in the
+// rain loses its glints to the grey sky, drops open rings on it, and no fish jumps there.
+function stillWater(fb, VW, VH, ox, oy, L, t, glint, fish, calmL, calm, rain) {
+  const W = R.water, WHITE = R.white[1], beat = Math.floor(t * 4);
+  WET.rings = 0; WET.fish = true;
+  for (let n = 0; n < L.length; n++) { const l = L[n]; if (l.x1 < ox || l.x0 >= ox + VW || l.y1 < oy || l.y0 >= oy + VH) continue;
+    const lake = l.kind === 'lake', w = l.x1 - l.x0 + 1, ym = (l.y0 + l.y1) / 2, edge = !rain ? -1e9 : l === rain.light ? 1e9 : rain.front(ym), rk = l.x0 >= edge ? 0 : l === rain.light ? 0.5 * rain.k : rain.k, dull = glint * (1 - rk);
+    // The gust: one every 16 to 26 s, a slanted band about a third of the lake wide, patchy inside.
+    const every = 16 + 10 * hash(n, 0, 6101), tg = t + every * hash(n, 1, 6101), gk = Math.floor(tg / every), gu = tg - gk * every, cross = 3.5 + w / 30, bw = Math.max(7, 0.32 * w);
+    const front = gu < cross ? Math.floor(l.x0 - bw + (w + 2 * bw) * gu / cross) : null;
+    for (let k = 0; k < l.x.length; k++) { const x = l.x[k], y = l.y[k], sx = x - ox, sy = y - oy; if (sx < 0 || sy < 0 || sx >= VW || sy >= VH) continue;
+      // A dead calm (round 8, E2): the gusts, the ripples and the glints leave this lake patch by patch, and it lies like glass.
+      if (calm > 0 && l === calmL && hash(x >> 2, y >> 1, 6140) < calm) continue;
+      const i = sy * VW + sx, c = fb[i], wet = RAMP_OF[c] === 'water';
+      if (front !== null) { const a = 1 - Math.abs(x + 0.7 * (y - ym) - front) / bw;
+        // Ruffled water is short dashes, and they travel with the band.
+        if (a > 0 && hash((x - front + (y & 1)) >> 1, y, 6104) < 1.5 * a * (0.35 + 0.65 * vnoise(x / 8, y / 2.5 + gk, 6102))) { fb[i] = lake && !wet ? (hash(x >> 1, y, 6103) < 0.25 ? W[2] : W[1]) : SHADE[c]; continue; } }
+      // A ripple: a dash two or three long in a cell of four that slides east, each row at its own pace.
+      const xs = x + Math.floor(t * (1.5 + (y % 3))), h = hash(xs >> 2, y, 6110 + n);
+      if (h < 0.065 && (xs & 3) < 2 + (h * 1000 & 1) && frac(h * 211 + t * 0.3) < 0.55) fb[i] = lake ? (wet ? W[3] : W[2]) : LIGHT[c];
+      else if (glint > 0 && hash(x, y, 6120 + beat) < (x < edge ? dull : glint) * 0.012 && vnoise(x / 13, y / 4, 6121 + n) > 0.62) fb[i] = WHITE;
+    }
+    // Rain rings: each drop lands in its own patch of the lake (RING_W by RING_H), a white dot that opens to
+    // a pale pair two apart, then four apart, thinner and dimmer, and is gone in half a second.
+    if (rk > 0.05) for (let gy = Math.floor(Math.max(l.y0, oy) / RING_H); gy * RING_H <= Math.min(l.y1, oy + VH - 1); gy++) for (let gx = Math.floor(Math.max(l.x0, ox) / RING_W); gx * RING_W <= Math.min(l.x1, ox + VW - 1, edge); gx++) {
+      const id = gy * 311 + gx, age = t / 0.5 + hash(id, 1, 6150), c = Math.floor(age), q = age - c; if (hash(id, c, 6151) > rk * 0.55) continue;
+      const x = gx * RING_W + Math.floor(hash(id, c, 6152) * RING_W), y = gy * RING_H + Math.floor(hash(id, c, 6153) * RING_H), r = q < 0.3 ? 0 : q < 0.65 ? 1 : 2; if (x + 2 >= edge) continue;
+      for (const dx of r ? [-r, r] : [0]) { const X = x + dx, a = X - l.x0, b = y - l.y0, sx = X - ox, sy = y - oy;
+        if (a < 0 || a >= w || b < 0 || y > l.y1 || !l.m[b * w + a] || sx < 0 || sy < 0 || sx >= VW || sy >= VH || (r === 2 && hash(X, c, 6154) < 0.4)) continue;
+        const i = sy * VW + sx, v = fb[i]; WET.rings++; fb[i] = !r ? WHITE : lake ? (r === 1 ? W[4] : RAMP_OF[v] === 'water' ? W[3] : W[2]) : r === 1 ? LIGHT[LIGHT[v]] : LIGHT[v]; } }
+    if (rk > 0.3) WET.fish = false;
+    if (!fish || !l.spots.length || rk > 0.3) continue;
+    // The fish: every 9 to 20 s it leaves the water at one of the lake's spots, arcs five pixels up and six
+    // along, head first up and head first down, and drops back with a splash. A ring spreads from where it
+    // left and another from where it landed: pale on dark water, dark where the water is pale with the
+    // mountain's reflection. The fish is a trout, brown and gold with a flash of its side, to stand off the blue.
+    const fe = 9 + 11 * hash(n, 2, 6130), tf = t + fe * hash(n, 3, 6130), fk = Math.floor(tf / fe), u = tf - fk * fe; if (u > 2.6) continue;
+    const s = l.spots[Math.floor(hash(n, fk, 6131) * l.spots.length)], fx0 = s % l.w + l.x0, fy0 = (s / l.w | 0) + l.y0, dir = hash(n, fk, 6132) < 0.5 ? -1 : 1, AIR = 0.6, FAR = 6 * dir;
+    const on = (x, y) => { const sx = x - ox, sy = y - oy; return sx >= 0 && sy >= 0 && sx < VW && sy < VH ? sy * VW + sx : -1; }, put = (x, y, c) => { const i = on(x, y); if (i >= 0) fb[i] = c; };
+    const inWater = (x, y) => x >= l.x0 && x <= l.x1 && y >= l.y0 && y <= l.y1 && l.m[(y - l.y0) * l.w + x - l.x0];
+    for (const [cx, u0] of [[fx0, 0.05], [fx0 + FAR, AIR]]) { const a = u - u0; if (a < 0 || a > 2) continue;
+      for (const r of a > 0.6 ? [2 + 4.5 * a, 1 + 2.4 * a] : [2 + 4.5 * a]) { const ry = Math.max(1, 0.33 * r), N = Math.ceil(5 * r);
+        for (let j = 0; j < N; j++) { const an = j / N * 6.2832, x = Math.round(cx + r * Math.cos(an)), y = Math.round(fy0 + ry * Math.sin(an)), i = inWater(x, y) && hash(x, y, 6133) > a / 2 ? on(x, y) : -1; if (i < 0) continue;
+          const c = fb[i]; fb[i] = lake ? (RAMP_OF[c] === 'water' && STEP_OF[c] <= 2 ? (a < 0.7 ? WHITE : W[4]) : W[1]) : a < 0.7 ? WHITE : LIGHT[LIGHT[c]]; } } }
+    if (u < AIR) { const q = u / AIR, x = fx0 + Math.round(FAR * q), y = fy0 - Math.round(5 * Math.sin(q * Math.PI)), tip = q < 0.4 ? -1 : q < 0.6 ? 0 : 1;
+      put(x - 2 * dir, y - tip, R.wood[0]); put(x - dir, y - tip, R.wood[2]); put(x, y, R.dirt[3]); put(x + dir, y, R.shoe[2]); put(x + 2 * dir, y + tip, R.wood[1]);
+      if (q < 0.3) { put(fx0, fy0, WHITE); put(fx0 - 1, fy0 - 1, WHITE); put(fx0 + 1, fy0 - 1, WHITE); } }
+    else if (u < AIR + 0.25) { const x = fx0 + FAR; put(x, fy0, WHITE); put(x - 1, fy0 - 1, WHITE); put(x + 1, fy0 - 1, WHITE); put(x, fy0 - 2, WHITE); }
+  }
+}
+
 export function makeWorld() {
   const W = buildTerrain(), { g: ground, spots, forestAmt } = W;
-  const paths = {}; for (const k of ['lake', 'stack', 'spires']) paths[k] = makePath({ pts: W.trails[k], stops: [] });
+  const paths = {}; for (const k of ['lake', 'stack', 'spires', 'south']) paths[k] = makePath({ pts: W.trails[k], stops: [] });
   // The few steps from the junction to the register's east side, where he stands to fold its front down (L2).
   { const [rx, ry] = W.spots.register; paths.register = makePath({ pts: [[T.x, T.y], [(T.x + rx + 9) / 2, (T.y + ry + 1) / 2 + 1], [rx + 9, ry + 1]], stops: [] });
     // Its points with their depth, as the trails carry, so ground nearer than him still stands in front.
     W.lines.register = [...Array(9).keys()].map(k => { const p = paths.register.at(k / 8); return [p.x, p.y, W.vAt(p.x, p.y)]; }); }
+  // The colours of open lake water, with the pale ones of the mountain's reflection in it.
+  const LAKEC = new Uint8Array(256); for (const k of ['water', 'ice', 'snow', 'glac', 'far']) for (const c of R[k]) LAKEC[c] = 1;
   // Shafts of light slant through the forest, and give out where the mist takes over in the west.
   const shaftMask = new Uint8Array(WW * WH);
   for (let y = 300; y < WH; y++) for (let x = 0; x < 760; x++) {
     if (forestAmt(x, y) < 0.7) continue;
+    shaftMask[y * WW + x] = 4;
     const band = frac((x * 0.55 + y) / 64);
-    if (band < 0.15 && vnoise((x * 0.55 + y) / 64, (y - x * 0.4) / 40, 77) > 0.42 + smooth(430, 200, x) * 0.4) shaftMask[y * WW + x] = band < 0.05 || band > 0.1 ? 1 : 2;
+    if (band < 0.15 && vnoise((x * 0.55 + y) / 64, (y - x * 0.4) / 40, 77) > 0.42 + smooth(430, 200, x) * 0.4) shaftMask[y * WW + x] = 4 | (band < 0.05 || band > 0.1 ? 1 : 2);
   }
 
   // Everything that stands up, sorted by its feet each frame.
@@ -254,6 +319,20 @@ export function makeWorld() {
   // band below it is lit with the snow's dusk colours, one step lighter than the rock's own, thinning
   // downward through a dither. GLOW maps a colour to the snow step of the same lightness.
   const tipTop = [6, 7].map(k => { const top = new Int16Array(WW).fill(-1); for (let x = 0; x < WW; x++) for (let y = 0; y < WH; y++) if (W.dest[y * WW + x] === k) { top[x] = y; break; } return top; });
+  // The skyline of the whole map, for the alpenglow on every other mountain (TJ, round 8): for each column the
+  // first row that is not sky, then the highest of those within 48 columns either way, so the light is measured
+  // down from the summit nearest each column and lies on a mountain as a cap, not as a stripe along its outline. PEAK: the colours a mountain is made of (snow, ice and rock, near and far), so
+  // the forested foothills on the skyline stay dark.
+  const skyTop = new Int16Array(WW).fill(-1), PEAK = new Uint8Array(256).map((_, c) => ['snow', 'farsnow', 'far', 'ice', 'glac', 'serac', 'granite', 'rock', 'white', 'ash', 'mauve'].includes(RAMP_OF[c]) ? 1 : 0);
+  for (let x = 0; x < WW; x++) for (let y = 0; y < 330; y++) { const k = RAMP_OF[ground[y * WW + x]]; if (k !== 'sky' && k !== 'skyband') { skyTop[x] = y; break; } }
+  // tall: how far each column's mountain reaches down from the sky, to where its snow and rock give way to trees,
+  // so the light can cover the same share of a tall mountain as of a small one.
+  const skyOwn = skyTop.slice(), tall = new Int16Array(WW);
+  { const own = skyOwn; for (let x = 0; x < WW; x++) { let m = 999; for (let i = Math.max(0, x - 48); i <= Math.min(WW - 1, x + 48); i++) if (own[i] >= 0 && own[i] < m) m = own[i]; skyTop[x] = own[x] < 0 ? -1 : m; } }
+  for (let x = 0; x < WW; x++) { if (skyTop[x] < 0) continue; let y = skyOwn[x], miss = 0; while (y < WH - 1 && miss < 8) { y++; miss = PEAK[ground[y * WW + x]] ? 0 : miss + 1; } tall[x] = y - 8 - skyTop[x]; }
+  { const t = tall.slice(); for (let x = 0; x < WW; x++) { let m = 0; for (let i = Math.max(0, x - 48); i <= Math.min(WW - 1, x + 48); i++) m = Math.max(m, t[i]); tall[x] = m; } }
+  // How deep the skyline's alpenglow reaches in each column at its strongest (see the draw).
+  const glowH = Float32Array.from(tall, (h, x) => Math.max(84, 0.25 * h) * (1 + 0.35 * (fbm(x / 40, 2, 811, 3) - 0.5)));
   // The warm light on the hills: only the lit half of each colour (the sunny side of a crown, the lit
   // tips of the canopy) turns to ochre, so by Dusk the faces glint rust while the shade between stays
   // blue and the trees keep their shapes. Ink, water, sky and lit glass keep theirs.
@@ -270,6 +349,10 @@ export function makeWorld() {
     const xs = new Int16Array(n), vals = new Uint8Array(n); n = 0;
     for (let y = 0; y < WH; y++) { rows[y] = n; for (let x = 0; x < WW; x++) { const m = M[y * WW + x]; if (keep(m)) { xs[n] = x; vals[n++] = m; } } } rows[WH] = n; return { rows, xs, vals }; })();
   const TIP_H = [26, 34], GLOW = new Uint8Array(256).map((_, c) => { const r = c && R[RAMP_OF[c]]; if (!r) return c; const k = Math.min(R.snow.length - 1, Math.round((STEP_OF[c] + 1) / r.length * (R.snow.length - 1)) + 1); return R.snow[k]; });
+  // The alpenglow's colours, after pictures of it (R8-E2): at the tips the rock's lit steps go to orange and its shade
+  // to dusky rose; below them, lit rock to peach, half-lit to rose and shade to dusky rose. All are colours with a
+  // Dusk of their own (the lamp's orange, the snow's evening steps): a ramp without one goes dark at Dusk.
+  const ALPEN = [[R.lamp[0], R.ochre[3], R.snow[1]], [R.snow[3], R.snow[2], R.snow[1]]].map(to => new Uint8Array(256).map((_, c) => { const r = c && R[RAMP_OF[c]]; if (!r || c === INK) return c; const f = STEP_OF[c] / Math.max(1, r.length - 1); return to[f > 0.5 ? 0 : f > 0.2 ? 1 : 2]; }));
   // The lenticular cloud (E3) over Mount Monolith's summit: its clock and its drawing are in events.js,
   // shared with the lake scene.
   const lenticular = (scr, ox, oy, t) => drawLens(scr, spots.summit[0], spots.summit[1], t, 1, ox, oy);
@@ -291,6 +374,7 @@ export function makeWorld() {
     const [sx, sy] = SER[sk], fall = 40, path = q => [sx + Math.round(2 * Math.sin(q * 5 + n)), sy + Math.round(fall * Math.pow(q, 1.6))];
     const on = sx - ox > -20 && sx - ox < scr.VW + 20 && sy - oy > -40 && sy - oy < scr.VH + 10;
     if (on && a > 0.9 && rumbled !== n) { rumbled = n; env.sfx('rumble'); }
+    if (a > 0.2 && a < 3 && inClear(scr, sx - ox, sy - oy)) saw('serac');
     const dot = (x, y, c) => { const vx = x - ox, vy = y - oy; if (vx >= 0 && vy >= 0 && vx < scr.VW && vy < scr.VH) scr.fb[vy * scr.VW + vx] = c; };
     // The puffs: one where each stretch of the fall was passed, growing and fading from when it was made.
     for (let k = 0; k < 5; k++) { const age = a - 0.3 - k * 0.25; if (age < 0) continue; const [px, py] = path(Math.min(1, k / 4)), r = 2 + 8 * Math.min(1, age / 3), al = smooth(4.2, 0.6, age);
@@ -337,6 +421,7 @@ export function makeWorld() {
     if (!AVS.length) return;
     if (t >= AVA.next) { const snowy = snowyFaces(); if (snowy.length) slide(snowy[Math.floor(hash(AVA.count, 5, 4792) * snowy.length)], t); }
     FACE.forEach((F, f) => { if (F.phase !== 'falling') return; const a = t - F.start, A = AVS[f];
+      if (a >= AV_RELEASE && A.cx - ox > 8 && A.cx - ox < VW - 8 && A.y0 - oy > 0 && A.y0 - oy < VH - 8 && !covered(A.cx - ox, A.y0 - oy)) saw('avalanche');
       if (a >= AV_RELEASE && !F.gone) { F.gone = true; F.cover = 0; if (A.cx - ox > -40 && A.cx - ox < VW + 40 && A.y0 - oy > -60 && A.y0 - oy < VH) env.sfx('avalanche'); }
       if (a > AV_LONG) F.phase = 'bare'; });
     // Every face bare: the squall is due 60 to 120 s after the last slide began.
@@ -457,12 +542,18 @@ export function makeWorld() {
   };
   // The small fair-weather clouds that cast the drifting shadows, each its shadow's size, FAIR_ALT above it.
   const FAIR_ALT = 64, FAIR = [0, 1, 2, 3].map(k => { const cw = 40 + 16 * hash(k, 1, 91), chh = 11 + 5 * hash(k, 2, 91); return { cw, chh, y: Math.round(620 + hash(k, 3, 91) * 380), bm: puff(Math.round(cw * 1.9), Math.round(chh * 2.4), 610 + k) }; });
-  const fairX = (k, t) => ((k * 310 + t * (5 + k * 1.3)) % (WW + 300)) - 150;
+  // fairOff: how far the debug panel has moved the first of them on, to bring its shadow over a spot (E1).
+  let fairOff = 0;
+  const fairX = (k, t) => ((k * 310 + t * (5 + k * 1.3) + (k ? 0 : fairOff)) % (WW + 300)) - 150;
+  let lastHere = { x: T.x, y: T.y };
+  // Where each side scene's country is on the map, for the weather over it (sky): the lake's west shore, and
+  // the ends of the peak's trail and of the Spires'.
+  const PLACE = { lake: [lx0, (ly0 + ly1) >> 1], peak: W.trails.stack[W.trails.stack.length - 1], spires: W.trails.spires[W.trails.spires.length - 1] };
   const things = [];
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
   const put = (bm, x, y, extra = {}) => things.push({ bm, x: Math.round(x), y: Math.round(y), ...extra });
   for (const s of spots.signs) put(makeSmallSign(), s[0], s[1]);
-  put(makeJournal(), spots.journal[0], spots.journal[1]); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
+  put(makeJournal(), spots.journal[0], spots.journal[1]); const KIOSK = makeKiosk(); put(KIOSK, spots.kiosk[0], spots.kiosk[1]);
   const REGS = [...Array(16).keys()].map(k => makeRegister(k & 7, k > 7)), regBox = { bm: REGS[0], x: spots.register[0], y: spots.register[1] }; things.push(regBox);
   if (spots.lookout) put(makeLookout(), spots.lookout[0], spots.lookout[1]);
   for (const [x, y, c] of spots.tents) put(makeTent(c), x, y);
@@ -471,6 +562,13 @@ export function makeWorld() {
   const xy = (I, off) => { const n = I.length, x = new Int16Array(n), y = new Int16Array(n), o = new Float32Array(n), p = new Float32Array(n), e = new Uint8Array(n), S = new Set(I);
     for (let k = 0; k < n; k++) { x[k] = I[k] % WW; y[k] = (I[k] / WW) | 0; if (off) { o[k] = hash(x[k], 0, 5202); p[k] = 7 + hash(x[k], 1, 5203) * 6; e[k] = !S.has(I[k] - 1) || !S.has(I[k] + 1) ? 1 : 0; } } return { x, y, o, p, e }; };
   const WWP = W.whiteWater ? xy(W.whiteWater.fall, true) : null, WWF = W.whiteWater ? xy(W.whiteWater.foot) : null;
+  // The lakes for stillWater. A fish rises only in clear water (not in glacial silt), at a spot with water
+  // six pixels either side and two above and below, so its arc and its rings stay on the lake.
+  const STILL = W.still.map(l => { const { x, y } = xy(l.px), x0 = Math.min(...x), x1 = Math.max(...x), y0 = Math.min(...y), y1 = Math.max(...y), w = x1 - x0 + 1, m = new Uint8Array(w * (y1 - y0 + 1)), spots = [];
+    for (let k = 0; k < x.length; k++) m[(y[k] - y0) * w + x[k] - x0] = 1;
+    const wet = (a, b) => a >= 0 && b >= 0 && a < w && b <= y1 - y0 && m[b * w + a];
+    if (l.kind === 'lake' || l.kind === 'tarn' || l.kind === 'pond') for (let k = 0; k < x.length; k++) { const a = x[k] - x0, b = y[k] - y0; if (wet(a - 6, b) && wet(a + 6, b) && wet(a, b - 2) && wet(a, b + 2) && wet(a - 3, b - 1) && wet(a + 3, b + 1)) spots.push(b * w + a); }
+    return { kind: l.kind, x, y, x0, x1, y0, y1, w, m, spots }; });
   // At Dusk the tents glow from inside (E8): the fabric warm, brightest low down and at the door.
   const tentGlow = spots.tents.map(([x, y, c]) => { const b = makeTent(c); for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) { const k = j * b.w + i, v = b.d[k]; if (!v || v === INK) continue; b.d[k] = v === R.ink[0] || (j > b.h * 0.55 && bayer(i, j) < (j / b.h - 0.4) * 1.6) ? R.lamp[1] : R.lamp[0]; } return { b, x, y }; });
   // Headlamps (E8): at Dusk a party of eight climbs the boot track from base camp up the Spires' glacier
@@ -488,14 +586,21 @@ export function makeWorld() {
     for (let k = 0; k < GAP.length; k++) { const d = lead - GAP[k]; if (d < 0 || d > TRK.L) continue; const [x, y, v] = lampAt(d), sx = Math.round(x) - ox, sy = Math.round(y) - 2 - oy;
       if (sx < 0 || sy < 0 || sx >= scr.VW || sy >= scr.VH || W.depth[Math.round(y) * WW + Math.round(x)] < v - 4) continue;
       const fade = smooth(TRK.L, TRK.L - 20, d) * smooth(0, 6, d) * smooth(0.5, 0.75, mix); if (bayer(sx + ox, sy + oy) > fade) continue;
-      const dim = hash(k, Math.floor(t * 1.3), 4901) < 0.12; scr.set(sx, sy + 1, INK); scr.set(sx, sy + 2, INK); scr.set(sx, sy, dim ? R.lamp[0] : R.lamp[1]); if (!dim) { const [ax, ay] = lampAt(Math.min(TRK.L, d + 3)); scr.set(Math.round(ax) - ox, Math.round(ay) - 2 - oy, R.lamp[0]); } }
+      const dim = hash(k, Math.floor(t * 1.3), 4901) < 0.12; scr.set(sx, sy + 1, INK); scr.set(sx, sy + 2, INK); scr.set(sx, sy, dim ? R.lamp[0] : R.lamp[1]); if (fade > 0.8 && inClear(scr, sx, sy)) saw('headlamps'); if (!dim) { const [ax, ay] = lampAt(Math.min(TRK.L, d + 3)); scr.set(Math.round(ax) - ox, Math.round(ay) - 2 - oy, R.lamp[0]); } }
   }
   // The animals look after themselves: see critters.js. Where each one lives comes from land.js.
   const crit = makeCritters(W); window.__crit = crit;
   let pokeAt = [0, 0];   // where the last animal under the pointer was, so a click on it knows which way to flee
   // For the browser suite: every engine rule the map breaks (rules.js).
   window.__rules = () => checkRules(W.things, crit.items, crit.collide);
-  const ev = makeEvents(W, crit.collide);
+  // For the soak (tools/pixel/soak.sh): where every map animal is and what it is doing.
+  window.__animals = () => crit.items.map(a => ({ k: a.critter, col: a.col, x: a.x, y: a.y, st: (a.st || '') + (a.act ? ':' + a.act : '') + (a.goal ? '>' + a.goal : '') + (a.homing ? ' homing' : ''), w: a.bm ? a.bm.w : 0, walker: !!a.walker, perch: !!a.perch, mum: a.mum ? crit.items.indexOf(a.mum) : -1, with: a.with ? crit.items.indexOf(a.with) : -1 }));
+  const ev = makeEvents(W, crit.collide), life = makeLife(W, STILL); window.__life = life; window.__wet = Object.assign(WET, window.__wet);
+  // The streamside plants by kind, each with its spot and how far it stands from the water (H8), for the checks.
+  window.__plants = () => W.things.filter(th => th.tree && th.tree.what).map(th => [th.tree.what, th.x, th.y, th.near || 0]);
+  // Where the beach's driftwood gathers and where its logs lie (H7), for the checks.
+  window.__pair = () => PAIR.lit;
+  window.__jams = { spots: W.jams, logs: W.things.filter(th => th.bm && th.bm.what === 'drift').map(th => [th.x, th.y]) };
   for (const it of crit.items) things.push(it);
   const birds = [speck(0), speck(1)];
   const clouds = [0, 1, 2, 3, 4, 5].map(i => ({ bm: makeCloud(600 + i), x: i * 330 + 40, y: 50 + (i & 1) * 70 + i * 18, v: 3 + (i % 4) }));
@@ -520,6 +625,9 @@ export function makeWorld() {
   // two fifths of its climb: from there on it is the high traverse and the moraine. Height on the map is
   // read the way the land lays it out: a pixel's row plus its depth, less for higher ground.
   const spiresIn = (() => { const P = paths.spires, h = q => { const a = P.at(q); return -(W.vAt(a.x, a.y) + a.y); }, h0 = h(0), h1 = h(1); for (let q = 0; q < 1; q += 0.002) if (h(q) - h0 >= 0.4 * (h1 - h0)) return q; return 0.5; })();
+  // The Peak's trail leaves the map where it comes up the step into Postmortem Burn (round 8, C2), a quarter
+  // of its climb done: the larch basin's scene begins in the burn.
+  const stackIn = (() => { const P = paths.stack, h = q => { const a = P.at(q); return -(W.vAt(a.x, a.y) + a.y); }, h0 = h(0), h1 = h(1); for (let q = 0; q < 1; q += 0.002) if (h(q) - h0 >= 0.25 * (h1 - h0)) return q; return 0.6; })();
   const lakeOut = (() => { const P = paths.lake; let best = 0, bd = 1e9; for (let q = 0.5; q < 1; q += 0.002) { const a = P.at(q), d = Math.hypot(a.x - spots.lakeShore[0], a.y - spots.lakeShore[1]); if (d < bd) { bd = d; best = q; } } return best; })();
   // Between the two the map is not shown: the forest scene stands for the trail from lakeIn to the lake's outlet
   // (lakeMid: where the trail comes nearest the lake's west end) and the lakeshore scene for the rest (round 5, F5).
@@ -531,6 +639,21 @@ export function makeWorld() {
   // How far from the camera he is on a trail, from the trail's own points.
   const vOn = (path, x, y) => { let best = 0, bd = 1e9; for (const p of W.lines[path]) { const d = Math.abs(p[0] - x) + Math.abs(p[1] - y); if (d < bd) { bd = d; best = p[2]; } } return best; };
   const saved = new Uint8Array(25 * 34);
+  // The register's box and the board beside it light as one while the pointer is on either (round 8, H12): one
+  // outline round the pair, as a place lifts. It goes round the two drawings and the ground between them: each
+  // row of the screen is outlined from the leftmost solid pixel of either to the rightmost.
+  let homeRings = null;
+  const PAIR = { on: false, lit: 0, lo: new Int16Array(48), hi: new Int16Array(48) };
+  function pairOutline(scr, ox, oy, c) {
+    const { VW, VH, fb } = scr, { lo, hi } = PAIR, both = [[KIOSK, spots.kiosk], [regBox.bm, spots.register]];
+    let y0 = 1e9, y1 = -1e9;
+    for (const [bm, [, y]] of both) { y0 = Math.min(y0, y - bm.oy); y1 = Math.max(y1, y - bm.oy + bm.h - 1); }
+    const n = Math.min(lo.length - 2, y1 - y0 + 1); lo.fill(32767); hi.fill(-32768);
+    for (const [bm, [x, y]] of both) for (let j = 0; j < bm.h; j++) { const r = y - bm.oy + j - y0 + 1; if (r > n) break; for (let i = 0; i < bm.w; i++) if (bm.d[j * bm.w + i]) { const wx = x - bm.ox + i; if (wx < lo[r]) lo[r] = wx; if (wx > hi[r]) hi[r] = wx; } }
+    const set = (wx, wy) => { const X = wx - ox, Y = wy - oy; if (X >= 0 && Y >= 0 && X < VW && Y < VH) fb[Y * VW + X] = c; };
+    for (let r = 1; r <= n; r++) { if (lo[r] > hi[r]) continue; const y = y0 + r - 1; set(lo[r] - 1, y); set(hi[r] + 1, y);
+      for (let x = lo[r]; x <= hi[r]; x++) { if (x < lo[r - 1] || x > hi[r - 1]) set(x, y - 1); if (x < lo[r + 1] || x > hi[r + 1]) set(x, y + 1); } }
+  }
   // The destinations rise a little, each with its whole country, when the pointer rests on one or it is
   // tapped (D12a, D12b). W.dest holds the destination's number (1 to 3) and 4 on the landmark itself.
   const lifted = [0, 0, 0, 0]; let tapped = 0, tapUntil = 0;
@@ -633,14 +756,14 @@ export function makeWorld() {
   // The roam areas' colours, one per kind, none of them a colour of the ground (T32).
   const ROAM_C = { elk: R.yellow[1], moose: R.lupine[2], goat: R.white[1], sheep: R.lamp[0], bear: R.pink[2], marmot: R.sky[4] || R.white[0], squirrel: R.red[1], gulls: R.jay[3], birds: R.aurora[2] };
   function roamArea(scr, a, ox, oy) {
-    const c = ROAM_C[a.kind] || R.white[1], cx = a.x - ox, cy = a.y - oy, x0 = Math.floor(cx - a.rx - 2), x1 = Math.ceil(cx + a.rx + 2), y0 = Math.floor(cy - a.ry - 2), y1 = Math.ceil(cy + a.ry + 2);
+    const c = a.c || ROAM_C[a.kind] || R.white[1], cx = a.x - ox, cy = a.y - oy, x0 = Math.floor(cx - a.rx - 2), x1 = Math.ceil(cx + a.rx + 2), y0 = Math.floor(cy - a.ry - 2), y1 = Math.ceil(cy + a.ry + 2);
     if (x1 < 0 || y1 < 0 || x0 >= scr.VW || y0 >= scr.VH) return;
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       const q = Math.hypot((x - cx) / a.rx, (y - cy) / a.ry), edge = (1 - q) * Math.min(a.rx, a.ry);
       if (edge < -2 || edge > 1.2 && ((x + y) & 3)) continue;
       scr.set(x, y, edge < 0 ? c : edge < 1.2 ? INK : c);
     }
-    tinyText(scr, Math.round(cx), Math.round(cy - a.ry - 9), (UI.debug.animals[a.kind] || a.kind).toUpperCase(), c);
+    tinyText(scr, Math.round(cx), Math.round(cy - a.ry - 9), (a.label || UI.debug.animals[a.kind] || a.kind).toUpperCase(), c);
   }
   // The spawn menu (C4): each map animal with its homes, each named after the nearest place the map names
   // (a joke sign within 160 pixels, else the nearest of the four places, as "near ..." or "east of ...").
@@ -656,7 +779,7 @@ export function makeWorld() {
     return { kind, name: UI.debug.animals[kind] || kind, homes: names.map(n => names.filter(m => m === n).length > 1 ? n + ' ' + (seen[n] = (seen[n] || 0) + 1) : n) }; });
 
   return {
-    name: 'world', paths, spawnList, spawn: (kind, i) => { const ok = crit.spawn(kind, i); for (const it of crit.items) if (!things.includes(it)) { things.push(it); still = null; } return ok; }, lakeIn, lakeMid, lakeOut, spiresIn, T, WW, WH,
+    name: 'world', paths, spawnList, homeAt: (kind, i) => { const k = crit.homes().find(q => q.kind === kind); return (k && k.homes[i]) || null; }, actors: () => crit.actors(), doAct: (i, name, t) => crit.doAct(i, name, t), spawn: (kind, i) => { const ok = crit.spawn(kind, i); for (const it of crit.items) if (!things.includes(it)) { things.push(it); still = null; } return ok; }, lakeIn, lakeMid, lakeOut, spiresIn, stackIn, T, WW, WH,
     // For the trail map sheet (L9): the peak's summit and the six Spires summits on the map, and the picture's
     // frame: the box round the Trailhead and the three destinations' countries with a margin, widened to the
     // sheet's shape (8 by 5) and kept on the map.
@@ -674,6 +797,9 @@ export function makeWorld() {
     // camp; and the lake loop all the way round, for the trail map. Round 3 wrote the lake's 5.2 by hand.
     lengths: () => { const km = (k, f = 1) => Math.round(paths[k].len * f * KM * 10) / 10; return { lake: km('lake', lakeOut), loop: km('lake'), stack: km('stack'), spires: km('spires') }; },
     dur: leg => leg.secs || Math.abs(leg.to - leg.from) * paths[leg.path].len / RUN,
+    // The way in (round 8, J13): a route asked for while he is still coming up from the foot of the map
+    // waits at the junction until he is there.
+    hold: env => !!env.arrive,
     stops: () => [],
     // North on the map is uphill, which is all the profile along the bottom needs.
     elev: (leg, q) => (T.y - where(leg, q).y) * 0.8,
@@ -696,14 +822,17 @@ export function makeWorld() {
     labels() { return PLACES.map(d => { const k = W.DEST.indexOf(d.id), l = k > 0 ? lifted[k] : 0; return { id: 'go:' + d.id, name: DEST_NAMES[d.id], x: d.x - last.ox, y: d.y - last.oy - 2 * l, lift: l }; }); },
     // What is under a point of the screen: a sign with a name, the kiosk, a cat.
     pick(sx, sy) {
-      const wx = sx + last.ox, wy = sy + last.oy;
+      const wx = sx + last.ox, wy = sy + last.oy; PAIR.on = false;
       for (const s of spots.signs) if (Math.abs(wx - s[0]) < 8 && wy > s[1] - 17 && wy < s[1] + 3) return { label: SIGNS[s[2]], x: s[0] - last.ox, y: s[1] - 18 - last.oy };
       const c = kit.pick(wx, wy); if (c) return { label: c.label, x: c.wx - last.ox, y: c.wy - last.oy, act: c.act };
       // Every animal on the map answers a click (round 6, note 10); critters.js says which is under the point.
-      { const a = crit.pick(wx, wy, last.ox, last.oy); if (a) { pokeAt = [wx, wy]; return { label: a.label, x: a.wx - last.ox, y: a.wy - last.oy, act: a.act }; } }
+      { const a = crit.pick(wx, wy, last.ox, last.oy) || life.pick(wx, wy); if (a) { pokeAt = [wx, wy]; return { label: a.label, x: a.wx - last.ox, y: a.wy - last.oy, act: a.act }; } }
       if (spots.lookout) { const [lx, ly] = spots.lookout; if (Math.abs(wx - lx) < 9 && wy > ly - 30 && wy < ly + 2) return { label: NAMES.lookout, x: lx - last.ox, y: ly - 31 - last.oy }; }
-      { const [rx, ry] = spots.register; if (Math.abs(wx - rx) < 6 && wy > ry - 21 && wy < ry + 2) return { label: NAMES.register, x: rx - last.ox, y: ry - 21 - last.oy, act: 'register' }; }
-      { const [kx, ky] = spots.kiosk; if (Math.abs(wx - kx) < 14 && wy > ky - 27 && wy < ky + 3) return { label: NAMES.kiosk, x: kx - last.ox, y: ky - 27 - last.oy, act: 'kiosk' }; }
+      // The register's box and the conditions board beside it are one thing to click (round 8, F1; TJ's note 6):
+      // one box round the pair and the gap between them, one name tag over its middle in the register's own
+      // words. It opens the register's scene, where the notebook, the conditions and the map open from.
+      { const [rx, ry] = spots.register, [kx, ky] = spots.kiosk, x0 = Math.min(rx - 6, kx - 14), x1 = Math.max(rx + 6, kx + 14), y0 = Math.min(ry - 21, ky - 27), y1 = Math.max(ry + 2, ky + 3);
+        if (wx > x0 && wx < x1 && wy > y0 && wy < y1) { PAIR.on = true; return { label: NAMES.register, x: Math.round((x0 + x1) / 2) - last.ox, y: y0 - last.oy, act: 'register' }; } }
       // The tide pool to find (E7), only while the low water has left it.
       { const p = crit.findPool(nowT); if (p && Math.abs(wx - p.x) <= p.rx + 3 && Math.abs(wy - p.y) <= p.ry + 3) return { label: NAMES.tidepool, x: p.x - last.ox, y: p.y - p.ry - 5 - last.oy, act: 'pool' }; }
       { const k = destUnder(wx, wy); if (k) return { label: DEST_NAMES[W.DEST[k]], named: true, x: sx, y: sy, act: 'dest:' + W.DEST[k] }; }
@@ -718,13 +847,50 @@ export function makeWorld() {
       if (name === 'serac') return SER.length ? [SER[0][0], SER[0][1]] : null;
       if (name === 'squall' || name === 'lens') return spots.summit || null;
       if (name === 'shower') return [lx0 - 50, (ly0 + ly1) >> 1];
-      return crit.where(name) || ev.where(name);
+      return crit.where(name) || ev.where(name) || life.where(name);
     },
-    // The weather at a moment, for the side scenes in the rainforest (the forest's rain and fog, note 13).
-    sky: t => weather(t),
+    // The weather at a moment, for the side scenes. The marine layer (the forest's rain and fog, note 13), and
+    // for the other scenes (round 8, E1) what else the map's sky is doing: snow, while the squall is over the
+    // volcano; banner, the spindrift as it clears; the map's gusts and the shadows of its fair-weather
+    // clouds over a place ('lake', 'peak' or 'spires'). gust answers as gustOver does; shade answers how far
+    // a shadow has crossed the place, from 1 (coming in from the west) to -1 (gone east), or null.
+    sky: t => { const w = weather(t), q = AVA.squall >= 0 ? t - AVA.squall : -1;
+      w.snow = q < 0 ? 0 : smooth(SQ.build - 3, SQ.build + 2, q) * smooth(SQ.clear + 2, SQ.clear - 3, q);
+      w.banner = q < 0 ? 0 : smooth(SQ.clear - 4, SQ.clear + 1, q) * smooth(SQ.end, SQ.end - 4, q);
+      w.gust = place => gustOver(PLACE[place][0], PLACE[place][1], t);
+      w.shade = place => { for (let k = 0; k < 4; k++) { const u = (PLACE[place][0] - fairX(k, t) - 8) / (FAIR[k].cw * 2.2); if (u > -1 && u < 1) return u; } return null; };
+      return w; },
+    // The mountain's clock while another scene is on screen (round 8, H15): the faces slide and the summit
+    // squall comes round as they do on the map, unseen and unheard, so the sky a high scene reads is the
+    // one the map would show. The view given is nowhere, so nothing is sounded or counted as observed.
+    tick(t) { avalancheStep(t, null, 1e9, 1e9, 0, 0); },
+    // What the sky is doing, for the debug panel's one line (round 8, H13): the marine layer's part of its
+    // round (rolling in, drizzling, breaking up, fog left in the trees, the ground drying, or clear), and the
+    // summit's squall or the spindrift after it. The names are the keys of `debug.sky` in the words.
+    skyNow(t) { const w = this.sky(t), out = [w.rain > 0.05 ? 'drizzle' : w.deck > 0.02 ? (w.s < 20 ? 'rolling' : 'breaking') : w.fog > 0.05 ? 'fog' : w.wet > 0.05 ? 'drying' : 'clear'];
+      if (w.snow > 0.05) out.push('squall'); else if (w.banner > 0.05) out.push('banner'); return out; },
+    // Where a thing on the kiosk's board lives or happens (round 8, H9), by the board's name for it: an animal
+    // where it is now, an event where it happens, the weather where it comes in, the cats at the kiosk, the
+    // sky's own (shooting stars, the aurora) over the volcano's summit, and what lives only in a side scene
+    // at that scene's place on the map.
+    whereIs(key) {
+      const as = { whale: 'breach', orca: 'orcas', rain: 'shower', marine: 'shower', owl: 'hoot', foxfire: 'hoot', star: 'lens', aurora: 'lens' };
+      if (key === 'cats') return spots.kiosk;
+      if (key === 'pika') return PLACE.peak;
+      if (key === 'headlamps') { const P = W.trackUp || []; return P.length ? [P[P.length >> 1][0], P[P.length >> 1][1]] : null; }
+      return crit.lives(key) || this.where(as[key] || key);
+    },
     lookFor: (x, y) => [x - cam.x, y - cam.y],
     // The debug panel's start buttons (E5f): each moves its event's clock so the event begins now.
-    trigger(name, t) {
+    // The weather's own buttons work in every scene (round 8, E1; TJ: the weather is managed from the debug
+    // panel). place: the side scene's country ('lake', 'peak' or 'spires'); on the map, where he stands.
+    trigger(name, t, place) {
+      const spot = PLACE[place] || [lastHere.x, lastHere.y];
+      // A gust that reaches the spot now; the first fair-weather cloud, moved to just west of it so that its
+      // shadow comes over; and a clear sky: the marine layer gone and the squall over.
+      if (name === 'gustnow') { askGust(spot[0], spot[1], t); return true; }
+      if (name === 'shade') { const span = WW + 300, want = spot[0] - 8 - FAIR[0].cw * 1.4 + 150; fairOff = ((want - t * 5) % span + span) % span; return true; }
+      if (name === 'clear') { const s = weather(t).s; if (s < RAIN.gone) rainAhead += RAIN.gone + 1 - s; if (AVA.squall >= 0) AVA.squall = t - SQ.end; return true; }
       if (name === 'shower') { const n = Math.floor((t + rainAhead + RAIN.cycle - 10) / RAIN.cycle) + 1; rainAhead = n * RAIN.cycle - t - RAIN.cycle + 10; return true; }
       // An avalanche now: on a face still under snow, picked at random (any face, covered again first, if none
       // is), or on the face asked for (ava0 is the westernmost).
@@ -735,15 +901,19 @@ export function makeWorld() {
       if (name === 'squall') { if (!AVS.length) return false; startSquall(t); return true; }
       if (name === 'serac') { if (SER.length < 2) return false; const n = Math.floor((t + serAhead + SLOT - 15) / SLOT) + 1; serAhead = n * SLOT + 10 * hash(n, 3, 4741) - t - SLOT + 15; return true; }
       if (name === 'lens') return startLens(t);
-      return ev.trigger(name, t) || crit.trigger(name, t);
+      return ev.trigger(name, t) || crit.trigger(name, t) || life.trigger(name, t);
     },
-    act(id, env) { if (id === 'pool') { env.found('tidepool'); return false; } if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } if (/^(animal|orca|jelly|flock|air):|^whale$/.test(id)) { const snd = crit.click(id, pokeAt[0], pokeAt[1], env.t); if (snd) env.sfx(snd); return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
-    draw(scr, env, leg, q) {
+    can: name => ev.can(name) && life.can(name),
+    act(id, env) { if (id === 'pool') { env.found('tidepool'); return false; } if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } if (/^(animal|orca|jelly|flock|air):|^whale$/.test(id)) { const snd = crit.click(id, pokeAt[0], pokeAt[1], env.t); if (snd) env.sfx(snd); return true; } if (id.startsWith('duck:')) { env.sfx(life.click(env.t)); return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
+    draw(scr, env, legOn, qOn) {
       const { VW, VH, fb } = scr, { t, tq, dt } = env; nowT = t;
+      // The way in (J13): while he comes up the trail from the foot of the map, that trail is the stretch
+      // he is drawn on. The view is the opening's all the while, since it does not follow him at home.
+      const leg = env.arrive ? env.arrive.leg : legOn, q = env.arrive ? env.arrive.q : qOn;
       regTrip = leg.path === 'register';
-      const here = where(leg, q);
-      if (env.moving) face(leg, q);
-      if (env.home) facing = 'down';
+      const here = where(leg, q); lastHere = here;
+      if (env.moving || env.arrive) face(leg, q);
+      if (env.home && !env.arrive) facing = 'down';
 
       // Camera: the whole view from the Trailhead, then follow him.
       let [tx, ty] = target(scr, here, env);
@@ -789,11 +959,26 @@ export function makeWorld() {
       avalancheStep(t, env, ox, oy, VW, VH);
       avalancheCover(fb, VW, VH, ox, oy, t);
       crit.weather(Math.max(sky.fog, sky.deck * 0.8), (x, y) => fogIn(x, y, sky));
-      if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], H = TIP_H[n], k = 6 + n;
+      // The alpenglow (round 8, E2): for a while at Dusk the last light reaches three times as far down every
+      // summit and turns warm, orange at the tips and rose below, where the usual glow is the snow's cool pink.
+      // On Mount Monolith as on the Spires (TJ, round 8: it is the same sun).
+      const glow = life.alpenglow(t, env.dawn), calm = life.calm(t); if (calm > 0.8 && life.lake && inClear(scr, (life.lake.x0 + life.lake.x1) / 2 - ox, (life.lake.y0 + life.lake.y1) / 2 - oy, 0)) saw('calm');
+      // Seen on any summit in the view: a tower's tip, or the skyline of Mount Monolith and the ranges.
+      if (glow > 0.5 && (tipTop.some(top => top.some((y, x) => y >= 0 && inClear(scr, x - ox, y - oy + 20, 0))) || skyTop.some((y, x) => y >= 0 && x % 8 === 0 && inClear(scr, x - ox, y - oy + 12, 0)))) saw('alpenglow');
+      if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], warm = glow, H = Math.round(TIP_H[n] * (1 + 2.2 * warm)), k = 6 + n;
         for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = top[x]; if (y0 < 0) continue;
-          for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { if (W.dest[y * WW + x] !== k) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8)) { const i = (y - oy) * VW + (x - ox); fb[i] = GLOW[fb[i]]; } } } }
-      crit.sea(scr, ox, oy, t); if (WWP) whiteWater(fb, VW, VH, ox, oy, WWP, WWF, t); crit.falls(scr, ox, oy, t);
-      crit.update(dt, t, env.hideMe ? null : here);
+          for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { if (W.dest[y * WW + x] !== k) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8)) { const i = (y - oy) * VW + (x - ox); fb[i] = warm > 0 && bayer(x + 2, y + 1) < warm ? ALPEN[d < 0.3 ? 0 : 1][fb[i]] : GLOW[fb[i]]; } } } }
+      // The same light on Mount Monolith and the ranges: a band below the skyline, a quarter of each mountain's
+      // height (never under 84), thinning downward. The Spires and the Peak have had theirs above. It is measured
+      // from half way between the summit nearest the column and the column's own top, so on a broad dome it
+      // follows the slopes; its depth wanders a little along the skyline; and its orange gives way to rose
+      // through a dither (TJ, 25 November: on Mount Monolith it ended on a straight line, too shallow for so
+      // tall a mountain).
+      if (glow > 0.02 && env.mix > 0.02) {
+        for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { if (skyTop[x] < 0) continue; const y0 = Math.round((skyTop[x] + skyOwn[x]) / 2), H = Math.round(glowH[x] * glow);
+          for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { const i = (y - oy) * VW + (x - ox); if (!PEAK[fb[i]] || W.dest[y * WW + x] >= 6) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8) && bayer(x + 2, y + 1) < glow) fb[i] = ALPEN[bayer(x + 1, y + 3) < (d - 0.1) / 0.5 ? 1 : 0][fb[i]]; } } }
+      crit.sea(scr, ox, oy, t); if (WWP) whiteWater(fb, VW, VH, ox, oy, WWP, WWF, t); stillWater(fb, VW, VH, ox, oy, STILL, t, 1 - 0.8 * env.mix, DEBUG.animals, life.lake, calm, DEBUG.clouds && sky.rain > 0.05 ? { k: sky.rain, front: y => frontAt(y, sky), light: life.lake } : null); life.ice(scr, ox, oy, t); crit.falls(scr, ox, oy, t);
+      crit.update(dt, t, env.hideMe ? null : here, env.hour);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
       if (DEBUG.clouds) lenticular(scr, ox, oy, t);
       seracFall(scr, ox, oy, t, env);
@@ -807,7 +992,7 @@ export function makeWorld() {
       if (!still) { still = things.filter(th => !th.critter).sort((a, b) => a.y - b.y); moves = things.filter(th => th.critter); }
       mov.length = 0;
       if (!env.hideMe) mov.push({ me: true, x: here.x, y: here.y });
-      { const fh = crit.ferryHull(t, ox, oy, VW, VH); if (fh) mov.push({ ferryHull: true, y: fh.y }); }
+      { const fh = crit.ferryHull(t, ox, oy, VW, VH); if (fh) { mov.push({ ferryHull: true, y: fh.y }); if (inClear(scr, fh.x0 - ox + 12, fh.y - oy)) saw('ferry'); } }
       kit.update(env, here, scr.narrow && !env.fixed, env.home && !env.fixed ? oy + (scr.narrow ? VH * 0.56 : VH - 38) : 0);
       for (const it of kit.items()) mov.push(it);
       // Once he is at the box, its front is down (L2).
@@ -821,7 +1006,7 @@ export function makeWorld() {
       for (const th of list) {
         const dl = liftAt(th.x, th.y), oy = OY + dl;
         if (th.me) {
-          const set = env.moving && !(leg.walkTo && q > leg.walkTo) ? (facing === 'side' ? runner.side : facing === 'up' ? runner.up : runner.down) : (facing === 'side' ? runner.sideIdle : facing === 'up' ? runner.upIdle : runner.downIdle);
+          const set = (env.moving || env.arrive) && !(leg.walkTo && q > leg.walkTo) ? (facing === 'side' ? runner.side : facing === 'up' ? runner.up : runner.down) : (facing === 'side' ? runner.sideIdle : facing === 'up' ? runner.upIdle : runner.downIdle);
           const bm = set[Math.floor(Math.abs(leg.to - leg.from) * q * here.P.len / (facing === 'side' ? 4.2 : 5)) % set.length];
           // Ground nearer the camera than he is stands in front of him: what was there is put back over him.
           const X = Math.round(th.x - ox), Y = Math.round(th.y - oy), vMe = vOn(leg.path, th.x, th.y), x0 = Math.max(0, X - 12), x1 = Math.min(VW - 1, X + 12), y0 = Math.max(0, Y - 30), y1 = Math.min(VH - 1, Y + 3);
@@ -840,8 +1025,11 @@ export function makeWorld() {
         else drawStill(scr, th, tq, ox, oy, dl, clipBlit, flags, t);
       }
 
+      // One outline round the register and the board while the pointer is on the pair (H12): faint, then full.
+      PAIR.lit += ((PAIR.on && env.ptr && !env.fixed ? 1 : 0) - PAIR.lit) * Math.min(1, dt * 9);
+      if (PAIR.lit > 0.25) pairOutline(scr, ox, oy, R.white[PAIR.lit > 0.6 ? 1 : 0]);
       if (crit.sounds.length) { for (const name of crit.sounds) env.sfx(name); crit.sounds.length = 0; }
-      ev.draw(scr, ox, oy, t, env.mix || 0);
+      ev.draw(scr, ox, oy, t, env.mix || 0); life.draw(scr, ox, oy, t, env, DEBUG.clouds ? sky : null);
       if (env.mix > 0.02) duskHills(fb, VW, VH, ox, oy, HLIT, gNow, env.mix, WARM);
       // Cloud shadows cross the meadow: everything under one goes a step darker, with a soft edge. Each is
       // cast by a small fair-weather cloud drifting above it (E5a), drawn after the mist.
@@ -859,6 +1047,10 @@ export function makeWorld() {
       if (DEBUG.clouds && sky.deck > 0.06) deckPass(fb, VW, VH, ox, oy, W.deck, VEIL, CHURN, sky, t, sky.deck * 7.4 / 255 / 255, DX0, DX1);
       if (DEBUG.mist) crit.mist(scr, ox, oy, t, env.hideMe ? null : here);
       if (DEBUG.clouds && sky.rain > 0.02) drizzle(scr, ox, oy, t, sky, W.fog, W.deck, frontAt, STREAK);
+      // The conditions board's weather, the tide and the cats, when they are in the view (round 8, F2).
+      if (DEBUG.clouds && frontAt(oy + VH / 2, sky) > ox + 40) { if (sky.deck > 0.5) saw('marine'); if (sky.rain > 0.5) saw('rain'); }
+      { const p = crit.findPool(t); if (p && inClear(scr, p.x - ox, p.y - oy, -60)) saw('tide'); }
+      if (kit.items().some(c => inClear(scr, c.x - ox, c.y - oy))) saw('cats');
       if (DEBUG.clouds && sky.drip > 0.02) drip(scr, ox, oy, t, sky, DRIPS, frontAt);
       if (DEBUG.clouds) { for (let k = 0; k < 4; k++) scr.blit(FAIR[k].bm, Math.round(fairX(k, t)) - FAIR[k].bm.ox - ox, FAIR[k].y - FAIR_ALT - FAIR[k].bm.oy - oy); }
       kit.drawOver(scr, ox, oy, t);
@@ -896,10 +1088,18 @@ export function makeWorld() {
       for (let y = 0; y < VH; y++) {
         const wy = oy + y; if (wy < 300 || wy >= WH) continue;
         for (let x = (y + oy + ox) & 1; x < VW; x += 2) {
-          const wx = ox + x; if (wx < 0 || wx >= WW || !shaftMask[wy * WW + wx]) continue;
-          const i = y * VW + x; fb[i] = shaftMask[wy * WW + wx] === 2 ? LIGHT[LIGHT[fb[i]]] : LIGHT[fb[i]];
+          const wx = ox + x; if (wx < 0 || wx >= WW || !(shaftMask[wy * WW + wx] & 3)) continue;
+          const i = y * VW + x; fb[i] = (shaftMask[wy * WW + wx] & 3) === 2 ? LIGHT[LIGHT[fb[i]]] : LIGHT[fb[i]];
         }
       }
+      // A dead calm (round 8, E2): Reflection Lake is a mirror. What stands above each stretch of open water
+      // (the far bank and its flowers, the island's tree) stands upside down in it, a step darker, fading with depth.
+      if (calm > 0.05 && life.lake) { const l = life.lake;
+        for (let wx = Math.max(l.x0, ox); wx <= Math.min(l.x1, ox + VW - 1); wx++) { let edge = -1;
+          for (let wy = Math.max(l.y0, oy + 1); wy <= Math.min(l.y1, oy + VH - 1); wy++) { const i = (wy - oy) * VW + wx - ox;
+            if (!l.m[(wy - l.y0) * l.w + wx - l.x0] || !LAKEC[fb[i]]) { edge = -1; continue; }
+            if (edge < 0) edge = wy; const dd = wy - edge, sy = edge - 1 - dd; if (sy < oy) continue;
+            const s = fb[(sy - oy) * VW + wx - ox]; if (!LAKEC[s] && s !== INK && bayer(wx, wy) < calm * 0.6 * smooth(30, 3, dd)) fb[i] = SHADE[s]; } } }
       // The debug panel's outlines, over the finished map.
       // Where the chosen kind of mover may not go (collide.js), tinted, under the outlines.
       if (DEBUG.collide) crit.collide.overlay(scr, DEBUG.collide, ox, oy, t, R.red[1]);
@@ -908,12 +1108,16 @@ export function makeWorld() {
         const X = [], Y = my - 4 - bob; for (let k = -3; k <= 3; k++) for (const d of [0, 1]) X.push([mx + k + d, Y + k], [mx + k + d, Y - k]);
         for (const [x, y] of X) for (const [ax, ay] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) scr.set(x + ax, y + ay, INK);
         for (const [x, y] of X) scr.set(x, y, R.red[1]); scr.set(mx, my, INK); scr.set(mx + 1, my, INK); }
-      if (!env.fixed && (DEBUG.roam || DEBUG.trails || DEBUG.camera)) {
+      if (!env.fixed && (DEBUG.roam || DEBUG.trails || DEBUG.camera || DEBUG.signs || DEBUG.homes)) {
         const dot = (x, y, c) => scr.set(Math.round(x) - ox, Math.round(y) - oy, c);
         const box = (b, c, step) => { for (let x = b.x0; x <= b.x1; x += step) { dot(x, b.y0, c); dot(x, b.y1, c); } for (let y = b.y0; y <= b.y1; y += step) { dot(b.x0, y, c); dot(b.x1, y, c); } };
         // Where each animal wanders and each flock circles (T32): its own bright colour, two pixels wide with a
         // dark inner edge, a light dithered fill and its name. Pink boxes: where the cats keep to.
         if (DEBUG.roam) { for (const a of crit.areas()) roamArea(scr, a, ox, oy); for (const b of kit.areas()) box(b, R.pink[1], 2); }
+        // A ring round every sign with its name over it, and round every animal home with its kind, in the
+        // kind's own colour (round 8, H13). A sign with no name has a ring and nothing over it.
+        if (DEBUG.signs) for (const [x, y, id] of spots.signs) roamArea(scr, { x, y: y - 8, rx: 11, ry: 11, c: R.white[1], label: (SIGNS[id] || '').split(',')[0] }, ox, oy);
+        if (DEBUG.homes) { homeRings = homeRings || crit.homes(); for (const { kind, homes } of homeRings) for (const [x, y] of homes) roamArea(scr, { kind, x, y, rx: 9, ry: 6 }, ox, oy); }
         // Each trail as the line he actually follows, with a knot every twenty pixels, and a white cross
         // where the lake loop goes into the forest and where it comes back out.
         if (DEBUG.trails) {

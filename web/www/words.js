@@ -10,18 +10,18 @@ export const W = {
    "slug": "reflection-lake"
   },
   {
-   "route": "stack",
-   "sign": "Climb Proficiency Peak",
-   "about": "to learn more about his skills",
-   "dir": "right",
-   "slug": "proficiency-peak"
-  },
-  {
    "route": "spires",
    "sign": "Climb the Sideproject Spires",
    "about": "to see some of his personal projects",
    "dir": "up",
    "slug": "sideproject-spires"
+  },
+  {
+   "route": "stack",
+   "sign": "Climb Proficiency Peak",
+   "about": "to learn more about his skills",
+   "dir": "right",
+   "slug": "proficiency-peak"
   }
  ],
  "LINKS": {
@@ -433,18 +433,20 @@ export const W = {
   "rollback": "Rollback Basin",
   "feature-flag": "Feature Flag Tarns",
   "hotfix": "Hotfix Burn",
-  "postmortem": "Postmortem Burn",
   "cron-job": "Cron Job Coulee",
   "tech-debt": "Tech Debt Badlands",
   "off-by-one": "Off By One Peak",
   "dependency": "Dependency Range",
   "stack-trace": "Stack Trace Thicket",
-  "monorepo": "Monorepo Woods",
+  "git-blame": "Git Blame Grove",
   "cache-miss": "Cache Miss Cove",
-  "latency": "Latency Bay"
+  "latency": "Latency Bay",
+  "rolling-release": "Rolling Release Hills",
+  "wildcard": "Wildcard Meadow",
+  "old-growth": "Old Growth Backlog",
+  "feature-creep": "Feature Creep Lake"
  },
  "NAMES": {
-  "kiosk": "Trail conditions",
   "register": "Trail register",
   "kayti": "Kayti",
   "lookout": "Observability Lookout",
@@ -515,6 +517,7 @@ export const W = {
    "whale": "Humpback whale",
    "eagle": "Bald eagle",
    "osprey": "Osprey",
+   "mallard": "Mallard",
    "orca": "Orca",
    "jelly": "Moon jelly",
    "raven": "Ravens",
@@ -533,7 +536,10 @@ export const W = {
  "SET_NAMES": [
   "Console",
   "Handheld",
-  "Music box"
+  "Music box",
+  "Mallets",
+  "Quartet",
+  "Winds"
  ],
  "UI": {
   "name": "TJ Zimmerman",
@@ -660,6 +666,7 @@ export const W = {
    "scene": "Jump to a scene",
    "breakGroup": "Break a scene",
    "inScene": "In this scene",
+   "weather": "Weather",
    "mapEvents": "On the map",
    "scenes": {
     "forest": "Forest",
@@ -701,6 +708,8 @@ export const W = {
     "taps": "Tap targets",
     "trails": "Trail lines",
     "camera": "Camera limits",
+    "signs": "Sign names",
+    "homes": "Animal homes",
     "snap": "Snap to pixels"
    },
    "speed": "Time",
@@ -712,6 +721,36 @@ export const W = {
     "4×",
     "8×"
    ],
+   "sky": {
+    "line": "Sky: {what}",
+    "join": ", ",
+    "clear": "clear",
+    "rolling": "the marine layer rolling in",
+    "drizzle": "drizzle under the marine layer",
+    "breaking": "the marine layer breaking up",
+    "fog": "fog in the trees",
+    "drying": "the ground drying",
+    "squall": "a squall on the summit",
+    "banner": "spindrift off the summit"
+   },
+   "acts": "Animal acts",
+   "actStart": "Start",
+   "act": {
+    "graze": "Graze",
+    "look": "Look up",
+    "bed": "Bed down",
+    "hop": "Hop",
+    "trot": "Trot off",
+    "butt": "Butt heads",
+    "bugle": "Bugle",
+    "thrash": "Thrash the brush",
+    "bark": "Bark",
+    "shake": "Shake off",
+    "dip": "Wade in",
+    "upright": "Stand up",
+    "rub": "Rub on a trunk",
+    "dig": "Dig"
+   },
    "startMap": "Start now, on the map",
    "startForest": "Start now, in the forest run",
    "startLarches": "Start now, in the larch basin",
@@ -722,6 +761,9 @@ export const W = {
     "ridgegust": "Gust on the ridge",
     "raven": "Raven in the updraft",
     "shower": "Marine layer",
+    "gustnow": "Gust",
+    "shade": "Cloud shadow",
+    "clear": "Clear sky",
     "breach": "Humpback breach",
     "blow": "Humpback blow",
     "ferry": "Ferry sets out",
@@ -743,12 +785,27 @@ export const W = {
     "devil": "Dust devil",
     "star": "Shooting star (Dusk)",
     "sasquatch": "Sasquatch",
-    "eyeshine": "Deer eyeshine (Dusk)"
+    "eyeshine": "Deer eyeshine (Dusk)",
+    "rockfall": "Rockfall off a tower",
+    "calve": "Glacier calves",
+    "pair": "Ravens ride the updraft",
+    "alpenglow": "Alpenglow (Dusk)",
+    "talus": "Rocks down the talus",
+    "band": "Goats cross the talus",
+    "calm": "Dead calm",
+    "ducks": "Ducks land",
+    "treefall": "Tree falls",
+    "rainbow": "Rainbow (Day)",
+    "hoot": "Owl calls (Dusk)"
    },
    "families": {
     "humpback": "Humpback",
     "cubs": "Bear cubs",
-    "avalanche": "Avalanche"
+    "avalanche": "Avalanche",
+    "spires": "Sideproject Spires",
+    "peak": "Proficiency Peak",
+    "lake": "Reflection Lake",
+    "rainforest": "Rainforest"
    },
    "pick": "Pick one",
    "cameraLines": [
@@ -808,15 +865,174 @@ export const W = {
    "lakeDone": "Run. Flag flying.",
    "stackDone": "Climbed. Flag flying.",
    "summits": "{n} of 6 summits",
-   "wildlife": [
-    "Wildlife",
-    "Elk in the meadow, a bull moose and a calf in the riverside woods, squirrels and chipmunks by the trail. Mountain goats, bighorn sheep and marmots up high, and a pika in the larch talus. A humpback and an orca pod offshore, gulls and a bald eagle on the sea stacks. An osprey fishing at Reflection Lake. A black bear and her two cubs in the firs below the Spires waterfall, and some days a second family at the forest edge. An owl in the forest and two cats at this kiosk"
+   "observed": [
+    "Observed",
+    "Nothing yet"
    ],
-   "seen": [
-    "Also seen",
-    "Serac falls, an avalanche and a cap cloud on Mount Monolith, rain showers over the hills, the marine layer off the sea, low tide, the ferry, tumbleweeds and dust devils in the sage. At Dusk: shooting stars, the aurora, foxfire in the forest and headlamps on the Spires' glacier"
+   "reported": [
+    "Reported",
+    "Nothing left to see"
+   ],
+   "sightings": [
+    {
+     "who": {
+      "elk": "elk"
+     },
+     "where": "in the meadow"
+    },
+    {
+     "who": {
+      "moose": "a bull moose",
+      "calf": "a calf"
+     },
+     "where": "in the riverside woods"
+    },
+    {
+     "who": {
+      "squirrel": "squirrels",
+      "chipmunk": "chipmunks"
+     },
+     "where": "by the trail"
+    },
+    {
+     "who": {
+      "goat": "mountain goats",
+      "sheep": "bighorn sheep",
+      "marmot": "marmots"
+     },
+     "where": "up high"
+    },
+    {
+     "who": {
+      "pika": "a pika"
+     },
+     "where": "in the larch talus"
+    },
+    {
+     "who": {
+      "whale": "a humpback",
+      "orca": "an orca pod"
+     },
+     "where": "offshore"
+    },
+    {
+     "who": {
+      "gull": "gulls",
+      "eagle": "a bald eagle"
+     },
+     "where": "on the sea stacks"
+    },
+    {
+     "who": {
+      "osprey": "an osprey fishing"
+     },
+     "where": "at Reflection Lake"
+    },
+    {
+     "who": {
+      "bear": "a black bear and her two cubs"
+     },
+     "where": "in the firs below the Spires waterfall"
+    },
+    {
+     "who": {
+      "bear2": "some days a second bear family"
+     },
+     "where": "at the forest edge"
+    },
+    {
+     "who": {
+      "owl": "an owl"
+     },
+     "where": "in the forest"
+    },
+    {
+     "who": {
+      "cats": "two cats"
+     },
+     "where": "at this kiosk"
+    },
+    {
+     "who": {
+      "serac": "serac falls",
+      "avalanche": "an avalanche",
+      "lens": "a cap cloud"
+     },
+     "where": "on Mount Monolith"
+    },
+    {
+     "who": {
+      "rain": "rain showers"
+     },
+     "where": "over the hills"
+    },
+    {
+     "who": {
+      "marine": "the marine layer"
+     },
+     "where": "off the sea"
+    },
+    {
+     "who": {
+      "tide": "low tide",
+      "ferry": "the ferry"
+     }
+    },
+    {
+     "who": {
+      "tumble": "tumbleweeds",
+      "devil": "dust devils"
+     },
+     "where": "in the sage"
+    },
+    {
+     "who": {
+      "rockfall": "rockfall",
+      "calve": "the glacier calving",
+      "pair": "ravens riding the updraft"
+     },
+     "where": "at Sideproject Spires"
+    },
+    {
+     "who": {
+      "talus": "rocks coming down the talus",
+      "band": "goats crossing it"
+     },
+     "where": "under Proficiency Peak"
+    },
+    {
+     "who": {
+      "calm": "a dead calm",
+      "ducks": "mallards"
+     },
+     "where": "on Reflection Lake"
+    },
+    {
+     "who": {
+      "rainbow": "a rainbow after a shower"
+     },
+     "where": "over the meadow"
+    },
+    {
+     "who": {
+      "treefall": "a tree falling"
+     },
+     "where": "in the rainforest"
+    },
+    {
+     "lead": "At Dusk:",
+     "who": {
+      "star": "shooting stars",
+      "aurora": "the aurora",
+      "foxfire": "foxfire in the forest",
+      "headlamps": "headlamps on the Spires' glacier",
+      "alpenglow": "alpenglow on the peaks",
+      "hoot": "an owl calling in the rainforest"
+     }
+    }
    ],
    "checklist": "Field checklist: {n} of {of} found",
+   "count": "{n} of {of} observed",
    "notFound": "Not found yet",
    "got": "Found"
   },

@@ -8,8 +8,11 @@ import { bluebird, speck } from './fauna.js';
 import { sideFig, frontFig, backFig } from './tj.js';
 import { T as JUNCTION } from './land.js';
 import { NAMES, FINDS, UI } from './content.js';
+import { flurry, spindrift } from './weather.js';
 
 const W = 1000, OFF = 320, UP = 340, DOWN = 240, SX = 262;
+// What the wind can lift: snow and ice (round 8, E1).
+const SNOWY = new Set([...R.snow, ...R.white, ...R.ice]);
 // A longer route says where its summit flat starts (sx) and how wide its strip is (w).
 const sxOf = cfg => cfg.sx || SX, wOf = cfg => cfg.w || W;
 // Every climb shares the walk in from camp, the pause on top, the glissade and the walk out. What lies
@@ -515,14 +518,17 @@ function makeSerac(seed, w, h, tip) {
 // Two fields of drifting noise for the storms, worked out once a frame and only at every second column
 // (the shapes are long and low, so the missing columns cannot be seen): `n` says where cloud or blown snow
 // is, `m` how bright it is there. Streaks are the blown snow of the wanded route; banks are the cloud on the ridge.
+// The noise is worked out on every second row and the rows between are the mean of the two either side (round 8,
+// I5: the finest shapes are four rows tall, and asked for at every row the storm missed frames on a slow phone).
 const drift = { n: new Uint8Array(0), m: new Uint8Array(0), w: 0 };
 function blow(scr, t, banks) {
-  const w = (scr.VW >> 1) + 1, h = scr.VH; if (drift.n.length !== w * h) { drift.n = new Uint8Array(w * h); drift.m = new Uint8Array(w * h); } drift.w = w;
-  for (let y = 0; y < h; y++) for (let i = 0; i < w; i++) {
+  const w = (scr.VW >> 1) + 1, h = scr.VH, N = drift.n, M = drift.m; if (N.length !== w * h) { drift.n = new Uint8Array(w * h); drift.m = new Uint8Array(w * h); return blow(scr, t, banks); } drift.w = w;
+  for (let y = 0; y < h; y += 2) for (let i = 0; i < w; i++) {
     const x = i * 2;
-    drift.n[y * w + i] = 255 * (banks ? 0.6 * vnoise((x + t * 25) / 46, y / 13, 256) + 0.4 * vnoise((x + t * 40) / 23, y / 7, 253) : 0.62 * vnoise((x + t * 96) / 64, y / 7, 257) + 0.38 * vnoise((x + t * 170) / 30, y / 4, 258));
-    drift.m[y * w + i] = 255 * vnoise((x + t * 60) / (banks ? 110 : 120), y / (banks ? 17 : 13), 259);
+    N[y * w + i] = 255 * (banks ? 0.6 * vnoise((x + t * 25) / 46, y / 13, 256) + 0.4 * vnoise((x + t * 40) / 23, y / 7, 253) : 0.62 * vnoise((x + t * 96) / 64, y / 7, 257) + 0.38 * vnoise((x + t * 170) / 30, y / 4, 258));
+    M[y * w + i] = 255 * vnoise((x + t * 60) / (banks ? 110 : 120), y / (banks ? 17 : 13), 259);
   }
+  for (let y = 1; y < h; y += 2) { const a = (y - 1) * w, b = y + 1 < h ? a + 2 * w : a, r = y * w; for (let i = 0; i < w; i++) { N[r + i] = (N[a + i] + N[b + i]) >> 1; M[r + i] = (M[a + i] + M[b + i]) >> 1; } }
 }
 // The storm's cloud and blown snow, laid over what has been drawn so far as long streaks that travel with
 // the wind. k is how much of the frame it hides; around (cx, cy) it thins so he can see his own feet. `keep` marks colours it leaves alone.
@@ -533,7 +539,7 @@ function veil(scr, k, tones, cx, cy, keep) {
     const row = y * VW, at = y * w;
     for (let x = 0; x < VW; x++) {
       let th = k * 1.2 - 0.12;
-      if (near) { const d = Math.hypot((x - cx) / 84, (y - cy) / 46); if (d < 1) th -= (1 - d) * 0.8; }
+      if (near) { const dx = (x - cx) / 84, dy = (y - cy) / 46, d2 = dx * dx + dy * dy; if (d2 < 1) th -= (1 - Math.sqrt(d2)) * 0.8; }
       if (th * 255 > drift.n[at + (x >> 1)] && !(keep && keep[fb[row + x]])) fb[row + x] = tones[drift.m[at + (x >> 1)] > 127 ? 1 : 0];
     }
   }
@@ -1005,7 +1011,10 @@ export function makeClimb() {
       const anchor = scr.narrow ? 0.5 : me.ph === 'up' ? 0.52 : 0.6, u = t - egg;
       // The rack is hit hard enough to shake the picture for a moment.
       const jolt = kind === 'icefall' && me.ph === 'up' && u > 0.36 && u < 0.86 ? 1 - (u - 0.36) / 0.5 : 0;
-      const camX = Math.round(cam.x + OFF - VW * anchor + env.look.x * 0.4 + 3 * jolt * Math.sin(u * 95)), base0 = baseline(scr, env.shown, st) - Math.round(cam.y) - (scr.narrow ? 0 : 20) + Math.round(2 * jolt * Math.cos(u * 70));
+      // The view stays on the painted rock (round 8, I1): on a wide window it ran past the picture's left edge at
+      // the foot of a climb, where the strip wraps, so the ground stopped short of the window's edge at the
+      // start and a column of the slope's far end stood there at the end.
+      const camX = clamp(Math.round(cam.x + OFF - VW * anchor + env.look.x * 0.4 + 3 * jolt * Math.sin(u * 95)), 0, Math.max(0, S.w - VW)), base0 = baseline(scr, env.shown, st) - Math.round(cam.y) - (scr.narrow ? 0 : 20) + Math.round(2 * jolt * Math.cos(u * 70));
       // A tall, narrow screen sees further down than the rock is painted, at the foot of the climb and
       // where the way down ends. The picture sits lower by what is missing, unless a card covers it.
       const short = scr.narrow && !env.shown ? Math.max(0, VH - DOWN - base0) : 0; st.lift = st.lift == null ? short : st.lift + (short - st.lift) * 0.12;
@@ -1259,6 +1268,14 @@ export function makeClimb() {
         const a = t - st.banged, grow = Math.min(1, a / 0.07) * (a > 0.68 ? 1 - (a - 0.68) / 0.12 : 1), bx = X(tx - 24) + Math.round(Math.sin(a * 60)), by = Y(ty - 70), rx = 25 * grow, ry = 14 * grow, word = UI.bang;
         for (let y = -18; y <= 18; y++) for (let x = -30; x <= 30; x++) { const ang = Math.atan2(y / 14, x / 25), spike = 0.74 + 0.26 * Math.abs(frac(ang * 11 / 6.2832 + 0.25) * 2 - 1), dd = Math.hypot(x / Math.max(1, rx), y / Math.max(1, ry)) / spike; if (dd < 1) scr.set(bx + x, by + y, dd > 0.86 ? INK : dd > 0.7 ? R.blaze[1] : dd > 0.5 ? R.yellow[1] : R.white[1]); }
         if (grow > 0.9) { const x0 = bx - Math.floor(word.length * 3) + 1; [...word].forEach((ch, i) => (GLYPH[ch] || []).forEach((bits, j) => { for (let b = 0; b < 5; b++) if (bits & (16 >> b)) scr.set(x0 + i * 6 + b, by - 3 + j, INK); })); }
+      }
+      // The world's weather (round 8, E1), wherever the climb's own sky is clear (each climb has a storm, a
+      // whiteout or a sea of cloud of its own, told by its route): the map's gusts take spindrift off the snow
+      // around him, a longer plume as the volcano's squall clears, and the squall's snow blows across.
+      if (env.sky && storm <= 0 && bank <= 0 && heavy <= 0 && white <= 0 && flakes <= 0) {
+        const gw = env.sky.gust('spires'), lift = Math.max(gw ? 0.8 * Math.sin(Math.PI * gw[0] / 3) * gw[2] : 0, env.sky.banner);
+        if (lift > 0.03) { const src = []; for (let i = 0; i < 6; i++) { const sx = Math.round(VW * (i + 0.5) / 6), sy = Y(hOf(pts, sx - OFF + camX)); if (sy > 2 && sy < VH - 2 && SNOWY.has(fb[(sy + 1) * VW + sx])) src.push([sx, sy]); } spindrift(scr, t, lift, src, 60, 1); }
+        flurry(scr, t, env.sky.snow, 1);
       }
       // He pushes off in a burst of snow, and the glissade is under way. Only while he runs: scrubbed to this
       // moment and held there, the burst would leave the screen half white (round 6, note 3).

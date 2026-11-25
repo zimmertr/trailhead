@@ -100,7 +100,8 @@ scan:
 # artifact. The browser shares the site's network namespace and reaches it on
 # localhost, which browsers treat as a secure origin, as they will the HTTPS
 # site; a plain-HTTP hostname would make Chrome ignore and complain about the
-# Cross-Origin-Opener-Policy header.
+# Cross-Origin-Opener-Policy header. PROJECT=chromium, firefox or webkit runs
+# one engine; all three run without it.
 browser:
 	$(MAKE) image SERVICE=web
 	$(MAKE) browser-run
@@ -110,7 +111,7 @@ browser-run:
 	trap 'docker stop $$name >/dev/null 2>&1' EXIT; \
 	docker run -d --rm --name $$name --read-only --tmpfs /tmp trailhead-web:pr-scan >/dev/null; \
 	docker run --rm --network container:$$name --ipc=host -v "$(CURDIR)":/repo -w /repo -e BASE_URL=http://localhost:8080 $(PLAYWRIGHT_IMAGE) \
-		sh -c "npm ci --ignore-scripts -w e2e && cd e2e && npx playwright test"
+		sh -c "npm ci --ignore-scripts -w e2e && cd e2e && npx playwright test $(if $(PROJECT),--project $(PROJECT))"
 
 # Lighthouse's budgets (.github/lighthouserc.json) against the built web image,
 # on localhost for the reason above. As root, so it can write its report into

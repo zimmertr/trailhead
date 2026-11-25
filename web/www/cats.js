@@ -234,9 +234,9 @@ export function makeCats() {
       const c = cats.find(q => q.id === id), t = env.t; if (!c || c.st === 'jump' || c.st === 'stalk' || c.st === 'dash') return false;
       c.clicks = t - (c.clicked || -99) < 6 ? (c.clicks || 0) + 1 : 1; c.clicked = t; env.found(c.id === 'tortie' ? 'doot' : 'peevers');
       if (c.st === 'perch') { c.said = t; env.sfx('meow'); say(c, 'note', t); return true; }
-      if (c.id === 'nebel' && !c.shy && c.st !== 'loaf') { c.shy = true; env.sfx('chirp'); say(c, 'bang', t); go(c, 'dash', t, { to: { x: clamp(c.x + (c.x > JX + 40 ? -30 : 30), HOME.x0, HOME.x1), y: clamp(c.y + 8, HOME.y0, HOME.y1) }, after: null }); c.looking = t + 0.6; return true; }
+      if (c.id === 'nebel' && !c.shy && c.st !== 'loaf') { c.shy = true; env.sfx('meow'); say(c, 'bang', t); go(c, 'dash', t, { to: { x: clamp(c.x + (c.x > JX + 40 ? -30 : 30), HOME.x0, HOME.x1), y: clamp(c.y + 8, HOME.y0, HOME.y1) }, after: null }); c.looking = t + 0.6; return true; }
       // Every click after that moves the cat on to its next trick, in a fixed order.
-      const next = TRICKS[(TRICKS.indexOf(c.st) + 1) % TRICKS.length], how = { sit: ['meow', 'note'], groom: ['chirp', null], roll: ['purr', 'heart'], bat: ['chirp', 'bang'], loaf: ['purr', 'heart'], stretch: ['meow', null], sleep: [null, 'z'] }[next];
+      const next = TRICKS[(TRICKS.indexOf(c.st) + 1) % TRICKS.length], how = { sit: ['meow', 'note'], groom: ['meow', null], roll: ['purr', 'heart'], bat: ['meow', 'bang'], loaf: ['purr', 'heart'], stretch: ['meow', null], sleep: [null, 'z'] }[next];
       if (how[0]) env.sfx(how[0]); if (how[1]) say(c, how[1], t);
       go(c, next, t, { dur: next === 'stretch' ? 2.2 : 6 }); if (next === 'sit') c.said = t; if (next === 'loaf') c.purr = t; c.last = next;
       return true;

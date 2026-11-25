@@ -2,9 +2,12 @@
 # usage: check.sh <item> [earlier item]
 # One command for the checks every change to the game gets (docs/DEVELOPMENT.md, The bar):
 #   1. every file in www/ parses,
-#   2. the game opens on every route with nothing on its console (make browser, against the built web image),
+#   2. the game opens on every route with nothing on its console (make browser in Chromium, against the built web
+#      image; CI runs Firefox and WebKit too),
 #   3. the slowest view there is, the whole map zoomed out at Dusk with every event running, draws inside a frame,
-#   4. where every trail, sign and animal is, written to out/check/<item>.json and compared with the check before.
+#   4. where every trail, sign and animal is, written to out/check/<item>.json and compared with the check before,
+#   5. the sound is in balance: every tune through every set at one loudness, every effect heard and as loud
+#      whichever set plays it, no bed too loud or too quiet, and nothing clips (sound.mjs has the numbers).
 # It ends with one line, "check <item>: passed" or what failed, and its exit code says the same.
 D="$(cd "$(dirname "$0")" && pwd)"; G="$(cd "$D/../../web/www" && pwd)"; ITEM="$1"
 [ -n "$ITEM" ] || { echo "usage: check.sh <item> [earlier item]"; exit 2; }
@@ -14,7 +17,7 @@ mkdir -p "$D/out/check"; FAILED=""
 BAD=$(docker run --rm -v "$G:/www:ro" --entrypoint sh trailhead-pixel-lab -c 'for f in /www/*.js; do node --input-type=module --check < "$f" 2>&1 | sed "s#^#$f: #" | head -3; done')
 if [ -z "$BAD" ]; then echo "syntax: every file parses"; else echo "syntax:"; echo "$BAD"; FAILED="$FAILED syntax"; fi
 
-SMOKE=$(make -C "$D/../.." browser 2>&1)
+SMOKE=$(make -C "$D/../.." browser PROJECT=chromium 2>&1)
 if echo "$SMOKE" | grep -q '^ *[0-9]* passed' && ! echo "$SMOKE" | grep -q '^ *[0-9]* failed'; then echo "browser:$(echo "$SMOKE" | grep '^ *[0-9]* passed')"; else echo "browser:"; echo "$SMOKE" | grep -v '^npm\|^$' | tail -40; FAILED="$FAILED browser"; fi
 
 # 13.5 ms is what round 4's final build took here, 16.7 ms is one frame at 60 a second.
@@ -28,5 +31,8 @@ case "$MS" in
 esac
 
 docker run --rm --ipc=host -v "$G:/www:ro" -v "$D/out:/out" -v "$D/check.mjs:/lab/check.mjs:ro" --entrypoint node trailhead-pixel-lab /lab/check.mjs "$@" || FAILED="$FAILED places"
+
+SOUND=$(docker run --rm --ipc=host -v "$G:/www:ro" -v "$D/out:/out" -v "$D/sound.mjs:/lab/sound.mjs:ro" --entrypoint node trailhead-pixel-lab /lab/sound.mjs "$@" 2>&1) || FAILED="$FAILED sound"
+echo "$SOUND" | sed -n '/^sound:/,$p'
 
 if [ -z "$FAILED" ]; then echo "check $ITEM: passed"; else echo "check $ITEM: FAILED ($(echo "$FAILED" | sed 's/ /, /g'))"; exit 1; fi

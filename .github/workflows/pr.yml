@@ -136,13 +136,22 @@ jobs:
     permissions:
       contents: read
 
+  # The suite in each of the three engines, one job each. Chromium's keeps the
+  # name the default branch's ruleset requires.
   browser:
-    name: Browser Smoke & Axe
+    name: ${{ matrix.name }}
     needs: docker-build
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     permissions:
       contents: read # the checkout
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { project: chromium, name: Browser Smoke & Axe }
+          - { project: firefox, name: Browser Smoke & Axe (Firefox) }
+          - { project: webkit, name: Browser Smoke & Axe (WebKit) }
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -151,13 +160,15 @@ jobs:
         with:
           name: trailhead-web-image
       - run: docker load -i trailhead-web-image.tar
-      - run: make browser-run
+      - run: make browser-run PROJECT="$PROJECT"
+        env:
+          PROJECT: ${{ matrix.project }}
       # A trace and a screenshot of every failed test, so a red run can be
       # read rather than guessed at.
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.project }}
           path: e2e/playwright-report
           retention-days: 7
 

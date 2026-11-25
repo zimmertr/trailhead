@@ -2,7 +2,7 @@
 // that says how far along a route he is, and the cut from one scene to the next. Each scene lives
 // in its own file and only has to draw itself for a given place along its stretch of the route.
 
-import { clamp, lerp, Screen, DEBUG, R } from './core.js';
+import { clamp, lerp, Screen, DEBUG, R, SAW, COVER, covered } from './core.js';
 import { makeWorld } from './world.js';
 import { BAKE } from './land.js';
 
@@ -23,13 +23,24 @@ const READY = ['forest', 'lakeside', 'wall', 'camp', 'climb', 'offroute', 'larch
 // How long the scenes the junction signs time take, in seconds, so a sign can say how long its route is
 // without loading the scene (asking them loaded every scene with the page, a fifth of its script). A
 // browser test holds these to the scenes' own numbers.
-const SECS = { wall: 134.5, larches: 12, approach: 21, camp: 1.4 };
+const SECS = { wall: 132.3, larches: 18.5, approach: 21, camp: 1.4 };
+// What the timeline needs of the lake's two scenes before their code has arrived (round 8, A6): the route bar
+// at the start is the lake's, and its marks and its profile used to load both with the page. Each stands in
+// with its length, its stops, its sounds and its ups and downs (25 heights, start to end) until he sets off,
+// scrubs or jumps there. A browser test holds every number here to the scene's own.
+const LATER = {
+  forest: { dur: 14.13, stops: [{ id: 'who', at: 0.272 }], cues: [{ at: 0.3273, name: 'hop' }], elev: [10.5, 9, 4.5, 1.5, 3, 3, 0, -6, -12, -10.5, -4.5, 3, 4.5, 3, 3, 12, 43.5, 79.5, 114, 142.5, 168, 169.5, 175.5, 171, 168] },
+  lakeside: { dur: 9.75, stops: [{ id: 'mountains', at: 0.1645 }, { id: 'note', at: 0.575 }], cues: [], elev: [3, 3, 1.5, 1.5, 0, 0, -1.5, -1.5, -3, -3, -3, -3, -3, -1.5, -1.5, -1.5, 0, 0, 1.5, 1.5, 3, 3, 3, 3, 3] }
+};
+const standIn = n => { const T = LATER[n], k = T.elev.length - 1; return { name: n, later: true, dur: () => T.dur, stops: () => T.stops, cues: () => T.cues, elev: (arg, q) => { const f = clamp(q, 0, 1) * k, i = Math.min(k - 1, Math.floor(f)); return lerp(T.elev[i], T.elev[i + 1], f - i); } }; };
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
+// The weather's start buttons (world.js, trigger), and which country's sky each side scene is under.
+const WEATHER = ['shower', 'squall', 'gustnow', 'shade', 'clear'], COUNTRY = { forest: 'lake', lakeside: 'lake', larches: 'peak', wall: 'peak', approach: 'spires', camp: 'spires', climb: 'spires' };
 
 // breakAt is for testing what happens when something goes wrong: a scene's name makes that scene throw
 // the first time it is drawn, 'load:' and a name makes it fail to build, 'renderer' breaks the frame itself.
-export async function mount(canvas, { onEvent = () => {}, theme = 'light', breakAt = null } = {}) {
+export async function mount(canvas, { onEvent = () => {}, theme = 'light', breakAt = null, arrive: arriving = false } = {}) {
   const scr = new Screen(canvas);
   const world = makeWorld();
   const scenes = { world };
@@ -38,22 +49,31 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // A scene that cannot be built still gets a place on the route: it throws when he reaches it, and
   // from there it is handled like any other scene that throws.
   const stub = (name, err) => ({ name, dur: () => 1, stops: () => [], elev: () => 0, enter() {}, focus: () => ({ x: 0, y: 0 }), draw() { throw err; } });
-  async function need(names) {
-    for (const n of names) if (!scenes[n] && READY.includes(n)) {
+  // real: fetch a scene even if a stand-in would do (LATER), and hand it to the legs that held the stand-in.
+  async function need(names, real) {
+    for (const n of names) if (READY.includes(n) && (!scenes[n] || (real && scenes[n].later))) {
+      if (LATER[n] && !real) { scenes[n] = standIn(n); continue; }
       try { if (sabotage === 'load:' + n) throw new Error('Broken on purpose: loading ' + n); scenes[n] = await MAKERS[n](); }
       catch (err) { console.error(err); scenes[n] = stub(n, err); }
+      for (const l of legs) if (l.s === n) l.scene = scenes[n];
     }
   }
+  // Fetches whatever on his route is still a stand-in: called as he sets off, and before a scrub or a jump
+  // lands in one. Answers a promise while there is something to wait for, and nothing when there is not.
+  let waking = null;
+  const wake = () => waking || (legs.some(l => l.scene.later) ? (waking = need(legs.map(l => l.s), true).then(() => { waking = null; if (!running) setTimeout(warm, 0, ['forest', 'lakeside']); })) : null);
 
   // A route is a list of legs, each one scene drawing one stretch. Legs are weighted by how long
   // they take, so the timeline runs at an even pace across scene changes.
   const ROUTES = {
     lake: () => [['world', { path: 'lake', from: 0, to: world.lakeIn }], ['forest', {}], ['lakeside', {}], ['world', { path: 'lake', from: world.lakeOut, to: 1 }]],
-    // The larch basin runs the way the map's trail was heading over its last tenth (G1).
-    stack: () => [['world', { path: 'stack', from: 0, to: 1 }], ['larches', { dir: [0.9, 0.93, 0.96, 0.99].reduce((s, q) => s + world.paths.stack.at(q).dx, 0) < 0 ? -1 : 1 }], ['wall', {}], ['world', { path: 'stack', from: 1, to: 0 }]],
+    // The map hands over where the trail comes up into the burn (round 8, C2), and the larch basin's scene,
+    // which begins in the burn, runs the way the trail heads from there.
+    stack: () => [['world', { path: 'stack', from: 0, to: world.stackIn }], ['larches', { dir: [0.01, 0.03, 0.05, 0.07].reduce((s, q) => s + world.paths.stack.at(world.stackIn + q).dx, 0) < 0 ? -1 : 1 }], ['wall', {}], ['world', { path: 'stack', from: 1, to: 0 }]],
     // The walk to base camp: the map up to the traverse, then the side-on walk (section J), then camp. It
-    // runs the way the map's trail was heading where it hands over.
-    spires: () => [['world', { path: 'spires', from: 0, to: world.spiresIn }], ['approach', { dir: [-0.03, -0.01, 0.01, 0.03].reduce((s, d) => s + world.paths.spires.at(clamp(world.spiresIn + d, 0, 1)).dx, 0) < 0 ? -1 : 1 }], ['camp', {}]],
+    // runs the way the map's trail heads over its last tenth, up the glacier to camp (round 8, note 4: where
+    // the map hands over, the trail is still crossing the meadow the other way, and the walk ran backwards).
+    spires: () => [['world', { path: 'spires', from: 0, to: world.spiresIn }], ['approach', { dir: [0.9, 0.93, 0.96, 0.99].reduce((s, q) => s + world.paths.spires.at(q).dx, 0) < 0 ? -1 : 1 }], ['camp', {}]],
     'spires-home': () => [['world', { path: 'spires', from: 1, to: 0 }]],
     'off-route': () => [['offroute', {}]],
     // The register (L2): he walks the few steps to the box (the first 55% of 1.3 s), stands at it while
@@ -67,6 +87,14 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // One stretch of map walked for its own sake: back to the junction from part way along a trail.
   // `next` is where he sets off for once he gets there.
   let detour = { path: 'lake', from: 0, to: 0 }, next = null;
+  // The way in (round 8, J13). He comes up the trail from the foot of the map to the junction: at a run as
+  // the page opens, at a walk when he leaves the off-route page. The opening view, its sign and the page are
+  // as they would be with him stood there. A route asked for before he is in waits for him (the map holds
+  // it); anything that takes him somewhere other than out from the junction drops it. Never under reduced motion.
+  let arrive = null;
+  const IN = { path: 'south', from: 0, to: 1 }, WALK = 0.55;
+  const comeIn = kind => { if (calm.matches || running || p !== 0 || !world.paths.south) return false; arrive = { leg: IN, q: 0, secs: world.dur(IN) / (kind === 'walk' ? WALK : 1) }; return true; };
+  const fromFork = a => { const P = world.paths[a.path]; if (!P) return false; const b = P.at(a.from), j = world.paths.south.at(1); return Math.hypot(b.x - j.x, b.y - j.y) < 4; };
   ROUTES.back = () => [['world', { ...detour }]];
   // Click and tap to move (T3): a walk over the trail network to a point on a trail. The network is four
   // branches out from the Trailhead (the lake loop's way out and its way back, the peak's trail, the Spires'
@@ -128,6 +156,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   const stillQ = typeof window !== 'undefined' && window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null, still = () => !!stillQ && stillQ.matches;
   const autoMix = () => (still() ? 0 : cycleMix(clock.t));
   if (clock.mode === 'auto') mix = autoMix();   // the first frame already has the light of its time
+  // The part of the day, for what the animals do by the hour (round 8, H1): dusk while the light is Dusk's,
+  // and the day in thirds by the clock. Held at Day while the clock is in its dusk, it is evening.
+  const hourNow = () => mix > 0.5 ? 'dusk' : clock.t >= SUNRISE || clock.t < SUNSET / 3 ? 'morning' : clock.t < 2 * SUNSET / 3 ? 'midday' : 'evening';
   let darkNow = mix > 0.5;
   let drawn = null, tr = null, scrubbing = 0, stillAt = performance.now() / 1000;
   // Held down, Space or the Start button doubles his pace for as long as it is held.
@@ -216,6 +247,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   await need(ROUTES.lake().map(l => l[0]));
   plan('lake');
   drawn = legs[0];
+  if (arriving) comeIn('run');
 
   function emit(e) { try { onEvent(e); } catch (err) { console.error(err); } }
   // Something threw. A scene that throws is left undrawn and the page is told, so it can take him to
@@ -243,6 +275,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
 
   function step(dt) {
     if (!running || (tr && tr.phase === 'out' && !tr.to)) return;
+    wake();
     // A scene may keep him where he is while something plays out (he swims back before he runs on).
     if (!tr && drawn.scene.hold && drawn.scene.hold(env)) return;
     // A scene may have played on behind a card while it was read (the West Ridge's followers, H17):
@@ -277,15 +310,14 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   env.mapStill = (x, y) => world.still(scr, x, y, env);
   env.mapSize = [world.WW, world.WH];
 
-  // The forest's and the lake's pictures are made once the map has been on the screen for a frame,
-  // one scene to a turn so a click in between is not kept waiting for both.
-  let frames = 0;
+  // The forest's and the lake's pictures are made once their code has arrived while he stands still (wake,
+  // above), one scene to a turn so a click in between is not kept waiting for both. Arriving while he runs,
+  // each is made as he enters it, behind the closed window, as the other scenes are.
   const warm = names => { const s = scenes[names[0]]; if (s && s.warm) s.warm(); if (names.length > 1) setTimeout(warm, 0, names.slice(1)); };
   function draw(now) {
     if (!alive) return;
     requestAnimationFrame(draw);
     try { frame(now); } catch (err) { fail({ s: 'renderer' }, err); }
-    if (++frames === 2) setTimeout(warm, 0, ['forest', 'lakeside']);
   }
   function frame(now) {
     if (sabotage === 'renderer') throw new Error('Broken on purpose: the renderer');
@@ -316,8 +348,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // Under reduced motion the window does not close: the scene simply changes (F7).
     if (running && !tr && scrubbing <= 0 && drawn === legAt(p) && !calm.matches) {
       const nx = legs[legs.indexOf(drawn) + 1], left = (drawn.t1 - p) * total;
-      if (legs.includes(drawn) && nx && nx !== broken && !(nx.s === 'world' && drawn.s === 'world') && left > 0.12 && left <= 0.3 && !stops.some(s => s.at > p && s.at <= drawn.t1 + 1e-6)) { tr = { phase: 'out', k: 0, to: nx, lead: left }; emit({ type: 'sfx', name: 'iris' }); }
+      if (legs.includes(drawn) && nx && nx !== broken && !nx.scene.later && !(nx.s === 'world' && drawn.s === 'world') && left > 0.12 && left <= 0.3 && !stops.some(s => s.at > p && s.at <= drawn.t1 + 1e-6)) { tr = { phase: 'out', k: 0, to: nx, lead: left }; emit({ type: 'sfx', name: 'iris' }); }
     }
+    // His next stretch has not arrived yet (A6): he waits at the edge of this one until it has.
+    if (legAt(p).scene.later) { wake(); p = clamp(p, drawn.t0, drawn.t1 - 1e-6); }
     const want = legAt(p);
     if (want !== drawn && want !== broken && !tr) {
       if (want.s === 'world' && drawn.s === 'world') drawn = want;
@@ -340,6 +374,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
         else tr = null;
       }
     }
+    // Before the hand-off reads it: on the first frame it would otherwise still be env's starting false, and
+    // the opening would set out and come home again a frame later, dropping a zoom asked for between (I7).
+    env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
     let gliding = null;
     if (drawn.s === 'world') {
       if (zC && zC === zT) zSet = true;
@@ -360,12 +397,19 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       }
     } else if (scr.S !== scr.S0) scr.setScale(scr.S0);
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
-    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix; env.sky = DEBUG.clouds ? world.sky(t) : null;
+    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix; env.hour = hourNow(); if (drawn.s !== 'world') world.tick(t); env.sky = DEBUG.clouds ? world.sky(t) : null; if (env.sky && window.__sky) Object.assign(env.sky, window.__sky);
     env.walkMark = route === 'walk' && p < 1 ? walkMark : null;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
-    env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
+    if (arrive) {
+      if (p !== 0 || shown || scrubbing > 0 || legs[0].s !== 'world' || !fromFork(legs[0].arg)) arrive = null;
+      else if (drawn.s === 'world') { arrive.q += sdt / arrive.secs; if (arrive.q >= 1) arrive = null; }
+    }
+    env.arrive = drawn.s === 'world' ? arrive : null;
+    // Seconds since the clock's sunrise began (before it, below zero), for what comes with the dawn; null when
+    // the clock is not bringing one (Day or Dusk held, or reduced motion).
+    env.dawn = clock.mode === 'auto' && !still() ? clock.t - SUNRISE : null;
     // Idle counts from his arrival home too, so the look round waits until the hand-off home has settled.
-    if (!env.home) homeAt = t;
+    if (!env.home || arrive) homeAt = t;
     env.idle = env.home && dragging == null ? t - Math.max(lastAct, homeAt) : 0; env.calm = calm.matches;
     if (env.moving || tr) stillAt = t;
     env.still = t - Math.max(stillAt, lastAct);
@@ -443,9 +487,12 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     breakScene() { sabotage = drawn.s; },
     // For the debug panel (E5f): the scenes' clock, its speed, and starting a timed event now in the
     // scene he is in (false if that scene has no such event).
-    now: () => simT, speeds: SPEEDS, speed: () => speed, setSpeed(k) { if (SPEEDS.includes(k)) speed = k; },
-    // The marine layer is the world's weather, so its button works from a side scene too (round 6, note 13).
-    trigger(name) { const s = drawn.scene; if (tr) return false; if (s.trigger && s.trigger(name, simT)) return true; return name === 'shower' && s !== world && world.trigger(name, simT); },
+    now: () => simT, saw: () => SAW, speeds: SPEEDS, speed: () => speed, setSpeed(k) { if (SPEEDS.includes(k)) speed = k; },
+    // The weather is the world's, so its buttons work from a side scene too (the marine layer since round 6,
+    // note 13; the rest since round 8, E1, now that every scene shows the weather): each is started on the
+    // map's clocks, over the country the scene is in.
+    can: name => !tr && (!drawn.scene.can || drawn.scene.can(name)),
+    trigger(name) { const s = drawn.scene, at = COUNTRY[drawn.s]; if (tr) return false; if (s.trigger && s.trigger(name, simT, at)) return true; return WEATHER.includes(name) && s !== world && world.trigger(name, simT, at); },
     // The view eases to where a map event happens, so its start button shows it (note 26). Answers how many
     // milliseconds to wait before starting it: none when it has no place or the map is not on screen.
     showEvent(name) {
@@ -454,14 +501,41 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       const [x, y] = s.lookFor(p[0], p[1]); running = false; recentre = false; panTo = { x, y };
       return calm.matches ? 0 : 900;
     },
+    // The view eases to where the first of these things lives or happens (round 8, H9: a tap on a line of the
+    // kiosk's board), and nothing is started. It needs the map on screen and says whether it had it; hasPlace
+    // says whether the map knows a place for any of them, whatever scene is up.
+    showPlace(keys) {
+      const s = drawn && drawn.scene; if (!s || drawn.s !== 'world' || tr || !s.whereIs) return false;
+      const p = keys.map(k => s.whereIs(k)).find(Boolean); if (!p) return false;
+      const [x, y] = s.lookFor(p[0], p[1]); running = false; recentre = false; panTo = { x, y };
+      return true;
+    },
+    hasPlace: keys => keys.some(k => world.whereIs(k)),
+    // The page says which parts of the window its panels cover (round 8, H10), as rectangles in the window's
+    // own pixels; they are kept in view pixels, where the game asks whether a thing is clear of them. all:
+    // a sheet or the plain page is up, and nothing behind it counts. coveredAt answers for a spot of the window.
+    cover(rects, all) { const b = canvas.getBoundingClientRect(), kx = scr.VW / (b.width || 1), ky = scr.VH / (b.height || 1); COVER.length = 0;
+      if (all) COVER.push([0, 0, scr.VW, scr.VH]); else for (const r of rects) COVER.push([Math.floor((r.left - b.left) * kx), Math.floor((r.top - b.top) * ky), Math.ceil((r.right - b.left) * kx), Math.ceil((r.bottom - b.top) * ky)]); },
+    coveredAt(x, y) { const b = canvas.getBoundingClientRect(); return covered((x - b.left) * scr.VW / (b.width || 1), (y - b.top) * scr.VH / (b.height || 1)); },
     // For the debug menu (C4): the scene on screen, the map animals and their homes, placing one, and a jump to
     // the start of any scene (the first route that has it, a little way in).
     scene: () => drawn ? drawn.s : null,
     spawnList: () => world.spawnList(),
     spawn: (kind, i) => world.spawn(kind, i),
+    // The view eases to the home an animal was put on (TJ, round 8), as it does to an event.
+    showSpawn(kind, i) { const p = world.homeAt(kind, i); if (!p || !drawn || drawn.s !== 'world' || tr) return; const [x, y] = world.lookFor(p[0], p[1]); running = false; recentre = false; panTo = { x, y }; },
+    // The debug panel's list of acts (round 8, H13): one line for each kind of animal that reads differently
+    // (a name and the five things it does), the first such animal standing for all of them. showActor eases
+    // the view to it as showEvent does to an event, and doAct starts one of its things now.
+    actList() { const seen = new Set(); return world.actors().filter(a => { const k = a.name + '|' + a.does.join(); if (seen.has(k)) return false; seen.add(k); return true; }).map(({ i, name, does }) => ({ i, name, does })); },
+    showActor(i) { const a = world.actors().find(q => q.i === i); if (!a || !drawn || drawn.s !== 'world' || tr) return 0; const [x, y] = world.lookFor(a.x, a.y); running = false; recentre = false; panTo = { x, y }; return calm.matches ? 0 : 900; },
+    doAct: (i, name) => !!drawn && drawn.s === 'world' && !tr && world.doAct(i, name, simT),
+    skyNow: () => world.skyNow(simT),
+    // How hard it is raining in the sky the scenes are shown, 0 to 1 (round 8, H15: the lakeside's rain is heard).
+    rainNow: () => env.sky ? env.sky.rain || 0 : 0,
     async jumpTo(name) {
       const r = Object.keys(ROUTES).find(k => !/back|home/.test(k) && ROUTES[k]().some(([n]) => n === name)); if (!r) return false;
-      await api.setRoute(r); const l = legs.find(g => g.s === name); if (l) api.scrub(l.t0 + 0.03 * (l.t1 - l.t0)); return true;
+      await api.setRoute(r); const l = legs.find(g => g.s === name); if (l) await api.scrub(l.t0 + 0.03 * (l.t1 - l.t0)); return true;
     },
     async setRoute(r) {
       if (!ROUTES[r]) return;
@@ -500,11 +574,12 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     theme: () => darkNow ? 'dark' : 'light',
     setTheme(th) { clock.mode = th === 'dark' ? 'dusk' : th === 'light' ? 'day' : 'auto'; },
     // The world clock (T76): its mode ('auto', 'day', 'dusk'), where it is in the cycle and how fast it runs.
-    clock: () => ({ mode: clock.mode, t: clock.t, speed: clock.speed, mix, cycle: CYCLE, sunset: SUNSET, sunrise: SUNRISE }),
+    clock: () => ({ mode: clock.mode, t: clock.t, speed: clock.speed, mix, cycle: CYCLE, sunset: SUNSET, sunrise: SUNRISE, hour: hourNow() }),
     setClock({ mode, t, speed } = {}) { if (mode) clock.mode = mode; if (t != null) clock.t = ((t % CYCLE) + CYCLE) % CYCLE; if (speed) clock.speed = speed; },
     // A scene holding him for something of its own (the binoculars) is told he is setting off, so it lets go.
     start() { if (route === 'walk' && p >= 1) return; if (p >= 1) p = 0; leave(); if (!tr && drawn.scene.go) drawn.scene.go(env); running = true; },
     walkTo,
+    arrive: comeIn,
     stop() { running = false; pace = 1; },
     boost(on) { fast = !!on; },
     toggle() { if (running) running = false; else api.start(); },
@@ -521,6 +596,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     onTrail: () => hereOnTrail(),
     progress: () => p,
     scrub(f) {
+      // Into a scene that has not arrived: it is fetched first, and the scrub lands when it has.
+      const w = legAt(clamp(f, 0, 1)).scene.later && wake();
+      if (w) { const r = route; return w.then(() => { if (route === r) api.scrub(f); }); }
       p = clamp(f, 0, 1); running = false; scrubbing = 0.16;
       const s = stopNear(p); if (s) { if (shown !== s) { shown = null; showStop(s); } } else leave();
     },
@@ -534,6 +612,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       const fwd = code === 'ArrowRight' || code === 'KeyD';
       if (fwd || code === 'ArrowLeft' || code === 'KeyA') {
         const s = fwd ? stops.find(q => q.at > p + 1e-4) : [...stops].reverse().find(q => q.at < p - 1e-4);
+        // Into a scene that has not arrived (A6): it is fetched first and he lands there when it has, as goto()
+        // does. Without this he was held at the edge of the map with the milestone's card up (round 8, I3).
+        if (s && s.leg.scene.later) { const r = route; wake().then(() => { if (route === r) api.goto(s.id); }); return true; }
         running = false; scrubbing = 0.16;
         if (s) { p = s.at; shown = null; showStop(s); } else { p = fwd ? 1 : 0; leave(); if (fwd) finish(); }
         return true;
@@ -625,8 +706,11 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // Names to pin on the scene, in CSS pixels: the six summits at base camp, the four places on the map.
     labels() { const k = scr.S / (window.devicePixelRatio || 1); return drawn.scene.labels && !tr ? drawn.scene.labels().map(l => { const [x, y] = glidePoint(l.x * k, l.y * k); return { ...l, x, y }; }) : []; },
     // Puts him at a milestone by name, with its card open.
-    goto(id) { const s = stops.find(q => q.id === id); if (!s) return false; running = false; scrubbing = 0.16; p = s.at; shown = null; showStop(s); return true; },
+    goto(id) { const s = stops.find(q => q.id === id); if (!s) return false; if (s.leg.scene.later) { const r = route; wake().then(() => { if (route === r) api.goto(id); }); return true; } running = false; scrubbing = 0.16; p = s.at; shown = null; showStop(s); return true; },
     info: () => ({ lengths: world.lengths() }),
+    // What the timeline knows of a scene, loaded or standing in, with k heights along it: for the test that
+    // holds LATER to the scenes themselves.
+    facts(n, k = 25) { const s = scenes[n]; return s ? { later: !!s.later, dur: s.dur({}), stops: s.stops({}), cues: s.cues ? s.cues({}) : [], elev: Array.from({ length: k }, (_, i) => s.elev({}, i / (k - 1))) } : null; },
     // How long a route takes from the junction and back, in seconds, for the junction sign.
     async routeTime(r) { if (!ROUTES[r]) return 0; await need(ROUTES[r]().map(l => l[0]).filter(n => !(n in SECS))); return ROUTES[r]().reduce((a, [n, arg]) => a + (scenes[n] ? scenes[n].dur(arg) : SECS[n] || 0), 0); },
     dispose() { alive = false; removeEventListener('resize', onResize); }

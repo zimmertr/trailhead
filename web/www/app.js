@@ -74,7 +74,8 @@ function showCard(id) {
   audio.sfx(id === 'summit' ? 'summit' : pr ? 'flag' : 'stop');
 }
 function hideCard() { shown = null; cardShut = false; card.hidden = true; audio.focus(0); }
-async function home() { inBook(false); hideCard(); await api.setRoute('lake'); audio.place('world'); lastScene = 'world'; buildMarks(); setAddress(''); checkRegister(); }
+// Leaving the off-route page, he walks back in up the trail from the foot of the map (round 8, J13).
+async function home() { const lost = api.route() === 'off-route'; inBook(false); hideCard(); await api.setRoute('lake'); if (lost) api.arrive('walk'); audio.place('world'); lastScene = 'world'; buildMarks(); setAddress(''); checkRegister(); }
 async function travel(route) { audio.start(); audio.sfx('select'); await api.setRoute(route); buildMarks(); api.start(); }
 async function climb(id) { audio.sfx('select'); hideCard(); await api.setRoute('spire:' + id); buildMarks(); api.start(); }
 // The register (L2): one click on the box and the scene changes to the book (no walk since round 5 B2).
@@ -105,8 +106,14 @@ function noticeAt(B, k) {
   if (!B || B.w * k < 96 || B.h * k < 40) return [];
   const ids = Object.keys(FINDS), found = api.found();
   return [el('button', { class: 'notice', style: 'left:' + B.x * k + 'px;top:' + B.y * k + 'px;width:' + B.w * k + 'px;height:' + B.h * k + 'px', onclick: () => openSheet('kiosk') },
-    el('b', { text: UI.kiosk.title }), el('span', { text: UI.kiosk.status[1] }), el('span', { text: UI.kiosk.checklist(ids.filter(i => found[i]).length, ids.length) }))];
+    el('b', { text: UI.kiosk.title }), el('span', { text: UI.kiosk.status[1] }), el('span', { text: UI.kiosk.checklist(ids.filter(i => found[i]).length, ids.length) }), el('span', { text: UI.kiosk.count(api.saw()) }))];
 }
+// The notice shows the lines its paper holds: on a small screen the last ones go, whole, and the board has them all.
+function fitNotice() { for (const n of book.querySelectorAll('.notice')) while (n.scrollHeight > n.clientHeight + 1 && n.children.length > 2) n.lastElementChild.remove(); }
+// The book's heads and handwritten lines are set to a page as narrow as a phone's, and Firefox sets their fonts a
+// few pixels wider than Chromium, which ran a line past the page's edge (round 8, I7). A line that does not fit
+// is written a pixel smaller until it does, as it is put on the page and before the next line is placed under it.
+function fitLine(h, p) { for (let s = parseFloat(getComputedStyle(h).fontSize), n = 0; n < 4 && h.offsetLeft + Math.max(h.offsetWidth, h.scrollWidth) > p.clientWidth; n++) h.style.fontSize = --s + 'px'; }
 function fillKiosk(P) {
   const k = api.scale(), at = g => 'left:' + g.x * k + 'px;top:' + g.y * k + 'px;width:' + g.w * k + 'px;height:' + g.h * k + 'px;';
   const d = api.done(), B = P.book, mapName = $('b-map').textContent.trim();
@@ -115,6 +122,7 @@ function fillKiosk(P) {
     el('button', { class: 'spot map', style: at(P.map), 'aria-label': mapName, title: mapName, onclick: () => openSheet('map') }),
     el('button', { class: 'spot open', style: at(B) + clip, 'aria-label': UI.register.link + ', ' + (d.lake && d.stack && d.spires ? UI.register.canSign : UI.register.canRead), title: UI.register.link, onclick: openPage }),
     ...noticeAt(P.notice, k));
+  fitNotice();
 }
 function fillBook() {
   const P = api.pages(); if (!P) { book.replaceChildren(); return; }
@@ -125,8 +133,8 @@ function fillBook() {
   const right = page(R, 'right');
   right.append(el('span', { class: 'head', style: 'left:' + 3 * k + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.date }), el('span', { class: 'head', style: 'left:' + (col + 3 * k) + 'px;height:' + (top - 3 * k) + 'px', text: UI.register.book.who }));
   const left = page(P.left, 'left');
-  book.replaceChildren(left, right);
-  book.append(...noticeAt(P.board, k));
+  book.replaceChildren(left, right); for (const h of right.querySelectorAll('.head')) fitLine(h, right);
+  book.append(...noticeAt(P.board, k)); fitNotice();
   // The left-hand page (L4): until the lake, the peak and one Spires summit are done, TJ's note of what is
   // still to do, ticked off as each is done. After that it is blank, and the close-up lays the pencil on it.
   const done = api.done(), T = UI.register.todo;
@@ -151,7 +159,7 @@ function fillBook() {
   } else {
     const st = "font-family:'Caveat',cursive;font-size:" + (pitch * 0.95).toFixed(1) + 'px;line-height:' + pitch + 'px;color:#1c1a24;--tilt:-0.4deg;--drop:' + (pitch * 0.14).toFixed(1) + 'px;left:' + 14 * k + 'px;right:' + 6 * k + 'px;';
     let r = 0;
-    const line = (kids, cls = '') => { const p = el('p', { class: 'hand ' + cls, style: st + 'top:' + (top + r * pitch) + 'px' }, ...kids); left.append(p); r += Math.max(1, Math.round(p.offsetHeight / pitch)); };
+    const line = (kids, cls = '') => { const p = el('p', { class: 'hand ' + cls, style: st + 'top:' + (top + r * pitch) + 'px' }, ...kids); left.append(p); fitLine(p, left); r += Math.max(1, Math.round(p.offsetHeight / pitch)); };
     line([T.hi]); line([T.need]);
     for (const [id, name] of [['lake', DEST_NAMES.lake], ['stack', DEST_NAMES.stack], ['spires', T.spires(DEST_NAMES.spires)]]) line([el('span', { class: 'box' }), name], 'todo' + (done[id] ? ' done' : ''));
     r++; line([T.after]); line([T.sig], 'sig');
@@ -164,8 +172,11 @@ function fillBook() {
     if (e.pending) t.append(el('span', { class: 'pending', text: UI.register.pending }));
     // A date is kept to its column: on a phone the column is narrow, so the date is written smaller.
     right.append(el('span', { class: 'hand', style: st + 'white-space:nowrap;font-size:' + Math.min(pitch * 0.9 * fz, (col - 5 * k) / 2.7).toFixed(1) + 'px;left:' + 3 * k + 'px;width:' + (col - 5 * k) + 'px', text: shortDate(e.date) }), t);
-    at += Math.max(1, Math.round(t.offsetHeight / pitch));
+    fitLine(t, right); at += Math.max(1, Math.round(t.offsetHeight / pitch));
   });
+  // A page with more written on it than it holds scrolls (style.css), a paragraph at a time, and takes the keyboard.
+  // What shows of it ends on a rule, so no line is cut through.
+  for (const pg of [left, right]) if (pg.scrollHeight > pg.clientHeight + 1) { pg.classList.add('long'); pg.tabIndex = 0; pg.style.scrollPaddingTop = top + 'px'; pg.style.clipPath = 'inset(0 0 ' + (((pg.clientHeight - top - pitch * 0.14) % pitch + pitch) % pitch).toFixed(1) + 'px 0)'; }
 }
 addEventListener('resize', () => setTimeout(() => { if (!book.hidden) fillBook(); }, 60));
 async function walkOut() { audio.sfx('select'); hideCard(); await api.setRoute('spires-home'); buildMarks(); api.start(); }
@@ -235,19 +246,39 @@ async function navigate(hash) {
 
 // ------------------------------------------------------------------ sheets
 
-function openSheet(name) {
+// A sheet is a dialog over the page: while it is open nothing behind it takes the focus or a click (inert), and
+// when it closes the focus goes back to what opened it, if the keyboard opened it (round 8, I3: Tab used to walk
+// out of an open sheet into the top bar and the card behind it). A sheet opened with the pointer gives the focus
+// back to nothing, so that Space still starts and stops him.
+let sheetFrom = null;
+function openSheet(name, from = null) {
+  if (sheet.hidden) { const a = document.activeElement; sheetFrom = from || (a && a !== document.body && a.matches(':focus-visible') ? a : null); }
   const body = $('sheet-body'); body.replaceChildren();
   if (name === 'map') body.append(...trailMap());
   else if (name === 'kiosk') body.append(...kiosk());
   else body.append(el('div', { class: 'band' }, el('h2', { text: UI.keys.title }), el('p', { text: UI.keys.note })), el('dl', { class: 'keys' }, ...HELP.flatMap(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })])));
-  sheet.hidden = false; audio.sfx('open'); audio.focus(2); $('close').focus();
+  // The dialog is named by its own heading.
+  const title = body.querySelector('h2'); if (title) { title.id = 'sheet-title'; sheet.setAttribute('aria-labelledby', 'sheet-title'); }
+  sheet.hidden = false; for (const e of document.body.children) if (e !== sheet && e.tagName !== 'SCRIPT') e.inert = true;
+  audio.sfx('open'); audio.focus(2); $('close').focus();
 }
-function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; audio.sfx('close'); audio.focus(shown ? 1 : 0); } }
+function closeSheet() {
+  if (sheet.hidden) return;
+  sheet.hidden = true; for (const e of document.body.children) e.inert = false;
+  audio.sfx('close'); audio.focus(shown ? 1 : 0);
+  const back = sheetFrom; sheetFrom = null;
+  if (back && back.isConnected && back !== document.body && (!back.checkVisibility || back.checkVisibility())) back.focus({ preventScroll: true });
+}
 
 // ------------------------------------------------------------------ the debug panel
 // Hidden: the backtick key opens and closes it, and so does the small sign at the foot of the trail map.
 const debug = $('debug');
-let timeSlider = null;
+let timeSlider = null, skyLine = null;
+// The debug panel's start buttons, each with its event. One that cannot happen now is greyed out (TJ, 25
+// November): it stays in the Tab order and says so to a screen reader, and the page's tick keeps it right as
+// the light turns.
+let eventButtons = [];
+function syncEvents() { for (const [b, id] of eventButtons) { const off = !api.can(id); if ((b.getAttribute('aria-disabled') === 'true') !== off) { if (off) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled'); b.style.opacity = off ? '.45' : ''; } } }
 function openDebug(on) {
   if (!on) { debug.hidden = true; return; }
   const D = UI.debug, onOff = k => UI.map.onOff[DEBUG[k] ? 0 : 1];
@@ -264,24 +295,41 @@ function openDebug(on) {
   timeSlider = el('input', { type: 'range', min: 0, max: C.cycle, step: 1, value: Math.round(C.t), 'aria-label': D.time, oninput: e => { api.setClock({ mode: 'auto', t: +e.currentTarget.value }); syncTop(); } });
   const clockSpeeds = D.clockSpeeds.map(k => el('button', { class: 'plank', 'aria-pressed': String(C.speed === k), onclick: e => { api.setClock({ speed: k }); for (const b of e.currentTarget.parentNode.children) b.setAttribute('aria-pressed', String(b === e.currentTarget)); audio.sfx('step'); } }, el('span', { text: k + 'x' })));
   const jump = (label, t) => el('button', { class: 'plank', onclick: () => { api.setClock({ mode: 'auto', t }); syncTop(); audio.sfx('step'); } }, el('span', { text: label }));
-  // Spawn an animal (C4): which animal, which of its homes (or everywhere it lives), then Spawn.
+  // Spawn an animal (C4): which animal, which of its homes (or everywhere it lives), then Spawn. The view goes
+  // to the home it was put on. "Everywhere" puts a group on every home that has none, and the view stays.
   const kinds = api.spawnList(), animal = el('select', { 'aria-label': D.spawn }, ...kinds.map((k, n) => el('option', { value: n, text: k.name })));
   const place = el('select', { 'aria-label': D.spawn });
   const fillPlaces = () => { const k = kinds[+animal.value]; place.replaceChildren(...k.homes.map((h, n) => el('option', { value: n, text: h })), el('option', { value: 'all', text: D.spawnAll })); };
   animal.addEventListener('change', fillPlaces); fillPlaces();
+  // Start one thing an animal does (round 8, H13): which animal, which of its five things, then Start. The
+  // view goes to the animal first, as it goes to an event. Only on the map, where the animals are.
+  const actors = api.scene() === 'world' ? api.actList() : [], actor = el('select', { 'aria-label': D.acts }, ...actors.map((a, n) => el('option', { value: n, text: a.name })));
+  const doing = el('select', { 'aria-label': D.acts });
+  const fillActs = () => { const a = actors[+actor.value]; doing.replaceChildren(...(a ? a.does : []).map(k => el('option', { value: k, text: D.act[k] || k }))); };
+  actor.addEventListener('change', fillActs); fillActs();
+  const startAct = () => { const a = actors[+actor.value]; if (!a) return; const ms = api.showActor(a.i); setTimeout(() => audio.sfx(api.doAct(a.i, doing.value) ? 'step' : 'close'), ms); };
+  // What the sky is doing, in one line that keeps up with it while the panel is open (round 8, H13).
+  skyLine = el('p', { class: 'legend skyline', role: 'status', text: UI.debug.skyLine(api.skyNow()) });
   // The timed events of the scene on screen (E5f): the map's, or the scene's own.
-  const SCENE_EVENTS = { world: ['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'squall', 'lens', 'tumble', 'devil', 'star'], forest: ['sasquatch', 'eyeshine', 'shower'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
+  const SCENE_EVENTS = { world: ['breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'lens', 'tumble', 'devil', 'star', 'alpenglow', 'rockfall', 'calve', 'pair', 'talus', 'band', 'calm', 'ducks', 'rainbow', 'treefall', 'hoot'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
   const here = api.scene(), events = SCENE_EVENTS[here] || [];
+  // The weather (round 8, E1): the same buttons in every scene that has a sky, since every scene shows it.
+  const weather = ['world', 'forest', 'lakeside', 'larches', 'wall', 'approach', 'camp', 'climb'].includes(here) ? ['shower', 'squall', 'gustnow', 'shade', 'clear'] : [];
   // On the map a start button first eases the view to where its event happens, then starts it (note 26).
-  const fire = id => { const ms = api.showEvent(id); setTimeout(() => audio.sfx(api.trigger(id) ? 'step' : 'close'), ms); };
+  // One that cannot happen now (the alpenglow by Day) is greyed out, and says no without moving the view.
+  const fire = id => { if (!api.can(id)) { audio.sfx('close'); return; } const ms = api.showEvent(id); setTimeout(() => audio.sfx(api.trigger(id) ? 'step' : 'close'), ms); };
+  eventButtons = []; const timed = (b, id) => { eventButtons.push([b, id]); return b; };
   // Related events share one split button (note 27): its name starts one of them at random (the avalanche picks
-  // its own face), and the arrow opens a list of each.
-  const FAMILIES = { humpback: ['breach', 'blow'], cubs: ['cubplay', 'cubclimb'], avalanche: ['ava0', 'ava1', 'ava2'] };
-  const one = id => el('button', { class: 'plank', onclick: () => fire(id) }, el('span', { text: D.events[id] }));
+  // its own face), and the arrow opens a list of each. The list stays open when one is picked (TJ, round 8), so
+  // several can be started one after another; the arrow shuts it.
+  const FAMILIES = { humpback: ['breach', 'blow'], cubs: ['cubplay', 'cubclimb'], avalanche: ['ava0', 'ava1', 'ava2'],
+    // Life at every place (round 8, E2): one button for each place, its events in the list.
+    spires: ['rockfall', 'calve', 'pair'], peak: ['talus', 'band'], lake: ['calm', 'ducks', 'rainbow'], rainforest: ['treefall', 'hoot'] };
+  const one = id => timed(el('button', { class: 'plank', onclick: () => fire(id) }, el('span', { text: D.events[id] })), id);
   const split = (fam, ids) => {
-    const list = el('div', { class: 'split-list', role: 'menu', hidden: '' }, ...ids.map(id => el('button', { class: 'plank', role: 'menuitem', onclick: () => { list.hidden = true; more.setAttribute('aria-expanded', 'false'); fire(id); } }, el('span', { text: D.events[id] }))));
+    const list = el('div', { class: 'split-list', role: 'menu', hidden: '' }, ...ids.map(id => timed(el('button', { class: 'plank', role: 'menuitem', onclick: () => fire(id) }, el('span', { text: D.events[id] })), id)));
     const more = el('button', { class: 'plank more', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': D.families[fam] + ': ' + D.pick, onclick: () => { list.hidden = !list.hidden; more.setAttribute('aria-expanded', String(!list.hidden)); } }, el('i', { class: 'arrow down' }));
-    const main = el('button', { class: 'plank', onclick: () => fire(fam === 'avalanche' ? 'avalanche' : ids[Math.floor(Math.random() * ids.length)]) }, el('span', { text: D.families[fam] }));
+    const main = el('button', { class: 'plank', onclick: () => { const open = ids.filter(id => api.can(id)); fire(fam === 'avalanche' ? 'avalanche' : (open.length ? open : ids)[Math.floor(Math.random() * (open.length || ids.length))]); } }, el('span', { text: D.families[fam] }));
     return el('div', { class: 'split' }, el('div', { class: 'split-row' }, main, more), list);
   };
   const starts = ids => { const out = [], done = new Set();
@@ -295,11 +343,13 @@ function openDebug(on) {
     el('p', { class: 'legend', text: BAKE.used ? D.ground[0] : D.ground[1] + (BAKE.note ? ' (' + BAKE.note + ')' : '') }),
     el('h3', { text: D.time }), timeSlider, el('div', { class: 'speeds' }, ...clockSpeeds), jump(D.sunset, C.sunset - 2), jump(D.sunrise, C.sunrise - 2),
     el('h3', { text: D.layers }), ...['trees', 'clouds', 'mist', 'labels', 'animals'].map(toggle),
-    el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle), noGo,
+    el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera', 'signs', 'homes'].map(toggle), noGo,
     el('h3', { text: D.zoom }), toggle('snap'),
     el('h3', { text: D.speed }), el('div', { class: 'speeds' }, ...speeds),
+    ...(weather.length ? [el('h3', { text: D.weather }), skyLine, ...weather.map(one)] : []),
     ...(events.length ? [el('h3', { text: here === 'world' ? D.mapEvents : D.inScene + ': ' + (D.scenes[here] || here) }), ...starts(events)] : []),
-    el('h3', { text: D.spawn }), el('div', { class: 'row' }, animal, place, el('button', { class: 'plank', onclick: () => { audio.sfx(api.spawn(kinds[+animal.value].kind, place.value === 'all' ? 'all' : +place.value) ? 'step' : 'close'); } }, el('span', { text: D.spawn }))),
+    el('h3', { text: D.spawn }), el('div', { class: 'row' }, animal, place, el('button', { class: 'plank', onclick: () => { const kind = kinds[+animal.value].kind, at = place.value === 'all' ? 'all' : +place.value, ok = api.spawn(kind, at); if (ok && at !== 'all') api.showSpawn(kind, at); audio.sfx(ok ? 'step' : 'close'); } }, el('span', { text: D.spawn }))),
+    ...(actors.length ? [el('h3', { text: D.acts }), el('div', { class: 'row' }, actor, doing, el('button', { class: 'plank', onclick: startAct }, el('span', { text: D.actStart })))] : []),
     el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, api.now(), { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
     el('h3', { text: D.scene }), ...Object.keys(D.scenes).filter(s => s !== 'offroute').map(s => el('button', { class: 'plank', onclick: () => { hideCard(); closeSheet(); api.jumpTo(s).then(() => { buildMarks(); openDebug(true); }); audio.sfx('step'); } }, el('span', { text: D.scenes[s] }))),
     el('button', { class: 'plank', onclick: () => navigate('#off-route') }, el('span', { text: D.offRoute })),
@@ -311,6 +361,7 @@ function openDebug(on) {
     el('h3', { text: D.breakGroup }),
     el('button', { class: 'plank', onclick: () => api.breakScene() }, el('span', { text: D.breakScene })),
     el('p', { class: 'legend', text: D.note }));
+  syncEvents();
   debug.hidden = false;
 }
 
@@ -344,10 +395,16 @@ function trailMap() {
 function kiosk() {
   api.find('kiosk');
   const done = api.done(), up = Math.round((Date.now() - BUILT) / 1000), found = api.found(), ids = Object.keys(FINDS);
-  const cell = (k, v, cls, wide) => el('div', wide ? { class: 'wide' } : {}, el('dt', { text: k }), el('dd', { class: cls || '', text: v }));
+  const cell = (k, v, cls) => el('div', {}, el('dt', { text: k }), el('dd', { class: cls || '', text: v }));
+  // What lives and happens here, in two lists (round 8, F2): what has been on the screen this visit, and the rest.
+  // A line of the second list is a button where the map knows a place for what it names (round 8, H9): it
+  // closes the board, goes back out to the map if the board was up in the register's scene, and the view
+  // goes there. Nothing is started. The view is asked again until the map has come in.
+  const lookFor = async keys => { closeSheet(); if (api.scene() !== 'world') await home(); let n = 0; const go = () => { if (!api.showPlace(keys) && n++ < 50) setTimeout(go, 100); }; go(); };
+  const [seen, told, names] = UI.kiosk.sightings(api.saw()), list = (cls, [head, none], lines, keys) => el('div', { class: 'wide ' + cls }, el('dt', { text: head }), el('dd', {}, lines.length ? el('ul', {}, ...lines.map((s, i) => keys && api.hasPlace(keys[i]) ? el('li', {}, el('button', { text: s, onclick: () => lookFor(keys[i]) })) : el('li', { text: s }))) : el('span', { text: none })));
   return [el('div', { class: 'band' }, el('h2', { text: UI.kiosk.title }), el('p', { text: UI.kiosk.sub })),
     el('dl', { class: 'board' }, cell(UI.kiosk.version, VERSION), cell(UI.kiosk.deployed, BUILT.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })), cell(UI.kiosk.uptime, UI.kiosk.up(up)), cell(UI.kiosk.status[0], UI.kiosk.status[1], 'open'),
-      cell(UI.map.lake[0], done.lake ? UI.kiosk.lakeDone : UI.kiosk.open), cell(UI.map.stack[0], done.stack ? UI.kiosk.stackDone : UI.kiosk.open), cell(UI.map.spires[0], UI.kiosk.summits(SPIRE_ORDER.filter(s => done['spire:' + s]).length)), cell(UI.kiosk.wildlife[0], UI.kiosk.wildlife[1], '', true), cell(UI.kiosk.seen[0], UI.kiosk.seen[1], '', true)),
+      cell(UI.map.lake[0], done.lake ? UI.kiosk.lakeDone : UI.kiosk.open), cell(UI.map.stack[0], done.stack ? UI.kiosk.stackDone : UI.kiosk.open), cell(UI.map.spires[0], UI.kiosk.summits(SPIRE_ORDER.filter(s => done['spire:' + s]).length)), list('seen', UI.kiosk.observed, seen), list('told', UI.kiosk.reported, told, names)),
     el('h3', { text: UI.kiosk.checklist(ids.filter(k => found[k]).length, ids.length) }),
     el('ul', { class: 'checks' }, ...ids.map(k => el('li', { class: found[k] ? 'got' : '' }, el('b', { text: found[k] ? FINDS[k][0] : UI.kiosk.notFound }), el('span', { text: found[k] ? UI.kiosk.got : FINDS[k][1] }))))];
 }
@@ -355,9 +412,10 @@ function checkRegister() { const d = api.done(); if (d.lake && d.stack && d.spir
 
 // The whole site as one page of text, for reading or for anything that cannot draw the world.
 function openPlain() {
-  const sec = (title, ...kids) => [el('h3', { text: title }), ...kids];
+  // Its headings go down a level at a time for a screen reader: the name, a route, a milestone (round 8, I3).
+  const sec = (title, ...kids) => [el('h2', { text: title }), ...kids];
   const draft = () => el('p', { class: 'draft', text: $('card-draft').textContent });
-  const cardOut = id => { const c = CARDS[id]; return [el('h4', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.aside ? el('p', { class: 'aside', text: c.aside }) : null, c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null, c.draft ? draft() : null]; };
+  const cardOut = id => { const c = CARDS[id]; return [el('h3', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.aside ? el('p', { class: 'aside', text: c.aside }) : null, c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null, c.draft ? draft() : null]; };
   // Without the world there is no picture of the map and no way back to it, and the page says why.
   let still = null;
   if (!worldDown) try { const MAP = api.mapFrame(); still = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', UI.plain.mapAlt); } catch (err) { console.error(err); still = null; }
@@ -366,7 +424,7 @@ function openPlain() {
   plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: UI.map.title }), worldDown ? el('button', { class: 'plank', onclick: () => { location.href = location.pathname; } }, el('span', { text: CARDS['off-route'].go })) : el('button', { class: 'plank', onclick: leavePlain }, el('span', { text: UI.plain.back }))),
     el('div', { class: 'wrap' }, el('h1', { text: UI.name }), el('p', { text: UI.name + ' ' + INTRO }), worldDown ? el('p', { class: 'legend', text: UI.plain.down }) : null, still,
       ...sec(UI.map.lake[0], ...['who', 'mountains', 'note'].flatMap(cardOut)), ...sec(UI.map.stack[0], ...['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'].flatMap(cardOut)),
-      ...sec(UI.map.spires[0], ...CARDS['base-camp'].body.map(t => el('p', { text: t })), ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h4', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: UI.plain.facts(p.stars, p.release ? UI.plain.released(p.release, ago(p.released)) : UI.plain.noRelease, p.language, p.license) }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, target: '_blank', rel: 'noopener', text: 'github.com/' + p.repo })), p.site ? el('li', {}, el('a', { href: p.site, target: '_blank', rel: 'noopener', text: p.site.replace('https://', '') })) : null, ...(p.extra || []).map(([n, h]) => el('li', {}, el('a', { href: h, target: '_blank', rel: 'noopener', text: n }))))]; }))));
+      ...sec(UI.map.spires[0], ...CARDS['base-camp'].body.map(t => el('p', { text: t })), ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h3', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: UI.plain.facts(p.stars, p.release ? UI.plain.released(p.release, ago(p.released)) : UI.plain.noRelease, p.language, p.license) }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, target: '_blank', rel: 'noopener', text: 'github.com/' + p.repo })), p.site ? el('li', {}, el('a', { href: p.site, target: '_blank', rel: 'noopener', text: p.site.replace('https://', '') })) : null, ...(p.extra || []).map(([n, h]) => el('li', {}, el('a', { href: h, target: '_blank', rel: 'noopener', text: n }))))]; }))));
   if (plain.hidden) { plainFrom = document.activeElement; const was = decodeURIComponent(location.hash.slice(1)); plainWas = was === 'page' || was === 'plain' ? null : was; }
   if (!worldDown) setAddress('page');
   plain.hidden = false; plain.scrollTop = 0; if (api && !worldDown) api.stop();
@@ -412,7 +470,7 @@ let soundAsked = false;   // the visitor has clicked for sound, whether or not t
 function musicMenu(open) {
   const b = $('b-track');
   if (!open) { if (!music.hidden) { music.hidden = true; b.setAttribute('aria-expanded', 'false'); } return; }
-  const k = audio.track(), off = audio.muted(), set = audio.set().index;
+  const k = audio.track(), off = audio.muted(), set = audio.set();
   const item = (text, on, act) => el('button', { class: 'plank', role: 'menuitemradio', 'aria-checked': String(!!on), onclick: () => { act(); musicMenu(false); syncTop(); b.focus(); } }, el('span', { text }));
   const play = i => () => { audio.start(); if (audio.muted()) audio.setMuted(false); audio.pick(i); };
   music.replaceChildren(
@@ -420,7 +478,9 @@ function musicMenu(open) {
     item(UI.auto(audio.autoTrack()), !off && k.auto, play(-1)),
     ...TRACK_NAMES.map((n, i) => item(n, !off && !k.auto && k.index === i, play(i))),
     el('p', { class: 'from', text: UI.map.musicStyle }),
-    ...SET_NAMES.map((n, i) => item(n, set === i, () => { audio.start(); audio.setSet(i); audio.sfx('flag'); })),
+    // Auto picks the set of instruments by the place, as it picks the tune (round 8, H14).
+    item(UI.auto(set.autoName), set.auto, () => { audio.start(); audio.setSet(-1); }),
+    ...SET_NAMES.map((n, i) => item(n, !set.auto && set.index === i, () => { audio.start(); audio.setSet(i); audio.sfx('flag'); })),
     el('div', { class: 'rule' }),
     item(UI.soundOff, off, () => audio.setMuted(true)));
   const r = b.getBoundingClientRect();
@@ -438,13 +498,16 @@ addEventListener('pointerdown', e => { if (!music.hidden && !music.contains(e.ta
 const coarse = window.matchMedia ? matchMedia('(pointer: coarse)') : { matches: false };
 // The music button's spoken name carries the track it shows, so what is read matches what is seen.
 const trackLabel = $('b-track').getAttribute('aria-label');
+// How tall the top bar is, for what sits under it (the debug panel, a toast, a card on a phone on its side).
+function topHeight() { document.documentElement.style.setProperty('--top', $('top').offsetHeight + 'px'); }
 function syncTop() {
   document.documentElement.dataset.theme = api.theme();
   const said = audio.muted() ? UI.soundOff : audio.live() || soundAsked ? trackName() : UI.soundWaits[coarse.matches ? 1 : 0];
   $('b-track').querySelector('span').textContent = said; $('b-track').setAttribute('aria-label', trackLabel + ': ' + said);
   $('b-track').dataset.state = audio.muted() ? 'off' : audio.live() || soundAsked ? 'playing' : 'waits';
   // The sun or the moon before the clock's word: what the sky is now, so AUTO says what it is for (note 30).
-  const mode = api.clock().mode, dark = mode === 'dusk' || (mode === 'auto' && api.theme() === 'dark');
+  const mode = api.clock().mode, dark = mode === 'dusk' || (mode === 'auto' && api.theme() === 'dark'); audio.dusk(dark);
+  topHeight();
   $('b-dusk').querySelector('.sky').className = 'sky ' + (dark ? 'moon' : 'sun'); $('b-dusk').querySelector('span').textContent = UI.theme[mode]; $('b-dusk').setAttribute('aria-label', UI.map.dusk + ': ' + UI.theme[mode]);
 }
 
@@ -458,8 +521,10 @@ try {
   // A visit that opens at the Trailhead shows the sign before the first frame, so the map's first frame is
   // already framed round it and the camera has nothing to catch up on (T1). The page's tick keeps it right after.
   fork.hidden = !!(new URLSearchParams(location.search).get('route') || location.hash.length > 1);
+  // A visit that opens at the Trailhead opens on him running in from the foot of the map (round 8, J13).
+  // arrive=0 in the address has him stood at the junction from the first frame, for screenshots.
   api = await mount($('c'), {
-    theme: 'light', breakAt,
+    theme: 'light', breakAt, arrive: fork.hidden === false && !/[?&](arrive=0|p=|stop=|sheet=)/.test(location.search),
     onEvent(e) {
       if (e.type === 'broken') washedOut(e);
       else if (e.type === 'stop') { if (isWait(e.id)) { waiting = true; say(UI.wait[e.id.slice(5)] || UI.wait.go, 600000); } else { if (waiting) { waiting = false; toast.hidden = true; } showCard(e.id); } }
@@ -484,7 +549,7 @@ try {
   buildMarks(); syncTop();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(nudgeMarks);
   document.documentElement.style.setProperty('--px', api.scale() + 'px');
-  addEventListener('resize', () => setTimeout(() => { document.documentElement.style.setProperty('--px', api.scale() + 'px'); nudgeMarks(); }, 0));
+  addEventListener('resize', () => setTimeout(() => { document.documentElement.style.setProperty('--px', api.scale() + 'px'); nudgeMarks(); topHeight(); }, 0));
   // For screenshots: ?route=stack&p=0.5 or ?stop=1 or ?dusk=1 or ?done=lake,stack,spires or ?look=-200,150
   const q = new URLSearchParams(location.search);
   if (q.get('done')) api.mark(q.get('done').split(','));
@@ -508,8 +573,15 @@ try {
   // Where a browser lets a page make sound unasked (Firefox says so), the music starts with the page.
   try { if (navigator.getAutoplayPolicy && navigator.getAutoplayPolicy('audiocontext') === 'allowed') audio.start(); } catch { /* not every browser can say */ }
   status.hidden = true;
+  // The game is told four times a second which parts of the window the page's own panels cover (round 8,
+  // H10), so that a thing behind one does not count as observed: the junction's placard and signs, a card,
+  // the debug panel, the music menu, the buttons along the top, the route bar and a message. While a sheet
+  // or the plain page is up, nothing behind it counts.
+  const PANELS = '#fork .placard, #fork .post, #card, #debug, #music, #bar, #toast, #tab, #top .plank';
+  const tellCover = () => { if (!sheet.hidden || !plain.hidden) { api.cover([], true); return; } const out = []; for (const n of document.querySelectorAll(PANELS)) { const r = n.getBoundingClientRect(); if (r.width > 0 && r.height > 0) out.push(r); } api.cover(out, false); };
+  setInterval(tellCover, 250); tellCover();
   // For screenshot scripts: the debug panel's controls (speed, start buttons) without clicking.
-  window.__api = api;
+  window.__api = api; window.__sound = () => audio.live(); window.__set = () => audio.set(); window.__rain = () => audio.rainLevel();
   window.__ready = true;
   try { console.log(...CONSOLE); } catch { /* no console */ }
 } catch (err) {
@@ -521,6 +593,10 @@ try {
 // The first click, tap or key of any kind starts the sound. Which of these a browser counts as a go-ahead differs (a
 // finger going down does not, a finger coming up does), so every one of them asks.
 for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click']) addEventListener(ev, () => audio.start(), { capture: true, passive: true });
+// The sound plays only while the page is in front (round 8, note 24): it stops when the tab is hidden, the
+// window loses focus, the page is put away or a phone's screen sleeps, and comes back when he does.
+for (const [ev, gone] of [['blur', true], ['pagehide', true], ['focus', false], ['pageshow', false]]) addEventListener(ev, () => audio.away(gone || document.hidden));
+document.addEventListener('visibilitychange', () => audio.away(document.hidden || !document.hasFocus()));
 addEventListener('popstate', () => navigate(location.hash));
 // Space and the Start button: a press starts or stops him. Held for more than a quarter of a second, he goes
 // faster for as long as it is held, and carries on at his own pace when it is let go.
@@ -543,11 +619,11 @@ $('card-x').addEventListener('click', () => { cardShut = true; card.hidden = tru
 tab.addEventListener('click', e => { e.currentTarget.blur(); if (shown && cardShut) { cardShut = false; card.hidden = false; audio.focus(1); } else forkShut = false; audio.sfx('open'); });
 $('home').addEventListener('click', e => { e.currentTarget.blur(); if (api.route().startsWith('spire:')) toCamp(); else home(); audio.sfx('select'); });
 $('card-go').addEventListener('click', () => { const c = CARDS[shown]; audio.sfx('select'); if (c && c.home) home(); else api.start(); });
-$('b-map').addEventListener('click', e => { e.currentTarget.blur(); openSheet('map'); });
+$('b-map').addEventListener('click', e => { const b = e.currentTarget; b.blur(); openSheet('map', e.detail ? null : b); });
 function musicButton() { if (!soundAsked && !audio.live() && !audio.muted()) { soundAsked = true; audio.start(); audio.sfx('select'); syncTop(); return; } soundAsked = true; musicMenu(music.hidden); }
 $('b-track').addEventListener('click', musicButton);
 $('b-dusk').addEventListener('click', e => { e.currentTarget.blur(); toggleDusk(); });
-$('b-help').addEventListener('click', e => { e.currentTarget.blur(); openSheet('keys'); });
+$('b-help').addEventListener('click', e => { const b = e.currentTarget; b.blur(); openSheet('keys', e.detail ? null : b); });
 $('b-page').addEventListener('click', () => navigate('#page'));
 // The debug menu is public (T9): its button sits next to Keys (not on a phone, where the trail map's foot opens it).
 $('b-debug').addEventListener('click', e => { e.currentTarget.blur(); openDebug(debug.hidden); });
@@ -559,7 +635,7 @@ addEventListener('keydown', e => {
   if (e.target.closest && e.target.closest('input, textarea')) return;
   audio.start();
   if (e.code === 'Backquote' && !e.metaKey && !e.ctrlKey && !e.altKey) { openDebug(debug.hidden); e.preventDefault(); return; }
-  if (e.code === 'Escape' && !book.hidden && sheet.hidden) { closeBook(); e.preventDefault(); return; }
+  if (e.code === 'Escape' && !book.hidden && sheet.hidden && plain.hidden) { closeBook(); e.preventDefault(); return; }
   if (e.code === 'Escape') { if (!plain.hidden) leavePlain(); else if (!sheet.hidden) closeSheet(); else if (!debug.hidden) openDebug(false); else openSheet('map'); e.preventDefault(); return; }
   if (!sheet.hidden || !plain.hidden) return;
   // A key held with Command, Control or Alt belongs to the browser.
@@ -600,6 +676,10 @@ addEventListener('resize', () => { nameBox = null; });
   const atFork = !(running || p > 0.002 || shown != null || api.route() !== 'lake');
   if (!atFork) chosen = true;
   if (timeSlider && !debug.hidden && document.activeElement !== timeSlider) timeSlider.value = Math.round(api.clock().t);
+  // The lakeside sounds of rain while it drizzles there (round 8, H15).
+  audio.rain(api.scene() === 'lakeside' ? api.rainNow() : 0);
+  if (skyLine && !debug.hidden) { const s = UI.debug.skyLine(api.skyNow()); if (skyLine.textContent !== s) skyLine.textContent = s; }
+  if (!debug.hidden) syncEvents();
   fork.hidden = !atFork || forkShut;
   { const text = shown && cardShut ? LABELS[shown] || (PROJECTS[shown] ? PROJECTS[shown].name : CARDS[shown].title) : atFork && forkShut ? DEST_NAMES.trailhead : '';
     tab.hidden = !text || !sheet.hidden || !plain.hidden; if (text && text !== tabText) { tabText = text; tab.querySelector('span').textContent = text; } }

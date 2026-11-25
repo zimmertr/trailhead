@@ -8,15 +8,16 @@
 // line against the sky. The lower ridge (pitches 1 to 4) is dark granite blotched with black lichen,
 // with lime and rust patches; the tower is pale cream with long vertical cracks. Every landmark of the
 // pitch list in ROUND4.md section 5 is one or more blocks below, in the order the route meets them.
-import { clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, DEBUG } from './core.js';
+import { covered, clamp, lerp, smooth, frac, hash, vnoise, fbm, bayer, rng, R, INK, pick, BM, outline, DEBUG, saw } from './core.js';
 import { goat } from './fauna.js';
 import { Strip, drawStrip, baseline, shell } from './side.js';
 import { makeConifer, makeCloud, makeHuckleberry, huckClumps } from './sprites.js';
 import { sideFig, frontFig, backFig, FEET, HANDS, KITS } from './tj.js';
 import { makeCragPair, PAIR } from './people.js';
 import { NAMES } from './content.js';
+import { veil, flurry } from './weather.js';
 
-const W = 1500, UP = 520, DOWN = 380;
+const W = 1500, UP = 520, DOWN = 680;
 // The foot of the face: level with the start at the left, falling away to the right, so the drop
 // under the climbers grows as they go.
 const foot = x => x < 236 ? 8 : 8 - (x - 236) * 0.2 - 10 * vnoise(x / 40, 1, 700);
@@ -231,7 +232,9 @@ function paintRidge(S) {
 
 // The ground: the knob's heather and dwarf pine at the left, talus and larches under the face.
 function paintGround(S, things) {
-  const rand = rng(735), grass = {};
+  // Where the ground is grass, one cell for each pixel of the strip (a typed grid since round 8, I1: as an
+  // object keyed by a string for every pixel it took most of the painting's time).
+  const rand = rng(735), grass = new Uint8Array(W * (UP + DOWN + 1)), gi = (x, h) => (UP - h) * W + x, onGrass = (x, h) => x >= 0 && x < W && grass[gi(x, h)] === 1;
   for (let x = 0; x < W; x++) {
     const f = x < 236 ? knob(x) : lerp(knob(236) - 4, foot(x) - 30, smooth(236, 330, x));
     for (let h = Math.round(f); h > -DOWN; h--) {
@@ -240,7 +243,7 @@ function paintGround(S, things) {
       let c;
       if (hash(x >> 1, h >> 1, 736) < tal) c = pick('rock', 0.25 + 0.6 * hash(x >> 1, h >> 1, 737), x, h);
       else if (fbm(x / 26, h / 10, 748, 3) > 0.62) c = pick('rock', 0.5 + 0.3 * (fbm(x / 9, h / 5, 749, 2) - 0.5) - smooth(0, 300, depth) * 0.2, x, h, 0.6);
-      else { grass[x + '.' + h] = 1; c = pick(fbm(x / 20, h / 9, 738, 2) > 0.55 ? 'moss' : 'grass', 0.45 + 0.4 * (fbm(x / 22, h / 12, 739, 3) - 0.5) - smooth(0, 300, depth) * 0.25, x, h, 0.35); }
+      else { grass[gi(x, h)] = 1; c = pick(fbm(x / 20, h / 9, 738, 2) > 0.55 ? 'moss' : 'grass', 0.45 + 0.4 * (fbm(x / 22, h / 12, 739, 3) - 0.5) - smooth(0, 300, depth) * 0.25, x, h, 0.35); }
       if (depth < 1.5 && !(hash(x >> 1, h >> 1, 736) < tal)) c = R.moss[2];
       S.set(x, -h, c);
     }
@@ -248,7 +251,7 @@ function paintGround(S, things) {
   // Red huckleberry (round 5, T65): shrubs in clumps where the heather used to be painted red, and only
   // where a shrub's whole foot is on grass. The lower ones are nearer and bigger.
   const hucks = [0, 1, 2, 3, 4, 5].map(i => [0.8, 1.05, 1.35, 1.7].map(s => makeHuckleberry(680 + i, s)));
-  for (const p of huckClumps(0, W, -40, DOWN, (x, y) => fbm(x / 9, -y / 4, 747, 3), (x, y) => [-5, 0, 5].every(d => grass[(x + d) + '.' + (-y)] && grass[(x + d) + '.' + (-y + 3)]), 750))
+  for (const p of huckClumps(0, W, -40, DOWN, (x, y) => fbm(x / 9, -y / 4, 747, 3), (x, y) => [-5, 0, 5].every(d => onGrass(x + d, -y) && onGrass(x + d, -y + 3)), 750))
     S.stamp(hucks[p.v][p.s + (p.y > 120 ? 1 : 0)], p.x, p.y, p.flip);
   // Dwarf pine in knee-high mats on the knob and in the cracks low on the ridge; larches below.
   for (let n = 0; n < 40; n++) { const x = 20 + rand() * 240, h = (x < 236 ? knob(x) : along(LOW, x)) - rand() * 6; things.push({ pine: 3 + rand() * 5, x: Math.round(x), h: Math.round(h) }); }
@@ -737,8 +740,9 @@ const UNDER = { out: 1.2, land: 3.0, unclip: 3.6, snag: 6.2, heave: [6.4, 9.4], 
 // seconds apart) walks to the ledge's outer end (`ledge` s), steps down onto the snow (`step` s), and
 // only once on it faces in and traverses down and across it at `v` px a second, in TJ's steps, until
 // `off` px out. The scene ends when the last of them is there: a few clear steps each, then the map
-// (round 6, note 22: round 5's took 21 s, most of it watching them cross).
-const SN = { gap: 1.0, ledge: 1.0, step: 0.5, v: 30, off: 140, order: { tj: 0, lead: 1, red: 2 } };
+// (round 6, note 22: round 5's took 21 s, most of it watching them cross; round 8, note 3: still a bit
+// long, so the last of them now goes 75 px out, not 140, before the cut, two seconds sooner).
+const SN = { gap: 1.0, ledge: 1.0, step: 0.5, v: 30, off: 75, order: { tj: 0, lead: 1, red: 2 } };
 const DESC_LEN = DESC.under + UNDER.walk + 2 * SN.gap + SN.ledge + SN.step + SN.off / SN.v + 0.5;
 function makeScript() {
   const tr = { tj: [], lead: [], red: [] }, ropes = [], stops = [], pro = [], anc = [];
@@ -1290,11 +1294,14 @@ function buildRidge() {
   // climbing up, until everyone is at the anchor: ahead is how far it has got. When the visitor carries
   // on, the timeline jumps by that much (skip), so nothing is watched twice.
   let ahead = 0, aheadAt = -1;
-  // A gust now and then: one in each 9 seconds, at a random point in its first 4, lasting 3; and the
-  // debug menu's gust, now.
+  // A gust now and then, lasting 3 s: the map's own gusts as they reach the peak (round 8, E1: sky.gust in
+  // world.js), about one in eleven seconds; with the weather switched off, its old clock (one in each 9
+  // seconds, at a random point in its first 4); and the debug menu's gust, now.
   const GUSTR = { slot: 9, len: 3 };
   let gustGo = -1e9, gustHeard = null;
-  const gustAt = t => { if (t - gustGo >= 0 && t - gustGo < GUSTR.len) return [t - gustGo, 'go' + gustGo]; const n = Math.floor(t / GUSTR.slot), u = t - n * GUSTR.slot - 4 * hash(n, 3, 795); return u >= 0 && u < GUSTR.len ? [u, n] : null; };
+  const gustAt = (t, sky) => { if (t - gustGo >= 0 && t - gustGo < GUSTR.len) return [t - gustGo, 'go' + gustGo];
+    if (sky) { const gw = sky.gust('peak'); return gw && gw[0] < GUSTR.len ? gw : null; }
+    const n = Math.floor(t / GUSTR.slot), u = t - n * GUSTR.slot - 4 * hash(n, 3, 795); return u >= 0 && u < GUSTR.len ? [u, n] : null; };
   // The rappel rope: from the ring over the lip; while someone is on it, tight to their device and the
   // tail hanging below them; otherwise lying down the rock's east edge. Thrown, it uncoils down the edge.
   const rp = [];
@@ -1385,7 +1392,7 @@ function buildRidge() {
       camX += (at.x - camX) * k; camH += (at.h - camH) * k;
       // The wind where the camera is, and the gust's strength; a whoosh as each gust arrives, louder
       // high up (none at the foot, where there is no wind to speak of).
-      const gu = gustAt(t), g = gu ? Math.sin(Math.PI * gu[0] / GUSTR.len) : 0, wnd = tau - SCRIPT.descT >= DESC.under ? 0 : windy(camH), wob = 2.5 * wnd * (0.35 + g);
+      const gu = gustAt(t, env.sky), g = gu ? Math.sin(Math.PI * gu[0] / GUSTR.len) : 0, wnd = tau - SCRIPT.descT >= DESC.under ? 0 : windy(camH), wob = 2.5 * wnd * (0.35 + g);
       if (gu && gu[1] !== gustHeard) { gustHeard = gu[1]; if (wnd > 0.12 || typeof gu[1] === 'string') env.sfx(wnd > 0.55 ? 'windHi' : 'wind'); }
       const base = baseline(scr, env.shown && !String(env.shown).startsWith('wait:'), st) - Math.round(VH * (scr.narrow ? 0.2 : 0.24)), cx = clamp(Math.round(camX - VW * (scr.narrow ? 0.5 : 0.45)), 0, W - VW), rowOf = hh => Math.round(base + camH - hh);
       const sb = R.skyband;
@@ -1396,6 +1403,11 @@ function buildRidge() {
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (VW + 140)) - 70, c.y + camH * 0.12 - 20);
       drawStrip(scr, far, 120 + cx * 0.15, base + camH * 0.08 + 60, false, R.far[1]);
       drawStrip(scr, basin, 300 + cx * 0.4, base + camH * 0.12 - 25, false, R.far[1]);
+      // While the squall is over the volcano on the map, its snow reaches the ridge (round 8, E1): the far
+      // range greys behind it here, and the flakes blow across everything at the end. Not once they are down
+      // in the cloud, which has its own snow.
+      const snowK = env.sky && tau - SCRIPT.descT < DESC.under ? env.sky.snow : 0;
+      veil(scr, 0.6 * snowK, 0, VH, true);
       const seaC = smooth(220, 430, camH), seaTop = base + camH * 0.12 - 25 + 40 - 31 * seaC, seaX = Math.round(300 + cx * 0.4);
       // The one cloud sea (round 5, T74): from when the haul starts its near part rises up the tower from
       // the bottom of the picture, always below TJ, until by the time he is up it stands at CLOUDH, the
@@ -1592,7 +1604,7 @@ function buildRidge() {
       if (dv >= DESC.under + 0.5) underRope(scr, dv - DESC.under, P, cx, rowOf);
       goatSeen = null;
       if (DEBUG.animals) { const gx = goatAt.x - cx, near = Math.abs(P.tj.x - goatAt.x) < 160, pg = t - poked.goat, leap = pg < 1.6 ? Math.round(8 * Math.abs(Math.sin(pg * Math.PI / 0.8))) : 0;
-        if (gx > -30 && gx < VW + 30) { const gy = rowOf(goatAt.h) + 1; scr.put(near || pg < 1.6 ? GOAT.look : GOAT.stand, gx, gy - leap, pg < 1.6 ? pg > 0.8 : P.tj.x < goatAt.x); goatSeen = [gx, gy]; } }
+        if (gx > -30 && gx < VW + 30) { const gy = rowOf(goatAt.h) + 1; scr.put(near || pg < 1.6 ? GOAT.look : GOAT.stand, gx, gy - leap, pg < 1.6 ? pg > 0.8 : P.tj.x < goatAt.x); goatSeen = [gx, gy]; if (gx > 8 && gx < VW - 8 && !covered(gx, gy)) saw('goat'); } }
       for (const w of WHO) if (P[w].where !== 'n') draw1(w);
       // Jackets snap downwind and loose hair streams from under a helmet once there is wind.
       if (wnd > 0.15) for (const w of WHO) {
@@ -1636,6 +1648,7 @@ function buildRidge() {
         } else ravenSeen = null;
       } else ravenSeen = null;
       windLines(scr, t, wnd, g);
+      flurry(scr, t, snowK, 1);
       const me = P.tj; focus.x = Math.round(me.x) - cx; focus.y = rowOf(me.h) - 14;
     }
   };
