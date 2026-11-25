@@ -539,7 +539,7 @@ export function makeWorld() {
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
   const put = (bm, x, y, extra = {}) => things.push({ bm, x: Math.round(x), y: Math.round(y), ...extra });
   for (const s of spots.signs) put(makeSmallSign(), s[0], s[1]);
-  put(makeJournal(), spots.journal[0], spots.journal[1]); put(makeKiosk(), spots.kiosk[0], spots.kiosk[1]);
+  put(makeJournal(), spots.journal[0], spots.journal[1]); const KIOSK = makeKiosk(); put(KIOSK, spots.kiosk[0], spots.kiosk[1]);
   const REGS = [...Array(16).keys()].map(k => makeRegister(k & 7, k > 7)), regBox = { bm: REGS[0], x: spots.register[0], y: spots.register[1] }; things.push(regBox);
   if (spots.lookout) put(makeLookout(), spots.lookout[0], spots.lookout[1]);
   for (const [x, y, c] of spots.tents) put(makeTent(c), x, y);
@@ -583,6 +583,7 @@ export function makeWorld() {
   // The streamside plants by kind, each with its spot and how far it stands from the water (H8), for the checks.
   window.__plants = () => W.things.filter(th => th.tree && th.tree.what).map(th => [th.tree.what, th.x, th.y, th.near || 0]);
   // Where the beach's driftwood gathers and where its logs lie (H7), for the checks.
+  window.__pair = () => PAIR.lit;
   window.__jams = { spots: W.jams, logs: W.things.filter(th => th.bm && th.bm.what === 'drift').map(th => [th.x, th.y]) };
   for (const it of crit.items) things.push(it);
   const birds = [speck(0), speck(1)];
@@ -622,6 +623,20 @@ export function makeWorld() {
   // How far from the camera he is on a trail, from the trail's own points.
   const vOn = (path, x, y) => { let best = 0, bd = 1e9; for (const p of W.lines[path]) { const d = Math.abs(p[0] - x) + Math.abs(p[1] - y); if (d < bd) { bd = d; best = p[2]; } } return best; };
   const saved = new Uint8Array(25 * 34);
+  // The register's box and the board beside it light as one while the pointer is on either (round 8, H12): one
+  // outline round the pair, as a place lifts. It goes round the two drawings and the ground between them: each
+  // row of the screen is outlined from the leftmost solid pixel of either to the rightmost.
+  const PAIR = { on: false, lit: 0, lo: new Int16Array(48), hi: new Int16Array(48) };
+  function pairOutline(scr, ox, oy, c) {
+    const { VW, VH, fb } = scr, { lo, hi } = PAIR, both = [[KIOSK, spots.kiosk], [regBox.bm, spots.register]];
+    let y0 = 1e9, y1 = -1e9;
+    for (const [bm, [, y]] of both) { y0 = Math.min(y0, y - bm.oy); y1 = Math.max(y1, y - bm.oy + bm.h - 1); }
+    const n = Math.min(lo.length - 2, y1 - y0 + 1); lo.fill(32767); hi.fill(-32768);
+    for (const [bm, [x, y]] of both) for (let j = 0; j < bm.h; j++) { const r = y - bm.oy + j - y0 + 1; if (r > n) break; for (let i = 0; i < bm.w; i++) if (bm.d[j * bm.w + i]) { const wx = x - bm.ox + i; if (wx < lo[r]) lo[r] = wx; if (wx > hi[r]) hi[r] = wx; } }
+    const set = (wx, wy) => { const X = wx - ox, Y = wy - oy; if (X >= 0 && Y >= 0 && X < VW && Y < VH) fb[Y * VW + X] = c; };
+    for (let r = 1; r <= n; r++) { if (lo[r] > hi[r]) continue; const y = y0 + r - 1; set(lo[r] - 1, y); set(hi[r] + 1, y);
+      for (let x = lo[r]; x <= hi[r]; x++) { if (x < lo[r - 1] || x > hi[r - 1]) set(x, y - 1); if (x < lo[r + 1] || x > hi[r + 1]) set(x, y + 1); } }
+  }
   // The destinations rise a little, each with its whole country, when the pointer rests on one or it is
   // tapped (D12a, D12b). W.dest holds the destination's number (1 to 3) and 4 on the landmark itself.
   const lifted = [0, 0, 0, 0]; let tapped = 0, tapUntil = 0;
@@ -787,7 +802,7 @@ export function makeWorld() {
     labels() { return PLACES.map(d => { const k = W.DEST.indexOf(d.id), l = k > 0 ? lifted[k] : 0; return { id: 'go:' + d.id, name: DEST_NAMES[d.id], x: d.x - last.ox, y: d.y - last.oy - 2 * l, lift: l }; }); },
     // What is under a point of the screen: a sign with a name, the kiosk, a cat.
     pick(sx, sy) {
-      const wx = sx + last.ox, wy = sy + last.oy;
+      const wx = sx + last.ox, wy = sy + last.oy; PAIR.on = false;
       for (const s of spots.signs) if (Math.abs(wx - s[0]) < 8 && wy > s[1] - 17 && wy < s[1] + 3) return { label: SIGNS[s[2]], x: s[0] - last.ox, y: s[1] - 18 - last.oy };
       const c = kit.pick(wx, wy); if (c) return { label: c.label, x: c.wx - last.ox, y: c.wy - last.oy, act: c.act };
       // Every animal on the map answers a click (round 6, note 10); critters.js says which is under the point.
@@ -797,7 +812,7 @@ export function makeWorld() {
       // one box round the pair and the gap between them, one name tag over its middle in the register's own
       // words. It opens the register's scene, where the notebook, the conditions and the map open from.
       { const [rx, ry] = spots.register, [kx, ky] = spots.kiosk, x0 = Math.min(rx - 6, kx - 14), x1 = Math.max(rx + 6, kx + 14), y0 = Math.min(ry - 21, ky - 27), y1 = Math.max(ry + 2, ky + 3);
-        if (wx > x0 && wx < x1 && wy > y0 && wy < y1) return { label: NAMES.register, x: Math.round((x0 + x1) / 2) - last.ox, y: y0 - last.oy, act: 'register' }; }
+        if (wx > x0 && wx < x1 && wy > y0 && wy < y1) { PAIR.on = true; return { label: NAMES.register, x: Math.round((x0 + x1) / 2) - last.ox, y: y0 - last.oy, act: 'register' }; } }
       // The tide pool to find (E7), only while the low water has left it.
       { const p = crit.findPool(nowT); if (p && Math.abs(wx - p.x) <= p.rx + 3 && Math.abs(wy - p.y) <= p.ry + 3) return { label: NAMES.tidepool, x: p.x - last.ox, y: p.y - p.ry - 5 - last.oy, act: 'pool' }; }
       { const k = destUnder(wx, wy); if (k) return { label: DEST_NAMES[W.DEST[k]], named: true, x: sx, y: sy, act: 'dest:' + W.DEST[k] }; }
@@ -966,6 +981,9 @@ export function makeWorld() {
         else drawStill(scr, th, tq, ox, oy, dl, clipBlit, flags, t);
       }
 
+      // One outline round the register and the board while the pointer is on the pair (H12): faint, then full.
+      PAIR.lit += ((PAIR.on && env.ptr && !env.fixed ? 1 : 0) - PAIR.lit) * Math.min(1, dt * 9);
+      if (PAIR.lit > 0.25) pairOutline(scr, ox, oy, R.white[PAIR.lit > 0.6 ? 1 : 0]);
       if (crit.sounds.length) { for (const name of crit.sounds) env.sfx(name); crit.sounds.length = 0; }
       ev.draw(scr, ox, oy, t, env.mix || 0); life.draw(scr, ox, oy, t, env, DEBUG.clouds ? sky : null);
       if (env.mix > 0.02) duskHills(fb, VW, VH, ox, oy, HLIT, gNow, env.mix, WARM);

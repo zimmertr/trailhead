@@ -129,7 +129,7 @@ TJ picked these from `docs/IDEAS.md` on 2026-11-24, for the night. Pictures firs
 - [x] **H9 Tap a Reported Line.** A tap on a line under Reported closes the board and moves the view to where that thing lives, without starting it.
 - [x] **H10 Only What Is Clear Counts.** A thing counts as Observed only when it is clear of the page's own panels.
 - [x] **H11 A Count on the Notice.** The notice in the register's scene says how much has been observed, beside the checklist's count. The words are a draft: "12 of 31 observed".
-- [ ] **H12 One Outline for the Pair.** Hovering the register or the board lights both with one outline, as a place on the map lifts.
+- [x] **H12 One Outline for the Pair.** Hovering the register or the board lights both with one outline, as a place on the map lifts.
 - [ ] **H13 Debug Panel Layers.** Switches that ring every sign with its name and every animal home by kind, a list that starts any animal's act, and one line that says what the sky is doing.
 - [ ] **H14 A Set for Each Place.** On Auto the music picks the instruments as well as the tune: winds in the rainforest, the quartet at the lake, mallets on the ridge, the music box at camp after Dusk.
 - [ ] **H15 Weather in the High Scenes.** The summit squall keeps its clock in every scene, so a climb is sometimes snowed on without the map having been open. The lakeside sounds of rain when it drizzles.
@@ -453,3 +453,12 @@ Every call, one line each, newest last.
 - H11, compared: the register's scene at Day, Dusk and on a phone against v0.5.0, and the open book on a desktop and a phone. The card reads the same but for the new line and the taller card on a phone.
 - H11, how it was tested: a new browser test opens the register on a desktop and on a phone, reads the line, compares both numbers with the board's own names and what the game has reported, and checks that no words are cut off.
 - H11, the numbers: 63 browser tests pass; check.sh reports nothing moved since H10; frame time 11.6 ms zoomed out at Dusk. No bake was needed. CI on H10 (`1f9dbd8`) is green.
+- H12, what was built: while the pointer is on the register's box or on the board, one pale outline goes round both on the map, and it goes out when the pointer leaves. It comes in over about a tenth of a second, faint first, at the pace a place lifts. `pairOutline()` in `world.js` draws it after everything that stands.
+- H12, a call on the shape: one outline, not one round each drawing. Every row of the screen is outlined from the leftmost solid pixel of either drawing to the rightmost, so the line bridges the gap between the two roofs and runs under both sets of feet, and the grass between them is inside it.
+- H12, a call on the colour: the palette's cream (`white`), the colour of the name tags' letters, a duller step of it while it comes in. Dusk tints it with everything else.
+- H12, a call on when: it lights only when the pair is what the pointer would click. With a cat or a sign under the pointer inside the pair's box, the tag names the cat and the outline stays out.
+- H12, a call on touch: a phone has no resting pointer, so nothing lights there, as a place does not lift there before a tap.
+- H12, no pictures: nothing was redrawn. The outline is made from the two drawings as they stand, whichever of the register's sixteen states is up.
+- H12, compared: the pointer on the board at Day and on the register at Dusk, against v0.5.0 (where the board had its own tag and nothing lit), and the view after the pointer has left, which matches the view before it came.
+- H12, how it was tested: a new browser test rests the pointer on each end of the pair and sees the outline come in, then moves it off and sees it go out.
+- H12, the numbers: 64 browser tests pass; check.sh reports nothing moved since H11; frame time 11.5 ms zoomed out at Dusk. No bake was needed. CI on H11 (`2b4813e`) is green.

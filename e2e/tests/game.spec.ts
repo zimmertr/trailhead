@@ -956,3 +956,23 @@ test('the register\'s notice counts what has been observed, and its lines fit th
     expect(problems).toEqual([])
   }
 })
+
+// Round 8, H12: the pointer on either the register's box or the board lights the one outline round both, and
+// it goes out when the pointer leaves the pair.
+test('the pointer on the register or the board lights one outline round both', async ({ page }) => {
+  type Pair = { __pair: () => number }
+  const problems = await open(page, '/')
+  await page.locator('#fork-x').click()
+  await expect.poll(() => page.evaluate(() => window.__api.hitAt('register')), { timeout: 15_000 }).not.toBeNull()
+  const [x, y] = (await page.evaluate(() => window.__api.hitAt('register'))) as [number, number]
+  const scale = await page.evaluate(() => (window.__info as unknown as { S: number }).S / (window.devicePixelRatio || 1))
+  const lit = () => page.evaluate(() => (window as unknown as Pair).__pair())
+  expect(await lit()).toBe(0)
+  for (const dx of [3, 40]) {
+    await page.mouse.move(x + dx * scale, y + 12 * scale)
+    await expect.poll(lit, { timeout: 5_000 }).toBeGreaterThan(0.9)
+    await page.mouse.move(x - 30 * scale, y - 30 * scale)
+    await expect.poll(lit, { timeout: 5_000 }).toBeLessThan(0.1)
+  }
+  expect(problems).toEqual([])
+})

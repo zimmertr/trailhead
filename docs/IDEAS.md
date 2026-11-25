@@ -617,3 +617,6 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Count on the Board Too** (round 8, H11). The board's Observed heading could carry the same count, so the number is in view while the two lists are read.
 - **A Note When the Count Is Full** (round 8, H11). When every thing has been observed, the notice could say so in a different hand, as the register opens when all three routes are done. The words would be TJ's.
 - **Tally Marks on the Card** (round 8, H11). The drawn card under the words could carry pencil tally marks, one for every five observed, so the picture itself shows progress.
+- **An Outline for Everything That Answers** (round 8, H12). The lookout, the journal, the signs and the tide pool answer a click and show only a tag. The same outline could go round each while the pointer is on it, by one rule for every clickable drawing.
+- **The Outline on a Tap** (round 8, H12). On a phone the pair could light for the moment between the tap and the run to the register, as a place lifts when it is tapped.
+- **The Board's Papers Flutter** (round 8, H12). While the pair is lit, the papers pinned on the board could lift at a corner in the wind, a second cue that there is something to read.

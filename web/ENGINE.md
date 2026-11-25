@@ -53,6 +53,7 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - Ice that floats is a thing, not paint: the bergs and floes are placed and drawn by `life.js` (`BERGS`), drift with the shared gust (`gustOver()` in `core.js`) and keep to their own water.
 - A streamside plant is planted by one rule (`waterNear` and `bankOk` in `land.js`): on the bank, two to seven from running water and never in it, off the sand, on nearly level ground, clear of the trail. Skunk cabbage, monkeyflower, marsh marigold and devil's club all use it, and a new streamside plant is a drawing and a line in that rule.
 - Driftwood gathers. `JAMS` in `land.js` finds the creek mouths and the headlands from the land, and every log and bleached branch on the beach is laid by it: logs in heaps at those spots, beside a creek and never on it, each showing whole, and clean sand between. More driftwood goes onto a heap.
+- Two drawings that answer a click as one thing light as one: `pairOutline()` in `world.js` goes round the register's box and the board, row by row from the leftmost solid pixel of either to the rightmost. It lights only when `pick()` says the pair is what a click would get (`PAIR.on`).
 
 ## Solid Things
 
