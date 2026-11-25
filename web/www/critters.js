@@ -184,7 +184,14 @@ export function makeCritters(W, opts = {}) {
   const meadow = (x, y) => clear(x, y) && kindAt(x, y) >= 1 && kindAt(x, y) <= 3 && W.forestAmt(x, y) < 0.45 && !W.nearTrail(x, y, 5);
   // A straight line an animal may walk: every 3 px of it is ground it may stand on. (Until E9 it was tried at
   // five points however long it was, and a bear could step over a creek between two of them.)
-  const way = (ok, x0, y0, x1, y1) => { const n = Math.max(5, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 3)); for (let k = 1; k <= n; k++) if (!ok(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)) return false; return true; };
+  // A straight line is clear if every pixel an animal would be drawn on along it is (two looks to the pixel:
+  // until round 8, D1, it looked every 3, and a creek or a ledge a pixel or two wide slipped between two looks).
+  // One step of an animal that walks on land (round 8, D1): it never sets foot on a pixel no land animal may
+  // stand on. The look along the line before it set off (way) samples the line, and a line can clip the corner
+  // of a pixel between two samples, so now and then one was drawn for a frame on a cliff's edge or a bank.
+  // False means it did not move, and the caller stops it where it is.
+  const step = (a, nx, ny) => { const X = Math.round(nx), Y = Math.round(ny); if ((X !== a.x || Y !== a.y) && !col.canBe('land', X, Y, 0) && col.canBe('land', a.x, a.y, 0)) return false; a.fx = nx; a.fy = ny; a.x = X; a.y = Y; return true; };
+  const way = (ok, x0, y0, x1, y1) => { const n = Math.max(5, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2)); for (let k = 1; k <= n; k++) if (!ok(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)) return false; return true; };
 
   // ---- the animals that graze and wander ----------------------------------------------------
   const elkBull = { look: makeElk(false), graze: makeElk(true), walk: [makeElk(false, 1), makeElk(false, 2)] };
@@ -201,8 +208,10 @@ export function makeCritters(W, opts = {}) {
   // open, clear of the buildings).
   // Where it may stop is its country (o.ok); what it may walk across on the way is any ground a land animal
   // may stand on that is not a tree's foot (pass), so it can go behind a tree, through the sage or over a trail to the next open patch.
-  const pass = (x, y) => col.canBe('land', x, y, 0) && !bole[Math.floor(y / CELL) * GW + Math.floor(x / CELL)];
-  const walker = (kind, f, x0, y0, o) => { const own = o.ok; o = { ...o, ok: (x, y) => own(x, y) && col.canBe('land', x, y, 0) }; const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, col: 'land', walker: true, f, bm: f.graze, x, y, hx: x, hy: y, h0: [x, y], st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
+  // The ground is asked about at the pixel the animal is drawn on (round 8, D1: asked at the exact spot, one
+  // could be drawn a pixel past where it may be, which the engine rules count).
+  const pass = (x, y) => col.canBe('land', Math.round(x), Math.round(y), 0) && !bole[Math.floor(y / CELL) * GW + Math.floor(x / CELL)];
+  const walker = (kind, f, x0, y0, o) => { const own = o.ok; o = { ...o, ok: (x, y) => own(x, y) && col.canBe('land', Math.round(x), Math.round(y), 0) }; const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, col: 'land', walker: true, f, bm: f.graze, x, y, hx: x, hy: y, h0: [x, y], st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
   // The herd keeps together: each elk strays only a little from its own place in it.
   spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look' }));
   spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null }));
@@ -234,7 +243,7 @@ export function makeCritters(W, opts = {}) {
   // other side, or the grass just in front of her feet, and never its twin's place. The first of these she could walk to herself in a
   // straight line, with dry ground 5 either side of it, so no creek lies between it and her or under its paws. A cub crosses nothing a land animal may not (collide.js):
   // landWay is a straight line clear of all that.
-  const land = (x, y) => col.canBe('land', x, y, 0), landWay = (x0, y0, x1, y1) => way(land, x0, y0, x1, y1);
+  const land = (x, y) => col.canBe('land', Math.round(x), Math.round(y), 0), landWay = (x0, y0, x1, y1) => way(land, x0, y0, x1, y1);
   const besideHer = (a, d, dy) => { const M = a.mum, B = a.sib, sd = a.n ? 1 : -1, tw = !B ? null : B.st === 'walk' && B.goal === 'mum' ? [M.fx + B.off[0], M.fy + B.off[1]] : [B.fx, B.fy];
     for (const o of [[sd * d, dy], [-sd * d, dy + 1], [sd * d, -1], [-sd * d, -2], [sd * d, dy + 7], [-sd * d, dy + 8], [sd * 13, 7], [-sd * 13, 8]]) { const x = M.fx + o[0], y = M.fy + o[1]; if (tw && Math.hypot(x - tw[0], y - tw[1]) < 10) continue; if (M.ok(x, y) && land(x, y) && land(x - 5, y) && land(x + 5, y) && way(M.ok, M.fx, M.fy, x, y)) return o; }
     // Nothing at her side: the nearest ground a cub may stand on, so a cramped spot never puts one in the water or a rock.
@@ -299,8 +308,10 @@ export function makeCritters(W, opts = {}) {
     if (a.st === 'walk') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
       if (d < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; a.fx = a.tx; a.fy = a.ty; }   // it stops on the spot it chose, which is ground it may stand on
-      else { const fast = a.fast > t, s = Math.min(d, a.v * (fast ? (a.bound ? 4 : 2.6) : 1) * dt); a.fx += dx / d * s; a.fy += dy / d * s * 0.7; if (Math.abs(dx) > 0.5) a.flip = (dx > 0 ? 1 : -1) !== a.faces; if (fast && a.bound) a.hop = Math.round(4 * Math.abs(Math.sin(t * 9))); }
-      a.x = Math.round(a.fx); a.y = Math.round(a.fy);
+      // It walks the straight line it looked along before it set off (way), slower up and down the
+      // picture than across it. Until round 8 (D1) only its speed up and down was cut, which bent the line,
+      // and a bent line could cross ground the straight one did not: a sheep stepped off its bench's edge.
+      else { const fast = a.fast > t, s = Math.min(d, a.v * (fast ? (a.bound ? 4 : 2.6) : 1) * dt / Math.hypot(dx / d, dy / d / 0.7)); if (!step(a, a.fx + dx / d * s, a.fy + dy / d * s)) { a.st = 'look'; a.until = t + 2 + rand() * 3; a.bm = a.f.look; return; } if (Math.abs(dx) > 0.5) a.flip = (dx > 0 ? 1 : -1) !== a.faces; if (fast && a.bound) a.hop = Math.round(4 * Math.abs(Math.sin(t * 9))); }
       a.bm = a.f.walk[Math.floor(t * (a.fast > t ? 9 : 4.5) + a.hx) & 1];
       if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; a.fx = a.tx; a.fy = a.ty; a.x = Math.round(a.fx); a.y = Math.round(a.fy); }
       return;
@@ -332,7 +343,7 @@ export function makeCritters(W, opts = {}) {
     if (a.st === 'run') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
       if (d < 1) { a.st = 'sit'; a.until = t + 5 + rand() * 11; a.bm = a.f.sit; return; }
-      const s = Math.min(d, 46 * dt); a.fx += dx / d * s; a.fy += dy / d * s; a.x = Math.round(a.fx); a.y = Math.round(a.fy);
+      const s = Math.min(d, 46 * dt); if (!step(a, a.fx + dx / d * s, a.fy + dy / d * s)) { a.st = 'sit'; a.until = t + 3 + rand() * 6; a.bm = a.f.sit; a.hop = 0; return; }
       if (Math.abs(dx) > 0.5) a.flip = dx < 0;
       a.bm = a.f.run; a.hop = Math.floor(t * 9) & 1;
       return;
@@ -370,7 +381,7 @@ export function makeCritters(W, opts = {}) {
     if (a.st === 'run') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
       if (d < 0.8) { a.st = 'sun'; a.until = t + 6 + rand() * 12; a.hop = 0; }
-      else { const s = Math.min(d, 18 * dt); a.fx += dx / d * s; a.fy += dy / d * s; a.x = Math.round(a.fx); a.y = Math.round(a.fy); if (Math.abs(dx) > 0.5) a.flip = dx < 0; a.hop = Math.floor(t * 8) & 1; a.bm = mar.sun; return; }
+      else { const s = Math.min(d, 18 * dt); if (!step(a, a.fx + dx / d * s, a.fy + dy / d * s)) { a.st = 'sun'; a.until = t + 4 + rand() * 8; a.hop = 0; } else { if (Math.abs(dx) > 0.5) a.flip = dx < 0; a.hop = Math.floor(t * 8) & 1; a.bm = mar.sun; return; } }
     }
     a.bm = up ? mar.up : mar.sun;
     if (up || t < a.until) return;
