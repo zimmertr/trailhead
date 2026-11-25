@@ -737,6 +737,22 @@ function lakeWater(u, v, x, y) {
   if (d < 0.14) return bayer(x, y) < smooth(0.14, 0.06, d) ? W[3] : W[2];
   return vnoise(u / 8, v / 3, 1403) > 0.62 && bayer(x, y) < 0.5 ? W[2] : W[1];
 }
+// The Spires' lake (round 8, C7, TJ, after a picture of a lake at a glacier's foot): milky turquoise melt
+// water, a little deeper in the middle, pale in the shallows along the near shore and round the ends. The
+// ice cliff's reflection, its shadow at the waterline and the floes are laid over it further down.
+function siltWater(u, v, x, y) {
+  const T = R.tarn, d = lakeIn(u, v), near = v < PRO.cv + 0.3 * PRO.rv;
+  if (near && d < 0.1) return T[5];
+  if (near && d < 0.24) return bayer(x, y) < smooth(0.24, 0.1, d) ? T[5] : T[4];
+  // Calm water in flat tones, as the picture has it: a pale band inside the shallows, then the lake's own
+  // turquoise with a few level dashes, paler or deeper, where the surface catches the light or does not.
+  if (d < 0.4) return T[4];
+  if (d < 0.5 && bayer(x, y) < smooth(0.5, 0.4, d)) return T[4];
+  const h = hash(x >> 2, y, 4873);
+  return h < 0.07 ? T[4] : h > 0.9 && vnoise(u / 9, v / 3, 8) > 0.5 ? T[2] : T[3];
+}
+// Its near shore (C7): a strand of grey moraine gravel a few pixels deep, with a stone here and there.
+const siltShore = (u, v) => { const d = Math.hypot((u - PRO.cu) / PRO.ru, (v - PRO.cv) / PRO.rv), w = 0.16 * (vnoise(u / 9, v / 5, 4) - 0.5); return v < PRO.cv + 2 && d + w >= 1 && Math.hypot((u - PRO.cu) / (PRO.ru + 4), (v - PRO.cv) / (PRO.rv + 3)) + w < 1; };
 // A11, after a picture of the lateral moraines below the real volcano's glaciers: a moraine's steep bank is
 // loose till cut by fine gullies running down it, each lit on its west edge and dark in its east seam,
 // the whole bank darker where it faces away from the sun, with a pale crest along its top. On the flat the
@@ -792,13 +808,14 @@ function colour(u, v, hh, x, y) {
   const lk = lakeAt(u, v);
   if (lk === 'lake' && isle(u, v) < 1) return pick('grass', 0.55 + 0.3 * n1, x, y);
   if (lk === 'tarn' || lk === 'milk') { const dep = lakeIn(u, v); if (dep < 0.13) return lk === 'tarn' ? R.tarn[5] : R.glac[4]; if (dep < 0.28 && lk === 'tarn') return R.tarn[4]; }
-  if (lk) return lk === 'tarn' ? pick('tarn', 0.62 - 0.5 * lakeIn(u, v) + 0.14 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? pick('glac', 0.5 + 0.2 * vnoise(u / 5, v / 3, 8), x, y, 0.5) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : lk === 'lake' ? lakeWater(u, v, x, y) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
+  if (lk) return lk === 'tarn' ? pick('tarn', 0.62 - 0.5 * lakeIn(u, v) + 0.14 * vnoise(u / 6, v / 3, 8), x, y) : lk === 'silt' ? siltWater(u, v, x, y) : lk === 'milk' ? (bayer(x, y) < 0.4 ? R.glac[3] : pick('tarn', 0.7 + 0.25 * vnoise(u / 6, v / 3, 8), x, y)) : lk === 'lake' ? lakeWater(u, v, x, y) : pick('water', 0.3 + 0.3 * vnoise(u / 6, v / 2, 8), x, y);
   // Where a trail crosses water there is a footbridge: a deck of planks with a dark edge.
   if (water[i] && trail[i] && mat !== 'ice') return trail[i] === 2 ? ((u + 2 * v) % 3 === 0 ? R.dirt[1] : R.dirt[2]) : R.dirt[0];
   // White water where the stream itself falls, read from the water's own surface, not from its banks,
   // so a low river between high banks near the sea stays blue (D11).
   const wh = (a, b) => water[at(a, b)] ? hg[at(a, b)] : hg[at(uu, vv)], fall = water[i] ? Math.hypot(wh(uu + 1, vv) - wh(uu - 1, vv), wh(uu, vv + 1) - wh(uu, vv - 1)) / 2 : 0;
   if (water[i]) return streamColour(u, v, hh, x, y, i, fall);
+  if (!trail[i] && siltShore(u, v)) { const h = hash(x, y, 4871), K = R.rock; return h < 0.08 ? K[1] : h < 0.36 ? K[2] : h > 0.9 ? K[4] : K[3]; }
   const rim = lakeRim(u, v); if (rim) return rim === 'lake' ? R.dirt[hash(x, y, 3) < 0.3 ? 3 : 4] : R.rock[hash(x >> 1, y >> 1, 3) < 0.5 ? 2 : 3];
   // The boot track up the ice: a trench with its floor in shade; where it crosses rock, a worn line.
   if (track[i] && !trail[i] && !printGap(i)) return mat === 'ice' ? (track[i] === 1 ? R.glac[3] : hash(x, y, 16) < 0.3 ? R.glac[2] : R.glac[1]) : track[i] === 1 ? R.rock[1] : R.rock[hash(x, y, 6) < 0.3 ? 4 : 3];
@@ -1130,9 +1147,28 @@ let MONO_OY = 0;
 // ice cliff, streaked down its height, darker where it meets the lake.
 { const II = MATS.indexOf('ice'); for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) { let y = 0; while (y < SH && !(zb[px(x, y)] < VD && lakeAt(x, Math.round(zb[px(x, y)])) === 'silt')) y++; if (y >= SH) continue;
   for (let k = 1; k <= 12; k++) { const i = px(x, y - k); if (mb[i] !== II || zb[i] > GL.toe + 7) break; const top = k === 12 || mb[px(x, y - k - 1)] !== II || zb[px(x, y - k - 1)] > GL.toe + 7; g[i] = top ? R.white[1] : k === 1 ? R.serac[0] : hash(x, 0, 482) < 0.3 ? R.serac[1] : (x & 1) ? R.serac[3] : R.serac[2]; } } }
-// Ice broken off the snout floats in the Spires' lake, thickest against the ice (E8c, TJ's photograph).
-for (let y = 0; y < SH - 1; y++) for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) { const i = px(x, y), v = zb[i]; if (v >= VD || lakeAt(x, Math.round(v)) !== 'silt') continue;
-  const near = (v - (PRO.cv - PRO.rv)) / (2 * PRO.rv); if (hash(x >> 1, y, 481) > 0.2 * near * near) continue; g[i] = R.white[1]; if (lakeAt(x + 1, Math.round(v))) g[px(x + 1, y)] = R.white[1]; g[px(x, y + 1)] = R.water[4]; }
+// The lake mirrors the ice cliff (round 8, C7, after a picture of a glacier ending in its lake): a dark line
+// of shadow where ice meets water, and under it the cliff's own streaks, column for column, pale and
+// fading into the turquoise a few rows out.
+{ const T = R.tarn, silt = (x, y) => { const v = zb[px(x, y)]; return v < VD && lakeAt(x, Math.round(v)) === 'silt'; };
+  // The melt water that falls off the ice cliff is painted down the face and on across the lake: on the
+  // water it goes back to lake.
+  for (let y = 1; y < SH - 3; y++) for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) { const i = px(x, y); if (silt(x, y) && RAMP_OF[g[i]] !== 'tarn') g[i] = siltWater(x, Math.round(zb[i]), x, y); }
+  for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) { let y = 0; while (y < SH && !silt(x, y)) y++; if (y >= SH || RAMP_OF[g[px(x, y - 1)]] !== 'serac') continue;
+    const len = 2 + Math.round(4 * hash(x >> 1, 1, 483)), c = hash(x >> 1, 0, 482) < 0.45 ? T[5] : T[4];
+    for (let j = 0; j <= len && silt(x, y + j); j++) g[px(x, y + j)] = !j ? T[1] : j === 1 && hash(x, 2, 483) < 0.5 ? T[2] : c; }
+  // Ice broken off the snout floats in the lake (E8c, TJ's photograph; redrawn in round 8, C7): small bergs,
+  // each a white top over a blue side, lit from the upper left, with its shadow on the water under it. They
+  // lie thick against the ice and few farther out, with brash between them near the cliff.
+  const spots = []; for (let y = 1; y < SH - 3; y++) for (let x = PRO.cu - PRO.ru; x <= PRO.cu + PRO.ru; x++) if (silt(x, y) && RAMP_OF[g[px(x, y)]] === 'tarn') spots.push([x, y]);
+  const rand = rng(4872), bergs = [], far = (x, y) => { const v = zb[px(x, y)]; return v < VD ? clamp((v - (PRO.cv - PRO.rv)) / (2 * PRO.rv), 0, 1) : 0; };
+  for (let n = 0; n < 900 && bergs.length < 9 && spots.length; n++) { const [x, y] = spots[Math.floor(rand() * spots.length)], f = far(x, y), w = rand() < 0.35 ? 5 + Math.floor(rand() * 3) : 3 + Math.floor(rand() * 2);
+    if (rand() > 0.05 + 0.9 * f * f || bergs.some(([a, b, bw]) => Math.abs(y - b) < 5 && x < a + bw + 6 && a < x + w + 6)) continue;
+    let ok = true; for (let dx = -1; dx <= w && ok; dx++) for (let dy = -1; dy <= 2; dy++) if (!silt(x + dx, y + dy) || g[px(x + dx, y + dy)] === T[1]) { ok = false; break; }
+    if (ok) bergs.push([x, y, w]); }
+  for (const [x, y, w] of bergs) { for (let dx = 0; dx < w; dx++) { g[px(x + dx, y)] = R.white[1]; g[px(x + dx, y + 1)] = dx < w / 2 ? R.serac[4] : R.serac[2]; g[px(x + dx + 1, y + 2)] = bayer(x + dx, y) < 0.7 ? T[2] : T[3]; }
+    if (w >= 5) for (let dx = 1; dx < w - 2; dx++) g[px(x + dx, y - 1)] = R.white[1]; }
+  for (const [x, y] of spots) { const f = far(x, y); if (hash(x, y, 481) < 0.07 * f * f * f * f && RAMP_OF[g[px(x, y)]] === 'tarn' && g[px(x, y)] !== T[1]) g[px(x, y)] = R.white[1]; } }
 
 // ---- detail on the ground, as round 3 had it ------------------------------------------------------
 // These work on the finished picture. A pixel belongs to the ground at one spot (zb, its depth), so
@@ -2079,7 +2115,7 @@ export function buildTerrain() {
   // picture as the falls are, so the map can move them (stillWater in world.js). A lake's island, its ice
   // and what stands in it are left out by their colours. The two moraine tarns are painted into the
   // mountain's picture, so they are found by their colour and told apart by the gap between them.
-  const still = (() => { const OK = { lake: ['water', 'ice', 'snow', 'glac', 'far'], silt: ['glac'], milk: ['glac', 'tarn'], tarn: ['tarn'], pond: ['water'] }, Ls = LAND.C.lakes, px = Ls.map(() => []), mor = [];
+  const still = (() => { const OK = { lake: ['water', 'ice', 'snow', 'glac', 'far'], silt: ['tarn'], milk: ['glac', 'tarn'], tarn: ['tarn'], pond: ['water'] }, Ls = LAND.C.lakes, px = Ls.map(() => []), mor = [];
     for (let i = 0; i < NW * SH; i++) { const c = LAND.g[i], x = i % NW;
       if (LAND.painted[i]) { if (RAMP_OF[c] === 'tarn') mor.push(i); continue; }
       const v = LAND.depth[i]; if (v >= VD) continue; const vi = Math.round(v); let b = -1, bd = 1.3;

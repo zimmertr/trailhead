@@ -531,3 +531,5 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Melt Water by the Hour** (round 8, C5). Glacier streams run low in the morning and high in the late afternoon. The tarns' streams could run whiter and a pixel wider towards Dusk, and thin again by night.
 - **Rain on the Lakes** (round 8, C6). When the weather brings rain, the lakes could show it: many small rings in place of the glints, and no fish until it clears.
 - **The Osprey Takes the Trout** (round 8, C6). The fishing birds work the sea. One could come inland to Reflection Lake now and then and take the fish that just jumped.
+- **The Snout Calves** (round 8, C7). Now and then a slab could drop off the ice cliff into the lake below Scope Creep Glacier: a splash, a wave that crosses the water, and one more berg that drifts out and melts.
+- **Bergs That Drift** (round 8, C7). The bergs are painted into the ground. As things of their own they could drift a few pixels with each gust and turn slowly.
