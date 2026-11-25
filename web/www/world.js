@@ -297,7 +297,7 @@ function stillWater(fb, VW, VH, ox, oy, L, t, glint, fish, calmL, calm, rain) {
 
 export function makeWorld() {
   const W = buildTerrain(), { g: ground, spots, forestAmt } = W;
-  const paths = {}; for (const k of ['lake', 'stack', 'spires']) paths[k] = makePath({ pts: W.trails[k], stops: [] });
+  const paths = {}; for (const k of ['lake', 'stack', 'spires', 'south']) paths[k] = makePath({ pts: W.trails[k], stops: [] });
   // The few steps from the junction to the register's east side, where he stands to fold its front down (L2).
   { const [rx, ry] = W.spots.register; paths.register = makePath({ pts: [[T.x, T.y], [(T.x + rx + 9) / 2, (T.y + ry + 1) / 2 + 1], [rx + 9, ry + 1]], stops: [] });
     // Its points with their depth, as the trails carry, so ground nearer than him still stands in front.
@@ -788,6 +788,9 @@ export function makeWorld() {
     // camp; and the lake loop all the way round, for the trail map. Round 3 wrote the lake's 5.2 by hand.
     lengths: () => { const km = (k, f = 1) => Math.round(paths[k].len * f * KM * 10) / 10; return { lake: km('lake', lakeOut), loop: km('lake'), stack: km('stack'), spires: km('spires') }; },
     dur: leg => leg.secs || Math.abs(leg.to - leg.from) * paths[leg.path].len / RUN,
+    // The way in (round 8, J13): a route asked for while he is still coming up from the foot of the map
+    // waits at the junction until he is there.
+    hold: env => !!env.arrive,
     stops: () => [],
     // North on the map is uphill, which is all the profile along the bottom needs.
     elev: (leg, q) => (T.y - where(leg, q).y) * 0.8,
@@ -892,12 +895,15 @@ export function makeWorld() {
       return ev.trigger(name, t) || crit.trigger(name, t) || life.trigger(name, t);
     },
     act(id, env) { if (id === 'pool') { env.found('tidepool'); return false; } if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } if (/^(animal|orca|jelly|flock|air):|^whale$/.test(id)) { const snd = crit.click(id, pokeAt[0], pokeAt[1], env.t); if (snd) env.sfx(snd); return true; } if (id.startsWith('duck:')) { env.sfx(life.click(env.t)); return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
-    draw(scr, env, leg, q) {
+    draw(scr, env, legOn, qOn) {
       const { VW, VH, fb } = scr, { t, tq, dt } = env; nowT = t;
+      // The way in (J13): while he comes up the trail from the foot of the map, that trail is the stretch
+      // he is drawn on. The view is the opening's all the while, since it does not follow him at home.
+      const leg = env.arrive ? env.arrive.leg : legOn, q = env.arrive ? env.arrive.q : qOn;
       regTrip = leg.path === 'register';
       const here = where(leg, q); lastHere = here;
-      if (env.moving) face(leg, q);
-      if (env.home) facing = 'down';
+      if (env.moving || env.arrive) face(leg, q);
+      if (env.home && !env.arrive) facing = 'down';
 
       // Camera: the whole view from the Trailhead, then follow him.
       let [tx, ty] = target(scr, here, env);
@@ -985,7 +991,7 @@ export function makeWorld() {
       for (const th of list) {
         const dl = liftAt(th.x, th.y), oy = OY + dl;
         if (th.me) {
-          const set = env.moving && !(leg.walkTo && q > leg.walkTo) ? (facing === 'side' ? runner.side : facing === 'up' ? runner.up : runner.down) : (facing === 'side' ? runner.sideIdle : facing === 'up' ? runner.upIdle : runner.downIdle);
+          const set = (env.moving || env.arrive) && !(leg.walkTo && q > leg.walkTo) ? (facing === 'side' ? runner.side : facing === 'up' ? runner.up : runner.down) : (facing === 'side' ? runner.sideIdle : facing === 'up' ? runner.upIdle : runner.downIdle);
           const bm = set[Math.floor(Math.abs(leg.to - leg.from) * q * here.P.len / (facing === 'side' ? 4.2 : 5)) % set.length];
           // Ground nearer the camera than he is stands in front of him: what was there is put back over him.
           const X = Math.round(th.x - ox), Y = Math.round(th.y - oy), vMe = vOn(leg.path, th.x, th.y), x0 = Math.max(0, X - 12), x1 = Math.min(VW - 1, X + 12), y0 = Math.max(0, Y - 30), y1 = Math.min(VH - 1, Y + 3);

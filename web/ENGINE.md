@@ -67,6 +67,13 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - A solid thing is registered with `collide.js`. On land, these are the rocks, snags and logs that `land.js` tags as solid, the signs, the journal's post, the tents, and the clearance round the kiosk, the register and the lookout. At sea, they are the sea stacks (a distance field) and the tide's bared flats.
 - A land animal also keeps off water and off ground too steep to stand on (`W.open`). Trees are part of its own rule in `critters.js`: a walker goes round their trunks, and a cub may climb one.
 
+## The Land and Its Trails
+
+- A cut in the land ends in a slope. Where `land.js` cuts a stream's valley to an even grade, the ground inside the cut's square is given back toward its edge, so no wall is left for the map to paint as rock. Do it after the streams are routed, so the water does not move.
+- A trail leaves the junction level on the screen. `level()` in `land.js` finds, for a step east or west, the depth whose picture row matches the junction's. `join()` drops the last point of each part it is given, so each part starts on the point the one before ended on.
+- Every trail in `C.trails` is trodden, bridged and kept clear by the same code. A trail he walks also needs a path in `world.js` (`paths`) and its points in `W.trails`.
+- He comes in up the south trail (`arrive` in `pixel.js`): at a run as the page opens at the Trailhead, at a walk on leaving the off-route page. The view, the sign and the page are the opening's all the while. A route asked for meanwhile waits at the junction (the map's `hold`), anything that does not set out from the junction drops the arrival, and reduced motion never plays it. `arrive=0` in the address has him stood there from the first frame, for screenshots.
+
 ## Side Scenes
 
 - A side scene's ground is painted as deep as a tall, narrow window sees. On a narrow window the trail sits at 62% of the height (`baseline()` in `side.js`), so more than a third of the window is below it, and `drawStrip()` fills whatever lies below a strip with one flat colour. `tools/pixel/sweep.sh` on a phone notes a picture that ends in such a band, and a browser test fails on one in the forest, at the lakeside and on the West Ridge.

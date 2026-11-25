@@ -335,10 +335,14 @@ if (!B) for (const { d, w, line } of C.dig) {
 }
 // Then each is cut to an even grade from its start to its end, so the way out never climbs: this is
 // what takes the west river through the forest's ridges.
-if (!B) for (const { line, end } of C.dig) {
-  const all = line, h0 = hAt(all[0][0], all[0][1]), last = all[all.length - 1], h1 = end ?? hAt(last[0], last[1]);
+// GRADE keeps the ground as it was before and after, for the valleys' sides to be put right once the water has
+// found its way (below, where the heights are rounded).
+const GRADE = B ? null : { pre: hg.slice(), post: null };
+if (!B) for (const dug of C.dig) {
+  const { line, end } = dug, all = line, h0 = hAt(all[0][0], all[0][1]), last = all[all.length - 1], h1 = end ?? hAt(last[0], last[1]); dug.bed = [h0, h1];
   all.forEach(([pu, pv], n) => { if (n % 2) return; const bed = lerp(h0, h1, n / (all.length - 1)); for (let dv = -56; dv <= 56; dv++) for (let du = -56; du <= 56; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v); if (MATS[mg[i]] !== 'land' || hg[i] <= 0) continue; const t = Math.max(0.5, bed + Math.max(0, Math.hypot(du, dv) - 12) * 0.2); if (hg[i] > t) hg[i] = t; } });
 }
+if (GRADE) GRADE.post = hg.slice();
 // The coulee: a flat floor, a cliff, a bench, a second cliff. It deepens as the tableland rises.
 if (!B) { const all = catmull(C.coulee); all.forEach(([pu, pv], n) => { const floor = lerp(11, 2.5, n / (all.length - 1)); for (let dv = -44; dv <= 44; dv++) for (let du = -44; du <= 44; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const d = Math.hypot(du, dv) + 9 * (fbm(u / 23, v / 23, 440, 2) - 0.5), rise = d < 13 ? 0 : d < 18 ? 14 * (d - 13) / 5 : d < 33 ? 14 + (d - 18) * 0.07 : d < 39 ? 15 + 15 * (d - 33) / 6 : 1e9; if (hg[at(u, v)] > floor + rise) hg[at(u, v)] = floor + rise; } }); }
 // The lake at the snout: its level a little above the ground in front, the ice let down to meet it, no
@@ -467,6 +471,18 @@ if (!B) for (const [cu, cv, ru, rv] of C.lakes.slice(1)) {
   box((u, v, i) => { const d = e(u, v); if (d < 1) { hg[i] = lo; return; } const out = (d - 1) * lerp(rv, ru, Math.abs((u - cu) / ru) / d), m = MATS[mg[i]]; if (out < 22 && (m === 'land' || m === 'moraine' || m === 'gran')) hg[i] = Math.min(hg[i], lo + 0.4 + out * 0.55); }, 24);
 }
 // The heights are kept to 32nds of a pixel, baked or not, so the map read from a bake is the same map.
+// The even grade above is cut in a square 56 either way from each point of a valley's line, its floor rising
+// only a fifth of a step for each step out. Where the valley is cut deep, the square ended in a wall as high
+// as what was left over: east of Reflection Lake one showed as a dark line straight up the meadow (TJ, round
+// 8). So the sides of a deep cut are given back what a straight slope from the valley's floor (12 from the
+// line) to the old ground at the square's edge would have left them. A shallow cut is as it was. It is done
+// here, after the water has found its way, so no stream moves; and never beside a lake, whose shore keeps its
+// level.
+if (GRADE) { const { pre, post } = GRADE, want = new Float32Array(NW * VD).fill(Infinity), byLake = (u, v) => C.lakes.some(([cu, cv, ru, rv]) => Math.hypot((u - cu) / (ru + 30), (v - cv) / (rv + 30)) < 1);
+  for (const { line, bed: [h0, h1] } of C.dig) line.forEach(([pu, pv], n) => { if (n % 2) return; const bed = lerp(h0, h1, n / (line.length - 1));
+    for (let dv = -56; dv <= 56; dv++) for (let du = -56; du <= 56; du++) { const u = Math.round(pu + du), v = Math.round(pv + dv); if (u < 0 || v < 0 || u >= NW || v >= VD) continue; const i = at(u, v);
+      const t = Math.max(0.5, bed + Math.max(0, Math.hypot(du, dv) - 12) * 0.2, bed + (pre[i] - bed) * clamp((Math.max(Math.abs(du), Math.abs(dv)) - 12) / 44, 0, 1)); if (t < want[i]) want[i] = t; } });
+  for (let v = 0; v < VD; v++) for (let u = 0; u < NW; u++) { const i = at(u, v), up = Math.min(pre[i], want[i]) - post[i]; if (up > 0.03 && MATS[mg[i]] === 'land' && hg[i] > 0 && !lakeAt(u, v) && !byLake(u, v)) hg[i] += up; } }
 if (!B) for (let i = 0; i < hg.length; i++) hg[i] = Math.round(hg[i] * 32) / 32;
 // The waterfall off the lake's lip, in picture terms: its column, where it leaves the lip and where it lands.
 // The lip is found on the ground as it was before the stream cut its bed, which a bake does not keep, so
@@ -515,7 +531,7 @@ C.lead = [];
   const join = (...parts) => parts.reduce((all, p, n) => n ? [...all.slice(0, -1), ...p] : [...p], []).filter((p, n, a) => n === a.length - 1 || Math.hypot(a[n + 1][0] - p[0], a[n + 1][1] - p[1]) >= 5);
   const loop0 = C.trails[0], spires0 = C.trails[1], ci0 = spires0.findIndex(p => p[0] === C.camp[0] && p[1] === C.camp[1]);
   C.loop0 = loop0;
-  const oldLead = route(C.T, loop0[0]), stackLead = route(C.T, C.trails[2][0]);
+  const oldLead = route(C.T, loop0[0]);
   // Where the old trail goes into the forest on its way west: its first point west of the forest's edge.
   // (Corrected 2026-11-16: this was the trail's low point 200 further west, deep in the forest, and the new
   // trail hugged the bottom of the map to reach it. TJ's line crosses the meadow to the forest's edge.)
@@ -523,9 +539,13 @@ C.lead = [];
   const iF = loop0.findIndex((p, n) => n > 0 && n < westEnd && p[0] < forestEdge(p[1])), F = loop0[iF];
   // TJ's line leaves the Trailhead going west nearly level and then climbs north-west: a point a little short
   // of halfway, set toward the camera by a third of the whole climb, bows it that way.
-  const foot = [Math.round(lerp(TU, F[0], 0.45)), Math.round(lerp(TV, F[1], 0.45) - 0.3 * (F[1] - TV))];
+  // Round 8 (TJ, 25 November): a trail comes up to the Trailhead from the bottom of the map, so the two trails
+  // that dipped south on their way out (this one and the Peak's) leave level on the picture, west and east.
+  // level: the ground under a place on the picture, du across from the Trailhead and dy below its own row.
+  const yT = SY - TV - hAt(TU, TV), level = (du, dy) => { const u = TU + du; let best = TV, bd = 1e9; for (let v = Math.max(1, TV - 120); v < Math.min(VD - 1, TV + 160); v++) { const d = Math.abs(SY - v - hAt(u, v) - yT - dy); if (d < bd) { bd = d; best = v; } } return [u, best]; };
+  const foot = level(-132, 5);
   const bottom = route(foot, F, true); C.bottom = bottom;
-  C.trails[0] = join(route(C.T, foot, true), bottom, loop0.slice(iF), oldLead.slice().reverse());
+  C.trails[0] = join([C.T, level(-42, 0), level(-88, 4), foot], bottom, loop0.slice(iF), oldLead.slice().reverse());
   C.lead[0] = 0;
   // The big stand of firs: where the fir clumps' own noise (as they are planted below) runs thick. Halfway up
   // between the Trailhead and camp, its east edge is where that noise falls off east of the straight line.
@@ -538,7 +558,13 @@ C.lead = [];
   const iA = Math.max(0, ci0 - 2);
   C.trails[1] = join(route(C.T, w1, true), route(w1, w2, true), route(w2, spires0[iA], true), spires0.slice(iA));
   C.lead[1] = 0;
-  C.trails[2] = join(stackLead, C.trails[2]); C.lead[2] = stackLead.length - 1; }
+  // The Peak's trail keeps TJ's line from where it turns north-east (C1). Its first stretch, which ran down
+  // the picture to get there, is level now.
+  { const t2 = C.trails[2], k = t2.findIndex(p => p[0] >= TU + 262), east = [level(41, 0), level(87, -1), level(142, 2), level(196, 5), level(238, 4)];
+    C.trails[2] = join([C.T, ...east, t2[k]], t2.slice(k)); C.lead[2] = 0; }
+  // The way in (TJ: "so that TJ comes from somewhere"): from off the bottom of the map up to the Trailhead,
+  // bending as a worn path does. He runs in along it when the page opens.
+  C.trails[3] = join(route([TU - 20, 0], [TU - 6, 62], true), route([TU - 6, 62], [TU + 16, 116], true), route([TU + 16, 116], C.T, true)); C.lead[3] = 0; }
 // The Spires trail's tread ends on the moraine, where it meets the ice (C.camp, where the tents stood until
 // round 5). Beyond it the way goes on as a boot track: straight across the tongue to base camp on its
 // island (C.island), and from there up the ice (D13), as in round 3: it switches back and forth up the fall
@@ -2131,7 +2157,7 @@ export function buildTerrain() {
   // ends at base camp on its island; what lies beyond is the boot track up the ice.
   // The lake loop runs from the Trailhead round to the Trailhead (T6), so it needs no way home added.
   const camp = C.trails[1].findIndex(p => p[0] === C.island[0] && p[1] === C.island[1]) + 1;
-  const lines = { lake: line(C.trails[0]), stack: line(C.trails[2]), spires: line(C.trails[1].slice(0, camp)) };
+  const lines = { lake: line(C.trails[0]), stack: line(C.trails[2]), spires: line(C.trails[1].slice(0, camp)), south: line(C.trails[3]) };
   const H = habitat(), lake = C.lakes[0], peak = LAND.peak, sp = LAND.spires, shore = sxy(lake[0] + lake[2] + 8, lake[1] + 2);
   const flagOn = (x, v, kind) => { const y = LAND.toY(x, v); return { x: Math.round(x), y, lift: y - topOf(x, kind) }; };
   const spots = {
@@ -2289,7 +2315,7 @@ export function buildTerrain() {
     mor.sort((a, b) => a % NW - b % NW); let cur = null; for (const i of mor) { if (!cur || i % NW - cur.px[cur.px.length - 1] % NW > 12) out.push(cur = { kind: 'moraine', px: [] }); cur.px.push(i); }
     return out.filter(l => l.px.length > 20); })();
   // jams: where the beach's driftwood gathers (H7), in the picture, each with its kind and how many logs it holds.
-  return { g: LAND.g, bare: LAND.bare, jams: LAND.jams.map(([u, v, k, n]) => [...sxy(u, v), k, n]), fog: LAND.fogField, hillLight, deck, homesFound: H.homesFound, whiteWater: falls, still, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel, squirrelDoes } };
+  return { g: LAND.g, bare: LAND.bare, jams: LAND.jams.map(([u, v, k, n]) => [...sxy(u, v), k, n]), fog: LAND.fogField, hillLight, deck, homesFound: H.homesFound, whiteWater: falls, still, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires), south: flat(lines.south) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel, squirrelDoes } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the

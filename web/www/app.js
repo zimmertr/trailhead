@@ -74,7 +74,8 @@ function showCard(id) {
   audio.sfx(id === 'summit' ? 'summit' : pr ? 'flag' : 'stop');
 }
 function hideCard() { shown = null; cardShut = false; card.hidden = true; audio.focus(0); }
-async function home() { inBook(false); hideCard(); await api.setRoute('lake'); audio.place('world'); lastScene = 'world'; buildMarks(); setAddress(''); checkRegister(); }
+// Leaving the off-route page, he walks back in up the trail from the foot of the map (round 8, J13).
+async function home() { const lost = api.route() === 'off-route'; inBook(false); hideCard(); await api.setRoute('lake'); if (lost) api.arrive('walk'); audio.place('world'); lastScene = 'world'; buildMarks(); setAddress(''); checkRegister(); }
 async function travel(route) { audio.start(); audio.sfx('select'); await api.setRoute(route); buildMarks(); api.start(); }
 async function climb(id) { audio.sfx('select'); hideCard(); await api.setRoute('spire:' + id); buildMarks(); api.start(); }
 // The register (L2): one click on the box and the scene changes to the book (no walk since round 5 B2).
@@ -508,8 +509,10 @@ try {
   // A visit that opens at the Trailhead shows the sign before the first frame, so the map's first frame is
   // already framed round it and the camera has nothing to catch up on (T1). The page's tick keeps it right after.
   fork.hidden = !!(new URLSearchParams(location.search).get('route') || location.hash.length > 1);
+  // A visit that opens at the Trailhead opens on him running in from the foot of the map (round 8, J13).
+  // arrive=0 in the address has him stood at the junction from the first frame, for screenshots.
   api = await mount($('c'), {
-    theme: 'light', breakAt,
+    theme: 'light', breakAt, arrive: fork.hidden === false && !/[?&](arrive=0|p=|stop=|sheet=)/.test(location.search),
     onEvent(e) {
       if (e.type === 'broken') washedOut(e);
       else if (e.type === 'stop') { if (isWait(e.id)) { waiting = true; say(UI.wait[e.id.slice(5)] || UI.wait.go, 600000); } else { if (waiting) { waiting = false; toast.hidden = true; } showCard(e.id); } }

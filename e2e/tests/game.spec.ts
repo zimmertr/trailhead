@@ -10,7 +10,7 @@ const origin = process.env.BASE_URL ?? 'http://localhost:8080'
 // the suite, so the page's request is answered here.
 const LIVE = { projects: [{ slug: 'bluebird', name: 'Bluebird Forecast', repo: 'zimmertr/bluebird', url: 'https://github.com/zimmertr/bluebird', stars: 4242, language: 'TypeScript', license: 'NOASSERTION', release: { tag: 'v9.9.9', publishedAt: '2026-11-20T00:00:00Z' }, fetchedAt: '2026-11-21T00:00:00Z' }] }
 
-type Info = { p: number; route: string | null; running: boolean; scene: string; baked: boolean; bakeNote: string; o: { x: number; y: number } }
+type Info = { p: number; route: string | null; running: boolean; scene: string; baked: boolean; bakeNote: string; o: { x: number; y: number }; fy: number; pose: string | null }
 declare global {
   interface Window {
     __ready?: boolean
@@ -831,6 +831,44 @@ test('the sign on the off-route page names itself and leads back to the Trailhea
   await page.mouse.click(at[0], at[1])
   await expect.poll(async () => (await info(page))?.route, { timeout: 10_000 }).toBe('lake')
   await expect.poll(async () => (await info(page))?.scene, { timeout: 10_000 }).toBe('world')
+  expect(problems).toEqual([])
+})
+
+// Round 8, J13: he comes from somewhere. A visit that opens at the Trailhead opens on him running up the trail
+// from the foot of the map, with the sign already up; a route asked for before he is in sets off once he is;
+// and under reduced motion he is stood at the junction from the first frame.
+test('he runs in from the foot of the map as the page opens, and a route asked for meanwhile waits for him', async ({ page, browser }) => {
+  const calm = await browser.newPage({ reducedMotion: 'reduce', viewport: { width: 1440, height: 900 } })
+  const calmProblems = await open(calm, '/')
+  const rest = (await info(calm))?.fy ?? 0
+  expect((await info(calm))?.pose).toBe('down')
+  expect(calmProblems).toEqual([])
+  await calm.close()
+
+  const problems = await open(page, '/?speed=0.5')
+  await expect(page.locator('#fork')).toBeVisible()
+  expect((await info(page))?.fy ?? 0).toBeGreaterThan(rest + 40)
+  await page.locator('#run').click()
+  const held = await info(page)
+  expect(held?.p).toBe(0)
+  expect(held?.fy ?? 0).toBeGreaterThan(rest + 20)
+  await expect.poll(async () => (await info(page))?.p ?? 0, { timeout: 20_000 }).toBeGreaterThan(0)
+  expect(problems).toEqual([])
+})
+
+// And he walks in the same way when he leaves the off-route page (TJ, round 8), ending stood at the junction.
+test('he walks back in from the foot of the map when he leaves the off-route page', async ({ page, browser }) => {
+  const calm = await browser.newPage({ reducedMotion: 'reduce', viewport: { width: 1440, height: 900 } })
+  await open(calm, '/')
+  const rest = (await info(calm))?.fy ?? 0
+  await calm.close()
+
+  const problems = await open(page, '/#no-such-trail')
+  await expect.poll(() => page.evaluate(() => window.__api.hitAt('home')), { timeout: 10_000 }).not.toBeNull()
+  await page.locator('#card-go').click()
+  await expect.poll(async () => (await info(page))?.scene, { timeout: 10_000 }).toBe('world')
+  await expect.poll(async () => (await info(page))?.fy ?? 0, { timeout: 5_000 }).toBeGreaterThan(rest + 40)
+  await expect.poll(async () => { const i = await info(page); return i?.pose === 'down' && i.fy === rest }, { timeout: 20_000 }).toBe(true)
   expect(problems).toEqual([])
 })
 

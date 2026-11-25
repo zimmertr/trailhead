@@ -40,7 +40,7 @@ const WEATHER = ['shower', 'squall', 'gustnow', 'shade', 'clear'], COUNTRY = { f
 
 // breakAt is for testing what happens when something goes wrong: a scene's name makes that scene throw
 // the first time it is drawn, 'load:' and a name makes it fail to build, 'renderer' breaks the frame itself.
-export async function mount(canvas, { onEvent = () => {}, theme = 'light', breakAt = null } = {}) {
+export async function mount(canvas, { onEvent = () => {}, theme = 'light', breakAt = null, arrive: arriving = false } = {}) {
   const scr = new Screen(canvas);
   const world = makeWorld();
   const scenes = { world };
@@ -87,6 +87,14 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   // One stretch of map walked for its own sake: back to the junction from part way along a trail.
   // `next` is where he sets off for once he gets there.
   let detour = { path: 'lake', from: 0, to: 0 }, next = null;
+  // The way in (round 8, J13). He comes up the trail from the foot of the map to the junction: at a run as
+  // the page opens, at a walk when he leaves the off-route page. The opening view, its sign and the page are
+  // as they would be with him stood there. A route asked for before he is in waits for him (the map holds
+  // it); anything that takes him somewhere other than out from the junction drops it. Never under reduced motion.
+  let arrive = null;
+  const IN = { path: 'south', from: 0, to: 1 }, WALK = 0.55;
+  const comeIn = kind => { if (calm.matches || running || p !== 0 || !world.paths.south) return false; arrive = { leg: IN, q: 0, secs: world.dur(IN) / (kind === 'walk' ? WALK : 1) }; return true; };
+  const fromFork = a => { const P = world.paths[a.path]; if (!P) return false; const b = P.at(a.from), j = world.paths.south.at(1); return Math.hypot(b.x - j.x, b.y - j.y) < 4; };
   ROUTES.back = () => [['world', { ...detour }]];
   // Click and tap to move (T3): a walk over the trail network to a point on a trail. The network is four
   // branches out from the Trailhead (the lake loop's way out and its way back, the peak's trail, the Spires'
@@ -239,6 +247,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   await need(ROUTES.lake().map(l => l[0]));
   plan('lake');
   drawn = legs[0];
+  if (arriving) comeIn('run');
 
   function emit(e) { try { onEvent(e); } catch (err) { console.error(err); } }
   // Something threw. A scene that throws is left undrawn and the page is told, so it can take him to
@@ -389,8 +398,13 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     env.walkMark = route === 'walk' && p < 1 ? walkMark : null;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
     env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
+    if (arrive) {
+      if (p !== 0 || shown || scrubbing > 0 || legs[0].s !== 'world' || !fromFork(legs[0].arg)) arrive = null;
+      else if (drawn.s === 'world') { arrive.q += sdt / arrive.secs; if (arrive.q >= 1) arrive = null; }
+    }
+    env.arrive = drawn.s === 'world' ? arrive : null;
     // Idle counts from his arrival home too, so the look round waits until the hand-off home has settled.
-    if (!env.home) homeAt = t;
+    if (!env.home || arrive) homeAt = t;
     env.idle = env.home && dragging == null ? t - Math.max(lastAct, homeAt) : 0; env.calm = calm.matches;
     if (env.moving || tr) stillAt = t;
     env.still = t - Math.max(stillAt, lastAct);
@@ -559,6 +573,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // A scene holding him for something of its own (the binoculars) is told he is setting off, so it lets go.
     start() { if (route === 'walk' && p >= 1) return; if (p >= 1) p = 0; leave(); if (!tr && drawn.scene.go) drawn.scene.go(env); running = true; },
     walkTo,
+    arrive: comeIn,
     stop() { running = false; pace = 1; },
     boost(on) { fast = !!on; },
     toggle() { if (running) running = false; else api.start(); },
