@@ -2,10 +2,11 @@
 // Peak, Reflection Lake and the rainforest, as Mount Monolith has its avalanches and its cap cloud. Each runs
 // on the scenes' clock (so the speed buttons work on it), has a start button in the debug panel and a line on
 // the conditions board. Where each happens is read off the land (spots.life in land.js, the lakes' own water).
-import { covered, TAU, smooth, hash, bayer, frac, lerp, rng, gustOver, R, INK, BM, saw } from './core.js';
+import { covered, TAU, smooth, hash, bayer, frac, lerp, rng, gustOver, R, INK, BM, outline, DEBUG, saw } from './core.js';
 import { makeClock, inView, inClear, blitA } from './events.js';
 import { goat } from './fauna.js';
 import { NH, LAND } from './land.js';
+import { NAMES } from './content.js';
 
 // A soaring raven seen from the side and a little below: a black bar of wing with the tips fingered and
 // lifted, the body a pixel deeper in the middle. f 0: wings flat. f 1: wings in a shallow V.
@@ -34,12 +35,15 @@ export function makeLife(W, STILL) {
   const LAKE = STILL.filter(l => l.kind === 'lake').sort((a, b) => b.x1 - b.x0 - (a.x1 - a.x0))[0] || null;
   const POND = LAKE ? (() => { let best = null; for (let y = LAKE.y0 + 3; y <= LAKE.y1 - 3; y++) { let run = 0; for (let x = LAKE.x0; x <= LAKE.x1 + 1; x++) { if (x <= LAKE.x1 && wetAt(LAKE, x, y) && wetAt(LAKE, x, y - 3) && wetAt(LAKE, x, y + 3)) run++; else { if (!best || run > best[2]) best = [x - run, y, run]; run = 0; } } } return best && best[2] > 84 ? [Math.round(best[0] + best[2] * 0.76), best[1]] : null; })() : null;
   // The deep rainforest, east of the mist: spots with unbroken canopy all round, for the tree that falls, the
-  // owl's two perches and the sunbreak. The rainbow stands over the middle of them.
+  // owl's two perches.
   const FOREST = (() => { const out = [], f = W.forestAmt; for (let y = 340; y < NH - 70; y += 22) for (let x = 230; x < 720; x += 26) if (f(x, y) > 0.95 && f(x - 22, y) > 0.9 && f(x + 22, y) > 0.9 && f(x, y - 16) > 0.9 && f(x, y + 16) > 0.9) out.push([x, y]); return out; })();
   const spot = (n, key) => n < 0 ? FOREST[FOREST.length >> 1] : FOREST[Math.floor(hash(n, 1, key) * FOREST.length) % FOREST.length];
   // An owl flies from a perch to the one nearest 90 away.
   const perchFrom = A => FOREST.reduce((b, P) => P === A ? b : !b || Math.abs(Math.hypot(P[0] - A[0], P[1] - A[1]) - 90) < Math.abs(Math.hypot(b[0] - A[0], b[1] - A[1]) - 90) ? P : b, null);
-  const ARC = FOREST.length ? [Math.round(FOREST.reduce((s, P) => s + P[0], 0) / FOREST.length), Math.round(FOREST.reduce((s, P) => s + P[1], 0) / FOREST.length) + 70, 150] : null;
+  // The rainbow stands over the wildflower meadow below Mount Monolith (TJ, round 8: over the rainforest it was
+  // out of place): its feet at the level of Reflection Lake's north shore, either side of the lake, and its top
+  // against the mountain's rock and ice. As [middle, feet, radius].
+  const ARC = LAKE ? [Math.round((LAKE.x0 + LAKE.x1) / 2), LAKE.y0 - 4, 170] : null;
   // A fir that stands out of the canopy, as [across, up, colour]: a trunk's foot, then tiers that narrow to the tip, lit from the west.
   const FIR = (() => { const out = [], C = R.conifer; for (let j = 0; j < 38; j++) { const hw = j < 3 ? 0 : Math.max(0, Math.round(6.4 * (1 - (j - 3) / 35) + (j % 5 === 3 ? 1 : j % 5 === 2 ? -0.6 : 0))); for (let i = -hw; i <= hw; i++) out.push([i, j, j < 3 ? R.bark[1] : j % 5 === 2 ? C[i < 0 ? 1 : 0] : i === -hw && hw ? C[4] : i < 0 ? C[3] : i === hw && hw ? C[0] : i > 0 ? C[1] : C[2]]); } return out; })();
   const BOW = [R.red[1], R.blaze[2], R.yellow[1], R.kit[2], R.jay[3], R.lupine[1]], MOTE = [R.mist[5], R.mist[4], R.mist[3]];
@@ -83,12 +87,11 @@ export function makeLife(W, STILL) {
     talus: { slot: 65, first: 40, dur: 5.5, ok: () => SCREE.length > 0 },
     band: { slot: 150, first: 70, dur: CROSS ? (CROSS.len + (BAND.length - 1) * GAP) / PACE + 0.5 : 1, ok: () => !!CROSS },
     calm: { slot: 160, first: 62, dur: 28, ok: () => !!LAKE },
-    ducks: { slot: 130, first: 96, dur: 25, ok: () => !!POND },
+    ducks: { slot: 130, first: 96, dur: 15, ok: () => !!POND },
     treefall: { slot: 180, first: 110, dur: 9, ok: () => FOREST.length > 0 },
     // The rainbow has no slots of its own: it follows the shower by the weather's clock, and its button.
     rainbow: { slot: 1e9, first: 2e9, dur: 26, ok: () => !!ARC && mix < 0.5 },
-    hoot: { slot: 70, first: 30, dur: 8, ok: () => FOREST.length > 1 && mix > 0.5 },
-    sunbreak: { slot: 100, first: 44, dur: 24, ok: () => FOREST.length > 0 && mix < 0.5 }
+    hoot: { slot: 70, first: 30, dur: 8, ok: () => FOREST.length > 1 && mix > 0.5 }
   };
   const { now, start } = makeClock(EV), heard = {};
   // One started by its button happens where the debug panel looks (where() below): its count is -1 then.
@@ -184,48 +187,92 @@ export function makeLife(W, STILL) {
     });
   }
 
-  // A mallard in a few pixels: the drake grey with a green head, the hen brown, both with a yellow bill. On the
-  // wing the wings beat above and below the body. On the water it rides with its head up, or tips up to feed.
-  const duck = (scr, x, y, dir, drake, pose, f) => {
-    const body = drake ? R.rock[3] : R.wood[3], back = drake ? R.rock[2] : R.wood[2], head = drake ? R.kit[1] : R.wood[1], dark = drake ? R.rock[0] : R.wood[0], breast = drake ? R.wood[1] : R.wood[3];
-    const p = (i, j, c) => scr.set(x + i * dir, y + j, c);
-    // Tipped up: the body under water, the pale rump and the tail straight up.
-    if (pose === 'tip') { p(-1, 0, back); p(0, 0, body); p(1, 0, back); p(0, -1, R.white[1]); p(1, -1, body); p(0, -2, dark); return; }
-    if (pose === 'fly') {
-      for (let i = -3; i <= 2; i++) p(i, 0, i === -3 ? dark : i === 2 ? breast : body); p(3, 0, drake ? R.white[1] : head); p(4, 0, head); p(5, 0, R.yellow[1]);
-      // The wing, up or down, with the blue patch at its root.
-      const s = f ? -1 : 1; p(-1, s, dark); p(0, s, R.jay[2]); p(1, s, dark); p(-1, 2 * s, dark); p(0, 2 * s, dark); if (f) p(-1, -3, dark);
-      return;
-    }
-    for (let i = -2; i <= 2; i++) { p(i, 0, i === 2 ? breast : body); if (i < 2) p(i, -1, i === -2 ? dark : back); }
-    p(-3, -1, drake ? R.white[1] : dark); p(2, -1, drake ? R.white[1] : head); p(2, -2, head); p(3, -2, head); p(4, -2, R.yellow[1]);
-  };
-
-  // Ducks on Reflection Lake: a pair of mallards comes in low from the east, wings beating, and lands feet
-  // first with a skid of spray. They paddle west and tip up to feed, then run along the water and are away.
-  function ducks(scr, ox, oy, n, s, env) {
-    const [lx, ly] = POND, Wc = R.white[1], wet = (X, Y, c) => { if (wetAt(LAKE, X, Y)) scr.set(X - ox, Y - oy, c); };
-    for (let k = 0; k < 2; k++) {
-      const u = s - k * 0.8, hx = lx + k * 13, hy = ly + k * 5 - 2; if (u < 0) continue;
-      let x, h = 0, pose, f = 0, a = 1;
-      if (u < 4) { const q = u / 4; x = hx + 120 * (1 - q) * (1 - 0.35 * q); h = 50 * Math.pow(1 - q, 1.7); pose = 'fly'; f = Math.floor(u * 9) & 1; a = smooth(0, 0.8, u); }
-      else if (u < 5.2) { const q = (u - 4) / 1.2; x = hx - 10 * (1 - (1 - q) * (1 - q)); pose = q < 0.4 ? 'fly' : 'swim';
-        // The skid: spray thrown up behind and to both sides, less as it slows.
-        for (let j = 0; j < 14; j++) if (hash(j, Math.floor(u * 12), 7340 + k) > q) wet(Math.round(x) + 3 + j, hy + ((j & 1) ? 1 : -1) * (1 + (j >> 2)) - (j < 4 ? 1 : 0), Wc); }
-      else if (u < 18) { const w = u - 5.2; x = hx - 10 - w * 1.3; pose = frac((w + k * 2.3) / 4.6) > 0.78 ? 'tip' : 'swim'; }
-      else if (u < 19.6) { const q = (u - 18) / 1.6; x = hx - 26.64 - 26 * q * q; h = 3 * q * q; pose = 'fly'; f = Math.floor(u * 10) & 1;
-        // The run: a splash at each footfall, left behind on the water.
-        for (let j = 1; j <= 5; j++) { const qj = q - j * 0.07; if (qj > 0) wet(Math.round(hx - 26.64 - 26 * qj * qj), hy + (j & 1), j < 3 ? Wc : R.water[4]); } }
-      else { const w = u - 19.6; x = hx - 52.64 - w * 34; h = 3 + 8 * w + 3 * w * w; pose = 'fly'; f = Math.floor(u * 9) & 1; a = smooth(4.2, 2.4, w); }
-      const X = Math.round(x), Y = Math.round(hy - h), seen = inView(scr, X - ox, Y - oy, 4);
-      if (seen && u > 4 && u < 18 && !covered(X - ox, Y - oy)) saw('ducks');
-      if (!k && u >= 4) sound(env, 'ducks', n, 'splash', seen); if (!k && u >= 18) sound(env, 'ducks2', n, 'slap', seen);
-      if (bayer(X, Y) >= a) continue;
-      // On the water: a wake that opens behind, and a ring round a duck that has tipped up.
-      if (!h && u >= 5.2) { if (pose === 'tip') { for (const [i, j] of [[-3, 0], [3, 0], [-2, 1], [2, 1], [-1, 2], [0, 2], [1, 2], [-2, -1], [2, -1]]) wet(X + i, hy + j, i & 1 ? Wc : R.water[4]); } else if (Math.floor(u * 3) & 1) { wet(X + 4, hy + 1, Wc); wet(X + 6, hy + 2, R.water[4]); wet(X + 8, hy + 3, R.water[4]); wet(X + 5, hy - 2, R.water[4]); wet(X + 7, hy - 3, R.water[4]); } else { wet(X + 5, hy + 1, R.water[4]); wet(X + 7, hy + 2, Wc); wet(X + 4, hy - 2, Wc); wet(X + 6, hy - 3, R.water[4]); } }
+  // The mallards of Reflection Lake (TJ, round 8: twice the size and in more detail, after the pictures logged
+  // in design/art/R8-J4/, and they live on the lake now: the landing is the event). Each pose is drawn once, in
+  // letters, and serves both birds: the drake's colours (green head, yellow bill, white collar, chestnut breast,
+  // grey flanks, black and white tail), or the hen's mottled browns on the same shapes. Both have the blue patch
+  // on the wing. A pose on the water ends at the waterline, so it has no outline under it.
+  const DUCK = (() => {
+    const A = {
+      swim: ['..........gg...', '.........gLgGYY', '.........GgGG..', '..........WW...', 'KKBBBBBBBCCC...', 'TKFFFSsFFCCc...', '.TfFFFFFFfc....'],
+      preen: ['...............', '...............', '.......gLg.....', '......YGgGW....', 'KKBBBBBgGCCC...', 'TKFFFSsFFCCc...', '.TfFFFFFFfc....'],
+      tip: ['....K....', '...KTK...', '...TTT...', '..FKKKF..', '.FFFfFFF.', '.fFFfFFf.'],
+      tip2: ['...K.....', '...KTK...', '...TTT...', '..FKKKF..', '.FFFfFFF.', '.fFFfFFf.'],
+      up: ['.....BB..........', '....BBBB.........', '....BSsBB........', '.....BSsB...gg...', 'KTFFFFFFFCCWgLGYY', '.KfFFFFFfCC.GG...', '....OO...........', '.................'],
+      down: ['.................', '.................', '.................', '............gg...', 'KTFFBBBBFCCWgLGYY', '.KfFBSsBBCC.GG...', '.....BSsB........', '......BB.........']
+    };
+    const DR = { g: R.kit[1], G: R.kit[0], L: R.kit[2], Y: R.yellow[1], W: R.white[1], K: R.fur[0], T: R.white[0], B: R.gold[2], F: R.rock[4], f: R.rock[3], C: R.bark[2], c: R.bark[1], S: R.jay[2], s: R.white[1], O: R.red[1] }, WD = R.wood;
+    const drake = ch => DR[ch] || 0;
+    // The hen: a dark stripe through the eye, an orange bill, and every feather a little different from the next.
+    const hen = (ch, x, y) => ch === '.' ? 0 : ch === 'S' || ch === 's' || ch === 'O' ? DR[ch] : ch === 'Y' ? R.red[2] : ch === 'L' || ch === 'K' ? WD[1] : ch === 'T' || ch === 'W' ? WD[4] : ch === 'B' ? WD[(x + y) & 1 ? 2 : 1] : ch === 'f' || ch === 'c' ? WD[2] : ch === 'F' || ch === 'C' ? WD[(x + y) & 1 ? 3 : 2] : WD[3];
+    const make = (rows, pal, oy, afloat) => { const w = rows[0].length, bm = new BM(w + 2, rows.length + 2); bm.ox = 1 + (w >> 1); bm.oy = 1 + oy;
+      rows.forEach((r, y) => [...r].forEach((ch, x) => { const c = pal(ch, x, y); if (c) bm.set(x + 1, y + 1, c); })); outline(bm, INK);
+      if (afloat) bm.d.fill(0, (bm.h - 1) * bm.w); return bm; };
+    return [drake, hen].map(pal => ({ swim: make(A.swim, pal, 6, true), preen: make(A.preen, pal, 6, true), tip: [make(A.tip, pal, 5, true), make(A.tip2, pal, 5, true)], up: make(A.up, pal, 5), down: make(A.down, pal, 5) }));
+  })();
+  // Each has its own place on the lake's longest row of open water (POND). It paddles a little way, stops to feed
+  // with its tail in the air or to preen, and paddles on. st: 'swim', 'tip', 'preen' or 'fly'. px, py: where it
+  // was last drawn, for a click.
+  const rnd = rng(7350), MAL = POND ? [0, 1].map(k => { const x = POND[0] - 16 + k * 19, y = POND[1] + k * 5 - 2; return { k, x, y, tx: x, ty: y, st: 'swim', until: 2 + k * 3, dir: -1, t0: 0, ax: x, ay: y, px: x, py: y }; }) : [];
+  const afloat = (x, y) => [-8, 0, 8].every(i => [-1, 0, 1].every(j => wetAt(LAKE, Math.round(x) + i, Math.round(y) + j)));
+  // What a duck does next. The drake picks a place along the row, and the hen sets off with him for a place 20
+  // or more to its east: both paddle at one speed, so the two never ride over each other.
+  const onward = (d, t, go) => { const r = go ? 1 : rnd();
+    if (d.st === 'swim' && r < 0.45) { d.st = 'tip'; d.until = t + 1.6 + rnd() * 1.4; return; }
+    if (d.st === 'swim' && r < 0.62) { d.st = 'preen'; d.until = t + 1.4 + rnd(); return; }
+    d.st = 'swim'; d.until = t + 1 + rnd() * 3;
+    for (let n = 0; n < 6; n++) { const x = d.k ? MAL[0].tx + 20 + rnd() * 8 : POND[0] - 12 - rnd() * 40, y = POND[1] + d.k * 5 - 2 + Math.round(rnd() * 2 - 1); if (afloat(x, y)) { d.tx = x; d.ty = y; break; } }
+    if (!d.k && MAL[1].st !== 'fly') { MAL[1].st = 'tip'; onward(MAL[1], t, 1); } };
+  // A flight, in seconds from its start: a run along the water (run), out to the west climbing (out), round
+  // behind the lake (arc), in low from the east (inn) and a skid to a stop (skid). The hen goes a moment after
+  // the drake. It starts from wherever the duck was (ax, ay) and ends at the duck's own place.
+  const FL = { run: 1.4, out: 3.4, arc: 8.6, inn: 12.1, skid: 13.3 };
+  const flush = t => { for (const d of MAL) if (d.st !== 'fly') { d.st = 'fly'; d.t0 = t + d.k * 0.8; d.ax = d.x; d.ay = d.y; } };
+  let malT = null, flew = null, quackAt = 20;
+  function mallards(scr, ox, oy, t, e, env) {
+    const dt = malT == null ? 0 : Math.max(0, Math.min(0.1, t - malT)); malT = t;
+    // The event: they go up, round and down again. One met part-way through (the map was out of sight) is let go by.
+    if (e) { const at = Math.round((t - e[1]) * 4); if (flew !== at) { flew = at; if (e[1] < 3) flush(t); } }
+    const Wc = R.white[1], wet = (X, Y, c) => { if (wetAt(LAKE, X, Y)) scr.set(X - ox, Y - oy, c); }, ease = v => v * v * (3 - 2 * v);
+    for (const d of MAL) {
+      const k = d.k, L = [POND[0] - 6 + k * 19, POND[1] + k * 5 - 2], F = DUCK[k], u = d.st === 'fly' ? t - d.t0 : -1;
+      let x = d.x, y = d.y, h = 0, bm = F.swim, dir = d.dir, moving = false;
+      if (u >= 0) {
+        const x1 = d.ax - 26, W = x1 - 46, E = L[0] + 80, cx = (W + E) / 2, rx = (E - W) / 2;
+        dir = -1; bm = Math.floor(u * 9) & 1 ? F.down : F.up;
+        if (u < FL.run) { const q = u / FL.run; x = d.ax - 26 * q * q; y = d.ay; h = 3 * q * q;
+          // The run: a splash at each footfall, left behind on the water.
+          for (let j = 1; j <= 5; j++) { const qj = q - j * 0.07; if (qj > 0) wet(Math.round(d.ax - 26 * qj * qj), Math.round(y) + (j & 1), j < 3 ? Wc : R.water[4]); } }
+        else if (u < FL.out) { const q = (u - FL.run) / (FL.out - FL.run); x = lerp(x1, W, q); y = lerp(d.ay, L[1], ease(q)); h = lerp(3, 24, ease(q)); }
+        else if (u < FL.arc) { const q = (u - FL.out) / (FL.arc - FL.out), an = Math.PI * (1 + q); x = cx + rx * Math.cos(an); y = L[1] + 30 * Math.sin(an); h = 24 + 12 * Math.sin(Math.PI * q) + 4 * q; dir = 1; }
+        else if (u < FL.inn) { const q = (u - FL.arc) / (FL.inn - FL.arc); x = L[0] + 80 * (1 - q) * (1 - 0.35 * q); y = L[1]; h = 28 * Math.pow(1 - q, 1.7); }
+        else if (u < FL.skid) { const q = (u - FL.inn) / (FL.skid - FL.inn); x = L[0] - 10 * (1 - (1 - q) * (1 - q)); y = L[1]; bm = q < 0.4 ? F.up : F.swim;
+          // The skid: spray thrown up behind and to both sides, less as it slows.
+          for (let j = 0; j < 14; j++) if (hash(j, Math.floor(u * 12), 7340 + k) > q) wet(Math.round(x) + 6 + j, L[1] + ((j & 1) ? 1 : -1) * (1 + (j >> 2)) - (j < 4 ? 1 : 0), Wc); }
+        else { d.st = 'swim'; d.x = d.tx = x = L[0] - 10; d.y = d.ty = y = L[1]; d.dir = -1; d.until = t + 2 + rnd() * 2; bm = F.swim; }
+      } else if (d.st !== 'fly') {
+        if (d.st === 'swim') { const dx = d.tx - d.x, dy = d.ty - d.y, far = Math.hypot(dx, dy);
+          if (far > 0.4) { const v = Math.min(far, 2.6 * dt); d.x += dx / far * v; d.y += dy / far * v; if (Math.abs(dx) > 0.3) d.dir = dx < 0 ? -1 : 1; moving = true; } else if (t >= d.until) onward(d, t); }
+        else if (t >= d.until) onward(d, t);
+        x = d.x; y = d.y; dir = d.dir; bm = d.st === 'tip' ? F.tip[Math.floor(t * 3) & 1] : d.st === 'preen' ? F.preen : F.swim;
+      }
+      const up = Math.round(h), X = Math.round(x), Y = Math.round(y), sx = X - ox, sy = Y - up - oy, seen = inView(scr, sx, sy, 8);
+      d.px = X; d.py = Y - up;
+      if (seen && !up && !covered(sx, sy)) saw('ducks');
+      // What is heard: wings on the water as they go up, the splash as the drake comes down, and a quack from the
+      // hen once both are settled. On the water the drake quacks now and then.
+      if (u >= 0) { if (!k) { sound(env, 'ducks', d.t0, 'slap', seen); if (u >= FL.inn) sound(env, 'ducks2', d.t0, 'splash', seen); } else if (u >= FL.skid - 0.2) sound(env, 'ducks3', d.t0, 'quack', seen); }
+      else if (!k && seen && t >= quackAt) { env.sfx('quack'); quackAt = t + 16 + rnd() * 16; }
+      if (!up && !(u >= 0 && u < FL.inn)) {
+        // On the water: its own dark reflection under it, a ring round a duck that has tipped up, and a wake that
+        // opens behind one that is paddling.
+        for (let i = -6; i <= 5; i++) if (d.st !== 'tip' || Math.abs(i) < 4) wet(X + i * dir, Y + 1, R.water[1]);
+        if (d.st === 'tip') { for (const [i, j] of [[-6, 0], [6, 0], [-5, 1], [5, 1], [-3, 2], [0, 2], [3, 2], [-5, -1], [5, -1]]) wet(X + i, Y + j, (i + Math.floor(t * 2)) & 1 ? Wc : R.water[4]); }
+        else if (moving) { const b = -dir, f = Math.floor(t * 3) & 1; for (const [i, j, c] of f ? [[9, 1, Wc], [11, 2, R.water[4]], [13, 3, R.water[4]], [10, -2, R.water[4]], [12, -3, R.water[4]]] : [[10, 1, R.water[4]], [12, 2, Wc], [9, -2, Wc], [11, -3, R.water[4]]]) wet(X + i * b, Y + j, c); }
+      }
       // Low over the water its shadow runs under it.
-      if (h > 0.5 && h < 14) for (let i = -2; i <= 2; i++) wet(X + i, hy + 1, R.water[1]);
-      duck(scr, X - ox, Y - oy, -1, k === 0, pose, f);
+      if (up > 0 && up < 14) for (let i = -4; i <= 4; i++) wet(X + i, Y + 1, R.water[1]);
+      scr.put(bm, sx, sy, dir < 0);
     }
   }
 
@@ -248,8 +295,8 @@ export function makeLife(W, STILL) {
       if (bayer(x, y) >= smooth(5.4, 3.4, u)) continue; const up = Math.floor(u * 7 + k) & 1; scr.set(x - ox, y - oy, INK); scr.set(x - 1 - ox, y - up - oy, INK); scr.set(x + 1 - ox, y - up - oy, INK); }
   }
 
-  // A rainbow over the rainforest when a shower has passed: six bands on a bow, strongest at its top and
-  // thinning to nothing before its feet reach the trees. a: how much of it shows.
+  // A rainbow over the meadow when a shower has passed: six bands on a bow, strongest at its top and
+  // thinning to nothing before its feet reach the ground. a: how much of it shows.
   function rainbow(scr, ox, oy, a) {
     const [cx, cy, r] = ARC, W = BOW.length * 2, x0 = Math.max(0, cx - r - W - ox), x1 = Math.min(scr.VW - 1, cx + r + W - ox), y0 = Math.max(0, cy - r - W - oy), y1 = Math.min(scr.VH - 1, cy - oy);
     if (a > 0.6 && inClear(scr, cx - ox, cy - r - oy, 0)) saw('rainbow');
@@ -280,21 +327,24 @@ export function makeLife(W, STILL) {
       if ((e = on('pair', t))) pair(scr, ox, oy, e[0], e[1], env);
       if ((e = on('talus', t))) talus(scr, ox, oy, e[0], e[1], env);
       if ((e = on('band', t))) band(scr, ox, oy, e[0], e[1], env);
-      if ((e = on('ducks', t))) ducks(scr, ox, oy, e[0], e[1], env);
+      if (MAL.length && DEBUG.animals) mallards(scr, ox, oy, t, on('ducks', t), env);
       if ((e = on('treefall', t))) treefall(scr, ox, oy, e[0], e[1], env);
       if ((e = on('hoot', t))) hoot(scr, ox, oy, e[0], e[1], env);
       // The rainbow: by its button, or as the shower clears off (the rain stops at 74 on the weather's clock).
       if (ARC && mix < 0.5) { e = on('rainbow', t); const bow = Math.max(e ? smooth(0, 4, e[1]) * smooth(EV.rainbow.dur, EV.rainbow.dur - 6, e[1]) : 0, sky ? smooth(66, 75, sky.s) * smooth(99, 88, sky.s) : 0); if (bow > 0.02) rainbow(scr, ox, oy, bow); }
     },
-    // How strong the alpenglow on the Spires is now, 0 to 1: it comes up over a few seconds at Dusk, holds and fades.
+    // How strong the alpenglow is now, 0 to 1: it comes up over a few seconds at Dusk, holds and fades.
     alpenglow(t) { const e = on('alpenglow', t); return e ? smooth(0, 7, e[1]) * smooth(EV.alpenglow.dur, EV.alpenglow.dur - 12, e[1]) : 0; },
     // How still Reflection Lake lies, 0 to 1: the wind drops over a few seconds, the water is glass, and it picks up again.
     calm(t) { const e = on('calm', t); return e ? smooth(0, 5, e[1]) * smooth(EV.calm.dur, EV.calm.dur - 5, e[1]) : 0; },
     lake: LAKE,
     // The drifting ice, drawn on the water before anything that stands in front of it. bergs: for the checks.
     ice, bergs: () => BERGS.map(b => ({ x: b.x, y: b.y, w: b.w, home: b.hx, floe: b.floe, wet: roomAt(b.l, b.x, b.y, b.w) })),
-    // The sunbreak: where the gap in the cloud lets the sun onto the canopy now, drifting east, and how bright.
-    sunbreak(t) { const e = on('sunbreak', t); if (!e) return null; const S = spot(e[0], 7370); return { x: S[0] - 54 + 4.5 * e[1], y: S[1] + 0.7 * e[1], a: smooth(0, 4, e[1]) * smooth(EV.sunbreak.dur, EV.sunbreak.dur - 5, e[1]) }; },
+    // A duck under a point of the map (world pixels), for the name tag and a click; and the click itself: it
+    // quacks, and both go up, round the lake and come down again.
+    pick(wx, wy) { if (DEBUG.animals) for (const d of MAL) if (Math.abs(wx - d.px) <= 9 && wy >= d.py - 9 && wy <= d.py + 2) return { label: NAMES.map.mallard, wx: d.px, wy: d.py - 10, act: 'duck:' + d.k }; return null; },
+    click(t) { flush(t); return 'quack'; },
+    ducks: () => MAL.map(d => ({ st: d.st, x: d.px, y: d.py, wet: d.st === 'fly' || afloat(d.x, d.y) })),
     // Where each happens, for the debug panel to look there first.
     where(name) {
       if (name === 'rockfall') return L.rock.length ? [L.rock[0][0], L.rock[0][1] + 20] : null;
@@ -305,7 +355,7 @@ export function makeLife(W, STILL) {
       if (name === 'calm') return LAKE ? [(LAKE.x0 + LAKE.x1) / 2, (LAKE.y0 + LAKE.y1) / 2] : null;
       if (name === 'ducks') return POND ? [POND[0] - 10, POND[1]] : null;
       if (name === 'rainbow') return ARC ? [ARC[0], ARC[1] - ARC[2] * 0.6] : null;
-      if (name === 'treefall' || name === 'hoot' || name === 'sunbreak') return FOREST.length ? FOREST[FOREST.length >> 1] : null;
+      if (name === 'treefall' || name === 'hoot') return FOREST.length ? FOREST[FOREST.length >> 1] : null;
       return null;
     },
     // The debug panel's start buttons. One that cannot happen now (the alpenglow by Day) says no.

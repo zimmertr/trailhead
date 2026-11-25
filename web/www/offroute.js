@@ -78,9 +78,10 @@ export function makeOffroute() {
     draw(scr, env, arg, q) {
       const { VW, VH } = scr, { t } = env, base = baseline(scr, env.shown, st), cx = Math.round(scr.narrow ? VW * 0.5 : VW * 0.62);
       // Where the 404 sits: in the cloud left of him, as big as fits between the top bar and the ghost ridge
-      // and never wider than four fifths of the picture, drifting a few pixels.
+      // and never wider than four fifths of the picture. It stays put (TJ, round 8): a slow drift moved it a whole
+      // pixel at a time, which read as a twitch.
       const top = 18, low = base - 70, gc = Math.max(6, Math.min(30, Math.floor((low - top) / 5.6), Math.floor(VW * 0.8 / 11)));
-      const gx0 = Math.round((scr.narrow ? VW * 0.5 : VW * 0.36) - 5.5 * gc + 6 * Math.sin(t * 0.09)), gy0 = Math.round(Math.max(top + 4, (top + low) / 2 - 2.5 * gc) + 3 * Math.sin(t * 0.07 + 1));
+      const gx0 = Math.round((scr.narrow ? VW * 0.5 : VW * 0.36) - 5.5 * gc), gy0 = Math.round(Math.max(top + 4, (top + low) / 2 - 2.5 * gc));
       paintFog(scr, t, base, maskFor(gc), gx0, gy0);
       const mx = cx - Math.round((1 - q) * 70), my = base + 6;
       // His own tracks, coming in from the left and stopping: pairs of prints, the older ones drifting in.

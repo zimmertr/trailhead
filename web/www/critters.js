@@ -253,23 +253,35 @@ export function makeCritters(W, opts = {}) {
   const pass = (x, y) => col.canBe('land', Math.round(x), Math.round(y), 0) && !bole[Math.floor(y / CELL) * GW + Math.floor(x / CELL)];
   const walker = (kind, f, x0, y0, o) => { const own = o.ok; o = { ...o, ok: (x, y) => own(x, y) && col.canBe('land', Math.round(x), Math.round(y), 0) }; const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, col: 'land', walker: true, f, bm: f.graze, x, y, hx: x, hy: y, h0: [x, y], st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
   // The herd keeps together: each elk strays only a little from its own place in it.
-  spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look', does: n === 0 ? ['graze', 'bugle', 'bed', 'thrash', 'trot'] : ['graze', 'look', 'bed', 'bark', 'trot'] }));
-  spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null, does: kid ? ['graze', 'hop', 'butt', 'bed', 'trot'] : ['look', 'graze', 'bed', 'hop', 'butt'] }));
+  // One herd, its bull first, each elk at its own place round where the bull stands. Made by a function, as the
+  // other kinds below are, since the debug panel can put a group on every home (TJ, round 8). herd: which herd or
+  // band an animal belongs to.
+  let herds = 0;
+  const elkHerd = (hx, hy) => { const [x0, y0] = W.spots.elk[0], herd = herds++; W.spots.elk.forEach(([a, b, d], n) => walker('elk', n === 0 ? elkBull : elkCow, a + hx - x0, b + hy - y0, { herd, faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look', does: n === 0 ? ['graze', 'bugle', 'bed', 'thrash', 'trot'] : ['graze', 'look', 'bed', 'bark', 'trot'] })); };
+  if (spots.elk.length) elkHerd(spots.elk[0][0], spots.elk[0][1]);
+  const goatAt = (x, y, kid, n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null, does: kid ? ['graze', 'hop', 'butt', 'bed', 'trot'] : ['look', 'graze', 'bed', 'hop', 'butt'] });
+  // A nanny and her kid.
+  const goatPair = (x, y) => { goatAt(x, y, 0, 0); goatAt(x + 16, y + 6, 1, 1); };
+  spots.goats.forEach(([x, y, kid], n) => goatAt(x, y, kid, n));
   // A goat on the ledge (round 8, H3): a billy by himself on the grassy ledge halfway up the larch basin's
   // wall, where goats like to stand. The ledge's pixels are his country (spots: he walks from one of them to
   // another), and land.js makes them ground a land animal may stand on.
   if (spots.ledge && spots.ledge.length) { const run = spots.ledge, on = new Set(run.map(([x, y]) => y * NW + x)), [x, y] = run[run.length >> 1];
     walker('goat', goats[0], x, y, { faces: 1, r: 18, v: 4, ok: (px, py) => { const i = Math.round(py) * NW + Math.round(px); return on.has(i) || on.has(i - NW) || on.has(i + NW); }, start: 'look', spots: run, does: ['look', 'graze', 'bed', 'hop', 'trot'] }); }
-  spots.sheep.forEach(([x, y, d]) => walker('sheep', ram, x, y, { faces: 1, r: 34, v: 6, ok: clear, roam: 0.6, start: d ? 'graze' : 'look', does: ['graze', 'butt', 'bed', 'trot', 'look'] }));
+  const sheepBand = band => { const herd = herds++; band.forEach(([x, y, d]) => walker('sheep', ram, x, y, { herd, faces: 1, r: 34, v: 6, ok: clear, roam: 0.6, start: d ? 'graze' : 'look', does: ['graze', 'butt', 'bed', 'trot', 'look'] })); };
+  sheepBand(spots.sheep);
   // The moose (T35): a bull and a calf that wander the riverside woods together, the calf at his heels (it
   // follows him as a kid follows its nanny). They keep off the trail.
   const mooseF = calf => { const look = makeMoose(calf, false), graze = makeMoose(calf, true), f = { look, graze, walk: [makeMoose(calf, false, 1), makeMoose(calf, false, 2)], bed: [0, 1].map(k => makeMoose(calf, false, k, 'bed')) };
     // The bull's shake goes through the level head between the two swings; at the water his head goes under and comes up with weed.
     if (!calf) { f.shake = [look, makeMoose(false, false, 1, 'shake'), look, makeMoose(false, false, 2, 'shake')]; f.dip = [graze, makeMoose(false, false, 0, 'weeds'), graze, makeMoose(false, false, 1, 'weeds')]; }
     return f; };
-  if (spots.moose) { const inWoods = (x, y) => clear(x, y) && !W.nearTrail(x, y, 10);
-    walker('moose', mooseF(false), spots.moose[0], spots.moose[1], { faces: -1, r: 64, v: 5, ok: inWoods, roam: 0.7, start: 'look', does: ['graze', 'shake', 'dip', 'bed', 'trot'] });
-    walker('moose', mooseF(true), spots.moose[0] + 16, spots.moose[1] + 5, { faces: -1, r: 15, v: 9, ok: inWoods, roam: 0.3, mum: items[items.length - 1], does: ['graze', 'hop', 'bed', 'look', 'trot'] }); }
+  // Their drawings are made the first time a pair is.
+  let mooseFs = null;
+  const moosePair = (x, y) => { const inWoods = (px, py) => clear(px, py) && !W.nearTrail(px, py, 10), F = mooseFs || (mooseFs = [mooseF(false), mooseF(true)]);
+    walker('moose', F[0], x, y, { faces: -1, r: 64, v: 5, ok: inWoods, roam: 0.7, start: 'look', does: ['graze', 'shake', 'dip', 'bed', 'trot'] });
+    walker('moose', F[1], x + 16, y + 5, { faces: -1, r: 15, v: 9, ok: inWoods, roam: 0.3, mum: items[items.length - 1], does: ['graze', 'hop', 'bed', 'look', 'trot'] }); };
+  if (spots.moose) moosePair(spots.moose[0], spots.moose[1]);
   const asked = typeof location !== 'undefined' && /[?&]bear=([01])/.exec(location.search);
   // The bears (round 5, T34 and T44): each is a sow with two cubs. The cubs keep within a few pixels of her:
   // when she moves off they trail her, one at each side, and while she stays they sniff about, roll on their
@@ -365,7 +377,7 @@ export function makeCritters(W, opts = {}) {
   // One family lives in its clearing in the firs below the Spires' waterfall and is always there (T34): it
   // keeps to the open patch (the room land.js measured) and off the trail beside it. The other is at the
   // forest's edge on roughly one visit in three (T44). For screenshots, bear=1 or bear=0 in the address settles that one.
-  const addBear = () => family(spots.bear[0], spots.bear[1], { faces: 1, r: 90, v: 7, ok: meadow, roam: 0.4 }, true);
+  const bearAt = (x, y) => family(x, y, { faces: 1, r: 90, v: 7, ok: meadow, roam: 0.4 }, true), addBear = () => bearAt(spots.bear[0], spots.bear[1]);
   if (opts.bear != null ? opts.bear : asked ? asked[1] === '1' : Math.random() < 0.35) addBear();
   if (spots.bearHome) family(spots.bearHome[0], spots.bearHome[1], { faces: 1, r: spots.bearHome[2] + 2, v: 5, ok: (x, y) => meadow(x, y) && !W.nearTrail(x, y, 9), roam: 0.3 }, false);
 
@@ -578,7 +590,8 @@ export function makeCritters(W, opts = {}) {
     if (t >= a.until) { a.st = 'sit'; a.bm = a.f.sit; a.hop = 0; a.ofx = 0; a.until = t + 4 + rand() * 9; return; }
     if (a.act !== 'climb') { a.bm = fr[Math.floor(s * fps) & 1]; return; }
     const moving = s < CLIMB.up || left < CLIMB.up; a.ofx = a.lean; a.hop = Math.round(CLIMB.high * Math.min(1, s / CLIMB.up, left / CLIMB.up)); a.bm = fr[moving ? Math.floor(s * fps) & 1 : 0]; };
-  for (const [x, y, chip] of spots.squirrels) items.push({ h0: [x, y], critter: 'squirrel', col: 'land', dart: true, f: sq[chip ? 1 : 0], bm: sq[chip ? 1 : 0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: 3 + rand() * 12, flip: rand() < 0.5 });
+  const squirrelAt = (x, y, chip) => items.push({ h0: [x, y], critter: 'squirrel', col: 'land', dart: true, f: sq[chip ? 1 : 0], bm: sq[chip ? 1 : 0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: 3 + rand() * 12, flip: rand() < 0.5 });
+  for (const [x, y, chip] of spots.squirrels) squirrelAt(x, y, chip);
   function dart(a, dt, t, here) {
     if (a.st === 'act') { sqActing(a, t); return; }
     if (a.st === 'run') {
@@ -611,7 +624,8 @@ export function makeCritters(W, opts = {}) {
   // top stands) and keep to it. Every 26 s, and when he comes near, a marmot sits up and whistles, then drops
   // down again; the whistle sounds if the marmot is on screen. None sets foot on ice or snow.
   const MAR = { cycle: 26, up: 2.6 }, sounds = [];
-  spots.marmots.forEach(([x, y0, perch = 0], n) => { const y = y0 + (perch ? 1 : 0); items.push({ critter: 'marmot', col: 'land', f: mar, bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: perch ? 0 : 16, perch, perch0: perch, lift: perch, st: 'sun', until: 4 + rand() * 10 }); });
+  const marmotAt = ([x, y0, perch = 0], n) => { const y = y0 + (perch ? 1 : 0); items.push({ critter: 'marmot', col: 'land', f: mar, bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: perch ? 0 : 16, perch, perch0: perch, lift: perch, st: 'sun', until: 4 + rand() * 10 }); };
+  spots.marmots.forEach((m, n) => marmotAt(m, n));
   const offIce = (x, y) => { const k = RAMP_OF[g[Math.round(y) * NW + Math.round(x)]]; return k !== 'glac' && k !== 'snow' && k !== 'farsnow'; };
   // Its five things (round 8, D2): sunbathing and sitting up to whistle it always did, and a click sent it
   // down its burrow. Now it also digs, and wrestles another of its colony that comes up beside it for the
@@ -660,15 +674,16 @@ export function makeCritters(W, opts = {}) {
   let whaleAhead = ahead, ferryAhead = ahead;
 
   // ---- the whale -------------------------------------------------------------------------------
-  // Once in every 40 to 60 seconds it breaches: out, over and down in under three seconds, then the
-  // spray comes down and its flukes lift and slide under after it. Twice in between it rolls at the
-  // surface and blows. At time 0 it hangs at the top of a breach, for the block-in page.
+  // Its time goes in slots of 40 to 60 seconds. In one slot of every three it breaches (TJ, round 8: a breach is
+  // a special thing, so about every two and a half minutes, where it was every slot): out, over and down in
+  // under three seconds, then the spray comes down and its flukes lift and slide under after it. In every slot
+  // it rolls at the surface and blows, and does one or two of its lesser things. At time 0 it hangs at the top of a breach, for the block-in page.
   // Drawing the breach took a sixth of the page's start (M3), so only its first drawing is made up front;
   // the rest are made one a frame once the map is running, and a breach that comes before they are all
   // made (one started from the debug menu) makes the rest then.
   const whales = [W.make.whale(BREACH[0])], moreWhales = () => { if (whales.length < BREACH.length) whales.push(W.make.whale(BREACH[whales.length])); };
   const flukes = [0, 0.33, 0.66, 1].map(f => W.make.whale({ fluke: f }));
-  const SLOT = 50, starts = n => 10 * hash(n, 5, 63), T0 = starts(0) + 1.55;
+  const SLOT = 50, starts = n => 10 * hash(n, 5, 63), T0 = starts(0) + 1.55, breaches = n => n % 3 === 0, nextBreach = m => { do m++; while (!breaches(m)); return m; };
   // Its five things, in the order a click steps through them, and how many seconds each of the lesser four lasts.
   const WHALE_DOES = { blow: 3, breach: 0, slap: 4.5, pec: 6, fluke: 3.4 }, WHALE_TURN = Object.keys(WHALE_DOES);
   const back = (() => { const b = new BM(20, 6); b.ox = 10; b.oy = 5; ell(b, 10, 6, 8.5, 4.2, (nx, ny) => R.navy[ny < -0.55 ? 2 : 1]); b.set(13, 1, R.navy[0]); b.set(14, 1, R.navy[0]); outline(b, INK); return b; })();
@@ -697,16 +712,18 @@ export function makeCritters(W, opts = {}) {
   const pickOpen = (key, ox, oy, VW, VH) => { const all = openWater(); if (!all.length) return spots.whale; const seen = all.filter(([x, y]) => x - 60 > ox && x + 16 < ox + VW && y - 46 > oy + 40 && y + 10 < oy + VH - 130), from = seen.length ? seen : all; return from[Math.floor(hash(key, 7, 6201) * from.length)]; };
   function drawWhale(scr, a, ox, oy, t) {
     const T = t + whaleAhead + T0, n = Math.floor(T / SLOT), u = T - n * SLOT - starts(n);
-    if (a.slot !== n) { a.slot = n; [a.x, a.y] = n ? pickOpen(n, ox, oy, scr.VW, scr.VH) : spots.whale; a.blows = [null, null]; }
+    // ub: seconds into the breach, or long before one in a slot that has none, so that nothing of it is drawn.
+    const ub = breaches(n) ? u : -99;
+    if (a.slot !== n) { a.slot = n; [a.x, a.y] = n ? pickOpen(n, ox, oy, scr.VW, scr.VH) : spots.whale; a.blows = [null, null, null]; }
     const wx = a.x - ox, wy = a.y - oy;
     seen.whale = wx > -30 && wx < scr.VW + 30 && wy > -30 && wy < scr.VH + 10 ? [wx - 10, wy] : null;
-    if (u >= 0.3 && u < IMPACT + 2.9 && inClear(scr, wx - 10, wy)) saw('whale');
+    if (ub >= 0.3 && ub < IMPACT + 2.9 && inClear(scr, wx - 10, wy)) saw('whale');
     const white = R.white[1], pale = R.sea[5], ease = v => v * v * (3 - 2 * v);
     // The foam it leaves lies on the water, so it goes down first: a patch where it landed that thins
     // out, and a ring that spreads from it and breaks up. A small ring marks where it came out.
     const ring = (cx, age, len, rx, ry) => { if (age < 0 || age > len) return; const thin = age / len; for (let k = 0; k < 96; k++) { if (hash(k, Math.floor(t * 2.5), 62) < thin) continue; const an = k / 96 * TAU; scr.set(Math.round(wx + cx + Math.cos(an) * rx), Math.round(wy + Math.sin(an) * ry), k % 5 ? white : pale); } };
-    ring(-3, u - 0.1, 1.8, 8 + 8 * (u - 0.1), 2.4 + 2 * (u - 0.1));
-    const wet = u - IMPACT;
+    ring(-3, ub - 0.1, 1.8, 8 + 8 * (ub - 0.1), 2.4 + 2 * (ub - 0.1));
+    const wet = ub - IMPACT;
     if (wet > 0.1 && wet < 4.2) {
       const rx = 30 + 4 * wet, ry = 4 + 1.1 * wet;
       for (let dy = -Math.ceil(ry); dy <= ry; dy++) for (let dx = -Math.ceil(rx); dx <= rx; dx++) {
@@ -716,8 +733,8 @@ export function makeCritters(W, opts = {}) {
       }
     }
     ring(-22, wet, 4.6, 30 + 9 * wet, 4 + 2.4 * wet);
-    if (u >= 0 && u < IMPACT + 0.5) while (whales.length < BREACH.length) moreWhales();
-    if (u >= 0 && u < IMPACT + 0.5) sunk(scr, whales[Math.min(whales.length - 1, Math.floor(u * FPS))], wx, wy, Math.round(7 * smooth(2.05, IMPACT, u) + 16 * smooth(IMPACT, IMPACT + 0.5, u)), t);
+    if (ub >= 0 && ub < IMPACT + 0.5) while (whales.length < BREACH.length) moreWhales();
+    if (ub >= 0 && ub < IMPACT + 0.5) sunk(scr, whales[Math.min(whales.length - 1, Math.floor(ub * FPS))], wx, wy, Math.round(7 * smooth(2.05, IMPACT, ub) + 16 * smooth(IMPACT, IMPACT + 0.5, ub)), t);
     // The flukes: up, a moment standing, then tipping over and under.
     const uf = wet - 0.6;
     if (uf > 0 && uf < 1.75) {
@@ -728,7 +745,7 @@ export function makeCritters(W, opts = {}) {
     // Spray: a little thrown up as it comes out, and a wall of it as it lands, which falls back as drops.
     const drop = (px, py, big) => { if (py > wy + 1) return; scr.set(px, py, white); if (big) scr.set(px + 1, py, white); scr.set(px, py + 1, pale); };
     for (let k = 0; k < 16; k++) {
-      const age = u - 0.05 - hash(k, 1, 61) * 0.3; if (age < 0 || age > 1.6) continue;
+      const age = ub - 0.05 - hash(k, 1, 61) * 0.3; if (age < 0 || age > 1.6) continue;
       drop(Math.round(wx - 3 + (hash(k, 2, 61) - 0.5) * 28 * age), Math.round(wy - (22 + hash(k, 3, 61) * 22) * age + 46 * age * age), hash(k, 4, 61) < 0.5);
     }
     if (wet > -0.1 && wet < 0.8) {
@@ -748,6 +765,7 @@ export function makeCritters(W, opts = {}) {
     // when it begins: it rolls and blows, as it always did; slaps its tail on the water three times; lies on
     // its side and waves one long white pectoral fin in the air; or lifts its flukes and goes down. v:
     // seconds in. The first of each slot is always a blow (the debug menu asks for one); the second is one of the other three.
+    // A slot without a breach opens with one of those three in its place. Seeing any of them is seeing the whale.
     const minor = (kind, v, px, py, key) => {
       const bx = px - ox, by = py - oy, foam = (x0, x1) => { for (let i = x0; i <= x1; i += 2) scr.set(bx + i, by + 1, white); };
       const spray = (age, seed) => { for (let k = 0; k < 44; k++) { const s = age - hash(k, 1, seed) * 0.15; if (s < 0 || s > 1.1) continue; const y = Math.round(by - (16 + 22 * hash(k, 3, seed)) * s + 34 * s * s); if (y <= by + 1) { const x = Math.round(bx + (hash(k, 2, seed) - 0.5) * 46 * s); scr.set(x, y, white); if (k & 1) scr.set(x + 1, y, white); scr.set(x, y + 1, pale); } } };
@@ -772,9 +790,9 @@ export function makeCritters(W, opts = {}) {
         const uf = v - 0.9; if (uf > 0 && uf < 1.75) sunk(scr, flukes[Math.round(3 * smooth(0.5, 1.5, uf))], bx - 6, by, Math.round(uf < 0.6 ? 25 * (1 - ease(uf / 0.6)) : uf < 0.95 ? 0 : 25 * ease((uf - 0.95) / 0.8)), t);
         if (uf >= 1.75 && uf < 2.4) foam(-12, 4);
       } };
-    for (const [b, at] of [[0, 17], [1, 31]]) {
-      const kind = b ? ['slap', 'pec', 'fluke'][Math.floor(hash(n, 7, 63) * 3)] : 'blow', v = u - at; if (v <= 0 || v >= WHALE_DOES[kind]) { if (v > 0) a.blows[b] = null; continue; }
-      const P = a.blows[b] || (a.blows[b] = pickOpen(n * 3 + b + 1, ox, oy, scr.VW, scr.VH)); minor(kind, v, P[0], P[1], n * 10 + b * 4);
+    for (const [b, at] of breaches(n) ? [[0, 17], [1, 31]] : [[2, 3], [0, 17], [1, 31]]) {
+      const kind = b ? ['slap', 'pec', 'fluke'][Math.floor(hash(n, 5 + b * 2, 63) * 3)] : 'blow', v = u - at; if (v <= 0 || v >= WHALE_DOES[kind]) { if (v > 0) a.blows[b] = null; continue; }
+      const P = a.blows[b] || (a.blows[b] = pickOpen(n * 3 + b + 1, ox, oy, scr.VW, scr.VH)); minor(kind, v, P[0], P[1], n * 10 + b * 4); if (inClear(scr, P[0] - ox, P[1] - oy)) saw('whale');
     }
     // One asked for by a click, where the whale was last seen.
     if (a.ask && t - a.ask[1] < WHALE_DOES[a.ask[0]]) minor(a.ask[0], t - a.ask[1], a.x - 10, a.y, 1e6 + a.ask[1]);
@@ -1434,7 +1452,7 @@ export function makeCritters(W, opts = {}) {
       if (OSPREY && s0 >= 0 && s0 < OSPREY.inn.len) ospWant = [n0, OSP_KINDS[ospTurn]]; else ospNow(OSP_KINDS[ospTurn], t); return 'kew'; }
     // The whale steps through its five (round 8, D2): a breach is the next one brought forward to now, as before; the rest it does where it was last seen.
     if (kind === 'whale') { const wh = items.find(a => a.critter === 'whale'); wh.turn = ((wh.turn == null ? -1 : wh.turn) + 1) % 5; const name = WHALE_TURN[wh.turn];
-      if (name === 'breach') { const T = t + whaleAhead + T0, m = Math.floor(T / SLOT); whaleAhead = (m + 1) * SLOT + starts(m + 1) - t - T0; wh.ask = null; } else wh.ask = [name, t];
+      if (name === 'breach') { const m = nextBreach(Math.floor((t + whaleAhead + T0) / SLOT)); whaleAhead = m * SLOT + starts(m) - t - T0; wh.ask = null; } else wh.ask = [name, t];
       return name === 'slap' ? null : 'blow'; }
     const a = items[+n]; if (!a) return null;
     if (a.critter === 'eagle') { if (a.bm === EAGLE_BM.none) return null; a.turn = ((a.turn == null ? -1 : a.turn) + 1) % 4; const name = EAGLE_TURN[a.turn];
@@ -1557,7 +1575,8 @@ export function makeCritters(W, opts = {}) {
     collide: col,
     // The debug menu's spawn list (C4): each kind of map animal and the homes its own rule gave it, in world
     // pixels. spawn(kind, i) moves that kind there (a herd as one, a mother with her kid), adding it if it is
-    // absent this visit; spawn(kind, 'all') puts every one of that kind back on its own home.
+    // absent this visit; spawn(kind, 'all') makes a new group of that kind on every home that has none (TJ,
+    // round 8), so pressing it twice adds nothing the second time.
     homes: () => SPAWN.map(k => ({ kind: k, homes: homesOf(k) })).filter(k => k.homes.length),
     spawn(kind, i) {
       // The eagle moves to that stack's top (every one of them, or "everywhere", is its own again); the osprey
@@ -1575,14 +1594,28 @@ export function makeCritters(W, opts = {}) {
       // moved over, may be a cliff at the new one).
       const put = (a, x, y) => { const [sx, sy] = a.ok ? settle(a.ok, x, y) : [x, y], dx = sx - a.hx, dy = sy - a.hy; for (const b of [a, ...items.filter(k => k.mum === a)]) { b.away = null; b.path = null; b.homing = false; b.places = null; [b.hx, b.hy] = b !== a && (b.ok || a.ok) ? settle(b.ok || a.ok, sx + clamp(b.hx - a.hx, -18, 18), sy + clamp(b.hy - a.hy, -10, 10)) : [b.hx + dx, b.hy + dy]; b.fx = b.tx = b.x = b.hx; b.fy = b.ty = b.y = b.hy; if (b.walker) b.st = 'graze'; else if (b.cub) rest(b, nowT, 1); } };
       const perchOn = (a, lift) => { a.perch = a.lift = lift; a.r = lift ? 0 : 16; };
-      if (i === 'all') { for (const a of all) { if (kind === 'marmot') perchOn(a, a.perch0); put(a, a.h0[0], a.h0[1]); } return all.length > 0; }
-      const h = homesOf(kind)[i]; if (!h || !all.length) return false;
-      if (kind === 'elk') { const lead = all[0], dx = h[0] - lead.hx, dy = h[1] - lead.hy; for (const a of all) put(a, a.hx + dx, a.hy + dy); }
-      else if (kind === 'bear') { const sow = all.find(a => !!a.roamer === (i >= roamAt)); if (!sow) return false; if (i >= roamAt) put(sow, h[0], h[1]); else put(sow, sow.h0[0], sow.h0[1]); }
-      else if (kind === 'marmot') { const lift = HOMES.marmot[i][2], y = h[1] + (lift ? 1 : 0); if (!all.some(a => a.hx === h[0] && a.hy === y)) { perchOn(all[0], lift); put(all[0], h[0], y); } }
-      else if (kind === 'sheep') all.forEach((a, n) => { const p = HOMES.sheep[i][n]; if (p) put(a, p[0], p[1]); });
-      // A goat, a squirrel or the moose: the first of its kind goes, unless one of them lives there already.
-      else if (!all.some(a => Math.hypot(a.hx - h[0], a.hy - h[1]) < 40)) put(all[0], h[0], h[1]);
+      // One animal stands for each group: a herd's bull, a band's first ram, a mother, a sow. home: which of its
+      // kind's homes the group is on. One that has not been put anywhere yet is on the home nearest where it began.
+      const homes = homesOf(kind), near = a => { let at = 0, bd = 1e9; homes.forEach((h, j) => { const d = Math.hypot(a.h0[0] - h[0], a.h0[1] - h[1]); if (d < bd) { bd = d; at = j; } }); return at; };
+      const leads = all.filter(a => !a.spots && (kind === 'elk' ? a.f === elkBull : kind !== 'sheep' || a === all.find(b => b.herd === a.herd)));
+      for (const a of leads) if (a.home == null) a.home = kind !== 'bear' ? near(a) : a.roamer ? Math.max(roamAt, near(a)) : 0;
+      const taken = j => leads.some(a => a.home === j), group = a => a.herd == null ? [a] : all.filter(b => b.herd === a.herd);
+      if (i === 'all') { let made = 0;
+        homes.forEach((h, j) => { if (taken(j)) return; const from = items.length;
+          if (kind === 'elk') elkHerd(h[0], h[1]); else if (kind === 'goat') goatPair(h[0], h[1]); else if (kind === 'sheep') sheepBand(HOMES.sheep[j]); else if (kind === 'moose') moosePair(h[0], h[1]);
+          else if (kind === 'bear') bearAt(h[0], h[1]); else if (kind === 'marmot') marmotAt(HOMES.marmot[j], items.filter(a => a.critter === 'marmot').length); else if (kind === 'squirrel') squirrelAt(h[0], h[1], j & 1);
+          if (items.length > from) { items[from].home = j; made++; } });
+        return made > 0 || all.length > 0; }
+      const h = homes[i]; if (!h || !leads.length) return false;
+      // One home: the first group of its kind goes there, unless a group lives there already.
+      if (taken(i) && !(kind === 'bear' && i < roamAt)) return true;
+      const lead = kind === 'bear' ? leads.find(a => !!a.roamer === (i >= roamAt)) : leads[0]; if (!lead) return false;
+      if (kind === 'elk') { const dx = h[0] - lead.hx, dy = h[1] - lead.hy; for (const a of group(lead)) put(a, a.hx + dx, a.hy + dy); }
+      else if (kind === 'bear') { if (i >= roamAt) put(lead, h[0], h[1]); else put(lead, lead.h0[0], lead.h0[1]); }
+      else if (kind === 'marmot') { const lift = HOMES.marmot[i][2]; perchOn(lead, lift); put(lead, h[0], h[1] + (lift ? 1 : 0)); }
+      else if (kind === 'sheep') group(lead).forEach((a, n) => { const p = HOMES.sheep[i][n]; if (p) put(a, p[0], p[1]); });
+      else put(lead, h[0], h[1]);
+      lead.home = i;
       return true;
     },
     drawHull,
@@ -1679,7 +1712,7 @@ export function makeCritters(W, opts = {}) {
     // The debug panel's start buttons (E5f): the humpback breaches now, or rolls and blows now (its first
     // blow after a breach), or the ferry sets out from the west end now.
     trigger(name, t) {
-      if (name === 'breach' || name === 'blow') { const n = Math.floor((t + whaleAhead + T0) / SLOT) + (name === 'breach' ? 1 : 0); whaleAhead = n * SLOT + starts(n) + (name === 'blow' ? 16.6 : 0) - t - T0; return true; }
+      if (name === 'breach' || name === 'blow') { const n0 = Math.floor((t + whaleAhead + T0) / SLOT), n = name === 'breach' ? nextBreach(n0) : n0; whaleAhead = n * SLOT + starts(n) + (name === 'blow' ? 16.6 : 0) - t - T0; return true; }
       if (name === 'eagle') { eagAhead += startNow(EAG, t + eagAhead); return true; }
       if (name === 'marmot') { let n = 0; for (const a of items) if (a.critter === 'marmot') { a.call = t; n++; } return n > 0; }
       // In each bear family: the cubs play now, or the first cub with a trunk near climbs it now.

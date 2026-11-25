@@ -649,3 +649,10 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The World in a Landmark** (round 8, I3). The picture of the world sits outside every landmark region. Wrapping the canvas in a `main` would let a screen reader jump to it.
 - **The Late Scenes Arrive Early** (round 8, I3). A6 fetches the forest's and the lake's code late. Fetching it when the browser is idle, once the junction is up, would make the wait A6 guards against rare.
 - **Stiller Water for Reduced Motion** (round 8, I3). With reduced motion the camera, the clock and the idle tour hold still, but the lakes, the falls and the sea still move. They could slow to a few frames a second for that visitor.
+- **He Jogs In From the South** (round 8, J13). Once a trail comes up from the bottom of the map, he could run in along it when the page opens and stop at the junction.
+- **Ducklings in Early Summer** (round 8, J4). The hen with a row of ducklings behind her, each a few pixels, keeping to her wake.
+- **The Rainbow From the Lakeshore** (round 8, J6). The lakeside scene looks at the same meadow. After a shower the bow could stand there too.
+- **Alpenglow in the Scenes** (round 8, J1). The walk to camp and the camp look up at the Spires at Dusk. The same warm light could fall there while the map's does.
+- **A Stop for Events** (round 8, J9, withdrawn by TJ). One button that ends every event running on the map. "Clear sky" does it for the weather.
+- **The Whale's First Breach** (round 8, J7). The first breach now comes about two and a half minutes in. A visitor's first minute could be given one, and the rare ones kept for after.
+- **Ducks Elsewhere** (round 8, J4). The same mallards on the Peak's tarn or the burn's pond, by the same rule: the longest row of open water.

@@ -285,7 +285,8 @@ function openDebug(on) {
   timeSlider = el('input', { type: 'range', min: 0, max: C.cycle, step: 1, value: Math.round(C.t), 'aria-label': D.time, oninput: e => { api.setClock({ mode: 'auto', t: +e.currentTarget.value }); syncTop(); } });
   const clockSpeeds = D.clockSpeeds.map(k => el('button', { class: 'plank', 'aria-pressed': String(C.speed === k), onclick: e => { api.setClock({ speed: k }); for (const b of e.currentTarget.parentNode.children) b.setAttribute('aria-pressed', String(b === e.currentTarget)); audio.sfx('step'); } }, el('span', { text: k + 'x' })));
   const jump = (label, t) => el('button', { class: 'plank', onclick: () => { api.setClock({ mode: 'auto', t }); syncTop(); audio.sfx('step'); } }, el('span', { text: label }));
-  // Spawn an animal (C4): which animal, which of its homes (or everywhere it lives), then Spawn.
+  // Spawn an animal (C4): which animal, which of its homes (or everywhere it lives), then Spawn. The view goes
+  // to the home it was put on. "Everywhere" puts a group on every home that has none, and the view stays.
   const kinds = api.spawnList(), animal = el('select', { 'aria-label': D.spawn }, ...kinds.map((k, n) => el('option', { value: n, text: k.name })));
   const place = el('select', { 'aria-label': D.spawn });
   const fillPlaces = () => { const k = kinds[+animal.value]; place.replaceChildren(...k.homes.map((h, n) => el('option', { value: n, text: h })), el('option', { value: 'all', text: D.spawnAll })); };
@@ -300,20 +301,21 @@ function openDebug(on) {
   // What the sky is doing, in one line that keeps up with it while the panel is open (round 8, H13).
   skyLine = el('p', { class: 'legend skyline', role: 'status', text: UI.debug.skyLine(api.skyNow()) });
   // The timed events of the scene on screen (E5f): the map's, or the scene's own.
-  const SCENE_EVENTS = { world: ['breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'lens', 'tumble', 'devil', 'star', 'rockfall', 'calve', 'pair', 'alpenglow', 'talus', 'band', 'calm', 'ducks', 'treefall', 'rainbow', 'hoot', 'sunbreak'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
+  const SCENE_EVENTS = { world: ['breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'lens', 'tumble', 'devil', 'star', 'rockfall', 'calve', 'pair', 'alpenglow', 'talus', 'band', 'calm', 'ducks', 'rainbow', 'treefall', 'hoot'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
   const here = api.scene(), events = SCENE_EVENTS[here] || [];
   // The weather (round 8, E1): the same buttons in every scene that has a sky, since every scene shows it.
   const weather = ['world', 'forest', 'lakeside', 'larches', 'wall', 'approach', 'camp', 'climb'].includes(here) ? ['shower', 'squall', 'gustnow', 'shade', 'clear'] : [];
   // On the map a start button first eases the view to where its event happens, then starts it (note 26).
   const fire = id => { const ms = api.showEvent(id); setTimeout(() => audio.sfx(api.trigger(id) ? 'step' : 'close'), ms); };
   // Related events share one split button (note 27): its name starts one of them at random (the avalanche picks
-  // its own face), and the arrow opens a list of each.
+  // its own face), and the arrow opens a list of each. The list stays open when one is picked (TJ, round 8), so
+  // several can be started one after another; the arrow shuts it.
   const FAMILIES = { humpback: ['breach', 'blow'], cubs: ['cubplay', 'cubclimb'], avalanche: ['ava0', 'ava1', 'ava2'],
     // Life at every place (round 8, E2): one button for each place, its events in the list.
-    spires: ['rockfall', 'calve', 'pair', 'alpenglow'], peak: ['talus', 'band'], lake: ['calm', 'ducks'], rainforest: ['treefall', 'rainbow', 'hoot', 'sunbreak'] };
+    spires: ['rockfall', 'calve', 'pair', 'alpenglow'], peak: ['talus', 'band'], lake: ['calm', 'ducks', 'rainbow'], rainforest: ['treefall', 'hoot'] };
   const one = id => el('button', { class: 'plank', onclick: () => fire(id) }, el('span', { text: D.events[id] }));
   const split = (fam, ids) => {
-    const list = el('div', { class: 'split-list', role: 'menu', hidden: '' }, ...ids.map(id => el('button', { class: 'plank', role: 'menuitem', onclick: () => { list.hidden = true; more.setAttribute('aria-expanded', 'false'); fire(id); } }, el('span', { text: D.events[id] }))));
+    const list = el('div', { class: 'split-list', role: 'menu', hidden: '' }, ...ids.map(id => el('button', { class: 'plank', role: 'menuitem', onclick: () => fire(id) }, el('span', { text: D.events[id] }))));
     const more = el('button', { class: 'plank more', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': D.families[fam] + ': ' + D.pick, onclick: () => { list.hidden = !list.hidden; more.setAttribute('aria-expanded', String(!list.hidden)); } }, el('i', { class: 'arrow down' }));
     const main = el('button', { class: 'plank', onclick: () => fire(fam === 'avalanche' ? 'avalanche' : ids[Math.floor(Math.random() * ids.length)]) }, el('span', { text: D.families[fam] }));
     return el('div', { class: 'split' }, el('div', { class: 'split-row' }, main, more), list);
@@ -334,7 +336,7 @@ function openDebug(on) {
     el('h3', { text: D.speed }), el('div', { class: 'speeds' }, ...speeds),
     ...(weather.length ? [el('h3', { text: D.weather }), skyLine, ...weather.map(one)] : []),
     ...(events.length ? [el('h3', { text: here === 'world' ? D.mapEvents : D.inScene + ': ' + (D.scenes[here] || here) }), ...starts(events)] : []),
-    el('h3', { text: D.spawn }), el('div', { class: 'row' }, animal, place, el('button', { class: 'plank', onclick: () => { audio.sfx(api.spawn(kinds[+animal.value].kind, place.value === 'all' ? 'all' : +place.value) ? 'step' : 'close'); } }, el('span', { text: D.spawn }))),
+    el('h3', { text: D.spawn }), el('div', { class: 'row' }, animal, place, el('button', { class: 'plank', onclick: () => { const kind = kinds[+animal.value].kind, at = place.value === 'all' ? 'all' : +place.value, ok = api.spawn(kind, at); if (ok && at !== 'all') api.showSpawn(kind, at); audio.sfx(ok ? 'step' : 'close'); } }, el('span', { text: D.spawn }))),
     ...(actors.length ? [el('h3', { text: D.acts }), el('div', { class: 'row' }, actor, doing, el('button', { class: 'plank', onclick: startAct }, el('span', { text: D.actStart })))] : []),
     el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, api.now(), { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
     el('h3', { text: D.scene }), ...Object.keys(D.scenes).filter(s => s !== 'offroute').map(s => el('button', { class: 'plank', onclick: () => { hideCard(); closeSheet(); api.jumpTo(s).then(() => { buildMarks(); openDebug(true); }); audio.sfx('step'); } }, el('span', { text: D.scenes[s] }))),

@@ -146,6 +146,24 @@ Slow checking and fixing, picked by TJ on 2026-11-24 for the night. Each pass en
 - [ ] **I6 Hour-Long Soak.** The map and each scene at high speed for a simulated hour with automatic checks: animals stuck, overlapping or in water, errors in the console, memory growing. Fix what it finds.
 - [ ] **I7 Safari and Firefox.** The browser tests run in WebKit and Firefox as well as Chromium, in CI. Fix what differs.
 
+### J. TJ's Notes of 25 November
+
+Thirteen notes TJ sent on 2026-11-25 while section I was under way, built before I4 by his word. His answers to the questions they raised are in section 5.
+
+- [x] **J1 Alpenglow on Every Mountain.** The warm light falls on Mount Monolith and the ranges as it does on the Spires and the Peak.
+- [x] **J2 Lists Stay Open.** In the debug panel a place's list of events stays open when one is picked.
+- [x] **J3 The Cats Meow.** No high chirp when a cat is clicked.
+- [x] **J4 The Mallards.** About twice the size and in more detail, after pictures. They live on the lake; a click makes one quack and both fly a circuit; a quack is heard.
+- [x] **J5 No Sunbreak.** The sunbreak over the rainforest is gone.
+- [x] **J6 The Rainbow Moves.** It stands over the meadow below Mount Monolith.
+- [x] **J7 A Rarer Breach.** The humpback breaches about every two and a half minutes.
+- [x] **J8 The View Follows a Spawn.** The view goes to the home an animal was put on.
+- [x] **J9 Stopping Events.** Withdrawn by TJ ("Nevermind this one"). Nothing built.
+- [x] **J10 Everywhere It Lives.** Puts a group on every home that has none. A second press adds nothing.
+- [x] **J11 The 404 Stays Put.** It no longer drifts.
+- [ ] **J12 The Vertical Line in the Meadow.** A two pixel line of rock east of Reflection Lake. The cause is found (see the log); the fix changes the land and needs a bake, so it waits to go with J13.
+- [ ] **J13 A Trail In From the South.** A trail from the bottom of the map to the Trailhead, and the trails that dip south from it leaving to the sides. Waits for TJ to pick from the two sketches.
+
 ### G. Closing
 
 - [ ] **G1 The Numbers.** Frame time for every view, load time and the start page's bytes, `v0.5.0` then round 8, side by side.
@@ -174,10 +192,12 @@ Picked on 2026-11-24.
 |---|---|---|
 | Sideproject Spires | Rockfall off a tower with a trail of dust. Ice calving off the glacier's snout into its lake. Alpenglow on the towers at Dusk. A pair of ravens riding the updraft | The banner of cloud through the notches, spindrift off the summits (E1) |
 | Proficiency Peak | Rocks rattling down the talus fan. A band of goats crossing the talus | The larch needle gust, a cloud's shadow on the benches, the snow flurry (E1) |
-| Reflection Lake | A dead calm when the reflection turns sharp. A pair of ducks landing with a wake | The gust on the water, the mist, the rain rings (E1) |
-| The rainforest | A tree falling far off, and birds lifting from the canopy. A rainbow over the forest after a shower. An owl calling at Dusk. A sunbreak with shafts of light over the trees | Fog in the trees with the marine layer (E1) |
+| Reflection Lake | A dead calm when the reflection turns sharp. A pair of mallards that live on the lake, and fly a circuit and land with a wake. A rainbow over the meadow after a shower (moved from the rainforest on 2026-11-25) | The gust on the water, the mist, the rain rings (E1) |
+| The rainforest | A tree falling far off, and birds lifting from the canopy. An owl calling at Dusk. (The sunbreak was removed on 2026-11-25) | Fog in the trees with the marine layer (E1) |
 
-**Draft words that wait for TJ** (E2). In the debug panel, the four place buttons: Sideproject Spires, Proficiency Peak, Reflection Lake, Rainforest. Under them: "Rockfall off a tower", "Glacier calves", "Ravens ride the updraft", "Alpenglow (Dusk)", "Rocks down the talus", "Goats cross the talus", "Dead calm", "Ducks land", "Tree falls", "Rainbow (Day)", "Owl calls (Dusk)", "Sunbreak (Day)". On the conditions board: "rockfall, the glacier calving and ravens riding the updraft at Sideproject Spires", "rocks coming down the talus and goats crossing it under Proficiency Peak", "a dead calm and mallards landing on Reflection Lake", "a tree falling, a rainbow after a shower and a sunbreak in the rainforest", and at Dusk "alpenglow on the Spires" and "an owl calling in the rainforest". On the notice in the register's scene (H11): "{n} of {of} observed", which reads "4 of 43 observed". In the debug panel (H13): the switches "Sign names" and "Animal homes"; the heading "Animal acts", its button "Start" and the acts "Graze", "Look up", "Bed down", "Hop", "Trot off", "Butt heads", "Bugle", "Thrash the brush", "Bark", "Shake off", "Wade in", "Stand up", "Rub on a trunk", "Dig"; and the line "Sky: {what}", made of "clear", "the marine layer rolling in", "drizzle under the marine layer", "the marine layer breaking up", "fog in the trees", "the ground drying", "a squall on the summit", "spindrift off the summit".
+**Draft words that wait for TJ** (E2). In the debug panel, the four place buttons: Sideproject Spires, Proficiency Peak, Reflection Lake, Rainforest. Under them: "Rockfall off a tower", "Glacier calves", "Ravens ride the updraft", "Alpenglow (Dusk)", "Rocks down the talus", "Goats cross the talus", "Dead calm", "Ducks land", "Tree falls", "Rainbow (Day)", "Owl calls (Dusk)". On the conditions board: "rockfall, the glacier calving and ravens riding the updraft at Sideproject Spires", "rocks coming down the talus and goats crossing it under Proficiency Peak", "a dead calm and mallards on Reflection Lake", "a rainbow after a shower over the meadow", "a tree falling in the rainforest", and at Dusk "alpenglow on the peaks" and "an owl calling in the rainforest". On the notice in the register's scene (H11): "{n} of {of} observed", which reads "4 of 43 observed". In the debug panel (H13): the switches "Sign names" and "Animal homes"; the heading "Animal acts", its button "Start" and the acts "Graze", "Look up", "Bed down", "Hop", "Trot off", "Butt heads", "Bugle", "Thrash the brush", "Bark", "Shake off", "Wade in", "Stand up", "Rub on a trunk", "Dig"; and the line "Sky: {what}", made of "clear", "the marine layer rolling in", "drizzle under the marine layer", "the marine layer breaking up", "fog in the trees", "the ground drying", "a squall on the summit", "spindrift off the summit". From the notes of 25 November (section J): the name tag "Mallard" on a duck, and the sound's name "quack" in the debug panel's list.
+
+**What TJ answered on 2026-11-25** (section J). The rainbow: to the meadow below Mount Monolith. The ducks: they stay on the lake, a click on one, and a quack; not a flock. "Everywhere it lives": a group at every home, topped up and never piled up. Stopping events: "Nevermind this one". The humpback: a breach about every 2 to 3 minutes. When: now, before I4.
 
 ## 6. Links
 
@@ -529,3 +549,25 @@ Every call, one line each, newest last.
 - I3, not done: no screen reader was run. The checker reads the page's structure; it does not hear it. And with reduced motion the lakes, the falls and the sea still move, as C6 logged.
 - I3, the tests: two new browser tests, the checker and Tab over every card, sheet and menu (a minute), and the keyboard visit (six seconds).
 - I3, the numbers: 75 browser tests pass; check.sh reports nothing moved since I2. Frame time read 12.5 ms where I2 read 10.9. I measured the I2 build again in the same minute and it read 12.5 and 12.6 too, so it is this machine at this hour and not the change. The stylesheet is 12,474 bytes by Lighthouse's count against 12,500. No bake, no pictures, no new words.
+- 2026-11-25: TJ sent eleven notes on the build, then two more. I4 was stopped before anything was written for it. Findings went to him first, then six questions; his answers are in section 5. The notes are section J.
+- J1 done: the warm light was switched on for the Spires only. Now the Peak has it too, and a third pass lights Mount Monolith and the ranges: for each column of the map the skyline is read off the ground, the light is measured down from the highest skyline within 48 columns, and only snow, ice and rock take it. So it lies on a mountain as a cap and the forested foothills stay dark.
+- J1, a call: the cap on Mount Monolith reaches 84 pixels down, deeper than a tower's, since it is a whole mountain. The conditions board's words change to "alpenglow on the peaks" (a draft).
+- J2 done: a place's list no longer hides itself when one of its events is picked. Its arrow shuts it.
+- J3 done: grooming, batting and the Nebelung's startle play the meow. The forest's jay keeps the chirp.
+- J4, pictures: six from `z-image-turbo-trailhead` (a pair swimming, a pair landing), logged in `design/art/R8-J4/`. The drawings are code after them: the drake's green head, yellow bill, white collar, chestnut breast, grey flank and blue wing patch; the hen's mottled brown, orange bill and eye stripe.
+- J4 done: each mallard is 15 by 7 pixels where it was 8 by 3, with an outline as the other animals have. One set of shapes in letters serves both birds. They live on the lake's longest row of open water: paddle, tip up to feed, preen. The event is now a flight: a run along the water, out west, round behind the lake, in from the east and a skid. A click on either starts the same flight with a quack. A new sound, `quack`.
+- J4, a call: the hen keeps 20 pixels east of the drake and sets off when he does, so the two never ride over each other. The event lasts 15 seconds where it was 25. "Mallards" on the conditions board counts when they are seen on the water, not only as they land. The Animals switch in the debug panel hides them.
+- J4, not done: on a phone the map is at one screen pixel to one map pixel, so the ducks are 15 pixels long there. Nothing short of a zoom changes that.
+- J5 done: the sunbreak's event, its light, its button, its words and its lines in the test are removed. The shafts of light that always stood in the canopy were there before round 8 and stay; say if those were meant too.
+- J6 done: the bow stands on the level of Reflection Lake's north shore, either side of the lake, 170 pixels in radius, so its top is against Mount Monolith's rock and ice. Its button moved to the Reflection Lake list. On the conditions board it reads "a rainbow after a shower over the meadow" (a draft).
+- J7 done: the whale's time goes in 50 second slots and it breached in every one. Now it breaches in one of three, about every two and a half minutes; in the others it does one more of its lesser things in the breach's place. Its button and a click still bring a breach on at once.
+- J7, a call: seeing it blow, slap, wave or dive counts as seeing the whale, since a visitor may now leave before a breach.
+- J8 done: after Spawn the view eases to the home, as it does for an event. Not for "everywhere it lives".
+- J10 done: each kind of animal is made by a function, so a group can be made after the map has started. "Everywhere it lives" makes a herd, a band, a pair, a family or one animal on every home of that kind that has none. Each group remembers its home, so a second press adds nothing, and a single home that is taken is left alone.
+- J10, a call: the eagle and the osprey are one bird each, so for them it does what it did. The old meaning (send every animal back to where it started) is gone.
+- J11 done: the 404 in the cloud is placed once. It drifted on a slow sine and stepped a whole pixel at a time.
+- J12, the cause: the forest stream's valley is cut to an even grade inside a square box 56 pixels either side of the stream (`land.js`, the loop after "Then each is cut to an even grade"). Where the ground climbs toward the Spires the box's east side ends in a drop of about 12, and the land draws that as rock. The same line is in `v0.5.0`'s bake. The fix is to fade the cut out toward the box's edge; it needs a bake.
+- J13, the sketches: https://claude.ai/artifact/4TKwo9fkqjx6s38t4p9N8k shows two ways. TJ wrote "the trails to the forest and sideproject spires"; on the map the two that dip south are the forest's and the Peak's, so I asked.
+- J13, TJ's answers (2026-11-25): layout A, the Trailhead stays. The forest's and the Peak's trails are the two to move. He jogs in along the new trail when the page opens, "and when leaving the 404 page he walks back in from there".
+- J1 to J11, the tests: two new browser tests (the mallards on the lake and their flight; a group on every home and none added by a second press), and the events test follows the rainbow where it followed the sunbreak.
+- J1 to J11, the numbers: 78 browser tests pass. check.sh: nothing moved since I3, frame time 10.9 ms zoomed out at Dusk. The stylesheet is untouched.

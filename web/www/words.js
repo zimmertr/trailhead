@@ -517,6 +517,7 @@ export const W = {
    "whale": "Humpback whale",
    "eagle": "Bald eagle",
    "osprey": "Osprey",
+   "mallard": "Mallard",
    "orca": "Orca",
    "jelly": "Moon jelly",
    "raven": "Ravens",
@@ -795,8 +796,7 @@ export const W = {
     "ducks": "Ducks land",
     "treefall": "Tree falls",
     "rainbow": "Rainbow (Day)",
-    "hoot": "Owl calls (Dusk)",
-    "sunbreak": "Sunbreak (Day)"
+    "hoot": "Owl calls (Dusk)"
    },
    "families": {
     "humpback": "Humpback",
@@ -1003,15 +1003,19 @@ export const W = {
     {
      "who": {
       "calm": "a dead calm",
-      "ducks": "mallards landing"
+      "ducks": "mallards"
      },
      "where": "on Reflection Lake"
     },
     {
      "who": {
-      "treefall": "a tree falling",
-      "rainbow": "a rainbow after a shower",
-      "sunbreak": "a sunbreak"
+      "rainbow": "a rainbow after a shower"
+     },
+     "where": "over the meadow"
+    },
+    {
+     "who": {
+      "treefall": "a tree falling"
      },
      "where": "in the rainforest"
     },
@@ -1022,7 +1026,7 @@ export const W = {
       "aurora": "the aurora",
       "foxfire": "foxfire in the forest",
       "headlamps": "headlamps on the Spires' glacier",
-      "alpenglow": "alpenglow on the Spires",
+      "alpenglow": "alpenglow on the peaks",
       "hoot": "an owl calling in the rainforest"
      }
     }

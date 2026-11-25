@@ -246,7 +246,6 @@ UI:
       treefall: Tree falls
       rainbow: Rainbow (Day)
       hoot: Owl calls (Dusk)
-      sunbreak: Sunbreak (Day)
     # Related start buttons become one each (round 6, note 27): its name starts one of them at random, and the
     # arrow beside it, named by pick, lists them.
     families:
@@ -364,12 +363,14 @@ UI:
         where: at Sideproject Spires
       - who: { talus: rocks coming down the talus, band: goats crossing it }
         where: under Proficiency Peak
-      - who: { calm: a dead calm, ducks: mallards landing }
+      - who: { calm: a dead calm, ducks: mallards }
         where: on Reflection Lake
-      - who: { treefall: a tree falling, rainbow: a rainbow after a shower, sunbreak: a sunbreak }
+      - who: { rainbow: a rainbow after a shower }
+        where: over the meadow
+      - who: { treefall: a tree falling }
         where: in the rainforest
       - lead: 'At Dusk:'
-        who: { star: shooting stars, aurora: the aurora, foxfire: foxfire in the forest, headlamps: headlamps on the Spires' glacier, alpenglow: alpenglow on the Spires, hoot: an owl calling in the rainforest }
+        who: { star: shooting stars, aurora: the aurora, foxfire: foxfire in the forest, headlamps: headlamps on the Spires' glacier, alpenglow: alpenglow on the peaks, hoot: an owl calling in the rainforest }
     checklist: 'Field checklist: {n} of {of} found'
     # On the notice in the register's scene, under the checklist's count (round 8, H11): how many of the
     # things under `sightings` have been observed this visit. A draft for TJ.

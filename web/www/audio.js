@@ -296,6 +296,8 @@ export function makeAudio() {
     chatter: t => { for (let i = 0; i < 12; i++) tone(fx, 'square', 2300 + (i & 1) * 300, t + i * 0.045, 0.025, 0.05); },
     // A bald eagle's cry: thin, high, piping notes that fall away.
     cry: t => [2600, 2500, 2350, 2200, 2050].forEach((f, i) => tone(fx, 'sine', f, t + i * 0.09, 0.06, 0.08, f - 300)),
+    // A mallard hen's quack: a short run of flat, nasal notes, each a little lower and softer than the last.
+    quack: t => { for (let i = 0; i < 3; i++) { tone(fx, 'sawtooth', 560 - i * 30, t + i * 0.17, 0.11, 0.07 - i * 0.015, 430 - i * 30); noise(fx, t + i * 0.17, 0.05, 0.04, 1500, 3, 'bandpass'); } },
     // An osprey's call: short whistled kews.
     kew: t => { for (let i = 0; i < 4; i++) tone(fx, 'sine', 1800, t + i * 0.13, 0.07, 0.08, 2300); },
     // A whale's or an orca's blow: a breathy rush of air.

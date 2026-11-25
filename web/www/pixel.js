@@ -502,6 +502,8 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     scene: () => drawn ? drawn.s : null,
     spawnList: () => world.spawnList(),
     spawn: (kind, i) => world.spawn(kind, i),
+    // The view eases to the home an animal was put on (TJ, round 8), as it does to an event.
+    showSpawn(kind, i) { const p = world.homeAt(kind, i); if (!p || !drawn || drawn.s !== 'world' || tr) return; const [x, y] = world.lookFor(p[0], p[1]); running = false; recentre = false; panTo = { x, y }; },
     // The debug panel's list of acts (round 8, H13): one line for each kind of animal that reads differently
     // (a name and the five things it does), the first such animal standing for all of them. showActor eases
     // the view to it as showEvent does to an event, and doAct starts one of its things now.

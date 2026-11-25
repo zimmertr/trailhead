@@ -309,7 +309,7 @@ test('the conditions board lists what has been seen as Observed and the rest as 
   expect(problems).toEqual([])
 })
 
-// Round 8, E2: life at every place. Each of the twelve events TJ picked for the Spires, the Peak, Reflection
+// Round 8, E2: life at every place. Each of the eleven events TJ kept (the sunbreak went on 25 November) for the Spires, the Peak, Reflection
 // Lake and the rainforest has a start button in the debug panel, happens where the view is sent, and counts
 // as seen for the conditions board.
 test('the events at the Spires, the Peak, the lake and the rainforest start from the debug panel', async ({ page }) => {
@@ -318,20 +318,20 @@ test('the events at the Spires, the Peak, the lake and the rainforest start from
   const saw = (name: string) => page.evaluate((n) => (window as unknown as Life).__api.saw().has(n), name)
   const start = (name: string) => page.evaluate((n) => { const a = (window as unknown as Life).__api; a.showEvent(n); return a.trigger(n) }, name)
   await expect.poll(() => saw('cats'), { timeout: 15_000 }).toBe(true)
-  // By Day ten of them can happen. The alpenglow and the owl's call wait for Dusk, and their buttons say no.
-  for (const id of ['rockfall', 'calve', 'pair', 'talus', 'band', 'calm', 'ducks', 'treefall', 'rainbow']) expect(await start(id), id).toBe(true)
+  // By Day nine of them can happen. The alpenglow and the owl's call wait for Dusk, and their buttons say no.
+  for (const id of ['rockfall', 'calve', 'pair', 'talus', 'band', 'calm', 'ducks', 'treefall']) expect(await start(id), id).toBe(true)
   for (const id of ['alpenglow', 'hoot']) expect(await start(id), id).toBe(false)
-  expect(await saw('sunbreak')).toBe(false)
-  expect(await start('sunbreak')).toBe(true)
-  await expect.poll(() => saw('sunbreak'), { timeout: 20_000 }).toBe(true)
+  expect(await saw('rainbow')).toBe(false)
+  expect(await start('rainbow')).toBe(true)
+  await expect.poll(() => saw('rainbow'), { timeout: 20_000 }).toBe(true)
   // One button for each place, its events in the list under it.
   await page.locator('#b-debug').click()
   for (const place of ['Sideproject Spires', 'Proficiency Peak', 'Reflection Lake', 'Rainforest']) await expect(page.locator('#debug .split-row .plank').filter({ hasText: place })).toHaveCount(1)
-  for (const name of ['Rockfall off a tower', 'Glacier calves', 'Ravens ride the updraft', 'Alpenglow (Dusk)', 'Rocks down the talus', 'Goats cross the talus', 'Dead calm', 'Ducks land', 'Tree falls', 'Rainbow (Day)', 'Owl calls (Dusk)', 'Sunbreak (Day)']) await expect(page.locator('#debug .split-list .plank').filter({ hasText: name })).toHaveCount(1)
+  for (const name of ['Rockfall off a tower', 'Glacier calves', 'Ravens ride the updraft', 'Alpenglow (Dusk)', 'Rocks down the talus', 'Goats cross the talus', 'Dead calm', 'Ducks land', 'Tree falls', 'Rainbow (Day)', 'Owl calls (Dusk)']) await expect(page.locator('#debug .split-list .plank').filter({ hasText: name })).toHaveCount(1)
   await page.evaluate(() => { location.hash = 'kiosk' })
   const seen = page.locator('#sheet .board .seen'), told = page.locator('#sheet .board .told')
-  await expect(seen.locator('li').filter({ hasText: /sunbreak/i })).toHaveCount(1)
-  await expect(told.locator('li').filter({ hasText: /sunbreak/i })).toHaveCount(0)
+  await expect(seen.locator('li').filter({ hasText: /rainbow/i })).toHaveCount(1)
+  await expect(told.locator('li').filter({ hasText: /rainbow/i })).toHaveCount(0)
   await expect(told.locator('li').filter({ hasText: /an owl calling in the rainforest/i })).toHaveCount(1)
   expect(problems).toEqual([])
 })
@@ -642,6 +642,46 @@ test('every home a map animal can take keeps the engine rules', async ({ page })
       await page.waitForTimeout(100)
       expect(await page.evaluate(() => window.__rules?.()), `${kind} at home ${i}`).toEqual([])
     }
+  }
+  expect(problems).toEqual([])
+})
+
+// TJ's notes of 25 November: the mallards live on Reflection Lake, apart from each other and on open water,
+// and a click on one sends both up, round the lake and down again.
+test('the mallards live on Reflection Lake, and a click sends both round the lake and back', async ({ page }) => {
+  type Duck = { st: string; x: number; y: number; wet: boolean }
+  type Lake = { __life: { ducks: () => Duck[]; click: (t: number) => string }; __api: { showEvent: (id: string) => number; now: () => number } }
+  const problems = await open(page, '/')
+  const ducks = () => page.evaluate(() => (window as unknown as Lake).__life.ducks())
+  await page.evaluate(() => (window as unknown as Lake).__api.showEvent('ducks'))
+  await page.waitForTimeout(1500)
+  const first = await ducks()
+  expect(first.map((d) => d.wet)).toEqual([true, true])
+  expect(first.filter((d) => d.st === 'fly')).toEqual([])
+  expect(Math.abs((first[0]?.x ?? 0) - (first[1]?.x ?? 0))).toBeGreaterThanOrEqual(17)
+  expect(await page.evaluate(() => { const w = window as unknown as Lake; return w.__life.click(w.__api.now()) })).toBe('quack')
+  await expect.poll(async () => (await ducks()).every((d) => d.st === 'fly')).toBe(true)
+  await expect.poll(async () => (await ducks()).every((d) => d.st !== 'fly' && d.wet), { timeout: 25_000 }).toBe(true)
+  expect(problems).toEqual([])
+})
+
+// TJ's notes of 25 November: "everywhere it lives" makes a group on every home that has none.
+test('"everywhere it lives" puts a group of animals on every home, and a second press adds none', async ({ page }) => {
+  type Animal = { critter: string; home?: number }
+  type Homes = { __api: { spawnList: () => { kind: string; homes: string[] }[]; spawn: (kind: string, i: number | 'all') => boolean }; __crit: { items: Animal[] } }
+  const problems = await open(page, '/?homes=0')
+  const kinds = await page.evaluate(() => (window as unknown as Homes).__api.spawnList().map((k): [string, number] => [k.kind, k.homes.length]))
+  const count = (kind: string) => page.evaluate((k): [number, number] => { const all = (window as unknown as Homes).__crit.items.filter((a) => a.critter === k); return [all.length, new Set(all.filter((a) => a.home != null).map((a) => a.home)).size] }, kind)
+  for (const [kind, n] of kinds.filter(([k]) => !['eagle', 'osprey'].includes(k))) {
+    const [before] = await count(kind)
+    expect(await page.evaluate((k) => (window as unknown as Homes).__api.spawn(k, 'all'), kind), `${kind} everywhere`).toBe(true)
+    const [after, homes] = await count(kind)
+    expect(homes, `the homes of ${kind} that have a group`).toBe(n)
+    expect(after, `more ${kind} than before`).toBeGreaterThan(before)
+    expect(await page.evaluate((k) => (window as unknown as Homes).__api.spawn(k, 'all'), kind), `${kind} everywhere, again`).toBe(true)
+    expect((await count(kind))[0], `${kind} after a second press`).toBe(after)
+    await page.waitForTimeout(300)
+    expect(await page.evaluate(() => window.__rules?.()), `${kind} on every home`).toEqual([])
   }
   expect(problems).toEqual([])
 })

@@ -31,8 +31,10 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - A timed event on the map lives in `events.js` (Mount Monolith's and the dry side's) or `life.js` (the Spires', the Peak's, Reflection Lake's and the rainforest's). Each is a row in an `EV` table (`slot`, `first`, `dur`, `ok`) on the shared clock `makeClock()`, and a function that draws it from how far into it the clock is.
 - Where an event happens is read off the land: `spots.life` in `land.js`, a lake's own water in `STILL`, the canopy from `forestAmt`. Never a written position.
 - Every event has a start button in the debug panel: its name in `SCENE_EVENTS` in `app.js` (and in a family in `FAMILIES` when its place has a button), its words under `debug.events` in `content/game/interface.yaml`, and a place in `where()`. A button's start happens where `where()` sends the view.
-- An event that changes how the ground is drawn (the alpenglow, the dead calm, the sunbreak) gives `world.js` an amount from 0 to 1, and `world.js` draws it in the pass that owns those pixels.
+- An event that changes how the ground is drawn (the alpenglow, the dead calm) gives `world.js` an amount from 0 to 1, and `world.js` draws it in the pass that owns those pixels.
 - A sound plays once per happening and only when the event is in the view (`sound()` in `life.js`).
+- An event may belong to animals that live at its place between happenings. The mallards of Reflection Lake are kept in `life.js` (`MAL`): they paddle and feed by their own state, the event's clock only starts a flight, and a click starts the same one (`life.pick()`, `life.click()`).
+- The debug panel's spawn makes animals as well as moving them: each kind is made by a function in `critters.js` (`elkHerd`, `goatPair`, `sheepBand`, `moosePair`, `bearAt`, `marmotAt`, `squirrelAt`), and a group remembers which of its kind's homes it is on (`home`), so "everywhere it lives" fills only the homes that are empty.
 - Every event calls `saw()` and has its words on the conditions board.
 
 ## The Conditions Board
