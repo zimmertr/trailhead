@@ -433,7 +433,7 @@ let soundAsked = false;   // the visitor has clicked for sound, whether or not t
 function musicMenu(open) {
   const b = $('b-track');
   if (!open) { if (!music.hidden) { music.hidden = true; b.setAttribute('aria-expanded', 'false'); } return; }
-  const k = audio.track(), off = audio.muted(), set = audio.set().index;
+  const k = audio.track(), off = audio.muted(), set = audio.set();
   const item = (text, on, act) => el('button', { class: 'plank', role: 'menuitemradio', 'aria-checked': String(!!on), onclick: () => { act(); musicMenu(false); syncTop(); b.focus(); } }, el('span', { text }));
   const play = i => () => { audio.start(); if (audio.muted()) audio.setMuted(false); audio.pick(i); };
   music.replaceChildren(
@@ -441,7 +441,9 @@ function musicMenu(open) {
     item(UI.auto(audio.autoTrack()), !off && k.auto, play(-1)),
     ...TRACK_NAMES.map((n, i) => item(n, !off && !k.auto && k.index === i, play(i))),
     el('p', { class: 'from', text: UI.map.musicStyle }),
-    ...SET_NAMES.map((n, i) => item(n, set === i, () => { audio.start(); audio.setSet(i); audio.sfx('flag'); })),
+    // Auto picks the set of instruments by the place, as it picks the tune (round 8, H14).
+    item(UI.auto(set.autoName), set.auto, () => { audio.start(); audio.setSet(-1); }),
+    ...SET_NAMES.map((n, i) => item(n, !set.auto && set.index === i, () => { audio.start(); audio.setSet(i); audio.sfx('flag'); })),
     el('div', { class: 'rule' }),
     item(UI.soundOff, off, () => audio.setMuted(true)));
   const r = b.getBoundingClientRect();
@@ -465,7 +467,7 @@ function syncTop() {
   $('b-track').querySelector('span').textContent = said; $('b-track').setAttribute('aria-label', trackLabel + ': ' + said);
   $('b-track').dataset.state = audio.muted() ? 'off' : audio.live() || soundAsked ? 'playing' : 'waits';
   // The sun or the moon before the clock's word: what the sky is now, so AUTO says what it is for (note 30).
-  const mode = api.clock().mode, dark = mode === 'dusk' || (mode === 'auto' && api.theme() === 'dark');
+  const mode = api.clock().mode, dark = mode === 'dusk' || (mode === 'auto' && api.theme() === 'dark'); audio.dusk(dark);
   $('b-dusk').querySelector('.sky').className = 'sky ' + (dark ? 'moon' : 'sun'); $('b-dusk').querySelector('span').textContent = UI.theme[mode]; $('b-dusk').setAttribute('aria-label', UI.map.dusk + ': ' + UI.theme[mode]);
 }
 
@@ -537,7 +539,7 @@ try {
   const tellCover = () => { if (!sheet.hidden || !plain.hidden) { api.cover([], true); return; } const out = []; for (const n of document.querySelectorAll(PANELS)) { const r = n.getBoundingClientRect(); if (r.width > 0 && r.height > 0) out.push(r); } api.cover(out, false); };
   setInterval(tellCover, 250); tellCover();
   // For screenshot scripts: the debug panel's controls (speed, start buttons) without clicking.
-  window.__api = api; window.__sound = () => audio.live();
+  window.__api = api; window.__sound = () => audio.live(); window.__set = () => audio.set();
   window.__ready = true;
   try { console.log(...CONSOLE); } catch { /* no console */ }
 } catch (err) {

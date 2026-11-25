@@ -131,7 +131,7 @@ TJ picked these from `docs/IDEAS.md` on 2026-11-24, for the night. Pictures firs
 - [x] **H11 A Count on the Notice.** The notice in the register's scene says how much has been observed, beside the checklist's count. The words are a draft: "12 of 31 observed".
 - [x] **H12 One Outline for the Pair.** Hovering the register or the board lights both with one outline, as a place on the map lifts.
 - [x] **H13 Debug Panel Layers.** Switches that ring every sign with its name and every animal home by kind, a list that starts any animal's act, and one line that says what the sky is doing.
-- [ ] **H14 A Set for Each Place.** On Auto the music picks the instruments as well as the tune: winds in the rainforest, the quartet at the lake, mallets on the ridge, the music box at camp after Dusk.
+- [x] **H14 A Set for Each Place.** On Auto the music picks the instruments as well as the tune: winds in the rainforest, the quartet at the lake, mallets on the ridge, the music box at camp after Dusk.
 - [ ] **H15 Weather in the High Scenes.** The summit squall keeps its clock in every scene, so a climb is sometimes snowed on without the map having been open. The lakeside sounds of rain when it drizzles.
 
 ### I. Passes TJ Asked For
@@ -471,3 +471,12 @@ Every call, one line each, newest last.
 - H13, compared: the panel and the map with both switches on at Day, in drizzle, and on a phone at Dusk with a squall started, against the panel at v0.5.0.
 - H13, how it was tested: a new browser test opens the page with both switches on, reads the sky's line in drizzle, presses Clear sky and reads it again, checks the bull elk's five things in the list and starts his bugle from it. The page is checked for accessibility with the panel open.
 - H13, the numbers: 65 browser tests pass; check.sh reports nothing moved since H12; frame time 11.6 ms zoomed out at Dusk. The bake was rewritten because `core.js` is in its signature. CI on H12 (`278e537`) is green.
+- H14, what was built: the music style has an Auto of its own, and it is on until a set is picked by hand. On Auto the forest plays Winds, the lakeside Quartet, the West Ridge Mallets and base camp the Music box once it is Dusk. Everywhere else, and at camp by Day, it is Console. `PLACE_SETS` in `audio.js` is the list.
+- H14, a call on the menu: Music style has a first entry that reads as the tunes' Auto does, "Auto: Winds", naming the set Auto plays where he is. It uses the words that were there ("Auto: {name}" and the sets' names), so there are no new words. The plan said only "on Auto"; one Auto for both the tune and the set would have taken away a visitor's picked set whenever they went back to Auto for the tune, so each list has its own.
+- H14, a call on a set picked before: a visitor who picked a set in an earlier visit keeps it, since it is stored. Only a visitor who never picked one, or picks Auto, hears the places' sets.
+- H14, a call on how it changes: the set changes at the bottom of the same fade that changes the tune, so no note of the old tune plays through the new instruments. When the tune stays (Dusk falling at camp, or a tune picked by hand), the music fades out and back in on the same bar through the new set.
+- H14, a call on "the ridge": the West Ridge scene (`wall`), which the debug panel calls West Ridge. The larch basin and the Spires climb keep Console.
+- H14, no pictures: nothing is drawn. The music menu was rendered before and after on a desktop, and on a phone at camp at Dusk, where all sixteen entries fit.
+- H14, how it was tested: a new browser test starts the sound, goes to each scene and reads the set that is playing, turns Dusk on and off at camp, picks Handheld and sees it stay through a change of place, then picks Auto and hears the lake's Quartet. The older menu test counts sixteen entries now. I did not listen to it: the test reads which set the engine plays, not the sound.
+- H14, the numbers: 66 browser tests pass; check.sh reports nothing moved since H13; frame time 11.4 ms zoomed out at Dusk. No bake was needed.
+- H14, CI on H13 (`49a2a07`): Lint and PR Title passed. PR Checks failed in Unit Tests, in the step that posts the coverage comment: GitHub answered 503 ("No server is currently available"). The unit tests themselves passed with full coverage. Nothing in the repo to fix; the next push runs it again.

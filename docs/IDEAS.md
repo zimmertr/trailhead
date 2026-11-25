@@ -624,3 +624,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Acts for the Birds and the Sea** (round 8, H13). The list starts what the walkers do. The orcas' spyhop, the gulls' lift and the eagle's stoop could join it once each has its things in one list, as the walkers have.
 - **The Sky's Line Says What Comes Next** (round 8, H13). The line could add how long until the next part of the marine layer's round, so a wait for the fog is a known wait.
 - **A Search Box in the Debug Panel** (round 8, H13). The panel is long now. A box at the top that hides every row not matching what is typed would make any switch two keys away.
+- **A Set for the Rest of the Places** (round 8, H14). The larch basin, the walk to camp and the Spires climb play Console on Auto. Handheld could be the climb's, and the larch basin could take Mallets or a set of its own.
+- **The Set Follows the Weather** (round 8, H14). On Auto the Music box could come in with the marine layer's fog and the Quartet with the dead calm on the lake, so the weather is heard as well as seen.
+- **A Set on the Map by Country** (round 8, H14). The map is one place to the music. On Auto the set could change with where the view is: Winds over the rainforest, Mallets up at the Spires.
+- **The Sticky Comment Step Retries** (round 8, H14). The CI step that posts the coverage comment failed once on a 503 from GitHub and failed the whole check. A retry in `zimmertr/yggdrasil`'s `sticky-comment` action would stop one bad answer from failing a green run.

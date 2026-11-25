@@ -209,7 +209,8 @@ test('the music button opens its menu, and Sound off turns the sound off', async
   await button.click()
   if (await menu.isHidden()) await button.click()
   await expect(menu).toBeVisible()
-  await expect(menu.getByRole('menuitemradio')).toHaveCount(15)
+  // Auto and seven tunes, Auto and six sets of instruments, and Sound off.
+  await expect(menu.getByRole('menuitemradio')).toHaveCount(16)
   await page.keyboard.press('Escape')
   await expect(menu).toBeHidden()
   await button.click()
@@ -1000,5 +1001,48 @@ test('the debug panel has the sign and home rings, a list of animal acts and a l
   await expect.poll(() => page.evaluate(() => (window as unknown as Herd).__crit.items.some((a) => a.critter === 'elk' && a.st === 'act' && a.act === 'bugle')), { timeout: 8_000 }).toBe(true)
   await page.waitForTimeout(500)
   expect(await axe(page).then(found)).toEqual([])
+  expect(problems).toEqual([])
+})
+
+// Round 8, H14: on Auto the music picks the instruments by the place as it picks the tune: winds in the
+// rainforest, the quartet at the lake, mallets on the ridge and the music box at camp after Dusk. A set picked
+// by hand stays until Auto is picked again.
+test('on Auto the set of instruments follows the place, and a set picked by hand stays', async ({ page }) => {
+  type Band = { __set: () => { name: string; auto: boolean; autoName: string }; __api: { jumpTo: (n: string) => Promise<boolean> } }
+  const problems = await open(page, '/')
+  const button = page.locator('#b-track'), menu = page.locator('#music')
+  const playing = () => page.evaluate(() => (window as unknown as Band).__set().name)
+  const go = (scene: string) => page.evaluate((n) => (window as unknown as Band).__api.jumpTo(n), scene)
+  // The sound is started, so every change goes through the fade that a visitor hears.
+  await button.click()
+  if (await menu.isVisible()) await page.keyboard.press('Escape')
+  await expect.poll(() => page.evaluate(() => window.__sound()), { timeout: 5_000 }).toBe(true)
+  expect(await playing()).toBe('Console')
+  for (const [scene, name] of [['forest', 'Winds'], ['lakeside', 'Quartet'], ['wall', 'Mallets'], ['camp', 'Console']] as [string, string][]) {
+    expect(await go(scene), scene).toBe(true)
+    await expect.poll(playing, { timeout: 8_000, message: scene }).toBe(name)
+  }
+  // Dusk at camp brings the music box, and Day takes it away again.
+  const sky = page.locator('#b-dusk')
+  while (!(await sky.innerText()).includes('Dusk')) await sky.click()
+  await expect.poll(playing, { timeout: 8_000 }).toBe('Music box')
+  while (!(await sky.innerText()).includes('Day')) await sky.click()
+  await expect.poll(playing, { timeout: 8_000 }).toBe('Console')
+  // The menu says so: the style's Auto entry is the checked one and names the place's set.
+  await go('forest')
+  await expect.poll(playing, { timeout: 8_000 }).toBe('Winds')
+  await button.click()
+  const autoStyle = menu.getByRole('menuitemradio', { name: 'Auto: Winds', exact: true })
+  await expect(autoStyle).toHaveAttribute('aria-checked', 'true')
+  // A set picked by hand stays through a change of place.
+  await menu.getByRole('menuitemradio', { name: 'Handheld', exact: true }).click()
+  expect(await playing()).toBe('Handheld')
+  await go('lakeside')
+  await page.waitForTimeout(2500)
+  expect(await playing()).toBe('Handheld')
+  // Auto again, and the lake's quartet is back.
+  await button.click()
+  await menu.getByRole('menuitemradio', { name: 'Auto: Quartet', exact: true }).click()
+  await expect.poll(playing, { timeout: 8_000 }).toBe('Quartet')
   expect(problems).toEqual([])
 })

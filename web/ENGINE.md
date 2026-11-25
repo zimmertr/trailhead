@@ -63,6 +63,12 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - A solid thing is registered with `collide.js`. On land, these are the rocks, snags and logs that `land.js` tags as solid, the signs, the journal's post, the tents, and the clearance round the kiosk, the register and the lookout. At sea, they are the sea stacks (a distance field) and the tide's bared flats.
 - A land animal also keeps off water and off ground too steep to stand on (`W.open`). Trees are part of its own rule in `critters.js`: a walker goes round their trunks, and a cub may climb one.
 
+## Music
+
+- On Auto the tune and the set of instruments both follow the place: `PLACES` and `PLACE_SETS` in `audio.js`, with the scene's name as the key. A new scene gets a line in `PLACES`, and one in `PLACE_SETS` if it should not play the first set.
+- The tune and the set change only at the bottom of a fade (`fadeTo()`), never in the middle of a bar.
+- A tune or a set the visitor picked by hand stays until they pick Auto again, and is kept between visits.
+
 ## Cost
 
 - Every per-pixel loop goes in its own small function, outside the map's `draw()`.

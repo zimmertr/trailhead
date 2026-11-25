@@ -99,11 +99,15 @@ TRACKS.forEach((tr, i) => { tr.name = TRACK_NAMES[i]; }); SETS.forEach((st, i) =
 // camp keeps Wildflower Meadow over its flower slope; camp opens with Above the Icefall, since Larch
 // March now belongs to the larch basin.
 const PLACES = { world: [0, 4], out: [6, 0], forest: [1, 5], lakeside: [5, 1], larches: [4, 5], wall: [2, 4], approach: [0, 3], camp: [3, 4], climb: [3, 6], offroute: [3] };
+// Which set of instruments plays where while the music style is on Auto (round 8, H14): winds in the
+// rainforest, the quartet at the lake, mallets on the ridge, and the music box at camp once it is Dusk.
+// Anywhere else it is the first set. The numbers are places in SETS.
+const PLACE_SETS = { forest: 5, lakeside: 4, wall: 3 }, CAMP_AT_DUSK = 2;
 
 export function makeAudio() {
-  let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, step = 0, nextAt = 0, cur = 0, set = 0, auto = true, place = 'world', turn = 0, loops = 0, level = 0.22, swap = null, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
+  let ctx = null, master, music, tone0, fx, amb, noiseBuf, muted = false, step = 0, nextAt = 0, cur = 0, set = 0, ownSet = null, dark = false, auto = true, place = 'world', turn = 0, loops = 0, level = 0.22, swap = null, pulse = null, ambName = '', ambNodes = [], ambTimer = null;
   // The music follows the place unless the visitor has picked a track by hand, and a pick is kept between visits.
-  try { muted = localStorage.getItem('trailhead.muted') === '1'; const own = localStorage.getItem('trailhead.track'); if (own != null && TRACKS[+own]) { auto = false; cur = +own; } const v = +localStorage.getItem('trailhead.set'); if (SETS[v]) set = v; } catch { /* private window */ }
+  try { muted = localStorage.getItem('trailhead.muted') === '1'; const own = localStorage.getItem('trailhead.track'); if (own != null && TRACKS[+own]) { auto = false; cur = +own; } const v = localStorage.getItem('trailhead.set'); if (v != null && SETS[+v]) set = ownSet = +v; } catch { /* private window */ }
 
   // held: the sound was running when the page went out of sight, and is waiting for it to come back.
   let held = false;
@@ -132,12 +136,16 @@ export function makeAudio() {
     if (ambName) ambience(ambName, true);
   }
   // Changes the tune without a jolt: the one playing fades out, the next starts from its top and fades in.
+  // The set that should be playing: the visitor's own pick, or on Auto the place's (H14).
+  const autoSet = () => place === 'camp' && dark ? CAMP_AT_DUSK : PLACE_SETS[place] || 0, wantSet = () => ownSet == null ? autoSet() : ownSet;
+  // The music fades out, changes and fades back in. What changes is the tune, the set of instruments, or
+  // both: a tune that stays goes on from where it was, through the new instruments.
   function fadeTo(i, quick) {
-    loops = 0; if (i === cur && swap == null) return;
-    if (!ctx) { cur = i; return; }
+    loops = 0; if (i === cur && swap == null && set === wantSet()) return;
+    if (!ctx) { cur = i; set = wantSet(); return; }
     const first = swap == null; swap = i; if (!first) return;
     music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(0.0001, ctx.currentTime, quick ? 0.06 : 0.3);
-    setTimeout(() => { cur = swap; swap = null; step = 0; if (out.onchange) out.onchange(); nextAt = Math.max(nextAt, ctx.currentTime + 0.05); music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(level, ctx.currentTime, quick ? 0.12 : 0.5); }, quick ? 220 : 1100);
+    setTimeout(() => { if (swap !== cur) step = 0; cur = swap; swap = null; set = wantSet(); if (out.onchange) out.onchange(); nextAt = Math.max(nextAt, ctx.currentTime + 0.05); music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(level, ctx.currentTime, quick ? 0.12 : 0.5); }, quick ? 220 : 1100);
   }
   // One note: a square, pulse or triangle wave with a quick attack and a falling tail.
   function tone(out, type, f0, t, dur, vol, f1) {
@@ -338,19 +346,24 @@ export function makeAudio() {
     setMuted(m) { muted = !!m; if (master) master.gain.setTargetAtTime(muted ? 0 : 0.9, ctx.currentTime, 0.05); try { localStorage.setItem('trailhead.muted', muted ? '1' : '0'); } catch { /* private window */ } },
     track: () => ({ index: swap == null ? cur : swap, name: TRACKS[swap == null ? cur : swap].name, count: TRACKS.length, auto }),
     // The scene has changed: in Auto the music changes with it.
-    place(name) { if (!PLACES[name] || name === place) return; place = name; turn = 0; if (auto) fadeTo(PLACES[name][0]); },
+    place(name) { if (!PLACES[name] || name === place) return; place = name; turn = 0; fadeTo(auto ? PLACES[name][0] : swap == null ? cur : swap); },
+    // Day has turned to Dusk or back: at camp the Auto style changes with it (H14).
+    dusk(d) { if (dark === !!d) return; dark = !!d; fadeTo(swap == null ? cur : swap); },
     // The music menu: one track by its number, kept until Auto is picked again; -1 is Auto, which follows the place.
     pick(k) { if (k < 0) { auto = true; fadeTo(PLACES[place][0], true); } else { auto = false; if (k !== (swap == null ? cur : swap)) fadeTo(k, true); } try { if (auto) localStorage.removeItem('trailhead.track'); else localStorage.setItem('trailhead.track', String(k)); } catch { /* private window */ } },
     // The track that Auto plays in the place he is in now.
     autoTrack: () => TRACKS[PLACES[place][0]].name,
-    set: () => ({ index: set, name: SETS[set].name, count: SETS.length }),
+    // The set that is playing, whether the style is on Auto, and the set Auto plays in this place.
+    set: () => ({ index: set, name: SETS[set].name, count: SETS.length, auto: ownSet == null, autoName: SETS[autoSet()].name }),
     // The debug menu's sound test (P3): every effect by its name here, every tune's two parts on their own,
     // and every place's background sound.
     fxNames: () => Object.keys(FX),
     tunes: () => TRACKS.map(t => t.name),
     preview(k, part) { start(); auto = false; solo = part; if (k === cur && swap == null) { step = 0; if (ctx) nextAt = ctx.currentTime + 0.05; } else fadeTo(k, true); },
     endPreview() { solo = null; auto = true; turn = 0; fadeTo(PLACES[place][0], true); },
-    setSet(i) { set = ((i % SETS.length) + SETS.length) % SETS.length; try { localStorage.setItem('trailhead.set', String(set)); } catch { /* private window */ } return SETS[set].name; },
+    // The music menu's styles: -1 is Auto, which follows the place, and a set picked by its number stays.
+    setSet(i) { if (i < 0) { ownSet = null; try { localStorage.removeItem('trailhead.set'); } catch { /* private window */ } fadeTo(swap == null ? cur : swap, true); return SETS[autoSet()].name; }
+      set = ownSet = ((i % SETS.length) + SETS.length) % SETS.length; try { localStorage.setItem('trailhead.set', String(set)); } catch { /* private window */ } return SETS[set].name; },
     // How much the music steps back: 0 out in the world, 1 while a card is being read, 2 under a sheet.
     focus(lv) { if (!music) return; level = [0.22, 0.15, 0.13][lv] || 0.22; if (swap == null) { music.gain.cancelScheduledValues(ctx.currentTime); music.gain.setTargetAtTime(level, ctx.currentTime, 0.25); } tone0.frequency.setTargetAtTime(lv === 2 ? 900 : 16000, ctx.currentTime, 0.2); }
   };
