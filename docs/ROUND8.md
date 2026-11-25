@@ -70,7 +70,7 @@ Work top to bottom. An item marked **waits** is skipped until TJ has picked in s
 - [x] **B2 The Larch Basin's Cliffs** (note 8). The granite benches' faces on the map are too tall since A05 and A06. Bring their height back toward `v0.4.4`'s and keep the new texture.
 - [x] **B3 Huckleberry in the Larch Basin Scene** (note 2). `larches.js` (the shrubs of round 5, T65): deep crimson and wine instead of orange-red, fewer and lower clumps, blue berries on them.
 - [x] **B4 Less Driftwood** (note 13). `land.js` near line 1568: tone the beach's driftwood down a touch.
-- [ ] **B5 The Spires' Hover Shape** (note 16). The shape that lights when the pointer is over Sideproject Spires runs to a sharp point in the meadow. End it cleanly along the toe of the lake and the terminal moraine.
+- [x] **B5 The Spires' Hover Shape** (note 16). The shape that lights when the pointer is over Sideproject Spires runs to a sharp point in the meadow. End it cleanly along the toe of the lake and the terminal moraine.
 - [ ] **B6 The Orcas' Click** (note 21). A clicked orca rises straight up like a periscope and it reads wrong. Redraw the spyhop after pictures (a third of the body, tilted, the pectoral fins showing, water running off) or replace the click's answer with one from D2's list.
 
 ### C. The Land
@@ -176,3 +176,5 @@ Every call, one line each, newest last.
 - B3, a call: three new colours, the ramp `huck`, at the end of the palette in `core.js`, because the baked ground stores colours by their number. The ground was baked again for the new signature; its picture did not change.
 - B3: 43 browser tests pass; frame time 9.9 ms; nothing moved.
 - B4 done, a call on how much: ten logs on the beach where there were sixteen, and three fifths of the small bleached branches painted on the sand. Both come off the end of their dice, so every log and branch that is left lies where it lay. No new drawing, so no pictures. 43 browser tests pass; frame time 9.8 ms; nothing moved.
+- B5 done: the Spires' area was everything that drains to a spot 60 below the glacier's lake, so it followed the outlet stream into the meadow as a point, and it left out the east end of the lake, which sheds another way. It now ends at the lake: everything that drains to the lake's lowest spot, plus the whole lake and 6 of moraine round its toe. The edge is a round end just above the bridge. Seen with the debug panel's tap targets on; the pointer does not lift a place in the render tool, so the lifted look itself was not rendered.
+- B5: 43 browser tests pass; frame time 10.3 ms; nothing moved.

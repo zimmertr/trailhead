@@ -1275,13 +1275,15 @@ if (!B) { const box = (P, fn) => { for (let v = Math.max(0, Math.floor(P.v0)); v
     const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { let n = 0; const kl = key[last]; for (;;) { const l = 2 * n + 1, r = l + 1; let m = -1, km = kl; if (l < heap.length && key[heap[l]] < km) { m = l; km = key[heap[l]]; } if (r < heap.length && key[heap[r]] < km) m = r; if (m < 0) break; heap[n] = heap[m]; n = m; } heap[n] = last; } return top; };
     for (let b = 0; b < h; b++) for (let a = 0; a < w; a++) if (a === 0 || b === 0 || a === w - 1 || b === h - 1) { const k = b * w + a; key[k] = hg[at(X0 + a, Y0 + b)]; done[k] = 1; push(k); }
     while (heap.length) { const k = pop(), a = k % w, b = (k - a) / w; order.push(k); for (let db = -1; db <= 1; db++) for (let da = -1; da <= 1; da++) { const aa = a + da, bb = b + db; if (aa < 0 || bb < 0 || aa >= w || bb >= h) continue; const n = bb * w + aa; if (done[n]) continue; done[n] = 1; from[n] = k; key[n] = Math.max(hg[at(X0 + aa, Y0 + bb)], key[k] + 1e-4); push(n); } }
-    // The bowl's mouth: from the tarn's lowest spot, follow the water down until it is 60 nearer the camera
-    // than the tarn. A spot belongs if it drains, sooner or later, to the mouth: walked in the order the
-    // flood reached them, each spot after the one it drains to.
+    // The bowl's mouth is the tarn's lowest spot, where its water leaves. A spot belongs if it drains,
+    // sooner or later, to the mouth: walked in the order the flood reached them, each spot after the one it
+    // drains to. The area ends there (round 8, B5, TJ: it used to follow the outlet 60 further down, and ran
+    // to a sharp point in the meadow), wrapped round the whole tarn and the moraine at its toe, 6 beyond the
+    // water, whichever way a bit of the tarn sheds.
     let mouth = -1; for (const k of order) { const a = k % w, b = (k - a) / w; if (lakeAt(X0 + a, Y0 + b) === 'silt') { mouth = k; break; } }
-    while (mouth >= 0 && from[mouth] >= 0 && Y0 + Math.floor(mouth / w) > tarn[1] - 60) mouth = from[mouth];
     const inn = new Uint8Array(w * h);
     for (const k of order) { const a = k % w, b = (k - a) / w; inn[k] = k === mouth || (from[k] >= 0 && inn[from[k]]) ? 1 : 0; if (inn[k] && !reg[at(X0 + a, Y0 + b)]) reg[at(X0 + a, Y0 + b)] = 3; }
+    { const [tu, tv, tru, trv] = tarn; for (let v = Math.max(0, Math.floor(tv - trv - 6)); v <= Math.min(VD - 1, Math.ceil(tv + trv + 6)); v++) for (let u = Math.max(0, Math.floor(tu - tru - 6)); u <= Math.min(NW - 1, Math.ceil(tu + tru + 6)); u++) if (!reg[at(u, v)] && (lakeAt(u, v) === 'silt' || Math.hypot((u - tu) / (tru + 6), (v - tv) / (trv + 6)) < 1)) reg[at(u, v)] = 3; }
     for (let i = 0; i < reg.length; i++) if (mg[i] === WALL) reg[i] = 3;
     // The bowl's bare ground goes with it too (ice, moraine and the arms' rock between the wall's two ends,
     // above the mouth), so a face of an arm that sheds its water the other way does not stay behind.

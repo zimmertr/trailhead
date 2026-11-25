@@ -520,3 +520,4 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Goat on the Ledge** (round 8, B2). The larch basin's walls now have a grassy ledge halfway up. One of the mountain goats' homes could be on it, where real goats like to stand.
 - **A Bear in the Berries** (round 8, B3). Now that the huckleberry carries berries, the black bear could have a home in the larch basin in autumn, head down in a clump, and the conditions board could report the berries as ripe.
 - **Driftwood at the Creek Mouths** (round 8, B4). With fewer logs, the ones left could gather where they do on a real beach: jammed at the creek mouths and against the headlands, with the open sand between left clean.
+- **A Hover Step for the Render Tool** (round 8, B5). `shot.sh` can move the pointer, but a place does not lift under it there. A step that lifts a named place (`lift=spires`) would let every change to a place's area be seen as the player sees it.
