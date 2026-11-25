@@ -374,6 +374,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
         else tr = null;
       }
     }
+    // Before the hand-off reads it: on the first frame it would otherwise still be env's starting false, and
+    // the opening would set out and come home again a frame later, dropping a zoom asked for between (I7).
+    env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
     let gliding = null;
     if (drawn.s === 'world') {
       if (zC && zC === zT) zSet = true;
@@ -397,7 +400,6 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix; env.hour = hourNow(); if (drawn.s !== 'world') world.tick(t); env.sky = DEBUG.clouds ? world.sky(t) : null; if (env.sky && window.__sky) Object.assign(env.sky, window.__sky);
     env.walkMark = route === 'walk' && p < 1 ? walkMark : null;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
-    env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
     if (arrive) {
       if (p !== 0 || shown || scrubbing > 0 || legs[0].s !== 'world' || !fromFork(legs[0].arg)) arrive = null;
       else if (drawn.s === 'world') { arrive.q += sdt / arrive.secs; if (arrive.q >= 1) arrive = null; }
