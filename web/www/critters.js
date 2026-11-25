@@ -11,9 +11,35 @@ import { NAMES } from './content.js';
 // A black bear on all fours, facing right. pose: 'look', 'sniff' with its nose in the grass. Its shoulders
 // rise in a hump above its back, its ears are round and its muzzle tan, and its fur shines along the top
 // (art pass D06, after a bear painted for the game).
+// Round 8, D2, each after a picture: 'stand', up on her hind legs to look, her paws at her chest; 'rub', up
+// against a trunk with her paws on it (step 1: reaching higher); 'dig', her head at the ground and her
+// paws at it (step 0 and 1); 'nap', a low mound with her head on her paws (step 1: a breath in).
 export function mapBear(pose, step = 0) {
-  const b = new BM(28, 17); b.ox = 12; b.oy = 16;
+  const up = pose === 'stand' || pose === 'rub', b = new BM(28, up ? 27 : 17); b.ox = 12; b.oy = b.h - 1;
   const fur = (nx, ny, x, y) => pick('fur', 0.42 - ny * 0.3 + 0.2 * (hash(x, y, 4) - 0.5), x, y, 0.6);
+  const face = (hx, hy) => { b.set(hx + 2, hy, R.dirt[3]); b.set(hx + 3, hy, R.dirt[3]); b.set(hx + 3, hy + 1, R.dirt[2]); b.set(hx + 4, hy + 1, R.dirt[2]); b.set(hx + 5, hy + 1, INK); };
+  if (up) {
+    const lift = pose === 'rub' && step ? 1 : 0, hx = 14, hy = 6 - lift;
+    thick(b, 9, 22, 9, 25, 3, R.fur[0]); thick(b, 13, 22, 14, 25, 3, R.fur[1]); b.set(15, 25, R.fur[1]);
+    ell(b, 11.5, 15.5 - lift, 4.4, 7, fur); ell(b, 11, 20.5, 5, 3.6, fur); ell(b, hx, hy, 2.8, 2.6, fur);
+    face(hx, hy - 1); b.set(hx - 2, hy - 3, R.fur[2]); b.set(hx - 1, hy - 4, R.fur[2]); b.set(hx + 1, hy - 3, R.fur[2]); b.set(hx + 1, hy - 1, R.white[1]);
+    if (pose === 'rub') { thick(b, 13, 11 - lift, 19, 8 - 2 * lift, 2, R.fur[1]); thick(b, 13, 14 - lift, 19, 12 - lift, 2, R.fur[0]); }
+    else { thick(b, 13, 12, 16, 15, 2, R.fur[1]); b.set(17, 15, R.fur[2]); }
+    litBack(b); outline(b, INK); return b;
+  }
+  if (pose === 'nap') {
+    ell(b, 11, 11.6 - (step ? 0.5 : 0), 9, 4.4 + (step ? 0.5 : 0), fur); ell(b, 6, 12.5, 4.6, 3.4, fur);
+    ell(b, 20, 13, 2.9, 2.4, fur); face(20, 14); b.set(18, 10, R.fur[2]); b.set(19, 10, R.fur[2]); thick(b, 16, 15, 21, 16, 1, R.fur[1]);
+    litBack(b); outline(b, INK); return b;
+  }
+  if (pose === 'dig') {
+    for (const [lx, far] of [[6, 1], [8, 0]]) thick(b, lx, 9, lx, 15, 2, R.fur[far ? 0 : 1]);
+    thick(b, 16, 10, 19 + step, 15, 2, R.fur[0]); thick(b, 18, 10, 21 - step, 15, 2, R.fur[1]);
+    ell(b, 11, 7.6, 8, 4.4, fur); ell(b, 6.6, 6.6, 4, 4, fur); ell(b, 16, 7.4, 3.6, 3.6, fur);
+    const hx = 21, hy = 12 + step; thick(b, 18, 8, hx - 1, hy, 4, R.fur[1]); ell(b, hx, hy, 2.6, 2.3, fur); face(hx - 1, hy + 1);
+    b.set(hx - 2, hy - 3, R.fur[2]); b.set(hx - 1, hy - 3, R.fur[2]);
+    litBack(b); outline(b, INK); return b;
+  }
   for (const [lx, far] of [[6, 1], [8, 0], [16, 1], [18, 0]]) { const sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, lx, 10, lx + sw, 15, 2, R.fur[far ? 0 : 1]); }
   ell(b, 12, 8, 8, 4.4, fur); ell(b, 7, 7.5, 4, 4, fur); ell(b, 15.5, 5.6, 3.9, 3.6, fur);
   const hx = pose === 'sniff' ? 22 : 22, hy = pose === 'sniff' ? 12 : 6;
@@ -27,11 +53,13 @@ export function mapBear(pose, step = 0) {
 }
 // A black bear cub, facing right: half its mother's length, with a cub's big head and round ears. pose: 'look';
 // 'sniff', nose down; 'roll', on its back with its paws in the air; 'rear', up on its hind legs to bat at its
-// twin; 'climb', seen from behind as it hugs a trunk. step is the second drawing of each.
+// twin; 'climb', seen from behind as it hugs a trunk; 'nap', curled up asleep (round 8, D2). step is the second drawing of each.
 export function mapCub(pose, step = 0) {
   const b = new BM(15, 12); b.ox = 7; b.oy = 11;
   const fur = (nx, ny, x, y) => pick('fur', 0.6 - ny * 0.3 + 0.2 * (hash(x, y, 9) - 0.5), x, y, 0.6), dark = R.fur[1];
-  if (pose === 'climb') {
+  if (pose === 'nap') {
+    ell(b, 6, 8.4, 4.2, 2.4, fur); ell(b, 10.4, 9, 2, 1.8, fur); b.set(9, 7, dark); b.set(12, 10, R.dirt[2]);
+  } else if (pose === 'climb') {
     ell(b, 7, 7, 2.6, 3.2, fur); ell(b, 7, 3, 2.2, 1.8, fur); b.set(5, 1, dark); b.set(9, 1, dark);
     b.set(4, step ? 4 : 5, dark); b.set(10, step ? 5 : 4, dark); b.set(4, step ? 10 : 9, dark); b.set(10, step ? 9 : 10, dark);
   } else if (pose === 'rear') {
@@ -194,12 +222,13 @@ export function makeCritters(W, opts = {}) {
   const step = (a, nx, ny) => { const X = Math.round(nx), Y = Math.round(ny); if ((X !== a.x || Y !== a.y) && !col.canBe('land', X, Y, 0) && col.canBe('land', a.x, a.y, 0)) return false; a.fx = nx; a.fy = ny; a.x = X; a.y = Y; return true; };
 
   // ---- the animals that graze and wander ----------------------------------------------------
-  const elkBull = { look: makeElk(false), graze: makeElk(true), walk: [makeElk(false, 1), makeElk(false, 2)] };
-  const elkCow = { look: makeElk(false, 0, false), graze: makeElk(true, 0, false), walk: [makeElk(false, 1, false), makeElk(false, 2, false)] };
-  const goatF = kid => ({ look: goat('look', kid), stand: goat('stand', kid), graze: goat('graze', kid), walk: [goat('stand', kid, 1), goat('stand', kid, 2)] });
+  // Round 8, D2: each also has the drawings of its acts (ACTS, below), a list to each act.
+  const elkBull = { look: makeElk(false), graze: makeElk(true), walk: [makeElk(false, 1), makeElk(false, 2)], bugle: [makeElk(false, 0, true, 'bugle')], bed: [0, 1].map(k => makeElk(false, k, true, 'bed')), thrash: [0, 1].map(k => makeElk(false, k, true, 'thrash')) };
+  const elkCow = { look: makeElk(false, 0, false), graze: makeElk(true, 0, false), walk: [makeElk(false, 1, false), makeElk(false, 2, false)], bed: [0, 1].map(k => makeElk(false, k, false, 'bed')) };
+  const goatF = kid => ({ look: goat('look', kid), stand: goat('stand', kid), graze: goat('graze', kid), walk: [goat('stand', kid, 1), goat('stand', kid, 2)], bed: [goat('lie', kid)], butt: [goat('butt', kid)] });
   const goats = [goatF(false), goatF(true)];
-  const ram = { look: W.make.sheep(false), graze: W.make.sheep(true), walk: [W.make.sheep(false, 1), W.make.sheep(false, 2)] };
-  const bearF = { look: mapBear('look'), graze: mapBear('sniff'), walk: [mapBear('look', 1), mapBear('look', 2)] };
+  const ram = { look: W.make.sheep(false), graze: W.make.sheep(true), walk: [W.make.sheep(false, 1), W.make.sheep(false, 2)], bed: [W.make.sheep(false, 0, 'lie')], butt: [W.make.sheep(false, 0, 'butt')], rear: [W.make.sheep(false, 0, 'rear')] };
+  const bearF = { look: mapBear('look'), graze: mapBear('sniff'), walk: [mapBear('look', 1), mapBear('look', 2)], upright: [mapBear('stand')], rub: [0, 1].map(k => mapBear('rub', k)), dig: [0, 1].map(k => mapBear('dig', k)), bed: [0, 1].map(k => mapBear('nap', k)) };
   const rand = rng(77);
   // faces: the way the drawing looks, -1 left or 1 right. r: how far it strays from where it was put.
   // An animal is put where it was meant to stand, or on the nearest ground it may stand on if a tree has since been planted there.
@@ -213,21 +242,24 @@ export function makeCritters(W, opts = {}) {
   const pass = (x, y) => col.canBe('land', Math.round(x), Math.round(y), 0) && !bole[Math.floor(y / CELL) * GW + Math.floor(x / CELL)];
   const walker = (kind, f, x0, y0, o) => { const own = o.ok; o = { ...o, ok: (x, y) => own(x, y) && col.canBe('land', Math.round(x), Math.round(y), 0) }; const [x, y] = settle(o.ok, x0, y0); items.push({ critter: kind, col: 'land', walker: true, f, bm: f.graze, x, y, hx: x, hy: y, h0: [x, y], st: o.start || 'graze', until: 2 + rand() * 12, flip: rand() < 0.5, tx: x, ty: y, fx: x, fy: y, ...o }); };
   // The herd keeps together: each elk strays only a little from its own place in it.
-  spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look' }));
-  spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null }));
-  spots.sheep.forEach(([x, y, d]) => walker('sheep', ram, x, y, { faces: 1, r: 34, v: 6, ok: clear, roam: 0.6, start: d ? 'graze' : 'look' }));
+  spots.elk.forEach(([x, y, d], n) => walker('elk', n === 0 ? elkBull : elkCow, x, y, { faces: -1, r: 22, v: 6, ok: meadow, start: d ? 'graze' : 'look', does: n === 0 ? ['graze', 'bugle', 'bed', 'thrash', 'trot'] : ['graze', 'look', 'bed', 'bark', 'trot'] }));
+  spots.goats.forEach(([x, y, kid], n) => walker('goat', goats[kid ? 1 : 0], x, y, { faces: 1, r: kid ? 16 : 30, v: kid ? 10 : 6, ok: clear, start: n & 1 ? 'look' : 'graze', mum: kid ? items[items.length - 1] : null, does: kid ? ['graze', 'hop', 'butt', 'bed', 'trot'] : ['look', 'graze', 'bed', 'hop', 'butt'] }));
+  spots.sheep.forEach(([x, y, d]) => walker('sheep', ram, x, y, { faces: 1, r: 34, v: 6, ok: clear, roam: 0.6, start: d ? 'graze' : 'look', does: ['graze', 'butt', 'bed', 'trot', 'look'] }));
   // The moose (T35): a bull and a calf that wander the riverside woods together, the calf at his heels (it
   // follows him as a kid follows its nanny). They keep off the trail.
-  const mooseF = calf => ({ look: makeMoose(calf, false), graze: makeMoose(calf, true), walk: [makeMoose(calf, false, 1), makeMoose(calf, false, 2)] });
+  const mooseF = calf => { const look = makeMoose(calf, false), graze = makeMoose(calf, true), f = { look, graze, walk: [makeMoose(calf, false, 1), makeMoose(calf, false, 2)], bed: [0, 1].map(k => makeMoose(calf, false, k, 'bed')) };
+    // The bull's shake goes through the level head between the two swings; at the water his head goes under and comes up with weed.
+    if (!calf) { f.shake = [look, makeMoose(false, false, 1, 'shake'), look, makeMoose(false, false, 2, 'shake')]; f.dip = [graze, makeMoose(false, false, 0, 'weeds'), graze, makeMoose(false, false, 1, 'weeds')]; }
+    return f; };
   if (spots.moose) { const inWoods = (x, y) => clear(x, y) && !W.nearTrail(x, y, 10);
-    walker('moose', mooseF(false), spots.moose[0], spots.moose[1], { faces: -1, r: 64, v: 5, ok: inWoods, roam: 0.7, start: 'look' });
-    walker('moose', mooseF(true), spots.moose[0] + 16, spots.moose[1] + 5, { faces: -1, r: 15, v: 9, ok: inWoods, roam: 0.3, mum: items[items.length - 1] }); }
+    walker('moose', mooseF(false), spots.moose[0], spots.moose[1], { faces: -1, r: 64, v: 5, ok: inWoods, roam: 0.7, start: 'look', does: ['graze', 'shake', 'dip', 'bed', 'trot'] });
+    walker('moose', mooseF(true), spots.moose[0] + 16, spots.moose[1] + 5, { faces: -1, r: 15, v: 9, ok: inWoods, roam: 0.3, mum: items[items.length - 1], does: ['graze', 'hop', 'bed', 'look', 'trot'] }); }
   const asked = typeof location !== 'undefined' && /[?&]bear=([01])/.exec(location.search);
   // The bears (round 5, T34 and T44): each is a sow with two cubs. The cubs keep within a few pixels of her:
   // when she moves off they trail her, one at each side, and while she stays they sniff about, roll on their
   // backs, rear up and bat at each other, and now and then one climbs a step up the nearest trunk, clings
   // there and comes down. A cub is not a walker: cubStep moves it.
-  const cubF = { look: mapCub('look'), sniff: mapCub('sniff'), walk: [mapCub('look', 1), mapCub('look', 2)], roll: [mapCub('roll'), mapCub('roll', 1)], rear: [mapCub('rear'), mapCub('rear', 1)], climb: [mapCub('climb'), mapCub('climb', 1)] };
+  const cubF = { look: mapCub('look'), sniff: mapCub('sniff'), walk: [mapCub('look', 1), mapCub('look', 2)], roll: [mapCub('roll'), mapCub('roll', 1)], rear: [mapCub('rear'), mapCub('rear', 1)], climb: [mapCub('climb'), mapCub('climb', 1)], nap: mapCub('nap') };
   // v: a cub's speed. near, far: how far from her it may be while she walks, and while she stays. up: seconds to climb. high: how far up.
   const CUB = { v: 13, near: 28, far: 34, up: 1.3, high: 6 };
   const TRUNKS = W.things.filter(th => th.tree && !th.tree.low && th.tree.h >= 18).map(th => ({ x: th.x, y: th.y, w: th.tree.w, h: th.tree.h }));
@@ -237,7 +269,7 @@ export function makeCritters(W, opts = {}) {
   // A family needs room: she is put on the nearest ground to her spot, up to 90 away, that has a clear place for a cub on each side of her.
   const family = (x, y, o, roamer) => { const g = (px, py) => o.ok(px, py) && land(px, py), room = (px, py) => g(px, py) && way(g, px, py, px - 22, py + 3) && way(g, px, py, px + 22, py + 4) && land(px - 27, py + 3) && land(px + 27, py + 4);
     if (!room(x, y)) search: for (let r = 4; r <= 90; r += 4) for (let k = 0; k < 20; k++) { const px = Math.round(x + Math.cos(k / 20 * TAU) * r), py = Math.round(y + Math.sin(k / 20 * TAU) * r * 0.6); if (room(px, py)) { x = px; y = py; break search; } }
-    walker('bear', bearF, x, y, o); const sow = items[items.length - 1]; sow.sow = true; sow.roamer = roamer; const first = cubOf(sow, 0), cubs = [first, cubOf(sow, 1, first)]; cubs[0].sib = cubs[1]; cubs[1].sib = cubs[0]; items.push(...cubs); return sow; };
+    walker('bear', bearF, x, y, { ...o, does: ['graze', 'upright', 'rub', 'dig', 'bed'] }); const sow = items[items.length - 1]; sow.sow = true; sow.roamer = roamer; const first = cubOf(sow, 0), cubs = [first, cubOf(sow, 1, first)]; cubs[0].sib = cubs[1]; cubs[1].sib = cubs[0]; items.push(...cubs); return sow; };
   const rest = (a, t, wait) => { a.st = 'idle'; a.hop = a.lift = 0; a.until = t + wait; };
   // Back to its own side of her, clear of her drawing: or, where she stands against trees or the trail, the
   // other side, or the grass just in front of her feet, and never its twin's place. The first of these she could walk to herself in a
@@ -258,9 +290,14 @@ export function makeCritters(W, opts = {}) {
       const h = CUB.high * smooth(0, CUB.up, s) * smooth(2 * CUB.up + a.hold, CUB.up + a.hold, s), cling = s > CUB.up && s < CUB.up + a.hold;
       // Drawn just in front of the tree it is on, lifted up the trunk.
       a.x = T.x; a.y = T.y + 1; a.hop = a.lift = 1 + Math.round(h); a.flip = false; a.bm = a.f.climb[cling ? 0 : Math.floor(t * 5) & 1];
-      if (s >= 2 * CUB.up + a.hold) { a.fx = T.x + side * 3; a.fy = T.y + 2; a.x = Math.round(a.fx); a.y = Math.round(a.fy); a.pose = 'look'; rest(a, t, 1 + rand() * 2); }
+      // Down at the trunk's foot, on the first ground beside it a cub may stand on (round 8, D2: it used to step off
+      // to one fixed side, which at some trunks is a bank or a rock's foot).
+      if (s >= 2 * CUB.up + a.hold) { const o = [[side * 3, 2], [-side * 3, 2], [0, 1], [side * 5, 3], [-side * 5, 3], [side * 3, 4], [-side * 3, 4], [0, 3]].find(([dx, dy]) => land(T.x + dx, T.y + dy)) || [0, 1];
+        a.fx = T.x + o[0]; a.fy = T.y + o[1]; a.x = Math.round(a.fx); a.y = Math.round(a.fy); a.goal = null; a.pose = 'look'; rest(a, t, 1 + rand() * 2); }
       return;
     }
+    // Asleep in a ball (round 8, D2): until it has slept enough, or she walks off, or wakes while it napped beside her.
+    if (a.st === 'nap') { a.bm = a.f.nap; a.hop = 0; if (t < a.until && dM <= CUB.far + 6 && !(a.withHer && !(M.st === 'act' && M.act === 'bed'))) return; a.withHer = false; a.pose = 'look'; rest(a, t, 0.6 + rand() * 2); }
     if (a.st === 'roll') { a.bm = a.f.roll[Math.floor((t - a.t0) * 3.5) & 1]; if (t < a.until && dM <= CUB.far + 6) return; a.pose = 'look'; rest(a, t, 0.6 + rand() * 2); }
     if (a.st === 'play') {
       a.bm = a.f.rear[Math.floor(t * 3.2 + a.n * 0.5) & 1]; a.flip = B.fx < a.fx; a.hop = (Math.floor(t * 3.2) + a.n) % 4 === 0 ? 1 : 0;
@@ -286,7 +323,9 @@ export function makeCritters(W, opts = {}) {
     if (M.st === 'walk' ? dM > CUB.near : dM > CUB.far) { toSide(a); return; }
     if (t < a.until) return;
     const roll = rand();
+    if (M.st === 'act' && M.act === 'bed' && roll < 0.6) { a.st = 'nap'; a.withHer = true; a.until = t + 30; return; }
     if (M.st !== 'walk') {
+      if (roll > 0.93) { a.st = 'nap'; a.until = t + 6 + rand() * 8; return; }
       if (roll < 0.16) { a.st = 'roll'; a.t0 = t; a.until = t + 1.6 + rand() * 1.6; return; }
       if (roll < 0.34 && B.st === 'idle' && landWay(a.fx, a.fy, B.fx, B.fy)) { a.tx = B.fx + (a.fx < B.fx ? -8 : 8); a.ty = B.fy; a.goal = 'twin'; a.st = 'walk'; B.until = Math.max(B.until, t + 3); return; }
       if (roll < 0.46) { const T = trunkFor(a); if (T && landWay(a.fx, a.fy, T.x, T.y + 1)) { a.trunk = T; a.tx = T.x; a.ty = T.y + 1; a.goal = 'trunk'; a.st = 'walk'; return; } }
@@ -301,25 +340,98 @@ export function makeCritters(W, opts = {}) {
   if (opts.bear != null ? opts.bear : asked ? asked[1] === '1' : Math.random() < 0.35) addBear();
   if (spots.bearHome) family(spots.bearHome[0], spots.bearHome[1], { faces: 1, r: spots.bearHome[2] + 2, v: 5, ok: (x, y) => meadow(x, y) && !W.nearTrail(x, y, 9), roam: 0.3 }, false);
 
+  // ---- five things to do (round 8, D2, TJ's notes 22 and 11) ----------------------------------
+  // Every animal has five things it does, after how it lives. It starts on one at random, goes from one to
+  // another on its own, and a click steps it to the next in its list (a.does), as a click steps the cats.
+  // Grazing, looking about and walking off are the states a walker always had. The rest are acts: for each,
+  // how fast its drawings turn over (fps), how long it lasts at least and at most (dur), what flies up
+  // while it goes on (bits), and the sound it makes as it starts.
+  const ACTS = {
+    bugle: { fps: 0, dur: [2.4, 2.4], sound: 'bugle' }, bed: { fps: 0.45, dur: [10, 22] }, thrash: { fps: 5, dur: [3, 5], bits: [R.grass[3], R.grass[1], R.dirt[2]] },
+    upright: { fps: 0, dur: [2.5, 4.5], sound: 'huff' }, rub: { fps: 2.5, dur: [4, 7] }, dig: { fps: 4, dur: [3, 6], bits: [R.dirt[1], R.dirt[2], R.bark[1]] },
+    butt: { fps: 0, dur: [4.6, 7], pair: 2.3 }, shake: { fps: 7, dur: [1.7, 2.3], sound: 'snort' }, dip: { fps: 0.45, dur: [8.8, 8.8] },
+  };
+  const act = (a, name, t) => { const A = ACTS[name]; a.st = 'act'; a.act = name; a.t0 = t; a.until = t + A.dur[0] + rand() * (A.dur[1] - A.dur[0]); a.goal = null; a.push = 0; a.bm = a.f[name][0]; if (A.sound) a.say = A.sound; };
+  // The way the animal is turned: 1 to the right, -1 to the left.
+  const dirOf = a => a.faces * (a.flip ? -1 : 1), turn = (a, dir) => { a.flip = dir !== a.faces; };
+  // Off to another spot in its own country (or near its mother), by a straight way it may walk.
+  const stroll = a => { const far = a.mum && a.mum.st === 'walk', cx = a.mum ? (far ? a.mum.tx : a.mum.x) : a.hx, cy = a.mum ? (far ? a.mum.ty : a.mum.y) + 5 : a.hy;
+    for (let k = 0; k < 10; k++) { const an = rand() * TAU, rr = a.r * (0.35 + 0.65 * rand()), tx = cx + Math.cos(an) * rr, ty = cy + Math.sin(an) * rr * 0.6; if (a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return true; } }
+    return false; };
+  // To a spot it may stand on, to begin an act there (goal) once it arrives. The spot need not be in its own
+  // country (a trunk stands in the trees, a ledge is narrow): any ground a land animal may stand on will do,
+  // by a straight way it may walk, and it wanders home afterwards.
+  const goTo = (a, x, y, goal) => { if (!land(x, y) || !landWay(a.fx, a.fy, x, y)) return false; a.tx = x; a.ty = y; a.st = 'walk'; a.goal = goal; return true; };
+  // Two of a kind meet head to head (a nanny and her kid): the other comes to a spot in front of this one,
+  // which waits, and both begin when it is there.
+  const meet = (a, name, t) => {
+    const b = items.filter(k => k !== a && k.walker && k.critter === a.critter && k.st !== 'act' && !k.goal && (k.mum === a || a.mum === k || (!k.mum && !a.mum)) && Math.hypot(k.fx - a.fx, k.fy - a.fy) < 70).sort((p, q) => Math.hypot(p.fx - a.fx, p.fy - a.fy) - Math.hypot(q.fx - a.fx, q.fy - a.fy))[0];
+    if (!b) return false;
+    const gap = a.f[name][0].w - a.f[name][0].ox + b.f[name][0].w - b.f[name][0].ox - 6;
+    // The other comes to this one, or, where it cannot (a ledge between them), this one goes to the other.
+    for (const [p, q] of [[a, b], [b, a]]) for (const s of [q.fx >= p.fx ? 1 : -1, q.fx >= p.fx ? -1 : 1]) for (const dy of [0, -2, 2, -4, 4]) if (goTo(q, p.fx + s * gap, p.fy + dy, name)) { b.with = a; a.with = b; turn(p, s); p.st = 'look'; p.until = t + 14; p.bm = p.f.look; p.goal = null; return true; }
+    return false; };
+  // A sow rubs against the nearest trunk she can walk up to: she stands beside its foot and leans in.
+  const toTrunk = a => { let got = null, bd = 90;
+    for (const T of TRUNKS) { const d = Math.hypot(T.x - a.fx, (T.y - a.fy) / 0.6); if (d >= bd) continue; for (const s of [-1, 1]) for (const gap of [8, 10, 12, 14]) { const x = T.x + s * gap, y = T.y + 1; if (land(x, y) && landWay(a.fx, a.fy, x, y)) { got = [x, y, -s, gap - 8]; bd = d; break; } } }
+    if (!got) return false; a.lean = got; return goTo(a, got[0], got[1], 'rub'); };
+  // The bull moose dips for water weed: he walks to the nearest bank he can stand on with the water under
+  // his muzzle (16 in front of his feet and 5 above them, as he is drawn with his head down).
+  const WET = ['water', 'tarn'];
+  const toWater = a => { for (let r = 6; r <= 80; r += 4) for (let k = 0; k < 16; k++) { const wx = Math.round(a.fx + Math.cos(k / 16 * TAU) * r), wy = Math.round(a.fy + Math.sin(k / 16 * TAU) * r * 0.6);
+    if (wx < 20 || wy < 20 || wx >= NW - 20 || wy >= NH - 20 || !WET.includes(RAMP_OF[g[wy * NW + wx]]) || !WET.includes(RAMP_OF[g[wy * NW + wx + 1]]) || !WET.includes(RAMP_OF[g[wy * NW + wx - 1]])) continue;
+    for (const s of [1, -1]) if (goTo(a, wx + s * 16, wy + 5, 'dip')) { a.lean = [0, 0, -s, 0]; return true; } }
+    return false; };
+  // One of its five things begins. from: where a click came from, so an animal that walks off walks away from it.
+  const begin = (a, name, t, from) => { const ok = begun(a, name, t, from); if (ok) a.turn = a.does.indexOf(name); return ok; };
+  const begun = (a, name, t, from) => {
+    a.goal = null; a.push = 0; if (a.with) { const b = a.with; a.with = b.with = null; if (b.st === 'act' && ACTS[b.act].pair) { b.st = 'look'; b.until = t + 1; b.push = 0; } }
+    if (name === 'graze') { a.st = 'graze'; a.until = t + 5 + rand() * 6; return true; }
+    if (name === 'look' || name === 'bark') { lookUp(a, t, 3.5); return true; }
+    if (name === 'hop') { a.spring = t; lookUp(a, t, 2); return true; }
+    if (name === 'trot') { a.fast = t + 3; a.bound = a.critter === 'goat' || a.critter === 'sheep'; return (from && flee(a, from[0], from[1], 14, 28)) || stroll(a); }
+    if (name === 'rub') return toTrunk(a);
+    if (name === 'dip') return toWater(a);
+    if (ACTS[name].pair) return meet(a, name, t);
+    if (name === 'bugle') { for (const b of items) if (b.critter === 'elk' && b !== a && b.st !== 'act') lookUp(b, t, 4); a.bugle = t; }
+    if (name === 'upright') for (const c of items.filter(c => c.mum === a && c.cub && c.st !== 'climb')) { const T = trunkFor(c, 44); if (T) { c.trunk = T; c.tx = T.x; c.ty = T.y + 1; c.goal = 'trunk'; c.st = 'walk'; c.hop = c.lift = 0; } }
+    act(a, name, t); return true; };
+  // It has come to where it was going: the act it came for begins, or it grazes.
+  const arrive = (a, t) => { a.fx = a.tx; a.fy = a.ty; a.x = Math.round(a.fx); a.y = Math.round(a.fy); const g = a.goal; a.goal = null;
+    if (!g) { a.st = 'graze'; a.until = t + 5 + rand() * 10; return; }
+    act(a, g, t);
+    if (g === 'rub' || g === 'dip') { turn(a, a.lean[2]); a.push = a.lean[3]; }
+    const b = a.with; if (b) { turn(a, b.fx > a.fx ? 1 : -1); turn(b, -dirOf(a)); act(b, g, t); b.until = a.until; a.lead = true; b.lead = false; } };
+  // What an act looks like s seconds in. Head to head, a pair draw back, drop their heads and come together
+  // (push: how far each is drawn toward the other), with a knock as they meet.
+  const acting = (a, t) => { const A = ACTS[a.act], s = t - a.t0, fr = a.f[a.act];
+    a.bm = fr[Math.floor(s * A.fps) % fr.length];
+    if (A.pair) { const u = s % A.pair; a.push = u < 0.9 ? -Math.round(3 * smooth(0, 0.9, u)) : u < 1.1 ? Math.round(-3 + 5 * (u - 0.9) / 0.2) : u < 1.5 ? 2 : Math.round(2 * (1 - smooth(1.5, 2.1, u)));
+      a.bm = u >= 0.75 && u < 1.6 ? fr[0] : a.f.rear && u >= 0.3 && u < 0.75 ? a.f.rear[0] : a.f.look;
+      const n = Math.floor(s / A.pair); if (a.lead && u >= 1.1 && a.knock !== a.t0 + n) { a.knock = a.t0 + n; a.say = 'clash'; } }
+    if (a.act === 'rub') a.hop = Math.floor(s * A.fps) & 1; };
+  const endAct = (a, t) => { const b = a.with; a.with = null; if (b) b.with = null; a.push = 0; a.hop = 0; a.st = 'look'; a.until = t + 1 + rand() * 2; a.bm = a.f.look; };
   function walk(a, dt, t) {
-    // A click (round 6, note 10): a moose shakes his head, looking this way and that; a kid springs straight up.
-    if (a.shake != null && t - a.shake < 1.3) { a.bm = a.f.look; a.flip = (Math.floor((t - a.shake) * 6) & 1) ? !a.flip0 : a.flip0; return; }
+    // A kid springs straight up (round 6, note 10).
     a.hop = a.spring != null && t - a.spring < 1.4 ? Math.round(6 * Math.abs(Math.sin((t - a.spring) * Math.PI / 0.7))) : 0;
     if (a.st === 'walk') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
-      if (d < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; a.fx = a.tx; a.fy = a.ty; }   // it stops on the spot it chose, which is ground it may stand on
+      if (d < 0.6) { arrive(a, t); return; }   // it stops on the spot it chose, which is ground it may stand on
       // It walks the straight line it looked along before it set off (way), slower up and down the
       // picture than across it. Until round 8 (D1) only its speed up and down was cut, which bent the line,
       // and a bent line could cross ground the straight one did not: a sheep stepped off its bench's edge.
-      else { const fast = a.fast > t, s = Math.min(d, a.v * (fast ? (a.bound ? 4 : 2.6) : 1) * dt / Math.hypot(dx / d, dy / d / 0.7)); if (!step(a, a.fx + dx / d * s, a.fy + dy / d * s)) { a.st = 'look'; a.until = t + 2 + rand() * 3; a.bm = a.f.look; return; } if (Math.abs(dx) > 0.5) a.flip = (dx > 0 ? 1 : -1) !== a.faces; if (fast && a.bound) a.hop = Math.round(4 * Math.abs(Math.sin(t * 9))); }
+      else { const fast = a.fast > t, s = Math.min(d, a.v * (fast ? (a.bound ? 4 : 2.6) : 1) * dt / Math.hypot(dx / d, dy / d / 0.7)); if (!step(a, a.fx + dx / d * s, a.fy + dy / d * s)) { endAct(a, t); a.goal = null; return; } if (Math.abs(dx) > 0.5) a.flip = (dx > 0 ? 1 : -1) !== a.faces; if (fast && a.bound) a.hop = Math.round(4 * Math.abs(Math.sin(t * 9))); }
       a.bm = a.f.walk[Math.floor(t * (a.fast > t ? 9 : 4.5) + a.hx) & 1];
-      if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) { a.st = 'graze'; a.until = t + 5 + rand() * 10; a.fx = a.tx; a.fy = a.ty; a.x = Math.round(a.fx); a.y = Math.round(a.fy); }
+      if (Math.abs(a.ty - a.fy) < 0.6 && Math.abs(dx) < 0.6) arrive(a, t);
       return;
     }
-    a.bm = a.st === 'graze' ? a.f.graze : a.f.stand && frac(t * 0.11 + a.hx * 0.37) < 0.5 ? a.f.stand : a.f.look;
+    if (a.st !== 'act') a.bm = a.st === 'graze' ? a.f.graze : a.f.stand && frac(t * 0.11 + a.hx * 0.37) < 0.5 ? a.f.stand : a.f.look;
     // A kid that has been left behind (its mother has walked off) goes after her at once.
     const lag = a.mum && Math.hypot(a.fx - a.mum.fx, (a.fy - a.mum.fy) / 0.6) > a.r + 8;
+    if (a.st === 'act') { if (t < a.until && !(lag && !a.with)) { acting(a, t); return; } endAct(a, t); if (!lag) return; }
     if (t < a.until && !lag) return;
+    // Now and then one of its acts, in place of grazing on or wandering off.
+    if (!lag && a.does && rand() < 0.3) { const own = a.does.filter(n => ACTS[n]); if (own.length && begin(a, own[Math.floor(rand() * own.length)], t)) return; }
     const roll = lag ? 0 : rand();
     if (roll < (a.roam || 0.25)) {
       // A kid keeps near its mother, or near where she is walking to; everyone else keeps near home.
@@ -337,13 +449,31 @@ export function makeCritters(W, opts = {}) {
   }
 
   // ---- squirrels and chipmunks: sit, then dart ----------------------------------------------
-  const sq = [0, 1].map(chip => ({ sit: W.make.squirrel(!!chip), run: W.make.squirrel(!!chip, true) }));
+  const sq = [0, 1].map(chip => { const f = { sit: W.make.squirrel(!!chip), run: W.make.squirrel(!!chip, true) }; for (const k of ['eat', 'scold', 'bury', 'climb']) f[k] = [0, 1].map(s => W.make.squirrelDoes(!!chip, k, s)); return f; });
+  // Its five things (round 8, D2): it always sat and darted. Now it also eats a cone, scolds with its tail
+  // flicking, buries a cone, and runs to the nearest trunk and climbs it a little way. For each act: how fast
+  // its two drawings turn over, and how long it lasts at least and at most.
+  const SQ_DOES = ['eat', 'scold', 'dash', 'climb', 'bury'], SQ_ACT = { eat: [3, 4, 7], scold: [6, 2.2, 3], bury: [5, 3, 4.5], climb: [6, 5.2, 5.2] }, CLIMB = { up: 1.2, high: 11 };
+  const sqAct = (a, name, t) => { const [, lo, hi] = SQ_ACT[name]; a.st = 'act'; a.act = name; a.t0 = t; a.until = t + lo + rand() * (hi - lo); a.goal = null; a.hop = 0; if (name === 'scold') a.say = 'chatter'; };
+  const sqBegin = (a, name, t, from) => {
+    a.goal = null; a.ofx = 0; a.hop = 0;
+    if (name === 'dash') { a.st = 'sit'; a.until = 0; dart(a, 0, t, from ? { x: from[0], y: from[1] } : { x: a.fx + 1, y: a.fy }); return a.st === 'run'; }
+    if (name !== 'climb') { sqAct(a, name, t); return true; }
+    // To the foot of the nearest trunk it can run to, on whichever side of it has ground it may stand on.
+    let got = null, bd = 60; for (const T of TRUNKS) { const d = Math.hypot(T.x - a.fx, (T.y - a.fy) / 0.6); if (d >= bd) continue; for (const s of [-1, 1]) for (const gap of [3, 5, 7]) { const x = T.x + s * gap, y = T.y + 1; if (land(x, y) && way(pass, a.fx, a.fy, x, y)) { got = [x, y, -s * gap]; bd = d; break; } } }
+    if (!got) return false; a.tx = got[0]; a.ty = got[1]; a.lean = got[2]; a.st = 'run'; a.goal = 'climb'; return true; };
+  // Up the trunk, a while clinging there, and down again: drawn on the trunk (ofx), its feet still on the ground beside it.
+  const sqActing = (a, t) => { const [fps] = SQ_ACT[a.act], s = t - a.t0, left = a.until - t, fr = a.f[a.act];
+    if (t >= a.until) { a.st = 'sit'; a.bm = a.f.sit; a.hop = 0; a.ofx = 0; a.until = t + 4 + rand() * 9; return; }
+    if (a.act !== 'climb') { a.bm = fr[Math.floor(s * fps) & 1]; return; }
+    const moving = s < CLIMB.up || left < CLIMB.up; a.ofx = a.lean; a.hop = Math.round(CLIMB.high * Math.min(1, s / CLIMB.up, left / CLIMB.up)); a.bm = fr[moving ? Math.floor(s * fps) & 1 : 0]; };
   for (const [x, y, chip] of spots.squirrels) items.push({ h0: [x, y], critter: 'squirrel', col: 'land', dart: true, f: sq[chip ? 1 : 0], bm: sq[chip ? 1 : 0].sit, x, y, fx: x, fy: y, hx: x, hy: y, tx: x, ty: y, st: 'sit', until: 3 + rand() * 12, flip: rand() < 0.5 });
   function dart(a, dt, t, here) {
+    if (a.st === 'act') { sqActing(a, t); return; }
     if (a.st === 'run') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
-      if (d < 1) { a.st = 'sit'; a.until = t + 5 + rand() * 11; a.bm = a.f.sit; return; }
-      const s = Math.min(d, 46 * dt); if (!step(a, a.fx + dx / d * s, a.fy + dy / d * s)) { a.st = 'sit'; a.until = t + 3 + rand() * 6; a.bm = a.f.sit; a.hop = 0; return; }
+      if (d < 1) { if (a.goal) { sqAct(a, a.goal, t); return; } a.st = 'sit'; a.until = t + 5 + rand() * 11; a.bm = a.f.sit; return; }
+      const s = Math.min(d, 46 * dt); if (!step(a, a.fx + dx / d * s, a.fy + dy / d * s)) { a.st = 'sit'; a.goal = null; a.until = t + 3 + rand() * 6; a.bm = a.f.sit; a.hop = 0; return; }
       if (Math.abs(dx) > 0.5) a.flip = dx < 0;
       a.bm = a.f.run; a.hop = Math.floor(t * 9) & 1;
       return;
@@ -352,6 +482,7 @@ export function makeCritters(W, opts = {}) {
     // He scares them: they bolt the other way when he comes close.
     const near = here && Math.hypot(here.x - a.fx, here.y - a.fy) < 20;
     if (!near && t < a.until) return;
+    if (!near && a.until && rand() < 0.4 && sqBegin(a, ['eat', 'scold', 'climb', 'bury'][Math.floor(rand() * 4)], t)) return;
     for (let k = 0; k < 6; k++) {
       const an = near ? Math.atan2(a.fy - here.y, a.fx - here.x) + (rand() - 0.5) * 1.6 : rand() * TAU, rr = near ? 26 + rand() * 12 : 6 + rand() * 22;
       const tx = (near ? a.fx : a.hx) + Math.cos(an) * rr, ty = (near ? a.fy : a.hy) + Math.sin(an) * rr * 0.6;
@@ -362,7 +493,7 @@ export function makeCritters(W, opts = {}) {
   }
 
   // ---- marmots: sunning on a rock, up on their haunches when he is near or now and then ----
-  const mar = { sun: marmot('sun'), up: marmot('up') };
+  const mar = { sun: marmot('sun'), up: marmot('up'), dig: [marmot('dig'), marmot('dig', 1)], wrestle: [marmot('box'), marmot('box', 1)] };
   // Each has a few rocks' worth of ground round its own (E5i, TJ: no animal just stands still): now and then
   // it scurries a little way to sun somewhere else, and it still sits up when he comes by.
   // Round 5 (T43, T29): the two in the parkland below Mount Monolith lie on a boulder each (perch: how high its
@@ -371,13 +502,35 @@ export function makeCritters(W, opts = {}) {
   const MAR = { cycle: 26, up: 2.6 }, sounds = [];
   spots.marmots.forEach(([x, y0, perch = 0], n) => { const y = y0 + (perch ? 1 : 0); items.push({ critter: 'marmot', col: 'land', f: mar, bm: mar.sun, x, y, n, flip: !!(n & 1), hx: x, hy: y, h0: [x, y], fx: x, fy: y, tx: x, ty: y, r: perch ? 0 : 16, perch, perch0: perch, lift: perch, st: 'sun', until: 4 + rand() * 10 }); });
   const offIce = (x, y) => { const k = RAMP_OF[g[Math.round(y) * NW + Math.round(x)]]; return k !== 'glac' && k !== 'snow' && k !== 'farsnow'; };
+  // Its five things (round 8, D2): sunbathing and sitting up to whistle it always did, and a click sent it
+  // down its burrow. Now it also digs, and wrestles another of its colony that comes up beside it for the
+  // bout. One on a boulder hops down to the grass at the boulder's foot for either, and back up afterwards:
+  // it is drawn there (a.drop) and stays the boulder's marmot, since the parkland is steeper than the
+  // shared rule lets a walker stand on, which is why these live on boulders. The grass is asked of the ground itself.
+  const MAR_DOES = ['sun', 'whistle', 'wrestle', 'dig', 'dash'], MAR_ACT = { wrestle: [4, 5, 8], dig: [6, 3, 6] }, HOP = 0.35;
+  const grassAt = (x, y) => RAMP_OF[g[Math.round(y) * NW + Math.round(x)]] === 'grass';
+  const marBegin = (a, name, t) => {
+    if (a.st === 'act' || a.gone) return false;
+    if (name === 'sun') { a.st = 'sun'; a.until = t + 6 + rand() * 6; return true; }
+    if (name === 'whistle') { a.call = t; return true; }
+    if (name === 'dash') { if (a.dive != null && t - a.dive < 4.6) return false; a.call = t; a.dive = t; return true; }
+    let down = 0; if (a.perch) { for (let dy = 5; dy <= 9 && !down; dy++) if (grassAt(a.x, a.y + dy) && grassAt(a.x + (a.flip ? -11 : 11), a.y + dy)) down = dy; if (!down) return false; }
+    const [, lo, hi] = MAR_ACT[name]; a.st = 'act'; a.act = name; a.t0 = t; a.len = lo + rand() * (hi - lo); a.down = down; a.drop = 0; a.hop = 0; return true; };
+  // How far into its act it is: under 0 it is on its way down, over a.len on its way back up.
+  const marAt = (a, t) => t - a.t0 - (a.down ? HOP : 0);
+  const marActing = (a, t) => { const s = marAt(a, t), P = a.down ? a.perch + a.down : 0;
+    if (s < 0) { const u = 1 + s / HOP; a.drop = Math.round(P * u); a.hop = Math.round(3 * Math.sin(Math.PI * u)); a.bm = mar.sun; return; }
+    if (s < a.len) { a.drop = P; a.hop = 0; a.bm = mar[a.act][Math.floor(s * MAR_ACT[a.act][0]) & 1]; return; }
+    if (a.down && s < a.len + HOP) { const u = (s - a.len) / HOP; a.drop = Math.round(P * (1 - u)); a.hop = Math.round(3 * Math.sin(Math.PI * u)); a.bm = mar.sun; return; }
+    a.drop = 0; a.hop = 0; a.st = 'sun'; a.bm = mar.sun; a.until = t + 6 + rand() * 12; };
   function scurry(a, dt, t, here) {
     // Clicked, it whistles and dives into its burrow, and comes back up a few seconds later (note 10).
     a.gone = a.dive != null && t > a.dive + 1.2 && t < a.dive + 4.6;
     const up = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / MAR.cycle + a.n * 0.37) < MAR.up / MAR.cycle || (a.call != null && t - a.call < MAR.up);
     if (up && !a.wasUp) a.rose = t; else if (!up && a.wasUp && rand() < 0.5) a.flip = !a.flip;
     a.wasUp = up;
-    if (a.perch) { a.bm = up ? mar.up : mar.sun; return; }
+    if (a.st === 'act') { marActing(a, t); return; }
+    if (a.perch) { a.bm = up ? mar.up : mar.sun; if (!up && t >= a.until) { a.until = t + 8 + rand() * 14; if (rand() < 0.4) marBegin(a, rand() < 0.5 ? 'wrestle' : 'dig', t); } return; }
     if (a.st === 'run') {
       const dx = a.tx - a.fx, dy = a.ty - a.fy, d = Math.hypot(dx, dy);
       if (d < 0.8) { a.st = 'sun'; a.until = t + 6 + rand() * 12; a.hop = 0; }
@@ -385,6 +538,7 @@ export function makeCritters(W, opts = {}) {
     }
     a.bm = up ? mar.up : mar.sun;
     if (up || t < a.until) return;
+    if (rand() < 0.3 && marBegin(a, rand() < 0.5 ? 'wrestle' : 'dig', t)) return;
     for (let k = 0; k < 6; k++) { const an = rand() * TAU, rr = a.r * (0.3 + 0.7 * rand()), tx = a.hx + Math.cos(an) * rr, ty = a.hy + Math.sin(an) * rr * 0.6; if (col.canBe('land', tx, ty, 0) && offIce(tx, ty) && way((x, y) => col.canBe('land', x, y, 0) && offIce(x, y), a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'run'; return; } }
     a.until = t + 5;
   }
@@ -404,6 +558,8 @@ export function makeCritters(W, opts = {}) {
   const whales = [W.make.whale(BREACH[0])], moreWhales = () => { if (whales.length < BREACH.length) whales.push(W.make.whale(BREACH[whales.length])); };
   const flukes = [0, 0.33, 0.66, 1].map(f => W.make.whale({ fluke: f }));
   const SLOT = 50, starts = n => 10 * hash(n, 5, 63), T0 = starts(0) + 1.55;
+  // Its five things, in the order a click steps through them, and how many seconds each of the lesser four lasts.
+  const WHALE_DOES = { blow: 3, breach: 0, slap: 4.5, pec: 6, fluke: 3.4 }, WHALE_TURN = Object.keys(WHALE_DOES);
   const back = (() => { const b = new BM(20, 6); b.ox = 10; b.oy = 5; ell(b, 10, 6, 8.5, 4.2, (nx, ny) => R.navy[ny < -0.55 ? 2 : 1]); b.set(13, 1, R.navy[0]); b.set(14, 1, R.navy[0]); outline(b, INK); return b; })();
   items.push({ critter: 'whale', col: 'whale', f: { whales, flukes }, bm: whales[0], x: spots.whale[0], y: spots.whale[1] });
   // A drawing sunk some way into the water, with broken foam where it meets the surface.
@@ -476,15 +632,40 @@ export function makeCritters(W, opts = {}) {
       const x0 = -50 + 56 * hash(k, 2, 74), vx = (hash(k, 3, 74) - 0.5) * 36 + (x0 + 22) * 0.6, vy = 26 + 44 * hash(k, 4, 74);
       drop(Math.round(wx + x0 + vx * age), Math.round(wy - vy * age + 46 * age * age), hash(k, 5, 74) < 0.5);
     }
-    // The roll and the blow, each at a spot of its own, picked when it begins.
+    // Between breaches (round 8, D2, after pictures) it does one of four things at a spot of its own, picked
+    // when it begins: it rolls and blows, as it always did; slaps its tail on the water three times; lies on
+    // its side and waves one long white pectoral fin in the air; or lifts its flukes and goes down. v:
+    // seconds in. The first of each slot is always a blow (the debug menu asks for one); the second is one of the other three.
+    const minor = (kind, v, px, py, key) => {
+      const bx = px - ox, by = py - oy, foam = (x0, x1) => { for (let i = x0; i <= x1; i += 2) scr.set(bx + i, by + 1, white); };
+      const spray = (age, seed) => { for (let k = 0; k < 44; k++) { const s = age - hash(k, 1, seed) * 0.15; if (s < 0 || s > 1.1) continue; const y = Math.round(by - (16 + 22 * hash(k, 3, seed)) * s + 34 * s * s); if (y <= by + 1) { const x = Math.round(bx + (hash(k, 2, seed) - 0.5) * 46 * s); scr.set(x, y, white); if (k & 1) scr.set(x + 1, y, white); scr.set(x, y + 1, pale); } } };
+      const roll = (dx, up) => { for (let j = 0; j < back.h - up; j++) for (let i = 0; i < back.w; i++) { const c = back.d[j * back.w + i]; if (c) scr.set(bx + dx - back.ox + i, by - back.oy + up + j, c); } foam(dx - 9, dx + 9); };
+      if (kind === 'blow') {
+        const dx = 6 - Math.round(v * 4); roll(dx, Math.round(v < 0.6 ? 5 * (1 - ease(v / 0.6)) : v > 2.2 ? 5 * ease((v - 2.2) / 0.8) : 0));
+        if (v > 0.5 && v < 1.6) { const hgt = Math.round(9 * Math.min(1, (v - 0.5) / 0.3)), fade = v > 1.2; for (let j = 0; j < hgt; j++) { if (fade && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 4 ? Math.round((j - hgt + 4) * 0.8) : 0; scr.set(bx + dx + 5 - sp, by - 5 - j, white); scr.set(bx + dx + 5 + sp, by - 5 - j, white); } }
+      } else if (kind === 'slap') {
+        // The flukes come up out of the water, stand a moment and come down flat: white water flies, and it sounds.
+        const k = Math.floor(v / 1.5), w = v - k * 1.5;
+        if (w < 0.95) sunk(scr, flukes[w < 0.8 ? 0 : 2], bx, by, Math.round(w < 0.55 ? 25 * (1 - ease(w / 0.55)) : w < 0.8 ? 0 : 25 * (w - 0.8) / 0.15), t);
+        else { spray(w - 0.95, 6431 + k); if (w < 1.35) { foam(-16, 16); for (let i = -12; i <= 12; i++) if (hash(i, Math.floor(t * 8), 6435) < 0.6) scr.set(bx + i, by, white); } if (a.slapped !== key + k) { a.slapped = key + k; sounds.push('plop'); } }
+      } else if (kind === 'pec') {
+        // The fin stands a third of the whale's length out of the water and sways; knobs along its leading edge.
+        roll(0, 1); const L = Math.round(15 * Math.min(1, v / 0.6, (WHALE_DOES.pec - v) / 0.5)), ang = 0.4 * Math.sin(v * 2.4) - 0.1;
+        for (let q = 0; q < L; q++) { const x = Math.round(bx - 3 + Math.sin(ang) * q), y = by - 4 - Math.round(Math.cos(ang) * q), wide = q < L - 3 ? 2 : q < L - 1 ? 1 : 0;
+          for (let i = 0; i <= wide + (q < 5 ? 1 : 0); i++) scr.set(x + i, y, i >= wide && wide ? R.white[0] : white); if (q % 3 === 1 && wide) scr.set(x - 1, y, white); }
+        if (L > 2) { scr.set(bx - 4, by - 3, pale); scr.set(bx, by - 3, pale); }
+      } else {
+        // The back arches high, then the flukes lift, stand and slide under.
+        if (v < 1.1) roll(4 - Math.round(v * 5), -Math.round(2 * Math.sin(Math.PI * v / 1.1)));
+        const uf = v - 0.9; if (uf > 0 && uf < 1.75) sunk(scr, flukes[Math.round(3 * smooth(0.5, 1.5, uf))], bx - 6, by, Math.round(uf < 0.6 ? 25 * (1 - ease(uf / 0.6)) : uf < 0.95 ? 0 : 25 * ease((uf - 0.95) / 0.8)), t);
+        if (uf >= 1.75 && uf < 2.4) foam(-12, 4);
+      } };
     for (const [b, at] of [[0, 17], [1, 31]]) {
-      const v = u - at; if (v <= 0 || v >= 3) { if (v >= 3) a.blows[b] = null; continue; }
-      const P = a.blows[b] || (a.blows[b] = pickOpen(n * 3 + b + 1, ox, oy, scr.VW, scr.VH));
-      const bx = P[0] - ox + 6 - Math.round(v * 4), by = P[1] - oy, up = Math.round(v < 0.6 ? 5 * (1 - ease(v / 0.6)) : v > 2.2 ? 5 * ease((v - 2.2) / 0.8) : 0);
-      for (let j = 0; j < back.h - up; j++) for (let i = 0; i < back.w; i++) { const c = back.d[j * back.w + i]; if (c) scr.set(bx - back.ox + i, by - back.oy + up + j, c); }
-      for (let i = -9; i <= 9; i += 2) scr.set(bx + i, by + 1, white);
-      if (v > 0.5 && v < 1.6) { const hgt = Math.round(9 * Math.min(1, (v - 0.5) / 0.3)), fade = v > 1.2; for (let j = 0; j < hgt; j++) { if (fade && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 4 ? Math.round((j - hgt + 4) * 0.8) : 0; scr.set(bx + 5 - sp, by - 5 - j, white); scr.set(bx + 5 + sp, by - 5 - j, white); } }
+      const kind = b ? ['slap', 'pec', 'fluke'][Math.floor(hash(n, 7, 63) * 3)] : 'blow', v = u - at; if (v <= 0 || v >= WHALE_DOES[kind]) { if (v > 0) a.blows[b] = null; continue; }
+      const P = a.blows[b] || (a.blows[b] = pickOpen(n * 3 + b + 1, ox, oy, scr.VW, scr.VH)); minor(kind, v, P[0], P[1], n * 10 + b * 4);
     }
+    // One asked for by a click, where the whale was last seen.
+    if (a.ask && t - a.ask[1] < WHALE_DOES[a.ask[0]]) minor(a.ask[0], t - a.ask[1], a.x - 10, a.y, 1e6 + a.ask[1]);
   }
 
   // Where water lies on in films on the bared flat, shining, 0 to 8 (most where the flat lies lowest).
@@ -622,7 +803,9 @@ export function makeCritters(W, opts = {}) {
     if (K.mask) scr.set(x + face, y - 1, K.mask); else scr.set(x + 2 * face, y - 1, R.yellow[1]);
     // The tail: an eagle's is a white fan, widest in the middle.
     K.tail.forEach((c, j) => { const w = K.tail.length > 2 && j === 1 ? 2 : 1; for (let i = -w; i <= w; i++) scr.set(x + i, y + K.back + j, c); });
-    if (carry) { const yf = y + K.back + K.tail.length - 1; scr.set(x - 1, yf, R.yellow[1]); scr.set(x + 1, yf, R.yellow[1]); if (carry === 'fish') fishAt(scr, x, yf + 1, face); }
+    if (carry) { const yf = y + K.back + K.tail.length - 1; scr.set(x - 1, yf, R.yellow[1]); scr.set(x + 1, yf, R.yellow[1]); if (carry === 'fish') fishAt(scr, x, yf + 1, face);
+      // A stick for the nest, held across under it, longer than the bird is wide in the body (round 8, D2).
+      if (carry === 'stick') for (let i = -5; i <= 5; i++) scr.set(x + i, yf + 1, i === 5 * face ? R.wood[2] : R.bark[1]); }
   }
   // Its shadow on the ground or the water under it, smaller the higher it flies.
   const shade = (scr, x, y, h) => { const { VW, VH, fb } = scr, w = h > 26 ? 2 : h > 10 ? 3 : 4; for (let dy = 0; dy < 2; dy++) for (let dx = -w + dy; dx <= w - dy; dx++) { const sx = x + dx, sy = y + dy; if (sx >= 0 && sy >= 0 && sx < VW && sy < VH) fb[sy * VW + sx] = SHADE[fb[sy * VW + sx]]; } };
@@ -645,14 +828,24 @@ export function makeCritters(W, opts = {}) {
   }
   // The eagle on its perch, facing right: white head and tail, dark brown body, yellow beak and feet. Standing
   // up, and bowed over a fish it holds down on the rock.
-  const perched = (rows, fish) => { const b = new BM(12, rows.length + 2); b.ox = 4; b.oy = rows.length;
+  const perched = (rows, fish, dx = 0) => { const b = new BM(12 + 2 * dx, rows.length + 2); b.ox = 4 + dx; b.oy = rows.length;
     const C = { w: R.white[1], g: R.white[0], y: R.yellow[1], k: R.fur[0], K: R.bark[0], b: R.bark[1], e: INK, s: R.shoe[1], S: R.shoe[2], t: R.shoe[0] };
     rows.forEach((r, j) => { for (let i = 0; i < r.length; i++) if (C[r[i]]) b.set(i + 1, j + 1, C[r[i]]); });
-    if (fish) { const j = rows.length; 'tsssS'.split('').forEach((ch, i) => b.set(6 + i, j, C[ch])); }
+    if (fish) { const j = rows.length; 'tsssS'.split('').forEach((ch, i) => b.set(6 + dx + i, j, C[ch])); }
     outline(b, INK); return b; };
   const SIT = ['..www...', '.wwwwy..', '.gwewyy.', '..gww...', '.kKKKk..', 'kKKbKKk.', 'kKKKbKk.', 'kKKKKKk.', '.kKKKk..', '.wwKk...', '.gw.yy..'];
   const BOW = ['........', '........', '........', '........', '.kKKk...', 'kKKKKww.', 'kKKbKwwy', 'kKKKKgey', '.kKKKk..', '.wwKk...', '.gw.yy..'];
-  const EAGLE_BM = { sit: perched(SIT), fed: perched(SIT, true), bow: perched(BOW, true), none: new BM(1, 1) };
+  // Round 8, D2, each after a picture: preening, its head down in its breast feathers (two drawings); calling,
+  // its head thrown back and its bill open to the sky; mantling, its wings spread and drooped over what it holds.
+  const PREEN = ['........', '........', '..www...', '.wwwww..', '.kKwey..', 'kKKbyKk.', 'kKKKbKk.', 'kKKKKKk.', '.kKKKk..', '.wwKk...', '.gw.yy..'];
+  const PREEN2 = ['........', '........', '........', '..www...', '.kwwww..', 'kKKwyKk.', 'kKKKyKk.', 'kKKKKKk.', '.kKKKk..', '.wwKk...', '.gw.yy..'];
+  const CALL = ['...y.y..', '..wwy...', '.wwew...', '.gwww...', '.kKKKk..', 'kKKbKKk.', 'kKKKbKk.', 'kKKKKKk.', '.kKKKk..', '.wwKk...', '.gw.yy..'];
+  const MANTLE = ['k...........k.', 'kK.........Kk.', '.kKk.....kKk..', '.kKKk...kKKk..', '..kKKkKkKKk...', '...kKKKKKww...', '...kKKbKwwwy..', '....kKKKgey...', '....kKKKk.....', '....wwKk......', '....gw.yy.....'];
+  const EAGLE_BM = { sit: perched(SIT), fed: perched(SIT, true), bow: perched(BOW, true), none: new BM(1, 1), preen: [perched(PREEN), perched(PREEN2)], call: perched(CALL), mantle: [perched(MANTLE, false, 3), perched(MANTLE, true, 3)] };
+  // Its five things: it soars and stoops in each flight, as before; on its perch it preens and calls now and
+  // then, and when it comes back with a fish it mantles over it before it eats. A click steps it through
+  // preening, calling, mantling and flying. How many seconds each of the three on the perch lasts:
+  const EAGLE_DOES = { preen: 3.6, call: 1.5, mantle: 2.4 }, EAGLE_TURN = ['preen', 'call', 'mantle', 'fly'];
   // No bird flies where a stack's drawing would hide the water it strikes.
   const hiddenBy = (x, y) => stacks.some(s => Math.abs(x - s.x) < s.half + 6 && y < s.y + 4 && y > s.y - s.tall - 6);
   // The eagle's perches: the top of each stack's drawing (its highest row, at that row's middle), the tallest
@@ -696,7 +889,13 @@ export function makeCritters(W, opts = {}) {
     a.x = E.p.x; a.y = E.p.s.y + 1; a.hop = a.lift = E.p.s.y + 1 - E.p.y;
     if (c && s >= 0 && fed < 0) { a.bm = EAGLE_BM.none; return; }
     a.flip = fed >= 0 && fed < 10 ? hash(n, 6, 581) < 0.5 : hash(Math.floor(t / 4.3), 2, 582) < 0.5;
-    a.bm = fed >= 0 && fed < 10 ? (fed > 1 && frac(fed / 1.6) < 0.45 ? EAGLE_BM.bow : EAGLE_BM.fed) : EAGLE_BM.sit;
+    a.bm = fed >= 0 && fed < 10 ? (fed < 1.8 ? EAGLE_BM.mantle[1] : frac(fed / 1.6) < 0.45 ? EAGLE_BM.bow : EAGLE_BM.fed) : EAGLE_BM.sit;
+    if (fed >= 0 && fed < 10) return;
+    // Idle on the perch: asked by a click, or on its own for a few seconds in every 17.
+    const k = Math.floor(t / 17), own = hash(k, 3, 583) < 0.55 ? (hash(k, 4, 583) < 0.7 ? 'preen' : 'call') : null, A = a.ask && t - a.ask[1] < EAGLE_DOES[a.ask[0]] ? a.ask : own && t - k * 17 < EAGLE_DOES[own] ? [own, k * 17] : null;
+    if (!A) return; const v = t - A[1];
+    if (A[0] === 'call' && a.cried !== A[1]) { a.cried = A[1]; a.say = 'cry'; }
+    a.bm = A[0] === 'preen' ? EAGLE_BM.preen[Math.floor(v * 3) & 1] : A[0] === 'call' ? EAGLE_BM.call : EAGLE_BM.mantle[0];
   }
   function eagleFlies(scr, ox, oy, t) {
     seen.eagle = null;
@@ -721,15 +920,31 @@ export function makeCritters(W, opts = {}) {
     // Twice round, then on round to the point of the circle nearest its dive.
     let last = 16; for (let j = 17; j < 24; j++) if (Math.hypot(pt(j)[0] - dive[0], pt(j)[1] - dive[1]) < Math.hypot(pt(last)[0] - dive[0], pt(last)[1] - dive[1])) last = j;
     const way = [[...far, 64, 58], [...mid, 40, 52]]; for (let j = 0; j <= last; j++) way.push([...pt(j), HI, 30]); way.push([dive[0], dive[1], HV, 20]);
-    return { dive, dives: [W.spots.osprey.dive, ...(W.spots.osprey.dives || [])], lake: L.lake, home, inn: course(way), out: course([[dive[0], dive[1], 9, 30], [...mid, 36, 44], [...far, 64, 58]]), sc: (x, y) => smooth(FAR - 10, 130, Math.hypot(x - cx, (y - cy) / 0.6)) }; };
+    // Round 8, D2: the way home from the hover without a dive (a visit with a stick), and the nearest tall
+    // tree's top within reach of the dive, where it sometimes takes its fish to eat.
+    const T = TRUNKS.filter(q => q.h >= 24).map(q => [q, Math.hypot(q.x - dive[0], (q.y - dive[1]) / 0.6)]).filter(q => q[1] > 30 && q[1] < 150).sort((a, b) => a[1] - b[1])[0];
+    const P = T && { x: T[0].x, y: T[0].y, tall: T[0].h - 1 }, top = P && [P.x, P.y, P.tall + 2];
+    return { dive, dives: [W.spots.osprey.dive, ...(W.spots.osprey.dives || [])], lake: L.lake, home, inn: course(way), out: course([[dive[0], dive[1], 9, 30], [...mid, 36, 44], [...far, 64, 58]]),
+      over: course([[dive[0], dive[1], HV, 30], [...mid, 36, 44], [...far, 64, 58]]), perch: P, toPerch: P && course([[dive[0], dive[1], 9, 26], [(dive[0] + P.x) / 2, (dive[1] + P.y) / 2, P.tall + 10, 30], [...top, 22]]), fromPerch: P && course([[...top, 24], [...mid, 40, 44], [...far, 64, 58]]), sc: (x, y) => smooth(FAR - 10, 130, Math.hypot(x - cx, (y - cy) / 0.6)) }; };
   // Where on the lake it fishes this visit (D1); the spawn menu can send it to another of its places.
   let OSPREY = ospreyAt(spots.osprey && spots.osprey.dive);
+  // The osprey perched, facing right: white head with a dark stripe through the eye, brown back, white breast.
+  const OSP_BM = [perched(['..www...', '.wwkey..', '..wwk...', '.KKwww..', 'KKbwww..', 'KKKwww..', 'KKKKww..', '.KKKw...', '.KKk....', '.Kk.yy..'], true), perched(['........', '........', '........', '.KKK....', 'KKbKww..', 'KKKKwkw.', 'KKKKwwey', '.KKKww..', '.KKk....', '.Kk.yy..'], true)];
+  // Its five things (round 8, D2): it hovers, dives and rises with a fish, and shakes the water off, as
+  // before. Now one visit in three it takes the fish to a treetop by the lake and eats it there, and one in
+  // three it crosses the lake with a stick for its nest and does not fish. A click brings the next kind of
+  // visit at once (ospWant: the slot it was asked for, and the kind).
+  const OSP_KINDS = ['fish', 'eat', 'stick'], OSP_EATS = 9; let ospWant = [-1, 'fish'], ospTurn = -1;
+  const ospKind = n => ospWant[0] === n ? ospWant[1] : OSP_KINDS[Math.floor(hash(n, 9, OSP.seed) * 3)];
+  const ospNow = (kind, t) => { ospWant = [Math.floor((t + ospAhead) / OSP.slot) + 1, kind]; ospAhead += startNow(OSP, t + ospAhead); };
   function ospreyFlies(scr, ox, oy, t) {
     seen.osprey = null;
-    const O = OSPREY; if (!O) return; const [, s] = slotOf(OSP, t, ospAhead); if (s < 0) return;
-    const K = BIRD.osprey, dx = Math.round(O.dive[0]) - ox, dy = Math.round(O.dive[1]) - oy, a = s - O.inn.len;
+    const O = OSPREY; if (!O) return; const [n, s] = slotOf(OSP, t, ospAhead); if (s < 0) return;
+    const K = BIRD.osprey, dx = Math.round(O.dive[0]) - ox, dy = Math.round(O.dive[1]) - oy, a = s - O.inn.len, kind = ospKind(n) === 'eat' && !O.perch ? 'fish' : ospKind(n), stick = kind === 'stick' ? 'stick' : null;
     // In from the forest and round over the lake, mostly on set wings.
-    if (a < 0) { const [x, y] = O.inn.at(s); aloft(scr, ox, oy, O.inn, s, K, frac(s / 2.3) < 0.3 ? 4 * Math.sin(s * TAU * 3.4) : 0, O.sc(x, y), null); return; }
+    if (a < 0) { const [x, y] = O.inn.at(s); aloft(scr, ox, oy, O.inn, s, K, frac(s / 2.3) < 0.3 ? 4 * Math.sin(s * TAU * 3.4) : 0, O.sc(x, y), stick); return; }
+    // With a stick it does not stop: on over the water and away to the trees.
+    if (stick) { if (a < O.over.len) { const [x, y] = O.over.at(a); aloft(scr, ox, oy, O.over, a, K, frac(a / 2.1) < 0.6 ? 4 * Math.sin(a * TAU * 3.6) : 0, O.sc(x, y), stick); } return; }
     // The hover: fast wingbeats, hanging over one spot.
     if (a < OSP.hover) { shade(scr, dx, dy, OSP.hang); raptor(scr, dx + Math.round(Math.sin(t * 3)), dy - OSP.hang - Math.round(Math.sin(t * 5.3)), K, [5, 0.5, -4][Math.floor(t * 20) % 3], 1, 0, 1, a > OSP.hover - 0.5 ? 'feet' : null); return; }
     // It folds its wings and drops feet first, faster and faster.
@@ -740,7 +955,14 @@ export function makeCritters(W, opts = {}) {
     const r = w - OSP.under; if (r < OSP.rise) { const h = 1 + 8 * smooth(0, OSP.rise, r), shake = r > 0.9 && r < 1.4 ? (Math.floor(t * 14) & 1 ? 1 : -1) : 0;
       for (let k = 0; k < 5; k++) { const age = frac(t * 2.2 + k / 5); if (hash(k, Math.floor(t * 2.2 + k / 5), 592) < 0.75 - r / OSP.rise * 0.5) scr.set(dx + Math.round((hash(k, 3, 592) - 0.5) * 12), dy - Math.round(h) + 4 + Math.round(age * (h + 2)), R.white[1]); }
       shade(scr, dx, dy, h); raptor(scr, dx + shake, dy - Math.round(h), K, 4.5 * Math.sin(r * TAU * 4.5), 1, 0, 1, 'fish'); return; }
-    const q = r - OSP.rise; if (q < O.out.len) { const [x, y] = O.out.at(q); aloft(scr, ox, oy, O.out, q, K, frac(q / 2.1) < 0.6 ? 4 * Math.sin(q * TAU * 3.6) : 0, O.sc(x, y), 'fish'); }
+    const q = r - OSP.rise;
+    // To the treetop with its fish, a while bent over it there, and home.
+    if (kind === 'eat') { const e = q - O.toPerch.len, P = O.perch;
+      if (e < 0) aloft(scr, ox, oy, O.toPerch, q, K, 4 * Math.sin(q * TAU * 3.6), 1, 'fish');
+      else if (e < OSP_EATS) { const X = Math.round(P.x) - ox, Y = Math.round(P.y - P.tall) - oy; seen.osprey = [X, Y - 5]; scr.put(OSP_BM[e > 1 && frac(e / 1.7) < 0.5 ? 1 : 0], X, Y, hash(n, 6, OSP.seed) < 0.5); }
+      else if (e - OSP_EATS < O.fromPerch.len) { const w = e - OSP_EATS, [x, y] = O.fromPerch.at(w); aloft(scr, ox, oy, O.fromPerch, w, K, frac(w / 2.1) < 0.6 ? 4 * Math.sin(w * TAU * 3.6) : 0, O.sc(x, y), null); }
+      return; }
+    if (q < O.out.len) { const [x, y] = O.out.at(q); aloft(scr, ox, oy, O.out, q, K, frac(q / 2.1) < 0.6 ? 4 * Math.sin(q * TAU * 3.6) : 0, O.sc(x, y), 'fish'); }
   }
   // Each orca's lane, row by row down the sea: the spot nearest the shore that is as far out as its own line
   // (c from the high-water line, and as much farther as the tide has dropped) and clear of the stacks.
@@ -762,20 +984,53 @@ export function makeCritters(W, opts = {}) {
   function orcas(scr, ox, oy, t) {
     seen.orca.length = 0;
     const T = t + orcaAhead - ORCA.first, n = Math.floor(T / ORCA.slot), s = T - n * ORCA.slot; if (T < 0 || s > ORCA.dur) return;
-    const spy = Math.floor(hash(n, 1, 6301) * POD.length), spyAt = 30 + 30 * hash(n, 2, 6301), sv = s - spyAt;
     // As the tide goes out the pod keeps the same depth under it, so its lanes move out with the water (T15).
     POD.forEach((o, i) => {
       const at = orcaAt(i, s, t); if (!at) return;
       const x = Math.round(at[0]) - ox, y = Math.round(at[1]) - oy; if (x < -20 || x > scr.VW + 20 || y < -20 || y > scr.VH + 6) return;
       // A clicked orca spyhops at once (note 10): it is in sight, so it can be clicked, only while it is up.
-      const asked = orcaSpy[i] != null && t - orcaSpy[i] < 3.2;
-      if (asked || (i === spy && sv > 0 && sv < 3.2)) { seen.orca[i] = [x, y]; return spyhop(scr, x, y, asked ? (t - orcaSpy[i]) / 3.2 : sv / 3.2, t); }
-      const ph = frac(s / 4.2 + i * 0.31), q = ph / 0.55; if (q >= 1) return; const h = Math.sin(Math.PI * q);
+      // What it is at besides travelling (round 8, D2): asked by a click, or in the pass's own order. Once a
+      // pass one of them spyhops, one breaches and one slaps its tail, and for a few seconds the whole pod porpoises.
+      const A = orcaAsk[i] && t - orcaAsk[i][1] < ORCA_DOES[orcaAsk[i][0]] ? orcaAsk[i] : null, own = k => { const who = Math.floor(hash(n, k, 6301) * POD.length), v = s - (22 + 60 * hash(n, k + 1, 6301)); return i === who && v > 0 ? v : -1; };
+      let kind = A ? A[0] : null, v = A ? t - A[1] : 0;
+      if (!A) for (const [k, name] of [[1, 'spyhop'], [11, 'breach'], [21, 'slap']]) { const w = own(k); if (w >= 0 && w < ORCA_DOES[name]) { kind = name; v = w; } }
+      if (!kind && s > 48 && s < 55) { kind = 'porpoise'; v = s - 48; }
+      if (kind && kind !== 'blow') { seen.orca[i] = [x, y];
+        if (kind === 'spyhop') return spyhop(scr, x, y, v / ORCA_DOES.spyhop, t);
+        if (kind === 'breach') return leap(scr, x, y, v / ORCA_DOES.breach, 11, 22, o.bull, t);
+        if (kind === 'slap') return tailSlap(scr, x, y, v, t, i);
+        return leap(scr, x, y, frac(v / 1.1 + i * 0.37), 5, 16, o.bull, t); }
+      const ph = kind ? v / ORCA_DOES.blow * 0.55 : frac(s / 4.2 + i * 0.31), q = ph / 0.55; if (q >= 1) return; const h = Math.sin(Math.PI * q);
       if (h > 0.3) seen.orca[i] = [x, y];
       orcaBack(scr, x, y, h, o.bull, t, i);
       // A blow as it comes up, now and then.
-      if (q < 0.45 && hash(Math.floor(s / 4.2), i, 6302) < 0.35) { const k = q / 0.45, hgt = Math.round(3 + 4 * k); for (let j = 0; j < hgt; j++) { if (k > 0.6 && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 3 ? 1 : 0; scr.set(x + 3 - sp, y - 3 - j, R.white[1]); if (sp) scr.set(x + 3 + sp, y - 3 - j, R.white[1]); } }
+      if (q < 0.45 && (kind || hash(Math.floor(s / 4.2), i, 6302) < 0.35)) { const k = q / 0.45, hgt = Math.round(3 + 4 * k); for (let j = 0; j < hgt; j++) { if (k > 0.6 && (j + Math.floor(t * 8)) % 2) continue; const sp = j > hgt - 3 ? 1 : 0; scr.set(x + 3 - sp, y - 3 - j, R.white[1]); if (sp) scr.set(x + 3 + sp, y - 3 - j, R.white[1]); } }
     });
+  }
+  // Clear of the water (round 8, D2, after pictures of orcas breaching and porpoising): the whale comes out,
+  // goes over in an arc and back in head first, drawn along the arc it travels. u: 0 as the head leaves the
+  // water to 1 as the tail goes under. H: how high the arc stands. D: how far it reaches. Black above, the
+  // white of the belly and chin on the inside of the arc, the white eye patch behind the head, the fin on its back.
+  function leap(scr, x, y, u, H, D, bull, t) {
+    const N = R.navy, LEN = 0.5, head = u * (1 + LEN), w0 = Math.max(0, head - LEN), w1 = Math.min(1, head), at = w => [x - D / 2 + D * w, y - 4 * H * w * (1 - w)];
+    const beat = Math.floor(t * 8), burst = (cx, age) => { if (age < 0 || age > 0.5) return; for (let k = 0; k < 9; k++) { const a = age / 0.5, px = Math.round(cx + (hash(k, 1, 6311) - 0.5) * 12 * (0.4 + a)), py = Math.round(y - (3 + 6 * hash(k, 2, 6311)) * Math.sin(Math.PI * a)); scr.set(px, py, R.white[1]); } for (let dx = -5; dx <= 5; dx++) if (hash(dx, beat, 6312) < 0.6) scr.set(Math.round(cx) + dx, y, R.white[1]); };
+    burst(x - D / 2, u * (1 + LEN) / 2.2); burst(x + D / 2, (head - 1) / 1.4);
+    if (w1 <= w0) return;
+    for (let k = 0; k <= 30; k++) { const w = w0 + (w1 - w0) * k / 30, [px, py] = at(w), f = (head - w) / LEN, sl = 4 * H * (1 - 2 * w) / D, nl = Math.hypot(1, sl), nx = -sl / nl, ny = -1 / nl;
+      if (py > y - 0.5) continue;
+      // f: 0 at the head to 1 at the tail. The body is thickest a third of the way back and tapers to the stock.
+      const r = f < 0.07 ? 1.2 : f > 0.85 ? 0.9 : f > 0.65 ? 1.5 : 2.3;
+      for (let b = -3; b <= 3; b++) for (let a = -3; a <= 3; a++) if (a * a + b * b <= r * r + 0.3) { const side = a * nx + b * ny; if (py + b < y) scr.set(Math.round(px + a), Math.round(py + b), side < -1 && f > 0.04 && f < 0.6 ? R.white[1] : side > 1.4 ? N[2] : N[0]); }
+      if (f > 0.1 && f < 0.18) scr.set(Math.round(px + nx * 1.2), Math.round(py + ny * 1.2), R.white[1]);
+      if (f > 0.4 && f < 0.5) for (let j = 3; j <= (bull ? 7 : 5); j++) if (py + ny * j < y) scr.set(Math.round(px + nx * j + (bull ? 0 : -0.3 * j)), Math.round(py + ny * j), j === 3 ? N[1] : INK); }
+  }
+  // A tail slap: the flukes come up on the stock, stand, and come down flat with a crack, three times over.
+  function tailSlap(scr, x, y, v, t, i) {
+    const N = R.navy, k = Math.floor(v / 1.1), w = v - k * 1.1, up = Math.round(w < 0.4 ? 6 * w / 0.4 : w < 0.62 ? 6 : w < 0.72 ? 6 * (0.72 - w) / 0.1 : 0), beat = Math.floor(t * 8);
+    for (let j = 1; j <= up; j++) { scr.set(x, y - j, N[0]); scr.set(x + 1, y - j, j > up - 2 ? N[2] : N[0]); }
+    if (up >= 3) for (let dx = -3; dx <= 4; dx++) { const lift = Math.abs(dx - 0.5) > 2 ? 1 : 0; scr.set(x + dx, y - up - lift, dx < 0 ? N[2] : N[0]); if (Math.abs(dx - 0.5) < 3) scr.set(x + dx, y - up + 1 - lift, Math.abs(dx - 0.5) > 1 ? R.white[0] : N[0]); }
+    if (w >= 0.72) { const a = (w - 0.72) / 0.38; for (let q = 0; q < 10; q++) scr.set(Math.round(x + (hash(q, k + i * 7, 6321) - 0.5) * 16 * (0.3 + a)), Math.round(y - (2 + 6 * hash(q, k, 6322)) * Math.sin(Math.PI * a)), R.white[1]); if (orcaSlapped[i] !== k + Math.floor(t - v)) { orcaSlapped[i] = k + Math.floor(t - v); sounds.push('plop'); } }
+    for (let dx = -6; dx <= 7; dx++) if (hash(dx, beat + i * 9, 6323) < (w >= 0.72 ? 0.8 : 0.4)) scr.set(x + dx, y, R.white[1]);
   }
   // The back above the water by h (0 to 1). A14, after a picture of four orcas surfacing: a glossy black arc
   // lit along its top on the sun's side (upper left) and dark on the other, the grey saddle just behind the
@@ -1026,7 +1281,9 @@ export function makeCritters(W, opts = {}) {
   // as the cats are. Each reaction is a state the animal already has, started now or sped up, with a
   // sound, and for the bull elk his breath as he bugles.
   // Where each animal of the sea and the air was drawn this frame, in view pixels, for a click to find it.
-  const seen = { orca: [], jelly: [], flock: [], whale: null, eagle: null, osprey: null }, orcaSpy = [], jellyKick = [];
+  const seen = { orca: [], jelly: [], flock: [], whale: null, eagle: null, osprey: null }, orcaAsk = [], orcaTurn = [], orcaSlapped = [], jellyKick = [];
+  // An orca's five things, in the order a click steps through them, and the seconds each lasts: it comes up and blows, spyhops, breaches, slaps its tail, porpoises.
+  const ORCA_DOES = { blow: 2.3, spyhop: 3.2, breach: 1.7, slap: 3.3, porpoise: 4.4 }, ORCA_TURN = Object.keys(ORCA_DOES);
   const nameOf = a => { const N = NAMES.map;
     if (a.critter === 'elk') return a.f === elkBull ? N.bull : N.elk;
     if (a.critter === 'goat') return a.mum ? N.kid : N.goat;
@@ -1037,6 +1294,8 @@ export function makeCritters(W, opts = {}) {
   // A walker heads off away from the click, on ground it may cross, to a spot in its own country.
   const flee = (a, px, py, d0, d1) => { for (let k = 0; k < 12; k++) { const an = Math.atan2(a.fy - py, a.fx - px) + (rand() - 0.5) * 1.6, rr = d0 + rand() * (d1 - d0), tx = a.fx + Math.cos(an) * rr, ty = a.fy + Math.sin(an) * rr * 0.6; if (a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return true; } } return false; };
   const lookUp = (a, t, s) => { a.st = 'look'; a.until = t + s; a.bm = a.f.look; };
+  // What each kind says when a click sets it to something that has no sound of its own: grown, and young.
+  const VOICE = { elk: ['bark'], goat: ['snort', 'bleat'], sheep: ['snort'], moose: ['snort', 'bleat'], bear: ['huff'] };
   // The bull's breath as he bugles: puffs that leave his mouth, rise and fade.
   function breath(scr, a, ox, oy, age) {
     const dir = a.faces * (a.flip ? -1 : 1), hx = a.x - ox + dir * Math.round(a.bm.w * 0.45), hy = a.y - oy - Math.round(a.bm.oy * 0.55);
@@ -1045,34 +1304,47 @@ export function makeCritters(W, opts = {}) {
   }
   function poke(id, px, py, t) {
     const [kind, n] = id.split(':');
-    if (kind === 'orca') { orcaSpy[+n] = t; return 'blow'; }
+    if (kind === 'orca') { const k = orcaTurn[+n] = ((orcaTurn[+n] == null ? 0 : orcaTurn[+n]) + 1) % 5; orcaAsk[+n] = [ORCA_TURN[k], t]; return k === 3 ? null : 'blow'; }
     if (kind === 'jelly') { jellyKick[+n] = t; return 'plop'; }
     if (kind === 'flock') { FLOCKS[+n].scare = t; return FLOCKS[+n].gull ? 'mew' : 'croak'; }
-    if (kind === 'air') return n === 'eagle' ? 'cry' : 'kew';
-    if (kind === 'whale') { const T = t + whaleAhead + T0, m = Math.floor(T / SLOT); whaleAhead = (m + 1) * SLOT + starts(m + 1) - t - T0; return 'blow'; }
+    // The osprey in the air: the next kind of visit comes at once. The eagle in the air only cries.
+    if (kind === 'air') { if (n === 'eagle') return 'cry'; ospTurn = (ospTurn + 1) % 3; const [n0, s0] = slotOf(OSP, t, ospAhead);
+      // On its way in, it only changes what it has come to do; later than that, the next visit begins.
+      if (OSPREY && s0 >= 0 && s0 < OSPREY.inn.len) ospWant = [n0, OSP_KINDS[ospTurn]]; else ospNow(OSP_KINDS[ospTurn], t); return 'kew'; }
+    // The whale steps through its five (round 8, D2): a breach is the next one brought forward to now, as before; the rest it does where it was last seen.
+    if (kind === 'whale') { const wh = items.find(a => a.critter === 'whale'); wh.turn = ((wh.turn == null ? -1 : wh.turn) + 1) % 5; const name = WHALE_TURN[wh.turn];
+      if (name === 'breach') { const T = t + whaleAhead + T0, m = Math.floor(T / SLOT); whaleAhead = (m + 1) * SLOT + starts(m + 1) - t - T0; wh.ask = null; } else wh.ask = [name, t];
+      return name === 'slap' ? null : 'blow'; }
     const a = items[+n]; if (!a) return null;
-    if (a.critter === 'eagle') { if (a.bm === EAGLE_BM.none) return null; eagAhead += startNow(EAG, t + eagAhead); return 'cry'; }
-    if (a.critter === 'squirrel') { a.until = 0; dart(a, 0, t, { x: px, y: py }); return 'chatter'; }
-    if (a.critter === 'marmot') { if (a.dive != null && t - a.dive < 4.6) return null; a.call = t; a.dive = t; return null; }   // its own whistle sounds as it sits up
-    if (a.cub) {
-      const T = a.st !== 'climb' && trunkFor(a, 44);
-      if (T) { a.trunk = T; a.tx = T.x; a.ty = T.y + 1; a.goal = 'trunk'; a.st = 'walk'; a.hop = a.lift = 0; }
-      else if (a.st !== 'climb') { a.st = 'roll'; a.t0 = t; a.until = t + 2.4; }
+    if (a.critter === 'eagle') { if (a.bm === EAGLE_BM.none) return null; a.turn = ((a.turn == null ? -1 : a.turn) + 1) % 4; const name = EAGLE_TURN[a.turn];
+      if (name === 'fly') { a.ask = null; eagAhead += startNow(EAG, t + eagAhead); return 'cry'; }
+      a.ask = [name, t]; a.cried = name === 'call' ? t : a.cried; return name === 'call' ? 'cry' : null; }
+    if (a.critter === 'squirrel') { for (let k = 1; k <= 5; k++) { const i = ((a.turn == null ? 4 : a.turn) + k) % 5; if (sqBegin(a, SQ_DOES[i], t, [px, py])) { a.turn = i; break; } } a.say = null; return 'chatter'; }
+    // A marmot steps through its five; its own whistle sounds as it sits up, so the click itself is silent.
+    if (a.critter === 'marmot') { for (let k = 1; k <= 5; k++) { const i = ((a.turn == null ? 0 : a.turn) + k) % 5; if (marBegin(a, MAR_DOES[i], t)) { a.turn = i; break; } } return null; }
+    // A cub steps through its five (round 8, D2): it sniffs about, rolls on its back, wrestles its twin, climbs
+    // the nearest trunk, and naps. One it cannot do here (no trunk, its twin busy or out of reach) is passed over.
+    if (a.cub) { if (a.st === 'climb') return 'bawl'; const B = a.sib;
+      for (let k = 1; k <= 5; k++) { const i = ((a.turn == null ? 4 : a.turn) + k) % 5, name = ['sniff', 'roll', 'play', 'climb', 'nap'][i]; let ok = true; a.hop = a.lift = 0; a.withHer = false;
+        if (name === 'sniff') { a.pose = 'sniff'; rest(a, t, 3); }
+        else if (name === 'roll') { a.st = 'roll'; a.t0 = t; a.until = t + 2.4; }
+        else if (name === 'play') { ok = B && B.st !== 'climb' && landWay(a.fx, a.fy, B.fx, B.fy); if (ok) { B.st = 'idle'; B.until = t + 4; a.tx = B.fx + (a.fx < B.fx ? -8 : 8); a.ty = B.fy; a.goal = 'twin'; a.st = 'walk'; } }
+        else if (name === 'climb') { const T = trunkFor(a, 44); ok = !!T; if (T) { a.trunk = T; a.tx = T.x; a.ty = T.y + 1; a.goal = 'trunk'; a.st = 'walk'; } }
+        else { a.st = 'nap'; a.until = t + 7 + rand() * 5; }
+        if (ok) { a.turn = i; break; } }
       return 'bawl'; }
-    if (a.critter === 'bear') {
-      // She huffs and stands looking, and her cubs make for the nearest trunks and climb, as black bear cubs do.
-      lookUp(a, t, 4);
-      for (const c of items.filter(c => c.mum === a && c.cub && c.st !== 'climb')) { const T = trunkFor(c, 44); if (T) { c.trunk = T; c.tx = T.x; c.ty = T.y + 1; c.goal = 'trunk'; c.st = 'walk'; c.hop = c.lift = 0; } }
-      return 'huff'; }
-    if (a.critter === 'elk' && a.f === elkBull) { for (const b of items) if (b.critter === 'elk') lookUp(b, t, 4); a.bugle = t; return 'bugle'; }
-    if (a.critter === 'elk') { a.fast = t + 3; a.bound = false; if (!flee(a, px, py, 14, 26)) lookUp(a, t, 3); return 'bark'; }
-    if (a.critter === 'goat' && a.mum) { a.spring = t; lookUp(a, t, 2); return 'bleat'; }
-    if (a.critter === 'goat' || a.critter === 'sheep') { a.fast = t + 2.5; a.bound = true; if (!flee(a, px, py, 16, 30)) { a.spring = t; lookUp(a, t, 2); } return 'snort'; }
-    if (a.critter === 'moose' && a.mum) { a.fast = t + 3; a.bound = false; a.tx = a.mum.fx + 10; a.ty = a.mum.fy + 3; if (a.ok(a.tx, a.ty) && way(pass, a.fx, a.fy, a.tx, a.ty)) a.st = 'walk'; else lookUp(a, t, 2); return 'bleat'; }
-    if (a.critter === 'moose') { a.shake = t; a.flip0 = a.flip; a.st = 'look'; a.until = t + 3; return 'snort'; }
+    // A walker with five things to do (round 8, D2) steps to the next after the last one it began (a.turn). One it cannot
+    // do here (no trunk within reach, no other of its kind) is passed over. When a sow stands up her cubs
+    // make for the nearest trunks and climb, as black bear cubs do.
+    if (a.does) { const n = a.does.length, i = a.turn == null ? Math.max(0, a.does.indexOf(a.st)) : a.turn;
+      for (let k = 1; k <= n; k++) { const name = a.does[(i + k) % n]; if (!begin(a, name, t, [px, py])) continue; a.say = null;
+        return (ACTS[name] && ACTS[name].sound) || VOICE[a.critter][a.mum ? 1 : 0]; }
+      return null; }
     return null;
   }
 
+  // Each starts on one of its five things, picked by the same dice as its home (so not at all with homes=0).
+  if (draw) for (const a of items) if (a.does) { begin(a, a.does[Math.floor(draw() * a.does.length)], 0); a.say = null; }
   return {
     items,
     // Sounds the animals made while they were drawn this frame; the map plays them and empties the list.
@@ -1092,8 +1364,20 @@ export function makeCritters(W, opts = {}) {
       if (a.walker || (a.critter === 'marmot' && !a.perch)) scr.shadow(a.x - ox, a.y - oy, a.critter === 'marmot' ? 5 : 7, 1);
       else if (a.cub && !a.lift) scr.shadow(a.x - ox, a.y - oy, 4, 1);
       // A marmot that has just sat up whistles, if it is being drawn (so only when it is on screen).
-      if (a.critter === 'marmot' && a.rose != null && a.sung !== a.rose && t - a.rose < 0.5) { a.sung = a.rose; sounds.push('whistle'); }
-      scr.put(a.bm, a.x - ox, a.y - oy - (a.hop || 0) - (a.perch || 0), a.flip);
+      if (a.critter === 'marmot' && a.st !== 'act' && a.rose != null && a.sung !== a.rose && t - a.rose < 0.5) { a.sung = a.rose; sounds.push('whistle'); }
+      scr.put(a.bm, a.x - ox + (a.push ? dirOf(a) * a.push : 0) + (a.ofx || 0), a.y - oy - (a.hop || 0) - (a.perch || 0) + (a.drop || 0), a.flip);
+      // What an act throws up (grass as a bull rakes it, earth as a sow digs): flecks before its head, low.
+      if (a.walker && a.st === 'act' && ACTS[a.act].bits) { const C = ACTS[a.act].bits, dir = dirOf(a), beat = Math.floor(t * 9);
+        for (let k = 0; k < 6; k++) if (hash(k, beat + a.hx, 6401) > 0.45) scr.set(a.x - ox + dir * (Math.round(a.bm.w * 0.36) + Math.floor(hash(k, beat, 6402) * 7) - 2), a.y - oy - Math.floor(hash(k, beat, 6403) * 7), C[k % C.length]); }
+      if (a.critter === 'marmot' && a.st === 'act' && marAt(a, t) >= 0 && marAt(a, t) < a.len) { const dir = a.flip ? -1 : 1, k = Math.floor(marAt(a, t) * MAR_ACT[a.act][0]) & 1, gy = a.y - oy - (a.perch || 0) + (a.drop || 0);
+        // The one it wrestles stands facing it, pushing as it gives; a digger throws earth up before its paws.
+        if (a.act === 'wrestle') scr.put(mar.wrestle[k ^ 1], a.x - ox + dir * 11, gy, !a.flip);
+        else for (let j = 0; j < 4; j++) if (hash(j, Math.floor(t * 9), 6411) > 0.4) scr.set(a.x - ox + dir * (7 + Math.floor(hash(j, Math.floor(t * 9), 6412) * 5)), gy - Math.floor(hash(j, Math.floor(t * 9), 6413) * 5), j & 1 ? R.dirt[1] : R.dirt[2]); }
+      if (a.dart && a.st === 'act' && a.act === 'bury') for (let j = 0; j < 3; j++) if (hash(j, Math.floor(t * 9), 6421) > 0.4) scr.set(a.x - ox + (a.flip ? -1 : 1) * (5 + Math.floor(hash(j, Math.floor(t * 9), 6422) * 3)), a.y - oy - 1 - Math.floor(hash(j, Math.floor(t * 9), 6423) * 3), R.dirt[1 + (j & 1)]);
+      // Water runs from the weed in the moose's mouth while his head is up.
+      if (a.st === 'act' && a.act === 'dip' && a.bm !== a.f.graze) { const dir = dirOf(a); for (let k = 0; k < 3; k++) { const u = frac(t * 1.7 + k / 3); scr.set(a.x - ox + dir * (17 + (k & 1)), a.y - oy - 16 + Math.round(u * u * 11), k === 1 ? R.water[5] : R.white[1]); } }
+      // What it said as it began, or as two heads met: heard only when it is drawn, so only on screen.
+      if (a.say) { sounds.push(a.say); a.say = null; }
       if (a.bugle != null && t - a.bugle < 2.4) breath(scr, a, ox, oy, t - a.bugle);
     },
     // What is under a point of the map (world pixels; ox, oy: the view's corner, for what was drawn on screen
@@ -1101,7 +1385,7 @@ export function makeCritters(W, opts = {}) {
     pick(wx, wy, ox, oy) {
       let top = null;
       for (let i = 0; i < items.length; i++) { const a = items[i]; if (a.critter === 'whale' || a.gone || !a.bm || !a.bm.w) continue;
-        const up = (a.hop || 0) + (a.perch || 0), y1 = a.y - up + 2, y0 = a.y - up - a.bm.oy - 2, half = Math.max(5, a.bm.w / 2);
+        const up = (a.hop || 0) + (a.perch || 0) - (a.drop || 0), y1 = a.y - up + 2, y0 = a.y - up - a.bm.oy - 2, half = Math.max(5, a.bm.w / 2);
         if (Math.abs(wx - a.x) <= half && wy >= y0 && wy <= y1 && (!top || a.y > top.a.y)) top = { a, i, y0 }; }
       if (top) return { label: nameOf(top.a), wx: top.a.x, wy: top.y0 - 1, act: 'animal:' + top.i };
       const sx = wx - ox, sy = wy - oy, near = (p, rx, up, dn) => p && Math.abs(sx - p[0]) <= rx && sy >= p[1] - up && sy <= p[1] + dn;
@@ -1145,7 +1429,7 @@ export function makeCritters(W, opts = {}) {
       // The eagle moves to that stack's top (every one of them, or "everywhere", is its own again); the osprey
       // is brought straight to its hover over the lake.
       if (kind === 'eagle') { if (!TOPS.length) return false; eagleAt = i === 'all' ? eagleHome : clamp(i, 0, TOPS.length - 1); eagleSits(nowT); return true; }
-      if (kind === 'osprey') { if (!OSPREY) return false; if (i !== 'all' && OSPREY.dives[i]) OSPREY = ospreyAt(OSPREY.dives[i]); ospAhead += startNow(OSP, nowT + ospAhead) + OSPREY.inn.len; return true; }
+      if (kind === 'osprey') { if (!OSPREY) return false; if (i !== 'all' && OSPREY.dives[i]) OSPREY = ospreyAt(OSPREY.dives[i]); ospNow('fish', nowT); ospAhead += OSPREY.inn.len; return true; }
       // The bears' first home is the clearing's family's own, and that family goes back to it. The others are
       // the forest's edges the visiting family may take (D1): it is added if it is not about this visit, and
       // put there. A marmot takes the home's boulder, or the ground if it has none; a band of sheep moves as
@@ -1264,7 +1548,7 @@ export function makeCritters(W, opts = {}) {
           if (name === 'cubplay') { const [a, b] = cubs; if (!a || !b || a.st === 'climb' || b.st === 'climb') continue; a.tx = b.fx + (a.fx < b.fx ? -8 : 8); a.ty = b.fy; a.goal = 'twin'; a.st = 'walk'; a.hop = a.lift = 0; rest(b, t, 6); did = true; }
           else for (const a of cubs) { const T = a.st !== 'climb' && trunkFor(a, 44); if (!T) continue; if (a.st === 'play' && a.sib.st === 'play') rest(a.sib, t, 1); a.trunk = T; a.tx = T.x; a.ty = T.y + 1; a.goal = 'trunk'; a.st = 'walk'; a.hop = a.lift = 0; did = true; break; } }
         return did; }
-      if (name === 'osprey') { ospAhead += startNow(OSP, t + ospAhead); return true; }
+      if (name === 'osprey') { ospNow('fish', t); return true; }
       if (name === 'orcas') { orcaAhead = (((ORCA.first - t) % ORCA.slot) + ORCA.slot) % ORCA.slot; return true; }
       if (name === 'tide') { tideAhead = (((8 - t) % TIDE) + TIDE) % TIDE; return true; }
       if (name === 'ferry') { ferryAhead = (((-(t + 0.12 * CROSS)) % ROUND) + ROUND) % ROUND; return true; }

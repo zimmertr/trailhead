@@ -237,6 +237,8 @@ export function makeAudio() {
     bleat: t => { for (let i = 0; i < 5; i++) tone(fx, 'square', i & 1 ? 560 : 620, t + i * 0.05, 0.05, 0.08); },
     // A snort: a short blast of breath through the nose.
     snort: t => { noise(fx, t, 0.16, 0.22, 700, 0.9, 'lowpass'); noise(fx, t + 0.05, 0.08, 0.1, 1800, 1.5, 'bandpass'); },
+    // Two heads meeting, horn on horn (round 8, D2): a sharp crack over a low knock.
+    clash: t => { noise(fx, t, 0.05, 0.3, 2400, 1.2, 'bandpass'); tone(fx, 'triangle', 300, t, 0.12, 0.2, 140); },
     // A black bear's huff: two quick, deep blows.
     huff: t => { noise(fx, t, 0.12, 0.3, 380, 0.8, 'lowpass'); noise(fx, t + 0.2, 0.14, 0.26, 340, 0.8, 'lowpass'); },
     // A cub's bawl: a short falling cry.

@@ -520,24 +520,46 @@ function makeJournal() {
 // outlined in one pass.
 // An elk for the map, facing left: a buff body, a dark neck, head and legs, a pale rump, and on a bull
 // a rack swept back over the shoulders. step 1 and 2 are the two walking frames.
-function makeElk(headDown, step = 0, bull = true) {
+// pose (round 8, D2, each after a picture): 'bugle', the neck stretched up and forward, the nose to the sky
+// and the rack laid back along the shoulders; 'bed', lying on folded legs with the head up (step 1: the
+// head a pixel lower, chewing); 'thrash', the head at the ground and the rack raking it (step 0 and 1).
+function makeElk(headDown, step = 0, bull = true, pose = null) {
   const b = new BM(30, 30); b.ox = 15; b.oy = 29;
   const oval = (cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
   const buff = (nx, ny, x, y) => pick('dirt', 0.66 - ny * 0.3 + nx * 0.05, x, y, 0.5), dark = (nx, ny, x, y) => pick('bark', 0.5 - ny * 0.35, x, y, 0.5);
-  // Long thin legs; the near and far ones swing opposite ways when it walks.
-  for (const [lx, far] of [[9, 1], [12, 0], [19, 1], [22, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0, c = R.bark[far ? 0 : 1]; for (let y = 19; y < 29; y++) b.set(lx + (y > 23 ? sw : 0), y, c); if (!far) for (let y = 19; y < 24; y++) b.set(lx - 1, y, c); }
-  oval(15.5, 17.5, 8, 4, buff); oval(13, 20, 4, 2, buff);
-  oval(22.4, 16.5, 2.2, 2.8, nx => nx > -0.1 ? R.white[0] : 0);
-  const hx = headDown ? 5 : 4, hy = headDown ? 25 : 9;
-  if (headDown) thick(b, 10, 18, 7, 23, 3, R.bark[1]); else thick(b, 10, 16, 6, 10, 3, R.bark[1]);
-  oval(10.5, 18.5, 2.4, 3.4, dark);
-  oval(hx, hy, 2.8, 1.8, dark); b.set(hx - 3, hy + 1, R.bark[0]); b.set(hx, hy - 1, INK);
-  if (!bull) { b.set(hx + 3, hy - 2, R.bark[2]); b.set(hx + 4, hy - 3, R.bark[2]); }
+  const bed = pose === 'bed', thrash = pose === 'thrash', D = bed ? 5 : 0;
+  if (bed) {
+    // Folded under it: the forelegs tucked in front of the chest, a hock and a hoof showing at the back.
+    for (let x = 7; x <= 12; x++) b.set(x, 28, R.bark[x < 9 ? 0 : 1]); for (let x = 8; x <= 11; x++) b.set(x, 27, R.bark[1]);
+    for (let x = 18; x <= 23; x++) b.set(x, 28, R.bark[x > 21 ? 0 : 1]);
+    oval(15.5, 23, 8.5, 4.2, buff); oval(20, 24.6, 4, 2.6, buff);
+  } else {
+    // Long thin legs; the near and far ones swing opposite ways when it walks.
+    const walk = thrash ? 0 : step;
+    for (const [lx, far] of [[9, 1], [12, 0], [19, 1], [22, 0]]) { const sw = walk ? (far ? 1 : -1) * (walk === 1 ? 1 : -1) : thrash && lx === 12 ? (step ? -2 : -1) : 0, c = R.bark[far ? 0 : 1]; for (let y = 19; y < 29; y++) b.set(lx + (y > 23 ? sw : 0), y, c); if (!far) for (let y = 19; y < 24; y++) b.set(lx - 1, y, c); }
+    oval(15.5, 17.5, 8, 4, buff); oval(13, 20, 4, 2, buff);
+  }
+  oval(22.4 + (bed ? 0.8 : 0), 16.5 + D, 2.2, 2.8, nx => nx > -0.1 ? R.white[0] : 0);
+  let hx = headDown ? 5 : 4, hy = headDown ? 25 : 9;
+  if (pose === 'bugle') { hx = 5; hy = 9; thick(b, 10, 16, 8, 11, 3, R.bark[1]); }
+  else if (bed) { hx = 4; hy = 14 + (step ? 1 : 0); thick(b, 10, 21, 6, hy + 1, 3, R.bark[1]); }
+  else if (thrash) { hx = step ? 4 : 5; hy = step ? 26 : 25; thick(b, 10, 18, hx + 2, hy - 2, 3, R.bark[1]); }
+  else if (headDown) thick(b, 10, 18, 7, 23, 3, R.bark[1]); else thick(b, 10, 16, 6, 10, 3, R.bark[1]);
+  oval(10.5, 18.5 + D, 2.4, 3.4, dark);
+  if (pose === 'bugle') {
+    // The head tipped right back: the muzzle points up and forward, the mouth open.
+    thick(b, hx + 2, hy, hx - 1, hy - 2, 2.4, R.bark[1]); thick(b, hx - 1, hy - 2, hx - 3, hy - 4, 1.4, R.bark[1]); b.set(hx - 4, hy - 5, R.bark[0]); b.set(hx - 2, hy - 1, R.bark[0]); b.set(hx - 3, hy - 1, 0); b.set(hx + 1, hy - 2, INK);
+  } else {
+    oval(hx, hy, 2.8, 1.8, dark); b.set(hx - 3, hy + 1, R.bark[0]); b.set(hx, hy - 1, INK);
+    if (!bull) { b.set(hx + 3, hy - 2, R.bark[2]); b.set(hx + 4, hy - 3, R.bark[2]); }
+  }
   litBack(b);
   outline(b, INK);
   // The rack goes on after the outline, so it stays thin: the far antler a shade darker, then the near one.
   if (bull) {
-    const rack = headDown ? [[2, -2], [3, -3], [3, -4], [4, -5], [4, -6], [5, -7], [5, -8], [2, -5], [1, -6], [3, -7], [2, -8], [4, -9]] : [[2, -2], [3, -3], [3, -4], [4, -5], [5, -5], [6, -6], [7, -6], [8, -7], [3, -6], [3, -7], [5, -7], [5, -8], [9, -8], [7, -8]];
+    const rack = pose === 'bugle' ? [[3, -2], [4, -2], [5, -2], [6, -1], [7, -1], [8, 0], [9, 0], [10, 1], [5, -3], [5, -4], [7, -2], [7, -3], [9, -1], [9, -2], [11, 1], [11, 0]]
+      : thrash ? (step ? [[0, -1], [-1, -2], [-2, -2], [-3, -3], [-4, -3], [-5, -4], [-1, -3], [-1, -4], [-3, -4], [-3, -5], [1, -3], [-5, -5]] : [[-1, -2], [-1, -3], [-2, -4], [-2, -5], [-3, -6], [-3, -7], [0, -4], [1, -5], [-4, -5], [-5, -6], [-1, -6], [-4, -8]])
+      : headDown ? [[2, -2], [3, -3], [3, -4], [4, -5], [4, -6], [5, -7], [5, -8], [2, -5], [1, -6], [3, -7], [2, -8], [4, -9]] : [[2, -2], [3, -3], [3, -4], [4, -5], [5, -5], [6, -6], [7, -6], [8, -7], [3, -6], [3, -7], [5, -7], [5, -8], [9, -8], [7, -8]];
     for (const [dx, c] of [[2, R.dirt[3]], [0, R.white[0]]]) for (const [x, y] of rack) b.set(hx + x + dx, hy + y, c);
   }
   return b;
@@ -545,32 +567,44 @@ function makeElk(headDown, step = 0, bull = true) {
 // A moose, facing left like the elk and a head taller: a dark body on long pale legs, a hump over the shoulders,
 // a long head with a drooping nose and a bell under the throat. The bull carries broad palmate antlers (T35, TJ: "so
 // that one can have antlers"). The calf is small, red-brown and all legs.
-function makeMoose(calf, headDown, step = 0) {
+// pose (round 8, D2, each after a picture): 'bed', lying on folded legs with the head up (step 1: the head a
+// pixel lower); 'shake', the head swung one way (step 1) and the other (step 2), the palms tipping and the
+// bell swinging with it (TJ's note 11: the old shake flipped the whole animal from side to side);
+// 'weeds', the head lifted from the water with a mouthful of green weed hanging from it.
+function makeMoose(calf, headDown, step = 0, pose = null) {
   const b = calf ? new BM(26, 24) : new BM(40, 38); b.ox = calf ? 13 : 20; b.oy = b.h - 1;
   const oval = (cx, cy, rx, ry, fn) => { for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) { const nx = (x - cx) / rx, ny = (y - cy) / ry; if (nx * nx + ny * ny <= 1) { const c = fn(nx, ny, x, y); if (c) b.set(x, y, c); } } };
   const coat = calf ? (nx, ny, x, y) => pick('bark', 0.68 - ny * 0.3 + nx * 0.05, x, y, 0.5) : (nx, ny, x, y) => pick('fur', 0.42 - ny * 0.34 + 0.16 * (hash(x, y, 14) - 0.5), x, y, 0.6);
-  const dark = calf ? R.bark[1] : R.fur[1], sock = calf ? R.bark[2] : R.dirt[3];
+  const dark = calf ? R.bark[1] : R.fur[1], sock = calf ? R.bark[2] : R.dirt[3], bed = pose === 'bed', walk = pose ? 0 : step;
   if (calf) {
-    for (const [lx, far] of [[8, 1], [10, 0], [16, 1], [18, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 13; y < 23; y++) b.set(lx + (y > 18 ? sw : 0), y, y > 17 ? sock : R.bark[far ? 0 : 1]); }
-    oval(13, 11.5, 5.4, 3, coat);
-    const hx = headDown ? 5 : 4.5, hy = headDown ? 19 : 7;
-    if (headDown) thick(b, 8, 12, 6, 17, 3, dark); else thick(b, 8, 10, 6, 8, 3, dark);
+    const D = bed ? 8 : 0;
+    if (bed) { for (let x = 6; x <= 10; x++) b.set(x, 22, R.bark[1]); for (let x = 15; x <= 19; x++) b.set(x, 22, x > 17 ? sock : R.bark[0]); }
+    else for (const [lx, far] of [[8, 1], [10, 0], [16, 1], [18, 0]]) { const sw = walk ? (far ? 1 : -1) * (walk === 1 ? 1 : -1) : 0; for (let y = 13; y < 23; y++) b.set(lx + (y > 18 ? sw : 0), y, y > 17 ? sock : R.bark[far ? 0 : 1]); }
+    oval(13, 11.5 + D, 5.4, 3, coat);
+    const hx = headDown ? 5 : 4.5, hy = headDown ? 19 : bed ? 13 + step : 7;
+    if (headDown) thick(b, 8, 12, 6, 17, 3, dark); else thick(b, 8, 10 + D, 6, hy + 1, 3, dark);
     oval(hx, hy, 2.6, 1.7, coat); b.set(hx - 2, hy + 1, dark); b.set(hx - 3, hy + 1, dark); b.set(hx - 1, hy - 1, INK); b.set(hx + 2, hy - 2, R.bark[2]); b.set(hx + 3, hy - 3, R.bark[2]);
     litBack(b); outline(b, INK); return b;
   }
+  const D = bed ? 11 : 0, sw2 = pose === 'shake' ? (step === 1 ? -1 : step === 2 ? 1 : 0) : 0;
+  if (bed) {
+    // Folded under it: the forelegs tucked before the chest with a pale sock showing, a hock behind.
+    for (let x = 9; x <= 15; x++) { b.set(x, 36, x < 12 ? sock : R.fur[1]); if (x > 10) b.set(x, 35, R.fur[1]); } for (let x = 25; x <= 31; x++) b.set(x, 36, x > 28 ? sock : R.fur[0]);
+  } else for (const [lx, far] of [[12, 1], [15, 0], [26, 1], [29, 0]]) { const sw = walk ? (far ? 1 : -1) * (walk === 1 ? 1 : -1) : 0; for (let y = 21; y < 37; y++) b.set(lx + (y > 29 ? sw : 0), y, y > 28 ? sock : R.fur[far ? 0 : 1]); if (!far) for (let y = 21; y < 29; y++) b.set(lx - 1, y, R.fur[1]); }
   // The legs: dark above the knee, pale below; the near and far ones swing opposite ways when it walks.
-  for (const [lx, far] of [[12, 1], [15, 0], [26, 1], [29, 0]]) { const sw = step ? (far ? 1 : -1) * (step === 1 ? 1 : -1) : 0; for (let y = 21; y < 37; y++) b.set(lx + (y > 29 ? sw : 0), y, y > 28 ? sock : R.fur[far ? 0 : 1]); if (!far) for (let y = 21; y < 29; y++) b.set(lx - 1, y, R.fur[1]); }
-  oval(21, 19.5, 9.5, 4.6, coat); oval(14.5, 17, 4.6, 5, coat); oval(28, 19, 3.4, 4.4, coat);
-  const hx = headDown ? 6 : 6, hy = headDown ? 30 : 14;
-  if (headDown) thick(b, 12, 19, 9, 27, 5, dark); else thick(b, 12, 16, 9, 14, 5, dark);
+  oval(21, 19.5 + D, 9.5, 4.6, coat); oval(14.5, 17 + D, 4.6, 5, coat); oval(28, 19 + D, 3.4, 4.4, coat);
+  const hx = 6 + (sw2 > 0 ? 1 : 0), hy = headDown ? 30 : bed ? 23 + step : 14 + (sw2 ? 1 : 0);
+  if (headDown) thick(b, 12, 19, 9, 27, 5, dark); else thick(b, 12, 16 + D, 9, hy, 5, dark);
   oval(hx, hy, 3.6, 2.1, coat); oval(hx - 2.4, hy + 1.6, 2.2, 1.9, coat);
   b.set(hx + 1, hy - 1, INK); b.set(hx + 4, hy - 3, dark); b.set(hx + 5, hy - 3, dark);
-  if (!headDown) { b.set(hx + 4, hy + 4, dark); b.set(hx + 4, hy + 5, dark); }
+  if (!headDown) { b.set(hx + 4 + sw2, hy + 4, dark); b.set(hx + 4 + 2 * sw2, hy + 5, dark); }
   litBack(b);
   outline(b, INK);
+  // A mouthful of weed, hanging from the muzzle and dripping.
+  if (pose === 'weeds') for (const [x, y, c] of [[-4, 3, R.grass[4]], [-3, 3, R.grass[3]], [-4, 4, R.grass[3]], [-3, 4, R.grass[4]], [-5, 5, R.grass[4]], [-3, 5, R.grass[3]], [-4, 6, R.grass[3]], [-3, 7, R.grass[4]], [-5, 7, R.grass[3]]]) b.set(hx + x, hy + y + (step ? 1 : 0) * (y > 5 ? 1 : 0), c);
   // The antlers go on after the outline, as the elk's do: a broad palm with points along its top, the far one a shade darker.
   const palm = [[3, -3], [4, -4], [2, -5], [3, -5], [4, -5], [5, -5], [6, -5], [7, -5], [8, -5], [3, -6], [4, -6], [5, -6], [6, -6], [7, -6], [8, -6], [9, -6], [3, -7], [5, -7], [7, -7], [9, -7], [10, -7], [1, -4], [0, -5]];
-  for (const [dx, dy, c] of [[-4, 0, R.dirt[3]], [0, 0, R.white[0]]]) for (const [x, y] of palm) b.set(hx + x + dx, hy + y + dy, c);
+  for (const [dx, dy, c] of [[-4, -sw2, R.dirt[3]], [0, sw2, R.white[0]]]) for (const [x, y] of palm) b.set(hx + x + dx, hy + y + dy + (sw2 && x > 6 ? sw2 * (dx ? -1 : 1) : 0), c);
   return b;
 }
 

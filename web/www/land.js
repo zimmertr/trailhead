@@ -5,7 +5,7 @@
 import { R, INK, BM, outline, KIND, SHADE, LIGHT, RAMP_OF, STEP_OF, veilTable, mixTable, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer, pick, catmull } from './core.js';
 import { paintMonolith, monolithSky, moraineLakes, MW as PMW, MH as PMH, MCX as PMCX, TOPY as PTOPY } from './monolith.js';
 import { blobTree, seaStack, sageBush, charred } from './scenery.js';
-import { ferry, whale, sheep, squirrel } from './mapfauna.js';
+import { ferry, whale, sheep, squirrel, squirrelDoes } from './mapfauna.js';
 import { makeDriftwood, makeFlowers, makeFireweed, makeSkunkCabbage, swaying, makeMaple, makeTwisted, makeAspen, makePonderosa, makeSpruce, makeFir, makeConifer, makeSnag, makeBoulder, makeBush, makeFern, makeLog, makeLodgepole, makeJuniper, makeWhitebark, makeShrub } from './sprites.js';
 // What a drawing that stands still is, and whether it is solid (ENGINE.md; collide.js reads solid).
 const tag = (bms, what, solid = false) => { for (const b of bms) { b.what = what; if (solid) b.solid = true; } }, tagged = (b, what, solid) => { tag([b], what, solid); return b; };
@@ -2183,7 +2183,7 @@ export function buildTerrain() {
     const out = Ls.map((l, n) => ({ kind: l[4], px: px[n] }));
     mor.sort((a, b) => a % NW - b % NW); let cur = null; for (const i of mor) { if (!cur || i % NW - cur.px[cur.px.length - 1] % NW > 12) out.push(cur = { kind: 'moraine', px: [] }); cur.px.push(i); }
     return out.filter(l => l.px.length > 20); })();
-  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, homesFound: H.homesFound, whiteWater: falls, still, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, homesFound: H.homesFound, whiteWater: falls, still, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel, squirrelDoes } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the

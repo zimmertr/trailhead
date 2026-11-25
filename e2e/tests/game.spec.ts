@@ -493,6 +493,32 @@ test('every home a map animal can take keeps the engine rules', async ({ page })
   expect(problems).toEqual([])
 })
 
+// Round 8, D2: every animal of the map has five things to do, and a click steps through them in order.
+test('every map animal has five things to do and keeps the engine rules through them', async ({ page }) => {
+  type Animal = { critter: string; walker?: boolean; does?: string[]; x: number; y: number }
+  type Crit = { __crit: { items: Animal[]; click: (id: string, x: number, y: number, t: number) => unknown }; __api: { now: () => number } }
+  for (const homes of [0, 5]) {
+    const problems = await open(page, `/?homes=${homes}`)
+    const lists = await page.evaluate(() => (window as unknown as Crit).__crit.items.filter((a) => a.walker).map((a): [string, number] => [a.critter, (a.does ?? []).length]))
+    expect(lists.length, `walkers at homes=${homes}`).toBeGreaterThanOrEqual(10)
+    for (const [kind, n] of lists) expect(n, `the things a ${kind} does`).toBeGreaterThanOrEqual(5)
+    const broken = new Set<string>()
+    for (let round = 0; round < 8; round++) {
+      await page.evaluate(() => {
+        const w = window as unknown as Crit, t = w.__api.now()
+        w.__crit.items.forEach((a, i) => w.__crit.click(`animal:${i}`, a.x, a.y - 4, t))
+        for (const id of ['whale', 'orca:0', 'orca:1', 'air:osprey', 'air:eagle']) w.__crit.click(id, 0, 0, t)
+      })
+      for (let k = 0; k < 2; k++) {
+        await page.waitForTimeout(300)
+        for (const rule of await page.evaluate(() => window.__rules?.() ?? ['the map did not report its rules'])) broken.add(rule)
+      }
+    }
+    expect([...broken], `homes=${homes}`).toEqual([])
+    expect(problems).toEqual([])
+  }
+})
+
 test('the homes the dice draw keep the engine rules and leave an animal to click', async ({ page }) => {
   for (const seed of [1, 2, 3, 4]) {
     const problems = await open(page, `/?homes=${seed}`)

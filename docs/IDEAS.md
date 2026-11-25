@@ -539,3 +539,9 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **A Homes Layer in the Debug Panel** (round 8, D1). A switch that rings every home of every animal on the map, in a colour for each kind, so curating them is one look. The marked picture made for D1's check was exactly this.
 - **Homes by the Hour** (round 8, D1). The herd could keep to the high meadow by Day and come down to the stream at Dusk, the marmots go to ground at Dusk, the bears come out. The homes are there now; the hour could choose among them.
 - **A Soak Test for the Rules** (round 8, D1). The engine rules are asked once at load in most tests, and the bug D1 found only showed over time. A nightly job could leave the map running for ten minutes on a few draws of homes and ask the rules four times a second.
+- **An Answer Across the Valley** (round 8, D2). When the bull bugles, a second bull could answer a few seconds later from somewhere off the map, fainter. In autumn a valley is never one bull.
+- **The Cubs Copy Her** (round 8, D2). The cubs go up a trunk when the sow stands. They could copy the rest too: dig beside her when she digs, and try the trunk she has just rubbed.
+- **An Act Picker in the Debug Panel** (round 8, D2). Beside the spawn list, a list of each animal's acts, so any one of them can be started and watched without clicking round to it.
+- **The Nest Grows** (round 8, D2). The osprey now carries sticks. The nest on its snag could grow by a few pixels with every stick of a visit.
+- **A Wallow for the Bull** (round 8, D2). Bull elk roll in mud in the rut. A dark wet patch by the stream could be one more thing he does, and he could walk off a shade darker for a while.
+- **Acts by the Hour** (round 8, D2). The dice choose an act evenly. They could lean with the clock: bugling towards Dusk, bedding at midday, the marmots sunning in the morning and gone to ground at night.

@@ -127,7 +127,7 @@ function slug(f, shy = false) {
 }
 
 // A hoary marmot. pose: 'sun' stretched flat on a rock, 'up' sitting to whistle.
-function marmot(pose) {
+function marmot(pose, step = 0) {
   const b = new BM(18, 14); b.ox = 9; b.oy = 13;
   // A17, after a picture of hoary marmots on granite: a warm brown rump and dark tail, and over the
   // shoulders and back the pale grizzled cape it is named for, lit from the upper left; a white muzzle
@@ -141,6 +141,17 @@ function marmot(pose) {
     ell(b, 14, 10, 2.6, 2.2, (nx, ny, x, y) => nx > 0.62 ? R.white[1] : nx > -0.05 && ny > -0.55 ? INK : grizzle(x, y, ny < -0.3));
     b.set(13, 8, INK); b.set(17, 10, INK);
     thick(b, 2, 11, 0, 12, 2, R.bark[0]); b.set(1, 11, R.bark[1]); b.set(5, 13, INK); b.set(11, 13, INK); b.set(12, 13, INK);
+  } else if (pose === 'dig') {
+    // Round 8, D2, after a picture: digging, its head and paws down in the hole and its rump and tail up (step 0 and 1).
+    ell(b, 7.5, 9.5, 5.4, 3.2, (nx, ny, x, y) => nx > -0.1 && ny < 0.2 ? grizzle(x, y, ny < -0.45) : rump(ny, x, y));
+    ell(b, 13.4, 11 + step * 0.6, 2.5, 2, (nx, ny, x, y) => nx > 0.62 ? R.white[1] : nx > -0.05 && ny > -0.55 ? INK : grizzle(x, y, ny < -0.3));
+    b.set(12, 9, INK); thick(b, 2, 8, 1, 5 + step, 2, R.bark[0]); b.set(5, 13, INK); b.set(15 + step, 13, INK); b.set(16 - step, 12, INK);
+  } else if (pose === 'box') {
+    // Up on its hind legs to wrestle another, its paws out before it (step 1: pushing higher).
+    ell(b, 7, 8.6, 3.4, 4.6, (nx, ny, x, y) => ny < -0.05 - 0.2 * nx ? grizzle(x, y, nx < 0.1 && ny < -0.45) : rump(ny, x, y));
+    ell(b, 9 + step, 3.2, 2.6, 2.3, (nx, ny, x, y) => nx > 0.62 ? R.white[1] : nx > -0.05 && ny > -0.55 ? INK : grizzle(x, y, ny < -0.3));
+    b.set(8 + step, 1, INK); b.set(12 + step, 3, INK);
+    thick(b, 3, 12, 0, 12, 2, R.bark[0]); b.set(6, 13, INK); b.set(9, 13, INK);
   } else {
     // Up on its haunches, paws at its chest, head up to whistle.
     ell(b, 8, 9, 3.6, 4.4, (nx, ny, x, y) => ny < -0.05 - 0.2 * nx ? grizzle(x, y, nx < 0.1 && ny < -0.45) : rump(ny, x, y));
@@ -149,6 +160,8 @@ function marmot(pose) {
     thick(b, 10, 8, 12, 9, 1, INK); thick(b, 4, 12, 1, 13, 2, R.bark[0]); b.set(7, 13, INK); b.set(10, 13, INK);
   }
   outline(b, INK);
+  // The arms go on after the outline, so they stay thin: brown, with a dark paw at the end of each.
+  if (pose === 'box') for (const y of [7, 9]) { thick(b, 10, y, 13, y - 1 - step, 1, R.dirt[2]); b.set(14, y - 1 - step, INK); }
   return b;
 }
 
@@ -219,17 +232,20 @@ function shyPika() {
 
 // A mountain goat, white and shaggy, facing right. pose: 'stand', 'look' (head turned to watch), 'graze'.
 function goat(pose, kid, step = 0) {
-  const s = kid ? 0.7 : 1, b = new BM(26, 22); b.ox = 12; b.oy = 21;
+  // Round 8, D2, after pictures: 'lie', down on folded legs on a ledge with its head up; 'butt', its head
+  // lowered and its horns forward, to meet another's.
+  const s = kid ? 0.7 : 1, b = new BM(26, 22), lie = pose === 'lie', L = lie ? (kid ? 3 : 4) : 0, K = kid ? 4 : 0; b.ox = 12; b.oy = 21;
   // Cream, not snow white, so a goat shows up standing on a snowfield.
   const wool = (nx, ny, x, y) => { const v = 3.4 - ny * 1.2 + (hash(x, y, 3) - 0.5); return v >= 3.1 ? R.white[1] : v >= 2.3 ? R.white[0] : R.gold[4]; };
-  for (const [lx, far] of [[7, 1], [9, 0], [15, 1], [17, 0]]) { const X = lx * s + (kid ? 4 : 0), sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, X, 14, X + sw, 20, 2, far ? R.gold[4] : R.white[0]); b.set(X + sw, 21, INK); }
-  ell(b, 12 * s + (kid ? 4 : 0), 12, 7 * s, 4.2 * s, wool);
-  ell(b, 9 * s + (kid ? 4 : 0), 9, 3 * s, 2.5 * s, wool);
+  if (lie) { thick(b, 14 * s + K, 20, 19 * s + K, 21, 1.6, R.white[0]); b.set(20 * s + K, 21, INK); b.set(7 * s + K, 21, INK); b.set(8 * s + K, 21, R.gold[4]); }
+  else for (const [lx, far] of [[7, 1], [9, 0], [15, 1], [17, 0]]) { const X = lx * s + (kid ? 4 : 0), sw = step ? (far ? -1 : 1) * (step === 1 ? 1 : -1) : 0; thick(b, X, 14, X + sw, 20, 2, far ? R.gold[4] : R.white[0]); b.set(X + sw, 21, INK); }
+  ell(b, 12 * s + (kid ? 4 : 0), 12 + L, 7 * s, 4.2 * s, wool);
+  ell(b, 9 * s + (kid ? 4 : 0), 9 + L, 3 * s, 2.5 * s, wool);
   // A hump of long hair over the shoulders and a fringe hanging under the belly (art pass D06).
-  ell(b, 15 * s + (kid ? 4 : 0), 10, 3 * s, 2.4 * s, wool);
-  { const cx = 12 * s + (kid ? 4 : 0), rx = 7 * s; for (let x = Math.ceil(cx - rx + 1); x < cx + rx - 1; x++) { const yb = Math.round(12 + 4.2 * s * Math.sqrt(Math.max(0, 1 - ((x - cx) / rx) ** 2))); if (hash(x, 1, kid ? 7 : 5) < 0.7) b.set(x, yb + 1, R.white[0]); if (hash(x, 2, kid ? 7 : 5) < 0.3) b.set(x, yb + 2, R.gold[4]); } }
-  const hx = (pose === 'look' ? 17 : pose === 'graze' ? 20 : 19) * s + (kid ? 4 : 0), hy = pose === 'look' ? 6 : pose === 'graze' ? (kid ? 12 : 14) : 7;
-  thick(b, 16 * s + (kid ? 4 : 0), 10, hx, hy + 1, 3, R.white[1]);
+  ell(b, 15 * s + (kid ? 4 : 0), 10 + L, 3 * s, 2.4 * s, wool);
+  if (!lie) { const cx = 12 * s + (kid ? 4 : 0), rx = 7 * s; for (let x = Math.ceil(cx - rx + 1); x < cx + rx - 1; x++) { const yb = Math.round(12 + 4.2 * s * Math.sqrt(Math.max(0, 1 - ((x - cx) / rx) ** 2))); if (hash(x, 1, kid ? 7 : 5) < 0.7) b.set(x, yb + 1, R.white[0]); if (hash(x, 2, kid ? 7 : 5) < 0.3) b.set(x, yb + 2, R.gold[4]); } }
+  const butt = pose === 'butt', hx = (pose === 'look' ? 17 : pose === 'graze' || butt ? 20 : lie ? 18 : 19) * s + (kid ? 4 : 0), hy = pose === 'look' ? 6 : pose === 'graze' ? (kid ? 12 : 14) : butt ? (kid ? 10 : 11) : 7 + L;
+  thick(b, 16 * s + (kid ? 4 : 0), 10 + L, hx, hy + 1, 3, R.white[1]);
   // The head is a long face in profile: a muzzle with a dark nose, an ear, and the shadow of the jaw
   // to set it off from the white of the neck.
   ell(b, hx + 1, hy, 2.6 * s, 2.2 * s, wool);
@@ -242,7 +258,7 @@ function goat(pose, kid, step = 0) {
   litBack(b);
   outline(b, INK);
   // The horns go on after the outline, so they stay two thin spikes.
-  if (!kid) for (const [dx, dy] of [[0, -3], [0, -4], [-1, -5], [-1, -6], [2, -3], [2, -4], [1, -5], [1, -6]]) b.set(hx + dx, hy + dy, INK);
+  if (!kid) for (const [dx, dy] of butt ? [[1, -3], [2, -4], [3, -4], [4, -5], [-1, -3], [0, -4], [1, -5], [2, -5]] : [[0, -3], [0, -4], [-1, -5], [-1, -6], [2, -3], [2, -4], [1, -5], [1, -6]]) b.set(hx + dx, hy + dy, INK);
   return b;
 }
 
