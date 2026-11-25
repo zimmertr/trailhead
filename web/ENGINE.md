@@ -13,6 +13,7 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - An animal that lives where the shared rule lets no walker stand (the goat on the wall's ledge) gets its ground made ground: `land.js` finds the place by rule and adds its pixels to `open`, and the animal's country is the list of them (`spots` on its item). Never switch the rule off for one animal.
 - An animal in a side scene (the forest, the lake loop, the larches, the ridge, the approach, camp) is drawn by its scene. It still has at least two drawings, and it changes between them.
 - Every animal answers a click with a reaction true to how it lives, and a click on one is never a find (the finds that already were, the lake's marmot and the pika, stay finds). On the map, `pick()` and `click()` in `critters.js` find the animal and start its reaction; in a side scene, its own `pick()` and `act()` do. A map animal has at least five things to do after its real behaviour (its `does` list and `ACTS` in `critters.js`, or its own list for the marmots, squirrels, cubs, birds and whales): it starts on one at random, takes up the others by itself, and a click steps to the next in order. Each new animal gets a name in `content/game/names.yaml` and a reaction.
+- The debug panel lists every walker's five things (`actors()` in `critters.js`) and starts any of them. A new walker is in the list by having a `does`; a new act needs its name in `debug.act` in `content/game/interface.yaml`. A new kind with homes is ringed by the Animal homes switch on its own, in its colour from `ROAM_C` in `world.js`.
 
 ## Weather
 
@@ -21,6 +22,7 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - Every kind of weather has a start button under Weather in the debug panel, and the button works in every scene with a sky (`WEATHER` in `pixel.js`, `trigger` in `world.js`).
 - A new kind of weather goes into the sky report first, then onto the map, then into each scene, and gets its button.
 - Rain shows on what it falls on. Still water in the rain takes rings, loses its glints and holds its fish (`stillWater` in `world.js`, `rings` in `weather.js`). Ground and rock go a step darker while `sky.wet` lasts (the map's wet copy of the ground), and the lakeside's boulders and trail dry from the top down.
+- The debug panel says what the sky is doing in one line (`skyNow()` in `world.js`, the words in `debug.sky`). New weather that lasts gets a name there.
 
 ## Events
 

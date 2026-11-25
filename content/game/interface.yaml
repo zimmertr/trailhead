@@ -154,6 +154,10 @@ UI:
       taps: Tap targets
       trails: Trail lines
       camera: Camera limits
+      # Round 8, H13. Drafts for TJ: a ring round every sign with its name, and round every animal home
+      # with its kind.
+      signs: Sign names
+      homes: Animal homes
       snap: Snap to pixels
     speed: Time
     speeds:
@@ -163,6 +167,38 @@ UI:
       - 2×
       - 4×
       - 8×
+    # One line under the Weather heading that says what the sky is doing now (round 8, H13). Drafts for TJ.
+    # The line names every thing that is going on, with `join` between them.
+    sky:
+      line: 'Sky: {what}'
+      join: ', '
+      clear: clear
+      rolling: the marine layer rolling in
+      drizzle: drizzle under the marine layer
+      breaking: the marine layer breaking up
+      fog: fog in the trees
+      drying: the ground drying
+      squall: a squall on the summit
+      banner: spindrift off the summit
+    # A list that starts any one thing an animal does (round 8, H13): the heading, the button, and a name
+    # for each thing. Drafts for TJ.
+    acts: Animal acts
+    actStart: Start
+    act:
+      graze: Graze
+      look: Look up
+      bed: Bed down
+      hop: Hop
+      trot: Trot off
+      butt: Butt heads
+      bugle: Bugle
+      thrash: Thrash the brush
+      bark: Bark
+      shake: Shake off
+      dip: Wade in
+      upright: Stand up
+      rub: Rub on a trunk
+      dig: Dig
     startMap: Start now, on the map
     startForest: Start now, in the forest run
     startLarches: Start now, in the larch basin

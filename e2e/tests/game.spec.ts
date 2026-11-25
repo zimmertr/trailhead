@@ -976,3 +976,29 @@ test('the pointer on the register or the board lights one outline round both', a
   }
   expect(problems).toEqual([])
 })
+
+// Round 8, H13: the debug panel rings every sign and every animal home, starts any one thing an animal does,
+// and says in one line what the sky is doing.
+test('the debug panel has the sign and home rings, a list of animal acts and a line on the sky', async ({ page }) => {
+  type Herd = { __crit: { items: { critter: string; does?: string[]; st: string; act?: string }[] } }
+  const problems = await open(page, '/?debug=signs,homes&rain=40')
+  const panel = page.locator('#debug')
+  await expect(panel).toBeVisible()
+  // Both switches came on from the address and are drawn without a complaint.
+  for (const name of ['Sign names', 'Animal homes']) await expect(panel.getByRole('button', { name })).toHaveAttribute('aria-pressed', 'true')
+  // Forty seconds into the marine layer's round it drizzles, and Clear sky ends it.
+  const sky = panel.locator('.skyline')
+  await expect(sky).toHaveText('Sky: drizzle under the marine layer')
+  await panel.getByRole('button', { name: 'Clear sky' }).click()
+  await expect(sky).toHaveText('Sky: clear', { timeout: 5_000 })
+  // The bull elk's own five things are in the list, and Start makes him bugle.
+  const [who, what] = [panel.locator('select[aria-label="Animal acts"]').first(), panel.locator('select[aria-label="Animal acts"]').nth(1)]
+  await who.selectOption({ label: 'Bull elk' })
+  expect(await what.locator('option').allInnerTexts()).toEqual(['Graze', 'Bugle', 'Bed down', 'Thrash the brush', 'Trot off'])
+  await what.selectOption({ label: 'Bugle' })
+  await panel.getByRole('button', { name: 'Start', exact: true }).click()
+  await expect.poll(() => page.evaluate(() => (window as unknown as Herd).__crit.items.some((a) => a.critter === 'elk' && a.st === 'act' && a.act === 'bugle')), { timeout: 8_000 }).toBe(true)
+  await page.waitForTimeout(500)
+  expect(await axe(page).then(found)).toEqual([])
+  expect(problems).toEqual([])
+})

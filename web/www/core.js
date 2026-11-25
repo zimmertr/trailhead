@@ -404,7 +404,7 @@ const BLACK = 255;
 
 // What the hidden debug panel has switched: the first five are layers that can be turned off, the
 // rest are outlines that can be turned on. The scenes read it as they draw.
-const DEBUG = { snap: true, trees: true, clouds: true, mist: true, labels: true, animals: true, roam: false, taps: false, trails: false, camera: false, collide: '' };
+const DEBUG = { snap: true, trees: true, clouds: true, mist: true, labels: true, animals: true, roam: false, taps: false, trails: false, camera: false, signs: false, homes: false, collide: '' };
 
 // What has been on the screen since the page opened, by the names the conditions board lists them under
 // (round 8, F2): each thing that draws one of them says so here. Kept in memory only, so every visit starts

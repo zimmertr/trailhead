@@ -247,7 +247,7 @@ function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; audio.sfx('clo
 // ------------------------------------------------------------------ the debug panel
 // Hidden: the backtick key opens and closes it, and so does the small sign at the foot of the trail map.
 const debug = $('debug');
-let timeSlider = null;
+let timeSlider = null, skyLine = null;
 function openDebug(on) {
   if (!on) { debug.hidden = true; return; }
   const D = UI.debug, onOff = k => UI.map.onOff[DEBUG[k] ? 0 : 1];
@@ -269,6 +269,15 @@ function openDebug(on) {
   const place = el('select', { 'aria-label': D.spawn });
   const fillPlaces = () => { const k = kinds[+animal.value]; place.replaceChildren(...k.homes.map((h, n) => el('option', { value: n, text: h })), el('option', { value: 'all', text: D.spawnAll })); };
   animal.addEventListener('change', fillPlaces); fillPlaces();
+  // Start one thing an animal does (round 8, H13): which animal, which of its five things, then Start. The
+  // view goes to the animal first, as it goes to an event. Only on the map, where the animals are.
+  const actors = api.scene() === 'world' ? api.actList() : [], actor = el('select', { 'aria-label': D.acts }, ...actors.map((a, n) => el('option', { value: n, text: a.name })));
+  const doing = el('select', { 'aria-label': D.acts });
+  const fillActs = () => { const a = actors[+actor.value]; doing.replaceChildren(...(a ? a.does : []).map(k => el('option', { value: k, text: D.act[k] || k }))); };
+  actor.addEventListener('change', fillActs); fillActs();
+  const startAct = () => { const a = actors[+actor.value]; if (!a) return; const ms = api.showActor(a.i); setTimeout(() => audio.sfx(api.doAct(a.i, doing.value) ? 'step' : 'close'), ms); };
+  // What the sky is doing, in one line that keeps up with it while the panel is open (round 8, H13).
+  skyLine = el('p', { class: 'legend skyline', role: 'status', text: UI.debug.skyLine(api.skyNow()) });
   // The timed events of the scene on screen (E5f): the map's, or the scene's own.
   const SCENE_EVENTS = { world: ['breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'lens', 'tumble', 'devil', 'star', 'rockfall', 'calve', 'pair', 'alpenglow', 'talus', 'band', 'calm', 'ducks', 'treefall', 'rainbow', 'hoot', 'sunbreak'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
   const here = api.scene(), events = SCENE_EVENTS[here] || [];
@@ -299,12 +308,13 @@ function openDebug(on) {
     el('p', { class: 'legend', text: BAKE.used ? D.ground[0] : D.ground[1] + (BAKE.note ? ' (' + BAKE.note + ')' : '') }),
     el('h3', { text: D.time }), timeSlider, el('div', { class: 'speeds' }, ...clockSpeeds), jump(D.sunset, C.sunset - 2), jump(D.sunrise, C.sunrise - 2),
     el('h3', { text: D.layers }), ...['trees', 'clouds', 'mist', 'labels', 'animals'].map(toggle),
-    el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle), noGo,
+    el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera', 'signs', 'homes'].map(toggle), noGo,
     el('h3', { text: D.zoom }), toggle('snap'),
     el('h3', { text: D.speed }), el('div', { class: 'speeds' }, ...speeds),
-    ...(weather.length ? [el('h3', { text: D.weather }), ...weather.map(one)] : []),
+    ...(weather.length ? [el('h3', { text: D.weather }), skyLine, ...weather.map(one)] : []),
     ...(events.length ? [el('h3', { text: here === 'world' ? D.mapEvents : D.inScene + ': ' + (D.scenes[here] || here) }), ...starts(events)] : []),
     el('h3', { text: D.spawn }), el('div', { class: 'row' }, animal, place, el('button', { class: 'plank', onclick: () => { audio.sfx(api.spawn(kinds[+animal.value].kind, place.value === 'all' ? 'all' : +place.value) ? 'step' : 'close'); } }, el('span', { text: D.spawn }))),
+    ...(actors.length ? [el('h3', { text: D.acts }), el('div', { class: 'row' }, actor, doing, el('button', { class: 'plank', onclick: startAct }, el('span', { text: D.actStart })))] : []),
     el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, api.now(), { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),
     el('h3', { text: D.scene }), ...Object.keys(D.scenes).filter(s => s !== 'offroute').map(s => el('button', { class: 'plank', onclick: () => { hideCard(); closeSheet(); api.jumpTo(s).then(() => { buildMarks(); openDebug(true); }); audio.sfx('step'); } }, el('span', { text: D.scenes[s] }))),
     el('button', { class: 'plank', onclick: () => navigate('#off-route') }, el('span', { text: D.offRoute })),
@@ -622,6 +632,7 @@ addEventListener('resize', () => { nameBox = null; });
   const atFork = !(running || p > 0.002 || shown != null || api.route() !== 'lake');
   if (!atFork) chosen = true;
   if (timeSlider && !debug.hidden && document.activeElement !== timeSlider) timeSlider.value = Math.round(api.clock().t);
+  if (skyLine && !debug.hidden) { const s = UI.debug.skyLine(api.skyNow()); if (skyLine.textContent !== s) skyLine.textContent = s; }
   fork.hidden = !atFork || forkShut;
   { const text = shown && cardShut ? LABELS[shown] || (PROJECTS[shown] ? PROJECTS[shown].name : CARDS[shown].title) : atFork && forkShut ? DEST_NAMES.trailhead : '';
     tab.hidden = !text || !sheet.hidden || !plain.hidden; if (text && text !== tabText) { tabText = text; tab.querySelector('span').textContent = text; } }

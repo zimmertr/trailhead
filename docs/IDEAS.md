@@ -620,3 +620,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **An Outline for Everything That Answers** (round 8, H12). The lookout, the journal, the signs and the tide pool answer a click and show only a tag. The same outline could go round each while the pointer is on it, by one rule for every clickable drawing.
 - **The Outline on a Tap** (round 8, H12). On a phone the pair could light for the moment between the tap and the run to the register, as a place lifts when it is tapped.
 - **The Board's Papers Flutter** (round 8, H12). While the pair is lit, the papers pinned on the board could lift at a corner in the wind, a second cue that there is something to read.
+- **Rings in the Side Scenes** (round 8, H13). The two new switches draw only on the map. A side scene could ring its own animals' homes (the pika's talus, the owl's branch) and its signs the same way.
+- **Acts for the Birds and the Sea** (round 8, H13). The list starts what the walkers do. The orcas' spyhop, the gulls' lift and the eagle's stoop could join it once each has its things in one list, as the walkers have.
+- **The Sky's Line Says What Comes Next** (round 8, H13). The line could add how long until the next part of the marine layer's round, so a wait for the fog is a known wait.
+- **A Search Box in the Debug Panel** (round 8, H13). The panel is long now. A box at the top that hides every row not matching what is typed would make any switch two keys away.

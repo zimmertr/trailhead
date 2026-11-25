@@ -626,6 +626,7 @@ export function makeWorld() {
   // The register's box and the board beside it light as one while the pointer is on either (round 8, H12): one
   // outline round the pair, as a place lifts. It goes round the two drawings and the ground between them: each
   // row of the screen is outlined from the leftmost solid pixel of either to the rightmost.
+  let homeRings = null;
   const PAIR = { on: false, lit: 0, lo: new Int16Array(48), hi: new Int16Array(48) };
   function pairOutline(scr, ox, oy, c) {
     const { VW, VH, fb } = scr, { lo, hi } = PAIR, both = [[KIOSK, spots.kiosk], [regBox.bm, spots.register]];
@@ -739,14 +740,14 @@ export function makeWorld() {
   // The roam areas' colours, one per kind, none of them a colour of the ground (T32).
   const ROAM_C = { elk: R.yellow[1], moose: R.lupine[2], goat: R.white[1], sheep: R.lamp[0], bear: R.pink[2], marmot: R.sky[4] || R.white[0], squirrel: R.red[1], gulls: R.jay[3], birds: R.aurora[2] };
   function roamArea(scr, a, ox, oy) {
-    const c = ROAM_C[a.kind] || R.white[1], cx = a.x - ox, cy = a.y - oy, x0 = Math.floor(cx - a.rx - 2), x1 = Math.ceil(cx + a.rx + 2), y0 = Math.floor(cy - a.ry - 2), y1 = Math.ceil(cy + a.ry + 2);
+    const c = a.c || ROAM_C[a.kind] || R.white[1], cx = a.x - ox, cy = a.y - oy, x0 = Math.floor(cx - a.rx - 2), x1 = Math.ceil(cx + a.rx + 2), y0 = Math.floor(cy - a.ry - 2), y1 = Math.ceil(cy + a.ry + 2);
     if (x1 < 0 || y1 < 0 || x0 >= scr.VW || y0 >= scr.VH) return;
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       const q = Math.hypot((x - cx) / a.rx, (y - cy) / a.ry), edge = (1 - q) * Math.min(a.rx, a.ry);
       if (edge < -2 || edge > 1.2 && ((x + y) & 3)) continue;
       scr.set(x, y, edge < 0 ? c : edge < 1.2 ? INK : c);
     }
-    tinyText(scr, Math.round(cx), Math.round(cy - a.ry - 9), (UI.debug.animals[a.kind] || a.kind).toUpperCase(), c);
+    tinyText(scr, Math.round(cx), Math.round(cy - a.ry - 9), (a.label || UI.debug.animals[a.kind] || a.kind).toUpperCase(), c);
   }
   // The spawn menu (C4): each map animal with its homes, each named after the nearest place the map names
   // (a joke sign within 160 pixels, else the nearest of the four places, as "near ..." or "east of ...").
@@ -762,7 +763,7 @@ export function makeWorld() {
     return { kind, name: UI.debug.animals[kind] || kind, homes: names.map(n => names.filter(m => m === n).length > 1 ? n + ' ' + (seen[n] = (seen[n] || 0) + 1) : n) }; });
 
   return {
-    name: 'world', paths, spawnList, spawn: (kind, i) => { const ok = crit.spawn(kind, i); for (const it of crit.items) if (!things.includes(it)) { things.push(it); still = null; } return ok; }, lakeIn, lakeMid, lakeOut, spiresIn, stackIn, T, WW, WH,
+    name: 'world', paths, spawnList, actors: () => crit.actors(), doAct: (i, name, t) => crit.doAct(i, name, t), spawn: (kind, i) => { const ok = crit.spawn(kind, i); for (const it of crit.items) if (!things.includes(it)) { things.push(it); still = null; } return ok; }, lakeIn, lakeMid, lakeOut, spiresIn, stackIn, T, WW, WH,
     // For the trail map sheet (L9): the peak's summit and the six Spires summits on the map, and the picture's
     // frame: the box round the Trailhead and the three destinations' countries with a margin, widened to the
     // sheet's shape (8 by 5) and kept on the map.
@@ -840,6 +841,11 @@ export function makeWorld() {
       w.gust = place => gustOver(PLACE[place][0], PLACE[place][1], t);
       w.shade = place => { for (let k = 0; k < 4; k++) { const u = (PLACE[place][0] - fairX(k, t) - 8) / (FAIR[k].cw * 2.2); if (u > -1 && u < 1) return u; } return null; };
       return w; },
+    // What the sky is doing, for the debug panel's one line (round 8, H13): the marine layer's part of its
+    // round (rolling in, drizzling, breaking up, fog left in the trees, the ground drying, or clear), and the
+    // summit's squall or the spindrift after it. The names are the keys of `debug.sky` in the words.
+    skyNow(t) { const w = this.sky(t), out = [w.rain > 0.05 ? 'drizzle' : w.deck > 0.02 ? (w.s < 20 ? 'rolling' : 'breaking') : w.fog > 0.05 ? 'fog' : w.wet > 0.05 ? 'drying' : 'clear'];
+      if (w.snow > 0.05) out.push('squall'); else if (w.banner > 0.05) out.push('banner'); return out; },
     // Where a thing on the kiosk's board lives or happens (round 8, H9), by the board's name for it: an animal
     // where it is now, an event where it happens, the weather where it comes in, the cats at the kiosk, the
     // sky's own (shooting stars, the aurora) over the volcano's summit, and what lives only in a side scene
@@ -1074,12 +1080,16 @@ export function makeWorld() {
         const X = [], Y = my - 4 - bob; for (let k = -3; k <= 3; k++) for (const d of [0, 1]) X.push([mx + k + d, Y + k], [mx + k + d, Y - k]);
         for (const [x, y] of X) for (const [ax, ay] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) scr.set(x + ax, y + ay, INK);
         for (const [x, y] of X) scr.set(x, y, R.red[1]); scr.set(mx, my, INK); scr.set(mx + 1, my, INK); }
-      if (!env.fixed && (DEBUG.roam || DEBUG.trails || DEBUG.camera)) {
+      if (!env.fixed && (DEBUG.roam || DEBUG.trails || DEBUG.camera || DEBUG.signs || DEBUG.homes)) {
         const dot = (x, y, c) => scr.set(Math.round(x) - ox, Math.round(y) - oy, c);
         const box = (b, c, step) => { for (let x = b.x0; x <= b.x1; x += step) { dot(x, b.y0, c); dot(x, b.y1, c); } for (let y = b.y0; y <= b.y1; y += step) { dot(b.x0, y, c); dot(b.x1, y, c); } };
         // Where each animal wanders and each flock circles (T32): its own bright colour, two pixels wide with a
         // dark inner edge, a light dithered fill and its name. Pink boxes: where the cats keep to.
         if (DEBUG.roam) { for (const a of crit.areas()) roamArea(scr, a, ox, oy); for (const b of kit.areas()) box(b, R.pink[1], 2); }
+        // A ring round every sign with its name over it, and round every animal home with its kind, in the
+        // kind's own colour (round 8, H13). A sign with no name has a ring and nothing over it.
+        if (DEBUG.signs) for (const [x, y, id] of spots.signs) roamArea(scr, { x, y: y - 8, rx: 11, ry: 11, c: R.white[1], label: (SIGNS[id] || '').split(',')[0] }, ox, oy);
+        if (DEBUG.homes) { homeRings = homeRings || crit.homes(); for (const { kind, homes } of homeRings) for (const [x, y] of homes) roamArea(scr, { kind, x, y, rx: 9, ry: 6 }, ox, oy); }
         // Each trail as the line he actually follows, with a knot every twenty pixels, and a white cross
         // where the lake loop goes into the forest and where it comes back out.
         if (DEBUG.trails) {

@@ -1527,6 +1527,9 @@ export function makeCritters(W, opts = {}) {
     // A click on one of them, by the act pick() gave: what it does, and the sound it makes (or null).
     click(id, px, py, t) { return poke(id, px, py, t); },
     podDoes: () => [...podNow],
+    // The debug panel's list of acts (round 8, H13): every walker with the five things it does, under the name
+    // a click shows for it and where it is now. An animal that has gone to ground for the hour is left out.
+    actors: () => items.map((a, i) => a.walker && a.does && !a.gone ? { i, name: nameOf(a), x: a.x, y: a.y, does: a.does } : null).filter(Boolean),
     // One of a walker's own acts, by name, now: for the debug panel and the checks. Whether it began.
     doAct(i, name, t) { const a = items[i]; return !!a && !!a.walker && a.does.includes(name) && begin(a, name, t); },
     tideAt: t => ebbAt(t) / EBB,

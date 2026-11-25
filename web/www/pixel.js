@@ -502,6 +502,13 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     scene: () => drawn ? drawn.s : null,
     spawnList: () => world.spawnList(),
     spawn: (kind, i) => world.spawn(kind, i),
+    // The debug panel's list of acts (round 8, H13): one line for each kind of animal that reads differently
+    // (a name and the five things it does), the first such animal standing for all of them. showActor eases
+    // the view to it as showEvent does to an event, and doAct starts one of its things now.
+    actList() { const seen = new Set(); return world.actors().filter(a => { const k = a.name + '|' + a.does.join(); if (seen.has(k)) return false; seen.add(k); return true; }).map(({ i, name, does }) => ({ i, name, does })); },
+    showActor(i) { const a = world.actors().find(q => q.i === i); if (!a || !drawn || drawn.s !== 'world' || tr) return 0; const [x, y] = world.lookFor(a.x, a.y); running = false; recentre = false; panTo = { x, y }; return calm.matches ? 0 : 900; },
+    doAct: (i, name) => !!drawn && drawn.s === 'world' && !tr && world.doAct(i, name, simT),
+    skyNow: () => world.skyNow(simT),
     async jumpTo(name) {
       const r = Object.keys(ROUTES).find(k => !/back|home/.test(k) && ROUTES[k]().some(([n]) => n === name)); if (!r) return false;
       await api.setRoute(r); const l = legs.find(g => g.s === name); if (l) await api.scrub(l.t0 + 0.03 * (l.t1 - l.t0)); return true;

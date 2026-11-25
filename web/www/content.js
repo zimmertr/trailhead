@@ -48,6 +48,8 @@ export const UI = {
     // How much of the board has been observed (round 8, H11): every name under `sightings` is one thing.
     count: saw => { const ids = K.sightings.flatMap(S => Object.keys(S.who)); return fill(K.count, { n: ids.filter(k => saw.has(k)).length, of: ids.length }); }
   },
+  // The debug panel's line on the sky (round 8, H13): the things going on, by their names in world.js.
+  debug: { ...U.debug, skyLine: keys => fill(U.debug.sky.line, { what: keys.map(k => U.debug.sky[k]).join(U.debug.sky.join) }) },
   register: { ...U.register, todo: { ...U.register.todo, spires: name => fill(U.register.todo.spires, { name }) } },
   plain: {
     ...U.plain,
