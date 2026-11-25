@@ -21,12 +21,17 @@ declare global {
   }
 }
 
+// What an engine says about itself rather than about the page, passed over by name. Firefox says this
+// whenever a DecompressionStream is read, as land.js reads ground.png, and the bytes come out right
+// all the same (round 8, I7).
+const ENGINE_NOTES = [/^\[JavaScript Warning: "The execution of microtasks on this page was reordered to avoid unsafe execution\."/]
+
 // Opens an address of the game and returns everything the page complained
 // about: a thrown error, a console error or warning, a file that isn't there.
 async function open(page: Page, address: string): Promise<string[]> {
   const problems: string[] = []
   page.on('console', (message) => {
-    if (message.type() === 'error' || message.type() === 'warning') problems.push(`console ${message.type()}: ${message.text()}`)
+    if ((message.type() === 'error' || message.type() === 'warning') && !ENGINE_NOTES.some((note) => note.test(message.text()))) problems.push(`console ${message.type()}: ${message.text()}`)
   })
   page.on('pageerror', (error) => problems.push(`page: ${error.message}`))
   // The page loads nothing from anywhere else (round 5, J3): its fonts are its own files.
