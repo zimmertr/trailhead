@@ -336,7 +336,7 @@ test('the marine layer can be started from inside the forest, where it rains', a
 
 // Round 8, E1: every side scene shows the world's weather, and the debug panel's weather buttons work in each.
 test('every side scene shows the weather and takes the weather buttons', async ({ page }) => {
-  type Sky = { __sky?: Record<string, unknown>; __api: { scene: () => string; trigger: (name: string) => boolean; jumpTo: (n: string) => Promise<boolean> } }
+  type Sky = { __sky?: Record<string, unknown> | undefined; __api: { scene: () => string; trigger: (name: string) => boolean; jumpTo: (n: string) => Promise<boolean> } }
   const problems = await open(page, '/')
   for (const scene of ['lakeside', 'larches', 'wall', 'approach', 'camp', 'climb']) {
     await page.evaluate((n) => (window as unknown as Sky).__api.jumpTo(n), scene)
