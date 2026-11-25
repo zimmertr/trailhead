@@ -11,7 +11,12 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - An animal in a side scene (the forest, the lake loop, the larches, the ridge, the approach, camp) is drawn by its scene. It still has at least two drawings, and it changes between them.
 - Every animal answers a click with a reaction true to how it lives, and a click on one is never a find (the finds that already were, the lake's marmot and the pika, stay finds). On the map, `pick()` and `click()` in `critters.js` find the animal and start its reaction; in a side scene, its own `pick()` and `act()` do. A map animal has at least five things to do after its real behaviour (its `does` list and `ACTS` in `critters.js`, or its own list for the marmots, squirrels, cubs, birds and whales): it starts on one at random, takes up the others by itself, and a click steps to the next in order. Each new animal gets a name in `content/game/names.yaml` and a reaction.
 
-## Plants
+## Weather
+
+- The world has one sky, and `sky` in `world.js` reports it: the marine layer, the volcano's squall, the map's gusts and the shadows of its fair-weather clouds. The map draws it. Every side scene reads it from `env.sky` and shows it in its own way with the helpers in `weather.js` (the forest's rain and fog are its own, in `forest.js`).
+- A side scene keeps no weather clock of its own, except as what it falls back to when the Clouds layer is off, and a climb's storm, which belongs to its route. `COUNTRY` in `pixel.js` says which country's sky each scene is under.
+- Every kind of weather has a start button under Weather in the debug panel, and the button works in every scene with a sky (`WEATHER` in `pixel.js`, `trigger` in `world.js`).
+- A new kind of weather goes into the sky report first, then onto the map, then into each scene, and gets its button.
 
 - Every plant is a thing that stands and sways with the shared wind: `breeze()` on the map and `windAt()` in the side scenes, both in `core.js`. A plant is made of parts (`tree.parts`), and at least one part has a `sway` above 0. `swaying()` in `sprites.js` turns a still drawing into one.
 - A fern is a single drawing with `fern: true`, and the map sways it whole.

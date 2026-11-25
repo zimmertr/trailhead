@@ -545,3 +545,9 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Nest Grows** (round 8, D2). The osprey now carries sticks. The nest on its snag could grow by a few pixels with every stick of a visit.
 - **A Wallow for the Bull** (round 8, D2). Bull elk roll in mud in the rut. A dark wet patch by the stream could be one more thing he does, and he could walk off a shade darker for a while.
 - **Acts by the Hour** (round 8, D2). The dice choose an act evenly. They could lean with the clock: bugling towards Dusk, bedding at midday, the marmots sunning in the morning and gone to ground at night.
+- **The Squall Keeps Its Own Clock** (round 8, E1). The squall's clock only runs while the map is on screen, so in the high scenes its snow is seen only if it began before he left, or from the debug panel. It could run in every scene, so a climb is sometimes caught in it.
+- **Rain You Can Hear at the Lake** (round 8, E1). The lakeside now shows the drizzle. It could sound of it too: a soft hiss on the water, and the loon quiet until it passes.
+- **Wet Rock** (round 8, E1). After the drizzle the map's ground stays dark for a while. The lakeside's boulders and trail could do the same, and dry from the top down.
+- **A Rainbow as It Lifts** (round 8, E1). When the marine layer thins with the sun out, the lakeside could show a faint bow over the far shore for a few seconds. It is one of the drafts for TJ's events, so it waits for him.
+- **Weather on the Conditions Board** (round 8, E1). The board could say what the sky is doing now, in the words a ranger would chalk up: marine layer in, clearing by noon, gusty on the ridge.
+- **A Weather Strip in the Debug Panel** (round 8, E1). Beside the buttons, one line that says what the sky report holds now (rain, fog, snow, the last gust), so a look tells why a scene is grey.

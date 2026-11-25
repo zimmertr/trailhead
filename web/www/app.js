@@ -270,8 +270,10 @@ function openDebug(on) {
   const fillPlaces = () => { const k = kinds[+animal.value]; place.replaceChildren(...k.homes.map((h, n) => el('option', { value: n, text: h })), el('option', { value: 'all', text: D.spawnAll })); };
   animal.addEventListener('change', fillPlaces); fillPlaces();
   // The timed events of the scene on screen (E5f): the map's, or the scene's own.
-  const SCENE_EVENTS = { world: ['shower', 'breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'squall', 'lens', 'tumble', 'devil', 'star'], forest: ['sasquatch', 'eyeshine', 'shower'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
+  const SCENE_EVENTS = { world: ['breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'lens', 'tumble', 'devil', 'star'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
   const here = api.scene(), events = SCENE_EVENTS[here] || [];
+  // The weather (round 8, E1): the same buttons in every scene that has a sky, since every scene shows it.
+  const weather = ['world', 'forest', 'lakeside', 'larches', 'wall', 'approach', 'camp', 'climb'].includes(here) ? ['shower', 'squall', 'gustnow', 'shade', 'clear'] : [];
   // On the map a start button first eases the view to where its event happens, then starts it (note 26).
   const fire = id => { const ms = api.showEvent(id); setTimeout(() => audio.sfx(api.trigger(id) ? 'step' : 'close'), ms); };
   // Related events share one split button (note 27): its name starts one of them at random (the avalanche picks
@@ -298,6 +300,7 @@ function openDebug(on) {
     el('h3', { text: D.outlines }), ...['roam', 'taps', 'trails', 'camera'].map(toggle), noGo,
     el('h3', { text: D.zoom }), toggle('snap'),
     el('h3', { text: D.speed }), el('div', { class: 'speeds' }, ...speeds),
+    ...(weather.length ? [el('h3', { text: D.weather }), ...weather.map(one)] : []),
     ...(events.length ? [el('h3', { text: here === 'world' ? D.mapEvents : D.inScene + ': ' + (D.scenes[here] || here) }), ...starts(events)] : []),
     el('h3', { text: D.spawn }), el('div', { class: 'row' }, animal, place, el('button', { class: 'plank', onclick: () => { audio.sfx(api.spawn(kinds[+animal.value].kind, place.value === 'all' ? 'all' : +place.value) ? 'step' : 'close'); } }, el('span', { text: D.spawn }))),
     el('h3', { text: D.cats }), el('div', { class: 'row' }, cat, trick, el('button', { class: 'plank', onclick: () => { if (window.__cats) window.__cats.force(cat.value, trick.value, api.now(), { dur: 8 }); audio.sfx('step'); } }, el('span', { text: D.set }))),

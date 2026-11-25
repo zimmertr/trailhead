@@ -659,6 +659,7 @@ export const W = {
    "scene": "Jump to a scene",
    "breakGroup": "Break a scene",
    "inScene": "In this scene",
+   "weather": "Weather",
    "mapEvents": "On the map",
    "scenes": {
     "forest": "Forest",
@@ -721,6 +722,9 @@ export const W = {
     "ridgegust": "Gust on the ridge",
     "raven": "Raven in the updraft",
     "shower": "Marine layer",
+    "gustnow": "Gust",
+    "shade": "Cloud shadow",
+    "clear": "Clear sky",
     "breach": "Humpback breach",
     "blow": "Humpback blow",
     "ferry": "Ferry sets out",

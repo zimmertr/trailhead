@@ -111,6 +111,9 @@ UI:
     scene: Jump to a scene
     breakGroup: Break a scene
     inScene: In this scene
+    # The weather's start buttons, in every scene with a sky (round 8, E1). Drafts for TJ: the heading, and
+    # under events gustnow, shade and clear.
+    weather: Weather
     mapEvents: On the map
     scenes:
       forest: Forest
@@ -170,6 +173,9 @@ UI:
       ridgegust: Gust on the ridge
       raven: Raven in the updraft
       shower: Marine layer
+      gustnow: Gust
+      shade: Cloud shadow
+      clear: Clear sky
       breach: Humpback breach
       blow: Humpback blow
       ferry: Ferry sets out

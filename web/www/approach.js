@@ -14,6 +14,7 @@ import { makeConifer, makeBoulder, makeCloud, makeBush } from './sprites.js';
 import { makeRunner } from './tj.js';
 import { marmot, shyPika } from './fauna.js';
 import { NAMES } from './content.js';
+import { veil, cloudSea, flurry, spindrift, shadow } from './weather.js';
 
 // SW: the near strip's width; he walks LEN of it, from X0, in DUR seconds: LEN1 of flower slope (part
 // one), then LEN2 along the moraine's crest beside the glacier (part two), which starts at XM, then
@@ -385,6 +386,8 @@ function buildApproach() {
   // Tall enough above its zero for the trail's whole climb plus the glacier's far edge behind it.
   const main = new Strip(SW, ICE_UP + 70, 600); paintMain(main);
   const spiresPic = makeSpires(), west = makeWall(WEST), east = makeWall(EAST);
+  // The Spires' highest point in their picture, where the wind's banner of snow streams from (round 8, E1).
+  const spTop = (() => { for (let i = 0; i < spiresPic.d.length; i++) if (spiresPic.d[i]) return [i % SPW, (i / SPW) | 0]; return [SPW >> 1, 0]; })();
   const clouds = Array.from({ length: 3 }, (_, k) => ({ bm: makeCloud(740 + k), x: k * 270 + 30, y: 6 + k * 11, v: 2.5 + k }));
 
   // Subalpine firs: a few small ones on the drop behind (far, so small), bigger ones on the near slope,
@@ -469,6 +472,11 @@ function buildApproach() {
       // The valley floor shows just above the top of the drop; the far wall rises from it.
       // up: how far up the glacier he is. The valley drops out of sight behind the ice as he goes.
       const fl = base + g(Math.round(cam)) - 6, hor = fl - FLOOR_H - 30, up = smooth(XG - 150, XG + 230, cam), sink = Math.round(46 * up);
+      // The world's weather over the Spires (round 8, E1). The marine layer lies below here: while it is in, a
+      // sea of cloud fills the valley he has come up out of. The map's gusts lift spindrift off the glacier
+      // and stream a banner from the highest tower, its clouds' shadows cross the valley and the ice, and
+      // the volcano's squall greys the towers and sends its snow across; a longer banner as it clears.
+      const sky = env.sky, gu = sky ? sky.gust('spires') : null, ge = gu ? Math.sin(Math.PI * gu[0] / 3) * gu[2] : 0, snowK = sky ? sky.snow : 0, blow = Math.max(0.75 * ge, sky ? sky.banner : 0), seaK = sky ? Math.max(sky.deck, sky.fog * 0.8) : 0;
       const sb = R.skyband;
       for (let y = 0; y < Math.min(VH, hor + 2); y++) {
         const f = clamp(1 - (hor - y) / 260, 0, 1) * (sb.length - 1), b0 = Math.floor(f), e = f - b0, row = y * VW;
@@ -487,6 +495,7 @@ function buildApproach() {
         const hz = base + g(camX + spx) + Math.round(iceTop(camX + spx)), kB = Math.max(kA, Math.min(VW * 0.98 / 240, (hz - 6) / 120, wallTall(VH, scr.narrow) / 120));
         const k = lerp(kA, kB, u3 * (0.45 + 0.55 * u3)), foot = Math.round(lerp(foot0, hz - 4 + (SPH - SPY - 5) * k, up)), far0 = kB / k - 1;
         blitScaled(fb, VW, VH, spiresPic, spx, foot, k);
+        spindrift(scr, t, blow, [[spx + (spTop[0] - (SPW >> 1)) * k, foot - (SPH - 1 - spTop[1]) * k]], 26 + 60 * k, 1);
         // The walls stand nearer than the Spires, so they go on over them (a phone has no room for them,
         // as at camp). The west one's foot is level with the foot of the Spires' picture, down behind the
         // valley's wall and then the ice, so small and far off it is out of sight, and it comes up as it grows.
@@ -495,8 +504,10 @@ function buildApproach() {
           blitScaled(fb, VW, VH, west, Math.round(spx + WEST.dx * VW * sc), foot + Math.round(8 * sc), sc * kB);
           blitScaled(fb, VW, VH, east, Math.round(VW * 1.14 + (X0 + LEN - VW * 0.4 - camX) * 0.6), hz + 10, kB);
         } }
+      veil(scr, 0.6 * snowK, 0, VH, true);
       drawStrip(scr, wall, camX * P_WALL + 200, fl - FLOOR_H + 1 + sink, false, 0);
       drawStrip(scr, floor, camX * P_FLOOR, fl + sink, false, floorFill);
+      cloudSea(scr, t, seaK, fl + sink - FLOOR_H - 2, fl + sink + 5);
       // The river glints far below.
       if (!sink) for (let n = 0; n < 8; n++) { const fx = Math.round(hash(n, 1, 730) * 1300), x = fx - Math.round(camX * P_FLOOR); if (x < 0 || x >= VW || frac(t * 0.6 + hash(n, 2, 730)) > 0.3) continue; scr.set(x, fl + Math.round(riverY(fx)), R.white[1]); }
       drawStrip(scr, main, camX, base, false, R.moss[1]);
@@ -551,6 +562,10 @@ function buildApproach() {
         } else scr.put(th.bm, sx, sy, !!th.flip);
       }
       if (TENT - camX < VW + 30) { const cx = STOVE - camX, cy = base + g(STOVE) - 7; for (let k = 0; k < 5; k++) { const age = frac(t * 0.35 + k / 5); scr.set(Math.round(cx + age * 9 + Math.sin(age * 6 + k)), Math.round(cy - age * 24), age < 0.5 ? R.granite[4] : R.granite[3]); } }
+      // Spindrift off the glacier where it is in view, the cloud's shadow over the valley and the ice, the snow.
+      if (blow > 0.03) { const src = []; for (let i = 0; i < 7; i++) { const wx = camX + Math.round(VW * (i + 0.5) / 7); if (wx > ICE0 + 60) src.push([wx - camX, base + g(wx) + Math.round(iceTop(wx) * [0.92, 0.55, 0.75, 0.4][i & 3])]); } spindrift(scr, t, blow, src, 70, 1); }
+      { const cs = sky ? sky.shade('spires') : null; if (cs !== null) shadow(scr, cs, hor + 6, VH); }
+      flurry(scr, t, snowK, 1);
       last = { camX, base, dir, VW };
       if (dir < 0) { mirror(fb, VW, VH); focus.x = VW - 1 - focus.x; }
     }

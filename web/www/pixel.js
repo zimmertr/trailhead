@@ -35,6 +35,8 @@ const LATER = {
 const standIn = n => { const T = LATER[n], k = T.elev.length - 1; return { name: n, later: true, dur: () => T.dur, stops: () => T.stops, cues: () => T.cues, elev: (arg, q) => { const f = clamp(q, 0, 1) * k, i = Math.min(k - 1, Math.floor(f)); return lerp(T.elev[i], T.elev[i + 1], f - i); } }; };
 
 const SPIRES = ['bluebird', 'tks', 'hevy-garmin-sync', 'trailhead', 'yggdrasil', 'kubernetes-manifests'];
+// The weather's start buttons (world.js, trigger), and which country's sky each side scene is under.
+const WEATHER = ['shower', 'squall', 'gustnow', 'shade', 'clear'], COUNTRY = { forest: 'lake', lakeside: 'lake', larches: 'peak', wall: 'peak', approach: 'spires', camp: 'spires', climb: 'spires' };
 
 // breakAt is for testing what happens when something goes wrong: a scene's name makes that scene throw
 // the first time it is drawn, 'load:' and a name makes it fail to build, 'renderer' breaks the frame itself.
@@ -380,7 +382,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       }
     } else if (scr.S !== scr.S0) scr.setScale(scr.S0);
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
-    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix; env.sky = DEBUG.clouds ? world.sky(t) : null;
+    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix; env.sky = DEBUG.clouds ? world.sky(t) : null; if (env.sky && window.__sky) Object.assign(env.sky, window.__sky);
     env.walkMark = route === 'walk' && p < 1 ? walkMark : null;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
     env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
@@ -464,8 +466,10 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // For the debug panel (E5f): the scenes' clock, its speed, and starting a timed event now in the
     // scene he is in (false if that scene has no such event).
     now: () => simT, speeds: SPEEDS, speed: () => speed, setSpeed(k) { if (SPEEDS.includes(k)) speed = k; },
-    // The marine layer is the world's weather, so its button works from a side scene too (round 6, note 13).
-    trigger(name) { const s = drawn.scene; if (tr) return false; if (s.trigger && s.trigger(name, simT)) return true; return name === 'shower' && s !== world && world.trigger(name, simT); },
+    // The weather is the world's, so its buttons work from a side scene too (the marine layer since round 6,
+    // note 13; the rest since round 8, E1, now that every scene shows the weather): each is started on the
+    // map's clocks, over the country the scene is in.
+    trigger(name) { const s = drawn.scene, at = COUNTRY[drawn.s]; if (tr) return false; if (s.trigger && s.trigger(name, simT, at)) return true; return WEATHER.includes(name) && s !== world && world.trigger(name, simT, at); },
     // The view eases to where a map event happens, so its start button shows it (note 26). Answers how many
     // milliseconds to wait before starting it: none when it has no place or the map is not on screen.
     showEvent(name) {

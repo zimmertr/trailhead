@@ -334,6 +334,24 @@ test('the marine layer can be started from inside the forest, where it rains', a
   expect(problems).toEqual([])
 })
 
+// Round 8, E1: every side scene shows the world's weather, and the debug panel's weather buttons work in each.
+test('every side scene shows the weather and takes the weather buttons', async ({ page }) => {
+  type Sky = { __sky?: Record<string, unknown>; __api: { scene: () => string; trigger: (name: string) => boolean; jumpTo: (n: string) => Promise<boolean> } }
+  const problems = await open(page, '/')
+  for (const scene of ['lakeside', 'larches', 'wall', 'approach', 'camp', 'climb']) {
+    await page.evaluate((n) => (window as unknown as Sky).__api.jumpTo(n), scene)
+    await expect.poll(() => page.evaluate(() => (window as unknown as Sky).__api.scene()), { timeout: 15_000 }).toBe(scene)
+    // Once the scene has come in (no button works while one scene gives way to the next).
+    await expect.poll(() => page.evaluate(() => (window as unknown as Sky).__api.trigger('gustnow')), { timeout: 5_000 }).toBe(true)
+    for (const name of ['shower', 'squall', 'shade', 'clear']) expect(await page.evaluate((n) => (window as unknown as Sky).__api.trigger(n), name), `${name} in ${scene}`).toBe(true)
+    // Everything at once, at full strength: rain, fog, snow, the banner, a gust and a cloud's shadow.
+    await page.evaluate(() => { (window as unknown as Sky).__sky = { rain: 1, deck: 1, fog: 1, snow: 1, banner: 1, gust: () => [1.2, 7, 1], shade: () => 0 } })
+    await page.waitForTimeout(400)
+    await page.evaluate(() => { (window as unknown as Sky).__sky = undefined })
+  }
+  expect(problems).toEqual([])
+})
+
 test('Glissade to camp sets off at once from inside the binoculars', async ({ page }) => {
   const problems = await open(page, '/#sideproject-spires/trailhead')
   await expect(page.locator('#card-go')).toBeVisible()

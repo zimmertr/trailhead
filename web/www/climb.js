@@ -8,8 +8,11 @@ import { bluebird, speck } from './fauna.js';
 import { sideFig, frontFig, backFig } from './tj.js';
 import { T as JUNCTION } from './land.js';
 import { NAMES, FINDS, UI } from './content.js';
+import { flurry, spindrift } from './weather.js';
 
 const W = 1000, OFF = 320, UP = 340, DOWN = 240, SX = 262;
+// What the wind can lift: snow and ice (round 8, E1).
+const SNOWY = new Set([...R.snow, ...R.white, ...R.ice]);
 // A longer route says where its summit flat starts (sx) and how wide its strip is (w).
 const sxOf = cfg => cfg.sx || SX, wOf = cfg => cfg.w || W;
 // Every climb shares the walk in from camp, the pause on top, the glissade and the walk out. What lies
@@ -1259,6 +1262,14 @@ export function makeClimb() {
         const a = t - st.banged, grow = Math.min(1, a / 0.07) * (a > 0.68 ? 1 - (a - 0.68) / 0.12 : 1), bx = X(tx - 24) + Math.round(Math.sin(a * 60)), by = Y(ty - 70), rx = 25 * grow, ry = 14 * grow, word = UI.bang;
         for (let y = -18; y <= 18; y++) for (let x = -30; x <= 30; x++) { const ang = Math.atan2(y / 14, x / 25), spike = 0.74 + 0.26 * Math.abs(frac(ang * 11 / 6.2832 + 0.25) * 2 - 1), dd = Math.hypot(x / Math.max(1, rx), y / Math.max(1, ry)) / spike; if (dd < 1) scr.set(bx + x, by + y, dd > 0.86 ? INK : dd > 0.7 ? R.blaze[1] : dd > 0.5 ? R.yellow[1] : R.white[1]); }
         if (grow > 0.9) { const x0 = bx - Math.floor(word.length * 3) + 1; [...word].forEach((ch, i) => (GLYPH[ch] || []).forEach((bits, j) => { for (let b = 0; b < 5; b++) if (bits & (16 >> b)) scr.set(x0 + i * 6 + b, by - 3 + j, INK); })); }
+      }
+      // The world's weather (round 8, E1), wherever the climb's own sky is clear (each climb has a storm, a
+      // whiteout or a sea of cloud of its own, told by its route): the map's gusts take spindrift off the snow
+      // around him, a longer plume as the volcano's squall clears, and the squall's snow blows across.
+      if (env.sky && storm <= 0 && bank <= 0 && heavy <= 0 && white <= 0 && flakes <= 0) {
+        const gw = env.sky.gust('spires'), lift = Math.max(gw ? 0.8 * Math.sin(Math.PI * gw[0] / 3) * gw[2] : 0, env.sky.banner);
+        if (lift > 0.03) { const src = []; for (let i = 0; i < 6; i++) { const sx = Math.round(VW * (i + 0.5) / 6), sy = Y(hOf(pts, sx - OFF + camX)); if (sy > 2 && sy < VH - 2 && SNOWY.has(fb[(sy + 1) * VW + sx])) src.push([sx, sy]); } spindrift(scr, t, lift, src, 60, 1); }
+        flurry(scr, t, env.sky.snow, 1);
       }
       // He pushes off in a burst of snow, and the glissade is under way. Only while he runs: scrubbed to this
       // moment and held there, the burst would leave the screen half white (round 6, note 3).

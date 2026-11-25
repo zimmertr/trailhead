@@ -10,6 +10,7 @@ import { makeRunner, sideFig } from './tj.js';
 import { goat, pika, shyPika } from './fauna.js';
 import { NAMES } from './content.js';
 import { PROFICIENCY } from './land.js';
+import { shadow } from './weather.js';
 
 // SW: the near strip's width; he walks LEN of it, from X0, in WALK seconds.
 const SW = 1500, X0 = 320, LEN = 700, WALK = 9;
@@ -383,11 +384,15 @@ function buildLarches() {
   // where it last was while at ease, and `t0` when it last settled, so its trips for flowers start from rest.
   const shy = shyPika(), hx = px + rockA.w - rockA.ox + 1, home = { x: px, y: py - rockA.h + 4 }, pk0 = { sat: { ...home }, t0: 0, easy: true };
   for (const [dx, dy] of [[0, -1], [0, -2], [1, -1]]) main.set(hx + dx, py + dy, INK);
-  // A gust now and then (G6): one in each 14 seconds, at a random point in its first 6, lasting 2.6. Needles
-  // stream off the larches across the whole view and the trees bend harder. gustGo: a start button's gust.
+  // A gust now and then (G6), lasting 2.6 s. Needles stream off the larches across the whole view and the trees
+  // bend harder; down in the burn it lifts a trail of ash and dust along the ground instead. The gusts are the
+  // map's own as they reach the peak (round 8, E1: sky.gust in world.js), about one in eleven seconds; with
+  // the weather switched off it keeps its old clock, one in each 14 seconds. gustGo: a start button's gust.
   const GUST = { slot: 14, len: 2.6 };
   let gustGo = -1e9, gustHeard = -1;
-  const gustAt = t => { const n = Math.floor(t / GUST.slot), u = t - n * GUST.slot - 6 * hash(n, 1, 690); return u >= 0 && u < GUST.len ? [u, n] : t - gustGo < GUST.len ? [t - gustGo, -2 - Math.floor(gustGo)] : null; };
+  const gustAt = (t, sky) => { if (t - gustGo < GUST.len) return [t - gustGo, -2 - Math.floor(gustGo)];
+    if (sky) { const g = sky.gust('peak'); return g && g[0] < GUST.len ? g : null; }
+    const n = Math.floor(t / GUST.slot), u = t - n * GUST.slot - 6 * hash(n, 1, 690); return u >= 0 && u < GUST.len ? [u, n] : null; };
   let cam = 0, last = { camX: 0, base: 0, dir: 1, VW: 0 };
   const poked = { nanny: -99, kid: -99, billy: -99 }; let billyOff = 0;   // when each goat was clicked, and how far along the verge the billy is
   const list = [];
@@ -468,7 +473,7 @@ function buildLarches() {
         pk0.easy = !!(a && a.sit); }
       list.push({ me: true, x: mx, y: my + 0.5 });
       list.sort((a, b) => (a.z || a.y) - (b.z || b.y));
-      const gu = gustAt(t), ge = gu ? Math.sin(Math.PI * gu[0] / GUST.len) : 0;
+      const gu = gustAt(t, env.sky), ge = gu ? Math.sin(Math.PI * gu[0] / GUST.len) : 0;
       if (gu && gu[1] !== gustHeard) { gustHeard = gu[1]; env.sfx('wind'); }
       for (const th of list) {
         const sx = th.x - camX, sy = base + th.y;
@@ -481,7 +486,10 @@ function buildLarches() {
           for (const part of th.tree.parts) { const [wx, wy] = windAt(th.x + (part.lx || 0), th.y + part.y, tq, part.sway * (1 + 2.5 * ge)); scr.blit(part.bm, sx + part.x + wx, sy + part.y + wy); }
         } else scr.put(th.bm, sx, sy, !!th.flip);
       }
-      if (gu && !me.low) needles(scr, gu[0], gu[1], base);
+      // The shadow of one of the map's fair-weather clouds, when it crosses the peak there, crosses the benches
+      // and the ground here; the peak and the far range stay in the sun.
+      { const cs = env.sky ? env.sky.shade('peak') : null; if (cs !== null) shadow(scr, cs, base - 34, VH); }
+      if (gu) { if (me.low) dust(scr, gu[0], gu[1], Math.round(base + my)); else needles(scr, gu[0], gu[1], base); }
       last = { camX, base, dir, VW };
       if (dir < 0) { mirror(fb, VW, VH); focus.x = VW - 1 - focus.x; }
     }
@@ -499,6 +507,22 @@ function needles(scr, u, n, base) {
     // A needle is a short streak along the wind, bright at its head; every other one flips as it flutters.
     const tilt = Math.floor(a * 9 + k) & 1 ? 1 : 0;
     scr.set(x, y, R.larch[4]); scr.set(x - 1, y - tilt, R.larch[3]); if (k % 3 === 0) scr.set(x - 2, y - tilt, R.larch[2]);
+  }
+}
+
+// The burn's gust: ash and dry dust lifted off the ground in a low, pale billow that rolls across with the
+// wind, lobed along its top, thick at its head and thinning out behind (after the pictures of R8-E1).
+function dust(scr, u, n, base) {
+  const { VW, VH, fb } = scr, tail = 170, head = -30 + (VW + tail + 60) * u / 2.6;
+  for (let x = Math.max(0, Math.round(head - tail)); x < Math.min(VW, Math.round(head)); x++) {
+    // Rounded at its head, a row of puffs along its top, each smaller than the one before it.
+    const back = (head - x) / tail, lobe = Math.sqrt(Math.abs(Math.sin((head - x) / 11 + n))), nose = Math.min(1, (head - x) / 10), mid = base + 2 + Math.round(2 * Math.sin(x / 47 + n));
+    const up = Math.round((2 + 13 * lobe) * (1 - 0.7 * back) * Math.sqrt(nose));
+    for (let y = Math.max(0, mid - up); y < Math.min(VH, mid + 3); y++) {
+      // Whole inside each puff near the head, breaking up through a dither towards the tail; lit along the top.
+      const r = y - mid + up, thick = (y < mid ? 1.5 : 1 - (y - mid) / 3) * (1.25 - 1.5 * back);
+      if (bayer(x, y) < thick) fb[y * VW + x] = r < 2 ? R.white[0] : r < 5 || hash(x >> 1, y, 700) > 0.22 ? R.dry[3] : R.ash[3];
+    }
   }
 }
 

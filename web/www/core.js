@@ -240,12 +240,17 @@ function windAt(x, y, t, amt) {
 // back, on its own slow beat, so the map is never quite still and no two plants move together. The forest and lake scenes keep windAt: there the trees are close and never quite stop.
 const STILL = [0, 0], LEAN = [1, 0], BACK = [-1, 0], GUST = { every: 11, speed: 180, wide: 230 };
 let gustT = -1, gustNow = [];
+// A gust the debug panel asked for (round 8, E1): one more front, set off so that it reaches a spot now and
+// carries on east from there, on the map and in the side scenes alike.
+let gustAsk = -1e9;
+function askGust(x, y, t) { gustAsk = t - (x + 0.25 * y + 60) / GUST.speed; }
 function breeze(x, y, t, amt) {
   if (!amt) return STILL;
   if (t !== gustT) {
     // Two gusts can be on the map at once: the one that set off last and the one before it.
     gustT = t; gustNow = [];
     for (let k = 0; k < 2; k++) { const n = Math.floor(t / GUST.every) - k, t0 = n * GUST.every + 3 * hash(n, 7, 400); if (t >= t0) gustNow.push([(t - t0) * GUST.speed - 60, n, hash(n, 8, 400) < 0.45 ? 0.75 : 1]); }
+    if (t - gustAsk < 16) gustNow.push([(t - gustAsk) * GUST.speed - 60, -1, 1]);
   }
   const along = x + 0.25 * y;
   for (const [front, n, strength] of gustNow) {
@@ -404,8 +409,16 @@ const DEBUG = { snap: true, trees: true, clouds: true, mist: true, labels: true,
 export {
   DEBUG, TAU, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, fbm, bayer,
   DAY, DUSK, R, RAMP_OF, STEP_OF, INK, N, SHADE, LIGHT, KIND, BLACK, pick, ramp,
-  BM, outline, litBack, disc, thick, catmull, makePath, windAt, breeze, Screen
+  BM, outline, litBack, disc, thick, catmull, makePath, windAt, breeze, gustOver, askGust, Screen
 };
+// When the map's last gust reached a spot: [the seconds since its front went by, which gust, its strength], or
+// null once the air there has been still for `len` seconds. For the side scenes, which show the same gusts.
+function gustOver(x, y, t, len = 3) {
+  const along = x + 0.25 * y + 60, ua = t - gustAsk - along / GUST.speed;
+  if (ua >= 0 && ua < len) return [ua, -5 - Math.round(Math.abs(gustAsk) * 10) % 1000, 1];
+  for (let k = 0; k < 3; k++) { const n = Math.floor(t / GUST.every) - k, u = t - n * GUST.every - 3 * hash(n, 7, 400) - along / GUST.speed; if (u >= 0 && u < len) return [u, n, hash(n, 8, 400) < 0.45 ? 0.75 : 1]; }
+  return null;
+}
 
 // What each colour looks like through mist: the palette entry nearest to it mixed toward fog by this
 // much. Nearest is judged in Day and in Dusk together, so a veil holds in either light. The neutral

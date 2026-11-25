@@ -15,6 +15,7 @@ import { makeConifer, makeCloud, makeHuckleberry, huckClumps } from './sprites.j
 import { sideFig, frontFig, backFig, FEET, HANDS, KITS } from './tj.js';
 import { makeCragPair, PAIR } from './people.js';
 import { NAMES } from './content.js';
+import { veil, flurry } from './weather.js';
 
 const W = 1500, UP = 520, DOWN = 380;
 // The foot of the face: level with the start at the left, falling away to the right, so the drop
@@ -1291,11 +1292,14 @@ function buildRidge() {
   // climbing up, until everyone is at the anchor: ahead is how far it has got. When the visitor carries
   // on, the timeline jumps by that much (skip), so nothing is watched twice.
   let ahead = 0, aheadAt = -1;
-  // A gust now and then: one in each 9 seconds, at a random point in its first 4, lasting 3; and the
-  // debug menu's gust, now.
+  // A gust now and then, lasting 3 s: the map's own gusts as they reach the peak (round 8, E1: sky.gust in
+  // world.js), about one in eleven seconds; with the weather switched off, its old clock (one in each 9
+  // seconds, at a random point in its first 4); and the debug menu's gust, now.
   const GUSTR = { slot: 9, len: 3 };
   let gustGo = -1e9, gustHeard = null;
-  const gustAt = t => { if (t - gustGo >= 0 && t - gustGo < GUSTR.len) return [t - gustGo, 'go' + gustGo]; const n = Math.floor(t / GUSTR.slot), u = t - n * GUSTR.slot - 4 * hash(n, 3, 795); return u >= 0 && u < GUSTR.len ? [u, n] : null; };
+  const gustAt = (t, sky) => { if (t - gustGo >= 0 && t - gustGo < GUSTR.len) return [t - gustGo, 'go' + gustGo];
+    if (sky) { const gw = sky.gust('peak'); return gw && gw[0] < GUSTR.len ? gw : null; }
+    const n = Math.floor(t / GUSTR.slot), u = t - n * GUSTR.slot - 4 * hash(n, 3, 795); return u >= 0 && u < GUSTR.len ? [u, n] : null; };
   // The rappel rope: from the ring over the lip; while someone is on it, tight to their device and the
   // tail hanging below them; otherwise lying down the rock's east edge. Thrown, it uncoils down the edge.
   const rp = [];
@@ -1386,7 +1390,7 @@ function buildRidge() {
       camX += (at.x - camX) * k; camH += (at.h - camH) * k;
       // The wind where the camera is, and the gust's strength; a whoosh as each gust arrives, louder
       // high up (none at the foot, where there is no wind to speak of).
-      const gu = gustAt(t), g = gu ? Math.sin(Math.PI * gu[0] / GUSTR.len) : 0, wnd = tau - SCRIPT.descT >= DESC.under ? 0 : windy(camH), wob = 2.5 * wnd * (0.35 + g);
+      const gu = gustAt(t, env.sky), g = gu ? Math.sin(Math.PI * gu[0] / GUSTR.len) : 0, wnd = tau - SCRIPT.descT >= DESC.under ? 0 : windy(camH), wob = 2.5 * wnd * (0.35 + g);
       if (gu && gu[1] !== gustHeard) { gustHeard = gu[1]; if (wnd > 0.12 || typeof gu[1] === 'string') env.sfx(wnd > 0.55 ? 'windHi' : 'wind'); }
       const base = baseline(scr, env.shown && !String(env.shown).startsWith('wait:'), st) - Math.round(VH * (scr.narrow ? 0.2 : 0.24)), cx = clamp(Math.round(camX - VW * (scr.narrow ? 0.5 : 0.45)), 0, W - VW), rowOf = hh => Math.round(base + camH - hh);
       const sb = R.skyband;
@@ -1397,6 +1401,11 @@ function buildRidge() {
       for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (VW + 140)) - 70, c.y + camH * 0.12 - 20);
       drawStrip(scr, far, 120 + cx * 0.15, base + camH * 0.08 + 60, false, R.far[1]);
       drawStrip(scr, basin, 300 + cx * 0.4, base + camH * 0.12 - 25, false, R.far[1]);
+      // While the squall is over the volcano on the map, its snow reaches the ridge (round 8, E1): the far
+      // range greys behind it here, and the flakes blow across everything at the end. Not once they are down
+      // in the cloud, which has its own snow.
+      const snowK = env.sky && tau - SCRIPT.descT < DESC.under ? env.sky.snow : 0;
+      veil(scr, 0.6 * snowK, 0, VH, true);
       const seaC = smooth(220, 430, camH), seaTop = base + camH * 0.12 - 25 + 40 - 31 * seaC, seaX = Math.round(300 + cx * 0.4);
       // The one cloud sea (round 5, T74): from when the haul starts its near part rises up the tower from
       // the bottom of the picture, always below TJ, until by the time he is up it stands at CLOUDH, the
@@ -1637,6 +1646,7 @@ function buildRidge() {
         } else ravenSeen = null;
       } else ravenSeen = null;
       windLines(scr, t, wnd, g);
+      flurry(scr, t, snowK, 1);
       const me = P.tj; focus.x = Math.round(me.x) - cx; focus.y = rowOf(me.h) - 14;
     }
   };

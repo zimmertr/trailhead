@@ -1,6 +1,6 @@
 // The world map: the top-down view of the Trailhead and its three destinations.
 import { DEBUG, clamp, lerp, smooth, frac, sq, rng, hash, vnoise, bayer, R, DAY, RAMP_OF, STEP_OF, INK, SHADE, LIGHT, KIND, BM, makePath } from './core.js';
-import { breeze, veilTable } from './core.js';
+import { breeze, gustOver, askGust, veilTable } from './core.js';
 import { makeCloud, makeSmallSign, makeKiosk, makeLookout, makeTent, makeJournal, makeFlag, makeRegister } from './sprites.js';
 import { speck } from './fauna.js';
 import { SIGNS, NAMES, DEST_NAMES, UI } from './content.js';
@@ -500,7 +500,13 @@ export function makeWorld() {
   };
   // The small fair-weather clouds that cast the drifting shadows, each its shadow's size, FAIR_ALT above it.
   const FAIR_ALT = 64, FAIR = [0, 1, 2, 3].map(k => { const cw = 40 + 16 * hash(k, 1, 91), chh = 11 + 5 * hash(k, 2, 91); return { cw, chh, y: Math.round(620 + hash(k, 3, 91) * 380), bm: puff(Math.round(cw * 1.9), Math.round(chh * 2.4), 610 + k) }; });
-  const fairX = (k, t) => ((k * 310 + t * (5 + k * 1.3)) % (WW + 300)) - 150;
+  // fairOff: how far the debug panel has moved the first of them on, to bring its shadow over a spot (E1).
+  let fairOff = 0;
+  const fairX = (k, t) => ((k * 310 + t * (5 + k * 1.3) + (k ? 0 : fairOff)) % (WW + 300)) - 150;
+  let lastHere = { x: T.x, y: T.y };
+  // Where each side scene's country is on the map, for the weather over it (sky): the lake's west shore, and
+  // the ends of the peak's trail and of the Spires'.
+  const PLACE = { lake: [lx0, (ly0 + ly1) >> 1], peak: W.trails.stack[W.trails.stack.length - 1], spires: W.trails.spires[W.trails.spires.length - 1] };
   const things = [];
   for (const th of W.things) things.push(th.tree ? { kind: 'tree', t: th, x: th.x, y: th.y } : th);
   const put = (bm, x, y, extra = {}) => things.push({ bm, x: Math.round(x), y: Math.round(y), ...extra });
@@ -773,11 +779,28 @@ export function makeWorld() {
       if (name === 'shower') return [lx0 - 50, (ly0 + ly1) >> 1];
       return crit.where(name) || ev.where(name);
     },
-    // The weather at a moment, for the side scenes in the rainforest (the forest's rain and fog, note 13).
-    sky: t => weather(t),
+    // The weather at a moment, for the side scenes. The marine layer (the forest's rain and fog, note 13), and
+    // for the other scenes (round 8, E1) what else the map's sky is doing: snow, while the squall is over the
+    // volcano; banner, the spindrift as it clears; the map's gusts and the shadows of its fair-weather
+    // clouds over a place ('lake', 'peak' or 'spires'). gust answers as gustOver does; shade answers how far
+    // a shadow has crossed the place, from 1 (coming in from the west) to -1 (gone east), or null.
+    sky: t => { const w = weather(t), q = AVA.squall >= 0 ? t - AVA.squall : -1;
+      w.snow = q < 0 ? 0 : smooth(SQ.build - 3, SQ.build + 2, q) * smooth(SQ.clear + 2, SQ.clear - 3, q);
+      w.banner = q < 0 ? 0 : smooth(SQ.clear - 4, SQ.clear + 1, q) * smooth(SQ.end, SQ.end - 4, q);
+      w.gust = place => gustOver(PLACE[place][0], PLACE[place][1], t);
+      w.shade = place => { for (let k = 0; k < 4; k++) { const u = (PLACE[place][0] - fairX(k, t) - 8) / (FAIR[k].cw * 2.2); if (u > -1 && u < 1) return u; } return null; };
+      return w; },
     lookFor: (x, y) => [x - cam.x, y - cam.y],
     // The debug panel's start buttons (E5f): each moves its event's clock so the event begins now.
-    trigger(name, t) {
+    // The weather's own buttons work in every scene (round 8, E1; TJ: the weather is managed from the debug
+    // panel). place: the side scene's country ('lake', 'peak' or 'spires'); on the map, where he stands.
+    trigger(name, t, place) {
+      const spot = PLACE[place] || [lastHere.x, lastHere.y];
+      // A gust that reaches the spot now; the first fair-weather cloud, moved to just west of it so that its
+      // shadow comes over; and a clear sky: the marine layer gone and the squall over.
+      if (name === 'gustnow') { askGust(spot[0], spot[1], t); return true; }
+      if (name === 'shade') { const span = WW + 300, want = spot[0] - 8 - FAIR[0].cw * 1.4 + 150; fairOff = ((want - t * 5) % span + span) % span; return true; }
+      if (name === 'clear') { const s = weather(t).s; if (s < RAIN.gone) rainAhead += RAIN.gone + 1 - s; if (AVA.squall >= 0) AVA.squall = t - SQ.end; return true; }
       if (name === 'shower') { const n = Math.floor((t + rainAhead + RAIN.cycle - 10) / RAIN.cycle) + 1; rainAhead = n * RAIN.cycle - t - RAIN.cycle + 10; return true; }
       // An avalanche now: on a face still under snow, picked at random (any face, covered again first, if none
       // is), or on the face asked for (ava0 is the westernmost).
@@ -794,7 +817,7 @@ export function makeWorld() {
     draw(scr, env, leg, q) {
       const { VW, VH, fb } = scr, { t, tq, dt } = env; nowT = t;
       regTrip = leg.path === 'register';
-      const here = where(leg, q);
+      const here = where(leg, q); lastHere = here;
       if (env.moving) face(leg, q);
       if (env.home) facing = 'down';
 

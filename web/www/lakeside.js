@@ -10,6 +10,7 @@ import { makeRunner, sideFig, cheerFig, swimFig } from './tj.js';
 import { NAMES } from './content.js';
 import { drawLens, startLens } from './events.js';
 import { paintMonolith, moraineLakes, faceSnow, MW as PMW, MH as PMH, TOPY as PTOPY } from './monolith.js';
+import { rain, rings, veil, mist, shadow } from './weather.js';
 
 // Round 5 (T30): the lake on the map is about 1.6 times as wide, so the shore he runs along is longer
 // than round 4's (624 over 8 s), at the same pace.
@@ -425,6 +426,12 @@ function buildLakeside() {
       }
       last = { camX, base, reach, isle: [ix, base + ISLE_Y], me: at ? [Math.round(at.x), Math.round(base + at.y)] : [X, base + my] };
 
+      // The world's weather here (round 8, E1). The marine layer stops short of the lake on the map, so the
+      // lake has its fringe: half the drizzle, a thin grey over the far view and mist thickening on the
+      // water while the deck is in, and the mist lingering as it lifts. The map's gusts cross the water as a
+      // dark ruffled band, its clouds' shadows cross the far shore, and the sun's glints go with the sun.
+      const sky = env.sky, rainK = sky ? 0.5 * sky.rain : 0, fogK = sky ? Math.max(sky.deck, sky.fog * 0.8) : 0, sun = (1 - smooth(0.55, 0.9, env.mix)) * (1 - 0.8 * fogK);
+      const gu = sky ? sky.gust('lake') : null, cs = sky ? sky.shade('lake') : null;
       // Sky, lightest at the horizon.
       const sb = R.skyband, hor = base + FAR;
       for (let y = 0; y < Math.min(VH, hor + 2); y++) {
@@ -444,6 +451,8 @@ function buildLakeside() {
       if (DEBUG.clouds) drawLens(scr, 600 - Math.round(peakX), hor + sink - PH + 2, t, MS);
       const farX = camX * 0.45 + 200;
       drawStrip(scr, farS, farX, hor);
+      if (cs !== null) shadow(scr, cs, hor - 22, hor + 1);
+      veil(scr, 0.45 * fogK, 0, hor + 1);
 
       // The lake, with the far shore and Monolith upside down in it.
       const sw = at && (at.k === 'swim' || (at.k === 'wade' && at.depth >= 1)) ? [at.x, base + at.y] : null;
@@ -455,7 +464,7 @@ function buildLakeside() {
       // Sun on the water, and now and then a trout rises.
       for (let k = 0; k < 40; k++) {
         const sx = Math.round((hash(k, 1, 150) * 600 - camX * 0.7) % VW + VW) % VW, sy = hor + 8 + Math.round(hash(k, 2, 150) * (-FAR - 20));
-        if (frac(t * 0.8 + hash(k, 3, 150)) < 0.25 && sy < base + shore(camX + sx) - 2) { scr.set(sx, sy, R.white[1]); scr.set(sx + 1, sy, tarn[5]); }
+        if (frac(t * 0.8 + hash(k, 3, 150)) < 0.25 * sun && sy < base + shore(camX + sx) - 2) { scr.set(sx, sy, R.white[1]); scr.set(sx + 1, sy, tarn[5]); }
       }
       { const k = Math.floor(t / 5.3), u = frac(t / 5.3) * 5.3, rx = Math.round(hash(k, 1, 151) * VW), ry = hor + 14 + Math.round(hash(k, 2, 151) * 18); if (u < 1.6) { const r = 1 + u * 5; for (let a = 0; a < 24; a++) { const x = rx + Math.round(Math.cos(a / 24 * 6.283) * r), y = ry + Math.round(Math.sin(a / 24 * 6.283) * r * 0.35); if (y < base + shore(camX + x) - 1 && y > hor + 2) scr.set(x, y, tarn[5]); } } }
       // A loon and her chick paddle along the far side, leaving a wake.
@@ -487,7 +496,14 @@ function buildLakeside() {
         scr.put(isle, ix, iy, false);
         for (const part of isleFir.parts) { const [wx, wy] = windAt(ISLE_X + (part.lx || 0), ISLE_Y - 5 + part.y, tq, part.sway); scr.blit(part.bm, ix + FIR_DX + part.x + wx, iy - 5 + part.y + wy); }
       }
+      // Rain rings, and a gust: a band of water ruffled a step darker that crosses the lake in three seconds,
+      // wider and faster the nearer it is, with a white crest here and there.
+      const wet = (x, y) => y > hor + 3 && y < base + shore(camX + x) - 2;
+      rings(scr, t, rainK * 1.6, hor + 6, base - 10, wet);
+      if (gu) for (let y = hor + 6; y < Math.min(VH, base - 8); y++) { const dy = y - hor, w = 14 + dy * 0.9, cx = -w + (VW + 2 * w + 60) * gu[0] / 3 + dy * 1.4 + 9 * Math.sin(y * 0.7), beat = Math.floor(t * 7);
+        for (let x = Math.max(0, Math.round(cx - w)); x < Math.min(VW, Math.round(cx + w)); x++) { if (!wet(x, y) || (x + 2 * y + beat) % 3 === 0) continue; const q = y * VW + x; fb[q] = hash(x >> 2, y + beat, 153) < 0.03 * gu[2] ? R.white[1] : SHADE[fb[q]]; } }
       if (DEBUG.mist) lakeMist(scr, camX, hor, base + 2, t, mistV);
+      mist(scr, t, 0.9 * fogK, hor + 5, 13);
       // The wall of the forest, over the water and the far shore.
       for (let x = Math.max(0, WX - camX), x1 = Math.min(VW, WX + WW - camX); x < x1; x++) {
         const col = camX + x - WX;
@@ -557,6 +573,7 @@ function buildLakeside() {
         } else if (th.tall) blitTall(scr, th.bm, sx - th.bm.ox, sy - th.bm.oy);
         else scr.put(th.bm, sx, sy, th.flip);
       }
+      rain(scr, t, rainK);
     }
   };
 }
