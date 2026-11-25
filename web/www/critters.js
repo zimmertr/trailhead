@@ -760,13 +760,28 @@ export function makeCritters(W, opts = {}) {
     for (let dx = -11; dx <= 11; dx++) if (Math.abs(dx) > 7 - h * 3 && hash(dx, beat + i * 9, 6303) < 0.55) scr.set(x + dx, y, R.white[1]);
     for (let dx = -16; dx < -9; dx++) if (hash(dx, beat + i * 5, 6306) < 0.35 * h) scr.set(x + dx, y + (dx & 1), R.white[0]);
   }
-  // A spyhop: the head rises straight up out of the water, holds and slides back down.
+  // A spyhop (round 8, B6, after a picture; TJ: the old one, a post three pixels wide, looked off): the whale
+  // stands in the water with its head and a third of its body out, leaning the way it swims. The blunt head
+  // is black and glossy on the back, which is to the light, white on the chin and throat, with the white
+  // patch behind the eye; a pectoral fin shows at the waterline on the belly side once it is well up. Water
+  // runs off the chin as it rises, and it stands in a ring of white water. It rises, holds and slides back.
+  const SPY_W = [2, 4, 5, 5, 6, 6, 6, 6, 6, 6, 6];
   function spyhop(scr, x, y, v, t) {
-    const up = Math.round(13 * Math.sin(Math.PI * Math.min(1, v * 1.25)) ** 0.7);
-    for (let j = 0; j < up; j++) { const fromTop = up - 1 - j, yy = y - 1 - j;
-      for (let dx = -1; dx <= 1; dx++) { if (fromTop === 0 && dx) continue; let c = R.navy[0];
-        if ((fromTop === 3 || fromTop === 4) && dx === 1) c = R.white[1]; else if (fromTop >= 6 && fromTop <= 9 && dx === 0) c = R.white[1]; else if (dx === -1 || fromTop === 0) c = INK; scr.set(x + dx, yy, c); } }
-    const beat = Math.floor(t * 6); for (let dx = -4; dx <= 4; dx++) if (Math.abs(dx) > 1 && hash(dx, beat, 6304) < 0.7) scr.set(x + dx, y, R.white[1]);
+    const N = R.navy, k = Math.min(1, v * 1.25), up = Math.round(11 * Math.sin(Math.PI * k) ** 0.7), beat = Math.floor(t * 6);
+    let edge = x + 3;
+    for (let j = 1; j <= up; j++) { const ft = up - j, w = SPY_W[ft], x0 = x - 3 + Math.round(0.3 * j) + ((6 - w) >> 1);
+      if (j <= 2) edge = x0 + w;
+      for (let q = 0; q < w; q++) {
+        let c = N[0];
+        if (ft === 0) c = INK;
+        else if (ft >= 2 && q >= w - 2) c = q === w - 1 && ft > 6 ? R.white[0] : R.white[1];
+        else if (q === 0) c = N[2];
+        else if ((ft === 3 || ft === 4) && q === 1) c = R.white[1];
+        else if (q === w - 1 || q === w - 3 && ft >= 2) c = INK;
+        scr.set(x0 + q, y - j, c); } }
+    if (up >= 8) { scr.set(edge, y - 2, N[0]); scr.set(edge, y - 1, N[0]); scr.set(edge + 1, y - 1, N[1]); scr.set(edge + 2, y - 1, INK); }
+    if (k < 0.5 && up > 3) for (let d = 0; d < 3; d++) { const j = 1 + Math.floor(hash(d, beat, 6307) * (up - 2)); scr.set(x + 4 + Math.round(0.3 * j) + (d & 1), y - j, R.white[0]); }
+    for (let dx = -6; dx <= 8; dx++) { if (up > 0 && dx >= -3 && dx <= 3) continue; if (hash(dx, beat, 6304) < 0.7) scr.set(x + dx, y, R.white[1]); if (Math.abs(dx - 1) < 6 && hash(dx, beat, 6308) < 0.3) scr.set(x + dx, y + 1, R.white[0]); }
   }
   // A fixed dither for the pools coming into view as the water leaves them.
   const bayerish = (x, y, k) => hash(x, y, k + 6107);
