@@ -667,3 +667,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **Sounds From Where They Happen** (round 8, I4). An effect at the edge of the view could play quieter and to that side, so a bugle across the valley is not as loud as one beside him.
 - **A Soft Ceiling** (round 8, I4). The limiter holds the lab's pile-up under full scale by 1.4 dB. A soft clipper after it would hold any pile-up at all.
 - **Loudness in CI** (round 8, I4). The lab runs in `check.sh` on the workstation. As a CI job it would catch a new effect or tune that was never measured.
+- **Why a Button Is Greyed** (round 8, J15). A greyed start button could say what it waits for in its name tag: "at Dusk", "once it has rained", "no snow on that face".
+- **The Sky Turns With the Glow** (round 8, J14). While the peaks are lit the band of sky behind them could warm for the same seconds, and the lakes could carry the lit summits in their reflections.
+- **The Glow in the Side Scenes** (round 8, J14). The walk to camp and the larch basin look up at summits. A sunset that happens while he is there could light them too, by the same rule.
+- **The First Sunset Comes Sooner** (round 8, J14). A visit starts at the beginning of a 285 second day, so most visitors never see Dusk or the glow. The first day could be shorter, or the clock could start in the afternoon.

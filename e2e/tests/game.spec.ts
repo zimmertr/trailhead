@@ -327,12 +327,56 @@ test('the events at the Spires, the Peak, the lake and the rainforest start from
   // One button for each place, its events in the list under it.
   await page.locator('#b-debug').click()
   for (const place of ['Sideproject Spires', 'Proficiency Peak', 'Reflection Lake', 'Rainforest']) await expect(page.locator('#debug .split-row .plank').filter({ hasText: place })).toHaveCount(1)
-  for (const name of ['Rockfall off a tower', 'Glacier calves', 'Ravens ride the updraft', 'Alpenglow (Dusk)', 'Rocks down the talus', 'Goats cross the talus', 'Dead calm', 'Ducks land', 'Tree falls', 'Rainbow (Day)', 'Owl calls (Dusk)']) await expect(page.locator('#debug .split-list .plank').filter({ hasText: name })).toHaveCount(1)
+  for (const name of ['Rockfall off a tower', 'Glacier calves', 'Ravens ride the updraft', 'Rocks down the talus', 'Goats cross the talus', 'Dead calm', 'Ducks land', 'Tree falls', 'Rainbow (Day)', 'Owl calls (Dusk)']) await expect(page.locator('#debug .split-list .plank').filter({ hasText: name })).toHaveCount(1)
   await page.evaluate(() => { location.hash = 'kiosk' })
   const seen = page.locator('#sheet .board .seen'), told = page.locator('#sheet .board .told')
   await expect(seen.locator('li').filter({ hasText: /rainbow/i })).toHaveCount(1)
   await expect(told.locator('li').filter({ hasText: /rainbow/i })).toHaveCount(0)
   await expect(told.locator('li').filter({ hasText: /an owl calling in the rainforest/i })).toHaveCount(1)
+  expect(problems).toEqual([])
+})
+
+// TJ, 25 November: the alpenglow lights every mountain, so it is a button of its own and not one of the
+// Spires'; it comes with the light, not on a clock of its own; and a start button whose event cannot happen
+// at this time of day is greyed out, and comes back when the light turns.
+type Glow = { __api: { saw: () => Set<string>, zoom: (d: number) => boolean, setTheme: (t: string) => void } }
+const sawGlow = (page: Page) => page.evaluate(() => (window as unknown as Glow).__api.saw().has('alpenglow'))
+const zoomOut = (page: Page) => page.evaluate(() => { for (let i = 0; i < 6; i++) (window as unknown as Glow).__api.zoom(-1) })
+test('the alpenglow comes as the light turns to Dusk, and a start button that cannot happen now is greyed out', async ({ page }) => {
+  const problems = await open(page, '/?arrive=0')
+  await zoomOut(page)
+  await page.locator('#b-debug').click()
+  const button = (name: string) => page.locator('#debug > .plank').filter({ hasText: name })
+  await expect(page.locator('#debug .split-list .plank').filter({ hasText: 'Alpenglow' })).toHaveCount(0)
+  for (const name of ['Alpenglow (Dusk)', 'Shooting star (Dusk)']) await expect(button(name)).toHaveAttribute('aria-disabled', 'true')
+  await expect(button('Tumbleweed')).not.toHaveAttribute('aria-disabled', 'true')
+  await expect(page.locator('#debug .split-list .plank').filter({ hasText: 'Rainbow (Day)' })).not.toHaveAttribute('aria-disabled', 'true')
+  // Greyed out, it does nothing.
+  await button('Alpenglow (Dusk)').click({ force: true })
+  await page.waitForTimeout(1500)
+  expect(await sawGlow(page)).toBe(false)
+  // The light turns: the buttons change places and the peaks glow, with nothing pressed.
+  await page.evaluate(() => (window as unknown as Glow).__api.setTheme('dark'))
+  await expect(button('Alpenglow (Dusk)')).not.toHaveAttribute('aria-disabled', 'true')
+  await expect(page.locator('#debug .split-list .plank').filter({ hasText: 'Rainbow (Day)' })).toHaveAttribute('aria-disabled', 'true')
+  await expect.poll(() => sawGlow(page), { timeout: 15_000 }).toBe(true)
+  expect(problems).toEqual([])
+})
+
+// A page that opens at Dusk has not seen the light turn, so nothing glows; and on the clock the glow comes
+// back before sunrise (time=350 is 20 seconds before it).
+test('the alpenglow comes back before sunrise, and a page opened at Dusk does not start one', async ({ page, browser }) => {
+  const held = await browser.newPage({ viewport: { width: 1440, height: 900 } })
+  const heldProblems = await open(held, '/?arrive=0&dusk=1')
+  await zoomOut(held)
+  await held.waitForTimeout(4000)
+  expect(await sawGlow(held)).toBe(false)
+  expect(heldProblems).toEqual([])
+  await held.close()
+
+  const problems = await open(page, '/?arrive=0&time=350')
+  await zoomOut(page)
+  await expect.poll(() => sawGlow(page), { timeout: 20_000 }).toBe(true)
   expect(problems).toEqual([])
 })
 

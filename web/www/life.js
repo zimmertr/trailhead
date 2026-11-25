@@ -77,13 +77,15 @@ export function makeLife(W, STILL) {
       if (!b.floe && b.w >= 5) for (let dx = turn > 0.5 ? 2 : 1; dx < b.w - (turn < -0.5 ? 3 : 2); dx++) scr.set(x + dx, y - 1, R.white[1]);
     }
   }
-  let mix = 0;
+  let mix = 0, drawnAt = -9, born = null;
   // slot: one in each so many seconds. first: when the first slot ends. dur: how long it lasts. ok: whether it can happen now.
   const EV = {
     rockfall: { slot: 75, first: 26, dur: 6.5, ok: () => L.rock.length > 0 },
     calve: { slot: 95, first: 48, dur: 12, ok: () => CALVE.length > 0 },
     pair: { slot: 85, first: 34, dur: 17, ok: () => TOWERS.length > 0 },
-    alpenglow: { slot: 110, first: 18, dur: 42, ok: () => mix > 0.5 },
+    // The alpenglow has no slots of its own either (TJ, 25 November): it comes as the light turns to Dusk, by the
+    // clock's sunset or the Dusk button, and before sunrise by the clock (alpenglow() below). Its button plays it now.
+    alpenglow: { slot: 1e9, first: 2e9, dur: 42, ok: () => mix > 0.5 },
     talus: { slot: 65, first: 40, dur: 5.5, ok: () => SCREE.length > 0 },
     band: { slot: 150, first: 70, dur: CROSS ? (CROSS.len + (BAND.length - 1) * GAP) / PACE + 0.5 : 1, ok: () => !!CROSS },
     calm: { slot: 160, first: 62, dur: 28, ok: () => !!LAKE },
@@ -320,7 +322,10 @@ export function makeLife(W, STILL) {
 
   return {
     draw(scr, ox, oy, t, env, sky) {
-      mix = env.mix || 0;
+      // The light has just turned to Dusk with the map on screen: the alpenglow. A map that comes back on
+      // screen at Dusk, or a page that opens at Dusk (dusk=1 turns the light in its first frames), has not
+      // seen the light turn.
+      { const was = mix; mix = env.mix || 0; if (born == null) born = t; if (was <= 0.5 && mix > 0.5 && t - drawnAt < 1 && t - born > 2) start('alpenglow', t); drawnAt = t; }
       let e;
       if ((e = on('rockfall', t))) rockfall(scr, ox, oy, e[0], e[1], env);
       if ((e = on('calve', t))) calve(scr, ox, oy, e[0], e[1], env);
@@ -333,8 +338,10 @@ export function makeLife(W, STILL) {
       // The rainbow: by its button, or as the shower clears off (the rain stops at 74 on the weather's clock).
       if (ARC && mix < 0.5) { e = on('rainbow', t); const bow = Math.max(e ? smooth(0, 4, e[1]) * smooth(EV.rainbow.dur, EV.rainbow.dur - 6, e[1]) : 0, sky ? smooth(66, 75, sky.s) * smooth(99, 88, sky.s) : 0); if (bow > 0.02) rainbow(scr, ox, oy, bow); }
     },
-    // How strong the alpenglow is now, 0 to 1: it comes up over a few seconds at Dusk, holds and fades.
-    alpenglow(t) { const e = on('alpenglow', t); return e ? smooth(0, 7, e[1]) * smooth(EV.alpenglow.dur, EV.alpenglow.dur - 12, e[1]) : 0; },
+    // How strong the alpenglow is now, 0 to 1. In the evening it comes up over a few seconds as the light turns,
+    // holds and fades. dawn: seconds since the clock's sunrise began, or null when no sunrise is coming (Dusk held
+    // by its button). It comes up again over the 22 seconds before sunrise and goes as the day comes.
+    alpenglow(t, dawn) { const e = on('alpenglow', t); return Math.max(e ? smooth(0, 7, e[1]) * smooth(EV.alpenglow.dur, EV.alpenglow.dur - 12, e[1]) : 0, dawn == null ? 0 : smooth(-22, -12, dawn) * smooth(14, 0, dawn)); },
     // How still Reflection Lake lies, 0 to 1: the wind drops over a few seconds, the water is glass, and it picks up again.
     calm(t) { const e = on('calm', t); return e ? smooth(0, 5, e[1]) * smooth(EV.calm.dur, EV.calm.dur - 5, e[1]) : 0; },
     lake: LAKE,
@@ -349,7 +356,7 @@ export function makeLife(W, STILL) {
     where(name) {
       if (name === 'rockfall') return L.rock.length ? [L.rock[0][0], L.rock[0][1] + 20] : null;
       if (name === 'calve') return CALVE.length ? CALVE[0] : null;
-      if (name === 'pair' || name === 'alpenglow') return TOWERS.length ? [TOWERS[0][0], TOWERS[0][1] + 30] : null;
+      if (name === 'pair') return TOWERS.length ? [TOWERS[0][0], TOWERS[0][1] + 30] : null;
       if (name === 'talus') return SCREE.length ? SCREE[0].at(SCREE[0].len / 2) : null;
       if (name === 'band') return CROSS ? CROSS.at(CROSS.len / 2) : null;
       if (name === 'calm') return LAKE ? [(LAKE.x0 + LAKE.x1) / 2, (LAKE.y0 + LAKE.y1) / 2] : null;
@@ -360,6 +367,8 @@ export function makeLife(W, STILL) {
     },
     // The debug panel's start buttons. One that cannot happen now (the alpenglow by Day) says no.
     trigger(name, t) { if (!EV[name] || !EV[name].ok()) return false; start(name, t); return true; },
+    // Whether its button would start it now, for the panel to grey out one that cannot happen (TJ, 25 November).
+    can: name => !EV[name] || EV[name].ok(),
     names: Object.keys(EV)
   };
 }

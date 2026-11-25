@@ -894,6 +894,7 @@ export function makeWorld() {
       if (name === 'lens') return startLens(t);
       return ev.trigger(name, t) || crit.trigger(name, t) || life.trigger(name, t);
     },
+    can: name => ev.can(name) && life.can(name),
     act(id, env) { if (id === 'pool') { env.found('tidepool'); return false; } if (id.startsWith('dest:')) { const k = W.DEST.indexOf(id.slice(5)); if (lifted[k] > 0.5) return false; tapped = k; tapUntil = env.t + 3; return true; } if (/^(animal|orca|jelly|flock|air):|^whale$/.test(id)) { const snd = crit.click(id, pokeAt[0], pokeAt[1], env.t); if (snd) env.sfx(snd); return true; } if (id.startsWith('duck:')) { env.sfx(life.click(env.t)); return true; } return id.startsWith('cat:') ? kit.click(id.slice(4), env) : false; },
     draw(scr, env, legOn, qOn) {
       const { VW, VH, fb } = scr, { t, tq, dt } = env; nowT = t;
@@ -952,8 +953,9 @@ export function makeWorld() {
       // The alpenglow (round 8, E2): for a while at Dusk the last light reaches three times as far down every
       // summit and turns warm, orange at the tips and rose below, where the usual glow is the snow's cool pink.
       // On Mount Monolith as on the Spires (TJ, round 8: it is the same sun).
-      const glow = life.alpenglow(t), calm = life.calm(t); if (calm > 0.8 && life.lake && inClear(scr, (life.lake.x0 + life.lake.x1) / 2 - ox, (life.lake.y0 + life.lake.y1) / 2 - oy, 0)) saw('calm');
-      if (glow > 0.5 && tipTop.some(top => top.some((y, x) => y >= 0 && inClear(scr, x - ox, y - oy + 20, 0)))) saw('alpenglow');
+      const glow = life.alpenglow(t, env.dawn), calm = life.calm(t); if (calm > 0.8 && life.lake && inClear(scr, (life.lake.x0 + life.lake.x1) / 2 - ox, (life.lake.y0 + life.lake.y1) / 2 - oy, 0)) saw('calm');
+      // Seen on any summit in the view: a tower's tip, or the skyline of Mount Monolith and the ranges.
+      if (glow > 0.5 && (tipTop.some(top => top.some((y, x) => y >= 0 && inClear(scr, x - ox, y - oy + 20, 0))) || skyTop.some((y, x) => y >= 0 && x % 8 === 0 && inClear(scr, x - ox, y - oy + 12, 0)))) saw('alpenglow');
       if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], warm = glow, H = Math.round(TIP_H[n] * (1 + 2.2 * warm)), k = 6 + n;
         for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = top[x]; if (y0 < 0) continue;
           for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { if (W.dest[y * WW + x] !== k) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8)) { const i = (y - oy) * VW + (x - ox); fb[i] = warm > 0 && bayer(x + 2, y + 1) < warm ? ALPEN[d < 0.3 ? 0 : 1][fb[i]] : GLOW[fb[i]]; } } } }

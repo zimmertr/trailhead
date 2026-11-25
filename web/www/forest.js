@@ -763,6 +763,8 @@ function buildForest() {
     enter(scr, arg, q) { cam = along(q * TOTAL)[0]; st.y = null; sasGo = null; },
     focus: () => focus,
     // The debug panel's start button (E5f): Sasquatch steps out at the far edge of the view, even if he has been seen this visit.
+    // The deer's eyes shine only at Dusk, so by Day their button is greyed out.
+    can: name => name !== 'eyeshine' || last.mix > 0.5,
     trigger(name, t) {
       if (name === 'eyeshine') { eyeGo = t; return true; }
       if (name === 'sasquatch') { sasquatchSeen = false; sasGo = t; sasX = Math.max(last.camX - 12, giant ? giant.x : 0); sasOn = 0; return true; }
@@ -795,7 +797,7 @@ function buildForest() {
       cam += (mx - cam) * (env.calm ? 1 : Math.min(1, env.dt * 8));
       // The view stops at the strip's west edge, so the rock band never wraps round.
       const camX = Math.max(0, Math.round(cam - VW * anchor + env.look.x * 0.5)), base = baseline(scr, env.shown, st) - Math.round(my * 0.5);
-      last = { camX, base };
+      last = { camX, base, mix: env.mix };
 
       // The light behind the trees: pale mist, dimmer up under the canopy, and brightest in the wide
       // gaps where the sky comes through. The gaps drift across slower than any tree.

@@ -270,6 +270,11 @@ function closeSheet() {
 // Hidden: the backtick key opens and closes it, and so does the small sign at the foot of the trail map.
 const debug = $('debug');
 let timeSlider = null, skyLine = null;
+// The debug panel's start buttons, each with its event. One that cannot happen now is greyed out (TJ, 25
+// November): it stays in the Tab order and says so to a screen reader, and the page's tick keeps it right as
+// the light turns.
+let eventButtons = [];
+function syncEvents() { for (const [b, id] of eventButtons) { const off = !api.can(id); if ((b.getAttribute('aria-disabled') === 'true') !== off) { if (off) b.setAttribute('aria-disabled', 'true'); else b.removeAttribute('aria-disabled'); b.style.opacity = off ? '.45' : ''; } } }
 function openDebug(on) {
   if (!on) { debug.hidden = true; return; }
   const D = UI.debug, onOff = k => UI.map.onOff[DEBUG[k] ? 0 : 1];
@@ -302,23 +307,25 @@ function openDebug(on) {
   // What the sky is doing, in one line that keeps up with it while the panel is open (round 8, H13).
   skyLine = el('p', { class: 'legend skyline', role: 'status', text: UI.debug.skyLine(api.skyNow()) });
   // The timed events of the scene on screen (E5f): the map's, or the scene's own.
-  const SCENE_EVENTS = { world: ['breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'lens', 'tumble', 'devil', 'star', 'rockfall', 'calve', 'pair', 'alpenglow', 'talus', 'band', 'calm', 'ducks', 'rainbow', 'treefall', 'hoot'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
+  const SCENE_EVENTS = { world: ['breach', 'blow', 'ferry', 'tide', 'orcas', 'eagle', 'osprey', 'cubplay', 'cubclimb', 'marmot', 'serac', 'avalanche', 'ava0', 'ava1', 'ava2', 'lens', 'tumble', 'devil', 'star', 'alpenglow', 'rockfall', 'calve', 'pair', 'talus', 'band', 'calm', 'ducks', 'rainbow', 'treefall', 'hoot'], forest: ['sasquatch', 'eyeshine'], larches: ['gust'], wall: ['ridgegust', 'raven'], lakeside: ['lens'] };
   const here = api.scene(), events = SCENE_EVENTS[here] || [];
   // The weather (round 8, E1): the same buttons in every scene that has a sky, since every scene shows it.
   const weather = ['world', 'forest', 'lakeside', 'larches', 'wall', 'approach', 'camp', 'climb'].includes(here) ? ['shower', 'squall', 'gustnow', 'shade', 'clear'] : [];
   // On the map a start button first eases the view to where its event happens, then starts it (note 26).
-  const fire = id => { const ms = api.showEvent(id); setTimeout(() => audio.sfx(api.trigger(id) ? 'step' : 'close'), ms); };
+  // One that cannot happen now (the alpenglow by Day) is greyed out, and says no without moving the view.
+  const fire = id => { if (!api.can(id)) { audio.sfx('close'); return; } const ms = api.showEvent(id); setTimeout(() => audio.sfx(api.trigger(id) ? 'step' : 'close'), ms); };
+  eventButtons = []; const timed = (b, id) => { eventButtons.push([b, id]); return b; };
   // Related events share one split button (note 27): its name starts one of them at random (the avalanche picks
   // its own face), and the arrow opens a list of each. The list stays open when one is picked (TJ, round 8), so
   // several can be started one after another; the arrow shuts it.
   const FAMILIES = { humpback: ['breach', 'blow'], cubs: ['cubplay', 'cubclimb'], avalanche: ['ava0', 'ava1', 'ava2'],
     // Life at every place (round 8, E2): one button for each place, its events in the list.
-    spires: ['rockfall', 'calve', 'pair', 'alpenglow'], peak: ['talus', 'band'], lake: ['calm', 'ducks', 'rainbow'], rainforest: ['treefall', 'hoot'] };
-  const one = id => el('button', { class: 'plank', onclick: () => fire(id) }, el('span', { text: D.events[id] }));
+    spires: ['rockfall', 'calve', 'pair'], peak: ['talus', 'band'], lake: ['calm', 'ducks', 'rainbow'], rainforest: ['treefall', 'hoot'] };
+  const one = id => timed(el('button', { class: 'plank', onclick: () => fire(id) }, el('span', { text: D.events[id] })), id);
   const split = (fam, ids) => {
-    const list = el('div', { class: 'split-list', role: 'menu', hidden: '' }, ...ids.map(id => el('button', { class: 'plank', role: 'menuitem', onclick: () => fire(id) }, el('span', { text: D.events[id] }))));
+    const list = el('div', { class: 'split-list', role: 'menu', hidden: '' }, ...ids.map(id => timed(el('button', { class: 'plank', role: 'menuitem', onclick: () => fire(id) }, el('span', { text: D.events[id] })), id)));
     const more = el('button', { class: 'plank more', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-label': D.families[fam] + ': ' + D.pick, onclick: () => { list.hidden = !list.hidden; more.setAttribute('aria-expanded', String(!list.hidden)); } }, el('i', { class: 'arrow down' }));
-    const main = el('button', { class: 'plank', onclick: () => fire(fam === 'avalanche' ? 'avalanche' : ids[Math.floor(Math.random() * ids.length)]) }, el('span', { text: D.families[fam] }));
+    const main = el('button', { class: 'plank', onclick: () => { const open = ids.filter(id => api.can(id)); fire(fam === 'avalanche' ? 'avalanche' : (open.length ? open : ids)[Math.floor(Math.random() * (open.length || ids.length))]); } }, el('span', { text: D.families[fam] }));
     return el('div', { class: 'split' }, el('div', { class: 'split-row' }, main, more), list);
   };
   const starts = ids => { const out = [], done = new Set();
@@ -350,6 +357,7 @@ function openDebug(on) {
     el('h3', { text: D.breakGroup }),
     el('button', { class: 'plank', onclick: () => api.breakScene() }, el('span', { text: D.breakScene })),
     el('p', { class: 'legend', text: D.note }));
+  syncEvents();
   debug.hidden = false;
 }
 
@@ -667,6 +675,7 @@ addEventListener('resize', () => { nameBox = null; });
   // The lakeside sounds of rain while it drizzles there (round 8, H15).
   audio.rain(api.scene() === 'lakeside' ? api.rainNow() : 0);
   if (skyLine && !debug.hidden) { const s = UI.debug.skyLine(api.skyNow()); if (skyLine.textContent !== s) skyLine.textContent = s; }
+  if (!debug.hidden) syncEvents();
   fork.hidden = !atFork || forkShut;
   { const text = shown && cardShut ? LABELS[shown] || (PROJECTS[shown] ? PROJECTS[shown].name : CARDS[shown].title) : atFork && forkShut ? DEST_NAMES.trailhead : '';
     tab.hidden = !text || !sheet.hidden || !plain.hidden; if (text && text !== tabText) { tabText = text; tab.querySelector('span').textContent = text; } }

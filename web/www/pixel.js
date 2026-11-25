@@ -403,6 +403,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       else if (drawn.s === 'world') { arrive.q += sdt / arrive.secs; if (arrive.q >= 1) arrive = null; }
     }
     env.arrive = drawn.s === 'world' ? arrive : null;
+    // Seconds since the clock's sunrise began (before it, below zero), for what comes with the dawn; null when
+    // the clock is not bringing one (Day or Dusk held, or reduced motion).
+    env.dawn = clock.mode === 'auto' && !still() ? clock.t - SUNRISE : null;
     // Idle counts from his arrival home too, so the look round waits until the hand-off home has settled.
     if (!env.home || arrive) homeAt = t;
     env.idle = env.home && dragging == null ? t - Math.max(lastAct, homeAt) : 0; env.calm = calm.matches;
@@ -486,6 +489,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     // The weather is the world's, so its buttons work from a side scene too (the marine layer since round 6,
     // note 13; the rest since round 8, E1, now that every scene shows the weather): each is started on the
     // map's clocks, over the country the scene is in.
+    can: name => !tr && (!drawn.scene.can || drawn.scene.can(name)),
     trigger(name) { const s = drawn.scene, at = COUNTRY[drawn.s]; if (tr) return false; if (s.trigger && s.trigger(name, simT, at)) return true; return WEATHER.includes(name) && s !== world && world.trigger(name, simT, at); },
     // The view eases to where a map event happens, so its start button shows it (note 26). Answers how many
     // milliseconds to wait before starting it: none when it has no place or the map is not on screen.

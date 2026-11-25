@@ -148,6 +148,7 @@ export function makeEvents(W, col) {
     trigger(name, t) {
       if (!EV[name] || !EV[name].ok()) return false;
       start(name, t); return true;
-    }
+    },
+    can: name => !EV[name] || EV[name].ok()
   };
 }
