@@ -613,14 +613,15 @@ function makeBush(seed, kind) {
   outline(b, R.moss[1]);
   return b;
 }
-// Red huckleberry in autumn (round 5, T65): a low shrub. A heap of leaves in its own shade, stems fanning
-// out of it with leaves in pairs up to their tips, crimson below and orange where the light catches them (it
-// comes from the upper left), and a dark line under it where it meets the ground. size scales it: nearer
-// the viewer it is bigger.
+// Huckleberry in autumn (round 5, T65; round 8, B3, after a picture): a low, spreading shrub. A heap of
+// leaves in its own shade, stems fanning out of it with leaves in pairs up to their tips, wine below and
+// crimson where the light catches them (it comes from the upper left), a leaf here and there still green,
+// and blue berries among them, which is how you know the shrub. A dark line lies under it where it meets
+// the ground. size scales it: nearer the viewer it is bigger.
 function makeHuckleberry(seed, size = 1) {
-  const rand = rng(seed), w = Math.round((9 + rand() * 6) * size), h = Math.round((5 + rand() * 3) * size), b = new BM(w + 8, h + 5); b.ox = (w + 8) >> 1; b.oy = h + 3;
+  const rand = rng(seed), w = Math.round((10 + rand() * 6) * size), h = Math.round((3.6 + rand() * 2.2) * size), b = new BM(w + 8, h + 5); b.ox = (w + 8) >> 1; b.oy = h + 3;
   const cx = b.ox, by = b.oy;
-  const tone = (x, y, o) => { const lit = (cx - x) / w + (by - y) / h + 0.25 * (o - 0.5); return lit > 0.78 ? (o < 0.6 ? R.blaze[1] : R.red[1]) : lit > 0.36 ? (o < 0.2 ? R.blaze[1] : R.red[1]) : R.red[0]; };
+  const tone = (x, y, o) => { const lit = (cx - x) / w + (by - y) / h + 0.25 * (o - 0.5); return o > 0.56 && o < 0.6 ? R.moss[4] : lit > 0.78 ? R.huck[o < 0.55 ? 2 : 1] : lit > 0.36 ? R.huck[o < 0.15 ? 2 : 1] : R.huck[0]; };
   for (let y = by - 1; y > by - h * 0.6; y--) { const half = (w / 2) * Math.sqrt(Math.max(0, 1 - sq((by - y) / (h * 0.6)))); for (let x = Math.ceil(cx - half); x <= cx + half; x++) if (rand() < (y === by - 1 ? 0.6 : 0.9)) b.set(x, y, tone(x, y, rand() * 0.6)); }
   const n = 4 + Math.round(w / 4);
   for (let k = 0; k < n; k++) {
@@ -630,20 +631,27 @@ function makeHuckleberry(seed, size = 1) {
       if (s < L * 0.35) { if (!b.get(x, y)) b.set(x, y, R.bark[1]); continue; }
       b.set(x, y, tone(x, y, o)); if (s % 2 < 1) b.set(x + (k & 1 ? 1 : -1), y, tone(x, y, o));
     }
-    b.set(x0 + Math.sin(a) * L, by - 1 - Math.cos(a) * L, a < 0.4 ? R.red[2] : R.blaze[1]);
+    b.set(x0 + Math.sin(a) * L, by - 1 - Math.cos(a) * L, R.huck[a < 0.4 ? 2 : 1]);
+  }
+  // The berries: on leaves, never two touching. A big shrub's berry is two pixels with the light on top.
+  for (let k = 0, n = 2 + Math.round(w / 4), tries = 0; k < n && tries < 80; tries++) {
+    const x = Math.round(cx + (rand() - 0.5) * w * 0.8), y = Math.round(by - 1 - rand() * h * 0.8), berry = c => c === R.jay[1] || c === R.jay[2] || c === R.jay[3];
+    if (!b.get(x, y) || b.get(x, y) === R.bark[1] || [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1], [-1, -1], [1, 1], [-1, 1], [1, -1]].some(([dx, dy]) => berry(b.get(x + dx, y + dy)))) continue;
+    if (size > 1.2 && b.get(x, y + 1)) { b.set(x, y, R.jay[3]); b.set(x, y + 1, R.jay[1]); } else b.set(x, y, R.jay[2]);
+    k++;
   }
   for (let x = 0; x < b.w; x++) for (let y = by; y >= by - 2; y--) if (b.get(x, y)) { b.set(x, y + 1, INK); break; }
   return b;
 }
 // Where huckleberry grows, in clumps: each cell of a coarse grid may hold one clump, at a spot of its own
 // inside it, if `grows` is high there. A clump is a big shrub with two to four smaller ones close round it.
-// `ok` says whether a shrub may stand at a spot. Returns the shrubs as { x, y, v: which drawing, s: 0 small
+// `ok` says whether a shrub may stand at a spot, and `least` how high `grows` must be: raise it for fewer clumps. Returns the shrubs as { x, y, v: which drawing, s: 0 small
 // to 2 big, flip }, sorted so the upper ones come first. Nothing here throws a scene's own dice.
-function huckClumps(x0, x1, y0, y1, grows, ok, seed) {
+function huckClumps(x0, x1, y0, y1, grows, ok, seed, least = 0.55) {
   const out = [];
   for (let gx = x0; gx < x1; gx += 46) for (let gy = y0; gy < y1; gy += 22) {
     const cx = gx + Math.floor(hash(gx, gy, seed) * 46), cy = gy + Math.floor(hash(gx, gy, seed + 1) * 22);
-    if (grows(cx, cy) < 0.55) continue;
+    if (grows(cx, cy) < least) continue;
     for (let k = 0, n = 3 + Math.floor(hash(gx, gy, seed + 2) * 3); k < n; k++) {
       const x = cx + (k ? Math.round((hash(gx + k, gy, seed + 3) - 0.5) * 34) : 0), y = cy + (k ? Math.round((hash(gx + k, gy, seed + 4) - 0.5) * 12) : 0);
       if (ok(x, y)) out.push({ x, y, v: Math.floor(hash(gx + k, gy, seed + 5) * 6), s: k ? (hash(gx + k, gy, seed + 6) < 0.5 ? 0 : 1) : 2, flip: hash(gx + k, gy, seed + 7) < 0.5 });

@@ -256,12 +256,13 @@ function buildLarches() {
   let px = X0 + LEN * 0.55;
   for (let x = X0 + LEN * 0.5; x < X0 + LEN * 0.9; x += 6) if (!things.some(th => th.tree && Math.abs(th.x - x - 11) < 30 && th.y < g(th.x) + 4) && Math.abs(x - billy.x) > 40) { px = Math.round(x); break; }
   const rockA = makeBoulder(190, 7), rockB = makeBoulder(191, 5), pk = [pika(0), pika(1)], py = g(px) - 6;
-  // Red huckleberry (round 5, T65): shrubs in clumps on the heather, where the ground used to be painted
-  // red, off the slabs and the trail. Those lower on the screen are nearer and bigger.
+  // Huckleberry (round 5, T65): shrubs in clumps on the heather, where the ground used to be painted
+  // red, off the slabs and the trail. Those lower on the screen are nearer and bigger. Fewer since round 8
+  // (B3, TJ): they are an accent on the green, not a field of red.
   const hucks = [0, 1, 2, 3, 4, 5].map(i => [0.8, 1.05, 1.35, 1.7].map(s => makeHuckleberry(680 + i, s)));
   // The ones far down the slope, which only a tall screen shows, are painted into the ground: nothing they
   // could stand in front of is that low.
-  for (const p of huckClumps(0, SW, -12, 590, (x, r) => huckAt(x, g(x) + r), (x, r) => !(r >= -5 && r <= 7) && !(x < RUNG.top + 4 && r < 0) && !slabAt(x, r) && !slabAt(x - 5, r) && !slabAt(x + 5, r), 681)) {
+  for (const p of huckClumps(0, SW, -12, 590, (x, r) => huckAt(x, g(x) + r), (x, r) => !(r >= -5 && r <= 7) && !(x < RUNG.top + 4 && r < 0) && !slabAt(x, r) && !slabAt(x - 5, r) && !slabAt(x + 5, r), 681, 0.6)) {
     const bm = hucks[p.v][p.s + (p.y > 90 ? 1 : 0)];
     if (p.y > 200) main.stamp(bm, p.x, g(p.x) + p.y, p.flip); else things.push({ bm, x: p.x, y: g(p.x) + p.y, flip: p.flip, huck: true });
   }
