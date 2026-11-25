@@ -233,6 +233,49 @@ function whiteWater(fb, VW, VH, ox, oy, P, F, t) {
     for (let d = 0; d < 3; d++) { const h = hash(F.x[k] * 3 + d, beat, 5201); if (h < 0.45) fb[(sy + (d >> 1)) * VW + sx + (d === 1 ? 1 : d === 2 ? -1 : 0)] = h < 0.3 ? W1 : W4; } }
 }
 
+// Still water moves too (round 8, C6, TJ), drawn over the ground each frame after pictures of a calm alpine
+// lake in a breeze: short level ripples that drift east and come and go, a few glints in patches where the
+// light catches, now and then a gust that crosses from the west as a darker, ruffled band and wipes the
+// reflection out as it goes, and in the clear lakes a fish that jumps and leaves two rings.
+// L: the lakes, each with its pixels (x, y), its box, a mask of its water over that box, and the spots a
+// fish can rise at. glint: how much the water glitters (less at Dusk). fish: whether the animals show.
+function stillWater(fb, VW, VH, ox, oy, L, t, glint, fish) {
+  const W = R.water, WHITE = R.white[1], beat = Math.floor(t * 4);
+  for (let n = 0; n < L.length; n++) { const l = L[n]; if (l.x1 < ox || l.x0 >= ox + VW || l.y1 < oy || l.y0 >= oy + VH) continue;
+    const lake = l.kind === 'lake', w = l.x1 - l.x0 + 1, ym = (l.y0 + l.y1) / 2;
+    // The gust: one every 16 to 26 s, a slanted band about a third of the lake wide, patchy inside.
+    const every = 16 + 10 * hash(n, 0, 6101), tg = t + every * hash(n, 1, 6101), gk = Math.floor(tg / every), gu = tg - gk * every, cross = 3.5 + w / 30, bw = Math.max(7, 0.32 * w);
+    const front = gu < cross ? Math.floor(l.x0 - bw + (w + 2 * bw) * gu / cross) : null;
+    for (let k = 0; k < l.x.length; k++) { const x = l.x[k], y = l.y[k], sx = x - ox, sy = y - oy; if (sx < 0 || sy < 0 || sx >= VW || sy >= VH) continue;
+      const i = sy * VW + sx, c = fb[i], wet = RAMP_OF[c] === 'water';
+      if (front !== null) { const a = 1 - Math.abs(x + 0.7 * (y - ym) - front) / bw;
+        // Ruffled water is short dashes, and they travel with the band.
+        if (a > 0 && hash((x - front + (y & 1)) >> 1, y, 6104) < 1.5 * a * (0.35 + 0.65 * vnoise(x / 8, y / 2.5 + gk, 6102))) { fb[i] = lake && !wet ? (hash(x >> 1, y, 6103) < 0.25 ? W[2] : W[1]) : SHADE[c]; continue; } }
+      // A ripple: a dash two or three long in a cell of four that slides east, each row at its own pace.
+      const xs = x + Math.floor(t * (1.5 + (y % 3))), h = hash(xs >> 2, y, 6110 + n);
+      if (h < 0.065 && (xs & 3) < 2 + (h * 1000 & 1) && frac(h * 211 + t * 0.3) < 0.55) fb[i] = lake ? (wet ? W[3] : W[2]) : LIGHT[c];
+      else if (glint > 0 && hash(x, y, 6120 + beat) < glint * 0.012 && vnoise(x / 13, y / 4, 6121 + n) > 0.62) fb[i] = WHITE;
+    }
+    if (!fish || !l.spots.length) continue;
+    // The fish: every 9 to 20 s it leaves the water at one of the lake's spots, arcs five pixels up and six
+    // along, head first up and head first down, and drops back with a splash. A ring spreads from where it
+    // left and another from where it landed: pale on dark water, dark where the water is pale with the
+    // mountain's reflection. The fish is a trout, brown and gold with a flash of its side, to stand off the blue.
+    const fe = 9 + 11 * hash(n, 2, 6130), tf = t + fe * hash(n, 3, 6130), fk = Math.floor(tf / fe), u = tf - fk * fe; if (u > 2.6) continue;
+    const s = l.spots[Math.floor(hash(n, fk, 6131) * l.spots.length)], fx0 = s % l.w + l.x0, fy0 = (s / l.w | 0) + l.y0, dir = hash(n, fk, 6132) < 0.5 ? -1 : 1, AIR = 0.6, FAR = 6 * dir;
+    const on = (x, y) => { const sx = x - ox, sy = y - oy; return sx >= 0 && sy >= 0 && sx < VW && sy < VH ? sy * VW + sx : -1; }, put = (x, y, c) => { const i = on(x, y); if (i >= 0) fb[i] = c; };
+    const inWater = (x, y) => x >= l.x0 && x <= l.x1 && y >= l.y0 && y <= l.y1 && l.m[(y - l.y0) * l.w + x - l.x0];
+    for (const [cx, u0] of [[fx0, 0.05], [fx0 + FAR, AIR]]) { const a = u - u0; if (a < 0 || a > 2) continue;
+      for (const r of a > 0.6 ? [2 + 4.5 * a, 1 + 2.4 * a] : [2 + 4.5 * a]) { const ry = Math.max(1, 0.33 * r), N = Math.ceil(5 * r);
+        for (let j = 0; j < N; j++) { const an = j / N * 6.2832, x = Math.round(cx + r * Math.cos(an)), y = Math.round(fy0 + ry * Math.sin(an)), i = inWater(x, y) && hash(x, y, 6133) > a / 2 ? on(x, y) : -1; if (i < 0) continue;
+          const c = fb[i]; fb[i] = lake ? (RAMP_OF[c] === 'water' && STEP_OF[c] <= 2 ? (a < 0.7 ? WHITE : W[4]) : W[1]) : a < 0.7 ? WHITE : LIGHT[LIGHT[c]]; } } }
+    if (u < AIR) { const q = u / AIR, x = fx0 + Math.round(FAR * q), y = fy0 - Math.round(5 * Math.sin(q * Math.PI)), tip = q < 0.4 ? -1 : q < 0.6 ? 0 : 1;
+      put(x - 2 * dir, y - tip, R.wood[0]); put(x - dir, y - tip, R.wood[2]); put(x, y, R.dirt[3]); put(x + dir, y, R.shoe[2]); put(x + 2 * dir, y + tip, R.wood[1]);
+      if (q < 0.3) { put(fx0, fy0, WHITE); put(fx0 - 1, fy0 - 1, WHITE); put(fx0 + 1, fy0 - 1, WHITE); } }
+    else if (u < AIR + 0.25) { const x = fx0 + FAR; put(x, fy0, WHITE); put(x - 1, fy0 - 1, WHITE); put(x + 1, fy0 - 1, WHITE); put(x, fy0 - 2, WHITE); }
+  }
+}
+
 export function makeWorld() {
   const W = buildTerrain(), { g: ground, spots, forestAmt } = W;
   const paths = {}; for (const k of ['lake', 'stack', 'spires']) paths[k] = makePath({ pts: W.trails[k], stops: [] });
@@ -471,6 +514,13 @@ export function makeWorld() {
   const xy = (I, off) => { const n = I.length, x = new Int16Array(n), y = new Int16Array(n), o = new Float32Array(n), p = new Float32Array(n), e = new Uint8Array(n), S = new Set(I);
     for (let k = 0; k < n; k++) { x[k] = I[k] % WW; y[k] = (I[k] / WW) | 0; if (off) { o[k] = hash(x[k], 0, 5202); p[k] = 7 + hash(x[k], 1, 5203) * 6; e[k] = !S.has(I[k] - 1) || !S.has(I[k] + 1) ? 1 : 0; } } return { x, y, o, p, e }; };
   const WWP = W.whiteWater ? xy(W.whiteWater.fall, true) : null, WWF = W.whiteWater ? xy(W.whiteWater.foot) : null;
+  // The lakes for stillWater. A fish rises only in clear water (not in glacial silt), at a spot with water
+  // six pixels either side and two above and below, so its arc and its rings stay on the lake.
+  const STILL = W.still.map(l => { const { x, y } = xy(l.px), x0 = Math.min(...x), x1 = Math.max(...x), y0 = Math.min(...y), y1 = Math.max(...y), w = x1 - x0 + 1, m = new Uint8Array(w * (y1 - y0 + 1)), spots = [];
+    for (let k = 0; k < x.length; k++) m[(y[k] - y0) * w + x[k] - x0] = 1;
+    const wet = (a, b) => a >= 0 && b >= 0 && a < w && b <= y1 - y0 && m[b * w + a];
+    if (l.kind === 'lake' || l.kind === 'tarn' || l.kind === 'pond') for (let k = 0; k < x.length; k++) { const a = x[k] - x0, b = y[k] - y0; if (wet(a - 6, b) && wet(a + 6, b) && wet(a, b - 2) && wet(a, b + 2) && wet(a - 3, b - 1) && wet(a + 3, b + 1)) spots.push(b * w + a); }
+    return { kind: l.kind, x, y, x0, x1, y0, y1, w, m, spots }; });
   // At Dusk the tents glow from inside (E8): the fabric warm, brightest low down and at the door.
   const tentGlow = spots.tents.map(([x, y, c]) => { const b = makeTent(c); for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) { const k = j * b.w + i, v = b.d[k]; if (!v || v === INK) continue; b.d[k] = v === R.ink[0] || (j > b.h * 0.55 && bayer(i, j) < (j / b.h - 0.4) * 1.6) ? R.lamp[1] : R.lamp[0]; } return { b, x, y }; });
   // Headlamps (E8): at Dusk a party of eight climbs the boot track from base camp up the Spires' glacier
@@ -795,7 +845,7 @@ export function makeWorld() {
       if (env.mix > 0.02) for (let n = 0; n < 2; n++) { const top = tipTop[n], H = TIP_H[n], k = 6 + n;
         for (let x = Math.max(0, ox); x < Math.min(WW, ox + VW); x++) { const y0 = top[x]; if (y0 < 0) continue;
           for (let y = Math.max(y0, oy); y < Math.min(y0 + H, oy + VH, WH); y++) { if (W.dest[y * WW + x] !== k) continue; const d = (y - y0) / H; if (bayer(x, y) < env.mix * Math.pow(1 - d, 0.8)) { const i = (y - oy) * VW + (x - ox); fb[i] = GLOW[fb[i]]; } } } }
-      crit.sea(scr, ox, oy, t); if (WWP) whiteWater(fb, VW, VH, ox, oy, WWP, WWF, t); crit.falls(scr, ox, oy, t);
+      crit.sea(scr, ox, oy, t); if (WWP) whiteWater(fb, VW, VH, ox, oy, WWP, WWF, t); stillWater(fb, VW, VH, ox, oy, STILL, t, 1 - 0.8 * env.mix, DEBUG.animals); crit.falls(scr, ox, oy, t);
       crit.update(dt, t, env.hideMe ? null : here);
       if (DEBUG.clouds) for (const c of clouds) scr.blit(c.bm, ((c.x + t * c.v) % (WW + 120)) - 60 - ox, c.y - oy);
       if (DEBUG.clouds) lenticular(scr, ox, oy, t);

@@ -2075,7 +2075,20 @@ export function buildTerrain() {
       if (c === W4 && ![-2, -1, 1, 2].some(d => LAND.g[i + d * NW] === W1)) continue; M[i] = 1; }
     const fall = [], foot = []; for (let i = 0; i < N - NW; i++) if (M[i]) { fall.push(i); if (!M[i + NW]) { const v = LAND.depth[i + NW]; if (v < VD && LAND.water[Math.round(v) * NW + (i % NW)]) foot.push(i + NW); } }
     return { fall: Int32Array.from(fall), foot: Int32Array.from(foot) }; })();
-  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, whiteWater: falls, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
+  // Still water (round 8, C6, TJ): the pixels of every lake and tarn that show water, found from the finished
+  // picture as the falls are, so the map can move them (stillWater in world.js). A lake's island, its ice
+  // and what stands in it are left out by their colours. The two moraine tarns are painted into the
+  // mountain's picture, so they are found by their colour and told apart by the gap between them.
+  const still = (() => { const OK = { lake: ['water', 'ice', 'snow', 'glac', 'far'], silt: ['glac'], milk: ['glac', 'tarn'], tarn: ['tarn'], pond: ['water'] }, Ls = LAND.C.lakes, px = Ls.map(() => []), mor = [];
+    for (let i = 0; i < NW * SH; i++) { const c = LAND.g[i], x = i % NW;
+      if (LAND.painted[i]) { if (RAMP_OF[c] === 'tarn') mor.push(i); continue; }
+      const v = LAND.depth[i]; if (v >= VD) continue; const vi = Math.round(v); let b = -1, bd = 1.3;
+      for (let n = 0; n < Ls.length; n++) { const du = (x - Ls[n][0]) / Ls[n][2], dv = (vi - Ls[n][1]) / Ls[n][3]; if (du > -bd && du < bd && dv > -bd && dv < bd) { const d = Math.hypot(du, dv); if (d < bd) { bd = d; b = n; } } }
+      if (b >= 0 && LAND.lakeAt(x, vi) === Ls[b][4] && OK[Ls[b][4]].includes(RAMP_OF[c])) px[b].push(i); }
+    const out = Ls.map((l, n) => ({ kind: l[4], px: px[n] }));
+    mor.sort((a, b) => a % NW - b % NW); let cur = null; for (const i of mor) { if (!cur || i % NW - cur.px[cur.px.length - 1] % NW > 12) out.push(cur = { kind: 'moraine', px: [] }); cur.px.push(i); }
+    return out.filter(l => l.px.length > 20); })();
+  return { g: LAND.g, bare: LAND.bare, fog: LAND.fogField, hillLight, deck, whiteWater: falls, still, avalanche: LAND.monoCover, trackUp: LAND.trackUp.map(([u, v]) => [Math.round(u), Math.round(LAND.toY(u, v)), v]), vAt, depth: LAND.depth, dest: LAND.dest, destBox: LAND.destBox, DEST: LAND.DEST, things: LAND.things, falls: LAND.falls, spots, lines, trails: { lake: flat(lines.lake), stack: flat(lines.stack), spires: flat(lines.spires) }, trackPix: [], forestAmt, coast, open, nearTrail, sea: SEA, mist: BAKED ? unpackMist(BAKED.mist) : mistBox(H), flocks: H.flocks, make: { ferry, whale, sheep, squirrel } };
 }
 
 // Where the drifting mist may go (critters.js draws it). The mist comes out of the standing fog in the
