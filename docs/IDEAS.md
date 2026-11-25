@@ -572,4 +572,9 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Place Buttons Know the Hour** (round 8, E2). A place's button starts one of its events at random, and at the wrong hour that can be one that says no. It could pick only among those that can happen now.
 - **Ducks That Stay** (round 8, E2). The mallards come and go in 25 seconds. A pair could live on the lake as the osprey fishes it, with the landing and the take-off as what they do when the runner comes near.
 - **Hear It Before You See It** (round 8, E2). An event sounds only when it is in the view. A rumble or a hoot from just outside the view, quieter, would send the eye looking for it.
+- **Rows for the Rest** (round 8, H1). The table of hours has rows for the elk, goats, sheep, moose, bears and marmots. The squirrels could cache more in the evening, the eagle roost at Dusk, the osprey fish most in the morning, the whales feed on the tide. One row each.
+- **More Kinds of Place** (round 8, H1). An hour can send an animal to water. Other kinds would be one line each: shade at midday (under the nearest trees), the ridge for the goats in the morning sun, a bed ground the herd returns to every night.
+- **The Way-Finder for Everyone** (round 8, H1). The animals can now find a way round trees and water. A fleeing animal, a kid working back to its mother and the sow going to a trunk still walk straight lines and give up when one is blocked. They could use it too.
+- **The Hours in the Side Scenes** (round 8, H1). The lakeside's marmot, the larches' pika and the approach's goats live the same at every hour. Their scenes could read the same part of the day.
+- **The Board Knows the Hour** (round 8, H1). The conditions board could say when to look: "elk at the stream at Dusk", "marmots up by Day".
 

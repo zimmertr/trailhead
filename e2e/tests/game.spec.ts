@@ -253,6 +253,36 @@ test('the trail map lists the places named in round 8', async ({ page }) => {
   expect(problems).toEqual([])
 })
 
+// Round 8, H1: life by the hour. What an animal does leans on the part of the day, by one table in the
+// animals' own system: at Dusk the elk go down to the water and the marmots go to ground, and with the
+// morning they are back.
+test('the animals live by the hour: the herd goes to water at Dusk and the marmots go to ground', async ({ page }) => {
+  const problems = await open(page, '/?homes=0')
+  type Beast = { critter: string; x: number; y: number; hx: number; hy: number; gone?: boolean; away?: unknown; homing?: boolean }
+  type Hours = { __crit: { items: Beast[] }; __api: { clock: () => { hour: string }; setClock: (c: { t: number }) => void } }
+  const state = () => page.evaluate(() => {
+    const w = window as unknown as Hours, elk = w.__crit.items.filter((a) => a.critter === 'elk'), marmots = w.__crit.items.filter((a) => a.critter === 'marmot')
+    return { hour: w.__api.clock().hour, away: elk.filter((a) => a.away).length, there: elk.filter((a) => !a.homing && Math.hypot(a.x - a.hx, a.y - a.hy) < 45).length, elk: elk.length, home: elk.slice(0, 1).flatMap((a) => [a.hx, a.hy]), gone: marmots.filter((a) => a.gone).length, marmots: marmots.length }
+  })
+  const day = await state()
+  expect(day.hour).toBe('morning')
+  expect(day.away).toBe(0)
+  expect(day.elk).toBeGreaterThan(1)
+  expect(day.marmots).toBeGreaterThan(0)
+  // Dusk: the herd's home moves to a bank, most of the herd has a place there and walks to it, and every marmot goes down.
+  await page.evaluate(() => (window as unknown as Hours).__api.setClock({ t: 312 }))
+  await expect.poll(async () => (await state()).hour, { timeout: 10_000 }).toBe('dusk')
+  const dusk = await state()
+  expect(dusk.away).toBeGreaterThan(dusk.elk / 2)
+  expect(dusk.home).not.toEqual(day.home)
+  await expect.poll(async () => { const s = await state(); return s.there === s.elk && s.gone === s.marmots }, { timeout: 60_000 }).toBe(true)
+  // Morning: the home is the day's again, the herd walks back and the marmots are up.
+  await page.evaluate(() => (window as unknown as Hours).__api.setClock({ t: 2 }))
+  await expect.poll(async () => (await state()).hour, { timeout: 10_000 }).toBe('morning')
+  await expect.poll(async () => { const s = await state(); return s.away === 0 && s.there === s.elk && s.gone === 0 && s.home[0] === day.home[0] && s.home[1] === day.home[1] }, { timeout: 60_000 }).toBe(true)
+  expect(problems).toEqual([])
+})
+
 // Round 8, F2: the conditions board sorts what lives and happens here in two lists. Observed holds what has
 // been on the screen this visit and Reported the rest, so each thing is in one of them and never in both.
 test('the conditions board lists what has been seen as Observed and the rest as Reported', async ({ page }) => {

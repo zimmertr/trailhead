@@ -352,6 +352,67 @@ export function makeCritters(W, opts = {}) {
     upright: { fps: 0, dur: [2.5, 4.5], sound: 'huff' }, rub: { fps: 2.5, dur: [4, 7] }, dig: { fps: 4, dur: [3, 6], bits: [R.dirt[1], R.dirt[2], R.bark[1]] },
     butt: { fps: 0, dur: [4.6, 7], pair: 2.3 }, shake: { fps: 7, dur: [1.7, 2.3], sound: 'snort' }, dip: { fps: 0.45, dur: [8.8, 8.8] },
   };
+  // ---- life by the hour (round 8, H1, TJ) ---------------------------------------------------
+  // What each kind does differently as the day goes by: one row for a kind, one entry for each part of the
+  // day it lives differently in (morning, midday, evening, dusk; pixel.js says which it is). A kind with no
+  // row, or no entry for a part, lives as it always does. A new animal joins by adding its row. Nothing else.
+  //   more:  which of its acts (ACTS) come up more often then, each with how many times as often.
+  //   often: how many times as often it does an act at all, in place of grazing on.
+  //   at:    where it keeps then: a kind of place from PLACES, found for each animal the first time it is wanted.
+  //   roam:  how far it strays, as a factor of its usual range.
+  //   gone:  it has gone to ground and is not seen (for an animal with somewhere to go: a burrow).
+  const HOURS = {
+    elk: { midday: { more: { bed: 5 }, often: 1.6 }, evening: { more: { bugle: 5, thrash: 2 }, often: 1.5 }, dusk: { at: 'water', more: { bugle: 2 } } },
+    goat: { midday: { more: { bed: 4 }, often: 1.4 } },
+    sheep: { midday: { more: { bed: 4 }, often: 1.4 }, evening: { more: { butt: 3 } } },
+    moose: { midday: { more: { bed: 4 }, often: 1.4 }, evening: { more: { dip: 3 } }, dusk: { more: { dip: 3 } } },
+    bear: { midday: { more: { bed: 6 }, often: 1.8, roam: 0.6 }, evening: { more: { dig: 2, rub: 2 }, roam: 1.5 }, dusk: { more: { upright: 2 }, roam: 1.8 } },
+    marmot: { dusk: { gone: true } }
+  };
+  let part = null; const NO_HOUR = {};
+  const hourOf = a => { const H = HOURS[a.critter]; return (part && H && H[part]) || NO_HOUR; };
+  const wetG = (x, y) => x > 1 && y > 1 && x < NW - 2 && y < NH - 2 && WET.includes(RAMP_OF[g[Math.round(y) * NW + Math.round(x)]]);
+  // A way on foot from a spot to the nearest place that will do (goal), round whatever stands between: over
+  // the animals' own grid of 8-pixel cells, from the middle of one to the middle of the next where a straight
+  // step between them may be walked, never further than reach from the start. The middles, start to end, and
+  // last the very spot the goal named in that cell. Or null.
+  const N8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]];
+  const routeFind = (x0, y0, goal, reach = 340) => {
+    const mid = c => [(c % GW) * CELL + CELL / 2, Math.floor(c / GW) * CELL + CELL / 2], c0 = Math.floor(y0 / CELL) * GW + Math.floor(x0 / CELL), prev = new Map([[c0, -1]]), q = [c0];
+    for (let h = 0; h < q.length; h++) { const c = q[h], [cx, cy] = mid(c);
+      const at = goal(cx, cy); if (at) { const pts = []; for (let k = c; k !== -1; k = prev.get(k)) pts.push(mid(k)); pts.reverse(); pts.push(at); return pts; }
+      for (const [dx, dy] of N8) { const nx = cx + dx * CELL, ny = cy + dy * CELL, n = c + dx + dy * GW; if (nx < 8 || ny < 8 || nx >= NW - 8 || ny >= NH - 8 || prev.has(n) || Math.hypot(nx - x0, (ny - y0) / 0.6) > reach || !pass(nx, ny) || !way(pass, cx, cy, nx, ny)) continue; prev.set(n, c); q.push(n); } }
+    return null; };
+  const nearWater = (x, y) => { for (let j = 0; j < 8; j++) if (wetG(x + Math.cos(j / 8 * TAU) * 13, y + Math.sin(j / 8 * TAU) * 8)) return true; return false; };
+  // Ground of its own in a cell: its country is asked pixel by pixel (a flower in the turf is not grass), so
+  // a few spots of the cell are tried. The spot, or null.
+  const SPOTS = [[0, 0], [-3, 0], [3, 0], [0, -2], [0, 2], [-2, -3], [2, 3]];
+  const okIn = (a, x, y) => { for (const [dx, dy] of SPOTS) if (a.ok(x + dx, y + dy)) return [x + dx, y + dy]; return null; };
+  // What makes a cell each kind of place, for the animal that would stand there: the spot in it, or null.
+  const PLACES = { water: (a, x, y) => nearWater(x, y) ? okIn(a, x, y) : null };
+  // A herd keeps its shape: the place is found for the first of a kind that lives together (the nearest on
+  // foot from where it lives), and each of the others takes ground of its own about it, as it has at home,
+  // and finds its own way there. One that has no way there keeps to its home.
+  // Where it lives by day, whether or not the hour has moved its home.
+  const dayHome = a => a.away ? a.away.home : [a.hx, a.hy];
+  const leadOf = a => { const [x, y] = dayHome(a); return items.find(b => b.critter === a.critter && !b.mum && b.ok && Math.hypot(dayHome(b)[0] - x, dayHome(b)[1] - y) < 90) || a; };
+  const placeOf = (a, name) => { if (!a.places) a.places = {}; if (name in a.places) return a.places[name];
+    const L = leadOf(a), [hx, hy] = dayHome(a), [lx, ly] = dayHome(L); let route = null;
+    if (L === a) route = routeFind(hx, hy, (x, y) => Math.hypot(x - hx, y - hy) > 24 ? PLACES[name](a, x, y) : null);
+    else { const P = placeOf(L, name); if (P) { const sx = P.to[0] + hx - lx, sy = P.to[1] + hy - ly, taken = items.filter(b => b !== a && b.places && b.places[name]).map(b => b.places[name].to);
+      route = routeFind(hx, hy, (x, y) => Math.hypot(x - sx, y - sy) < 24 && taken.every(q => Math.hypot(q[0] - x, q[1] - y) > 9) ? okIn(a, x, y) : null); } }
+    return (a.places[name] = route ? { to: route[route.length - 1], route } : null); };
+  // The part of the day has changed (or the page has just opened, first): each animal takes up what its row says.
+  const byHour = (a, t, first) => { const h = hourOf(a);
+    if (h.roam) { if (a.r0 == null) a.r0 = a.r; a.r = a.r0 * h.roam; } else if (a.r0 != null) { a.r = a.r0; a.r0 = null; }
+    const P = h.at && a.ok && a.walker && !a.mum ? placeOf(a, h.at) : null;
+    // Its home moves there and it sets off along the way that was found, or back along it when the hour is over.
+    if (P && !a.away) { a.away = { home: [a.hx, a.hy], route: P.route }; [a.hx, a.hy] = P.to; a.path = P.route.slice(1); a.homing = true; a.tries = 0; }
+    else if (!P && a.away) { [a.hx, a.hy] = a.away.home; a.path = [...a.away.route].reverse().slice(1).concat([a.away.home]); a.away = null; a.homing = true; a.tries = 0; }
+    // The page opened at this hour, so it is there already. After that it walks.
+    if (first && P && a.walker) { a.fx = a.tx = a.hx; a.fy = a.ty = a.hy; a.x = Math.round(a.hx); a.y = Math.round(a.hy); a.homing = false; a.path = null; }
+    // They do not all go down at once.
+    a.abed = h.gone ? t + (first ? 0 : 2 + 9 * hash(a.hx, a.hy, 6601)) : null; };
   const act = (a, name, t) => { const A = ACTS[name]; a.st = 'act'; a.act = name; a.t0 = t; a.until = t + A.dur[0] + rand() * (A.dur[1] - A.dur[0]); a.goal = null; a.push = 0; a.bm = a.f[name][0]; if (A.sound) a.say = A.sound; };
   // The way the animal is turned: 1 to the right, -1 to the left.
   const dirOf = a => a.faces * (a.flip ? -1 : 1), turn = (a, dir) => { a.flip = dir !== a.faces; };
@@ -428,22 +489,31 @@ export function makeCritters(W, opts = {}) {
     }
     if (a.st !== 'act') a.bm = a.st === 'graze' ? a.f.graze : a.f.stand && frac(t * 0.11 + a.hx * 0.37) < 0.5 ? a.f.stand : a.f.look;
     // A kid that has been left behind (its mother has walked off) goes after her at once.
-    const lag = a.mum && Math.hypot(a.fx - a.mum.fx, (a.fy - a.mum.fy) / 0.6) > a.r + 8;
+    // So does one whose home has moved with the hour (H1): it makes for the new one until it is within its range of it.
+    if (a.homing && !(a.path && a.path.length) && Math.hypot(a.fx - a.hx, (a.fy - a.hy) / 0.6) <= a.r + 8) a.homing = false;
+    const lag = a.mum ? Math.hypot(a.fx - a.mum.fx, (a.fy - a.mum.fy) / 0.6) > a.r + 8 : !!a.homing && t >= (a.wait || 0);
     if (a.st === 'act') { if (t < a.until && !(lag && !a.with)) { acting(a, t); return; } endAct(a, t); if (!lag) return; }
     if (t < a.until && !lag) return;
     // Now and then one of its acts, in place of grazing on or wandering off.
-    if (!lag && a.does && rand() < 0.3) { const own = a.does.filter(n => ACTS[n]); if (own.length && begin(a, own[Math.floor(rand() * own.length)], t)) return; }
+    // Which one leans on the hour (H1): an act its row names for this part of the day comes up that many times as often.
+    const hr = hourOf(a);
+    if (!lag && a.does && rand() < 0.3 * (hr.often || 1)) { const own = a.does.filter(n => ACTS[n]), wt = own.map(n => (hr.more && hr.more[n]) || 1); let pick = rand() * wt.reduce((s, v) => s + v, 0), k = 0; while (k < own.length - 1 && pick >= wt[k]) pick -= wt[k++]; if (own.length && begin(a, own[k], t)) return; }
     const roll = lag ? 0 : rand();
     if (roll < (a.roam || 0.25)) {
       // A kid keeps near its mother, or near where she is walking to; everyone else keeps near home.
       const far = a.mum && a.mum.st === 'walk', cx = a.mum ? (far ? a.mum.tx : a.mum.x) : a.hx, cy = a.mum ? (far ? a.mum.ty : a.mum.y) + 5 : a.hy;
+      // On its way to a home that moved with the hour (H1): the next point of the way it was given, or one
+      // further along that it can walk straight to, so it does not turn at every cell.
+      if (a.homing && a.path && a.path.length) { let k = 0; while (k + 1 < a.path.length && k < 8 && way(pass, a.fx, a.fy, a.path[k + 1][0], a.path[k + 1][1])) k++; [a.tx, a.ty] = a.path[k]; a.path.splice(0, k + 1); a.st = 'walk'; return; }
       for (let k = 0; k < 10; k++) {
         const an = rand() * TAU, rr = a.r * (0.35 + 0.65 * rand()), tx = cx + Math.cos(an) * rr, ty = cy + Math.sin(an) * rr * 0.6;
         if (a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; }
       }
       // No straight way to her (a trunk or a bend of the creek between them): it works round, to any spot it can
       // reach that is 6 or more nearer her.
-      if (lag) { const dNow = Math.hypot(a.fx - cx, a.fy - cy); for (let k = 0; k < 12; k++) { const an = rand() * TAU, rr = 10 + 22 * rand(), tx = a.fx + Math.cos(an) * rr, ty = a.fy + Math.sin(an) * rr * 0.6; if (Math.hypot(tx - cx, ty - cy) < dNow - 6 && a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; } } }
+      if (lag) { const dNow = Math.hypot(a.fx - cx, a.fy - cy); for (let k = 0; k < 12; k++) { const an = rand() * TAU, rr = 10 + 22 * rand(), tx = a.fx + Math.cos(an) * rr, ty = a.fy + Math.sin(an) * rr * 0.6; if (Math.hypot(tx - cx, ty - cy) < dNow - 6 && a.ok(tx, ty) && way(pass, a.fx, a.fy, tx, ty)) { a.tx = tx; a.ty = ty; a.st = 'walk'; return; } }
+        // One making for a home that moved with the hour looks again in a moment, and after a dozen looks stays where it is.
+        if (a.homing) { a.wait = t + 2.5; a.tries = (a.tries || 0) + 1; if (a.tries > 12) a.homing = false; } }
     }
     a.st = roll < 0.72 ? 'graze' : 'look'; a.until = t + (a.st === 'look' ? 2.5 + rand() * 4 : 5 + rand() * 11);
     if (a.st === 'look' && rand() < 0.3) a.flip = !a.flip;
@@ -526,7 +596,7 @@ export function makeCritters(W, opts = {}) {
     a.drop = 0; a.hop = 0; a.st = 'sun'; a.bm = mar.sun; a.until = t + 6 + rand() * 12; };
   function scurry(a, dt, t, here) {
     // Clicked, it whistles and dives into its burrow, and comes back up a few seconds later (note 10).
-    a.gone = a.dive != null && t > a.dive + 1.2 && t < a.dive + 4.6;
+    a.gone = (a.dive != null && t > a.dive + 1.2 && t < a.dive + 4.6) || (a.abed != null && t >= a.abed);
     const up = (here && Math.hypot(here.x - a.x, here.y - a.y) < 64) || frac(t / MAR.cycle + a.n * 0.37) < MAR.up / MAR.cycle || (a.call != null && t - a.call < MAR.up);
     if (up && !a.wasUp) a.rose = t; else if (!up && a.wasUp && rand() < 0.5) a.flip = !a.flip;
     a.wasUp = up;
@@ -1355,8 +1425,10 @@ export function makeCritters(W, opts = {}) {
     items,
     // Sounds the animals made while they were drawn this frame; the map plays them and empties the list.
     sounds,
-    update(dt, t, here) {
+    // hour: the part of the day (morning, midday, evening or dusk), for what each kind does by the hour (HOURS).
+    update(dt, t, here, hour) {
       nowT = t; if (eagleItem) eagleSits(t);
+      if (hour && hour !== part) { const first = part === null; part = hour; for (const a of items) byHour(a, t, first); }
       for (const a of items) {
         if (a.walker) walk(a, dt, t);
         else if (a.cub) cubStep(a, dt, t);
@@ -1446,7 +1518,7 @@ export function makeCritters(W, opts = {}) {
       const all = items.filter(a => a.critter === kind && !a.mum);
       // Its young go with it, each to ground of its own beside her (the ground a kid had at the old home,
       // moved over, may be a cliff at the new one).
-      const put = (a, x, y) => { const [sx, sy] = a.ok ? settle(a.ok, x, y) : [x, y], dx = sx - a.hx, dy = sy - a.hy; for (const b of [a, ...items.filter(k => k.mum === a)]) { [b.hx, b.hy] = b !== a && (b.ok || a.ok) ? settle(b.ok || a.ok, sx + clamp(b.hx - a.hx, -18, 18), sy + clamp(b.hy - a.hy, -10, 10)) : [b.hx + dx, b.hy + dy]; b.fx = b.tx = b.x = b.hx; b.fy = b.ty = b.y = b.hy; if (b.walker) b.st = 'graze'; else if (b.cub) rest(b, nowT, 1); } };
+      const put = (a, x, y) => { const [sx, sy] = a.ok ? settle(a.ok, x, y) : [x, y], dx = sx - a.hx, dy = sy - a.hy; for (const b of [a, ...items.filter(k => k.mum === a)]) { b.away = null; b.path = null; b.homing = false; b.places = null; [b.hx, b.hy] = b !== a && (b.ok || a.ok) ? settle(b.ok || a.ok, sx + clamp(b.hx - a.hx, -18, 18), sy + clamp(b.hy - a.hy, -10, 10)) : [b.hx + dx, b.hy + dy]; b.fx = b.tx = b.x = b.hx; b.fy = b.ty = b.y = b.hy; if (b.walker) b.st = 'graze'; else if (b.cub) rest(b, nowT, 1); } };
       const perchOn = (a, lift) => { a.perch = a.lift = lift; a.r = lift ? 0 : 16; };
       if (i === 'all') { for (const a of all) { if (kind === 'marmot') perchOn(a, a.perch0); put(a, a.h0[0], a.h0[1]); } return all.length > 0; }
       const h = homesOf(kind)[i]; if (!h || !all.length) return false;

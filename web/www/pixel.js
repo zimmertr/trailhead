@@ -148,6 +148,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
   const stillQ = typeof window !== 'undefined' && window.matchMedia ? matchMedia('(prefers-reduced-motion: reduce)') : null, still = () => !!stillQ && stillQ.matches;
   const autoMix = () => (still() ? 0 : cycleMix(clock.t));
   if (clock.mode === 'auto') mix = autoMix();   // the first frame already has the light of its time
+  // The part of the day, for what the animals do by the hour (round 8, H1): dusk while the light is Dusk's,
+  // and the day in thirds by the clock. Held at Day while the clock is in its dusk, it is evening.
+  const hourNow = () => mix > 0.5 ? 'dusk' : clock.t >= SUNRISE || clock.t < SUNSET / 3 ? 'morning' : clock.t < 2 * SUNSET / 3 ? 'midday' : 'evening';
   let darkNow = mix > 0.5;
   let drawn = null, tr = null, scrubbing = 0, stillAt = performance.now() / 1000;
   // Held down, Space or the Start button doubles his pace for as long as it is held.
@@ -382,7 +385,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       }
     } else if (scr.S !== scr.S0) scr.setScale(scr.S0);
     const q = drawn === legAt(p) ? local(drawn, p) : (p > drawn.t1 ? 1 : 0);
-    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix; env.sky = DEBUG.clouds ? world.sky(t) : null; if (env.sky && window.__sky) Object.assign(env.sky, window.__sky);
+    env.t = t; env.tq = Math.floor(t * 10) / 10; env.dt = sdt; env.mix = mix; env.hour = hourNow(); env.sky = DEBUG.clouds ? world.sky(t) : null; if (env.sky && window.__sky) Object.assign(env.sky, window.__sky);
     env.walkMark = route === 'walk' && p < 1 ? walkMark : null;
     env.running = running; env.moving = running || scrubbing > 0; env.shown = shown ? shown.id : null;
     env.home = !running && p === 0 && !shown && scrubbing <= 0 && legs[0].s === 'world' && legs[0].arg.from === 0;
@@ -524,7 +527,7 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
     theme: () => darkNow ? 'dark' : 'light',
     setTheme(th) { clock.mode = th === 'dark' ? 'dusk' : th === 'light' ? 'day' : 'auto'; },
     // The world clock (T76): its mode ('auto', 'day', 'dusk'), where it is in the cycle and how fast it runs.
-    clock: () => ({ mode: clock.mode, t: clock.t, speed: clock.speed, mix, cycle: CYCLE, sunset: SUNSET, sunrise: SUNRISE }),
+    clock: () => ({ mode: clock.mode, t: clock.t, speed: clock.speed, mix, cycle: CYCLE, sunset: SUNSET, sunrise: SUNRISE, hour: hourNow() }),
     setClock({ mode, t, speed } = {}) { if (mode) clock.mode = mode; if (t != null) clock.t = ((t % CYCLE) + CYCLE) % CYCLE; if (speed) clock.speed = speed; },
     // A scene holding him for something of its own (the binoculars) is told he is setting off, so it lets go.
     start() { if (route === 'walk' && p >= 1) return; if (p >= 1) p = 0; leave(); if (!tr && drawn.scene.go) drawn.scene.go(env); running = true; },
