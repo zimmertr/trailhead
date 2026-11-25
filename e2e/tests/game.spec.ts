@@ -671,6 +671,23 @@ test('every map animal has five things to do and keeps the engine rules through 
   }
 })
 
+// Round 8, H2: the cubs copy her. They dig beside the sow while she digs, and one after the other tries the
+// trunk she has just rubbed.
+test('the cubs copy the sow: they dig when she digs and try the trunk she rubbed', async ({ page }) => {
+  const problems = await open(page, '/?homes=0&bear=0')
+  type Bear = { critter: string; sow?: boolean; roamer?: boolean; cub?: boolean; mum?: Bear; st: string; act?: string }
+  type Den = { __crit: { items: Bear[]; doAct: (i: number, name: string, t: number) => boolean }; __api: { now: () => number } }
+  const begin = (name: string) => page.evaluate((n) => { const w = window as unknown as Den, i = w.__crit.items.findIndex((a) => a.sow && !a.roamer); return i >= 0 && w.__crit.doAct(i, n, w.__api.now()) }, name)
+  const cubs = (st: string) => page.evaluate((s) => (window as unknown as Den).__crit.items.filter((a) => a.cub && a.mum && a.mum.sow && !a.mum.roamer && a.st === s).length, st)
+  // A cub that is up a trunk when she starts does not come down for it, so she digs until one has joined her.
+  await expect.poll(async () => { if ((await cubs('dig')) > 0) return true; await begin('dig'); return false }, { timeout: 60_000, intervals: [1500] }).toBe(true)
+  expect(await page.evaluate(() => window.__rules?.())).toEqual([])
+  // She walks to the nearest trunk and rubs. When she is done a cub is up against it.
+  await expect.poll(async () => { if ((await cubs('lean')) > 0) return true; const sow = await page.evaluate(() => { const s = (window as unknown as Den).__crit.items.find((a) => a.sow && !a.roamer); return s ? s.st + ':' + (s.act ?? '') : '' }); if (sow !== 'walk:rub' && sow !== 'act:rub' && !sow.startsWith('walk')) await begin('rub'); return false }, { timeout: 90_000, intervals: [1000] }).toBe(true)
+  expect(await page.evaluate(() => window.__rules?.())).toEqual([])
+  expect(problems).toEqual([])
+})
+
 test('the homes the dice draw keep the engine rules and leave an animal to click', async ({ page }) => {
   for (const seed of [1, 2, 3, 4]) {
     const problems = await open(page, `/?homes=${seed}`)

@@ -119,7 +119,7 @@ Work top to bottom. TJ picked in section 5 on 2026-11-24, so nothing waits any m
 TJ picked these from `docs/IDEAS.md` on 2026-11-24, for the night. Pictures first where art is new. They come before the passes in I, so the passes check them too.
 
 - [x] **H1 Life by the Hour.** The clock leans on what animals do and where they are: the herd high by Day and down at the stream at Dusk, the marmots gone to ground at Dusk, the bears out, bugling towards Dusk, bedding at midday. TJ: "this should be built into the critter system so new animals that are later added integrate into this". So it is one rule in the animals' own system (each kind says what it does by the hour, in data), not code per animal.
-- [ ] **H2 The Cubs Copy Her.** The cubs dig beside the sow when she digs and try the trunk she has just rubbed.
+- [x] **H2 The Cubs Copy Her.** The cubs dig beside the sow when she digs and try the trunk she has just rubbed.
 - [ ] **H3 A Goat on the Ledge.** One mountain goat's home on the grassy ledge halfway up the larch basin's wall.
 - [ ] **H4 Answers and Followers.** A second bull answers a bugle faintly from off the map. When one orca spyhops, the one behind it follows a second later.
 - [ ] **H5 Ice That Moves.** The bergs in Feature Creep Lake become things that drift a little with each gust and turn slowly; the upper tarns get a few small floes.
@@ -364,3 +364,11 @@ Every call, one line each, newest last.
 - H1, not done: the squirrels, the eagle, the osprey, the whales and the scenes' animals have no rows. Nothing in the note asked for them, and each row is a call about how that animal lives.
 - H1, how it was tested: the herd's state dumped across the sunset and the sunrise for five home layouts; renders of morning, midday (three of four bedded after 45 s) and Dusk. A new browser test sets the clock to Dusk and to morning and waits for the herd at the bank, the marmots down, and both back.
 - H1, the numbers: 53 browser tests pass; check.sh reports nothing moved since E2; frame time 10.5 ms zoomed out at Dusk. CI on E2 (`7d6b60f`) was green.
+- H2, what was built: when the sow begins to dig, each cub that is free comes round to the hole, across it from her, and digs until a moment after she stops, throwing up a little earth of its own. When she has rubbed a trunk, one cub goes to it, stands up against it on the side she did not stand, reaches, and goes back to her side; then its twin does the same.
+- H2, pictures first: two prompts on `z-image-turbo-trailhead`, four seeds each (`~/Documents/trailhead-art/generated/R8-H2/`, log in `design/art/R8-H2/`). Two new cub drawings after them, two steps each: `dig` (head at the ground, rump up, a paw raking forward) and `lean` (up on its hind legs, both paws on the trunk).
+- H2, a call: a cub that is up a trunk, asleep beside her or wrestling its twin when she starts does not break off for it. It copies her the next time.
+- H2, a call: the cubs go to the trunk one at a time. Both at once, with her still standing there, was a heap of fur that read as nothing.
+- H2, added for the checks and for H13: `doAct(i, name, t)` on the animals' system starts one of a walker's own acts by name.
+- H2, how it was tested: rendered by Day, at Dusk and on a phone with her dig and her rub started by name. A new browser test has her dig until a cub digs, then rub until a cub is up against the trunk, and reads the engine rules after each. It passed twice in a row.
+
+- H2, the numbers: 54 browser tests pass; check.sh reports nothing moved since H1; frame time 10.9 ms zoomed out at Dusk. CI on H1 (`84e3c9b`) was green.

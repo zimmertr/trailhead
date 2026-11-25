@@ -55,6 +55,8 @@ export function mapBear(pose, step = 0) {
 // A black bear cub, facing right: half its mother's length, with a cub's big head and round ears. pose: 'look';
 // 'sniff', nose down; 'roll', on its back with its paws in the air; 'rear', up on its hind legs to bat at its
 // twin; 'climb', seen from behind as it hugs a trunk; 'nap', curled up asleep (round 8, D2). step is the second drawing of each.
+// Round 8, H2, each after a picture: 'dig', its head at the ground, its rump up and a paw raking forward;
+// 'lean', up on its hind legs with both paws on a trunk in front of it (step 1: reaching higher).
 export function mapCub(pose, step = 0) {
   const b = new BM(15, 12); b.ox = 7; b.oy = 11;
   const fur = (nx, ny, x, y) => pick('fur', 0.6 - ny * 0.3 + 0.2 * (hash(x, y, 9) - 0.5), x, y, 0.6), dark = R.fur[1];
@@ -66,6 +68,14 @@ export function mapCub(pose, step = 0) {
   } else if (pose === 'rear') {
     ell(b, 6, 7, 2.5, 3.2, fur); ell(b, 7.5, 3, 2.1, 1.8, fur); b.set(6, 1, dark); b.set(8, 1, dark);
     b.set(10, 4, R.dirt[2]); thick(b, 8, 6, 10, step ? 5 : 7, 1, dark); b.set(5, 10, dark); b.set(7, 10, dark);
+  } else if (pose === 'dig') {
+    for (const [lx, far] of [[3, 1], [4, 0]]) thick(b, lx, 7, lx, 10, 1, R.fur[far ? 0 : 1]);
+    ell(b, 6, 5.8, 3.6, 2.4, fur); ell(b, 4.2, 5, 2.2, 2.2, fur);
+    thick(b, 8, 7, 10 + step, 10, 1, R.fur[0]); thick(b, 9, 7, 12 - step, 10, 1, dark);
+    const hx = 11, hy = 8 + step; ell(b, hx, hy, 2, 1.7, fur); b.set(hx - 2, hy - 2, dark); b.set(hx, hy - 2, dark); b.set(hx + 2, hy + 1, R.dirt[3]);
+  } else if (pose === 'lean') {
+    ell(b, 6, 7.2, 2.4, 3.2, fur); ell(b, 7.6, 3 - step, 2.1, 1.8, fur); b.set(6, 1 - step, dark); b.set(8, 1 - step, dark);
+    b.set(10, 3 - step, R.dirt[2]); thick(b, 8, 5, 12, 3 - step, 1, dark); thick(b, 8, 7, 12, 6 - step, 1, R.fur[0]); b.set(5, 10, dark); b.set(7, 10, dark);
   } else if (pose === 'roll') {
     ell(b, 6.5, 8, 3.6, 2.2, fur); ell(b, 11, 8, 2, 1.8, fur); b.set(13, 8, R.dirt[2]); b.set(11, 6, dark);
     b.set(4, step ? 5 : 4, dark); b.set(5, step ? 4 : 5, dark); b.set(8, step ? 4 : 5, dark); b.set(9, step ? 5 : 4, dark);
@@ -260,7 +270,7 @@ export function makeCritters(W, opts = {}) {
   // when she moves off they trail her, one at each side, and while she stays they sniff about, roll on their
   // backs, rear up and bat at each other, and now and then one climbs a step up the nearest trunk, clings
   // there and comes down. A cub is not a walker: cubStep moves it.
-  const cubF = { look: mapCub('look'), sniff: mapCub('sniff'), walk: [mapCub('look', 1), mapCub('look', 2)], roll: [mapCub('roll'), mapCub('roll', 1)], rear: [mapCub('rear'), mapCub('rear', 1)], climb: [mapCub('climb'), mapCub('climb', 1)], nap: mapCub('nap') };
+  const cubF = { look: mapCub('look'), sniff: mapCub('sniff'), walk: [mapCub('look', 1), mapCub('look', 2)], roll: [mapCub('roll'), mapCub('roll', 1)], rear: [mapCub('rear'), mapCub('rear', 1)], climb: [mapCub('climb'), mapCub('climb', 1)], nap: mapCub('nap'), dig: [mapCub('dig'), mapCub('dig', 1)], lean: [mapCub('lean'), mapCub('lean', 1)] };
   // v: a cub's speed. near, far: how far from her it may be while she walks, and while she stays. up: seconds to climb. high: how far up.
   const CUB = { v: 13, near: 28, far: 34, up: 1.3, high: 6 };
   const TRUNKS = W.things.filter(th => th.tree && !th.tree.low && th.tree.h >= 18).map(th => ({ x: th.x, y: th.y, w: th.tree.w, h: th.tree.h }));
@@ -300,6 +310,10 @@ export function makeCritters(W, opts = {}) {
     // Asleep in a ball (round 8, D2): until it has slept enough, or she walks off, or wakes while it napped beside her.
     if (a.st === 'nap') { a.bm = a.f.nap; a.hop = 0; if (t < a.until && dM <= CUB.far + 6 && !(a.withHer && !(M.st === 'act' && M.act === 'bed'))) return; a.withHer = false; a.pose = 'look'; rest(a, t, 0.6 + rand() * 2); }
     if (a.st === 'roll') { a.bm = a.f.roll[Math.floor((t - a.t0) * 3.5) & 1]; if (t < a.until && dM <= CUB.far + 6) return; a.pose = 'look'; rest(a, t, 0.6 + rand() * 2); }
+    // It copies her (round 8, H2). While she digs it digs beside her, a moment longer than she does.
+    if (a.st === 'dig') { a.bm = a.f.dig[Math.floor(t * 4 + a.n) & 1]; if (t < a.until && dM <= CUB.far + 6 && M.st !== 'walk') return; a.pose = 'look'; rest(a, t, 0.5 + rand() * 1.5); }
+    // And it tries the trunk she has just rubbed: up against it where she stood, reaching, then down.
+    if (a.st === 'lean') { const s = t - a.t0; a.bm = a.f.lean[Math.floor(s * 2.2) & 1]; a.hop = Math.floor(s * 2.2) & 1; if (t < a.until && dM <= CUB.far + 40) return; a.hop = 0; toSide(a); return; }
     if (a.st === 'play') {
       a.bm = a.f.rear[Math.floor(t * 3.2 + a.n * 0.5) & 1]; a.flip = B.fx < a.fx; a.hop = (Math.floor(t * 3.2) + a.n) % 4 === 0 ? 1 : 0;
       if (t < a.until && dM <= CUB.far + 6 && B.st === 'play') return;
@@ -316,12 +330,21 @@ export function makeCritters(W, opts = {}) {
         if (Math.abs(dx) > 0.5) a.flip = dx < 0; a.bm = a.f.walk[Math.floor(t * 7 + a.n) & 1]; return;
       }
       if (a.goal === 'trunk') { a.st = 'climb'; a.t0 = t; a.hold = 1.5 + rand() * 2.5; return; }
+      if (a.goal === 'dig' && M.st === 'act' && M.act === 'dig') { a.st = 'dig'; a.goal = null; a.flip = a.hole < a.fx; a.until = M.until + 0.5 + 0.7 * a.n; return; }
+      if (a.goal === 'lean') { a.st = 'lean'; a.goal = null; a.t0 = t; a.flip = a.trunk.x < a.fx; a.until = t + 3 + rand() * 2.5; return; }
       if (a.goal === 'twin' && B.st === 'idle' && Math.hypot(B.fx - a.fx, B.fy - a.fy) < 11) { a.st = B.st = 'play'; a.until = B.until = t + 2.5 + rand() * 2.5; return; }
       if (a.goal === 'mum' && M.st === 'walk') { a.bm = a.f.look; return; }
       a.pose = 'look'; rest(a, t, 1 + rand() * 3);
     }
     a.bm = a.pose === 'sniff' ? a.f.sniff : a.f.look;
     if (M.st === 'walk' ? dM > CUB.near : dM > CUB.far) { toSide(a); return; }
+    // She has begun to dig (H2): it comes round to the hole, across it from her, and digs too. Once for each time she digs.
+    if (M.st === 'act' && M.act === 'dig' && a.dug !== M.t0) { a.dug = M.t0; const d = dirOf(M), x = M.fx + d * (24 + 2 * a.n), y = M.fy + (a.n ? 6 : -1);
+      if (land(x, y) && landWay(a.fx, a.fy, x, y)) { a.tx = x; a.ty = y; a.hole = M.fx + d * 13; a.goal = 'dig'; a.st = 'walk'; return; } }
+    // She has just rubbed a trunk (H2): one cub goes to try it, on the side she did not stand, and its twin after it.
+    const Rb = M.rubbed;
+    if (Rb && a.leant !== Rb.t && t - Rb.t < 20 && M.st !== 'walk' && !(B.st === 'lean' || (B.st === 'walk' && B.goal === 'lean'))) { a.leant = Rb.t;
+      for (const s of [-Rb.s, Rb.s]) { const x = Rb.x + s * 7, y = Rb.y + 1; if (Math.hypot(x - M.fx, y - M.fy) > 10 && land(x, y) && landWay(a.fx, a.fy, x, y)) { a.trunk = Rb; a.tx = x; a.ty = y; a.goal = 'lean'; a.st = 'walk'; return; } } }
     if (t < a.until) return;
     const roll = rand();
     if (M.st === 'act' && M.act === 'bed' && roll < 0.6) { a.st = 'nap'; a.withHer = true; a.until = t + 30; return; }
@@ -472,7 +495,10 @@ export function makeCritters(W, opts = {}) {
       a.bm = u >= 0.75 && u < 1.6 ? fr[0] : a.f.rear && u >= 0.3 && u < 0.75 ? a.f.rear[0] : a.f.look;
       const n = Math.floor(s / A.pair); if (a.lead && u >= 1.1 && a.knock !== a.t0 + n) { a.knock = a.t0 + n; a.say = 'clash'; } }
     if (a.act === 'rub') a.hop = Math.floor(s * A.fps) & 1; };
-  const endAct = (a, t) => { const b = a.with; a.with = null; if (b) b.with = null; a.push = 0; a.hop = 0; a.st = 'look'; a.until = t + 1 + rand() * 2; a.bm = a.f.look; };
+  const endAct = (a, t) => {
+    // Where she rubbed, for her cubs to try after her (H2): the trunk, and which side of it she stood.
+    if (a.sow && a.st === 'act' && a.act === 'rub' && a.lean) a.rubbed = { x: a.lean[0] + a.lean[2] * (a.lean[3] + 8), y: a.lean[1] - 1, s: -a.lean[2], t };
+    const b = a.with; a.with = null; if (b) b.with = null; a.push = 0; a.hop = 0; a.st = 'look'; a.until = t + 1 + rand() * 2; a.bm = a.f.look; };
   function walk(a, dt, t) {
     // A kid springs straight up (round 6, note 10).
     a.hop = a.spring != null && t - a.spring < 1.4 ? Math.round(6 * Math.abs(Math.sin((t - a.spring) * Math.PI / 0.7))) : 0;
@@ -1452,6 +1478,8 @@ export function makeCritters(W, opts = {}) {
         // The one it wrestles stands facing it, pushing as it gives; a digger throws earth up before its paws.
         if (a.act === 'wrestle') scr.put(mar.wrestle[k ^ 1], a.x - ox + dir * 11, gy, !a.flip);
         else for (let j = 0; j < 4; j++) if (hash(j, Math.floor(t * 9), 6411) > 0.4) scr.set(a.x - ox + dir * (7 + Math.floor(hash(j, Math.floor(t * 9), 6412) * 5)), gy - Math.floor(hash(j, Math.floor(t * 9), 6413) * 5), j & 1 ? R.dirt[1] : R.dirt[2]); }
+      // A cub that digs beside its mother throws up a little earth of its own (H2).
+      if (a.cub && a.st === 'dig') { const dir = a.flip ? -1 : 1, beat = Math.floor(t * 9); for (let j = 0; j < 3; j++) if (hash(j, beat + a.n, 6431) > 0.4) scr.set(a.x - ox + dir * (6 + Math.floor(hash(j, beat, 6432) * 4)), a.y - oy - 1 - Math.floor(hash(j, beat, 6433) * 4), j & 1 ? R.dirt[1] : R.dirt[2]); }
       if (a.dart && a.st === 'act' && a.act === 'bury') for (let j = 0; j < 3; j++) if (hash(j, Math.floor(t * 9), 6421) > 0.4) scr.set(a.x - ox + (a.flip ? -1 : 1) * (5 + Math.floor(hash(j, Math.floor(t * 9), 6422) * 3)), a.y - oy - 1 - Math.floor(hash(j, Math.floor(t * 9), 6423) * 3), R.dirt[1 + (j & 1)]);
       // Water runs from the weed in the moose's mouth while his head is up.
       if (a.st === 'act' && a.act === 'dip' && a.bm !== a.f.graze) { const dir = dirOf(a); for (let k = 0; k < 3; k++) { const u = frac(t * 1.7 + k / 3); scr.set(a.x - ox + dir * (17 + (k & 1)), a.y - oy - 16 + Math.round(u * u * 11), k === 1 ? R.water[5] : R.white[1]); } }
@@ -1477,6 +1505,8 @@ export function makeCritters(W, opts = {}) {
     },
     // A click on one of them, by the act pick() gave: what it does, and the sound it makes (or null).
     click(id, px, py, t) { return poke(id, px, py, t); },
+    // One of a walker's own acts, by name, now: for the debug panel and the checks. Whether it began.
+    doAct(i, name, t) { const a = items[i]; return !!a && !!a.walker && a.does.includes(name) && begin(a, name, t); },
     tideAt: t => ebbAt(t) / EBB,
     // For the checks: where the two fishing birds live and how far into its flight each is (under 0: not yet).
     birds: t => { const E = eagle(), c = E && E.flight(slotOf(EAG, t, eagAhead)[0]); return { eagle: E && { perch: [E.p.x, E.p.y, E.p.tall], over: E.C, fish: E.fish, tops: TOPS.map(p => [p.x, p.y, p.tall]), s: slotOf(EAG, t, eagAhead)[1], len: c && c.len, mark: c && c.mark },

@@ -577,4 +577,7 @@ The list has 17 finds and every one still answers. New ones wait for TJ's pick (
 - **The Way-Finder for Everyone** (round 8, H1). The animals can now find a way round trees and water. A fleeing animal, a kid working back to its mother and the sow going to a trunk still walk straight lines and give up when one is blocked. They could use it too.
 - **The Hours in the Side Scenes** (round 8, H1). The lakeside's marmot, the larches' pika and the approach's goats live the same at every hour. Their scenes could read the same part of the day.
 - **The Board Knows the Hour** (round 8, H1). The conditions board could say when to look: "elk at the stream at Dusk", "marmots up by Day".
+- **The Cubs Copy More** (round 8, H2). They dig when she digs and try her trunk. They could also stand up when she stands up to look, and sniff where she has been grazing.
+- **Kids and Calves Copy Too** (round 8, H2). A kid could butt the air when the nanny butts, and the moose calf could put its head in the water when the bull dips. The same idea, one line in each young animal's row.
+- **What the Sow Dug** (round 8, H2). The hole could stay as a patch of turned earth for a few minutes, and a cub could come back to it.
 
