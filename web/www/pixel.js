@@ -589,6 +589,9 @@ export async function mount(canvas, { onEvent = () => {}, theme = 'light', break
       const fwd = code === 'ArrowRight' || code === 'KeyD';
       if (fwd || code === 'ArrowLeft' || code === 'KeyA') {
         const s = fwd ? stops.find(q => q.at > p + 1e-4) : [...stops].reverse().find(q => q.at < p - 1e-4);
+        // Into a scene that has not arrived (A6): it is fetched first and he lands there when it has, as goto()
+        // does. Without this he was held at the edge of the map with the milestone's card up (round 8, I3).
+        if (s && s.leg.scene.later) { const r = route; wake().then(() => { if (route === r) api.goto(s.id); }); return true; }
         running = false; scrubbing = 0.16;
         if (s) { p = s.at; shown = null; showStop(s); } else { p = fwd ? 1 : 0; leave(); if (fwd) finish(); }
         return true;

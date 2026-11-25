@@ -71,6 +71,13 @@ How every animal, plant and solid thing in the pixel world is built. `web/www/ru
 - Rows added under a picture get their plants and stones from an `rng()` of their own, so nothing above them moves.
 - The view stays on the painted strip. A scene whose strip does not wrap clamps its camera between 0 and the strip's width less the window's (`climb.js`, `ridge.js`).
 
+## Keyboard
+
+- A sheet (`openSheet()` in `app.js`) is a dialog: while it is open everything else on the page is inert, and it is named by its `h2`. The page of text does the same. Anything new that opens over the page follows them.
+- When a sheet closes, the focus goes back to what opened it if the keyboard opened it. After a click it goes nowhere, so Space still starts and stops him.
+- Whatever moves him to a milestone (`goto()`, `scrub()`, `key()` in `pixel.js`) first checks that the milestone's scene has arrived (`leg.scene.later`), fetches it if not (`wake()`), and lands when it has.
+- Two browser tests hold this: the checker and the Tab key over every card, sheet and menu by Day and at Dusk, and a whole visit by keyboard with reduced motion on. A new card, sheet or menu is added to the first.
+
 ## Phones
 
 - The world's pixels (`--px`) are 1 wide on a phone, so a size written in them is half or a third of what it is on a desktop. Anything that can be tapped has a floor: `min-height: max(calc(var(--px) * 9), 24px)`. Nothing to tap is under 24 by 24.

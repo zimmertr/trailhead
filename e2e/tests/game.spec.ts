@@ -10,7 +10,7 @@ const origin = process.env.BASE_URL ?? 'http://localhost:8080'
 // the suite, so the page's request is answered here.
 const LIVE = { projects: [{ slug: 'bluebird', name: 'Bluebird Forecast', repo: 'zimmertr/bluebird', url: 'https://github.com/zimmertr/bluebird', stars: 4242, language: 'TypeScript', license: 'NOASSERTION', release: { tag: 'v9.9.9', publishedAt: '2026-11-20T00:00:00Z' }, fetchedAt: '2026-11-21T00:00:00Z' }] }
 
-type Info = { p: number; route: string | null; scene: string; baked: boolean; bakeNote: string; o: { x: number; y: number } }
+type Info = { p: number; route: string | null; running: boolean; scene: string; baked: boolean; bakeNote: string; o: { x: number; y: number } }
 declare global {
   interface Window {
     __ready?: boolean
@@ -118,7 +118,7 @@ test('the page shows the picture of the map and every card', async ({ page }) =>
   await watch(page)
   await expect(page.locator('#plain canvas[role="img"]')).toBeVisible()
   for (const heading of ['Who TJ is', 'A personal note', 'Platform Engineering', 'Bluebird Forecast', 'Kubernetes-Manifests'])
-    await expect(page.locator('#plain h4', { hasText: heading })).toBeVisible()
+    await expect(page.locator('#plain h3', { hasText: heading })).toBeVisible()
   expect(problems).toEqual([])
 })
 
@@ -1167,3 +1167,133 @@ for (const [width, height] of [[320, 568], [360, 740], [390, 844], [844, 390], [
     expect(problems).toEqual([])
   })
 }
+
+// Tabs through the page from its start and says what the keyboard cannot do among the given parts of it:
+// something a pointer can press that Tab never reaches, a thing that takes the focus without showing it,
+// and, while `inside` is open over the page, the focus leaving it for what lies behind.
+const tabWalk = async (page: Page, parts: string[], inside: string | null) => {
+  const out: string[] = []
+  await page.evaluate(() => { (document.activeElement as HTMLElement | null)?.blur(); for (const e of document.querySelectorAll('[data-kbd]')) e.removeAttribute('data-kbd') })
+  for (let i = 0; i < 300; i++) {
+    await page.keyboard.press('Tab')
+    const at = await page.evaluate((box) => {
+      const e = document.activeElement as HTMLElement | null
+      if (!e || e === document.body) return { name: '', again: false, ring: true, left: false }
+      const name = `${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${typeof e.className === 'string' && e.className ? '.' + e.className.trim().split(/\s+/).join('.') : ''} "${(e.getAttribute('aria-label') ?? e.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 28)}"`
+      const again = e.dataset.kbd === '1'; e.dataset.kbd = '1'
+      const s = getComputedStyle(e), ring = (s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0) || s.boxShadow !== 'none'
+      return { name, again, ring, left: !!box && !e.closest(box) }
+    }, inside)
+    if (at.again) break
+    if (at.name && !at.ring) out.push(`takes the focus without showing it: ${at.name}`)
+    if (at.left) out.push(`the focus leaves ${inside}: ${at.name}`)
+  }
+  for (const m of await page.evaluate((sels) => {
+    const miss: string[] = []
+    for (const sel of sels) for (const root of document.querySelectorAll(sel)) for (const e of root.querySelectorAll<HTMLElement>('button, a[href], select, input, textarea, summary, [role=menuitem], [role=menuitemradio], [role=slider], [tabindex="0"]')) {
+      const r = e.getBoundingClientRect(), s = getComputedStyle(e)
+      if (r.width === 0 || r.height === 0 || s.visibility === 'hidden' || e.closest('[hidden]') || (e as HTMLButtonElement).disabled) continue
+      if (e.dataset.kbd !== '1') miss.push(`Tab never reaches: ${e.tagName.toLowerCase()}${e.id ? '#' + e.id : ''}${typeof e.className === 'string' && e.className ? '.' + e.className.trim().split(/\s+/).join('.') : ''} "${(e.getAttribute('aria-label') ?? e.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 28)}"`)
+    }
+    return miss
+  }, parts)) out.push(m)
+  return out
+}
+
+// Round 8, I3: every card, sheet and menu under the accessibility checker by Day and at Dusk, and tabbed through
+// by Day. Before the pass Tab walked out of an open sheet into the top bar and the card behind it, the two
+// buttons in the register's box took the focus without showing it, and three things were too faint to read:
+// two small lines on the watch-face card and the ticked entry in the music menu.
+test('every card, sheet and menu passes the accessibility checker by Day and at Dusk, and Tab reaches all of it', async ({ page }) => {
+  test.setTimeout(600_000)
+  const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa']
+  const all: string[] = []
+  await open(page, '/')
+  const slugs = await page.evaluate(async () => {
+    const { W } = await import(new URL('./words.js', location.href).href) as { W: { CARDS: Record<string, { slug: string; title: string }>; PROJECTS: Record<string, { name: string }> } }
+    return [...Object.values(W.CARDS).filter((c) => c.slug).map((c) => [c.slug, c.title]), ...Object.entries(W.PROJECTS).map(([id, p]) => ['sideproject-spires/' + id, p.name])] as [string, string][]
+  })
+  for (const theme of ['light', 'dark']) {
+    const home = async () => { await page.goto(`${origin}/?x=${theme}${Math.random()}`); await page.waitForFunction(() => window.__ready === true, null, { timeout: 30_000 }); await page.evaluate((t) => (window as unknown as { __api: { setTheme: (t: string) => void } }).__api.setTheme(t), theme) }
+    await home()
+    const note = async (what: string, parts: string[], inside: string | null = null) => {
+      await page.waitForTimeout(500)
+      // The trail map's dots stand where the places are, some closer together than 24 pixels, which the checker
+      // counts against them. WCAG lets that pass where another control on the page does the same and is big
+      // enough: the names under the map are those controls. So the dots skip that one rule and no other.
+      const seen = what === 'sheet map'
+        ? [...found(await new AxeBuilder({ page }).withTags(TAGS).exclude('.mapbox .dot').analyze()), ...found(await new AxeBuilder({ page }).withTags(TAGS).include('.mapbox').disableRules(['target-size']).analyze())]
+        : found(await axe(page))
+      for (const m of seen) all.push(`${theme} ${what}: axe ${m}`)
+      if (theme === 'light') for (const m of await tabWalk(page, parts, inside)) all.push(`${what}: ${m}`)
+    }
+    await note('the junction', ['#fork', '#top', '#bar'])
+    for (const [slug, title] of slugs) { await page.goto(`${origin}/#${slug}`); await expect(page.locator('#card-title')).toHaveText(title, { timeout: 20_000 }); await note('card ' + slug, ['#card', '#top', '#bar']) }
+    await page.goto(`${origin}/#nowhere-at-all`); await expect(page.locator('#card-title')).toHaveText(/off route/i, { timeout: 20_000 }); await note('off route', ['#card', '#top', '#bar'])
+    for (const sheet of ['map', 'keys', 'kiosk']) { await page.goto(`${origin}/#${sheet}`); await expect(page.locator('#sheet')).toBeVisible({ timeout: 20_000 }); await expect(page.locator('#sheet')).toHaveAccessibleName(/\S/); await note('sheet ' + sheet, ['#sheet'], '#sheet'); await page.keyboard.press('Escape'); if (await page.locator('#sheet').isVisible()) all.push(`sheet ${sheet}: Escape does not close it`) }
+    await page.goto(`${origin}/#register`); await expect(page.locator('#book .spot.open')).toBeVisible({ timeout: 20_000 }); await note('the register box', ['#book', '#book-x'])
+    await page.locator('#book .spot.open').focus(); await page.keyboard.press('Enter'); await expect(page.locator('#book .page.right')).toBeVisible(); await note('the register book', ['#book', '#book-x'])
+    await page.keyboard.press('Escape'); await page.waitForTimeout(1500); if (await page.locator('#book').isVisible()) all.push('the register book: Escape does not close the register')
+    await page.goto(`${origin}/#page`); await expect(page.locator('#plain')).toBeVisible(); await note('the page of text', ['#plain'], '#plain')
+    // Its headings go down one level at a time.
+    for (const m of found(await new AxeBuilder({ page }).withRules(['heading-order']).analyze())) all.push(`${theme} the page of text: axe ${m}`)
+    await home(); await page.keyboard.press('Backquote'); await expect(page.locator('#debug')).toBeVisible(); await note('the debug panel', ['#debug'])
+    await page.keyboard.press('Backquote'); await page.locator('#b-track').focus(); await page.keyboard.press('Enter'); if (await page.locator('#music').isHidden()) await page.keyboard.press('Enter')
+    await expect(page.locator('#music')).toBeVisible(); for (const m of found(await axe(page))) all.push(`${theme} the music menu: axe ${m}`)
+    await page.keyboard.press('Escape')
+  }
+  expect(all).toEqual([])
+})
+
+// Round 8, I3: a whole visit with the keyboard alone, as a visitor who asked for reduced motion.
+test('a whole visit by keyboard with reduced motion on: a route, a milestone, the trail map, the page of text, the register', async ({ browser }) => {
+  test.setTimeout(240_000)
+  const page = await browser.newPage({ reducedMotion: 'reduce' })
+  const problems = await open(page, '/')
+  const tabTo = async (sel: string, max = 60) => { for (let i = 0; i < max; i++) { if (await page.locator(sel).evaluate((e) => e === document.activeElement)) return true; await page.keyboard.press('Tab') } return false }
+  // The junction: Tab to the first sign, Enter sets him off for the lake.
+  expect(await tabTo('#signs [data-route="lake"]'), 'Tab reaches the lake sign').toBe(true)
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => (await info(page))?.route, { timeout: 10_000 }).toBe('lake')
+  // Right arrow goes to the next milestone, where its card comes up.
+  await page.keyboard.press('ArrowRight')
+  await expect(page.locator('#card')).toBeVisible({ timeout: 20_000 })
+  await expect(page.locator('#card-title')).toHaveText('Who TJ is')
+  await expect.poll(async () => (await info(page))?.scene, { timeout: 20_000 }).toBe('forest')
+  // The card's own button takes him on: Tab reaches it, Enter presses it.
+  expect(await tabTo('#card-go'), 'Tab reaches the card button').toBe(true)
+  await page.keyboard.press('Enter')
+  await expect.poll(async () => (await info(page))?.running, { timeout: 10_000 }).toBe(true)
+  await page.keyboard.press('Space')
+  await expect.poll(async () => (await info(page))?.running, { timeout: 10_000 }).toBe(false)
+  // M opens the trail map with the focus on Close; a name in it goes to that milestone.
+  await page.keyboard.press('KeyM')
+  await expect(page.locator('#sheet')).toBeVisible()
+  await expect(page.locator('#close')).toBeFocused()
+  expect(await tabTo('.key button >> nth=4'), 'Tab reaches a name under the map').toBe(true)
+  const name = await page.locator('.key button').nth(4).innerText()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#sheet')).toBeHidden()
+  await expect(page.locator('#card-title')).toHaveText(name, { timeout: 20_000 })
+  // Escape opens the map when nothing is open and closes it again, and the focus goes back where it was.
+  await page.locator('#b-map').focus(); await page.keyboard.press('Enter')
+  await expect(page.locator('#sheet')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#sheet')).toBeHidden()
+  await expect(page.locator('#b-map')).toBeFocused()
+  // P opens the page of text; everything on it is words and links; Escape comes back.
+  await page.keyboard.press('KeyP')
+  await expect(page.locator('#plain')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#plain')).toBeHidden()
+  // R opens the register, Enter on the book opens it, Escape closes the register.
+  await page.keyboard.press('KeyR')
+  await expect(page.locator('#book .spot.open')).toBeVisible({ timeout: 20_000 })
+  expect(await tabTo('#book .spot.open'), 'Tab reaches the book').toBe(true)
+  await page.keyboard.press('Enter')
+  await expect(page.locator('#book .page.right')).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(page.locator('#book')).toBeHidden({ timeout: 10_000 })
+  expect(problems).toEqual([])
+  await page.close()
+})

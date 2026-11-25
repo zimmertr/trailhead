@@ -241,14 +241,29 @@ async function navigate(hash) {
 
 // ------------------------------------------------------------------ sheets
 
-function openSheet(name) {
+// A sheet is a dialog over the page: while it is open nothing behind it takes the focus or a click (inert), and
+// when it closes the focus goes back to what opened it, if the keyboard opened it (round 8, I3: Tab used to walk
+// out of an open sheet into the top bar and the card behind it). A sheet opened with the pointer gives the focus
+// back to nothing, so that Space still starts and stops him.
+let sheetFrom = null;
+function openSheet(name, from = null) {
+  if (sheet.hidden) { const a = document.activeElement; sheetFrom = from || (a && a !== document.body && a.matches(':focus-visible') ? a : null); }
   const body = $('sheet-body'); body.replaceChildren();
   if (name === 'map') body.append(...trailMap());
   else if (name === 'kiosk') body.append(...kiosk());
   else body.append(el('div', { class: 'band' }, el('h2', { text: UI.keys.title }), el('p', { text: UI.keys.note })), el('dl', { class: 'keys' }, ...HELP.flatMap(([k, v]) => [el('dt', { text: k }), el('dd', { text: v })])));
-  sheet.hidden = false; audio.sfx('open'); audio.focus(2); $('close').focus();
+  // The dialog is named by its own heading.
+  const title = body.querySelector('h2'); if (title) { title.id = 'sheet-title'; sheet.setAttribute('aria-labelledby', 'sheet-title'); }
+  sheet.hidden = false; for (const e of document.body.children) if (e !== sheet && e.tagName !== 'SCRIPT') e.inert = true;
+  audio.sfx('open'); audio.focus(2); $('close').focus();
 }
-function closeSheet() { if (!sheet.hidden) { sheet.hidden = true; audio.sfx('close'); audio.focus(shown ? 1 : 0); } }
+function closeSheet() {
+  if (sheet.hidden) return;
+  sheet.hidden = true; for (const e of document.body.children) e.inert = false;
+  audio.sfx('close'); audio.focus(shown ? 1 : 0);
+  const back = sheetFrom; sheetFrom = null;
+  if (back && back.isConnected && back !== document.body && (!back.checkVisibility || back.checkVisibility())) back.focus({ preventScroll: true });
+}
 
 // ------------------------------------------------------------------ the debug panel
 // Hidden: the backtick key opens and closes it, and so does the small sign at the foot of the trail map.
@@ -382,9 +397,10 @@ function checkRegister() { const d = api.done(); if (d.lake && d.stack && d.spir
 
 // The whole site as one page of text, for reading or for anything that cannot draw the world.
 function openPlain() {
-  const sec = (title, ...kids) => [el('h3', { text: title }), ...kids];
+  // Its headings go down a level at a time for a screen reader: the name, a route, a milestone (round 8, I3).
+  const sec = (title, ...kids) => [el('h2', { text: title }), ...kids];
   const draft = () => el('p', { class: 'draft', text: $('card-draft').textContent });
-  const cardOut = id => { const c = CARDS[id]; return [el('h4', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.aside ? el('p', { class: 'aside', text: c.aside }) : null, c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null, c.draft ? draft() : null]; };
+  const cardOut = id => { const c = CARDS[id]; return [el('h3', { text: c.title }), ...c.body.map(t => el('p', { text: t })), c.aside ? el('p', { class: 'aside', text: c.aside }) : null, c.tools ? el('ul', { class: 'tools' }, ...c.tools.map(t => el('li', { text: t }))) : null, c.links.length ? el('ul', { class: 'links' }, ...c.links.map(linkLi)) : null, c.draft ? draft() : null]; };
   // Without the world there is no picture of the map and no way back to it, and the page says why.
   let still = null;
   if (!worldDown) try { const MAP = api.mapFrame(); still = api.mapImage(MAP.x + OX, MAP.y + OY, MAP.w, MAP.h); still.setAttribute('role', 'img'); still.setAttribute('aria-label', UI.plain.mapAlt); } catch (err) { console.error(err); still = null; }
@@ -393,7 +409,7 @@ function openPlain() {
   plain.replaceChildren(el('div', { class: 'band' }, el('h2', { text: UI.map.title }), worldDown ? el('button', { class: 'plank', onclick: () => { location.href = location.pathname; } }, el('span', { text: CARDS['off-route'].go })) : el('button', { class: 'plank', onclick: leavePlain }, el('span', { text: UI.plain.back }))),
     el('div', { class: 'wrap' }, el('h1', { text: UI.name }), el('p', { text: UI.name + ' ' + INTRO }), worldDown ? el('p', { class: 'legend', text: UI.plain.down }) : null, still,
       ...sec(UI.map.lake[0], ...['who', 'mountains', 'note'].flatMap(cardOut)), ...sec(UI.map.stack[0], ...['platform-engineering', 'site-reliability-engineering', 'software-engineering', 'summit'].flatMap(cardOut)),
-      ...sec(UI.map.spires[0], ...CARDS['base-camp'].body.map(t => el('p', { text: t })), ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h4', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: UI.plain.facts(p.stars, p.release ? UI.plain.released(p.release, ago(p.released)) : UI.plain.noRelease, p.language, p.license) }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, target: '_blank', rel: 'noopener', text: 'github.com/' + p.repo })), p.site ? el('li', {}, el('a', { href: p.site, target: '_blank', rel: 'noopener', text: p.site.replace('https://', '') })) : null, ...(p.extra || []).map(([n, h]) => el('li', {}, el('a', { href: h, target: '_blank', rel: 'noopener', text: n }))))]; }))));
+      ...sec(UI.map.spires[0], ...CARDS['base-camp'].body.map(t => el('p', { text: t })), ...SPIRE_ORDER.flatMap(id => { const p = PROJECTS[id]; return [el('h3', { text: p.name }), ...p.body.map(t => el('p', { text: t })), el('p', { class: 'legend', text: UI.plain.facts(p.stars, p.release ? UI.plain.released(p.release, ago(p.released)) : UI.plain.noRelease, p.language, p.license) }), el('ul', { class: 'links' }, el('li', {}, el('a', { href: 'https://github.com/' + p.repo, target: '_blank', rel: 'noopener', text: 'github.com/' + p.repo })), p.site ? el('li', {}, el('a', { href: p.site, target: '_blank', rel: 'noopener', text: p.site.replace('https://', '') })) : null, ...(p.extra || []).map(([n, h]) => el('li', {}, el('a', { href: h, target: '_blank', rel: 'noopener', text: n }))))]; }))));
   if (plain.hidden) { plainFrom = document.activeElement; const was = decodeURIComponent(location.hash.slice(1)); plainWas = was === 'page' || was === 'plain' ? null : was; }
   if (!worldDown) setAddress('page');
   plain.hidden = false; plain.scrollTop = 0; if (api && !worldDown) api.stop();
@@ -586,11 +602,11 @@ $('card-x').addEventListener('click', () => { cardShut = true; card.hidden = tru
 tab.addEventListener('click', e => { e.currentTarget.blur(); if (shown && cardShut) { cardShut = false; card.hidden = false; audio.focus(1); } else forkShut = false; audio.sfx('open'); });
 $('home').addEventListener('click', e => { e.currentTarget.blur(); if (api.route().startsWith('spire:')) toCamp(); else home(); audio.sfx('select'); });
 $('card-go').addEventListener('click', () => { const c = CARDS[shown]; audio.sfx('select'); if (c && c.home) home(); else api.start(); });
-$('b-map').addEventListener('click', e => { e.currentTarget.blur(); openSheet('map'); });
+$('b-map').addEventListener('click', e => { const b = e.currentTarget; b.blur(); openSheet('map', e.detail ? null : b); });
 function musicButton() { if (!soundAsked && !audio.live() && !audio.muted()) { soundAsked = true; audio.start(); audio.sfx('select'); syncTop(); return; } soundAsked = true; musicMenu(music.hidden); }
 $('b-track').addEventListener('click', musicButton);
 $('b-dusk').addEventListener('click', e => { e.currentTarget.blur(); toggleDusk(); });
-$('b-help').addEventListener('click', e => { e.currentTarget.blur(); openSheet('keys'); });
+$('b-help').addEventListener('click', e => { const b = e.currentTarget; b.blur(); openSheet('keys', e.detail ? null : b); });
 $('b-page').addEventListener('click', () => navigate('#page'));
 // The debug menu is public (T9): its button sits next to Keys (not on a phone, where the trail map's foot opens it).
 $('b-debug').addEventListener('click', e => { e.currentTarget.blur(); openDebug(debug.hidden); });
